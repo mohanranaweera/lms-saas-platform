@@ -1,0 +1,21 @@
+﻿{
+  "autoUpdatesChannel": "stable",
+  "env": {
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1"
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.development)",
+      "Read(./.env.development.local)",
+      "Read(./.env.test)",
+      "Read(./.env.test.local)",
+      "Read(./.env.production)",
+      "Read(./.env.production.local)",
+      "Read(./secrets/**)",
+      "Read(./credentials/**)",
+      "Read(./backups/**)"
+    ]
+  }
+}
