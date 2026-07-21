@@ -66,3 +66,4 @@ minio-data/
 tmp/
 temp/
 *.tmp
+infrastructure/.env.dev

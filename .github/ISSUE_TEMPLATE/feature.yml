@@ -1,0 +1,240 @@
+﻿name: Feature request
+description: Propose a new feature, module, enhancement, or business capability for the SaaS LMS platform.
+title: "[Feature]: "
+labels: []
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## SaaS LMS Feature Request
+
+        Complete every required section before implementation begins.
+
+        The feature will be reviewed for:
+
+        - business value
+        - user-role requirements
+        - backend impact
+        - frontend impact
+        - database impact
+        - tenant isolation
+        - security
+        - payment and enrollment impact
+        - testing requirements
+
+        Do not include passwords, API keys, production credentials, real student data, payment slips, or sensitive financial information.
+
+  - type: textarea
+    id: business-goal
+    attributes:
+      label: Business goal
+      description: Explain the business problem, opportunity, or operational requirement this feature addresses.
+      placeholder: |
+        Example:
+        Tenant administrators need to create and manage staff accounts so that finance, attendance, examination, and student-support work can be delegated securely.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-role
+    attributes:
+      label: User role
+      description: Select the primary user group that will use or manage this feature.
+      options:
+        - Student
+        - Teacher
+        - Tenant Admin
+        - Platform Admin
+        - Staff
+        - Finance Staff
+        - Course Coordinator
+        - Exam Manager
+        - Attendance Operator
+        - Support Staff
+        - Multiple roles
+        - System or background process
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the observable and testable conditions that must be satisfied before this feature is considered complete.
+      placeholder: |
+        Example:
+        - [ ] Tenant Admin can create a staff account.
+        - [ ] The staff member is assigned to the current tenant.
+        - [ ] Tenant Admin can assign an allowed staff role.
+        - [ ] Users from another tenant cannot view the staff account.
+        - [ ] Creation and role changes are recorded in the audit log.
+        - [ ] Backend and frontend tests pass.
+    validations:
+      required: true
+
+  - type: textarea
+    id: backend-impact
+    attributes:
+      label: Backend impact
+      description: Describe required Spring Boot modules, services, APIs, DTOs, validation, authorization, events, integrations, or background processes.
+      placeholder: |
+        Describe:
+        - affected backend module
+        - new or changed API endpoints
+        - request and response DTOs
+        - service-layer business rules
+        - authorization requirements
+        - audit logging requirements
+        - background jobs or events
+
+        Enter "No backend impact" when this feature does not affect the backend.
+    validations:
+      required: true
+
+  - type: textarea
+    id: frontend-impact
+    attributes:
+      label: Frontend impact
+      description: Describe required Next.js routes, pages, components, forms, navigation, states, responsiveness, accessibility, and user flows.
+      placeholder: |
+        Describe:
+        - affected portal
+        - routes and pages
+        - components and forms
+        - navigation changes
+        - loading state
+        - empty state
+        - error state
+        - permission-denied state
+        - responsive and accessibility requirements
+
+        Enter "No frontend impact" when this feature does not affect the frontend.
+    validations:
+      required: true
+
+  - type: textarea
+    id: database-impact
+    attributes:
+      label: Database impact
+      description: Describe new or changed PostgreSQL tables, columns, relationships, constraints, indexes, and Flyway migrations.
+      placeholder: |
+        Describe:
+        - tables or columns
+        - primary and foreign keys
+        - tenant_id requirements
+        - unique constraints
+        - indexes
+        - status fields
+        - audit fields
+        - Flyway migration requirements
+        - data migration or rollback considerations
+
+        Enter "No database impact" when no schema or data change is required.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tenant-impact
+    attributes:
+      label: Tenant impact
+      description: Explain how this feature is scoped, isolated, configured, enabled, or limited for each tenant.
+      placeholder: |
+        Describe:
+        - whether the feature is platform-level or tenant-owned
+        - how tenant_id is resolved
+        - tenant isolation requirements
+        - cross-tenant access risks
+        - tenant-specific configuration
+        - feature flags or SaaS plan limits
+        - tenant-level reporting requirements
+
+        Enter "Platform-level only" when the feature does not own tenant data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: security-impact
+    attributes:
+      label: Security impact
+      description: Describe authentication, authorization, data protection, validation, rate limiting, file access, audit logging, or privacy requirements.
+      placeholder: |
+        Describe:
+        - permitted roles and permissions
+        - backend authorization checks
+        - sensitive data involved
+        - input and file validation
+        - rate-limiting requirements
+        - audit events
+        - privacy considerations
+        - security tests
+        - abuse or account-sharing risks
+
+        Enter "No additional security impact" only after reviewing the feature carefully.
+    validations:
+      required: true
+
+  - type: textarea
+    id: payment-impact
+    attributes:
+      label: Payment impact
+      description: Describe any effect on orders, payments, payment slips, ledger entries, refunds, commissions, settlements, enrollments, or course access.
+      placeholder: |
+        Describe:
+        - order lifecycle changes
+        - payment status changes
+        - payment gateway or manual-slip behavior
+        - ledger entries
+        - refund behavior
+        - settlement impact
+        - enrollment activation or cancellation
+        - idempotency and duplicate-payment protection
+        - financial audit requirements
+
+        Enter "No payment or enrollment impact" when the feature is unrelated to payments and access activation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: test-requirements
+    attributes:
+      label: Test requirements
+      description: List the unit, integration, security, tenant-isolation, API, frontend, and end-to-end tests required.
+      placeholder: |
+        Example:
+        Backend:
+        - [ ] Service unit tests
+        - [ ] Repository integration tests
+        - [ ] API authorization tests
+        - [ ] Cross-tenant access-denial tests
+
+        Frontend:
+        - [ ] Form validation tests
+        - [ ] Loading, empty, error, and permission-denied states
+        - [ ] Responsive UI verification
+
+        End-to-end:
+        - [ ] Main user journey
+        - [ ] Unauthorized journey
+        - [ ] Failure and recovery journey
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: submission-confirmation
+    attributes:
+      label: Submission confirmation
+      description: Confirm that this request is ready for architecture and implementation planning.
+      options:
+        - label: I have provided testable acceptance criteria.
+          required: true
+        - label: I have considered tenant isolation and cross-tenant access.
+          required: true
+        - label: I have considered security and authorization requirements.
+          required: true
+        - label: I have considered payment and enrollment impact.
+          required: true
+        - label: I have not included secrets, production credentials, or sensitive personal or financial data.
+          required: true
