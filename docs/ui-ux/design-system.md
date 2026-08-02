@@ -77,6 +77,11 @@ upload, bulk actions, multi-step course creation).
 
 ## 4. Required shared, reusable components
 
+See `docs/ui-ux/component-library-spec.md` for the concrete anatomy/variant/state/
+token-binding spec of every required component (Button through Step Indicator, plus
+the full Status Chip vocabulary) — this section stays scoped to the shared
+async/data-state components called out below, which are structural rather than visual.
+
 These must exist as shared patterns, not be reimplemented ad hoc per page/module,
 per `.claude/rules/frontend.md`:
 
