@@ -235,10 +235,12 @@ Per `.claude/rules/testing.md`, changes to this area require, at minimum:
 - Negative-path authorization tests per role/staff sub-role for any new
   protected endpoint, not just the happy path.
 
-## 12. Open questions (require explicit technology decisions before implementation)
+## 12. Open questions — resolved by ADR-007
 
-The following are intentionally **not** decided by this document and must
-not be assumed — each needs its own confirmation/ADR before code is written:
+The items below were intentionally not decided by this document. They are now
+resolved by `docs/adr/ADR-007-authentication-token-and-device-mechanism.md`
+(Accepted 2026-08-02) — implementation should follow that ADR's decisions, not
+invent its own answer to any item below:
 
 - Concrete session/token format and signing mechanism (e.g. which token
   standard, which signing/verification approach, token storage location).

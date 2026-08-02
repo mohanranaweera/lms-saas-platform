@@ -117,26 +117,13 @@ rule.
   **defense-in-depth layer on top of** `TenantAwareRepository` (not a replacement) should
   be raised as a proposal, not silently implemented.
 
-### This choice is itself a candidate for an ADR
+### This choice is recorded in ADR-006
 
-Per `.claude/rules/architecture.md`'s "When an ADR is required" and the general
-change-controlled list in `CLAUDE.md`, the *mechanism* used to structurally enforce
-tenant isolation is close enough to "multi-tenancy strategy" that it should be recorded
-as an ADR before the first domain's repositories are implemented against it — not because
-this document is wrong to state a recommendation, but because:
-
-- It is a platform-wide pattern every domain will depend on and would be expensive to
-  change later (switching from repository-base to Hibernate-filter, or vice versa, after
-  dozens of repositories exist is a large, risky migration).
-- `.claude/rules/backend.md` explicitly allows either mechanism, meaning this document's
-  choice of `TenantAwareRepository` as the default is a design decision, not a restatement
-  of an already-fixed rule.
-
-**Open item:** raise a dedicated ADR recording the choice of `TenantAwareRepository` as
-primary (with Hibernate `@Filter` noted as a considered/possible defense-in-depth
-addition) before the first domain module's repository layer is built, so the decision is
-explicit and approved rather than inferred from this document alone. See the open
-questions list in `docs/requirements/functional-requirements.md`.
+This document's recommendation of `TenantAwareRepository` as the primary mechanism (with
+Hibernate `@Filter` as a possible future defense-in-depth addition) is now formally
+recorded in `docs/adr/ADR-006-tenant-isolation-repository-mechanism.md` (Accepted
+2026-08-02). Domain repository implementations should follow that ADR, not this section
+directly — this section remains as the technical rationale ADR-006 formalizes.
 
 ## 3. Append-only domains
 

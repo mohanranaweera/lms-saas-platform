@@ -220,9 +220,13 @@ Per `.claude/rules/testing.md`:
   cross-student (same-tenant) ID-guessing rejected for payment slips and
   documents.
 
-## 12. Open questions (require explicit technology decisions before implementation)
+## 12. Open questions — resolved by ADR-008
 
-The following are intentionally **not** decided by this document:
+The following were intentionally not decided by this document. The first five are now
+resolved by `docs/adr/ADR-008-video-content-protection-mechanism.md` (Accepted
+2026-08-02) — implementation should follow that ADR's decisions, not invent its own
+answer to any item below. The last item remains a genuine policy/config decision, not
+an architectural one, and stays unresolved here by design:
 
 - Concrete signed-URL/token format and signing mechanism (specific
   standard, library, or provider-native signing feature).
