@@ -4,4 +4,4 @@ if "%LMS_MCP_POSTGRES_DSN%"=="" (
     exit /b 1
 )
 
-npx.cmd -y @bytebase/dbhub --dsn "%LMS_MCP_POSTGRES_DSN%"
+npx.cmd -y @bytebase/dbhub@latest --transport stdio --dsn "%LMS_MCP_POSTGRES_DSN%"
