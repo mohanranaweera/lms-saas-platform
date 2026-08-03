@@ -85,6 +85,26 @@ Placement rules:
 - `repository` classes are package-private or otherwise not referenced from other
   domain packages under any circumstance.
 
+### `com.lms.common` -- the one deliberate exception
+
+`com.lms.common` is a shared-kernel package, introduced by the Application Foundation
+module, that sits alongside the 18 domain packages above. It holds no business logic,
+no domain entities, and no REST endpoints -- only cross-cutting infrastructure every
+domain depends on: the common API response envelope (`common.api`), global exception
+handling (`common.web`), the base entity/audit-fields/immutable-ID strategy and the
+`TenantAwareRepository<T,ID>` structural tenant-filtering mechanism from ADR-006
+(`common.persistence`), the `TenantContext` abstraction (`common.tenant`), and
+platform-wide Spring configuration for Postgres/Redis/Actuator/logging/security/OpenAPI
+(`common.config`).
+
+This is intentional, not an oversight of the "one top-level package per domain" rule:
+ADR-006 already establishes that `TenantAwareRepository` is not owned by
+`identity-access-service` or `tenant-management` -- both are expected to write
+repositories *against* it, meaning the mechanism must sit below both, not nested inside
+either. Every future domain module may depend on `com.lms.common`, the same as the
+foundational domains, but `com.lms.common` itself must never depend on a business
+domain.
+
 ## 4. Cross-module communication rules
 
 - A module may depend only on another module's `api` package. It must never inject or

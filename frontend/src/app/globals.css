@@ -1,3 +1,15 @@
+/*
+ * Platform-default design tokens.
+ *
+ * These CSS custom properties (oklch color scales, radii, sidebar tokens) are the
+ * platform's default theme, expressed as CSS variables — rather than hardcoded
+ * utility/hex values — specifically so a future tenant-branding module can layer
+ * per-tenant overrides on top of this same variable set (e.g. re-declaring
+ * `--primary`, `--sidebar`, etc. within a tenant-scoped selector/attribute) without
+ * forking components or the Tailwind config. Do not add new tokens here as part of
+ * unrelated feature work; the tenant-branding override mechanism itself is a later
+ * module (see docs/plans/MVP-001-application-foundation.md).
+ */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
