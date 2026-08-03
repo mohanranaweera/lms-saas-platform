@@ -23,8 +23,18 @@ labels) defined in `frontend/CLAUDE.md` and detailed in `.claude/rules/ui-ux.md`
 - Public > Storefront > Teacher Profile — public teacher bio, assigned public courses
 - Public > Storefront > Reviews — approved public reviews list for a course
 - Public > Storefront > FAQ — tenant FAQ content
+
+## Authentication (`app/(auth)/`)
+
+A separate route group from the public storefront, per `.claude/rules/frontend.md`'s
+"group by role/audience" convention — auth pages need a focused form shell without
+storefront/marketing chrome. As shipped in the Application Foundation module, these are
+disabled placeholder screens ("Not yet implemented — pending identity-access-service");
+real submit behavior lands with that module.
+
 - Public > Auth > Tenant Login — tenant-branded login, resolved by domain/subdomain
 - Public > Auth > Student Registration — new student sign-up
+- Public > Auth > Forgot Password — password reset request flow
 
 ## Student Portal (`app/(student)/`)
 

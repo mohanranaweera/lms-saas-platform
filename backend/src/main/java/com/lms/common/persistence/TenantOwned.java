@@ -13,4 +13,6 @@ public interface TenantOwned {
 
 	UUID getTenantId();
 
+	void setTenantId(UUID tenantId);
+
 }

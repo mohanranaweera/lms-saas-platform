@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { cloneElement, isValidElement, useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,12 @@ interface DashboardShellProps {
 export function DashboardShell({ portalLabel, nav, children }: DashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Only the mobile drawer instance needs to close itself on navigation — the desktop
+  // sidebar has no open/close state to manage, so it renders `nav` as-is.
+  const mobileNav = isValidElement<{ onNavigate?: () => void }>(nav)
+    ? cloneElement(nav, { onNavigate: () => setMobileNavOpen(false) })
+    : nav;
+
   return (
     <div className="flex min-h-svh flex-col md:flex-row">
       <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground md:flex">
@@ -59,7 +65,7 @@ export function DashboardShell({ portalLabel, nav, children }: DashboardShellPro
                 <SheetTitle>{portalLabel}</SheetTitle>
               </SheetHeader>
               <nav aria-label="Primary" className="px-4 pb-4">
-                {nav}
+                {mobileNav}
               </nav>
             </SheetContent>
           </Sheet>

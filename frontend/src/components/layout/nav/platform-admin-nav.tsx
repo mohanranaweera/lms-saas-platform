@@ -6,6 +6,6 @@ const items: NavItem[] = [
   { label: "Settings" },
 ];
 
-export function PlatformAdminNav() {
-  return <NavLinks items={items} />;
+export function PlatformAdminNav({ onNavigate }: { onNavigate?: () => void }) {
+  return <NavLinks items={items} onNavigate={onNavigate} />;
 }

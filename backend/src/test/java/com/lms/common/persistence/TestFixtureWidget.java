@@ -34,6 +34,11 @@ public class TestFixtureWidget extends Auditable implements TenantOwned {
 		return tenantId;
 	}
 
+	@Override
+	public void setTenantId(UUID tenantId) {
+		this.tenantId = tenantId;
+	}
+
 	public String getName() {
 		return name;
 	}

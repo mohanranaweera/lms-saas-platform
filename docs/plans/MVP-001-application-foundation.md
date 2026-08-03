@@ -80,9 +80,14 @@ module; this module only adds documentation, no new tokens.
 
 ## 2. Backend Files Affected (new unless noted)
 
+**Updated to reflect the as-built state** (original plan guessed some file names/shapes before
+`TenantAwareRepository`'s first real implementation existed, per §10's own risk note; this list
+is now the accurate record):
+
 ```
 backend/src/main/java/com/lms/common/api/ApiResponse.java
 backend/src/main/java/com/lms/common/api/ApiError.java
+backend/src/main/java/com/lms/common/api/ApiErrorCodes.java              # stable error-code constants
 backend/src/main/java/com/lms/common/api/FieldError.java
 backend/src/main/java/com/lms/common/web/GlobalExceptionHandler.java
 backend/src/main/java/com/lms/common/error/ApplicationException.java
@@ -90,20 +95,34 @@ backend/src/main/java/com/lms/common/error/NotFoundException.java
 backend/src/main/java/com/lms/common/error/ConflictException.java
 backend/src/main/java/com/lms/common/persistence/BaseEntity.java          # UUIDv7 id, @MappedSuperclass
 backend/src/main/java/com/lms/common/persistence/Auditable.java          # created/updated at/by, @EnableJpaAuditing
+backend/src/main/java/com/lms/common/persistence/UuidV7.java             # marker annotation for the generator below
 backend/src/main/java/com/lms/common/persistence/UuidV7Generator.java    # custom Hibernate IdentifierGenerator
-backend/src/main/java/com/lms/common/persistence/TenantAwareRepository.java  # @NoRepositoryBean, ADR-006 mechanism
 backend/src/main/java/com/lms/common/persistence/AuditorAwareImpl.java   # Optional.empty() placeholder, flagged
+backend/src/main/java/com/lms/common/persistence/TenantOwned.java        # implemented by every tenant-owned entity
+backend/src/main/java/com/lms/common/persistence/TenantAwareRepository.java      # @NoRepositoryBean, ADR-006 mechanism
+backend/src/main/java/com/lms/common/persistence/TenantAwareRepositoryImpl.java  # SimpleJpaRepository-based enforcement
+backend/src/main/java/com/lms/common/persistence/TenantAwareRepositoryFactoryBean.java  # wires the impl in per-entity
+backend/src/main/java/com/lms/common/persistence/CrossTenantPersistenceException.java   # save-guard mismatch signal
 backend/src/main/java/com/lms/common/tenant/TenantContext.java           # throws if unpopulated
 backend/src/main/java/com/lms/common/tenant/TenantContextHolder.java     # ThreadLocal, explicit set/clear
-backend/src/main/java/com/lms/common/config/PersistenceConfig.java       # Hikari tuning
+backend/src/main/java/com/lms/common/tenant/TenantContextNotResolvedException.java  # fail-loud signal
+backend/src/main/java/com/lms/common/config/TenantConfig.java            # binds the TenantContext bean
+backend/src/main/java/com/lms/common/config/JpaAuditingConfig.java       # @EnableJpaAuditing wiring
+backend/src/main/java/com/lms/common/config/JpaRepositoryConfig.java     # @EnableJpaRepositories(repositoryFactoryBeanClass=...)
 backend/src/main/java/com/lms/common/config/CacheConfig.java             # RedisCacheManager, "lms:" key prefix
 backend/src/main/java/com/lms/common/config/OpenApiConfig.java           # springdoc setup
 backend/src/main/java/com/lms/common/config/CorrelationIdFilter.java     # MDC: correlationId, tenantId
-backend/src/main/resources/logback-spring.xml                            # structured JSON logs
-backend/src/main/resources/application.yml                               # new: base/default profile
+backend/src/main/java/com/lms/common/config/SecurityConfig.java          # baseline deny-all-except-health/docs posture
+backend/src/main/resources/application.yml                               # base/default profile (structured logging via
+                                                                           # Spring Boot's native logging.structured
+                                                                           # property, not a hand-written logback-spring.xml
+                                                                           # as originally guessed -- no PersistenceConfig.java
+                                                                           # either; Hikari tuning lives inline in
+                                                                           # application-local.yml)
 backend/src/main/resources/db/migration/V1__baseline_conventions.sql     # marker/doc only, see §4
 backend/.env.example                                                     # new, no real secrets
-backend/pom.xml                                                          # modify: add springdoc-openapi (verify Spring Boot 4.1.0 compatibility first)
+backend/pom.xml                                                          # modify: springdoc-openapi, spring-boot-starter-flyway,
+                                                                          # and Spring Boot 4.1.0's split test modules (see §8)
 ```
 
 Test files — see §8.

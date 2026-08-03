@@ -84,4 +84,18 @@ test.describe("mobile navigation", () => {
     await expect(dialog).not.toBeVisible();
     await expect(trigger).toBeFocused();
   });
+
+  test("drawer closes when a nav link inside it is activated", async ({ page }) => {
+    await page.goto("/student/dashboard");
+
+    const trigger = page.getByRole("button", { name: "Open navigation menu" });
+    await trigger.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole("link", { name: "Dashboard" }).click();
+
+    await expect(dialog).not.toBeVisible();
+  });
 });

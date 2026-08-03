@@ -10,6 +10,7 @@ import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Shared base for Testcontainers-backed integration tests. Reuses the
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Import;
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
+@ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 
 	protected static final UUID TENANT_A = UUID.fromString("00000000-0000-0000-0000-00000000000a");

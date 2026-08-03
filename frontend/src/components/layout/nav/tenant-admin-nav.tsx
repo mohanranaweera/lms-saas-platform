@@ -6,6 +6,6 @@ const items: NavItem[] = [
   { label: "Settings" },
 ];
 
-export function TenantAdminNav() {
-  return <NavLinks items={items} />;
+export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
+  return <NavLinks items={items} onNavigate={onNavigate} />;
 }

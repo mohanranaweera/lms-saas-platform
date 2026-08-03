@@ -5,6 +5,6 @@ const items: NavItem[] = [
   { label: "Profile" },
 ];
 
-export function StudentNav() {
-  return <NavLinks items={items} />;
+export function StudentNav({ onNavigate }: { onNavigate?: () => void }) {
+  return <NavLinks items={items} onNavigate={onNavigate} />;
 }

@@ -2,6 +2,8 @@ package com.lms.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,15 +30,17 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
 	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain filterChain(HttpSecurity http, Environment environment) throws Exception {
+		boolean exposeApiDocs = environment.acceptsProfiles(Profiles.of("local", "test"));
 		http.csrf(csrf -> csrf.disable())
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.authorizeHttpRequests(authorize -> authorize.requestMatchers("/actuator/health/**", "/actuator/info")
-				.permitAll()
-				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
-				.permitAll()
-				.anyRequest()
-				.denyAll());
+			.authorizeHttpRequests(authorize -> {
+				authorize.requestMatchers("/actuator/health/**", "/actuator/info").permitAll();
+				if (exposeApiDocs) {
+					authorize.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
+				}
+				authorize.anyRequest().denyAll();
+			});
 		return http.build();
 	}
 

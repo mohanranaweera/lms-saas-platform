@@ -16,7 +16,14 @@ export interface NavItem {
  * `platform-admin-nav.tsx`). Keeps active-state and accessibility behavior
  * consistent instead of re-implemented per role.
  */
-export function NavLinks({ items }: { items: NavItem[] }) {
+export function NavLinks({
+  items,
+  onNavigate,
+}: {
+  items: NavItem[];
+  /** Invoked when a real (non-placeholder) link is activated — e.g. to close a mobile drawer. */
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -43,6 +50,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
             <Link
               href={item.href}
               aria-current={isActive ? "page" : undefined}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center rounded-md px-2.5 py-1.5 text-sm text-foreground transition-colors hover:bg-muted",
                 isActive && "bg-muted font-medium"

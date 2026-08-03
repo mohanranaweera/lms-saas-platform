@@ -91,7 +91,9 @@ Placement rules:
 module, that sits alongside the 18 domain packages above. It holds no business logic,
 no domain entities, and no REST endpoints -- only cross-cutting infrastructure every
 domain depends on: the common API response envelope (`common.api`), global exception
-handling (`common.web`), the base entity/audit-fields/immutable-ID strategy and the
+handling (`common.web`), the shared application-exception hierarchy
+(`common.error` -- `ApplicationException` and its subtypes, mapped to responses by
+`common.web`'s handler), the base entity/audit-fields/immutable-ID strategy and the
 `TenantAwareRepository<T,ID>` structural tenant-filtering mechanism from ADR-006
 (`common.persistence`), the `TenantContext` abstraction (`common.tenant`), and
 platform-wide Spring configuration for Postgres/Redis/Actuator/logging/security/OpenAPI

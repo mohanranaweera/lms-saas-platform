@@ -128,7 +128,11 @@ public class TenantAwareRepositoryImpl<T extends TenantOwned, ID extends Seriali
 
 	private void assertOwnedByCurrentTenant(T entity) {
 		UUID tenantId = tenantContext.getTenantId();
-		if (entity.getTenantId() != null && !tenantId.equals(entity.getTenantId())) {
+		if (entity.getTenantId() == null) {
+			entity.setTenantId(tenantId);
+			return;
+		}
+		if (!tenantId.equals(entity.getTenantId())) {
 			throw new CrossTenantPersistenceException(
 					"Attempted to persist an entity belonging to a different tenant than the current context");
 		}
