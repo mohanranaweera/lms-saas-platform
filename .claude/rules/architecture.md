@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Architecture Rules
 
 These rules apply on top of the always-loaded root `CLAUDE.md`. They govern how the

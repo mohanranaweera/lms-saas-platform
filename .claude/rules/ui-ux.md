@@ -1,3 +1,8 @@
+---
+paths:
+  - "frontend/**"
+---
+
 # UI/UX Rules
 
 These rules extend the baseline in `frontend/CLAUDE.md` (loading/empty/error/permission-denied

@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Backend Rules — Data Access & Data Integrity
 
 These rules are specific to the data-access layer and schema design. They apply whenever

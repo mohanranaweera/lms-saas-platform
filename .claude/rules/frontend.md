@@ -1,3 +1,8 @@
+---
+paths:
+  - "frontend/**"
+---
+
 # Frontend Rules
 
 These rules are specific to structure, data flow, and forms in the Next.js app. They apply
