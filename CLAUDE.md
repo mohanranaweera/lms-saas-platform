@@ -4,13 +4,6 @@
 
 This repository contains a multi-tenant SaaS LMS and Institute Management System.
 
-## Applications
-
-- `backend/` is a separate Spring Boot application.
-- `frontend/` is a separate Next.js application.
-- `infrastructure/` contains Docker, Nginx and deployment configuration.
-- `docs/` contains product, functional, architecture and UI/UX documentation.
-
 ## Required stack
 
 Backend:
@@ -103,19 +96,6 @@ Do not change without explicit approval:
 - Never deploy production automatically.
 - Never push directly to `main`.
 - Never merge a pull request without human approval.
-
-## Build commands
-
-Backend:
-
-`backend\mvnw.cmd verify`
-
-Frontend:
-
-`npm ci`
-`npm run lint`
-`npm run build`
-`npx playwright test`
 
 ## Planning requirement
 

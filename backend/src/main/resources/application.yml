@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: lms-backend
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  structured:
+    format:
+      console: logstash

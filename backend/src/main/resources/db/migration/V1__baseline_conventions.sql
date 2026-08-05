@@ -1,0 +1,23 @@
+-- Application Foundation baseline.
+--
+-- This module ships no domain schema - the `tenant` table and every other
+-- domain table belong to their owning module (see docs/architecture/
+-- modular-monolith.md), not to this shared-kernel foundation. This file
+-- exists to give Flyway a validated baseline and to document, at the start
+-- of the migration history every future module inherits, the conventions
+-- every subsequent migration must follow (see docs/architecture/
+-- database-architecture.md and .claude/rules/tenancy.md for full detail):
+--
+--   1. Every tenant-owned table has `tenant_id UUID NOT NULL REFERENCES
+--      tenant(id)` - never nullable, never added later as nullable.
+--   2. Every tenant-owned table has a composite index leading with
+--      `tenant_id`, shaped to the module's actual query pattern - not a
+--      bare index on `tenant_id` alone.
+--   3. Any "unique within a tenant" constraint is `UNIQUE (tenant_id, ...)`,
+--      never a bare global UNIQUE constraint.
+--   4. Migration history is append-only: a new migration file, never an
+--      edit to one already applied.
+--
+-- No Postgres extension is required here: identifiers are generated
+-- application-side (UUIDv7 via com.lms.common.persistence.UuidV7Generator),
+-- not via a database-side function such as gen_random_uuid().
