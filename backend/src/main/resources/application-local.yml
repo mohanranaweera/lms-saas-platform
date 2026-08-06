@@ -34,3 +34,13 @@ management:
     web:
       exposure:
         include: health,info
+
+app:
+  security:
+    jwt:
+      # Never a real secret in this file - JWT_SECRET must be set via a real
+      # env var in every non-local environment. This default is a clearly
+      # -fake, dev-only placeholder, long enough to satisfy HS256's minimum
+      # 256-bit key length so local startup never silently falls back to a
+      # weak key.
+      secret: ${JWT_SECRET:dev-only-placeholder-secret-change-me-before-any-real-deployment-32bytes+}
