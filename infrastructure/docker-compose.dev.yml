@@ -1,4 +1,10 @@
-﻿name: lms-saas-development
+﻿# Local development infrastructure ONLY - never reuse this file, or its port-binding/
+# credential pattern, for a staging or production compose file. Ports are bound to
+# 127.0.0.1 only (not 0.0.0.0) so nothing here is reachable beyond this machine, and
+# Redis runs with no auth (--requirepass) since it is not reachable outside localhost.
+# A staging/production deployment needs its own compose/manifest with real credentials,
+# network policy, and Redis auth - see infrastructure/CLAUDE.md.
+name: lms-saas-development
 
 services:
   postgres:
@@ -10,7 +16,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - lms_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -28,7 +34,7 @@ services:
     container_name: lms-redis-dev
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     command: redis-server --appendonly yes
     volumes:
       - lms_redis_data:/data
@@ -43,8 +49,8 @@ services:
     container_name: lms-mailpit-dev
     restart: unless-stopped
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
 
   minio:
     image: minio/minio:latest
@@ -55,8 +61,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - lms_minio_data:/data
 

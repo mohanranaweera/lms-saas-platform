@@ -1,78 +1,63 @@
-\## Summary
+## Summary
 
-\## Business requirement
+## Business requirement
 
-\## Module ## Changes
+## Module
 
-\### Backend
+## Changes
 
-\- \[ ] Not applicable
+### Backend
 
-\- \[ ] Implemented
+- [ ] Not applicable
 
-\- \[ ] Tests added
+- [ ] Implemented
 
+- [ ] Tests added
 
+### Frontend
 
-\### Frontend
+- [ ] Not applicable
 
-\- \[ ] Not applicable
+- [ ] Implemented
 
-\- \[ ] Implemented
+- [ ] Loading state
 
-\- \[ ] Loading state
+- [ ] Empty state
 
-\- \[ ] Empty state
+- [ ] Error state
 
-\- \[ ] Error state
+- [ ] Responsive behavior
 
-\- \[ ] Responsive behavior
+- [ ] Tests added
 
-\- \[ ] Tests added
+## Architecture checks
 
+- [ ] Module boundaries preserved
 
+- [ ] Tenant isolation reviewed
 
-\## Architecture checks
+- [ ] Authorization reviewed
 
-\- \[ ] Module boundaries preserved
+- [ ] API contract reviewed
 
-\- \[ ] Tenant isolation reviewed
+- [ ] Payment impact reviewed
 
-\- \[ ] Authorization reviewed
+- [ ] Audit logging reviewed
 
-\- \[ ] API contract reviewed
+- [ ] No secrets added
 
-\- \[ ] Payment impact reviewed
+- [ ] Documentation updated
 
-\- \[ ] Audit logging reviewed
+## Verification
 
-\- \[ ] No secrets added
+- [ ] Backend Maven verification passed
 
-\- \[ ] Documentation updated
+- [ ] Frontend lint passed
 
+- [ ] Frontend build passed
 
+- [ ] E2E tests passed or not applicable
 
-\## Verification
+## Screenshots
 
-
-
-\- \[ ] Backend Maven verification passed
-
-47
-
-
-
-\- \[ ] Frontend lint passed
-
-\- \[ ] Frontend build passed
-
-\- \[ ] E2E tests passed or not applicable
-
-
-
-\## Screenshots
-
-\## Risks and rollback
-
-
-
+## Risks and rollback

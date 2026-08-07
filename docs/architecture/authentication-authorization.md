@@ -39,6 +39,17 @@ It does not cover video/session playback token issuance — see
   public `api` package (e.g. "current authenticated principal", "resolved
   tenant context", "does this actor have permission X") — never by reaching
   into its repositories or entities.
+- **Implementation note (MVP-002)**: the deny-all-except-health/docs Spring
+  Security placeholder shipped by Application Foundation
+  (`com.lms.common.config.SecurityConfig`) is retired — it was deleted, not
+  merely superseded, in the same commit that introduced the real filter
+  chain. Real security configuration (`SecurityFilterChainConfig`,
+  `TenantResolutionFilter`, `JwtAuthenticationFilter`) is defined in
+  `identity-access-service`, not `com.lms.common`, because the shared kernel
+  must never depend back on a business/domain module (this section's own
+  rule, one paragraph above). A future contributor should not "helpfully"
+  reintroduce a `SecurityConfig` in `com.lms.common` — this is a deliberate
+  placement, not an oversight.
 
 ## 3. Roles and portals covered
 
