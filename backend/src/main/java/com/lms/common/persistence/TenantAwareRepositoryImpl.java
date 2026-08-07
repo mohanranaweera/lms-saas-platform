@@ -27,6 +27,15 @@ import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
  * entity whose own {@code tenantId} field disagrees with the current
  * context - a defense-in-depth check against constructing an entity for the
  * wrong tenant, independent of read-path filtering.
+ *
+ * {@link org.springframework.data.jpa.domain.Specification}-based finders
+ * ({@code findOne}/{@code findAll}/{@code count}/{@code exists}) are also
+ * AND-combined with {@link #scopedToTenant()} here, so a caller-supplied
+ * {@code Specification} (e.g. a derived lookup like "find by email") can
+ * never accidentally search across tenants even though it does not itself
+ * reference {@code tenant_id} - added for identity-access-service's
+ * tenant-scoped lookups (AUTH-1) and applies platform-wide to every
+ * tenant-owned repository built on this base.
  */
 public class TenantAwareRepositoryImpl<T extends TenantOwned, ID extends Serializable>
 		extends SimpleJpaRepository<T, ID> implements TenantAwareRepository<T, ID> {
@@ -86,6 +95,36 @@ public class TenantAwareRepositoryImpl<T extends TenantOwned, ID extends Seriali
 		List<ID> idList = toList(ids);
 		return findAll(scopedToTenant()
 			.and((root, query, cb) -> root.get(entityInformation.getIdAttribute()).in(idList)));
+	}
+
+	@Override
+	public Optional<T> findOne(Specification<T> spec) {
+		return super.findOne(scopedToTenant().and(spec));
+	}
+
+	@Override
+	public List<T> findAll(Specification<T> spec) {
+		return super.findAll(scopedToTenant().and(spec));
+	}
+
+	@Override
+	public List<T> findAll(Specification<T> spec, Sort sort) {
+		return super.findAll(scopedToTenant().and(spec), sort);
+	}
+
+	@Override
+	public Page<T> findAll(Specification<T> spec, Pageable pageable) {
+		return super.findAll(scopedToTenant().and(spec), pageable);
+	}
+
+	@Override
+	public long count(Specification<T> spec) {
+		return super.count(scopedToTenant().and(spec));
+	}
+
+	@Override
+	public boolean exists(Specification<T> spec) {
+		return super.exists(scopedToTenant().and(spec));
 	}
 
 	@Override

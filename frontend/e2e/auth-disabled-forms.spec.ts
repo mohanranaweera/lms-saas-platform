@@ -1,10 +1,16 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * The (auth) placeholder forms (login/register/forgot-password) are intentionally
- * non-functional pending the identity-access-service module: the entire <fieldset>
- * is `disabled`, the submit button is `disabled`, and the <form>'s onSubmit handler
- * only calls `event.preventDefault()`.
+ * `/register` and `/forgot-password` remain intentionally non-functional
+ * placeholder forms pending their own backend stories (no AUTH-1/2/3 acceptance
+ * criterion covers either — see docs/plans/MVP-002 Authentication Foundation.md
+ * §4/§6): the entire <fieldset> is `disabled`, the submit button is `disabled`,
+ * and the <form>'s onSubmit handler only calls `event.preventDefault()`.
+ *
+ * `/login` is now a real, wired-up form (identity-access-service's
+ * `POST /v1/auth/login`) and is intentionally excluded from this file as of the
+ * Authentication Foundation module — see `route-groups.spec.ts`'s "auth route
+ * group" describe block for its (now-enabled) coverage instead.
  *
  * `route-groups.spec.ts` already asserts the submit button reports `disabled` via
  * the accessibility tree. This file goes further and proves the form is genuinely
@@ -21,12 +27,6 @@ interface AuthFormCase {
 }
 
 const cases: AuthFormCase[] = [
-  {
-    path: "/login",
-    fieldLabels: ["Email", "Password"],
-    submitName: "Sign in",
-    noticeText: "Not yet implemented",
-  },
   {
     path: "/register",
     fieldLabels: ["Full name", "Email", "Password", "Confirm password"],

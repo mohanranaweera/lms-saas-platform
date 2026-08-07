@@ -1,6 +1,7 @@
 package com.lms.common.error;
 
 import com.lms.common.api.ApiErrorCodes;
+import org.springframework.http.HttpStatus;
 
 /**
  * A requested resource does not exist, or does not exist for the caller's tenant.
@@ -14,7 +15,7 @@ import com.lms.common.api.ApiErrorCodes;
 public class NotFoundException extends ApplicationException {
 
 	public NotFoundException(String message) {
-		super(ApiErrorCodes.NOT_FOUND, message);
+		super(HttpStatus.NOT_FOUND, ApiErrorCodes.NOT_FOUND, message);
 	}
 
 }

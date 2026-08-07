@@ -4,6 +4,7 @@ import com.lms.common.api.ApiError;
 import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.FieldError;
+import com.lms.common.error.ApplicationException;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -60,6 +61,19 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> handleConflict(ConflictException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(ApiResponse.error(ApiError.of(ApiErrorCodes.CONFLICT, ex.getMessage())));
+	}
+
+	/**
+	 * Generic fallback for any {@link ApplicationException} subclass that does
+	 * not have its own dedicated handler above (e.g. identity-access-service's
+	 * auth-specific exceptions) - deliberately generic so this class never
+	 * needs to import a business/domain module's exception types (see
+	 * {@link ApplicationException}'s javadoc).
+	 */
+	@ExceptionHandler(ApplicationException.class)
+	public ResponseEntity<ApiResponse<Void>> handleApplicationException(ApplicationException ex) {
+		return ResponseEntity.status(ex.getHttpStatus())
+			.body(ApiResponse.error(ApiError.of(ex.getErrorCode(), ex.getMessage())));
 	}
 
 	@ExceptionHandler(DataIntegrityViolationException.class)
