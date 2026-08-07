@@ -1,5 +1,6 @@
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { PlatformAdminNav } from "@/components/layout/nav/platform-admin-nav";
+import { LogoutControl } from "@/components/auth/logout-control";
 
 /**
  * Dashboard chrome (sidebar/header/logout) for authenticated Platform Admin
@@ -25,7 +26,9 @@ export default function PlatformAdminDashboardLayout({
     <DashboardShell
       portalLabel="Platform Admin"
       nav={<PlatformAdminNav />}
-      logout={{ kind: "platform-admin", requireConfirmation: true }}
+      headerActions={
+        <LogoutControl kind="platform-admin" portalLabel="Platform Admin" requireConfirmation />
+      }
     >
       {children}
     </DashboardShell>

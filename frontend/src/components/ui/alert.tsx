@@ -8,7 +8,11 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-border bg-card text-card-foreground",
+        // bg-muted/40, not bg-card: this renders inside a Card as often as
+        // not (e.g. the session-expired notice on the login form), and
+        // --card equals --background in the light theme - a bg-card fill
+        // would be visually indistinguishable from its own container.
+        default: "border-border bg-muted/40 text-foreground",
         destructive:
           "border-destructive/30 bg-destructive/5 text-destructive [&>svg]:text-destructive *:data-[slot=alert-description]:text-destructive/90",
       },

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Info } from "lucide-react";
 import { loginSchema, type LoginFormValues } from "@/lib/validation/auth";
 import { useAuth, type LoginResult } from "@/lib/auth/auth-context";
 import type { PrincipalKind } from "@/lib/api/auth";
@@ -98,6 +98,7 @@ export function LoginForm({
       <CardContent className="flex flex-col gap-4">
         {sessionExpired ? (
           <Alert role="status">
+            <Info aria-hidden="true" />
             <AlertTitle>Your session has expired</AlertTitle>
             <AlertDescription>Sign in again to continue.</AlertDescription>
           </Alert>
@@ -105,6 +106,7 @@ export function LoginForm({
 
         {apiError ? (
           <Alert variant="destructive">
+            <AlertCircle aria-hidden="true" />
             <AlertTitle>Sign-in failed</AlertTitle>
             {/* Backend copy only — never invent a more specific message than
                 `error.message` here (docs/api/identity-access-service.md: the
@@ -116,6 +118,7 @@ export function LoginForm({
 
         {unresolvedRole ? (
           <Alert role="status">
+            <Info aria-hidden="true" />
             <AlertTitle>Signed in</AlertTitle>
             <AlertDescription>
               No dashboard is available for your role ({unresolvedRole}) yet. Contact

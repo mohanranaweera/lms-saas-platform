@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { AlertCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { isApiClientError } from "@/lib/api/error";
@@ -47,36 +47,30 @@ export function LogoutControl({
 }: LogoutControlProps) {
   const { logout } = useAuth();
   const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function performLogout() {
-    setPending(true);
-    setError(null);
-    try {
-      await logout(kind);
-      router.replace(loginPathFor(kind));
-    } catch (caught) {
-      // Local session state is already cleared by `logout()` even on failure
-      // (this tab must stop acting as the user regardless of the network
-      // outcome) — but a failed server-side revoke must be surfaced, not
-      // silently treated as a normal sign-out, since the `device_session` row
-      // may still be active. Don't auto-redirect on failure: let the user see
-      // the notice and choose when to leave.
-      setError(
-        isApiClientError(caught)
-          ? caught.message
-          : "You were signed out on this device, but we couldn't confirm it with the server. Please check your connection."
-      );
-    } finally {
-      setPending(false);
-    }
-  }
+  // Local session state is already cleared by `logout()` even on failure
+  // (this tab must stop acting as the user regardless of the network
+  // outcome) — but a failed server-side revoke must be surfaced, not
+  // silently treated as a normal sign-out, since the `device_session` row
+  // may still be active. Don't auto-redirect on failure (no `onError`
+  // handler below): let the user see the notice, rendered from
+  // `mutation.error`, and choose when to leave.
+  const mutation = useMutation({
+    mutationFn: () => logout(kind),
+    onSuccess: () => router.replace(loginPathFor(kind)),
+  });
 
-  const errorNotice = error ? (
+  const errorMessage = mutation.isError
+    ? isApiClientError(mutation.error)
+      ? mutation.error.message
+      : "You were signed out on this device, but we couldn't confirm it with the server. Please check your connection."
+    : null;
+
+  const errorNotice = errorMessage ? (
     <Alert variant="destructive">
+      <AlertCircle aria-hidden="true" />
       <AlertDescription>
-        {error}{" "}
+        {errorMessage}{" "}
         <a href={loginPathFor(kind)} className="font-medium underline underline-offset-2">
           Continue to sign-in
         </a>
@@ -91,12 +85,12 @@ export function LogoutControl({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={performLogout}
-          disabled={pending}
-          aria-busy={pending}
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+          aria-busy={mutation.isPending}
         >
           <LogOut aria-hidden="true" />
-          {pending ? "Signing out…" : "Sign out"}
+          {mutation.isPending ? "Signing out…" : "Sign out"}
         </Button>
         {errorNotice}
       </div>
@@ -107,7 +101,9 @@ export function LogoutControl({
     <div className={className}>
       <AlertDialog>
         <AlertDialogTrigger
-          render={<Button type="button" variant="ghost" size="sm" disabled={pending} />}
+          render={
+            <Button type="button" variant="ghost" size="sm" disabled={mutation.isPending} />
+          }
         >
           <LogOut aria-hidden="true" />
           Sign out
@@ -127,11 +123,11 @@ export function LogoutControl({
             <Button
               type="button"
               variant="destructive"
-              onClick={performLogout}
-              disabled={pending}
-              aria-busy={pending}
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending}
+              aria-busy={mutation.isPending}
             >
-              {pending ? "Signing out…" : "Sign out"}
+              {mutation.isPending ? "Signing out…" : "Sign out"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

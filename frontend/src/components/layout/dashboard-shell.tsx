@@ -10,8 +10,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { LogoutControl } from "@/components/auth/logout-control";
-import type { PrincipalKind } from "@/lib/api/auth";
 
 interface DashboardShellProps {
   /**
@@ -24,14 +22,14 @@ interface DashboardShellProps {
   nav: ReactNode;
   children: ReactNode;
   /**
-   * Renders an accessible logout control in the header when supplied. Every
-   * role portal gets one; `requireConfirmation` follows plan §11 (Tenant
-   * Admin/Platform Admin only).
+   * Rendered at the end of the header, opposite the mobile nav trigger — the
+   * caller composes whatever it needs here (a logout control, an account
+   * menu, ...), the same "accept a slot" pattern already used for `nav`.
+   * This shared shell deliberately has no knowledge of what goes in it —
+   * feature-specific components belong in the caller (each role's
+   * `layout.tsx`), not imported here.
    */
-  logout?: {
-    kind: PrincipalKind;
-    requireConfirmation?: boolean;
-  };
+  headerActions?: ReactNode;
 }
 
 /**
@@ -40,7 +38,12 @@ interface DashboardShellProps {
  * Responsive nav pattern: a persistent sidebar at `md` and above, collapsing to a
  * hamburger-triggered drawer (Sheet) below `md`, per .claude/rules/ui-ux.md §5.
  */
-export function DashboardShell({ portalLabel, nav, children, logout }: DashboardShellProps) {
+export function DashboardShell({
+  portalLabel,
+  nav,
+  children,
+  headerActions,
+}: DashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Only the mobile drawer instance needs to close itself on navigation — the desktop
@@ -85,13 +88,7 @@ export function DashboardShell({ portalLabel, nav, children, logout }: Dashboard
               {portalLabel}
             </span>
           </div>
-          {logout ? (
-            <LogoutControl
-              kind={logout.kind}
-              portalLabel={portalLabel}
-              requireConfirmation={logout.requireConfirmation}
-            />
-          ) : null}
+          {headerActions}
         </header>
 
         <main className="flex-1 px-4 py-6 md:px-6">{children}</main>
