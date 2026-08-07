@@ -7,7 +7,11 @@ export default function TenantAdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <DashboardShell portalLabel="Tenant Admin" nav={<TenantAdminNav />}>
+    <DashboardShell
+      portalLabel="Tenant Admin"
+      nav={<TenantAdminNav />}
+      logout={{ kind: "tenant", requireConfirmation: true }}
+    >
       {children}
     </DashboardShell>
   );

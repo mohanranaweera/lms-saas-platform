@@ -3,7 +3,11 @@ import { StudentNav } from "@/components/layout/nav/student-nav";
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardShell portalLabel="Student Portal" nav={<StudentNav />}>
+    <DashboardShell
+      portalLabel="Student Portal"
+      nav={<StudentNav />}
+      logout={{ kind: "tenant" }}
+    >
       {children}
     </DashboardShell>
   );

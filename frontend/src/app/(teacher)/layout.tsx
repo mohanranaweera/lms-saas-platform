@@ -3,7 +3,11 @@ import { TeacherNav } from "@/components/layout/nav/teacher-nav";
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardShell portalLabel="Teacher Portal" nav={<TeacherNav />}>
+    <DashboardShell
+      portalLabel="Teacher Portal"
+      nav={<TeacherNav />}
+      logout={{ kind: "tenant" }}
+    >
       {children}
     </DashboardShell>
   );
