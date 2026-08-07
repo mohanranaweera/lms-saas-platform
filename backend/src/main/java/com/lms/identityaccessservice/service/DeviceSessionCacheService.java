@@ -22,6 +22,14 @@ import org.springframework.stereotype.Service;
  * tables, so a single key namespace keyed only by session id cannot collide
  * between the two. Role/status are never cached here (plan §9) - only a
  * boolean "this session id is currently active" fact.
+ *
+ * <p>Uses a plain {@link StringRedisTemplate} rather than {@code
+ * com.lms.common.config.CacheConfig}'s declarative {@code @Cacheable}
+ * mechanism, since this service's TTL is dynamic per entry ({@link
+ * #boundedTtl}) - not expressible via a fixed {@code RedisCacheConfiguration}
+ * entry TTL. Both share the same autoconfigured {@code
+ * RedisConnectionFactory}; see {@code CacheConfig}'s javadoc for the other
+ * half of this note.
  */
 @Service
 public class DeviceSessionCacheService {

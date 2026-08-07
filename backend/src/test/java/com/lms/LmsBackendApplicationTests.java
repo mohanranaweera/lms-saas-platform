@@ -8,12 +8,12 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 // Same "test" profile every other integration test in this suite activates (see
-// AbstractIntegrationTest) - without it this smoke test has no active profile at all, which
-// JwtSecretStartupValidator (added for MVP-002) now correctly treats as a non-local/non-test
-// deployment and fails fast on the placeholder JWT secret. This is not a real
-// production-config check (app.security.jwt.secret is never overridden in the test classpath
-// either way); it only verifies the context wires up, so it belongs in the same profile as
-// every other test.
+// AbstractIntegrationTest), for consistency. Note JwtSecretStartupValidator does NOT run here
+// regardless of profile: @SpringBootTest bootstraps the context directly rather than through
+// LmsBackendApplication#main, and that validator is deliberately registered as an
+// ApplicationContextInitializer from main (not a @Component/ApplicationListener) so it runs
+// before the embedded web server starts - see JwtSecretStartupValidatorTest for its actual
+// coverage.
 @ActiveProfiles("test")
 class LmsBackendApplicationTests {
 
