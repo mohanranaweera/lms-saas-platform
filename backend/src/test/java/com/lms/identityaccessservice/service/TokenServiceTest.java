@@ -86,7 +86,7 @@ class TokenServiceTest {
 
 	@Test
 	void tamperedSignatureFailsValidation() {
-		String token = tokenService.issueTenantAccessToken(UUID.randomUUID(), UUID.randomUUID(), Role.STAFF,
+		String token = tokenService.issueTenantAccessToken(UUID.randomUUID(), UUID.randomUUID(), Role.FINANCE_STAFF,
 				UUID.randomUUID());
 		// Flip a character in the middle of the signature segment, not the last
 		// character of the whole token: the final base64url character of a

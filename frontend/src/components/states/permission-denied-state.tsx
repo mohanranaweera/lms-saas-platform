@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ApiClientError } from "@/lib/api/error";
+
+interface PermissionDeniedStateAction {
+  label: string;
+  onClick: () => void;
+}
 
 interface PermissionDeniedStateProps {
   /**
@@ -21,12 +27,20 @@ interface PermissionDeniedStateProps {
    * component has no role/portal context of its own to derive one from.
    */
   dashboardHref?: string;
+  /**
+   * Optional call-to-action (e.g. "Contact your administrator", "Go back"),
+   * mirroring `EmptyState`'s action shape. No default action is provided —
+   * omit rendering it when not supplied, consistent with this component's
+   * "never fabricate copy" convention.
+   */
+  action?: PermissionDeniedStateAction;
   className?: string;
 }
 
 export function PermissionDeniedState({
   error,
   dashboardHref,
+  action,
   className,
 }: PermissionDeniedStateProps) {
   return (
@@ -42,13 +56,22 @@ export function PermissionDeniedState({
         You don&apos;t have permission to view this.
       </p>
       <p className="text-sm text-muted-foreground">{error.message}</p>
-      {dashboardHref ? (
-        <Link
-          href={dashboardHref}
-          className="text-sm font-medium text-foreground hover:underline"
-        >
-          Back to your dashboard
-        </Link>
+      {action || dashboardHref ? (
+        <div className="flex flex-row flex-wrap items-center justify-center gap-2">
+          {action ? (
+            <Button type="button" size="sm" onClick={action.onClick}>
+              {action.label}
+            </Button>
+          ) : null}
+          {dashboardHref ? (
+            <Link
+              href={dashboardHref}
+              className="text-sm font-medium text-foreground hover:underline"
+            >
+              Back to your dashboard
+            </Link>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
