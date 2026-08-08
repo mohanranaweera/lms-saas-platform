@@ -69,11 +69,15 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 		try {
 			role = Role.valueOf(roleClaim);
 		}
-		catch (IllegalArgumentException ex) {
+		catch (IllegalArgumentException | NullPointerException ex) {
 			// Not a tenant-scope Role at all - either Platform Admin
-			// (TokenService.PLATFORM_ADMIN_ROLE) or an unrecognized value.
-			// Platform Admin's platform-scoped session must never implicitly
-			// gain tenant-operational permissions (plan AC11/§14) - deny.
+			// (TokenService.PLATFORM_ADMIN_ROLE), an unrecognized value, or a
+			// null role claim (e.g. an authenticated user with no role
+			// assigned yet - AC15). Platform Admin's platform-scoped session
+			// must never implicitly gain tenant-operational permissions
+			// (plan AC11/§14), and a null/absent role must never fall
+			// through to Enum.valueOf's NullPointerException (which would
+			// otherwise surface as an unhandled 500) - deny in both cases.
 			return false;
 		}
 		// Teacher/Teacher Assistant/Student are deliberately absent from the
@@ -93,7 +97,10 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			parsedDomainArea = DomainArea.valueOf(domainArea);
 			parsedAction = PermissionAction.valueOf(action);
 		}
-		catch (IllegalArgumentException ex) {
+		catch (IllegalArgumentException | NullPointerException ex) {
+			// A null domainArea/action (in addition to an unrecognized
+			// string) must deny rather than throw - Enum.valueOf(Class, null)
+			// throws NullPointerException, not IllegalArgumentException.
 			return false;
 		}
 		return hasPermission(parsedDomainArea, parsedAction);

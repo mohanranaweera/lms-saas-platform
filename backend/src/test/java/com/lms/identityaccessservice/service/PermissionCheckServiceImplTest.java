@@ -137,6 +137,40 @@ class PermissionCheckServiceImplTest {
 	}
 
 	@Test
+	void nullRoleClaimDeniesRatherThanThrowing() {
+		// AC15: an authenticated user with no role assigned yet must be
+		// rejected (false -> 403 at the caller), never surface as an
+		// unhandled NullPointerException from Role.valueOf(null).
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), UUID.randomUUID(), null, UUID.randomUUID()));
+		try {
+			assertThatCode(() -> service.hasPermission(DomainArea.STUDENTS, PermissionAction.VIEW))
+				.doesNotThrowAnyException();
+			assertThat(service.hasPermission(DomainArea.STUDENTS, PermissionAction.VIEW)).isFalse();
+		}
+		finally {
+			AuthenticatedPrincipalHolder.clear();
+		}
+	}
+
+	@Test
+	void stringOverloadDeniesNullDomainAreaOrActionWithoutThrowing() {
+		AuthenticatedPrincipalHolder.set(principalFor(Role.TENANT_ADMIN));
+		try {
+			assertThatCode(() -> service.hasPermission(null, "VIEW")).doesNotThrowAnyException();
+			assertThat(service.hasPermission(null, "VIEW")).isFalse();
+
+			assertThatCode(() -> service.hasPermission("STUDENTS", null)).doesNotThrowAnyException();
+			assertThat(service.hasPermission("STUDENTS", null)).isFalse();
+
+			assertThatCode(() -> service.hasPermission((String) null, (String) null)).doesNotThrowAnyException();
+			assertThat(service.hasPermission((String) null, (String) null)).isFalse();
+		}
+		finally {
+			AuthenticatedPrincipalHolder.clear();
+		}
+	}
+
+	@Test
 	void stringOverloadMirrorsEnumOverloadForAValidPairAndDeniesUnrecognizedValuesWithoutThrowing() {
 		AuthenticatedPrincipalHolder.set(principalFor(Role.TENANT_ADMIN));
 		try {

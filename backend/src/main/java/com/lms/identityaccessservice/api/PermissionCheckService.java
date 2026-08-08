@@ -21,10 +21,10 @@ public interface PermissionCheckService {
 	/**
 	 * String-typed overload for Spring Security {@code @PreAuthorize} SpEL,
 	 * which can't easily reference Java enum constants. Parses both arguments
-	 * case-sensitively against the enum names; an unrecognized value denies
-	 * (returns {@code false}) rather than throwing, since this is called from
-	 * a security expression where a thrown exception must not be relied on
-	 * for denial.
+	 * case-sensitively against the enum names; an unrecognized or absent
+	 * (null) value denies (returns {@code false}) rather than throwing, since
+	 * this is called from a security expression where a thrown exception
+	 * must not be relied on for denial.
 	 */
 	boolean hasPermission(String domainArea, String action);
 

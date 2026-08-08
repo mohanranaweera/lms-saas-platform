@@ -21,6 +21,28 @@
 
 ALTER TABLE tenant_user DROP CONSTRAINT tenant_user_role_check;
 
+-- Pre-flight check (intentional fail-loud behavior, see plan
+-- "MVP-003 Roles and Permissions.md" lines 398-412): the ADD CONSTRAINT
+-- below will fail with a foreign-key-violation error if any `tenant_user`
+-- row still holds the old coarse `role = 'STAFF'` value from V3's 4-value
+-- CHECK enum -- that value was decomposed into 7 named sub-roles in the V7
+-- catalog and has no corresponding `role.code` row, so it cannot satisfy
+-- the FK. This is by design: no silent backfill/default mapping of
+-- `STAFF` to a specific sub-role is provided here, per the plan's explicit
+-- decision that this must be a business decision, not a migration default.
+--
+-- Before applying this migration to any environment that might predate
+-- this branch (i.e. anything other than a fresh dev database), run:
+--
+--   SELECT tenant_id, id, role FROM tenant_user WHERE role NOT IN
+--     ('TENANT_ADMIN','FINANCE_STAFF','COURSE_COORDINATOR','STUDENT_SUPPORT',
+--      'CONTENT_MANAGER','EXAM_MANAGER','ATTENDANCE_OPERATOR','READ_ONLY_AUDITOR',
+--      'TEACHER','TEACHER_ASSISTANT','STUDENT');
+--
+-- If any rows are returned, resolving which sub-role each such row should
+-- become is a business decision that must be made and applied (e.g. via a
+-- data-fix/backfill step coordinated with the business, not by editing
+-- this file) before this migration is run in that environment.
 ALTER TABLE tenant_user
     ADD CONSTRAINT fk_tenant_user_role FOREIGN KEY (role) REFERENCES role (code);
 

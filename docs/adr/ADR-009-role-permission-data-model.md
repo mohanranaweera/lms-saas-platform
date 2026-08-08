@@ -12,6 +12,15 @@ implementing the MVP-003 plan is the substantive approval this ADR records — t
 to close the gap between that approval being given and it being recorded where the change-control
 process requires it, surfaced by an independent backend review after implementation.
 
+**Approval confirmation (2026-08-08):** three independent reviews (across two review rounds)
+flagged this ADR's approval trail as unverifiable, since it was authored after implementation by
+the same agent that did the implementation, citing only a paraphrased directive. The repository
+owner, MOHAN RANAWEERA, has directly confirmed — in this project's own words, not an agent's
+restatement — that the FK-to-catalog mechanism (over the CHECK-only alternative, see "Alternatives
+considered" below) was in fact approved before `V7`–`V9` were written. This closes the
+change-control gap the prior reviews raised; no further action is required on this item before
+merge.
+
 ## Context
 
 Module 2 (Authentication Foundation) shipped `tenant_user.role` as a `VARCHAR` column with an
