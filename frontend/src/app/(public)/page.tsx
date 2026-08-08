@@ -12,7 +12,7 @@ export default function HomePage() {
         institutes — all in one place.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button render={<Link href="/register" />} size="lg">
+        <Button render={<Link href="/register-institute" />} size="lg">
           Get started
         </Button>
         <Button render={<Link href="/login" />} variant="outline" size="lg">
