@@ -5,18 +5,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lms.common.tenant.TenantContext;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.usermanagement.staff.domain.StaffProfile;
 import com.lms.usermanagement.staff.repository.StaffProfileRepository;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Mockito-only unit coverage for {@link StaffService}'s role-restriction
@@ -82,6 +87,7 @@ class StaffServiceTest {
 		assertThat(account.email()).isEqualTo("staff@example.test");
 		assertThat(account.status()).isEqualTo("ACTIVE");
 		verify(userProvisioningApi).provisionTenantUser("staff@example.test", "raw-password-1!", roleCode, true);
+		verify(permissionCheckService).requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.CREATE_EDIT);
 	}
 
 	@ParameterizedTest
@@ -104,6 +110,73 @@ class StaffServiceTest {
 
 		verify(userProvisioningApi, never()).provisionTenantUser(anyString(), anyString(), anyString(), eq(true));
 		verify(staffProfileRepository, never()).save(any());
+	}
+
+	/**
+	 * Defense-in-depth coverage for the service-layer {@code
+	 * requirePermission} calls added alongside {@code StaffController}'s
+	 * {@code @PreAuthorize} gates. Without these three tests, deleting the
+	 * {@code requirePermission(...)} line from any of {@code createStaff}/
+	 * {@code listStaff}/{@code getStaff} would not fail this file, and the
+	 * HTTP-layer {@code @PreAuthorize} in {@code StaffManagementIntegrationTest}
+	 * would mask the regression too - each test below stubs {@link
+	 * PermissionCheckService} to deny and asserts both that the resulting
+	 * {@link AccessDeniedException} propagates AND that no collaborator past
+	 * the permission check is ever touched.
+	 */
+	@Test
+	void createStaffChecksPermissionFirstAndPropagatesAccessDeniedWithoutTouchingAnyCollaborator() {
+		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
+			.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.CREATE_EDIT);
+
+		assertThatThrownBy(() -> staffService.createStaff("Staff Name", "staff@example.test", "raw-password-1!",
+				"FINANCE_STAFF")).isInstanceOf(AccessDeniedException.class);
+
+		verifyNoInteractions(userProvisioningApi);
+		verify(staffProfileRepository, never()).save(any());
+	}
+
+	@Test
+	void listStaffChecksViewPermissionAndPropagatesAccessDeniedWithoutTouchingAnyCollaborator() {
+		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
+			.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);
+
+		assertThatThrownBy(() -> staffService.listStaff()).isInstanceOf(AccessDeniedException.class);
+
+		verifyNoInteractions(userProvisioningApi);
+		verify(staffProfileRepository, never()).findAll();
+	}
+
+	@Test
+	void getStaffChecksViewPermissionAndPropagatesAccessDeniedWithoutTouchingAnyCollaborator() {
+		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
+			.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);
+		UUID staffId = UUID.randomUUID();
+
+		assertThatThrownBy(() -> staffService.getStaff(staffId)).isInstanceOf(AccessDeniedException.class);
+
+		verifyNoInteractions(userProvisioningApi);
+		verify(staffProfileRepository, never()).findById(any());
+	}
+
+	@Test
+	void listStaffRequiresViewPermissionOnTheHappyPathToo() {
+		when(staffProfileRepository.findAll()).thenReturn(List.of());
+
+		staffService.listStaff();
+
+		verify(permissionCheckService).requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);
+	}
+
+	@Test
+	void getStaffRequiresViewPermissionOnTheHappyPathToo() {
+		UUID staffId = UUID.randomUUID();
+		when(staffProfileRepository.findById(staffId)).thenReturn(java.util.Optional.empty());
+
+		assertThatThrownBy(() -> staffService.getStaff(staffId))
+			.isInstanceOf(com.lms.common.error.NotFoundException.class);
+
+		verify(permissionCheckService).requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);
 	}
 
 	/**

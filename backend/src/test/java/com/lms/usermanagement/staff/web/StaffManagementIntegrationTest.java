@@ -292,33 +292,33 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 	// ------------------------------------------------------------------
 
 	@Test
-	void financeStaffCannotCreateStaff() {
-		assertCreateForbiddenForRole(Role.FINANCE_STAFF, "finance-staff");
+	void financeStaffIsForbiddenOnEveryStaffEndpoint() {
+		assertEveryEndpointForbiddenForRole(Role.FINANCE_STAFF, "finance-staff");
 	}
 
 	@Test
-	void courseCoordinatorCannotCreateStaff() {
-		assertCreateForbiddenForRole(Role.COURSE_COORDINATOR, "course-coordinator");
+	void courseCoordinatorIsForbiddenOnEveryStaffEndpoint() {
+		assertEveryEndpointForbiddenForRole(Role.COURSE_COORDINATOR, "course-coordinator");
 	}
 
 	@Test
-	void studentSupportCannotCreateStaff() {
-		assertCreateForbiddenForRole(Role.STUDENT_SUPPORT, "student-support");
+	void studentSupportIsForbiddenOnEveryStaffEndpoint() {
+		assertEveryEndpointForbiddenForRole(Role.STUDENT_SUPPORT, "student-support");
 	}
 
 	@Test
-	void contentManagerCannotCreateStaff() {
-		assertCreateForbiddenForRole(Role.CONTENT_MANAGER, "content-manager");
+	void contentManagerIsForbiddenOnEveryStaffEndpoint() {
+		assertEveryEndpointForbiddenForRole(Role.CONTENT_MANAGER, "content-manager");
 	}
 
 	@Test
-	void examManagerCannotCreateStaff() {
-		assertCreateForbiddenForRole(Role.EXAM_MANAGER, "exam-manager");
+	void examManagerIsForbiddenOnEveryStaffEndpoint() {
+		assertEveryEndpointForbiddenForRole(Role.EXAM_MANAGER, "exam-manager");
 	}
 
 	@Test
-	void attendanceOperatorCannotCreateStaff() {
-		assertCreateForbiddenForRole(Role.ATTENDANCE_OPERATOR, "attendance-operator");
+	void attendanceOperatorIsForbiddenOnEveryStaffEndpoint() {
+		assertEveryEndpointForbiddenForRole(Role.ATTENDANCE_OPERATOR, "attendance-operator");
 	}
 
 	@Test
@@ -408,21 +408,6 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 	// ------------------------------------------------------------------
 	// Shared per-role deny-path helpers.
 	// ------------------------------------------------------------------
-
-	private void assertCreateForbiddenForRole(Role role, String subdomainPrefix) {
-		Tenant tenant = seedActiveTenant(uniqueSubdomain("staff-deny-" + subdomainPrefix));
-		String email = subdomainPrefix + "@example.test";
-		seedTenantUser(tenant.getId(), email, RAW_PASSWORD, role);
-		String host = hostFor(tenant.getSubdomain());
-		String token = loginAndGetToken(host, email);
-
-		HttpResult<StaffResponse> result = parseSingle(performCreate(host, token,
-				new StaffCreateRequest("Blocked", uniqueEmail(subdomainPrefix + "-blocked"), "password123", "FINANCE_STAFF")));
-
-		assertThat(result.getStatusCode()).as(role + " POST /api/v1/staff").isEqualTo(HttpStatus.FORBIDDEN);
-		assertThat(result.getBody().success()).isFalse();
-		assertThat(result.getBody().error().code()).isEqualTo("FORBIDDEN");
-	}
 
 	private void assertEveryEndpointForbiddenForRole(Role role, String subdomainPrefix) {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("staff-deny-" + subdomainPrefix));
