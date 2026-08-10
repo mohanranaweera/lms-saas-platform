@@ -54,6 +54,14 @@ interface AuthContextValue {
    * drive a generic redirect from, per plan §11/§21).
    */
   ensureAccessToken: (kind: PrincipalKind, options?: { force?: boolean }) => Promise<string>;
+  /**
+   * Attaches a bearer token to a protected request and retries it exactly
+   * once on a recoverable 401 (`UNAUTHENTICATED`/`SESSION_REVOKED`) — see the
+   * implementation's doc comment below. Exposed here so data-fetching hooks
+   * (React Query `queryFn`/`mutationFn`) can make authenticated calls without
+   * duplicating this refresh/retry logic per module.
+   */
+  authorizedFetch: <T>(kind: PrincipalKind, path: string, init?: RequestInit) => Promise<T>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -167,8 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, login, logout, ensureAccessToken }),
-    [session, login, logout, ensureAccessToken]
+    () => ({ session, login, logout, ensureAccessToken, authorizedFetch }),
+    [session, login, logout, ensureAccessToken, authorizedFetch]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
