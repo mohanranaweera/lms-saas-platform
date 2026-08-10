@@ -3,6 +3,9 @@ package com.lms.usermanagement.staff.service;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
+import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
@@ -26,6 +29,15 @@ import org.springframework.transaction.annotation.Transactional;
  * this class never constructs, hashes, or persists a password/credential
  * value itself, per {@code .claude/rules/security.md}'s credential-creation
  * contract boundary.
+ *
+ * <p>Every public method independently re-checks {@code STAFF_AND_ROLES}
+ * permission via {@link PermissionCheckService#requirePermission} before
+ * doing anything else - defense in depth on top of {@link
+ * com.lms.usermanagement.staff.web.StaffController}'s {@code @PreAuthorize}
+ * gates, so a future caller in this same JVM/package (a batch job, a second
+ * controller, a bug that adds an unguarded endpoint) cannot reach a
+ * privileged staff-account operation by bypassing the controller layer -
+ * {@code @PreAuthorize} alone would otherwise be the sole enforcement point.
  */
 @Service
 @Transactional
@@ -48,11 +60,14 @@ public class StaffService {
 
 	private final TenantContext tenantContext;
 
+	private final PermissionCheckService permissionCheckService;
+
 	public StaffService(UserProvisioningApi userProvisioningApi, StaffProfileRepository staffProfileRepository,
-			TenantContext tenantContext) {
+			TenantContext tenantContext, PermissionCheckService permissionCheckService) {
 		this.userProvisioningApi = userProvisioningApi;
 		this.staffProfileRepository = staffProfileRepository;
 		this.tenantContext = tenantContext;
+		this.permissionCheckService = permissionCheckService;
 	}
 
 	/**
@@ -66,6 +81,8 @@ public class StaffService {
 	 * {@code docs/ui-ux/authentication-design-spec.md} §3.7).
 	 */
 	public StaffAccount createStaff(String name, String email, String rawPassword, String roleCode) {
+		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.CREATE_EDIT);
+
 		if (!ASSIGNABLE_STAFF_ROLES.contains(roleCode)) {
 			throw new InvalidStaffRoleException(roleCode);
 		}
@@ -90,6 +107,8 @@ public class StaffService {
 
 	@Transactional(readOnly = true)
 	public List<StaffAccount> listStaff() {
+		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);
+
 		List<StaffProfile> profiles = staffProfileRepository.findAll();
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(profiles);
 		return profiles.stream()
@@ -100,6 +119,8 @@ public class StaffService {
 
 	@Transactional(readOnly = true)
 	public StaffAccount getStaff(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);
+
 		// TenantAwareRepository scopes findById to the resolved tenant
 		// context already - a tenant B staff id is structurally invisible
 		// here, surfacing as empty (-> 404), never a cross-tenant read.

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lms.common.tenant.TenantContext;
+import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.usermanagement.staff.domain.StaffProfile;
@@ -48,11 +49,15 @@ class StaffServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private PermissionCheckService permissionCheckService;
+
 	private StaffService staffService;
 
 	@BeforeEach
 	void setUp() {
-		staffService = new StaffService(userProvisioningApi, staffProfileRepository, tenantContext);
+		staffService = new StaffService(userProvisioningApi, staffProfileRepository, tenantContext,
+				permissionCheckService);
 	}
 
 	@ParameterizedTest
