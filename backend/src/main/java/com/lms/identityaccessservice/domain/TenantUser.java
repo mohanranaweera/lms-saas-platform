@@ -49,12 +49,23 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 	}
 
 	public TenantUser(UUID tenantId, String email, String passwordHash, Role role) {
+		this(tenantId, email, passwordHash, role, false);
+	}
+
+	/**
+	 * Overload allowing the caller to set {@code must_change_password} at
+	 * creation time (e.g. {@code user-management}'s admin-created Staff
+	 * accounts, per {@code docs/ui-ux/authentication-design-spec.md} §3.7,
+	 * which always force a credential change at next login since there is no
+	 * self-registration path for staff).
+	 */
+	public TenantUser(UUID tenantId, String email, String passwordHash, Role role, boolean mustChangePassword) {
 		this.tenantId = tenantId;
 		this.email = email;
 		this.passwordHash = passwordHash;
 		this.role = role;
 		this.status = AccountStatus.ACTIVE;
-		this.mustChangePassword = false;
+		this.mustChangePassword = mustChangePassword;
 	}
 
 	@Override

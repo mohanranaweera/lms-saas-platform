@@ -36,6 +36,9 @@ public final class ApiErrorCodes {
 	/** A revoked/expired session presented via an otherwise-valid access token. */
 	public static final String SESSION_REVOKED = "SESSION_REVOKED";
 
+	/** A role code supplied to a provisioning call does not match any real {@code Role} enum value. */
+	public static final String INVALID_ROLE_CODE = "INVALID_ROLE_CODE";
+
 	private ApiErrorCodes() {
 	}
 
