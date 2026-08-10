@@ -92,8 +92,25 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 		return subdomain + ".lms.test";
 	}
 
+	/**
+	 * {@code Tenant} deliberately exposes no public constructor and no bare
+	 * status setter (see its own javadoc) - {@code TEN-2}'s real
+	 * approval/status-change orchestration is not wired yet, so there is no
+	 * legitimate production code path to reach any status other than
+	 * {@code PENDING_APPROVAL} via {@code Tenant.registerPending(...)}. Tests
+	 * that need a tenant already in an arbitrary lifecycle state (to test
+	 * login/session behavior per status) seed it directly via SQL instead,
+	 * the same pattern already established in
+	 * {@code TenantLookupServiceIntegrationTest#seedTenant}.
+	 */
 	protected Tenant seedTenant(String subdomain, TenantStatus status) {
-		return tenantRepository.save(new Tenant("Test Institute " + subdomain, subdomain, status));
+		UUID id = UUID.randomUUID();
+		jdbcTemplate.update(
+				"INSERT INTO tenant (id, name, subdomain, status, requested_plan, contact_name, contact_email, "
+						+ "contact_phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, now(), now())",
+				id, "Test Institute " + subdomain, subdomain, status.toColumnValue(), "starter", "Test Contact",
+				"contact-" + subdomain + "@example.test", "+1-555-0100");
+		return tenantRepository.findById(id).orElseThrow();
 	}
 
 	protected Tenant seedActiveTenant(String subdomain) {

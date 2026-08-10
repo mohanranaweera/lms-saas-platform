@@ -89,7 +89,7 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 		// constraint and replaced it with a FK to role(code). 'STAFF' is not a
 		// catalog code - this proves DB-level enforcement, not merely
 		// application-level Role.valueOf.
-		Tenant tenant = tenantRepository.save(new Tenant("FK Reject Institute", uniqueSubdomain(), TenantStatus.ACTIVE));
+		Tenant tenant = seedTenant("FK Reject Institute");
 
 		assertThatThrownBy(() -> insertTenantUser(tenant.getId(), "fk-reject-staff@example.test", "STAFF"))
 			.isInstanceOf(DataIntegrityViolationException.class);
@@ -97,7 +97,7 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 
 	@Test
 	void insertingATenantUserWithAnyNonCatalogRoleStringIsRejectedByTheDatabaseForeignKey() {
-		Tenant tenant = tenantRepository.save(new Tenant("FK Reject Institute 2", uniqueSubdomain(), TenantStatus.ACTIVE));
+		Tenant tenant = seedTenant("FK Reject Institute 2");
 
 		assertThatThrownBy(() -> insertTenantUser(tenant.getId(), "fk-reject-bogus@example.test", "NOT_A_REAL_ROLE_CODE"))
 			.isInstanceOf(DataIntegrityViolationException.class);
@@ -109,7 +109,7 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 		// row (see v7SeedsExactlyTheTwelveExpectedCatalogRowsWithCorrectScope
 		// above), so V8's plain FK alone would accept it here - only V9's
 		// chk_tenant_user_role_not_platform_admin CHECK constraint rejects it.
-		Tenant tenant = tenantRepository.save(new Tenant("FK Reject Institute 3", uniqueSubdomain(), TenantStatus.ACTIVE));
+		Tenant tenant = seedTenant("FK Reject Institute 3");
 
 		assertThatThrownBy(() -> insertTenantUser(tenant.getId(), "fk-reject-platform-admin@example.test", "PLATFORM_ADMIN"))
 			.isInstanceOf(DataIntegrityViolationException.class);
@@ -117,7 +117,7 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 
 	@Test
 	void insertingATenantUserWithAValidCatalogRoleCodeSucceeds() {
-		Tenant tenant = tenantRepository.save(new Tenant("FK Accept Institute", uniqueSubdomain(), TenantStatus.ACTIVE));
+		Tenant tenant = seedTenant("FK Accept Institute");
 
 		int rowsInserted = insertTenantUser(tenant.getId(), "fk-accept-finance@example.test", "FINANCE_STAFF");
 
@@ -155,6 +155,24 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 		assertThat(withTenantAContext).extracting(RoleCatalogEntry::getCode).containsExactlyInAnyOrderElementsOf(expectedCodes);
 		assertThat(withTenantBContext).hasSize(withNoTenantContext.size());
 		assertThat(withTenantBContext).extracting(RoleCatalogEntry::getCode).containsExactlyInAnyOrderElementsOf(expectedCodes);
+	}
+
+	/**
+	 * {@code Tenant} exposes no public constructor (see its own javadoc) -
+	 * these FK/constraint tests only need any persisted, valid tenant row to
+	 * satisfy {@code tenant_user.tenant_id}'s FK, so seed one directly via
+	 * SQL rather than the registration/approval workflow, matching the
+	 * pattern already established in
+	 * {@code TenantLookupServiceIntegrationTest#seedTenant}.
+	 */
+	private Tenant seedTenant(String name) {
+		UUID id = UUID.randomUUID();
+		jdbcTemplate.update(
+				"INSERT INTO tenant (id, name, subdomain, status, requested_plan, contact_name, contact_email, "
+						+ "contact_phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, now(), now())",
+				id, name, uniqueSubdomain(), TenantStatus.ACTIVE.toColumnValue(), "starter", "Test Contact",
+				"contact-" + id + "@example.test", "+1-555-0100");
+		return tenantRepository.findById(id).orElseThrow();
 	}
 
 	private int insertTenantUser(UUID tenantId, String email, String roleCode) {
