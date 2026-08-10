@@ -33,10 +33,23 @@ test.describe("public route group", () => {
 });
 
 test.describe("auth route group", () => {
-  test("login page renders a disabled placeholder form", async ({ page }) => {
+  test("login page renders a real, submittable sign-in form", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByText("Not yet implemented", { exact: false })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign in" })).toBeDisabled();
+    await expect(page.getByLabel("Email")).toBeEnabled();
+    await expect(page.getByLabel("Password", { exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeEnabled();
+    // Password show/hide toggle exposes a stateful, accessible label.
+    const toggle = page.getByRole("button", { name: "Show password" });
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    await expect(page.getByRole("button", { name: "Hide password" })).toBeVisible();
+  });
+
+  test("login page shows the session-expired banner when redirected with that reason", async ({
+    page,
+  }) => {
+    await page.goto("/login?reason=session_expired");
+    await expect(page.getByText("Your session has expired")).toBeVisible();
   });
 
   test("register page renders a disabled placeholder form", async ({ page }) => {
@@ -49,6 +62,17 @@ test.describe("auth route group", () => {
     await page.goto("/forgot-password");
     await expect(page.getByText("Not yet implemented", { exact: false })).toBeVisible();
     await expect(page.getByRole("button", { name: "Send reset link" })).toBeDisabled();
+  });
+});
+
+test.describe("platform-admin login route", () => {
+  test("renders a real sign-in form with no dashboard chrome", async ({ page }) => {
+    await page.goto("/platform-admin/login");
+    await expect(page.getByLabel("Email")).toBeEnabled();
+    await expect(page.getByLabel("Password", { exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeEnabled();
+    // No dashboard shell on the login route: no primary nav landmark, no logout control.
+    await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(0);
   });
 });
 

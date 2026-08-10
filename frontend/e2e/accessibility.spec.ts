@@ -11,7 +11,11 @@ test.describe("accessible form labels", () => {
   test("login form fields are associated with visible labels", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByLabel("Email")).toBeVisible();
-    await expect(page.getByLabel("Password")).toBeVisible();
+    // `exact: true` avoids matching the password show/hide toggle, whose
+    // accessible name ("Show password"/"Hide password") otherwise substring-
+    // matches a loose "Password" query — same pattern already used below for
+    // the register form's Password field.
+    await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
   });
 
   test("register form fields are associated with visible labels", async ({ page }) => {

@@ -13,9 +13,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * Base type for entities that need standard audit fields. {@code createdBy}/
- * {@code updatedBy} resolve via {@link AuditorAwareImpl}, which returns empty
- * until identity-access-service supplies a real authenticated actor - see
- * that class for why this is a deliberate placeholder, not an oversight.
+ * {@code updatedBy} resolve via {@link AuditorAwareImpl}, which delegates to
+ * whatever {@link CurrentActorProvider} the application context supplies
+ * (identity-access-service's {@code AuthenticatedActorProvider} in the real
+ * app) - empty when no authenticated actor exists for the current write
+ * (unauthenticated/system writes, or a test slice without that module).
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
