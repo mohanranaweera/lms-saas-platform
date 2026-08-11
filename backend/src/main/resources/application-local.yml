@@ -44,3 +44,9 @@ app:
       # 256-bit key length so local startup never silently falls back to a
       # weak key.
       secret: ${JWT_SECRET:dev-only-placeholder-secret-change-me-before-any-real-deployment-32bytes+}
+    cors:
+      # Only read by SecurityFilterChainConfig's @Profile("local")
+      # corsConfigurationSource bean - see that bean's javadoc. The Next.js
+      # dev server's own origin, never the API host it calls (tenant
+      # subdomain resolution is independent of CORS's allowed-origin list).
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://demo.localhost:3000}

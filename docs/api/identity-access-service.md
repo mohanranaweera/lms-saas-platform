@@ -191,26 +191,37 @@ the host, resolution fails with `TENANT_UNAVAILABLE`). This means:
   has a tenant subdomain label, e.g. `tenant1.lms.local`, not a bare `localhost` or a
   generic `api.` host — a bare `localhost:8080` has no dot before the port and will
   always fail tenant resolution.
-- The frontend's `NEXT_PUBLIC_API_BASE_URL` (currently `http://localhost:8080/api` per
-  `.env.example`) does not satisfy this for the tenant-scoped endpoints as configured.
-  Local dev needs either a `/etc/hosts` (or Windows `hosts` file) entry mapping a
-  subdomain like `demo.lms.local` to `127.0.0.1`, with the frontend calling that host
-  instead, or an Nginx layer that forwards a subdomain-carrying request through unchanged.
-  This is an infrastructure/devops decision outside this contract's scope — flagging it
-  here because it blocks a real (non-mocked) end-to-end login test locally until resolved.
 - Platform Admin endpoints have no such requirement — they never resolve a tenant.
 
-## CORS caveat (environment-level)
+**Resolved recipe for local browser-based testing (no `hosts` file edit needed):**
+`*.localhost` resolves to loopback via every major OS's resolver (Windows included —
+confirmed via `curl http://demo.localhost:8080/...`, though raw `nslookup` won't show
+it, since that bypasses the resolver's built-in handling and queries the configured DNS
+server directly) and — unlike `*.localtest.me`/`*.nip.io`, which also resolve to
+loopback but via ordinary public DNS — Chromium treats `*.localhost` as a secure context,
+which matters for the `Secure`-flagged refresh cookie below. Point
+`NEXT_PUBLIC_API_BASE_URL` at `http://demo.localhost:8080/api` and browse the frontend
+itself at `http://demo.localhost:3000` (not `http://localhost:3000`) — same registrable
+site, different port, which is what the `SameSite=Strict` refresh cookie below actually
+requires; browsing the frontend from plain `localhost` while the API lives on
+`demo.localhost` makes every refresh call **cross-site**, silently stripping the cookie
+and producing a confusing `INVALID_REFRESH_TOKEN` on the very next reload despite login
+having just succeeded.
 
-No CORS configuration exists anywhere in the backend (`SecurityFilterChainConfig` calls
-`.csrf(...).disable()` but never configures `.cors(...)`, and no `WebMvcConfigurer`
-bean adds CORS mappings). A browser running the Next.js frontend on a different
-origin/port than the backend cannot make a credentialed (cookie-carrying) request to
-these endpoints — the preflight will fail. This must be resolved on the backend/infra
-side (an explicit CORS configuration scoped to the frontend's known origin(s), with
-`allowCredentials(true)`) before real browser-based login can work end-to-end outside
-same-origin deployment (e.g. behind the same Nginx host). Not something the frontend can
-work around from its side.
+## CORS caveat (environment-level) — resolved for local dev
+
+`SecurityFilterChainConfig` now defines a `corsConfigurationSource` bean, gated to
+`@Profile("local")` (so it structurally cannot activate anywhere else) with allowed
+origins read from `app.security.cors.allowed-origins` in `application-local.yml`
+(default `http://localhost:3000,http://demo.localhost:3000`), `allowCredentials(true)`.
+Every other profile still has no CORS bean at all — same-origin-only, as intended for
+staging/production behind Nginx. To run the backend with this active:
+`.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"`.
+
+Because the login/refresh response's `lms_refresh_token` cookie is `Secure`, it will not
+be stored at all by the browser unless the page believes it's in a secure context — see
+the `*.localhost` note above for why the frontend's own origin (not just the API's)
+needs to be a `*.localhost` host, not plain `localhost`, for this to work over plain HTTP.
 
 ## Process gap
 

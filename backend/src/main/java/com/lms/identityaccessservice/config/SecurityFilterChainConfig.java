@@ -10,19 +10,26 @@ import com.lms.identityaccessservice.repository.TenantUserRepository;
 import com.lms.identityaccessservice.service.DeviceSessionCacheService;
 import com.lms.identityaccessservice.service.TokenService;
 import com.lms.tenantmanagement.api.TenantLookupApi;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -106,6 +113,37 @@ public class SecurityFilterChainConfig {
 				HttpStatus.FORBIDDEN, ApiErrorCodes.FORBIDDEN, "You do not have permission to perform this action");
 	}
 
+	/**
+	 * CORS is intentionally undefined for every profile except {@code local}.
+	 * Non-local environments are expected to serve frontend and backend
+	 * same-origin (behind Nginx per {@code docs/architecture/deployment-architecture.md}),
+	 * so no cross-origin browser requests should ever need to be allowed there.
+	 * This bean exists solely so a browser-based frontend dev server on a
+	 * different port ({@code http://localhost:3000}) can make credentialed
+	 * requests to this app during local development - closing the "CORS
+	 * caveat" flagged in {@code docs/api/identity-access-service.md}. Allowed
+	 * origins are read from {@code app.security.cors.allowed-origins} (set
+	 * only in {@code application-local.yml}) rather than hardcoded, and the
+	 * bean is additionally gated to {@code @Profile("local")} as a second,
+	 * structural guard - even a misconfigured property can never enable CORS
+	 * outside local development, since {@link
+	 * org.springframework.security.config.annotation.web.configurers.CorsConfigurer}
+	 * is a no-op when no {@link CorsConfigurationSource} bean exists.
+	 */
+	@Bean
+	@Profile("local")
+	public CorsConfigurationSource corsConfigurationSource(
+			@Value("${app.security.cors.allowed-origins:http://localhost:3000}") List<String> allowedOrigins) {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(allowedOrigins);
+		configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+		configuration.setAllowCredentials(true);
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/api/**", configuration);
+		return source;
+	}
+
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http, Environment environment,
 			CorrelationIdFilter correlationIdFilter, TenantResolutionFilter tenantResolutionFilter,
@@ -113,6 +151,7 @@ public class SecurityFilterChainConfig {
 			AccessDeniedHandler accessDeniedHandler) throws Exception {
 		boolean exposeApiDocs = environment.acceptsProfiles(Profiles.of("local", "test"));
 		http.csrf(csrf -> csrf.disable())
+			.cors(Customizer.withDefaults())
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.exceptionHandling(handling -> handling.authenticationEntryPoint(authenticationEntryPoint)
 				.accessDeniedHandler(accessDeniedHandler))
