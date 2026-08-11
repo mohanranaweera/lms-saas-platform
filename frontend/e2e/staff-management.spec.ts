@@ -306,11 +306,10 @@ test.describe("tenant admin nav", () => {
 
 async function fillStaffForm(
   page: Page,
-  values: { name: string; email: string; password: string; role: string }
+  values: { name: string; email: string; role: string }
 ) {
   await page.getByLabel("Name").fill(values.name);
   await page.getByLabel("Email").fill(values.email);
-  await page.getByLabel("Temporary password").fill(values.password);
   await page.getByLabel(values.role).check();
 }
 
@@ -323,7 +322,7 @@ test.describe("add staff — accessible form", () => {
 
     await expect(page.getByLabel("Name")).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();
-    await expect(page.getByLabel("Temporary password")).toBeVisible();
+    await expect(page.getByLabel("Temporary password")).toHaveCount(0);
     await expect(page.getByRole("group", { name: "Role" })).toBeVisible();
     await expect(page.getByLabel("Finance Staff")).toBeVisible();
     await expect(page.getByLabel("Read-only Auditor")).toBeVisible();
@@ -331,27 +330,6 @@ test.describe("add staff — accessible form", () => {
 });
 
 test.describe("add staff — client-side validation", () => {
-  test("a too-short password is rejected before any request is sent", async ({ page }) => {
-    await mockRefresh(page, "TENANT_ADMIN");
-    let postCalled = false;
-    await page.route("**/v1/staff", async (route) => {
-      if (route.request().method() === "POST") postCalled = true;
-      await route.continue();
-    });
-
-    await page.goto("/tenant-admin/staff/new");
-    await fillStaffForm(page, {
-      name: "New Person",
-      email: "new@example.com",
-      password: "short",
-      role: "Finance Staff",
-    });
-    await page.getByRole("button", { name: "Create staff account" }).click();
-
-    await expect(page.getByText("Password must be at least 8 characters.")).toBeVisible();
-    expect(postCalled).toBe(false);
-  });
-
   test("submitting with no role selected is rejected client-side", async ({ page }) => {
     await mockRefresh(page, "TENANT_ADMIN");
     let postCalled = false;
@@ -363,7 +341,6 @@ test.describe("add staff — client-side validation", () => {
     await page.goto("/tenant-admin/staff/new");
     await page.getByLabel("Name").fill("New Person");
     await page.getByLabel("Email").fill("new@example.com");
-    await page.getByLabel("Temporary password").fill("correct-horse-battery-staple");
     await page.getByRole("button", { name: "Create staff account" }).click();
 
     await expect(page.getByText("Select a role.")).toBeVisible();
@@ -372,7 +349,9 @@ test.describe("add staff — client-side validation", () => {
 });
 
 test.describe("add staff — success", () => {
-  test("creating a staff account redirects to their own detail page", async ({ page }) => {
+  test("creating a staff account shows a one-time password reveal, then navigates to the detail page on continue", async ({
+    page,
+  }) => {
     await mockRefresh(page, "TENANT_ADMIN");
     const created = staffAccount({
       id: "staff-9",
@@ -381,12 +360,13 @@ test.describe("add staff — success", () => {
       roleCode: "COURSE_COORDINATOR",
       status: "ACTIVE",
     });
+    const createdWithPassword = { ...created, temporaryPassword: "gen-3rated-pw!" };
 
     let capturedBody: unknown;
     await page.route("**/v1/staff", async (route) => {
       if (route.request().method() === "POST") {
         capturedBody = route.request().postDataJSON();
-        await fulfillJson(route, 201, apiSuccess(created));
+        await fulfillJson(route, 201, apiSuccess(createdWithPassword));
         return;
       }
       await route.continue();
@@ -397,19 +377,28 @@ test.describe("add staff — success", () => {
     await fillStaffForm(page, {
       name: "New Person",
       email: "new@example.com",
-      password: "correct-horse-battery-staple",
       role: "Course Coordinator",
     });
     await page.getByRole("button", { name: "Create staff account" }).click();
 
-    await expect(page).toHaveURL(/\/tenant-admin\/staff\/staff-9$/);
-    await expect(page.getByRole("heading", { name: "New Person" })).toBeVisible();
+    // One-time reveal panel — still on the /new route, not redirected yet.
+    // Wait for it before inspecting the captured request body, since the
+    // click above doesn't itself await the mocked network round trip.
+    await expect(page.getByText("Staff account created")).toBeVisible();
+
     expect(capturedBody).toMatchObject({
       name: "New Person",
       email: "new@example.com",
-      password: "correct-horse-battery-staple",
       roleCode: "COURSE_COORDINATOR",
     });
+    expect(capturedBody).not.toHaveProperty("password");
+    await expect(page.getByLabel("Temporary password")).toHaveValue("gen-3rated-pw!");
+    await expect(page.getByText("it will not be shown again")).toBeVisible();
+
+    await page.getByRole("button", { name: "Continue to staff details" }).click();
+
+    await expect(page).toHaveURL(/\/tenant-admin\/staff\/staff-9$/);
+    await expect(page.getByRole("heading", { name: "New Person" })).toBeVisible();
   });
 });
 
@@ -429,7 +418,6 @@ test.describe("add staff — backend validation errors", () => {
     await fillStaffForm(page, {
       name: "New Person",
       email: "new@example.com",
-      password: "correct-horse-battery-staple",
       role: "Finance Staff",
     });
     await page.getByRole("button", { name: "Create staff account" }).click();
@@ -454,7 +442,6 @@ test.describe("add staff — backend validation errors", () => {
     await fillStaffForm(page, {
       name: "New Person",
       email: "new@example.com",
-      password: "correct-horse-battery-staple",
       role: "Finance Staff",
     });
     await page.getByRole("button", { name: "Create staff account" }).click();
@@ -480,7 +467,6 @@ test.describe("add staff — duplicate email", () => {
     await fillStaffForm(page, {
       name: "New Person",
       email: "dup@example.com",
-      password: "correct-horse-battery-staple",
       role: "Finance Staff",
     });
     await page.getByRole("button", { name: "Create staff account" }).click();
@@ -508,7 +494,6 @@ test.describe("add staff — permission denied on submit", () => {
     await fillStaffForm(page, {
       name: "New Person",
       email: "new@example.com",
-      password: "correct-horse-battery-staple",
       role: "Finance Staff",
     });
     await page.getByRole("button", { name: "Create staff account" }).click();
@@ -534,7 +519,11 @@ test.describe("add staff — busy state", () => {
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 400));
-      await fulfillJson(route, 201, apiSuccess(staffAccount({ id: "staff-9" })));
+      await fulfillJson(
+        route,
+        201,
+        apiSuccess({ ...staffAccount({ id: "staff-9" }), temporaryPassword: "gen-3rated-pw!" })
+      );
     });
     await mockJson(page, "**/v1/staff/staff-9", 200, apiSuccess(staffAccount({ id: "staff-9" })));
 
@@ -542,7 +531,6 @@ test.describe("add staff — busy state", () => {
     await fillStaffForm(page, {
       name: "New Person",
       email: "new@example.com",
-      password: "correct-horse-battery-staple",
       role: "Finance Staff",
     });
     await page.getByRole("button", { name: "Create staff account" }).click();
@@ -553,7 +541,9 @@ test.describe("add staff — busy state", () => {
 });
 
 test.describe("staff detail", () => {
-  test("renders name, email, role, and status", async ({ page }) => {
+  test("renders name, email, role, and status, plus a Change role control for a Tenant Admin", async ({
+    page,
+  }) => {
     await mockRefresh(page, "TENANT_ADMIN");
     await mockJson(page, "**/v1/staff/staff-1", 200, apiSuccess(staffAccount()));
 
@@ -563,35 +553,7 @@ test.describe("staff detail", () => {
     await expect(page.getByText("ada@example.com")).toBeVisible();
     await expect(page.getByText("Finance Staff")).toBeVisible();
     await expect(page.getByText("Active", { exact: true })).toBeVisible();
-  });
-
-  test("renders a generic error state (not permission-denied) for a 404", async ({ page }) => {
-    await mockRefresh(page, "TENANT_ADMIN");
-    await mockJson(
-      page,
-      "**/v1/staff/missing-id",
-      404,
-      apiError("NOT_FOUND", "Staff account not found")
-    );
-
-    await page.goto("/tenant-admin/staff/missing-id");
-
-    await expect(page.getByText("Staff account not found")).toBeVisible();
-    await expect(page.getByText("You don't have permission")).toHaveCount(0);
-  });
-
-  test("renders the permission-denied state for a 403", async ({ page }) => {
-    await mockRefresh(page, "TEACHER");
-    await mockJson(
-      page,
-      "**/v1/staff/staff-1",
-      403,
-      apiError("FORBIDDEN", "You do not have permission to perform this action.")
-    );
-
-    await page.goto("/tenant-admin/staff/staff-1");
-
-    await expect(page.getByText("You don't have permission to view this.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Change role" })).toBeVisible();
   });
 
   test("has no edit, delete, deactivate, or password-reset controls", async ({ page }) => {
@@ -604,5 +566,180 @@ test.describe("staff detail", () => {
     for (const name of [/^edit$/i, /^delete$/i, /^deactivate$/i, /reset password/i]) {
       await expect(page.getByRole("button", { name })).toHaveCount(0);
     }
+  });
+});
+
+test.describe("staff detail — 403/404 parity (tenant boundary is intentionally indistinguishable)", () => {
+  test("a 404 renders generic not-found copy — no raw backend message/code, no retry button", async ({
+    page,
+  }) => {
+    await mockRefresh(page, "TENANT_ADMIN");
+    await mockJson(
+      page,
+      "**/v1/staff/missing-id",
+      404,
+      apiError("NOT_FOUND", "Staff account not found")
+    );
+
+    await page.goto("/tenant-admin/staff/missing-id");
+
+    await expect(page.getByText("Staff account not found")).toBeVisible();
+    await expect(page.getByText("You don't have permission")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+  });
+
+  test("a 403 renders the identical not-found copy — never permission-denied, never the raw backend message", async ({
+    page,
+  }) => {
+    await mockRefresh(page, "TEACHER");
+    await mockJson(
+      page,
+      "**/v1/staff/staff-1",
+      403,
+      apiError("FORBIDDEN", "You do not have permission to perform this action.")
+    );
+
+    await page.goto("/tenant-admin/staff/staff-1");
+
+    await expect(page.getByText("Staff account not found")).toBeVisible();
+    await expect(page.getByText("You don't have permission")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+    // The whole point: a 403 must not leak any signal distinguishing it from
+    // a 404, including the raw backend error message.
+    await expect(
+      page.getByText("You do not have permission to perform this action.")
+    ).toHaveCount(0);
+  });
+});
+
+test.describe("staff detail — role edit", () => {
+  test("a Tenant Admin can change a staff member's role", async ({ page }) => {
+    await mockRefresh(page, "TENANT_ADMIN");
+    let currentRole = "FINANCE_STAFF";
+    let capturedBody: unknown;
+    await page.route("**/v1/staff/staff-1", async (route) => {
+      if (route.request().method() === "PATCH") {
+        capturedBody = route.request().postDataJSON();
+        currentRole = "COURSE_COORDINATOR";
+        await fulfillJson(route, 200, apiSuccess(staffAccount({ roleCode: currentRole })));
+        return;
+      }
+      await fulfillJson(route, 200, apiSuccess(staffAccount({ roleCode: currentRole })));
+    });
+
+    await page.goto("/tenant-admin/staff/staff-1");
+    await expect(page.getByText("Finance Staff")).toBeVisible();
+
+    await page.getByRole("button", { name: "Change role" }).click();
+    await page.getByLabel("Course Coordinator").check();
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByText("Course Coordinator")).toBeVisible();
+    expect(capturedBody).toEqual({ roleCode: "COURSE_COORDINATOR" });
+    // Edit mode is exited on success.
+    await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+  });
+
+  test("a 403 on submit shows an inline error, not a full-page permission-denied panel", async ({
+    page,
+  }) => {
+    await mockRefresh(page, "TENANT_ADMIN");
+    await page.route("**/v1/staff/staff-1", async (route) => {
+      if (route.request().method() === "PATCH") {
+        await fulfillJson(
+          route,
+          403,
+          apiError("FORBIDDEN", "You do not have permission to perform this action.")
+        );
+        return;
+      }
+      await fulfillJson(route, 200, apiSuccess(staffAccount()));
+    });
+
+    await page.goto("/tenant-admin/staff/staff-1");
+    await page.getByRole("button", { name: "Change role" }).click();
+    await page.getByLabel("Course Coordinator").check();
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(
+      page.getByText("You do not have permission to perform this action.")
+    ).toBeVisible();
+    // The rest of the page (account details) stays visible — this is an
+    // inline error, not a full permission-denied takeover.
+    await expect(page.getByRole("heading", { name: "Ada Lovelace" })).toBeVisible();
+  });
+
+  test("an invalid roleCode from the backend is surfaced inline on the role field", async ({
+    page,
+  }) => {
+    await mockRefresh(page, "TENANT_ADMIN");
+    await page.route("**/v1/staff/staff-1", async (route) => {
+      if (route.request().method() === "PATCH") {
+        await fulfillJson(
+          route,
+          400,
+          apiError("VALIDATION_ERROR", "Validation failed", [
+            { field: "roleCode", message: "Select a valid role." },
+          ])
+        );
+        return;
+      }
+      await fulfillJson(route, 200, apiSuccess(staffAccount()));
+    });
+
+    await page.goto("/tenant-admin/staff/staff-1");
+    await page.getByRole("button", { name: "Change role" }).click();
+    await page.getByLabel("Course Coordinator").check();
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByText("Select a valid role.")).toBeVisible();
+  });
+});
+
+test.describe("staff — read-only auditor", () => {
+  test("sees the staff list with data but no Add staff control", async ({ page }) => {
+    await mockRefresh(page, "READ_ONLY_AUDITOR");
+    await mockJson(page, "**/v1/staff", 200, apiSuccess([staffAccount()]));
+
+    await page.goto("/tenant-admin/staff");
+
+    await expect(page.getByRole("table").getByText("Ada Lovelace")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Add staff" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Add staff" })).toHaveCount(0);
+  });
+
+  test("a direct POST /v1/staff attempt still fails with 403 even though the UI never exposes the control", async ({
+    page,
+  }) => {
+    await mockRefresh(page, "READ_ONLY_AUDITOR");
+    await mockJson(
+      page,
+      "**/v1/staff",
+      403,
+      apiError("FORBIDDEN", "You do not have permission to perform this action.")
+    );
+
+    await page.goto("/tenant-admin/staff/new");
+    await fillStaffForm(page, {
+      name: "New Person",
+      email: "new@example.com",
+      role: "Finance Staff",
+    });
+    await page.getByRole("button", { name: "Create staff account" }).click();
+
+    await expect(page.getByText("You don't have permission to view this.")).toBeVisible();
+    await expect(
+      page.getByText("You do not have permission to perform this action.")
+    ).toBeVisible();
+  });
+
+  test("never sees the Change role control on staff detail", async ({ page }) => {
+    await mockRefresh(page, "READ_ONLY_AUDITOR");
+    await mockJson(page, "**/v1/staff/staff-1", 200, apiSuccess(staffAccount()));
+
+    await page.goto("/tenant-admin/staff/staff-1");
+
+    await expect(page.getByRole("heading", { name: "Ada Lovelace" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Change role" })).toHaveCount(0);
   });
 });

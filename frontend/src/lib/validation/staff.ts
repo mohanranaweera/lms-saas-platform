@@ -4,9 +4,11 @@ import { z } from "zod";
  * Zod schema for the tenant-admin "Add staff" form.
  *
  * Mirrors `StaffCreateRequest` (backend `com.lms.usermanagement.staff.web.dto`)
- * field-for-field: `name`, `email`, `password`, `roleCode`. This is a UX
- * convenience only — the backend independently and authoritatively
- * re-validates every field (`@NotBlank`/`@Email`/`@Size`/`@Pattern`), per
+ * field-for-field: `name`, `email`, `roleCode`. The backend generates the
+ * temporary password itself (returned once, as `temporaryPassword`, on the
+ * create response) — this form never collects or sends a password. This is a
+ * UX convenience only — the backend independently and authoritatively
+ * re-validates every field (`@NotBlank`/`@Email`/`@Pattern`), per
  * `.claude/rules/frontend.md`.
  */
 
@@ -50,10 +52,6 @@ export const staffCreateSchema = z.object({
     .min(1, "Email is required.")
     .email("Enter a valid email address.")
     .max(255, "Email must be 255 characters or fewer."),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters.")
-    .max(255, "Password must be 255 characters or fewer."),
   roleCode: z.enum(STAFF_ROLE_VALUES, { error: "Select a role." }),
 });
 

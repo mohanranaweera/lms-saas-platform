@@ -23,6 +23,14 @@ interface PermissionDeniedContent {
   action?: { label: string; onClick: () => void };
 }
 
+interface NotFoundContent {
+  /** Rendered as `ErrorState`'s `message` — no backend `code`/`message` and no
+   * "Try again" retry button are ever shown alongside it (see below): the
+   * whole point of this branch is that a 403 and a 404 must render
+   * identically, so no signal distinguishing the two cases can leak through. */
+  title: string;
+}
+
 interface QueryStateBoundaryProps<T> {
   query: Pick<UseQueryResult<T, unknown>, "status" | "data" | "error" | "refetch">;
   loadingLabel?: string;
@@ -30,6 +38,18 @@ interface QueryStateBoundaryProps<T> {
   isEmpty?: (data: T) => boolean;
   emptyState?: EmptyStateContent;
   permissionDenied?: PermissionDeniedContent;
+  /**
+   * When supplied, this query is treated as an id-addressed single-resource
+   * lookup where the backend intentionally returns an indistinguishable
+   * 403-or-404 for "not yours" (see `.claude/rules` / `classifyQueryError`).
+   * Both a 404 and a 403 then render identically via `ErrorState` using only
+   * `title` — never the raw backend `error.message`/`error.code`, and never
+   * a retry button (this is a permanent condition, not a transient
+   * failure). Omit for endpoints where a 403 legitimately means "no access
+   * to this feature at all" (e.g. list/create) — those keep rendering
+   * `PermissionDeniedState` on 403 as before.
+   */
+  notFound?: NotFoundContent;
   /**
    * When set, a 401 ("unauthenticated") classification redirects here
    * (with `?reason=session_expired` appended, matching the existing
@@ -56,11 +76,15 @@ export function QueryStateBoundary<T>({
   isEmpty,
   emptyState,
   permissionDenied,
+  notFound,
   loginPath,
   children,
 }: QueryStateBoundaryProps<T>) {
   const router = useRouter();
-  const kind = query.status === "error" ? classifyQueryError(query.error) : null;
+  const kind =
+    query.status === "error"
+      ? classifyQueryError(query.error, { treatForbiddenAsNotFound: !!notFound })
+      : null;
 
   useEffect(() => {
     if (kind === "unauthenticated" && loginPath) {
@@ -82,6 +106,12 @@ export function QueryStateBoundary<T>({
       return (
         <PermissionDeniedState error={query.error as ApiClientError} {...permissionDenied} />
       );
+    }
+    if (kind === "not_found" && notFound) {
+      // Deliberately no `code`/backend `message` and no `onRetry`: a 403 and
+      // a 404 must be indistinguishable here (see `notFound` prop doc), and
+      // this is a permanent condition, not a transient one worth retrying.
+      return <ErrorState message={notFound.title} />;
     }
     return (
       <ErrorState

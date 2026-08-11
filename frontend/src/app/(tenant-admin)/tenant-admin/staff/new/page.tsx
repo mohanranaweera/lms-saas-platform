@@ -9,7 +9,7 @@ import {
   STAFF_ROLE_OPTIONS,
   type StaffCreateFormValues,
 } from "@/lib/validation/staff";
-import { useCreateStaff } from "@/lib/api/staff";
+import { useCreateStaff, type StaffCreated } from "@/lib/api/staff";
 import { isApiClientError, type ApiClientError } from "@/lib/api/error";
 import type { FieldError } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
@@ -27,14 +27,17 @@ import { PermissionDeniedState } from "@/components/states/permission-denied-sta
  * `PermissionDeniedState` (see `onSubmit`'s FORBIDDEN branch) rather than the
  * generic retry-oriented error box, since retrying an unauthorized submit
  * would just fail identically.
+ *
+ * The backend generates the staff member's temporary password itself (this
+ * form never collects one) and returns it exactly once, on the create
+ * response (`StaffCreated.temporaryPassword`) — it is never retrievable
+ * again afterward. On success this page holds that result in local state and
+ * shows a one-time reveal panel (see `CreatedStaffReveal`) instead of
+ * immediately redirecting, so the admin has a chance to copy/relay it before
+ * navigating away.
  */
 
-const KNOWN_FIELD_NAMES = new Set<keyof StaffCreateFormValues>([
-  "name",
-  "email",
-  "password",
-  "roleCode",
-]);
+const KNOWN_FIELD_NAMES = new Set<keyof StaffCreateFormValues>(["name", "email", "roleCode"]);
 
 export default function NewStaffPage() {
   const router = useRouter();
@@ -44,6 +47,7 @@ export default function NewStaffPage() {
     fieldErrors?: FieldError[];
   } | null>(null);
   const [permissionError, setPermissionError] = useState<ApiClientError | null>(null);
+  const [created, setCreated] = useState<StaffCreated | null>(null);
 
   const {
     register,
@@ -52,7 +56,7 @@ export default function NewStaffPage() {
     formState: { errors },
   } = useForm<StaffCreateFormValues>({
     resolver: zodResolver(staffCreateSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "" },
   });
 
   const mutation = useCreateStaff();
@@ -60,12 +64,14 @@ export default function NewStaffPage() {
   const onSubmit = handleSubmit(async (values) => {
     setPageError(null);
     try {
-      const created = await mutation.mutateAsync(values);
+      const result = await mutation.mutateAsync(values);
       // Real, backend-confirmed data — the staff account is genuinely active
-      // immediately (no approval workflow here, unlike tenant registration),
-      // so landing on its own detail page is an accurate confirmation without
-      // fabricating separate success copy.
-      router.push(`/tenant-admin/staff/${created.id}`);
+      // immediately (no approval workflow here, unlike tenant registration).
+      // The backend returns the generated password exactly once, on this
+      // response — hold it in local state and show the one-time reveal
+      // panel instead of navigating away immediately, so the admin has a
+      // chance to copy/relay it first.
+      setCreated(result);
     } catch (error) {
       if (isApiClientError(error)) {
         if (error.status === 403) {
@@ -126,6 +132,20 @@ export default function NewStaffPage() {
           <h1 className="text-xl font-semibold text-foreground">Add staff</h1>
         </div>
         <PermissionDeniedState error={permissionError} dashboardHref="/tenant-admin/staff" />
+      </div>
+    );
+  }
+
+  if (created) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Add staff</h1>
+        </div>
+        <CreatedStaffReveal
+          created={created}
+          onContinue={() => router.push(`/tenant-admin/staff/${created.id}`)}
+        />
       </div>
     );
   }
@@ -201,31 +221,6 @@ export default function NewStaffPage() {
                 ) : null}
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="staff-password">Temporary password</Label>
-                <Input
-                  id="staff-password"
-                  type="password"
-                  autoComplete="new-password"
-                  aria-invalid={!!errors.password}
-                  aria-describedby={
-                    ["staff-password-helper", errors.password ? "staff-password-error" : undefined]
-                      .filter(Boolean)
-                      .join(" ") || undefined
-                  }
-                  {...register("password")}
-                />
-                <p id="staff-password-helper" className="text-xs text-muted-foreground">
-                  At least 8 characters. The staff member must change this password the first time
-                  they sign in.
-                </p>
-                {errors.password ? (
-                  <p id="staff-password-error" role="alert" className="text-xs text-destructive">
-                    {errors.password.message}
-                  </p>
-                ) : null}
-              </div>
-
               <fieldset
                 className="flex flex-col gap-2"
                 aria-invalid={!!errors.roleCode}
@@ -263,5 +258,72 @@ export default function NewStaffPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * One-time reveal of the backend-generated temporary password. This value is
+ * never retrievable again after this render (not on `GET /v1/staff` or
+ * `GET /v1/staff/{id}`) — the copy below says so explicitly, and there is no
+ * way back to this screen once the admin continues on.
+ */
+function CreatedStaffReveal({
+  created,
+  onContinue,
+}: {
+  created: StaffCreated;
+  onContinue: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(created.temporaryPassword);
+      setCopied(true);
+    } catch {
+      // Clipboard access can fail (unsupported browser, denied permission,
+      // insecure context) — the password is still visible/selectable in the
+      // field below, so this is a soft failure, not a blocker.
+      setCopied(false);
+    }
+  };
+
+  return (
+    <Card className="max-w-lg">
+      <CardHeader>
+        <h2 data-slot="card-title" className="font-heading text-base leading-snug font-medium">
+          Staff account created
+        </h2>
+        <CardDescription>
+          Share this temporary password with {created.name} now — it will not be shown again.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="staff-temporary-password">Temporary password</Label>
+          <div role="status" aria-live="polite" className="flex flex-row gap-2">
+            <Input
+              id="staff-temporary-password"
+              readOnly
+              value={created.temporaryPassword}
+              onFocus={(event) => event.currentTarget.select()}
+              className="font-mono"
+            />
+            <Button type="button" variant="outline" onClick={onCopy}>
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This is {created.name}&apos;s temporary password for signing in as {created.email}.
+            It is shown only once and cannot be retrieved again — the staff member must change it
+            the first time they sign in.
+          </p>
+        </div>
+
+        <Button type="button" onClick={onContinue}>
+          Continue to staff details
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
