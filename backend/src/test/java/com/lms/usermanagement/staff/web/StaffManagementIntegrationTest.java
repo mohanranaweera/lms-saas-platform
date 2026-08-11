@@ -2,6 +2,7 @@ package com.lms.usermanagement.staff.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.lms.common.api.ApiResponse;
@@ -11,7 +12,9 @@ import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import com.lms.usermanagement.staff.web.dto.StaffCreateRequest;
+import com.lms.usermanagement.staff.web.dto.StaffCreateResponse;
 import com.lms.usermanagement.staff.web.dto.StaffResponse;
+import com.lms.usermanagement.staff.web.dto.StaffRoleUpdateRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +32,13 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.JavaType;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Testcontainers-backed coverage for Staff Management (MVP-005, {@code
- * STAFF-1})'s real endpoints: {@code POST/GET /api/v1/staff} and
- * {@code GET /api/v1/staff/{id}}. Modeled on
+ * STAFF-1})'s real endpoints: {@code POST/GET /api/v1/staff},
+ * {@code GET /api/v1/staff/{id}}, and {@code PATCH /api/v1/staff/{id}}.
+ * Modeled on
  * {@link com.lms.identityaccessservice.web.RoleCatalogControllerIntegrationTest}
  * and {@link com.lms.identityaccessservice.web.PermissionEnforcementIntegrationTest}
  * for the MockMvc-through-the-real-filter-chain technique (MockMvc, not
@@ -63,8 +68,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		String host = hostFor(tenant.getSubdomain());
 		String token = loginAndGetToken(host, "admin@example.test");
 		String staffEmail = uniqueEmail("new-staff");
-		StaffCreateRequest request = new StaffCreateRequest("Newly Hired Staff", staffEmail, "password123",
-				"FINANCE_STAFF");
+		StaffCreateRequest request = new StaffCreateRequest("Newly Hired Staff", staffEmail, "FINANCE_STAFF");
 
 		MvcResult raw = performCreate(host, token, request);
 		HttpResult<StaffResponse> result = parseSingle(raw);
@@ -76,9 +80,11 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		assertThat(created.roleCode()).isEqualTo("FINANCE_STAFF");
 		assertThat(created.status()).isEqualTo("ACTIVE");
 
-		// No password/hash field anywhere in the raw response body.
+		// No password hash anywhere in the raw response body (the
+		// server-generated temporaryPassword itself is a deliberate,
+		// one-time exception - see the dedicated temporaryPassword tests
+		// below - but "hash" must never appear).
 		String rawJson = rawContent(raw).toLowerCase(java.util.Locale.ROOT);
-		assertThat(rawJson).doesNotContain("password");
 		assertThat(rawJson).doesNotContain("hash");
 
 		Map<String, Object> tenantUserRow = jdbcTemplate.queryForMap(
@@ -137,6 +143,56 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	// ------------------------------------------------------------------
+	// Server-generated one-time temporary password.
+	// ------------------------------------------------------------------
+
+	/**
+	 * The specific gap the review flagged for Part A: the create response
+	 * must carry a real, non-blank, high-entropy {@code temporaryPassword}
+	 * exactly once - and that field must be structurally absent (not merely
+	 * {@code null}) from every subsequent list/detail read, proven by
+	 * parsing the raw JSON tree rather than trusting a typed DTO (a typed
+	 * DTO would hide the distinction between "field absent" and "field
+	 * null").
+	 */
+	@Test
+	void createResponseCarriesATemporaryPasswordOnceButListAndGetNeverExposeIt() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("staff-temp-pwd"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+		String staffEmail = uniqueEmail("temp-pwd-staff");
+		StaffCreateRequest request = new StaffCreateRequest("Temp Password Staff", staffEmail, "FINANCE_STAFF");
+
+		MvcResult createRaw = performCreate(host, token, request);
+		HttpResult<StaffCreateResponse> createResult = parseCreateResponse(createRaw);
+
+		assertThat(createResult.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		String temporaryPassword = createResult.getBody().data().temporaryPassword();
+		assertThat(temporaryPassword).isNotBlank();
+		assertThat(temporaryPassword.length()).isGreaterThanOrEqualTo(16);
+
+		JsonNode createBody = objectMapper.readTree(rawContent(createRaw));
+		assertThat(createBody.path("data").has("temporaryPassword")).isTrue();
+
+		UUID staffId = createResult.getBody().data().id();
+
+		MvcResult listRaw = performListRaw(host, token);
+		JsonNode listBody = objectMapper.readTree(rawContent(listRaw));
+		for (JsonNode staffNode : listBody.path("data")) {
+			assertThat(staffNode.has("temporaryPassword"))
+				.as("list entry must never carry temporaryPassword")
+				.isFalse();
+		}
+
+		MvcResult getRaw = performGetRaw(host, token, staffId);
+		JsonNode getBody = objectMapper.readTree(rawContent(getRaw));
+		assertThat(getBody.path("data").has("temporaryPassword"))
+			.as("detail read must never carry temporaryPassword")
+			.isFalse();
+	}
+
+	// ------------------------------------------------------------------
 	// Uniqueness: race + cross-tenant.
 	// ------------------------------------------------------------------
 
@@ -161,8 +217,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		try {
 			List<Future<MvcResult>> futures = new ArrayList<>();
 			for (int i = 0; i < 2; i++) {
-				StaffCreateRequest request = new StaffCreateRequest("Race Staff", staffEmail, "password123",
-						"FINANCE_STAFF");
+				StaffCreateRequest request = new StaffCreateRequest("Race Staff", staffEmail, "FINANCE_STAFF");
 				futures.add(executor.submit(() -> {
 					barrier.await();
 					return performCreate(host, token, request);
@@ -211,9 +266,9 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		String sharedEmail = uniqueEmail("shared-staff");
 
 		HttpResult<StaffResponse> resultA = parseSingle(
-				performCreate(hostA, tokenA, new StaffCreateRequest("Shared A", sharedEmail, "password123", "FINANCE_STAFF")));
+				performCreate(hostA, tokenA, new StaffCreateRequest("Shared A", sharedEmail, "FINANCE_STAFF")));
 		HttpResult<StaffResponse> resultB = parseSingle(
-				performCreate(hostB, tokenB, new StaffCreateRequest("Shared B", sharedEmail, "password123", "FINANCE_STAFF")));
+				performCreate(hostB, tokenB, new StaffCreateRequest("Shared B", sharedEmail, "FINANCE_STAFF")));
 
 		assertThat(resultA.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		assertThat(resultB.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -230,7 +285,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		createStaffOrFail(host, token, "First", staffEmail, "FINANCE_STAFF");
 
 		HttpResult<StaffResponse> secondAttempt = parseSingle(
-				performCreate(host, token, new StaffCreateRequest("Second", staffEmail, "password123", "FINANCE_STAFF")));
+				performCreate(host, token, new StaffCreateRequest("Second", staffEmail, "FINANCE_STAFF")));
 
 		assertThat(secondAttempt.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 		assertThat(secondAttempt.getBody().success()).isFalse();
@@ -288,6 +343,83 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	// ------------------------------------------------------------------
+	// Role-edit (PATCH /api/v1/staff/{id}).
+	// ------------------------------------------------------------------
+
+	@Test
+	void tenantAdminEditsOwnTenantStaffRoleAndTheChangePersists() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("staff-role-edit"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+		StaffResponse created = createStaffOrFail(host, token, "Role Edit Staff", uniqueEmail("role-edit-staff"),
+				"FINANCE_STAFF");
+
+		HttpResult<StaffResponse> patchResult = parseSingle(
+				performPatchRole(host, token, created.id(), "COURSE_COORDINATOR"));
+
+		assertThat(patchResult.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(patchResult.getBody().data().roleCode()).isEqualTo("COURSE_COORDINATOR");
+		assertThat(patchResult.getBody().data().id()).isEqualTo(created.id());
+
+		HttpResult<StaffResponse> getResult = getStaff(host, token, created.id());
+		assertThat(getResult.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(getResult.getBody().data().roleCode()).isEqualTo("COURSE_COORDINATOR");
+	}
+
+	/**
+	 * The specific gap the review flagged for Part B: a tenant B admin must
+	 * never be able to reach, let alone mutate, a tenant A staff member's
+	 * role by id - a cross-tenant PATCH must 404, and the role must remain
+	 * exactly as it was, confirmed by a follow-up GET performed by tenant
+	 * A's own admin.
+	 */
+	@Test
+	void tenantBAdminPatchingTenantAsStaffRoleReturns404AndTenantAsRoleIsUnchanged() {
+		Tenant tenantA = seedActiveTenant(uniqueSubdomain("staff-role-cross-a"));
+		Tenant tenantB = seedActiveTenant(uniqueSubdomain("staff-role-cross-b"));
+		seedTenantUser(tenantA.getId(), "admin-a@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		seedTenantUser(tenantB.getId(), "admin-b@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String hostA = hostFor(tenantA.getSubdomain());
+		String hostB = hostFor(tenantB.getSubdomain());
+		String tokenA = loginAndGetToken(hostA, "admin-a@example.test");
+		String tokenB = loginAndGetToken(hostB, "admin-b@example.test");
+		StaffResponse tenantAStaff = createStaffOrFail(hostA, tokenA, "Tenant A Staff",
+				uniqueEmail("tenant-a-role-staff"), "FINANCE_STAFF");
+
+		HttpResult<StaffResponse> crossTenantPatch = parseSingle(
+				performPatchRole(hostB, tokenB, tenantAStaff.id(), "COURSE_COORDINATOR"));
+
+		assertThat(crossTenantPatch.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(crossTenantPatch.getBody().success()).isFalse();
+		assertThat(crossTenantPatch.getBody().error().code()).isEqualTo("NOT_FOUND");
+
+		HttpResult<StaffResponse> getResultByOwner = getStaff(hostA, tokenA, tenantAStaff.id());
+		assertThat(getResultByOwner.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(getResultByOwner.getBody().data().roleCode()).isEqualTo("FINANCE_STAFF");
+	}
+
+	@Test
+	void patchingStaffRoleWithAnOutOfEnumRoleCodeIsRejectedAsBadRequestAndCausesNoMutation() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("staff-role-invalid"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+		StaffResponse created = createStaffOrFail(host, token, "Invalid Role Staff",
+				uniqueEmail("invalid-role-staff"), "FINANCE_STAFF");
+
+		HttpResult<StaffResponse> patchResult = parseSingle(
+				performPatchRole(host, token, created.id(), "TENANT_ADMIN"));
+
+		assertThat(patchResult.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+		assertThat(patchResult.getBody().success()).isFalse();
+		assertThat(patchResult.getBody().error().code()).isEqualTo("VALIDATION_ERROR");
+
+		HttpResult<StaffResponse> getResult = getStaff(host, token, created.id());
+		assertThat(getResult.getBody().data().roleCode()).isEqualTo("FINANCE_STAFF");
+	}
+
+	// ------------------------------------------------------------------
 	// Per-role deny-path tests (one method per role, not parameterized).
 	// ------------------------------------------------------------------
 
@@ -322,7 +454,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	@Test
-	void readOnlyAuditorCannotCreateStaffButCanViewListAndDetail() {
+	void readOnlyAuditorCannotCreateOrPatchStaffButCanViewListAndDetail() {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("staff-auditor"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
 		seedTenantUser(tenant.getId(), "auditor@example.test", RAW_PASSWORD, Role.READ_ONLY_AUDITOR);
@@ -334,9 +466,15 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 
 		// Negative half: no CREATE_EDIT grant.
 		HttpResult<StaffResponse> createAttempt = parseSingle(performCreate(host, auditorToken,
-				new StaffCreateRequest("Blocked", uniqueEmail("auditor-blocked"), "password123", "FINANCE_STAFF")));
+				new StaffCreateRequest("Blocked", uniqueEmail("auditor-blocked"), "FINANCE_STAFF")));
 		assertThat(createAttempt.getStatusCode()).as("auditor POST /api/v1/staff").isEqualTo(HttpStatus.FORBIDDEN);
 		assertThat(createAttempt.getBody().error().code()).isEqualTo("FORBIDDEN");
+
+		HttpResult<StaffResponse> patchAttempt = parseSingle(
+				performPatchRole(host, auditorToken, existingStaff.id(), "COURSE_COORDINATOR"));
+		assertThat(patchAttempt.getStatusCode()).as("auditor PATCH /api/v1/staff/{id}")
+			.isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(patchAttempt.getBody().error().code()).isEqualTo("FORBIDDEN");
 
 		// Positive half: VIEW grant still works, separately asserted.
 		HttpResult<List<StaffResponse>> listResult = listStaff(host, auditorToken);
@@ -375,8 +513,8 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		String token = loginAndGetToken(host, "admin@example.test");
 		String staffEmail = uniqueEmail("reject-tenant-admin-role");
 
-		HttpResult<StaffResponse> result = parseSingle(performCreate(host, token,
-				new StaffCreateRequest("Rejected", staffEmail, "password123", "TENANT_ADMIN")));
+		HttpResult<StaffResponse> result = parseSingle(
+				performCreate(host, token, new StaffCreateRequest("Rejected", staffEmail, "TENANT_ADMIN")));
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 		assertThat(result.getBody().success()).isFalse();
@@ -395,7 +533,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		String staffEmail = uniqueEmail("reject-student-role");
 
 		HttpResult<StaffResponse> result = parseSingle(
-				performCreate(host, token, new StaffCreateRequest("Rejected", staffEmail, "password123", "STUDENT")));
+				performCreate(host, token, new StaffCreateRequest("Rejected", staffEmail, "STUDENT")));
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 		assertThat(result.getBody().success()).isFalse();
@@ -417,7 +555,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		String token = loginAndGetToken(host, email);
 
 		HttpResult<StaffResponse> createResult = parseSingle(performCreate(host, token,
-				new StaffCreateRequest("Blocked", uniqueEmail(subdomainPrefix + "-blocked"), "password123", "FINANCE_STAFF")));
+				new StaffCreateRequest("Blocked", uniqueEmail(subdomainPrefix + "-blocked"), "FINANCE_STAFF")));
 		assertThat(createResult.getStatusCode()).as(role + " POST /api/v1/staff").isEqualTo(HttpStatus.FORBIDDEN);
 
 		HttpResult<List<StaffResponse>> listResult = listStaff(host, token);
@@ -425,6 +563,11 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 
 		HttpResult<StaffResponse> getResult = getStaff(host, token, UUID.randomUUID());
 		assertThat(getResult.getStatusCode()).as(role + " GET /api/v1/staff/{id}").isEqualTo(HttpStatus.FORBIDDEN);
+
+		HttpResult<StaffResponse> patchResult = parseSingle(
+				performPatchRole(host, token, UUID.randomUUID(), "FINANCE_STAFF"));
+		assertThat(patchResult.getStatusCode()).as(role + " PATCH /api/v1/staff/{id}")
+			.isEqualTo(HttpStatus.FORBIDDEN);
 	}
 
 	// ------------------------------------------------------------------
@@ -439,7 +582,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 
 	private StaffResponse createStaffOrFail(String host, String token, String name, String email, String roleCode) {
 		HttpResult<StaffResponse> result = parseSingle(
-				performCreate(host, token, new StaffCreateRequest(name, email, "password123", roleCode)));
+				performCreate(host, token, new StaffCreateRequest(name, email, roleCode)));
 		assertThat(result.getStatusCode()).as("staff creation for " + email).isEqualTo(HttpStatus.CREATED);
 		return result.getBody().data();
 	}
@@ -450,14 +593,28 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		return perform(authenticated(builder, host, token));
 	}
 
+	private MvcResult performPatchRole(String host, String token, UUID id, String roleCode) {
+		MockHttpServletRequestBuilder builder = patch(STAFF_PATH + "/{id}", id).contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(new StaffRoleUpdateRequest(roleCode)));
+		return perform(authenticated(builder, host, token));
+	}
+
 	private HttpResult<StaffResponse> getStaff(String host, String token, UUID id) {
+		return parseSingle(performGetRaw(host, token, id));
+	}
+
+	private MvcResult performGetRaw(String host, String token, UUID id) {
 		MockHttpServletRequestBuilder builder = get(STAFF_PATH + "/{id}", id);
-		return parseSingle(perform(authenticated(builder, host, token)));
+		return perform(authenticated(builder, host, token));
+	}
+
+	private MvcResult performListRaw(String host, String token) {
+		MockHttpServletRequestBuilder builder = get(STAFF_PATH);
+		return perform(authenticated(builder, host, token));
 	}
 
 	private HttpResult<List<StaffResponse>> listStaff(String host, String token) {
-		MockHttpServletRequestBuilder builder = get(STAFF_PATH);
-		MvcResult raw = perform(authenticated(builder, host, token));
+		MvcResult raw = performListRaw(host, token);
 		MockHttpServletResponse response = raw.getResponse();
 		HttpStatus status = HttpStatus.valueOf(response.getStatus());
 		String json = rawContent(raw);
@@ -497,6 +654,20 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 		ApiResponse<StaffResponse> body = null;
 		if (json != null && !json.isBlank()) {
 			JavaType type = objectMapper.getTypeFactory().constructParametricType(ApiResponse.class, StaffResponse.class);
+			body = objectMapper.readValue(json, type);
+		}
+		return new HttpResult<>(status, body, new HttpHeaders());
+	}
+
+	/** Only used where the response body is genuinely a {@code POST}-only {@link StaffCreateResponse} shape. */
+	private HttpResult<StaffCreateResponse> parseCreateResponse(MvcResult raw) {
+		MockHttpServletResponse response = raw.getResponse();
+		HttpStatus status = HttpStatus.valueOf(response.getStatus());
+		String json = rawContent(raw);
+		ApiResponse<StaffCreateResponse> body = null;
+		if (json != null && !json.isBlank()) {
+			JavaType type = objectMapper.getTypeFactory()
+				.constructParametricType(ApiResponse.class, StaffCreateResponse.class);
 			body = objectMapper.readValue(json, type);
 		}
 		return new HttpResult<>(status, body, new HttpHeaders());

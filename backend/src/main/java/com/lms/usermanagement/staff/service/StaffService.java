@@ -3,6 +3,7 @@ package com.lms.usermanagement.staff.service;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
@@ -18,6 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,9 +80,16 @@ public class StaffService {
 	 * transaction-boundary rule). {@code mustChangePassword} is always {@code
 	 * true} - there is no self-registration path for staff, so every
 	 * admin-created account must set its own credential at next login (per
-	 * {@code docs/ui-ux/authentication-design-spec.md} §3.7).
+	 * {@code docs/ui-ux/authentication-design-spec.md} §3.7). The raw login
+	 * secret itself is never supplied by the caller: {@link
+	 * UserProvisioningApi#provisionTenantUser} generates a random,
+	 * high-entropy temporary password server-side and returns it via {@link
+	 * ProvisionedUser#temporaryPassword()} - this method passes it straight
+	 * through in the returned {@link StaffCreationResult} for {@code web} to
+	 * hand back to the caller exactly once, and never persists or logs it
+	 * itself.
 	 */
-	public StaffAccount createStaff(String name, String email, String rawPassword, String roleCode) {
+	public StaffCreationResult createStaff(String name, String email, String roleCode) {
 		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.CREATE_EDIT);
 
 		if (!ASSIGNABLE_STAFF_ROLES.contains(roleCode)) {
@@ -95,14 +104,65 @@ public class StaffService {
 			throw new ConflictException("A staff account with this email already exists");
 		}
 
-		ProvisionedUser provisioned = userProvisioningApi.provisionTenantUser(email, rawPassword, roleCode, true);
+		ProvisionedUser provisioned = userProvisioningApi.provisionTenantUser(email, roleCode, true);
 
 		StaffProfile profile = new StaffProfile(tenantContext.getTenantId(), provisioned.userId(), name);
 		profile = staffProfileRepository.save(profile);
 
 		// A freshly-provisioned tenant_user always starts ACTIVE (see
 		// TenantUser's constructor) - no extra read needed to know this.
-		return new StaffAccount(profile.getId(), name, provisioned.email(), roleCode, "ACTIVE");
+		StaffAccount account = new StaffAccount(profile.getId(), name, provisioned.email(), roleCode, "ACTIVE");
+		return new StaffCreationResult(account, provisioned.temporaryPassword());
+	}
+
+	/**
+	 * Edits an existing staff account's assigned role ({@code
+	 * PATCH /api/v1/staff/{id}}). {@code staffProfileId} is this module's own
+	 * {@code StaffProfile} id (the same resource id every other {@code
+	 * /api/v1/staff} endpoint addresses), tenant-scoped by {@link
+	 * StaffProfileRepository} exactly like {@link #getStaff} - a cross-tenant
+	 * id surfaces as {@link NotFoundException}, never a cross-tenant
+	 * mutation.
+	 *
+	 * <p>Self-escalation defense in depth: if the authenticated caller's own
+	 * user id equals the target profile's underlying {@code tenant_user} id,
+	 * this throws {@link AccessDeniedException} before ever calling into
+	 * {@link UserProvisioningApi}. This is structurally unreachable today
+	 * (Tenant Admins are not provisioned through this staff flow, so a
+	 * Tenant Admin's own id can never match a {@code StaffProfile}'s {@code
+	 * userId}) - it is a cheap guard against a future regression, not a
+	 * scenario expected in production.
+	 */
+	public StaffAccount updateStaffRole(UUID staffProfileId, String roleCode) {
+		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.CREATE_EDIT);
+
+		if (!ASSIGNABLE_STAFF_ROLES.contains(roleCode)) {
+			throw new InvalidStaffRoleException(roleCode);
+		}
+
+		// TenantAwareRepository scopes findById to the resolved tenant
+		// context already - a tenant B staff id is structurally invisible
+		// here, surfacing as empty (-> 404), never a cross-tenant read or
+		// mutation.
+		StaffProfile profile = staffProfileRepository.findById(staffProfileId)
+			.orElseThrow(() -> new NotFoundException("Staff account not found"));
+
+		if (AuthenticatedPrincipalHolder.get().userId().equals(profile.getUserId())) {
+			throw new AccessDeniedException("You cannot change your own role");
+		}
+
+		userProvisioningApi.updateTenantUserRole(profile.getUserId(), roleCode);
+
+		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
+		StaffAccount account = toStaffAccount(profile, summariesByUserId);
+		if (account == null) {
+			// Same data-integrity-inconsistency fallback as getStaff: the
+			// role update above already succeeded against a real tenant_user
+			// row, so this would only happen if that row vanished between
+			// the update and this re-read - still surfaced as 404, not 500.
+			throw new NotFoundException("Staff account not found");
+		}
+		return account;
 	}
 
 	@Transactional(readOnly = true)

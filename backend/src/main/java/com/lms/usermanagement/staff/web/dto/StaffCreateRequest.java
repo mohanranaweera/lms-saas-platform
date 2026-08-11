@@ -9,10 +9,15 @@ import jakarta.validation.constraints.Size;
 /**
  * Staff account creation request body (MVP-005, {@code STAFF-1}).
  *
- * <p>Deliberately has no {@code tenantId}, {@code status}, or {@code
- * mustChangePassword} field - tenant is always resolved server-side from the
- * authenticated session context, and every admin-created staff account
- * always starts with {@code mustChangePassword = true} (no client choice).
+ * <p>Deliberately has no {@code tenantId}, {@code status}, {@code
+ * mustChangePassword}, or {@code password} field - tenant is always resolved
+ * server-side from the authenticated session context, every admin-created
+ * staff account always starts with {@code mustChangePassword = true} (no
+ * client choice), and the login secret itself is always a server-generated,
+ * high-entropy temporary password, never a value the requesting Tenant Admin
+ * types in - the admin creating the account is never the custodian of the
+ * staff member's real login secret. See {@code StaffCreateResponse} for the
+ * one-time return of the generated password.
  *
  * <p>{@code roleCode}'s {@code @Pattern} restricts to exactly the 7
  * assignable staff sub-roles at the DTO layer, as defense in depth on top of
@@ -27,8 +32,6 @@ public record StaffCreateRequest(
 		@NotBlank @Size(max = 255) String name,
 
 		@NotBlank @Email @Size(max = 255) String email,
-
-		@NotBlank @Size(min = 8, max = 255) String password,
 
 		@NotBlank @Pattern(regexp = "FINANCE_STAFF|COURSE_COORDINATOR|STUDENT_SUPPORT|CONTENT_MANAGER|EXAM_MANAGER"
 				+ "|ATTENDANCE_OPERATOR|READ_ONLY_AUDITOR",

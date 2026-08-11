@@ -102,4 +102,16 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 		return totpSecret;
 	}
 
+	/**
+	 * Changes this user's assigned {@code role} - the first mutator on this
+	 * entity for role/status/passwordHash (added for Staff Management's
+	 * role-edit capability, {@code PATCH /api/v1/staff/{id}}). Named as the
+	 * domain action it represents, not a generic {@code setRole}: this is a
+	 * deliberate, audited business action (a role reassignment), not a bare
+	 * field write.
+	 */
+	public void changeRole(Role newRole) {
+		this.role = newRole;
+	}
+
 }
