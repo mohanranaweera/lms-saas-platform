@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useStaff, useUpdateStaffRole, type StaffAccount } from "@/lib/api/staff";
-import { STAFF_ROLE_OPTIONS, type StaffRoleCode } from "@/lib/validation/staff";
+import {
+  STAFF_ROLE_OPTIONS,
+  staffRoleUpdateSchema,
+  type StaffRoleCode,
+  type StaffRoleUpdateFormValues,
+} from "@/lib/validation/staff";
 import { isApiClientError } from "@/lib/api/error";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -97,37 +104,20 @@ export default function StaffDetailPage() {
 
 /**
  * Read-only role display for everyone, plus an inline "Change role" edit
- * mode for a Tenant Admin (`canEdit`). Reuses the exact hand-rolled
- * fieldset/legend/radio pattern from `staff/new/page.tsx`'s role picker —
- * there is no shared `RadioGroup` primitive in this codebase yet.
+ * mode for a Tenant Admin (`canEdit`). The edit mode itself is
+ * `RoleEditForm`, below — a fresh instance is mounted each time `editing`
+ * flips true, so its form state never needs to be reset by hand between
+ * edits.
  */
 function RoleEditor({ staff, canEdit }: { staff: StaffAccount; canEdit: boolean }) {
   const [editing, setEditing] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<StaffRoleCode | "">("");
-  const [fieldError, setFieldError] = useState<string | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
-  const mutation = useUpdateStaffRole(staff.id);
 
   if (!editing) {
     return (
       <div className="flex flex-wrap items-center gap-2">
         <RoleBadge roleCode={staff.roleCode} />
         {canEdit ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSelectedRole(
-                STAFF_ROLE_OPTIONS.some((option) => option.value === staff.roleCode)
-                  ? (staff.roleCode as StaffRoleCode)
-                  : ""
-              );
-              setFieldError(null);
-              setPageError(null);
-              setEditing(true);
-            }}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
             Change role
           </Button>
         ) : null}
@@ -135,19 +125,43 @@ function RoleEditor({ staff, canEdit }: { staff: StaffAccount; canEdit: boolean 
     );
   }
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setFieldError(null);
+  return <RoleEditForm staff={staff} onDone={() => setEditing(false)} />;
+}
+
+/**
+ * The "Change role" form itself — `useForm` + `zodResolver(staffRoleUpdateSchema)`,
+ * matching every other form in this codebase (`.claude/rules/frontend.md`
+ * §Forms) rather than hand-rolled `useState` fields. Reuses the exact
+ * fieldset/legend/radio markup and styling from `staff/new/page.tsx`'s role
+ * picker — there is no shared `RadioGroup` primitive in this codebase yet.
+ */
+function RoleEditForm({ staff, onDone }: { staff: StaffAccount; onDone: () => void }) {
+  const [pageError, setPageError] = useState<string | null>(null);
+  const mutation = useUpdateStaffRole(staff.id);
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<StaffRoleUpdateFormValues>({
+    resolver: zodResolver(staffRoleUpdateSchema),
+    defaultValues: {
+      // Pre-select the currently-displayed role. Falls back to leaving
+      // nothing selected if `staff.roleCode` isn't one of the assignable
+      // sub-roles this picker offers (e.g. a role provisioned by another
+      // flow) — same guard the previous hand-rolled state had.
+      roleCode: STAFF_ROLE_OPTIONS.some((option) => option.value === staff.roleCode)
+        ? (staff.roleCode as StaffRoleCode)
+        : undefined,
+    },
+  });
+
+  const onSubmit = handleSubmit(async (values) => {
     setPageError(null);
-
-    if (!selectedRole) {
-      setFieldError("Select a role.");
-      return;
-    }
-
     try {
-      await mutation.mutateAsync(selectedRole);
-      setEditing(false);
+      await mutation.mutateAsync(values.roleCode);
+      onDone();
     } catch (error) {
       if (isApiClientError(error)) {
         if (error.status === 403) {
@@ -160,9 +174,17 @@ function RoleEditor({ staff, canEdit }: { staff: StaffAccount; canEdit: boolean 
           setPageError(error.message);
           return;
         }
+        // Known follow-up (lower priority than the RHF/Zod fix above): a
+        // 404 here (the staff row disappearing between page load and this
+        // submit) currently falls through to the raw `error.message` below,
+        // unlike the page's `GET` request, which masks a 403-or-404
+        // identically via `QueryStateBoundary`'s `notFound` prop (see the
+        // page-level doc comment). Left as-is for now — this PATCH's 404
+        // case is a benign "already gone" race, not the same
+        // tenant-boundary-enumeration concern the GET masking exists for.
         const roleFieldError = error.fieldErrors.find((fe) => fe.field === "roleCode");
         if (roleFieldError) {
-          setFieldError(roleFieldError.message);
+          setError("roleCode", { type: "server", message: roleFieldError.message });
           return;
         }
         setPageError(error.message);
@@ -170,7 +192,7 @@ function RoleEditor({ staff, canEdit }: { staff: StaffAccount; canEdit: boolean 
       }
       setPageError("An unexpected error occurred. Please try again.");
     }
-  };
+  });
 
   return (
     <form className="flex flex-col gap-3" onSubmit={onSubmit} aria-busy={mutation.isPending} noValidate>
@@ -180,28 +202,21 @@ function RoleEditor({ staff, canEdit }: { staff: StaffAccount; canEdit: boolean 
       <fieldset
         disabled={mutation.isPending}
         className="flex flex-col gap-2"
-        aria-invalid={!!fieldError}
-        aria-describedby={fieldError ? "staff-role-edit-error" : undefined}
+        aria-invalid={!!errors.roleCode}
+        aria-describedby={errors.roleCode ? "staff-role-edit-error" : undefined}
       >
         <legend className="text-sm font-medium text-foreground">Role</legend>
         <div className="flex flex-col gap-1.5">
           {STAFF_ROLE_OPTIONS.map((option) => (
             <label key={option.value} className="flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="radio"
-                name="staff-role-edit"
-                value={option.value}
-                checked={selectedRole === option.value}
-                onChange={() => setSelectedRole(option.value)}
-                className="size-4"
-              />
+              <input type="radio" value={option.value} className="size-4" {...register("roleCode")} />
               {option.label}
             </label>
           ))}
         </div>
-        {fieldError ? (
+        {errors.roleCode ? (
           <p id="staff-role-edit-error" role="alert" className="text-xs text-destructive">
-            {fieldError}
+            {errors.roleCode.message}
           </p>
         ) : null}
       </fieldset>
@@ -216,17 +231,7 @@ function RoleEditor({ staff, canEdit }: { staff: StaffAccount; canEdit: boolean 
         <Button type="submit" size="sm" disabled={mutation.isPending} aria-busy={mutation.isPending}>
           {mutation.isPending ? "Saving…" : "Save"}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={mutation.isPending}
-          onClick={() => {
-            setEditing(false);
-            setFieldError(null);
-            setPageError(null);
-          }}
-        >
+        <Button type="button" variant="outline" size="sm" disabled={mutation.isPending} onClick={onDone}>
           Cancel
         </Button>
       </div>

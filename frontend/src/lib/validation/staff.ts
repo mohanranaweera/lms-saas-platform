@@ -56,3 +56,17 @@ export const staffCreateSchema = z.object({
 });
 
 export type StaffCreateFormValues = z.infer<typeof staffCreateSchema>;
+
+/**
+ * Zod schema for the tenant-admin "Change role" inline edit control on the
+ * Staff Detail page (`PATCH /v1/staff/{id}`, `roleCode` is the only mutable
+ * field). Reuses `staffCreateSchema`'s `roleCode` field definition directly
+ * rather than a second `z.enum(STAFF_ROLE_VALUES, { error: "Select a role." })`
+ * literal, so the enum values and the validation message can never silently
+ * drift between the two forms.
+ */
+export const staffRoleUpdateSchema = z.object({
+  roleCode: staffCreateSchema.shape.roleCode,
+});
+
+export type StaffRoleUpdateFormValues = z.infer<typeof staffRoleUpdateSchema>;
