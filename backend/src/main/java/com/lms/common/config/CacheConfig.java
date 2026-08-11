@@ -18,6 +18,17 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * prefixing is left to individual cache usages once a real tenant-owned
  * cache exists (none does yet); documented here so the convention is
  * visible before the first cache is added.
+ *
+ * <p>This is the only place {@code @EnableCaching}/{@code @Cacheable}-style
+ * declarative caching gets configured. {@code
+ * com.lms.identityaccessservice.service.DeviceSessionCacheService} does NOT
+ * go through this - it talks to Redis directly via a plain {@code
+ * StringRedisTemplate}, because its per-entry TTL is dynamic (bounded by each
+ * session's own remaining lifetime, not a fixed duration a {@code
+ * RedisCacheConfiguration} can express). Both share the same
+ * autoconfigured {@code RedisConnectionFactory} (from {@code
+ * spring.data.redis.*}) - there is exactly one Redis connection, two access
+ * patterns for two different needs, not two independent configurations.
  */
 @Configuration
 @EnableCaching

@@ -1,10 +1,12 @@
 import { z } from "zod";
 
 /**
- * Zod schemas for the placeholder auth forms. These are client-side UX structure
- * only — none of these forms submit anywhere yet (see the `(auth)` route group).
- * Once identity-access-service ships a real endpoint, these schemas still remain a
- * UX convenience only; the backend's own validation is authoritative.
+ * Zod schemas backing the `(auth)` route group's forms. `loginSchema` is wired
+ * to a real, submitting form (`components/auth/login-form.tsx`, POSTing to
+ * identity-access-service); `registerSchema`/`forgotPasswordSchema` remain
+ * client-side UX structure only for their still-disabled placeholder forms —
+ * no backend endpoint exists for either yet. In every case, this is a UX
+ * convenience only; the backend's own validation is authoritative.
  */
 
 export const loginSchema = z.object({

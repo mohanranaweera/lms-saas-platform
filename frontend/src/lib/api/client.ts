@@ -5,10 +5,11 @@ import type { ApiResponse } from "./types";
 /**
  * Generic typed fetch wrapper for the backend's `ApiResponse<T>` envelope.
  *
- * This is pure infrastructure: no approved API contract exists yet for any domain
- * (see docs/api/README.md), so nothing in the app calls this yet. It exists so the
- * first real domain module has a single, typed place to make requests from instead
- * of scattering raw `fetch` calls with inline response shapes across components.
+ * `credentials: "include"` is the default (overridable via `init.credentials`)
+ * because identity-access-service delivers the refresh token exclusively via an
+ * `HttpOnly` cookie (`lms_refresh_token` / `lms_platform_admin_refresh_token`) —
+ * without this, the browser neither stores that cookie on login/refresh responses
+ * nor sends it back on `POST /auth/refresh`. See docs/api/identity-access-service.md.
  */
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${env.NEXT_PUBLIC_API_BASE_URL}${path}`;
@@ -16,6 +17,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   let response: Response;
   try {
     response = await fetch(url, {
+      credentials: "include",
       ...init,
       headers: {
         "Content-Type": "application/json",

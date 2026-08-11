@@ -80,8 +80,28 @@ and depends on the Feature Flag / Plan Limit Engine (Module D), whose ownership 
 
 ## Open decisions
 
-- Whether staff account creation/role changes require an audit-log entry.
-- No documented state machine for "Staff status" (active/suspended/removed).
-- Whether manually-created staff accounts get a "must change password" flag like students (inferred by analogy only, not stated).
-- Password-reset flow specifics (self-service vs. admin-triggered vs. both).
+**Resolved during MVP-005 (`STAFF-1`) implementation (2026-08-11)** — see
+`docs/plans/MVP-005 Staff Management.md` §21 and `docs/api/user-management.md` for detail:
+
+- **Table ownership**: `user-management` owns a dedicated `staff_profile` table (name only),
+  referencing `tenant_user` by id; it does not own or duplicate role/status data.
+- **Role Editor UI**: single-select (a fixed 7-value enum), not a multi-select permission
+  checkbox grid.
+- **"Must change password" flag**: yes — unconditionally `true` for every admin-created staff
+  account, matching the analogous student flow.
+- **Credential issuance**: the initial password is a server-generated one-time value, never
+  admin-typed (see `docs/requirements/open-decisions.md` §1 for the cross-module rationale).
+- **Role editing**: `PATCH /api/v1/staff/{id}` is implemented (Tenant Admin only, with a
+  self-escalation guard and a mandatory cross-tenant negative test) — closing the gap between
+  this spec's "Staff Detail/Role Editor" language and the initial STAFF-1 delivery.
+
+**Still open:**
+
+- Whether staff account creation/role changes require an audit-log entry — shipped
+  deliberately without one, pending explicit sign-off (not silently decided either way).
+- **Staff status**: partially resolved — `ACTIVE`/`SUSPENDED` are read live from
+  `tenant_user.status` (no separate `staff_profile.status` column); a "removed" state, its
+  transition, and triggering actor remain undefined, and no delete/deactivate endpoint exists.
+- Password-reset flow specifics (self-service vs. admin-triggered vs. both) — deferred to
+  `STAFF-2`, a distinct follow-on story, not built in this pass.
 - Module D (Feature Flag & Plan Limit Engine) ownership is unratified — blocks FR-UM-9 implementation.

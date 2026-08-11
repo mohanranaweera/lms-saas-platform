@@ -199,6 +199,27 @@ temptation to violate the `reporting-analytics` no-live-joins guidance under MVP
 - **Mitigation:** BFF-style aggregation of narrow `api` reads per domain, not ad hoc joins — flag
   explicitly in implementation review for both stories.
 
+### R18 — Public tenant-registration endpoint has no rate limiting or abuse control
+`POST /api/v1/tenant-registrations` (`TEN-1`, implemented 2026-08-08) is intentionally public/anonymous by
+design, but has no per-IP throttling, CAPTCHA, or cap on pending registrations. Confirmed genuinely absent
+— not silently assumed to be handled elsewhere (e.g. by an Nginx layer that doesn't exist in this repo) —
+by two independent code reviews (security-reviewer, solution-architect) of the shipped implementation.
+Already flagged as a known gap in `docs/plans/MVP-004 Tenant Management.md` §15 item 4 at planning time;
+recorded here formally now that the endpoint is live code, not just a planned one.
+- **Tied to:** TEN-1 (implemented, endpoint is live), TEN-2 (the approval queue that would have to absorb
+  any flood of pending registrations).
+- **Likelihood:** Medium — the endpoint is reachable now; realistic to be hit by automated
+  subdomain-squatting or scripted flooding as soon as it's exposed beyond controlled/staging traffic.
+- **Impact:** Medium-High — subdomain-squatting can deny a legitimate institute their desired name (the
+  platform's only global-unique namespace, per `docs/architecture/database-architecture.md` §1);
+  unbounded `pending_approval` row creation is a storage/review-queue exhaustion vector against Platform
+  Admin's future approval queue.
+- **Mitigation:** Redis-backed per-IP rate limiting before this endpoint is exposed beyond
+  controlled/staging traffic, per `.claude/rules/architecture.md`'s "Redis is cache/ephemeral-state"
+  guidance. A per-IP or per-subdomain-attempt cap on pending, unapproved registrations is also worth
+  considering alongside rate limiting. Owned by a follow-up story before general availability — do not
+  ship this endpoint to real public traffic without it.
+
 ---
 
 ## Process risks (not code defects, but backlog-execution risks)
@@ -252,3 +273,4 @@ the same open question.
 | R15 | Dashboard live cross-schema joins | Medium/Medium | TADASH-1, PADASH-2 |
 | R16 | Release-plan reordering not honored | Medium/High | Wave 1 vs. module order |
 | R17 | Open decisions resolved ad hoc | Med-High/Medium | Multiple, see INTG-3 |
+| R18 | Registration endpoint has no rate limiting | Medium/Med-High | TEN-1, TEN-2 |

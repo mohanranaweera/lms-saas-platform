@@ -1,6 +1,7 @@
 package com.lms.common.error;
 
 import com.lms.common.api.ApiErrorCodes;
+import org.springframework.http.HttpStatus;
 
 /**
  * The request conflicts with the current state of the resource (e.g. a duplicate).
@@ -14,7 +15,7 @@ import com.lms.common.api.ApiErrorCodes;
 public class ConflictException extends ApplicationException {
 
 	public ConflictException(String message) {
-		super(ApiErrorCodes.CONFLICT, message);
+		super(HttpStatus.CONFLICT, ApiErrorCodes.CONFLICT, message);
 	}
 
 }

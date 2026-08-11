@@ -106,3 +106,17 @@ approval before implementing:
 - Any mutation or deletion path touching ledger or terminal payment rows.
 - Skipping or bypassing duplicate/suspicious slip checks.
 - Recomputing historical settlement amounts from live rate config.
+
+## 8. RBAC domain-area grants are not a mutation authorization
+
+`identity-access-service`'s `PermissionCheckService.hasPermission(DomainArea, ...)`
+(Module 3 / RBAC-2) models coarse, domain-level role capability - e.g. a `true`
+result for `DomainArea.FINANCE_EXPENSES`/`DELETE` or
+`DomainArea.PAYMENTS_SLIPS`/`CREATE_EDIT`. That result is a category grant only.
+It never authorizes a literal ledger-row delete, or a mutation of a
+`CONFIRMED`/`REJECTED`/`REFUNDED` payment or an `APPROVED` manual slip - the
+rules in §1-§4 above govern those tables' actual mutation behavior regardless
+of what the permission check returns. Any endpoint gated on one of these two
+domain areas must still independently enforce this file's rules; do not treat
+`hasPermission` returning `true` as sufficient authorization for the mutation
+itself.

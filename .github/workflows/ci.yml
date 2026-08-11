@@ -41,6 +41,12 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      # Build-time only (inlined into the client bundle by Next.js) — not a
+      # secret. CI never talks to a real backend; this just satisfies the
+      # env.ts zod validation so `next build`/Playwright (which mock every
+      # request) can run. Matches the backend's default local port.
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api
     steps:
       - name: Checkout
         uses: actions/checkout@v4

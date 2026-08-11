@@ -12,3 +12,29 @@ logging:
   structured:
     format:
       console: logstash
+
+app:
+  security:
+    # Argon2id parameters (AUTH-3), OWASP-baseline defaults - see
+    # Argon2PasswordEncoderConfig/Argon2Properties. Never hardcode these
+    # inline in the bean method; override per-environment via the env vars
+    # wired in application-local.yml if a deployment needs different cost
+    # parameters.
+    argon2:
+      salt-length: 16
+      hash-length: 32
+      parallelism: 1
+      memory-kib: 19456
+      iterations: 2
+    # JWT access-token lifetime (ADR-007 decision 1: 15 minutes, sub/tenant_id/
+    # role/session_id only, no permission list). The signing secret itself is
+    # never set here - see application-local.yml/.env.example.
+    jwt:
+      access-token-ttl: 15m
+    # Refresh-token/session lifetime. refresh-token-ttl is the absolute
+    # lifetime cap (ADR-007 "recommends" 30 days - not a ratified constant,
+    # hence config-driven, plan §21). cache-ttl bounds how long the Redis
+    # fast-path may report a session valid before the next Postgres read.
+    session:
+      refresh-token-ttl: 30d
+      cache-ttl: 60s
