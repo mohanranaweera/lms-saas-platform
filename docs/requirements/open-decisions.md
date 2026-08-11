@@ -27,6 +27,18 @@ date and a pointer to the decision record (an ADR, if the item touches a change-
   Affects: [04-teacher-management.md](specifications/04-teacher-management.md).
 - No rejection-reason/notification workflow, duplicate-registration handling, or re-application flow is specified for tenant onboarding.
 - Uniqueness scope for tenant subdomain/custom domain is implied but never explicitly stated as a constraint.
+- **Resolved for Staff Management (2026-08-11), relevant to Student/Teacher Management too**:
+  for an admin-triggered manual account creation, the initial login secret is a
+  **server-generated one-time temporary password**, never a value the creating admin
+  chooses or types — the admin is not the custodian of the new account's real credential.
+  `mustChangePassword` is unconditionally `true` on such accounts. This was an open
+  question at the `tenant_user`/`AUTH-1`/`AUTH-3` level per
+  `docs/plans/MVP-005 Staff Management.md` §21 item 15 ("really shared decisions... that
+  also affect Student (Module 3) and Teacher (Module 4) — they should be resolved once at
+  that shared level rather than separately re-litigated per module"); recorded here so
+  Student/Teacher Management's own manual-creation flows adopt the same mechanism instead
+  of re-deciding it. See `docs/api/user-management.md` "Credential issuance" for the
+  shipped shape (`UserProvisioningService`, `StaffCreateResponse.temporaryPassword`).
 
 ## 2. Permission-matrix gaps (no row, or an ambiguous row, in `docs/requirements/user-roles-and-permissions.md` §2)
 
@@ -63,7 +75,7 @@ date and a pointer to the decision record (an ADR, if the item touches a change-
 
 - **Exam-result publication audit gap (documentation inconsistency)**: `functional-requirements.md` FR-EX-2 states result publication is "a confirmable, audit-considered action," but exam-result publication is **not** in `.claude/rules/security.md`'s canonical mandatory-audit-action list (price changes, payment approvals/rejections, device resets, access/expiry extensions, reactivation approvals, material/course content deletions, settlement amount changes, impersonation). This should be settled explicitly — either extend the security-rule list or soften FR-EX-2's language.
   Affects: [11-exams.md](specifications/11-exams.md), [13-audit-logs.md](specifications/13-audit-logs.md).
-- **Staff account creation/role changes**: whether these require an audit-log entry is unspecified, despite the high blast-radius of role assignment.
+- **Staff account creation/role changes**: whether these require an audit-log entry is unspecified, despite the high blast-radius of role assignment. **Still open as of MVP-005 implementation (2026-08-11)** — shipped deliberately without audit logging (no domain event is published on create or role-edit), consistent with this item remaining unresolved rather than the module silently deciding either way. Pending explicit sign-off before implementing.
   Affects: [02-staff-management.md](specifications/02-staff-management.md).
 - **Student status changes / Student Support edits**: whether these require an audit-log entry is unspecified.
   Affects: [03-student-management.md](specifications/03-student-management.md).

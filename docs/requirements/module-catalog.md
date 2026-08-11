@@ -41,9 +41,17 @@ full requirement-level phase breakdown.
 ## user-management
 
 - **Owns:** Student Management (Module 3), Teacher Management (Module 4), Staff
-  Management (Module 5) — profile/data model and role assignment (role *enforcement*
-  is identity-access-service's concern; user-management owns the role/permission data
-  model).
+  Management (Module 5) — profile data only. For Staff Management specifically
+  (resolved during MVP-005 implementation, 2026-08-11): `user-management` owns a
+  dedicated `staff_profile` table (name, and a logical FK to the credential row) —
+  it does **not** own role/permission data. The role itself (`tenant_user.role`) and
+  its enforcement both live in `identity-access-service`, which `user-management`
+  reads live via `UserProvisioningApi` rather than duplicating. This corrects an
+  earlier version of this entry that assigned "the role/permission data model" to
+  `user-management`, which conflicted with `RBAC-1`'s own backend-impact line and was
+  never actually built that way — see
+  `docs/plans/MVP-005 Staff Management.md` §8.1/§21 item 14 and
+  `docs/api/user-management.md` for the shipped shape.
 - **Consumes:** Tenant context from `tenant-management`.
 - **Phases:** MVP (all three modules' core), Phase 2/3 for each module's recommended
   additions (student risk indicators, teacher performance analytics, etc. — see

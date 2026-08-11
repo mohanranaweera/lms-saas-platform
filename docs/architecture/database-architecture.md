@@ -261,6 +261,18 @@ Data-model conventions that follow from this list:
   in `course-management` publishes a domain event; `audit-log-management` persists its
   own audit row from that event, rather than `course-management` writing directly into an
   audit table it doesn't own.
+- **Worked example — `staff_profile` (MVP-005, `user-management`)**: needing to represent
+  "a staff member" is a concrete case of the "one logical schema area per domain" rule
+  above. Rather than adding profile-only columns onto `identity-access-service`'s
+  `tenant_user` table (a shared-table/cross-domain-write violation), `user-management`
+  added its own table, `staff_profile(id, tenant_id, user_id, name, ...)`, referencing
+  `tenant_user` by id only via a composite FK `(tenant_id, user_id) → tenant_user(tenant_id,
+  id)` — same-tenant-enforcing by construction, per this document's tenant-FK guidance.
+  `role`/`status` are deliberately **not** duplicated onto `staff_profile`; they're read
+  live from `tenant_user` via `identity-access-service`'s `UserProvisioningApi`
+  (`findTenantUserSummaries`), never a cross-schema join. This resolves the
+  table-ownership tension flagged in `docs/plans/MVP-005 Staff Management.md` §8.1/§21
+  item 12 — see `docs/api/user-management.md` for the resulting API shape.
 
 ## 6. Migration process reminder
 
