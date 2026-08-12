@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
 /**
  * Structural/manual accessibility smoke checks. No new npm dependency (e.g.
@@ -45,6 +46,15 @@ test.describe("landmarks", () => {
 
 test.describe("mobile navigation", () => {
   test.use({ viewport: { width: 375, height: 812 } });
+
+  test.beforeEach(async ({ page }) => {
+    // `/student/dashboard` is guarded by `RouteGuard` (MVP-006 Student
+    // Management) — mock a successful silent refresh so the guard resolves
+    // without a real backend, matching this file's "no npm dependency, real
+    // request interception only" posture.
+    const token = fakeJwt({ role: "STUDENT" });
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+  });
 
   test("hamburger trigger is labeled and opens a focus-trapped drawer", async ({
     page,
