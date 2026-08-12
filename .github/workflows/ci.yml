@@ -41,6 +41,17 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      # `src/lib/env.ts` validates this at module-evaluation time (both `next
+      # build` and the `next dev` server Playwright's `webServer` spins up
+      # need it present, or the process fails before any test/route runs).
+      # No real backend needs to be reachable at this URL in CI: `npm run
+      # build` only needs a syntactically valid URL to satisfy the Zod
+      # schema, and every Playwright spec mocks its own API calls via
+      # `page.route()` rather than hitting this address. Kept identical to
+      # `.env.example`'s local-dev value for consistency, not because CI
+      # depends on a real server living there.
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api
     steps:
       - name: Checkout
         uses: actions/checkout@v4
