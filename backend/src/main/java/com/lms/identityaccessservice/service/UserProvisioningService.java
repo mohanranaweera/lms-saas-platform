@@ -1,6 +1,7 @@
 package com.lms.identityaccessservice.service;
 
 import com.lms.common.error.ConflictException;
+import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.TenantUserSummary;
@@ -85,6 +86,25 @@ public class UserProvisioningService implements UserProvisioningApi {
 			.map(user -> new TenantUserSummary(user.getId(), user.getEmail(), user.getRole().name(),
 					user.getStatus().name()))
 			.toList();
+	}
+
+	@Override
+	public void suspendTenantUser(UUID userId) {
+		// findById is tenant-scoped by TenantAwareRepositoryImpl - a userId
+		// belonging to a different tenant is structurally invisible here,
+		// surfacing as 404, never a cross-tenant mutation.
+		TenantUser user = tenantUserRepository.findById(userId)
+			.orElseThrow(() -> new NotFoundException("User not found"));
+		user.suspend();
+		tenantUserRepository.save(user);
+	}
+
+	@Override
+	public void activateTenantUser(UUID userId) {
+		TenantUser user = tenantUserRepository.findById(userId)
+			.orElseThrow(() -> new NotFoundException("User not found"));
+		user.activate();
+		tenantUserRepository.save(user);
 	}
 
 	private static Role parseRole(String roleCode) {

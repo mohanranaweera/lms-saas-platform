@@ -102,4 +102,24 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 		return totpSecret;
 	}
 
+	/**
+	 * Transitions this row's login-gate status to {@link AccountStatus#SUSPENDED}.
+	 * Added for {@code UserProvisioningApi#suspendTenantUser} (MVP-007 Teacher
+	 * Management) - a narrow, purpose-named mutator rather than a raw public
+	 * setter, matching this class's existing field-mutation style (fields are
+	 * otherwise only ever set via the constructor).
+	 */
+	public void suspend() {
+		this.status = AccountStatus.SUSPENDED;
+	}
+
+	/**
+	 * Transitions this row's login-gate status to {@link AccountStatus#ACTIVE}.
+	 * Added for {@code UserProvisioningApi#activateTenantUser} (MVP-007
+	 * Teacher Management).
+	 */
+	public void activate() {
+		this.status = AccountStatus.ACTIVE;
+	}
+
 }
