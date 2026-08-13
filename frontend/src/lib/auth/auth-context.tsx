@@ -54,6 +54,14 @@ interface AuthContextValue {
    * drive a generic redirect from, per plan §11/§21).
    */
   ensureAccessToken: (kind: PrincipalKind, options?: { force?: boolean }) => Promise<string>;
+  /**
+   * The reusable "silent refresh" surface for protected requests (plan §11
+   * item 4): attaches a usable access token (refreshing first if none is
+   * held) and retries once on a refresh-recoverable 401. This is the only
+   * sanctioned way for a feature module to call an authenticated endpoint —
+   * do not call `apiFetch` directly with a manually-attached token.
+   */
+  authorizedFetch: <T>(kind: PrincipalKind, path: string, init?: RequestInit) => Promise<T>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -167,8 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, login, logout, ensureAccessToken }),
-    [session, login, logout, ensureAccessToken]
+    () => ({ session, login, logout, ensureAccessToken, authorizedFetch }),
+    [session, login, logout, ensureAccessToken, authorizedFetch]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

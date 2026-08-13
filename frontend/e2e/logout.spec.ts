@@ -8,9 +8,13 @@ import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/a
  * §11, wired via each role layout's `logout={{ kind, requireConfirmation }}`
  * — see `dashboard-shell.tsx` and the four `(role)/layout.tsx` files).
  *
- * Dashboards have no auth guard yet, so these are reached by direct
- * navigation (same pattern as `route-groups.spec.ts`) with the refresh/logout
- * endpoints mocked per `fixtures/auth-mocks.ts` (no backend in this
+ * Student/Teacher/Platform Admin dashboards have no auth guard, so those are
+ * reached by direct navigation. `(tenant-admin)` is wrapped in `RouteGuard`
+ * (MVP-007, `app/(tenant-admin)/layout.tsx`) which calls
+ * `ensureAccessToken("tenant")` on mount — every `/tenant-admin/dashboard`
+ * navigation below must mock `**\/v1/auth/refresh` first or the guard
+ * redirects to `/login` before the page ever renders. Refresh/logout
+ * endpoints are mocked per `fixtures/auth-mocks.ts` (no backend in this
  * environment).
  */
 
@@ -25,6 +29,9 @@ test.describe("logout confirmation — Tenant Admin (requires confirmation)", ()
   test("opens a focus-trapped alertdialog and returns focus to the trigger on cancel", async ({
     page,
   }) => {
+    const token = fakeJwt({ role: "TENANT_ADMIN" });
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+
     await page.goto("/tenant-admin/dashboard");
 
     const trigger = page.getByRole("button", { name: "Sign out" });

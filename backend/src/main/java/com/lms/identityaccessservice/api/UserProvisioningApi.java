@@ -69,4 +69,35 @@ public interface UserProvisioningApi {
 	 */
 	List<TenantUserSummary> findTenantUserSummaries(Collection<UUID> userIds);
 
+	/**
+	 * Suspends the given {@code tenant_user} row (blocks login) - tenant-scoped
+	 * implicitly via the same resolved {@link com.lms.common.tenant.TenantContext}
+	 * every other method here uses, never a caller-supplied {@code tenant_id}.
+	 * Added for {@code user-management}'s Teacher Management module (MVP-007),
+	 * whose freshly-provisioned {@code TEACHER} accounts must not be able to
+	 * log in until an explicit approval decision is made ({@code
+	 * .claude/rules/security.md}'s login-gate contract). This is a narrow,
+	 * additive extension consistent with this interface's own documented
+	 * extension policy (see class javadoc) - its only intended call sites in
+	 * this pass are Teacher Management's create (suspend) and approve
+	 * (activate) paths; a future unrelated caller reusing this method for a
+	 * generic account-suspension feature should go through its own review.
+	 *
+	 * @throws com.lms.common.error.NotFoundException if {@code userId} does
+	 * not resolve to a {@code tenant_user} row in the caller's own resolved
+	 * tenant
+	 */
+	void suspendTenantUser(UUID userId);
+
+	/**
+	 * Re-activates the given {@code tenant_user} row (restores login
+	 * capability) - the same tenant-scoping and extension-policy contract as
+	 * {@link #suspendTenantUser} applies here.
+	 *
+	 * @throws com.lms.common.error.NotFoundException if {@code userId} does
+	 * not resolve to a {@code tenant_user} row in the caller's own resolved
+	 * tenant
+	 */
+	void activateTenantUser(UUID userId);
+
 }
