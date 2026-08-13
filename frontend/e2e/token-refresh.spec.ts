@@ -20,10 +20,13 @@ import {
  * under test are the token refresh/retry, not the confirmation UI (see
  * `logout.spec.ts` for that).
  *
- * Dashboards have no route guard yet (confirmed via `route-groups.spec.ts`,
- * which navigates to them directly with no prior login) — that's what makes
- * it possible to reach the "no cached token" `ensureAccessToken` path
- * (scenario B) without a real login first.
+ * As of MVP-006 Student Management, `/student/dashboard` and
+ * `/tenant-admin/dashboard` are behind `RouteGuard` (see
+ * `route-groups.spec.ts`); `/teacher/dashboard` and `/platform-admin/dashboard`
+ * remain unguarded. The scenarios below that need to reach a dashboard with
+ * "no cached token" and no prior login (scenario B, and the failed-refresh
+ * scenario) use `/teacher/dashboard` specifically so the guard's own silent
+ * refresh call doesn't interfere with the one under test.
  */
 
 test.describe("silent refresh — cached token, protected call rejected then retried", () => {
@@ -132,10 +135,13 @@ test.describe("silent refresh — refresh itself fails", () => {
     // `?reason=session_expired` when refresh fails. The only real caller in
     // this module is `logout()`, which propagates the failure rather than
     // swallowing it; `LogoutControl` surfaces it as a `role="alert"` notice
-    // and does NOT redirect — the `?reason=session_expired` path itself has
-    // no reachable trigger yet since no protected/guarded route exists (see
-    // `shared-states.spec.ts`'s coverage note) — that's for a route guard in
-    // a future module, not this one.
+    // and does NOT redirect — the `?reason=session_expired` path itself is
+    // exercised by `RouteGuard` directly (see `route-guard.tsx`), not by this
+    // test, which stays scoped to `authorizedFetch`'s own retry/propagation
+    // behavior via `logout()`. Uses the still-unguarded `/teacher/dashboard`
+    // route so `RouteGuard`'s own silent-refresh call (on `/student/dashboard`,
+    // now guarded per MVP-006) doesn't consume this test's single-refresh-call
+    // assertion before the button click does.
     let refreshCallCount = 0;
     await page.route("**/v1/auth/refresh", async (route) => {
       refreshCallCount += 1;
@@ -156,12 +162,12 @@ test.describe("silent refresh — refresh itself fails", () => {
       });
     });
 
-    await page.goto("/student/dashboard");
+    await page.goto("/teacher/dashboard");
     const signOut = page.getByRole("button", { name: "Sign out" });
     await signOut.click();
 
     await expect(page.getByRole("alert").filter({ hasText: "Refresh token is invalid" })).toBeVisible();
-    await expect(page).toHaveURL(/\/student\/dashboard$/);
+    await expect(page).toHaveURL(/\/teacher\/dashboard$/);
 
     expect(refreshCallCount).toBe(1);
     // The protected logout call is never attempted once the token refresh

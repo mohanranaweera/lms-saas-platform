@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
 test.describe("public route group", () => {
   test("home page renders marketing content and auth entry points", async ({ page }) => {
@@ -83,6 +84,15 @@ test.describe("role dashboard route groups", () => {
     { path: "/tenant-admin/dashboard", heading: "Tenant Admin Dashboard" },
     { path: "/platform-admin/dashboard", heading: "Platform Admin Dashboard" },
   ];
+
+  test.beforeEach(async ({ page }) => {
+    // `/student/dashboard` and `/tenant-admin/dashboard` are guarded by
+    // `RouteGuard` (MVP-006 Student Management) — mock a successful silent
+    // refresh so the guard resolves for those two; `/teacher/dashboard` and
+    // `/platform-admin/dashboard` remain unguarded and ignore this mock.
+    const token = fakeJwt({ role: "STUDENT" });
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+  });
 
   for (const { path, heading } of dashboards) {
     test(`${path} renders its portal shell and placeholder dashboard`, async ({

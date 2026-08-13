@@ -9,6 +9,14 @@ interface ErrorStateProps {
   code?: string;
   /** Per-field validation messages from the backend's `ApiError.fieldErrors`, when applicable. */
   fieldErrors?: FieldError[];
+  /**
+   * Optional `{ field: humanLabel }` lookup for rendering `fieldErrors`.
+   * Falls back to the raw `field` key (e.g. `someInternalKey`) when a field
+   * isn't present in the map or this prop is omitted entirely — the raw key
+   * is a last resort, not the default UX, since it exposes a backend DTO
+   * property name directly to the user.
+   */
+  fieldLabels?: Record<string, string>;
   onRetry?: () => void;
   className?: string;
 }
@@ -21,6 +29,7 @@ export function ErrorState({
   message,
   code,
   fieldErrors,
+  fieldLabels,
   onRetry,
   className,
 }: ErrorStateProps) {
@@ -41,7 +50,9 @@ export function ErrorState({
         <ul className="flex flex-col gap-1 text-left text-xs text-destructive">
           {fieldErrors.map((fieldError) => (
             <li key={fieldError.field}>
-              <span className="font-medium">{fieldError.field}:</span>{" "}
+              <span className="font-medium">
+                {fieldLabels?.[fieldError.field] ?? fieldError.field}:
+              </span>{" "}
               {fieldError.message}
             </li>
           ))}

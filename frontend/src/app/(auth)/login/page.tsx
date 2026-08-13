@@ -8,10 +8,22 @@ const DASHBOARD_PATH_BY_ROLE: Record<string, string> = {
   STUDENT: "/student/dashboard",
   TEACHER: "/teacher/dashboard",
   TENANT_ADMIN: "/tenant-admin/dashboard",
-  // STAFF intentionally omitted — no staff dashboard route group exists yet in
-  // this codebase (staff sub-role data model is Module 3/RBAC). A STAFF login
-  // succeeds but resolves to no known target; `LoginForm` surfaces that instead
-  // of guessing a route. See final report for this flagged gap.
+  // The seven staff sub-roles named in .claude/rules/ui-ux.md §1 ("Staff
+  // sub-roles") all operate inside the Tenant Admin portal, same as
+  // TENANT_ADMIN itself — per-page permission checks (e.g. Student
+  // Management's `canManageStudents()`, `QueryStateBoundary`'s 403 handling)
+  // gate what each sub-role can actually see/do within it. There is no
+  // separate staff dashboard route group, and none is needed.
+  FINANCE_STAFF: "/tenant-admin/dashboard",
+  COURSE_COORDINATOR: "/tenant-admin/dashboard",
+  STUDENT_SUPPORT: "/tenant-admin/dashboard",
+  CONTENT_MANAGER: "/tenant-admin/dashboard",
+  EXAM_MANAGER: "/tenant-admin/dashboard",
+  ATTENDANCE_OPERATOR: "/tenant-admin/dashboard",
+  READ_ONLY_AUDITOR: "/tenant-admin/dashboard",
+  // TEACHER_ASSISTANT intentionally omitted — its portal is an open,
+  // unratified decision (docs/plans/MVP-006 Student Management.md §21 item 8;
+  // user-roles-and-permissions.md §3), not something to guess here.
 };
 
 /**

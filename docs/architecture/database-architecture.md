@@ -273,6 +273,22 @@ Data-model conventions that follow from this list:
   rely on must have this document's data-model section (or `docs/api` for contract-level
   detail) updated in the same change, per `.claude/rules/documentation.md`.
 
+### Known gap: this document has no per-table catalog
+
+This document is principle-based (structural rules every tenant-owned table must follow),
+not a per-table data dictionary — no individual table (including foundational ones like
+`tenant`/`tenant_user`) has its own entry here. `staff_profile` (V10, MVP-005) and
+`student_profile` (V11, MVP-006) both follow every rule in §1/§2 above (composite
+tenant-scoped index, `UNIQUE(tenant_id, ...)`, composite FK preventing cross-tenant
+linkage — see each migration file's own header comment for the concrete reasoning), but
+neither has a standalone entry in this file, since no such catalog section exists to add
+one to. `student_profile`'s column set is additionally still provisional pending the
+guardian/school/grade/stream field-list decision (`docs/requirements/open-decisions.md`
+§15) — its current, real, up-to-date column contract lives in
+`docs/api/user-management.md` and the migration file itself, not here. If a per-table
+catalog is added to this document in the future, `staff_profile` and `student_profile`
+should both be backfilled into it together, not just the newer of the two.
+
 ## Related
 
 - `docs/architecture/multi-tenancy.md`

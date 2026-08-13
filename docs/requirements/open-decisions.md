@@ -201,3 +201,95 @@ three domains' decisions — including
 [17-session-view-limits.md](specifications/17-session-view-limits.md) and
 [20-secure-video.md](specifications/20-secure-video.md) — without a further ADR-approval
 prerequisite.
+
+## 15. Student Management (MVP-006) — items surfaced during module planning/implementation
+
+Surfaced by `docs/plans/MVP-006 Student Management.md` §21, not by the original five-agent
+requirements review that produced sections 1–14 above — logged here per that plan's own §19
+instruction. Only the items not already tracked elsewhere in this log at this level of detail
+are listed (the plan's own self-registration public-vs-invite-only question is already covered
+in §1 above; the bulk-import partial-row-failure question is already covered in §10 above).
+
+- **Guardian/parent info and school/grade/stream field list is not itemized anywhere.** STU-1's
+  own backlog entry proposes a concrete-looking schema sketch
+  (`guardian_name, guardian_contact, school, grade, stream`), but this is an unratified
+  placeholder, not a confirmed column list — the tension between the explicit "not itemized"
+  note and the concrete-looking sketch should be resolved explicitly, not silently treated as
+  final. Not one of the original 9 items plan §19 instructed appending here (it's already
+  present in the spec's own Open Decisions list, `03-student-management.md`), but added as its
+  own bullet regardless so `docs/architecture/database-architecture.md`'s cross-reference to
+  this section for `student_profile`'s still-provisional column set points at something that
+  actually exists here.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §8.1 (provisional column list), §21 item 3.
+- **`student_profile.status` column — recommended deviation from the backlog's literal text,
+  needs explicit confirmation.** STU-1's own database-impact line in `product-backlog.md` lists
+  `status` as a `student_profile` column, but the shipped migration deliberately omits it,
+  reusing `tenant_user.status` instead — matching the `staff_profile`/STAFF-1 precedent and
+  avoiding a second, independently-drifting copy of account state. This is a reasoned deviation,
+  not a silent override, but was never separately ratified against the backlog's literal text.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §8.1, §21 item 4.
+- **Teacher roster — `course-management`'s teacher-course-assignment data model does not exist
+  yet**, so there is no source-of-truth a roster query could filter against (distinct from the
+  already-tracked bulk-import-partial-failure half of this same blocker in §10 above). Building
+  it now would necessarily fake the filter or ship an unfiltered-roster fallback, both violating
+  the spec's own §7 "backend-pre-filtered, never client-filtered" requirement in spirit —
+  deferred explicitly rather than stopgapped.
+  Affects: [03-student-management.md](specifications/03-student-management.md), [04-teacher-management.md](specifications/04-teacher-management.md), [05-course-management.md](specifications/05-course-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §9, §15(d), §21 item 2(b).
+- **No password-strength policy exists anywhere in this backend** (only Argon2 hashing config,
+  no minimum-length/complexity check). Student self-registration — the first public,
+  unauthenticated, credential-issuing endpoint — is exactly the surface where this matters most,
+  and remains unbuilt pending this decision.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §9, §15(a), §21 item 6.
+- **No rate-limiting/abuse-prevention mechanism exists anywhere in this backend** (confirmed: no
+  bucket4j/resilience4j-ratelimiter dependency, no rate-limit code pattern anywhere). Already
+  affects `/api/v1/auth/login` and `/api/v1/tenant-registrations`, but student self-registration
+  is a materially larger abuse surface (mass fake-account creation, subdomain/tenant probing at
+  volume) — a cross-cutting infrastructure gap this module inherits and surfaces sharply, not
+  something to solve unilaterally inside `user-management`.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §9, §15(a), §21 item 6.
+- **Self-registration enumeration risk at the business-logic layer, distinct from the
+  tenant-resolution layer.** `TenantResolutionFilter` already structurally prevents
+  tenant-existence enumeration (an unresolved subdomain and a resolved-but-ineligible tenant
+  collapse into one identical response before any controller runs), but the still-unbuilt
+  registration endpoint's own business logic must not reintroduce the same vector — e.g. a
+  differently-shaped error on a downstream failure for "real tenant" vs. "no such tenant," or a
+  timing difference in the duplicate-email check.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §15(a).
+- **Role-collision on create/import is unaddressed** — no document says what happens if a
+  manual-create or (future) bulk-import row targets an email already associated with a
+  different role (Teacher, Staff) in the same tenant.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §4.2, §21 item 13.
+- **Precondition gap: interaction with a suspended/trial/cancelled tenant is unaddressed.**
+  `FR-TM-3` states tenant-status transitions "immediately affect login/access," but no document
+  says whether self-registration, manual creation, or (future) bulk import should be blocked
+  when the tenant isn't `active`.
+  Affects: [03-student-management.md](specifications/03-student-management.md), [01-tenant-onboarding.md](specifications/01-tenant-onboarding.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §3, §21 item 11.
+- **`FR-UM-3` device/communication-history phase-tag contradiction.** `FR-UM-3` tags
+  device/communication history as MVP, but the domains that would populate them
+  (device-authentication: `FR-IAS-3`–`FR-IAS-7`; notification delivery logs: `FR-NM-4`) are both
+  tagged Phase 2 — STU-3's own backlog dependency list doesn't even name a dependency for these
+  two tabs despite them being named in the module's business purpose. Should be resolved
+  (descope explicitly to Phase 2, or clarify a reduced MVP version of each tab) before the
+  history-composition capstone story (STU-3, not yet built) is treated as fully scoped.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §4.5, §21 item 7.
+- **Same-tenant cross-student enumeration AC gap in the source spec, distinct from the
+  already-tracked cross-tenant case.** The spec's own §8 acceptance-criteria checklist names
+  only the cross-tenant enumeration test explicitly; the same-tenant case (student A viewing/
+  editing student B's profile by ID, both in the same tenant) is required by
+  `.claude/rules/security.md`'s general enumeration-testing mandate but was never its own named
+  AC. **Now structurally addressed in the shipped implementation** (the self-service `/me`
+  endpoints take no `{id}` parameter at all, making same-tenant cross-student access
+  impossible by construction, not merely permission-denied — see
+  `docs/api/user-management.md`) — logged here so the spec's own AC list reflects this
+  explicitly rather than relying on the implementation having happened to get it right.
+  Affects: [03-student-management.md](specifications/03-student-management.md).
+  Source: `docs/plans/MVP-006 Student Management.md` §5 AC 16, §21 (cross-referenced from AC 16's own text).

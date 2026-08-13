@@ -8,10 +8,13 @@ import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/a
  * §11, wired via each role layout's `logout={{ kind, requireConfirmation }}`
  * — see `dashboard-shell.tsx` and the four `(role)/layout.tsx` files).
  *
- * Dashboards have no auth guard yet, so these are reached by direct
- * navigation (same pattern as `route-groups.spec.ts`) with the refresh/logout
- * endpoints mocked per `fixtures/auth-mocks.ts` (no backend in this
- * environment).
+ * Dashboards are reached by direct navigation (same pattern as
+ * `route-groups.spec.ts`) with the refresh/logout endpoints mocked per
+ * `fixtures/auth-mocks.ts` (no backend in this environment). As of MVP-006
+ * Student Management, `/tenant-admin/dashboard` and `/student/dashboard` are
+ * behind `RouteGuard`, so every test reaching one of those two now mocks
+ * `POST .../v1/auth/refresh` before navigating (the guard's own silent
+ * refresh call); `/platform-admin/dashboard` remains unguarded.
  */
 
 function mockSuccessfulLogoutFlow(page: import("@playwright/test").Page, role: string) {
@@ -25,6 +28,11 @@ test.describe("logout confirmation — Tenant Admin (requires confirmation)", ()
   test("opens a focus-trapped alertdialog and returns focus to the trigger on cancel", async ({
     page,
   }) => {
+    // `/tenant-admin/dashboard` is guarded by `RouteGuard` (MVP-006 Student
+    // Management) — mock a successful silent refresh so the guard resolves.
+    const guardToken = fakeJwt({ role: "TENANT_ADMIN" });
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(guardToken)));
+
     await page.goto("/tenant-admin/dashboard");
 
     const trigger = page.getByRole("button", { name: "Sign out" });

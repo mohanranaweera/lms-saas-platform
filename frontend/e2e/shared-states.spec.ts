@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
 /**
  * Coverage note: `EmptyState` (components/states/empty-state.tsx) is the only shared
@@ -24,6 +25,12 @@ test.describe("empty state — contextual copy per role", () => {
   test("each dashboard's empty state has role-specific, non-generic copy", async ({
     page,
   }) => {
+    // `/student/dashboard` and `/tenant-admin/dashboard` are guarded by
+    // `RouteGuard` (MVP-006 Student Management) — mock a successful silent
+    // refresh so the guard resolves for both without a real backend.
+    const token = fakeJwt({ role: "STUDENT" });
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+
     await page.goto("/student/dashboard");
     await expect(page.getByText("Student dashboard coming soon")).toBeVisible();
 
