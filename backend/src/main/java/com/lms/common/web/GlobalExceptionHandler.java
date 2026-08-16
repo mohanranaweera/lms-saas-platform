@@ -14,11 +14,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Maps every exception type thrown from a controller/service to the common
@@ -48,6 +50,35 @@ public class GlobalExceptionHandler {
 			.map(cv -> new FieldError(cv.getPropertyPath().toString(), cv.getMessage()))
 			.toList();
 		ApiError error = ApiError.validation("Request validation failed", fieldErrors);
+		return ResponseEntity.badRequest().body(ApiResponse.error(error));
+	}
+
+	/**
+	 * A path variable that fails type conversion (e.g. a non-UUID string
+	 * where {@code @PathVariable UUID id} is declared) previously fell
+	 * through to {@link #handleUnexpected}'s generic {@code 500} - this
+	 * mapped it to a proper {@code 400} instead. Found during MVP-008's
+	 * backend review; the shared handler had no case for it because no
+	 * earlier module took as many multi-segment UUID path variables as
+	 * course/module/lesson routes do.
+	 */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR, "Request parameter '" + ex.getName()
+				+ "' has an invalid value");
+		return ResponseEntity.badRequest().body(ApiResponse.error(error));
+	}
+
+	/**
+	 * A request body that fails to deserialize at all (e.g. an invalid
+	 * enum value for a field like {@code CourseCreateRequest.status}) fails
+	 * before Bean Validation ever runs, and previously fell through to
+	 * {@link #handleUnexpected}'s generic {@code 500} - this maps it to a
+	 * proper {@code 400} instead. Found during MVP-008's backend review.
+	 */
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR, "Request body is malformed or contains an invalid value");
 		return ResponseEntity.badRequest().body(ApiResponse.error(error));
 	}
 

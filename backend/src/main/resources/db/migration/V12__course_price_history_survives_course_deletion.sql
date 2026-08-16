@@ -1,0 +1,40 @@
+-- Fixes an MVP-008 backend-review finding (severity High): CourseService
+-- #deleteCourse previously hard-deleted a course's course_price_history rows
+-- as a side effect of deleting the course, purely to satisfy
+-- fk_course_price_history_course (V11) - which has no ON DELETE behavior, so
+-- the FK would otherwise reject the course delete outright. This destroyed
+-- the price-change audit trail the table exists to preserve, contradicting
+-- root CLAUDE.md's explicit "Never delete financial history" instruction and
+-- V11's own append-only framing for this table.
+--
+-- Fix: drop the FK from course_price_history to course entirely, so
+-- course_price_history becomes an intentionally orphan-tolerant historical
+-- record. Once written by CourseService#changePrice (the sole write path,
+-- always populated from the currently-loaded, tenant-scoped course's own id
+-- - never client input), a row's course_id is preserved permanently
+-- regardless of whether the course itself is later hard-deleted - the same
+-- trade-off an audit-log's target_id makes ("FK'd to known ... rows where
+-- applicable", docs/architecture/database-architecture.md §4 - not always a
+-- strict live FK, precisely because the referenced row's lifecycle and the
+-- audit row's lifecycle are allowed to diverge).
+--
+-- ON DELETE SET NULL was considered and rejected: fk_course_price_history_course
+-- is a COMPOSITE FK on (tenant_id, course_id). Postgres's ON DELETE SET NULL
+-- on a composite FK nulls every column listed in that FK when the referenced
+-- row is deleted - which would also null tenant_id here, violating this
+-- codebase's absolute "tenant_id NOT NULL, never nullable" rule (CLAUDE.md;
+-- database-architecture.md §1). Dropping the FK entirely (rather than
+-- relaxing it to SET NULL) is the only option that leaves tenant_id
+-- untouched.
+--
+-- tenant_id itself, and fk_course_price_history_changed_by (-> tenant_user),
+-- are both unaffected by this migration - only the course_id -> course
+-- reference is dropped. course_id remains NOT NULL and populated; it simply
+-- stops being enforced as a live FK once a course can be deleted out from
+-- under it.
+--
+-- CourseService#deleteCourse (application code, separate commit) no longer
+-- deletes course_price_history rows as part of course deletion, now that
+-- nothing requires it to.
+
+ALTER TABLE course_price_history DROP CONSTRAINT fk_course_price_history_course;

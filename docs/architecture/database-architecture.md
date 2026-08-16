@@ -273,6 +273,46 @@ Data-model conventions that follow from this list:
   rely on must have this document's data-model section (or `docs/api` for contract-level
   detail) updated in the same change, per `.claude/rules/documentation.md`.
 
+## 7. course-management tables (MVP-008)
+
+Added by `V11__create_course_management_schema.sql` through
+`V14__cascade_delete_course_structure.sql`. One aggregate root (`course`) with two
+structural child tables and one append-only history table — not four separate account
+types the way `usermanagement`'s staff/student/teacher sub-roles are, so they live as one
+domain's facets rather than sibling packages.
+
+- **`course`** — `tenant_id NOT NULL`, `teacher_id` FK'd via a composite
+  `(tenant_id, teacher_id) REFERENCES tenant_user (tenant_id, id)` — never a bare-id FK, so
+  a cross-tenant teacher assignment is a constraint violation. `status` is both lifecycle
+  and visibility (`DRAFT`/`PRIVATE`/`PUBLIC`); no separate axis exists. `category`/
+  `subject`/`stream`/`grade`/`academic_year` are free-text, not FK'd to a catalog table (none
+  exists yet). No `currency` column — a single implicit currency is assumed platform/tenant-
+  wide pending `payment-management`'s design. Indexes: `(tenant_id, status, created_at DESC)`
+  and `(tenant_id, teacher_id, status)`.
+- **`course_module`** / **`course_lesson`** — structure only, no material content (that's
+  `content-management`'s table, once it exists, referencing `course_lesson.id` from its own
+  side). Both FK to their parent via composite `(tenant_id, ...)` FKs; `course_module`→
+  `course` and `course_lesson`→`course_module` cascade-delete (`ON DELETE CASCADE`, V14).
+  `sequence` is a positive integer, unique within its parent per tenant — no dedicated
+  index beyond the unique constraint's own backing btree (V13 removed a redundant explicit
+  index that duplicated the unique constraint's leading-column order).
+- **`course_price_history`** — append-only. `CoursePriceHistoryRepository` overrides every
+  delete-shaped method (including the three batch-delete variants Spring Data exposes) to
+  throw `UnsupportedOperationException`, making this **structural**, not just conventional
+  — see §3's append-only-domain pattern. **V12 deliberately drops** (does not `SET NULL`)
+  the FK from `course_price_history.course_id` to `course`, rather than cascading it on
+  course deletion, so a course's price-change trail survives the course row's own deletion —
+  per root `CLAUDE.md`'s "never delete financial history." This means new inserts to this
+  column no longer have a DB-level existence guarantee; integrity for new rows relies
+  entirely on `CourseService#changePrice` being the sole write path (verified: exactly one
+  call site in the codebase), not on the schema. `tenant_id` and `changed_by` composite FKs
+  are unaffected and remain enforced. `changePrice` writes the price update and the history
+  row in one `@Transactional` boundary. This table is a domain-local record, **not** the
+  platform's canonical compliance-grade audit log — `audit-log-management` doesn't exist
+  yet; `CoursePriceChangedEvent` is published in the same transaction so that domain can
+  later persist its own canonical row from the event with zero rework here. See
+  `docs/requirements/open-decisions.md` for this limitation tracked as an open item.
+
 ## Related
 
 - `docs/architecture/multi-tenancy.md`

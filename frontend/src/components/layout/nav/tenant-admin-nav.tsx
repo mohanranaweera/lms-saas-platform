@@ -2,6 +2,7 @@ import { NavLinks, type NavItem } from "./nav-links";
 
 const items: NavItem[] = [
   { label: "Dashboard", href: "/tenant-admin/dashboard" },
+  { label: "Courses", href: "/tenant-admin/courses" },
   { label: "Profile" },
   { label: "Settings" },
 ];

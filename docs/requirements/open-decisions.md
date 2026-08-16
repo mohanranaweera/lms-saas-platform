@@ -201,3 +201,36 @@ three domains' decisions — including
 [17-session-view-limits.md](specifications/17-session-view-limits.md) and
 [20-secure-video.md](specifications/20-secure-video.md) — without a further ADR-approval
 prerequisite.
+
+## 15. Course Management (MVP-008) — carried-forward limitations
+
+Surfaced by `docs/plans/MVP-008 Course Management.md` §21 and confirmed still open by a
+post-implementation module review; none of the three are this module's to resolve
+unilaterally.
+
+- **Course-Coordinator-vs-teacher-reassignment authorization gap**: `DomainArea.COURSES`
+  grants Course Coordinator `CREATE_EDIT`/`APPROVE`, but teacher reassignment
+  (`POST /api/v1/courses/{id}/teacher`) is Tenant-Admin-only, decided by the product owner
+  during MVP-008's planning as the narrowest option (matching Staff Management's precedent
+  of keeping the highest-leverage actions Institute-Owner-only). Implemented and tested;
+  flagged here only so the asymmetry between this endpoint and the rest of the `COURSES`
+  matrix is documented somewhere durable, not just in the plan file.
+  Affects: [05-course-management.md](specifications/05-course-management.md).
+- **DRAFT-course price-change audit scope**: `course_price_history` is written on every
+  price change regardless of course status (DRAFT included), not only for published
+  courses — a deliberate simplification (a status-conditional branch in the one
+  non-bypassable write path was judged more fragile than writing unconditionally, and
+  unconditional writing is a strict superset of the spec's literal "published course"
+  requirement). If a future review wants price history scoped to published-only, that is a
+  product decision to make explicitly, not something to silently narrow.
+  Affects: [05-course-management.md](specifications/05-course-management.md).
+- **`course_price_history` is not a substitute for the canonical `audit-log-management`
+  audit row**: it satisfies the spec's literal "one audit entry with before/after" text
+  today, but it is a domain-local table, not the platform's compliance-grade audit log,
+  which doesn't exist yet. `CoursePriceChangedEvent` is published in the same transaction
+  so `audit-log-management` can persist its own canonical row from that event once built,
+  with zero rework to `course-management`. Do not report MVP-008's audit requirement as
+  "fully met" without this qualification until `audit-log-management` actually exists and
+  consumes the event.
+  Affects: [05-course-management.md](specifications/05-course-management.md),
+  [13-audit-logs.md](specifications/13-audit-logs.md).

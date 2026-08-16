@@ -54,6 +54,17 @@ interface AuthContextValue {
    * drive a generic redirect from, per plan §11/§21).
    */
   ensureAccessToken: (kind: PrincipalKind, options?: { force?: boolean }) => Promise<string>;
+  /**
+   * The reusable "silent refresh" surface for protected requests: attaches a
+   * usable access token (refreshing first if none is held), and on a 401
+   * `UNAUTHENTICATED`/`SESSION_REVOKED` response, refreshes exactly once more
+   * and retries; otherwise propagates the error for the caller to handle
+   * (e.g. `classifyQueryError`/`QueryStateBoundary`). Every authenticated
+   * course-management API hook (`lib/api/courses.ts`) calls this from its
+   * `queryFn`/`mutationFn` rather than calling `apiFetch` with a manually
+   * attached header.
+   */
+  authorizedFetch: <T>(kind: PrincipalKind, path: string, init?: RequestInit) => Promise<T>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -167,8 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, login, logout, ensureAccessToken }),
-    [session, login, logout, ensureAccessToken]
+    () => ({ session, login, logout, ensureAccessToken, authorizedFetch }),
+    [session, login, logout, ensureAccessToken, authorizedFetch]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

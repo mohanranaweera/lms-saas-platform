@@ -127,6 +127,12 @@ public class SecurityFilterChainConfig {
 				// itself (shouldNotFilter) since a prospective institute has no
 				// subdomain to resolve yet.
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/tenant-registrations").permitAll();
+				// Public, unauthenticated course-management storefront read path
+				// (MVP-008, GET-only) - tenant is still resolved server-side from
+				// the subdomain by TenantResolutionFilter; no client-supplied
+				// tenantId is ever accepted. See CoursePublicController.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**")
+					.permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
 				authorize
 					.requestMatchers(HttpMethod.POST, "/api/v1/platform-admin/auth/login",
