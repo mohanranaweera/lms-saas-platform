@@ -39,6 +39,15 @@ public final class ApiErrorCodes {
 	/** A role code supplied to a provisioning call does not match any real {@code Role} enum value. */
 	public static final String INVALID_ROLE_CODE = "INVALID_ROLE_CODE";
 
+	/** A dependency the request needs (e.g. object storage) is not configured/reachable. */
+	public static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
+
+	/** An uploaded file exceeds the maximum allowed size. */
+	public static final String PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE";
+
+	/** An uploaded file's declared or sniffed content type is not on the accepted allow-list. */
+	public static final String UNSUPPORTED_MEDIA_TYPE = "UNSUPPORTED_MEDIA_TYPE";
+
 	private ApiErrorCodes() {
 	}
 

@@ -290,12 +290,38 @@ domain's facets rather than sibling packages.
   wide pending `payment-management`'s design. Indexes: `(tenant_id, status, created_at DESC)`
   and `(tenant_id, teacher_id, status)`.
 - **`course_module`** / **`course_lesson`** — structure only, no material content (that's
-  `content-management`'s table, once it exists, referencing `course_lesson.id` from its own
-  side). Both FK to their parent via composite `(tenant_id, ...)` FKs; `course_module`→
+  `content-management`'s `material` table, below, referencing `course_lesson.id` from its
+  own side). Both FK to their parent via composite `(tenant_id, ...)` FKs; `course_module`→
   `course` and `course_lesson`→`course_module` cascade-delete (`ON DELETE CASCADE`, V14).
   `sequence` is a positive integer, unique within its parent per tenant — no dedicated
   index beyond the unique constraint's own backing btree (V13 removed a redundant explicit
-  index that duplicated the unique constraint's leading-column order).
+  index that duplicated the unique constraint's leading-column order). `course_lesson` also
+  carries `uq_course_lesson_tenant_id UNIQUE (tenant_id, id)` (V15) — added specifically so
+  `material`'s composite FK below has a matching unique/PK constraint to reference; its
+  sibling tables `course`/`course_module` already had the equivalent constraint from V11.
+- **`material`** (`content-management`, MVP-009, V16) — one row per uploaded lesson
+  material (PDF/image/plain-text "notes" only at MVP). `tenant_id NOT NULL`, `lesson_id`
+  FK'd via a composite `fk_material_lesson (tenant_id, lesson_id) REFERENCES course_lesson
+  (tenant_id, id)` — **deliberately without `ON DELETE CASCADE`**, unlike every other
+  parent/child pair in this schema: a lesson/module/course delete that would silently
+  cascade-remove an attached material is instead rejected with a `409` (FK violation), so
+  that deletion always goes through `content-management`'s own audited
+  `DELETE .../materials/{id}` path (`MaterialDeletedEvent`) rather than an implicit DB-level
+  cascade that would orphan the corresponding object-storage entry and bypass the audit
+  requirement. `uploaded_by` is a second composite FK to `tenant_user (tenant_id, id)`.
+  `sequence` is unique within `(tenant_id, lesson_id)`, same convention as
+  `course_module`/`course_lesson` — no dedicated index beyond `uq_material_sequence`'s own
+  backing btree (same V13 precedent). `visibility` is `CHECK`-constrained to
+  `VISIBLE`/`HIDDEN` only (no richer taxonomy defined anywhere in the requirements corpus
+  yet). `expiry_at` exists for forward compatibility but is unenforced — and currently
+  unwritable, since no request DTO accepts it yet — at MVP (Phase 2 expiry enforcement).
+  `mime_type` is deliberately unconstrained at the DB level; the accepted-format allow-list
+  is a service-layer, evolving concern (`ContentSniffer`, magic-byte detection). At the
+  Java/JPA level `Material.lessonId` is a bare `UUID` — no `@ManyToOne`, no cross-domain
+  entity import — the composite FK is a SQL-only cross-module reference, per
+  `.claude/rules/architecture.md`'s boundary rules and `tenancy.md`'s mandatory
+  composite-FK rule for cross-table tenant-owned references. See
+  `docs/api/content-management.md` for the full endpoint contract.
 - **`course_price_history`** — append-only. `CoursePriceHistoryRepository` overrides every
   delete-shaped method (including the three batch-delete variants Spring Data exposes) to
   throw `UnsupportedOperationException`, making this **structural**, not just conventional

@@ -20,8 +20,17 @@ import { isApiClientError } from "@/lib/api/error";
 
 /**
  * Tenant-Admin-only delete action (`DELETE /api/v1/courses/{id}` — 403 for
- * everyone else, including the owning Teacher). Rendered only on the Tenant
- * Admin course detail page.
+ * everyone else, including the owning Teacher; also 409 when a lesson in
+ * this course still has an attached material — `fk_material_lesson` has no
+ * `ON DELETE CASCADE` by design). Rendered only on the Tenant Admin course
+ * detail page.
+ *
+ * The failure `Alert` is rendered *inside* `AlertDialogContent` (mirroring
+ * `MaterialRow`'s delete-confirmation `Alert` placement), not as a sibling
+ * outside the dialog — the dialog deliberately stays open on failure so the
+ * admin can see it and retry/cancel, and a modal's background content is
+ * inert/covered while it's open, so an outside-the-dialog `Alert` would be
+ * invisible and unannounced for exactly the case it exists to handle.
  */
 export function CourseDeleteAction({ courseId, course }: { courseId: string; course: CourseResponse }) {
   const router = useRouter();
@@ -54,13 +63,6 @@ export function CourseDeleteAction({ courseId, course }: { courseId: string; cou
         </p>
       </div>
 
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
-
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger render={<Button type="button" variant="destructive" className="w-fit" />}>
           <Trash2 aria-hidden="true" />
@@ -73,6 +75,12 @@ export function CourseDeleteAction({ courseId, course }: { courseId: string; cou
               This permanently deletes the course. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {errorMessage ? (
+            <Alert variant="destructive">
+              <AlertCircle aria-hidden="true" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          ) : null}
           <AlertDialogFooter>
             <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
             <Button

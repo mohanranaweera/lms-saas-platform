@@ -1,6 +1,10 @@
 spring:
   application:
     name: lms-backend
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 26MB
 
 management:
   endpoints:
@@ -38,3 +42,11 @@ app:
     session:
       refresh-token-ttl: 30d
       cache-ttl: 60s
+  content:
+    material:
+      # MVP working default - accepted file types/size limit are not defined
+      # anywhere in the requirements corpus (docs/plans/MVP-009 Lessons and
+      # Learning Materials.md §21 item 5); 25 MB and the PDF/image/plain-text
+      # allow-list in ContentSniffer are this implementation's own default,
+      # flagged for confirmation, not a ratified business decision.
+      max-file-size-bytes: 26214400

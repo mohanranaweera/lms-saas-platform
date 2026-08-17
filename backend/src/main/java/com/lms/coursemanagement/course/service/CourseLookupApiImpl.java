@@ -1,8 +1,11 @@
 package com.lms.coursemanagement.course.service;
 
 import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.coursemanagement.api.LessonOwnership;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.coursemanagement.course.repository.CourseLessonRepository;
+import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -24,8 +27,15 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 
 	private final CourseRepository courseRepository;
 
-	public CourseLookupApiImpl(CourseRepository courseRepository) {
+	private final CourseModuleRepository courseModuleRepository;
+
+	private final CourseLessonRepository courseLessonRepository;
+
+	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
+			CourseLessonRepository courseLessonRepository) {
 		this.courseRepository = courseRepository;
+		this.courseModuleRepository = courseModuleRepository;
+		this.courseLessonRepository = courseLessonRepository;
 	}
 
 	@Override
@@ -41,6 +51,15 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	@Override
 	public Optional<BigDecimal> getCurrentPrice(UUID courseId) {
 		return courseRepository.findById(courseId).map(Course::getPrice);
+	}
+
+	@Override
+	public Optional<LessonOwnership> resolveLessonOwnership(UUID lessonId) {
+		return courseLessonRepository.findById(lessonId)
+			.flatMap(lesson -> courseModuleRepository.findById(lesson.getModuleId())
+				.flatMap(module -> courseRepository.findById(module.getCourseId())
+					.map(course -> new LessonOwnership(lesson.getId(), module.getId(), course.getId(),
+							course.getTeacherId(), course.getStatus() == CourseStatus.PUBLIC))));
 	}
 
 }

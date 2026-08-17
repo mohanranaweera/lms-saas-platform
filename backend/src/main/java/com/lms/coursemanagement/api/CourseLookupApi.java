@@ -42,4 +42,17 @@ public interface CourseLookupApi {
 	 */
 	Optional<BigDecimal> getCurrentPrice(UUID courseId);
 
+	/**
+	 * @return the resolved module/course/teacher/publish-state for a lesson,
+	 * or {@link Optional#empty()} if the lesson does not exist in the
+	 * caller's tenant. Added for content-management (MVP-009) - a caller
+	 * that only verifies {@link #getTeacherId(UUID)} against a
+	 * client-supplied {@code courseId} cannot detect a lesson that actually
+	 * belongs to a DIFFERENT course than the one named in the request path;
+	 * this method resolves ownership from the lesson id itself, so the
+	 * caller can cross-check every path segment against the real parent
+	 * chain.
+	 */
+	Optional<LessonOwnership> resolveLessonOwnership(UUID lessonId);
+
 }

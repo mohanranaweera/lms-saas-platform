@@ -419,6 +419,60 @@ test.describe("tenant admin course detail — delete", () => {
     await expect(page).toHaveURL(/\/tenant-admin\/courses$/);
     expect(deleteCalled).toBe(true);
   });
+
+  test("a 409 from a course with attached materials surfaces a visible error, leaves the course in the list, and keeps the dialog usable", async ({
+    page,
+  }) => {
+    const course = COURSES[1];
+    await loginAsTenantAdmin(page);
+    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
+    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
+
+    await gotoCourseDetail(page, course);
+    await expect(page.getByRole("heading", { name: `Course details: ${course.name}` })).toBeVisible();
+
+    let deleteCallCount = 0;
+    await page.route(`**/v1/courses/${course.id}`, async (route) => {
+      if (route.request().method() === "DELETE") {
+        deleteCallCount += 1;
+        await route.fulfill({
+          status: 409,
+          contentType: "application/json",
+          body: JSON.stringify(apiError("CONFLICT", "The request conflicts with existing data")),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(apiSuccess(course)),
+      });
+    });
+
+    await page.getByRole("button", { name: "Delete course" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await dialog.getByRole("button", { name: "Delete course" }).click();
+
+    // Failure is surfaced via a visible, `role="alert"`-accessible message
+    // rendered inside the still-open dialog itself (mirroring `MaterialRow`'s
+    // delete-confirmation `Alert` placement) — not a silent failure and not a
+    // page-level crash.
+    await expect(
+      dialog.getByRole("alert").filter({ hasText: "The request conflicts with existing data" })
+    ).toBeVisible();
+    expect(deleteCallCount).toBe(1);
+
+    // Still on the course detail page — never redirected/removed from the list.
+    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${course.id}$`));
+
+    // Dialog remains usable: Cancel still works and re-opening/retrying is possible.
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.getByRole("link", { name: "Courses" }).click();
+    await expect(page).toHaveURL(/\/tenant-admin\/courses$/);
+    await expect(page.getByRole("table").getByText(course.name)).toBeVisible();
+  });
 });
 
 test.describe("tenant admin course detail — permission denied", () => {

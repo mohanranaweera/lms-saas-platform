@@ -15,6 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { TitleInlineForm } from "@/components/courses/title-inline-form";
+import { MaterialsSection } from "@/components/courses/materials-section";
 import {
   useDeleteCourseLesson,
   useUpdateCourseLesson,
@@ -78,87 +79,96 @@ export function CourseLessonItem({
   const disabled = reorderBusy || deleteMutation.isPending;
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border/70 bg-muted/20 p-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex-1">
-        <TitleInlineForm
-          idPrefix={`lesson-${lesson.id}`}
-          label="Lesson title"
-          initialTitle={lesson.title}
-          submitLabel="Save"
-          pendingLabel={`Saving lesson "${lesson.title}"…`}
-          disabled={disabled}
-          onSubmit={async (title) => {
-            await renameMutation.mutateAsync({
-              lessonId: lesson.id,
-              body: { title, sequence: lesson.sequence },
-            });
-          }}
-        />
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-xs"
-          aria-label={`Move "${lesson.title}" up`}
-          disabled={isFirst || disabled}
-          onClick={onMoveUp}
-        >
-          <ArrowUp aria-hidden="true" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-xs"
-          aria-label={`Move "${lesson.title}" down`}
-          disabled={isLast || disabled}
-          onClick={onMoveDown}
-        >
-          <ArrowDown aria-hidden="true" />
-        </Button>
-        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-          <AlertDialogTrigger
-            render={
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon-xs"
-                aria-label={`Delete lesson "${lesson.title}"`}
-                disabled={disabled}
-              />
-            }
+    <div className="flex flex-col gap-3 rounded-md border border-border/70 bg-muted/20 p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1">
+          <TitleInlineForm
+            idPrefix={`lesson-${lesson.id}`}
+            label="Lesson title"
+            initialTitle={lesson.title}
+            submitLabel="Save"
+            pendingLabel={`Saving lesson "${lesson.title}"…`}
+            disabled={disabled}
+            onSubmit={async (title) => {
+              await renameMutation.mutateAsync({
+                lessonId: lesson.id,
+                body: { title, sequence: lesson.sequence },
+              });
+            }}
+          />
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xs"
+            aria-label={`Move "${lesson.title}" up`}
+            disabled={isFirst || disabled}
+            onClick={onMoveUp}
           >
-            <Trash2 aria-hidden="true" />
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete &ldquo;{lesson.title}&rdquo;?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This permanently deletes the lesson. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            {deleteErrorMessage ? (
-              <Alert variant="destructive">
-                <AlertDescription>{deleteErrorMessage}</AlertDescription>
-              </Alert>
-            ) : null}
-            <AlertDialogFooter>
-              <AlertDialogClose render={<Button type="button" variant="outline" />}>
-                Cancel
-              </AlertDialogClose>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                aria-busy={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? "Deleting…" : "Delete lesson"}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <ArrowUp aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xs"
+            aria-label={`Move "${lesson.title}" down`}
+            disabled={isLast || disabled}
+            onClick={onMoveDown}
+          >
+            <ArrowDown aria-hidden="true" />
+          </Button>
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon-xs"
+                  aria-label={`Delete lesson "${lesson.title}"`}
+                  disabled={disabled}
+                />
+              }
+            >
+              <Trash2 aria-hidden="true" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete &ldquo;{lesson.title}&rdquo;?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently deletes the lesson. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              {deleteErrorMessage ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{deleteErrorMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+              <AlertDialogFooter>
+                <AlertDialogClose render={<Button type="button" variant="outline" />}>
+                  Cancel
+                </AlertDialogClose>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                  aria-busy={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? "Deleting…" : "Delete lesson"}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
+
+      <MaterialsSection
+        courseId={courseId}
+        moduleId={moduleId}
+        lessonId={lesson.id}
+        lessonTitle={lesson.title}
+      />
     </div>
   );
 }

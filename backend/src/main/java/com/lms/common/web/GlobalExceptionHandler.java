@@ -21,6 +21,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * Maps every exception type thrown from a controller/service to the common
@@ -92,6 +93,20 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> handleConflict(ConflictException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(ApiResponse.error(ApiError.of(ApiErrorCodes.CONFLICT, ex.getMessage())));
+	}
+
+	/**
+	 * Spring's own container-level multipart size guard (defense in depth
+	 * alongside {@code MaterialService}'s service-layer size check) - thrown
+	 * before the request body is even fully read if {@code
+	 * spring.servlet.multipart.max-file-size}/{@code max-request-size} is
+	 * exceeded.
+	 */
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+		return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+			.body(ApiResponse.error(
+					ApiError.of(ApiErrorCodes.PAYLOAD_TOO_LARGE, "The uploaded file exceeds the maximum allowed size")));
 	}
 
 	/**
