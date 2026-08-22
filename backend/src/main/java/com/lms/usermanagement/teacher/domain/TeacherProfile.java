@@ -13,7 +13,7 @@ import java.util.UUID;
 /**
  * The operational/approval aspect of a teacher account, owned by
  * {@code user-management} (MVP-007 Teacher Management), mapped 1:1 onto
- * {@code teacher_profile} (V11). The credential aspect (email, password
+ * {@code teacher_profile} (V18). The credential aspect (email, password
  * hash, role, login-gate status) lives on {@code identity-access-service}'s
  * {@code tenant_user} row instead - {@code userId} below is an opaque
  * foreign key value only, never a JPA {@code @ManyToOne} across the module

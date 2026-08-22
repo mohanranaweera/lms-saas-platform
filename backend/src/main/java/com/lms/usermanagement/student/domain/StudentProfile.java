@@ -10,7 +10,7 @@ import java.util.UUID;
 /**
  * The operational/profile aspect of a student account, owned by
  * {@code user-management} (MVP-006 Student Management), mapped 1:1 onto
- * {@code student_profile} (V11). The credential aspect (email, password hash,
+ * {@code student_profile} (V17). The credential aspect (email, password hash,
  * role, status) lives on {@code identity-access-service}'s {@code
  * tenant_user} row instead - {@code userId} below is an opaque foreign key
  * value only, never a JPA {@code @ManyToOne} across the module boundary (per

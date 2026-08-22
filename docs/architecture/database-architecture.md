@@ -277,8 +277,8 @@ Data-model conventions that follow from this list:
 
 This document was principle-based only (structural rules every tenant-owned table must
 follow, no per-table data dictionary) until §7 below added the first per-table catalog
-entries, for `course-management`. `staff_profile` (V10, MVP-005), `student_profile` (V11,
-MVP-006), and `teacher_profile` (V11, MVP-007) all follow every rule in §1/§2 above
+entries, for `course-management`. `staff_profile` (V10, MVP-005), `student_profile` (V17,
+MVP-006), and `teacher_profile` (V18, MVP-007) all follow every rule in §1/§2 above
 (composite tenant-scoped index, `UNIQUE(tenant_id, ...)`, composite FK preventing
 cross-tenant linkage — see each migration file's own header comment for the concrete
 reasoning), but none has been backfilled into the catalog format §7 introduces.

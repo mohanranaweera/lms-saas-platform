@@ -40,8 +40,13 @@ test.describe("empty state — contextual copy per role", () => {
     // `(tenant-admin)` is wrapped in `RouteGuard` (MVP-007) — mock a
     // successful refresh so ensureAccessToken("tenant") resolves instead of
     // redirecting to /login.
-    const token = fakeJwt({ role: "TENANT_ADMIN" });
-    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+    const tenantAdminToken = fakeJwt({ role: "TENANT_ADMIN" });
+    await mockJson(
+      page,
+      "**/v1/auth/refresh",
+      200,
+      apiSuccess(refreshResponseBody(tenantAdminToken))
+    );
     await page.goto("/tenant-admin/dashboard");
     await expect(page.getByText("Tenant admin dashboard coming soon")).toBeVisible();
 
