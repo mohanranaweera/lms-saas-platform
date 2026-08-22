@@ -98,6 +98,14 @@ test.describe("role dashboard route groups", () => {
     test(`${path} renders its portal shell and placeholder dashboard`, async ({
       page,
     }) => {
+      // `(tenant-admin)` is wrapped in `RouteGuard` (MVP-007), which calls
+      // ensureAccessToken("tenant") on mount — mock a successful refresh so
+      // the guard resolves instead of redirecting to /login. The other three
+      // portals have no route guard yet and are reached by direct navigation.
+      if (path.startsWith("/tenant-admin")) {
+        const token = fakeJwt({ role: "TENANT_ADMIN" });
+        await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+      }
       await page.goto(path);
       await expect(page.getByRole("heading", { name: heading })).toBeVisible();
       await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();

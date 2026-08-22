@@ -38,7 +38,19 @@ date and a pointer to the decision record (an ADR, if the item touches a change-
   Affects: [24-settlements.md](specifications/24-settlements.md).
 - **Expense approval**: the matrix gives Finance Staff/Institute Owner plain `V/C/E/D` on Finance & Expenses with no distinct `A` (approve) column, unlike Payments/Courses/Exams — a gap if the recommended expense-approval workflow is built.
   Affects: [23-finance-and-expenses.md](specifications/23-finance-and-expenses.md).
-- **Teacher approval**: no explicit `A` (approve) column exists for Course Coordinator on "Teachers," unlike Courses/Payments/Exams which do have one.
+- **Teacher approval** — **RESOLVED 2026-08-13.** No explicit `A` (approve) column exists for
+  Course Coordinator on "Teachers," unlike Courses/Payments/Exams which do have one. Confirmed:
+  Tenant Admin only. Implemented as a service-layer defense-in-depth role check
+  (`TeacherService.requireTenantAdmin()`, checking `AuthenticatedPrincipalHolder.get().role()`
+  literally equals `"TENANT_ADMIN"`) layered on top of the existing shared `TEACHERS`/
+  `CREATE_EDIT` grant, which Course Coordinator also holds for teacher *creation*. The shipped
+  `PermissionCheckServiceImpl` matrix itself is unchanged — no new `TEACHERS`/`APPROVE` grant was
+  added — mirroring the same defense-in-depth pattern already applied to `StaffService`
+  (commit `d265597`). Course Coordinator can create teacher accounts but is rejected `403` on
+  approve/reject, verified end-to-end in `TeacherManagementIntegrationTest`
+  (`courseCoordinatorCanCreateButCannotApproveOrRejectTeachers`) and unit-tested in
+  `TeacherServiceTest`. See `docs/plans/MVP-007 Teacher Management.md` §2/§21 item 1 for the two
+  options that were weighed before this was confirmed.
   Affects: [04-teacher-management.md](specifications/04-teacher-management.md).
 - **Custom-domain approval**: whether Platform Admin must approve/verify a tenant's custom domain is not addressed.
   Affects: [15-custom-domains.md](specifications/15-custom-domains.md).

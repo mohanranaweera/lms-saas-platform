@@ -12,9 +12,9 @@ import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/a
  * `route-groups.spec.ts`) with the refresh/logout endpoints mocked per
  * `fixtures/auth-mocks.ts` (no backend in this environment). As of MVP-006
  * Student Management, `/tenant-admin/dashboard` and `/student/dashboard` are
- * behind `RouteGuard`, so every test reaching one of those two now mocks
- * `POST .../v1/auth/refresh` before navigating (the guard's own silent
- * refresh call); `/platform-admin/dashboard` remains unguarded.
+ * behind `RouteGuard` (`ensureAccessToken` on mount), so every test reaching
+ * one of those two now mocks `POST .../v1/auth/refresh` before navigating;
+ * `/teacher/dashboard` and `/platform-admin/dashboard` remain unguarded.
  */
 
 function mockSuccessfulLogoutFlow(page: import("@playwright/test").Page, role: string) {
