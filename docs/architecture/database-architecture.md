@@ -273,21 +273,86 @@ Data-model conventions that follow from this list:
   rely on must have this document's data-model section (or `docs/api` for contract-level
   detail) updated in the same change, per `.claude/rules/documentation.md`.
 
-### Known gap: this document has no per-table catalog
+### Known gap: `staff_profile`/`student_profile`/`teacher_profile` predate this catalog
 
-This document is principle-based (structural rules every tenant-owned table must follow),
-not a per-table data dictionary — no individual table (including foundational ones like
-`tenant`/`tenant_user`) has its own entry here. `staff_profile` (V10, MVP-005) and
-`student_profile` (V11, MVP-006) both follow every rule in §1/§2 above (composite
-tenant-scoped index, `UNIQUE(tenant_id, ...)`, composite FK preventing cross-tenant
-linkage — see each migration file's own header comment for the concrete reasoning), but
-neither has a standalone entry in this file, since no such catalog section exists to add
-one to. `student_profile`'s column set is additionally still provisional pending the
+This document was principle-based only (structural rules every tenant-owned table must
+follow, no per-table data dictionary) until §7 below added the first per-table catalog
+entries, for `course-management`. `staff_profile` (V10, MVP-005), `student_profile` (V11,
+MVP-006), and `teacher_profile` (V11, MVP-007) all follow every rule in §1/§2 above
+(composite tenant-scoped index, `UNIQUE(tenant_id, ...)`, composite FK preventing
+cross-tenant linkage — see each migration file's own header comment for the concrete
+reasoning), but none has been backfilled into the catalog format §7 introduces.
+`student_profile`'s column set is additionally still provisional pending the
 guardian/school/grade/stream field-list decision (`docs/requirements/open-decisions.md`
 §15) — its current, real, up-to-date column contract lives in
-`docs/api/user-management.md` and the migration file itself, not here. If a per-table
-catalog is added to this document in the future, `staff_profile` and `student_profile`
-should both be backfilled into it together, not just the newer of the two.
+`docs/api/user-management.md` and the migration file itself, not here. If/when these three
+tables are backfilled into the §7-style catalog, do it together, not one at a time.
+
+## 7. course-management tables (MVP-008)
+
+Added by `V11__create_course_management_schema.sql` through
+`V14__cascade_delete_course_structure.sql`. One aggregate root (`course`) with two
+structural child tables and one append-only history table — not four separate account
+types the way `usermanagement`'s staff/student/teacher sub-roles are, so they live as one
+domain's facets rather than sibling packages.
+
+- **`course`** — `tenant_id NOT NULL`, `teacher_id` FK'd via a composite
+  `(tenant_id, teacher_id) REFERENCES tenant_user (tenant_id, id)` — never a bare-id FK, so
+  a cross-tenant teacher assignment is a constraint violation. `status` is both lifecycle
+  and visibility (`DRAFT`/`PRIVATE`/`PUBLIC`); no separate axis exists. `category`/
+  `subject`/`stream`/`grade`/`academic_year` are free-text, not FK'd to a catalog table (none
+  exists yet). No `currency` column — a single implicit currency is assumed platform/tenant-
+  wide pending `payment-management`'s design. Indexes: `(tenant_id, status, created_at DESC)`
+  and `(tenant_id, teacher_id, status)`.
+- **`course_module`** / **`course_lesson`** — structure only, no material content (that's
+  `content-management`'s `material` table, below, referencing `course_lesson.id` from its
+  own side). Both FK to their parent via composite `(tenant_id, ...)` FKs; `course_module`→
+  `course` and `course_lesson`→`course_module` cascade-delete (`ON DELETE CASCADE`, V14).
+  `sequence` is a positive integer, unique within its parent per tenant — no dedicated
+  index beyond the unique constraint's own backing btree (V13 removed a redundant explicit
+  index that duplicated the unique constraint's leading-column order). `course_lesson` also
+  carries `uq_course_lesson_tenant_id UNIQUE (tenant_id, id)` (V15) — added specifically so
+  `material`'s composite FK below has a matching unique/PK constraint to reference; its
+  sibling tables `course`/`course_module` already had the equivalent constraint from V11.
+- **`material`** (`content-management`, MVP-009, V16) — one row per uploaded lesson
+  material (PDF/image/plain-text "notes" only at MVP). `tenant_id NOT NULL`, `lesson_id`
+  FK'd via a composite `fk_material_lesson (tenant_id, lesson_id) REFERENCES course_lesson
+  (tenant_id, id)` — **deliberately without `ON DELETE CASCADE`**, unlike every other
+  parent/child pair in this schema: a lesson/module/course delete that would silently
+  cascade-remove an attached material is instead rejected with a `409` (FK violation), so
+  that deletion always goes through `content-management`'s own audited
+  `DELETE .../materials/{id}` path (`MaterialDeletedEvent`) rather than an implicit DB-level
+  cascade that would orphan the corresponding object-storage entry and bypass the audit
+  requirement. `uploaded_by` is a second composite FK to `tenant_user (tenant_id, id)`.
+  `sequence` is unique within `(tenant_id, lesson_id)`, same convention as
+  `course_module`/`course_lesson` — no dedicated index beyond `uq_material_sequence`'s own
+  backing btree (same V13 precedent). `visibility` is `CHECK`-constrained to
+  `VISIBLE`/`HIDDEN` only (no richer taxonomy defined anywhere in the requirements corpus
+  yet). `expiry_at` exists for forward compatibility but is unenforced — and currently
+  unwritable, since no request DTO accepts it yet — at MVP (Phase 2 expiry enforcement).
+  `mime_type` is deliberately unconstrained at the DB level; the accepted-format allow-list
+  is a service-layer, evolving concern (`ContentSniffer`, magic-byte detection). At the
+  Java/JPA level `Material.lessonId` is a bare `UUID` — no `@ManyToOne`, no cross-domain
+  entity import — the composite FK is a SQL-only cross-module reference, per
+  `.claude/rules/architecture.md`'s boundary rules and `tenancy.md`'s mandatory
+  composite-FK rule for cross-table tenant-owned references. See
+  `docs/api/content-management.md` for the full endpoint contract.
+- **`course_price_history`** — append-only. `CoursePriceHistoryRepository` overrides every
+  delete-shaped method (including the three batch-delete variants Spring Data exposes) to
+  throw `UnsupportedOperationException`, making this **structural**, not just conventional
+  — see §3's append-only-domain pattern. **V12 deliberately drops** (does not `SET NULL`)
+  the FK from `course_price_history.course_id` to `course`, rather than cascading it on
+  course deletion, so a course's price-change trail survives the course row's own deletion —
+  per root `CLAUDE.md`'s "never delete financial history." This means new inserts to this
+  column no longer have a DB-level existence guarantee; integrity for new rows relies
+  entirely on `CourseService#changePrice` being the sole write path (verified: exactly one
+  call site in the codebase), not on the schema. `tenant_id` and `changed_by` composite FKs
+  are unaffected and remain enforced. `changePrice` writes the price update and the history
+  row in one `@Transactional` boundary. This table is a domain-local record, **not** the
+  platform's canonical compliance-grade audit log — `audit-log-management` doesn't exist
+  yet; `CoursePriceChangedEvent` is published in the same transaction so that domain can
+  later persist its own canonical row from the event with zero rework here. See
+  `docs/requirements/open-decisions.md` for this limitation tracked as an open item.
 
 ## Related
 

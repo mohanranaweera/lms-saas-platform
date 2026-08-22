@@ -34,6 +34,24 @@ export function apiSuccess<T>(data: T) {
   return { success: true, data, error: null, timestamp: nowIso(), traceId: traceId() };
 }
 
+/**
+ * `ApiResponse<PageResponse<T>>` success envelope, mirroring the backend's
+ * generic paginated-list contract (`GET /api/v1/courses`, `GET
+ * /api/v1/public/courses`, post course-management pagination change).
+ */
+export function apiPageSuccess<T>(
+  content: T[],
+  overrides: Partial<{ page: number; size: number; totalElements: number; totalPages: number }> = {}
+) {
+  return apiSuccess({
+    content,
+    page: overrides.page ?? 0,
+    size: overrides.size ?? Math.max(content.length, 20),
+    totalElements: overrides.totalElements ?? content.length,
+    totalPages: overrides.totalPages ?? (content.length > 0 ? 1 : 0),
+  });
+}
+
 /** `ApiResponse<T>` error envelope — `data` is always `null` on error. */
 export function apiError(code: string, message: string, fieldErrors: FieldError[] = []) {
   return {

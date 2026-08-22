@@ -14,11 +14,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * Maps every exception type thrown from a controller/service to the common
@@ -51,6 +54,35 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.badRequest().body(ApiResponse.error(error));
 	}
 
+	/**
+	 * A path variable that fails type conversion (e.g. a non-UUID string
+	 * where {@code @PathVariable UUID id} is declared) previously fell
+	 * through to {@link #handleUnexpected}'s generic {@code 500} - this
+	 * mapped it to a proper {@code 400} instead. Found during MVP-008's
+	 * backend review; the shared handler had no case for it because no
+	 * earlier module took as many multi-segment UUID path variables as
+	 * course/module/lesson routes do.
+	 */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR, "Request parameter '" + ex.getName()
+				+ "' has an invalid value");
+		return ResponseEntity.badRequest().body(ApiResponse.error(error));
+	}
+
+	/**
+	 * A request body that fails to deserialize at all (e.g. an invalid
+	 * enum value for a field like {@code CourseCreateRequest.status}) fails
+	 * before Bean Validation ever runs, and previously fell through to
+	 * {@link #handleUnexpected}'s generic {@code 500} - this maps it to a
+	 * proper {@code 400} instead. Found during MVP-008's backend review.
+	 */
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR, "Request body is malformed or contains an invalid value");
+		return ResponseEntity.badRequest().body(ApiResponse.error(error));
+	}
+
 	@ExceptionHandler(NotFoundException.class)
 	public ResponseEntity<ApiResponse<Void>> handleNotFound(NotFoundException ex) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -61,6 +93,20 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> handleConflict(ConflictException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(ApiResponse.error(ApiError.of(ApiErrorCodes.CONFLICT, ex.getMessage())));
+	}
+
+	/**
+	 * Spring's own container-level multipart size guard (defense in depth
+	 * alongside {@code MaterialService}'s service-layer size check) - thrown
+	 * before the request body is even fully read if {@code
+	 * spring.servlet.multipart.max-file-size}/{@code max-request-size} is
+	 * exceeded.
+	 */
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+		return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+			.body(ApiResponse.error(
+					ApiError.of(ApiErrorCodes.PAYLOAD_TOO_LARGE, "The uploaded file exceeds the maximum allowed size")));
 	}
 
 	/**

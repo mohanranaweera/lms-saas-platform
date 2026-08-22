@@ -134,6 +134,21 @@ domain.
   rather than joining across domain schemas at request time. It is never a signal to
   reach into the other module's repository "just this once."
 
+**Worked example (`content-management`, MVP-009):** `content-management` owns the
+`material` table but needs to resolve a lesson's owning course/teacher/publish-state,
+which lives in `course-management`'s own tables. Rather than importing
+`course-management`'s `CourseLesson` entity or repository, `course-management.api`
+gained one narrow, additive, read-only method — `CourseLookupApi.resolveLessonOwnership(UUID
+lessonId)` (returning an `api`-package `LessonOwnership` record) — that `content-management`
+calls in-process. At the Java/JPA level `Material.lessonId` stays a bare `UUID`, no
+`@ManyToOne`/no cross-domain entity import; the only place the two tables are actually
+coupled is a SQL-level composite foreign key (`material.lesson_id` → `course_lesson.id`,
+tenant-scoped), which requires no Java import at all. `content-management` similarly
+depends on `integration-management.api.ObjectStorageApi` for object storage — an interface
+this module defines its dependency on even though `integration-management` doesn't exist
+yet, so the real implementation can be swapped in later without any caller-side change (see
+`docs/api/content-management.md`).
+
 ## 5. When an ADR is required
 
 Raise an ADR **before**, not after, doing any of the following (in addition to the

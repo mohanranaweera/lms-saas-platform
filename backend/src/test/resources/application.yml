@@ -20,3 +20,18 @@ logging:
   structured:
     format:
       console: logstash
+
+app:
+  content:
+    material:
+      # Mirrors src/main/resources/application.yml's default. Required here
+      # because Spring Boot's classpath:/application.yml config-data
+      # resolution picks a single resource (the test-classes copy shadows
+      # the main-classes copy on the test classpath), so this property is
+      # NOT inherited from src/main/resources/application.yml the way a
+      # developer might assume - MaterialService's @Value binding for it
+      # has no Java-side default, so every @SpringBootTest in the whole
+      # backend fails to build its ApplicationContext without this entry.
+      # Individual test classes needing a different limit override it via
+      # @TestPropertySource (e.g. MaterialUploadIntegrationTest).
+      max-file-size-bytes: 26214400

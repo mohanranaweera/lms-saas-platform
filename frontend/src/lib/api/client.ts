@@ -14,13 +14,20 @@ import type { ApiResponse } from "./types";
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${env.NEXT_PUBLIC_API_BASE_URL}${path}`;
 
+  // A `FormData` body (multipart upload, e.g. material create) must never get
+  // a manually-set `Content-Type` — the browser needs to generate its own
+  // `multipart/form-data; boundary=...` value, and a fixed
+  // `application/json` header here would silently break every multipart
+  // caller. Every other call keeps the existing JSON default unchanged.
+  const isFormDataBody = init?.body instanceof FormData;
+
   let response: Response;
   try {
     response = await fetch(url, {
       credentials: "include",
       ...init,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
         ...init?.headers,
       },
     });

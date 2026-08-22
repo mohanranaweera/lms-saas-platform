@@ -59,12 +59,13 @@ interface AuthContextValue {
    * 4): attach a usable access token (refreshing first if none is held); on a
    * 401 `UNAUTHENTICATED`/`SESSION_REVOKED` response, refresh exactly once more
    * and retry; otherwise propagate the error for the caller to handle (e.g.
-   * redirect to login, or a 403 rendered via `QueryStateBoundary`). This is the
-   * only sanctioned way for a feature module to call an authenticated endpoint —
-   * do not call `apiFetch` directly with a manually-attached token. Exposed so
-   * new typed API modules (e.g. `lib/api/students.ts`) can build authenticated
-   * React Query hooks on top of it instead of re-deriving their own auth
-   * header/retry handling.
+   * redirect to login, or a 403 rendered via `QueryStateBoundary`/
+   * `classifyQueryError`). This is the only sanctioned way for a feature module
+   * to call an authenticated endpoint — do not call `apiFetch` directly with a
+   * manually-attached token. Every authenticated API hook (e.g.
+   * `lib/api/students.ts`, `lib/api/courses.ts`) calls this from its
+   * `queryFn`/`mutationFn` instead of re-deriving its own auth header/retry
+   * handling.
    */
   authorizedFetch: <T>(kind: PrincipalKind, path: string, init?: RequestInit) => Promise<T>;
 }

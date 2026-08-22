@@ -62,14 +62,27 @@ full requirement-level phase breakdown.
 
 ## content-management
 
-- **Owns:** Learning Materials Management (Module 7) in full — uploads, organization,
-  visibility, versioning, folder structure.
-- **Consumes:** `integration-management`'s object-storage/YouTube/Vimeo API interfaces
-  rather than embedding storage-provider SDKs directly; `video-access-management` for
-  any material that is itself a protected video.
-- **Phases:** MVP (basic uploads/organization), Phase 2 (expiry, view/download limits,
-  static watermarking, versioning), Phase 3 (YouTube/Vimeo attachment, dynamic
-  watermarking, document analytics).
+- **Owns:** Material upload, organization, and fetch-time visibility (MAT-2/MAT-3 of
+  Module 7) — the `material` table and its endpoints (MVP-009, implemented). **Does not**
+  own module/lesson *structure* itself (MAT-1) — that scaffold (`course_module`/
+  `course_lesson`) is owned by `course-management`; `content-management` consumes it only
+  by opaque `lesson_id` reference (a SQL-level composite FK, no cross-domain entity/
+  repository import), never rebuilding or duplicating it. This correction reflects
+  MVP-009's own central scope-reconciliation finding (`docs/plans/MVP-009 Lessons and
+  Learning Materials.md`'s "Grounding note" and §1) — the original "in full" wording below
+  was written before that finding and is now known to be wrong.
+- **Consumes:** `course-management`'s `CourseLookupApi.resolveLessonOwnership`/
+  `isPublished` for lesson-ownership/publish-state resolution; `integration-management`'s
+  object-storage API (not yet built — uploads/downloads currently fail loud with `503`
+  rather than falling back to a self-hosted store) rather than embedding storage-provider
+  SDKs directly; `video-access-management` for any material that is itself a protected
+  video (not yet built).
+- **Phases:** MVP (implemented: uploads, keyboard-reorderable organization, fetch-time
+  visibility via an interim tenant+role+published+visible check — real enrollment-based
+  visibility is blocked on `enrollment-management`/ENR-1, not yet built), Phase 2 (expiry
+  enforcement, view/download limits, static watermarking, versioning, folder structure,
+  bulk upload), Phase 3 (YouTube/Vimeo attachment, dynamic watermarking, document
+  analytics). See `docs/api/content-management.md` for the shipped API contract.
 
 ## video-access-management
 

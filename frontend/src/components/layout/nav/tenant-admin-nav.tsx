@@ -4,6 +4,7 @@ const items: NavItem[] = [
   { label: "Dashboard", href: "/tenant-admin/dashboard" },
   { label: "Students", href: "/tenant-admin/students" },
   { label: "Teachers", href: "/tenant-admin/teachers" },
+  { label: "Courses", href: "/tenant-admin/courses" },
   { label: "Profile" },
   { label: "Settings" },
 ];
