@@ -68,7 +68,14 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 	protected boolean shouldNotFilter(HttpServletRequest request) {
 		String path = request.getRequestURI();
 		return path.startsWith("/api/v1/platform-admin/") || path.startsWith("/api/v1/tenant-registrations")
-				|| path.startsWith("/actuator/") || path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui");
+				|| path.startsWith("/actuator/") || path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")
+				// Payment-gateway server-to-server webhook (MVP-010/PAY-2) -
+				// no subdomain/JWT exists for this call at all (see
+				// paymentmanagement.payment.service.PaymentConfirmationService's
+				// javadoc for the full explanation). Tenant identity for this
+				// path is resolved from the platform's own Payment row the
+				// gateway's reference maps to, never from a Host header.
+				|| path.startsWith("/api/v1/integrations/webhooks/");
 	}
 
 	@Override

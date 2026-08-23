@@ -338,3 +338,60 @@ unilaterally.
   consumes the event.
   Affects: [05-course-management.md](specifications/05-course-management.md),
   [13-audit-logs.md](specifications/13-audit-logs.md).
+
+## 17. Order and Payment Foundation (MVP-010) — carried-forward decisions
+
+Named by `docs/plans/MVP-010 Order and Payment Foundation.md` §19 as items this module's
+own documentation pass must append here; logged retroactively after a full
+six-specialist review of the completed module found this file had never been updated.
+
+- **Minimal `enrollment-management` activation slice pulled into MVP-010's own PR,
+  ahead of Module 12.** PAY-2's atomic payment-confirm-and-activate acceptance criterion
+  is structurally untestable without a real, callable activation `api`, so the minimal
+  slice (schema + `EnrollmentActivationApi`/`EnrollmentActivationService`, no
+  student-facing read endpoint, no expiry/reactivation) was built here rather than
+  deferred to a separate Module 12 PR. Rationale, consequences, and the required
+  Module-12-owner sign-off are recorded in
+  `docs/adr/ADR-010-ledger-entry-type-and-enrollment-slice.md` (status: Proposed, not
+  yet formally accepted).
+  Affects: Module 12 (`enrollment-management`, not yet built as its own module).
+  Source: plan §21 item 1.
+- **`order`/`payment` carry a `currency` column with no upstream source.**
+  `course.price` has no currency column anywhere in this codebase (a single implicit
+  platform-wide currency is assumed at MVP); `order.currency`/`payment.currency` exist
+  only because the backlog names them, resolved via a hardcoded
+  `OrderService.DEFAULT_CURRENCY = "USD"` constant, not a ratified business decision or
+  a per-tenant/per-course config value. Needs a real decision (single global currency
+  vs. per-tenant vs. per-course) whenever multi-currency support is actually prioritized
+  — do not silently narrow or expand this without one.
+  Affects: `05-course-management.md`, this module's own (not-yet-written) spec file.
+  Source: plan §21 item 7.
+- **`payment.status = 'REFUNDED'` vs. terminal-row immutability — resolved.** The
+  plan's draft flagged an apparent contradiction (writing `REFUNDED` onto an
+  already-`CONFIRMED` row would be a second `UPDATE` on a terminal row, forbidden by
+  `.claude/rules/payments.md` §1). Resolution, implemented and verified: `REFUNDED` is
+  never written by any code path — a refund's existence is signaled exclusively by a
+  `REFUND`-type `ledger_entry`, never by `payment.status`. See
+  `docs/api/payment-management.md`'s "Refund model" section.
+  Source: plan §21 item 8.
+- **Approver precedence for refunds (and manual-slip/reactivation approval generally)
+  — still open.** Both Finance Staff and Institute Owner (Tenant Admin) hold `A` on
+  `PAYMENTS_SLIPS`; no document resolves precedence or dual-role interaction when both
+  are eligible to act on the same refund. Not a defect in what's shipped (either role
+  may independently approve; there is no scenario today where they conflict), but the
+  product question of whether one should be able to override/reverse the other's
+  decision, or whether a second layer of approval should ever be required, is
+  unaddressed.
+  Affects: this module's own (not-yet-written) spec file, and Module 11 (manual payment
+  slips) when built, which will face the identical question.
+  Source: plan §21 item 12.
+- **Order-abandonment / no-cleanup state — still open.** No document anywhere defines
+  what happens to an `Order` that stays `PLACED`/`PENDING` indefinitely (a gateway
+  session expires, or a webhook never arrives). `order.status`'s CHECK constraint is
+  deliberately incomplete (no `CANCELLED`/`EXPIRED` value) — this is not an oversight in
+  the shipped schema, it's the literal absence of a policy decision to encode. A stale
+  `PLACED` order today simply persists forever with no cleanup job, no visible
+  student-facing "expired" state, and no reactivation path distinct from placing a new
+  order.
+  Affects: this module's own (not-yet-written) spec file.
+  Source: plan §21 item 13.

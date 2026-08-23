@@ -17,6 +17,16 @@ logging:
     format:
       console: logstash
 
+payment:
+  gateway:
+    # MVP-010/PAY-2 webhook HMAC secret - never a real secret in this file.
+    # PAYMENT_GATEWAY_WEBHOOK_SECRET must be set via a real env var in every
+    # non-local environment; the empty default here makes
+    # WebhookSignatureVerifier fail closed (reject every signature) rather
+    # than silently accepting webhooks signed with a well-known placeholder,
+    # unlike JWT_SECRET's dev-only-placeholder pattern above.
+    webhook-secret: ${PAYMENT_GATEWAY_WEBHOOK_SECRET:}
+
 app:
   security:
     # Argon2id parameters (AUTH-3), OWASP-baseline defaults - see

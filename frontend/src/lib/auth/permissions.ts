@@ -17,3 +17,28 @@
 export function canManageStudents(role: string | null): boolean {
   return role === "TENANT_ADMIN" || role === "STUDENT_SUPPORT";
 }
+
+/**
+ * Roles holding `PAYMENTS_SLIPS`/`APPROVE` per `PermissionCheckServiceImpl`'s
+ * matrix — the only roles that may submit a refund
+ * (`POST /api/v1/payments/{id}/refunds`). Finance Staff and Tenant Admin
+ * both hold `A`; Student Support and Read-only Auditor hold `VIEW` only and
+ * must never see this action rendered.
+ */
+export function canProcessRefunds(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
+}
+
+/**
+ * Roles holding `PAYMENTS_SLIPS`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix — who may view the tenant Payment Dashboard
+ * (`GET /api/v1/ledger/dashboard`). A superset of `canProcessRefunds`.
+ */
+export function canViewPaymentDashboard(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}

@@ -138,6 +138,17 @@ public class SecurityFilterChainConfig {
 					.requestMatchers(HttpMethod.POST, "/api/v1/platform-admin/auth/login",
 							"/api/v1/platform-admin/auth/refresh")
 					.permitAll();
+				// Payment-gateway server-to-server webhook (MVP-010/PAY-2) -
+				// no session/JWT exists for this call (see
+				// TenantResolutionFilter's matching exclusion above and
+				// paymentmanagement.payment.service.PaymentConfirmationService's
+				// javadoc). Authenticity is enforced instead by
+				// PaymentWebhookController verifying the gateway's HMAC
+				// signature over the raw request body before any state
+				// change - signature-verified, not session-authenticated,
+				// per .claude/rules/security.md and
+				// .claude/rules/payments.md's webhook-verification rules.
+				authorize.requestMatchers(HttpMethod.POST, "/api/v1/integrations/webhooks/**").permitAll();
 				authorize.anyRequest().authenticated();
 			})
 			.addFilterBefore(tenantResolutionFilter, UsernamePasswordAuthenticationFilter.class)

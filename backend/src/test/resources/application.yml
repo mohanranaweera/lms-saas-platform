@@ -21,6 +21,14 @@ logging:
     format:
       console: logstash
 
+payment:
+  gateway:
+    # Fixed, clearly-not-a-production test-only secret (MVP-010/PAY-2) - see
+    # application.yml's own comment for why the main default is empty
+    # instead. Individual tests needing a different value override it via
+    # @TestPropertySource.
+    webhook-secret: "test-only-webhook-secret-not-for-production-use"
+
 app:
   content:
     material:
