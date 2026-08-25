@@ -39,6 +39,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -76,6 +77,15 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* L=0.52 (darker than --destructive's 0.577) — a UI-review pass found the
+     0.577 value only reached ~3.94:1 as `text-warning` against its own
+     `bg-warning/10` composited background: enough for large text/non-text UI
+     components (3:1) but short of the 4.5:1 normal-text AA minimum this
+     token is actually used at (`text-xs` badges). Verified via OKLCH→linear
+     sRGB conversion: L=0.52 measures ~4.93:1 against the same composited
+     background, comfortably clearing 4.5:1. Dark mode (0.769 below) already
+     measures ~6.6:1 and is unchanged. */
+  --warning: oklch(0.52 0.19 70.08);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -111,6 +121,7 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --warning: oklch(0.769 0.188 70.08);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);

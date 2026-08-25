@@ -56,8 +56,14 @@ export const materialUploadSchema = z.object({
   // has already validated it.
   file: z
     .any()
+    // `abort: true` stops the chain here on failure — without it, Zod v4
+    // still runs every later `.refine()` against the same (non-File) value
+    // even after this one fails, and the next refine's `file.size` throws a
+    // raw `TypeError` on `undefined` instead of surfacing
+    // `MATERIAL_FILE_REQUIRED_MESSAGE`.
     .refine((value: unknown): value is File => value instanceof File, {
       message: MATERIAL_FILE_REQUIRED_MESSAGE,
+      abort: true,
     })
     .refine((file: File) => file.size > 0, "The selected file is empty.")
     .refine(

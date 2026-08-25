@@ -1,5 +1,6 @@
 package com.lms.common.web;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -89,6 +90,22 @@ class GlobalExceptionHandlerTest {
 	void constraintViolationReturns400() throws Exception {
 		mockMvc.perform(post("/test/exceptions/constraint-violation"))
 			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+	}
+
+	/**
+	 * A multipart request that omits the required {@code file} part must map
+	 * to a clean {@code 400} (Fix L1), not the generic {@code 500} it fell
+	 * through to before {@link GlobalExceptionHandler#handleMissingServletRequestPart}
+	 * existed - this is shared infrastructure exercised here directly, not
+	 * re-verified per module (content-management's material upload,
+	 * payment-management's slip upload).
+	 */
+	@Test
+	void missingRequiredMultipartPartReturns400NotAGeneric500() throws Exception {
+		mockMvc.perform(multipart("/test/exceptions/missing-multipart-part"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.success").value(false))
 			.andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
 	}
 

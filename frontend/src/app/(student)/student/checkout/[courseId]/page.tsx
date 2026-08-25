@@ -26,6 +26,14 @@ import { isApiClientError } from "@/lib/api/error";
  * .redirectTarget` itself and never marks anything "paid" here — that is
  * exclusively the awaiting-confirmation screen's job, reading only the
  * polled `GET /api/v1/orders/{id}/payment-status` response.
+ *
+ * "Pay by bank transfer" is a second, distinct path (MVP-011): it creates
+ * the same kind of `Order` via the same `useCreateOrder` hook (no gateway
+ * call at all) and redirects to the Payment Slip Upload screen for that
+ * order id instead. Enrollment is never activated from here either way —
+ * only a backend-confirmed payment or an approved manual slip can do that.
+ * `mode` tracks which action is in flight so clicking one button never
+ * visually spins the other, and both are disabled while either is pending.
  */
 export default function CheckoutPage() {
   const params = useParams<{ courseId: string }>();
@@ -36,11 +44,13 @@ export default function CheckoutPage() {
   const createOrder = useCreateOrder();
   const initiatePayment = useInitiatePayment();
   const [flowError, setFlowError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"gateway" | "slip" | null>(null);
 
-  const isSubmitting = createOrder.isPending || initiatePayment.isPending;
+  const isSubmitting = mode !== null;
 
   async function handleEnroll() {
     setFlowError(null);
+    setMode("gateway");
     try {
       const order = await createOrder.mutateAsync({ courseId });
       await initiatePayment.mutateAsync(order.id);
@@ -49,6 +59,21 @@ export default function CheckoutPage() {
       setFlowError(
         isApiClientError(error) ? error.message : "Something went wrong. Please try again."
       );
+      setMode(null);
+    }
+  }
+
+  async function handlePayBySlip() {
+    setFlowError(null);
+    setMode("slip");
+    try {
+      const order = await createOrder.mutateAsync({ courseId });
+      router.push(`/student/payments/slip-upload/${order.id}`);
+    } catch (error) {
+      setFlowError(
+        isApiClientError(error) ? error.message : "Something went wrong. Please try again."
+      );
+      setMode(null);
     }
   }
 
@@ -108,16 +133,39 @@ export default function CheckoutPage() {
               </Alert>
             ) : null}
 
-            <LiveRegion message={isSubmitting ? "Starting checkout…" : ""} />
+            <LiveRegion
+              message={
+                mode === "gateway"
+                  ? "Starting checkout…"
+                  : mode === "slip"
+                    ? "Preparing bank transfer upload…"
+                    : ""
+              }
+            />
 
-            <Button
-              type="button"
-              onClick={handleEnroll}
-              disabled={isSubmitting || course.status !== "PUBLIC"}
-              aria-busy={isSubmitting}
-            >
-              {isSubmitting ? "Starting checkout…" : "Enroll"}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={handleEnroll}
+                disabled={isSubmitting || course.status !== "PUBLIC"}
+                aria-busy={mode === "gateway"}
+              >
+                {mode === "gateway" ? "Starting checkout…" : "Enroll"}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePayBySlip}
+                disabled={isSubmitting || course.status !== "PUBLIC"}
+                aria-busy={mode === "slip"}
+              >
+                {mode === "slip" ? "Preparing…" : "Pay by bank transfer"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Already sent a bank transfer? Upload your payment slip instead of paying online.
+              </p>
+            </div>
           </div>
         )}
       </QueryStateBoundary>

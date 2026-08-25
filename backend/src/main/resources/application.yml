@@ -60,3 +60,12 @@ app:
       # allow-list in ContentSniffer are this implementation's own default,
       # flagged for confirmation, not a ratified business decision.
       max-file-size-bytes: 26214400
+  payment:
+    slip:
+      # MVP working default, mirroring app.content.material's own
+      # not-specified-anywhere gap (docs/plans/MVP-011 Manual Payment Slips.md
+      # §21 item 11) - 25 MB, deliberately re-declared here rather than
+      # reusing app.content.material.max-file-size-bytes, since the two
+      # upload paths are differently scoped and nothing ties their limits
+      # together as a matter of ratified business decision.
+      max-file-size-bytes: 26214400

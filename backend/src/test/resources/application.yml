@@ -43,3 +43,13 @@ app:
       # Individual test classes needing a different limit override it via
       # @TestPropertySource (e.g. MaterialUploadIntegrationTest).
       max-file-size-bytes: 26214400
+  payment:
+    slip:
+      # Mirrors src/main/resources/application.yml's own not-ratified 25MB
+      # default (MVP-011 §21 item 11) - required here for the same reason
+      # as app.content.material.max-file-size-bytes above: SlipUploadService's
+      # @Value binding has no Java-side default, so every @SpringBootTest in
+      # the whole backend fails to build its ApplicationContext without this
+      # entry once the payment-management slip sub-module's beans are on the
+      # classpath.
+      max-file-size-bytes: 26214400

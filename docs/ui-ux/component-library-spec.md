@@ -309,15 +309,15 @@ text per the brief's "never color alone" rule and `accessibility.md` §5:
 | Late | warning | `clock` |
 | Excused | `color/muted-foreground` | `shield-check` |
 
-- **Open question:** the current token set (mirrored from code) has no dedicated
-  "success"/"warning" semantic color — only `color/destructive` and the neutral
-  grayscale exist. **Proposed (PROVISIONAL):** add two semantic tokens,
-  `color/success` and `color/warning`, to the `Color / Light` and `Color / Dark`
-  collections (not present in current `globals.css` — this is new, not mirrored) before
-  building this component, since ~40% of the required statuses above need a
-  "successful/positive" or "needs attention, not yet failed" treatment that
-  destructive/neutral alone can't express accessibly. Needs sign-off before Foundations
-  is finalized — flagged rather than added silently.
+- **`color/warning` — built (MVP-011).** A `warning` Badge variant plus `--warning`/
+  `--color-warning` tokens now exist in `frontend/src/components/ui/badge.tsx` and
+  `frontend/src/app/globals.css` (light mode `oklch(0.52 0.19 70.08)`, dark mode
+  `oklch(0.769 0.188 70.08)` — both tuned for ≥4.5:1 text contrast against their own
+  tinted background), consumed by `SlipStatusBadge`/`SlipFlagBadge`
+  (`frontend/src/components/payments/status-badges.tsx`) for the "Duplicate Flagged"
+  chip and related manual-payment-slip statuses. **Still open:** `color/success` has no
+  equivalent token yet — the statuses above marked "success" still have no dedicated
+  semantic color, only `warning`/`destructive`/neutral exist today.
 
 ### 2.11 Avatar
 
@@ -512,9 +512,9 @@ color alone.
 
 ## Open questions
 
-1. **Success/Warning semantic color tokens** (§2.10) — not present in current code;
-   proposed addition needs sign-off before ~40% of the required Status Chip vocabulary
-   and the Alert component's `success`/`warning` variants can be finalized.
+1. **Success semantic color token** (§2.10) — `warning` was built in MVP-011 (see §2.10);
+   `color/success` is still not present in current code, and the Alert component's
+   `success` variant remains unresolved pending it.
 2. Date Input's calendar-picker sub-component (§1.10) is deferred to first-use
    wireframing rather than fully specified here.
 3. Avatar presence/status-dot (§2.11) is speculative — no current screen requirement

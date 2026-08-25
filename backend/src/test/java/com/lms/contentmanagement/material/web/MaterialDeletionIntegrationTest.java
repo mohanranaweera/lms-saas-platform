@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.contentmanagement.ContentManagementTestSupport;
-import com.lms.contentmanagement.InMemoryObjectStorageApiTestConfig.InMemoryObjectStorageApi;
 import com.lms.contentmanagement.material.repository.MaterialRepository;
 import com.lms.contentmanagement.material.service.MaterialService;
 import com.lms.contentmanagement.material.web.dto.MaterialResponse;
@@ -15,6 +14,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.domain.TenantUser;
+import com.lms.integrationmanagement.InMemoryObjectStorageApiTestConfig.InMemoryObjectStorageApi;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.util.HashSet;
 import java.util.List;

@@ -374,17 +374,36 @@ six-specialist review of the completed module found this file had never been upd
   `REFUND`-type `ledger_entry`, never by `payment.status`. See
   `docs/api/payment-management.md`'s "Refund model" section.
   Source: plan §21 item 8.
-- **Approver precedence for refunds (and manual-slip/reactivation approval generally)
-  — still open.** Both Finance Staff and Institute Owner (Tenant Admin) hold `A` on
-  `PAYMENTS_SLIPS`; no document resolves precedence or dual-role interaction when both
-  are eligible to act on the same refund. Not a defect in what's shipped (either role
-  may independently approve; there is no scenario today where they conflict), but the
-  product question of whether one should be able to override/reverse the other's
-  decision, or whether a second layer of approval should ever be required, is
-  unaddressed.
-  Affects: this module's own (not-yet-written) spec file, and Module 11 (manual payment
-  slips) when built, which will face the identical question.
-  Source: plan §21 item 12.
+- **Approver precedence for refunds and manual payment slips — still open.** Both
+  Finance Staff and Institute Owner (Tenant Admin) hold `A` on `PAYMENTS_SLIPS`; no
+  document resolves precedence or dual-role interaction when both are eligible to act
+  on the same refund or slip. Not a defect in what's shipped (either role may
+  independently approve; there is no scenario today where they conflict, and slip
+  approval is a simple first-reviewer-to-acquire-the-row-lock outcome with no implicit
+  precedence assumed anywhere in code), but the product question of whether one should
+  be able to override/reverse the other's decision, or whether a second layer of
+  approval should ever be required, is unaddressed.
+  Affects: this module's own (not-yet-written) spec file. Module 11 (manual payment
+  slips) has now shipped (MVP-011) with this question deliberately left open, exactly
+  as flagged here — it faced, and did not resolve, the identical question.
+  Source: plan §21 item 12; MVP-011 plan §21 item 1.
+- **`audit-log-management` central scoping — resolved for MVP-011's needs, Module 19's
+  full build-out still open.** MVP-011 pulled forward a minimal `com.lms.auditlogmanagement`
+  domain (a real `audit_log` table + a narrow `AuditLogApi.record(...)` write contract,
+  no read/query UI, no consumption of other domains' pending events) per
+  `docs/adr/ADR-012-audit-log-slice-and-slip-enrollment-activation.md`. Module 19's own
+  eventual full scope (query UI, cross-domain event consumption, retention policy)
+  remains unbuilt and is not assumed to be an implicit extension of this slice.
+  Source: MVP-011 plan §21 item 2; ADR-012.
+- **`ledger_entry.entry_type` for manual-slip approval — resolved: declined.** The
+  product owner explicitly declined adding a new `ledger_entry.entry_type` value (e.g.
+  `SLIP_APPROVED`) for the manual-slip approval path; an approved slip's enrollment
+  state is read directly from `payment_slip.status`, never merged into the ledger. This
+  means a slip-approved enrollment has no corresponding ledger entry and is invisible
+  on both the Payment History and Payment Dashboard screens (both are 100%
+  `ledger_entry`-derived) — a real, currently-accepted product gap, not an oversight.
+  Source: MVP-011 plan §17, §21 item 3; ADR-012's "Declined, for the avoidance of doubt"
+  section.
 - **Order-abandonment / no-cleanup state — still open.** No document anywhere defines
   what happens to an `Order` that stays `PLACED`/`PENDING` indefinitely (a gateway
   session expires, or a webhook never arrives). `order.status`'s CHECK constraint is

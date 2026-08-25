@@ -11,6 +11,7 @@ import com.lms.contentmanagement.material.web.dto.MaterialResponse;
 import com.lms.contentmanagement.material.web.dto.MaterialUpdateRequest;
 import com.lms.coursemanagement.CourseManagementTestSupport;
 import com.lms.identityaccessservice.HttpResult;
+import com.lms.integrationmanagement.InMemoryObjectStorageApiTestConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +36,10 @@ import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequ
  * InMemoryObjectStorageApiTestConfig} so {@code createMaterial}/{@code
  * getDownloadUrl}/{@code deleteMaterial} actually succeed against a real
  * (in-memory) object store instead of the production {@code
- * UnavailableObjectStorageApi} 503 stub. Not itself a test class (no {@code
+ * UnavailableObjectStorageApi} 503 stub. This is the shared {@code
+ * integration-management} fake, also imported by {@code
+ * PaymentManagementTestSupport}/{@code SlipTestSupport} - not a
+ * content-management-local double. Not itself a test class (no {@code
  * @Test} methods, name doesn't match Surefire's inclusion patterns).
  */
 @Import(InMemoryObjectStorageApiTestConfig.class)

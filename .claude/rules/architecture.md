@@ -37,6 +37,11 @@ audit-log-management, support-management
   - `repository` — Spring Data repositories. **Never public/exported outside the domain
     package** (package-private or explicitly not referenced from other domains).
   - `config` — domain-local Spring configuration.
+  - `support` — additionally permitted: owner/access-guard classes shared across a
+    domain's own `service` classes (e.g. a single `FooAccessGuard` reused by several
+    services in the same domain to apply one consistent authorization/status-code
+    rule), kept out of `service` so it isn't mistaken for a domain-events-publishing
+    orchestration class.
 - A new REST endpoint, entity, or repository belongs in exactly one domain package. If a
   feature seems to straddle two domains, pick the domain that owns the primary
   aggregate/table and expose the rest via that domain's `api` service interface.

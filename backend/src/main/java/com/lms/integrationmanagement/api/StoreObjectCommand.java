@@ -1,4 +1,4 @@
-package com.lms.contentmanagement.material.storage;
+package com.lms.integrationmanagement.api;
 
 import java.io.InputStream;
 import java.util.UUID;

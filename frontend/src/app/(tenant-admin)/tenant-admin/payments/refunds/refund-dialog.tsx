@@ -224,7 +224,9 @@ export function RefundDialog({ entry }: { entry: LedgerHistoryEntryResponse }) {
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button type="button" variant="outline" />}>
+            <AlertDialogClose
+              render={<Button type="button" variant="outline" disabled={mutation.isPending} />}
+            >
               Cancel
             </AlertDialogClose>
             <Button

@@ -133,6 +133,34 @@ manually.
   detection logic) must add a new flag/result record — it must never clear or delete
   a prior flag. The full flag history for a slip stays queryable.
 
+### 3-4 implementation note (MVP-011, shipped)
+
+MVP-011 built §3's state machine and §4's exact-match duplicate/override-audit gates
+as described above, with three deviations from this section's original target design,
+each an explicit product-owner decision recorded in
+`docs/adr/ADR-012-audit-log-slice-and-slip-enrollment-activation.md`:
+
+- **OCR reference extraction (§4, first bullet) was NOT built.** MVP-011 is exact-match
+  duplicate detection only (reference-number string equality, image-hash equality) —
+  OCR-based extraction remains Phase 3, not pulled forward.
+- **"Derived from ledger entries + slip state" (§3, last bullet) is NOT how the shipped
+  Payment Dashboard/Payment History read paths work.** The product owner declined
+  adding a new `ledger_entry.entry_type` for slip approval; `payment_slip.status` is
+  never merged into the ledger at read time. Both screens remain 100%
+  `ledger_entry`-derived, which means a slip-approved enrollment is invisible on
+  either — not because a screen falsely claims "paid" with no ledger entry (this
+  section's literal "that is a bug" framing doesn't apply, since neither screen
+  displays a slip-approved row at all, correctly or otherwise), but because no code
+  path combines the two signals as this section originally envisioned. This is a
+  known, accepted product gap, not a defect — worth tracking as its own future
+  decision (a slip-sourced report, or revisiting the declined `entry_type` option) if
+  manual-slip revenue visibility becomes a real business need.
+- **The override-audit requirement (§4, "Manual override of a flag") is satisfied by a
+  new, minimal `com.lms.auditlogmanagement` domain** (a real `audit_log` table + a
+  narrow `AuditLogApi.record(...)` write contract, no read/query UI), pulled forward
+  specifically for this requirement rather than deferred — see ADR-012 for the full
+  reasoning and the two alternatives it considered and rejected.
+
 ## 5. Ledger Entry Rules (Append-Only)
 
 `ledger-settlement-management` owns the ledger. The ledger is the single source of

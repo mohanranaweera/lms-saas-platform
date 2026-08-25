@@ -18,10 +18,12 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /**
  * Maps every exception type thrown from a controller/service to the common
@@ -80,6 +82,37 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
 		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR, "Request body is malformed or contains an invalid value");
+		return ResponseEntity.badRequest().body(ApiResponse.error(error));
+	}
+
+	/**
+	 * A required multipart part is missing entirely (e.g. a client omits the
+	 * {@code file} part on a {@code @RequestPart("file")} upload endpoint) -
+	 * generic shared infrastructure, not module-specific: it applies to every
+	 * multipart endpoint in the app (content-management's material upload,
+	 * payment-management's slip upload, and any future one). Without this
+	 * handler it previously fell through to {@link #handleUnexpected}'s
+	 * generic {@code 500}, same class of gap as {@link
+	 * #handleTypeMismatch}/{@link #handleUnreadableBody} above.
+	 */
+	@ExceptionHandler(MissingServletRequestPartException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestPart(MissingServletRequestPartException ex) {
+		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR,
+				"Required request part '" + ex.getRequestPartName() + "' is missing");
+		return ResponseEntity.badRequest().body(ApiResponse.error(error));
+	}
+
+	/**
+	 * Catch-all for the rest of {@link ServletRequestBindingException}'s
+	 * hierarchy (e.g. a missing required {@code @RequestParam}/{@code
+	 * @RequestHeader}) - {@link MissingServletRequestPartException} above is
+	 * more specific and is matched first by Spring for that case; this is the
+	 * generic {@code 400} fallback for the rest, replacing the same
+	 * generic-{@code 500} gap.
+	 */
+	@ExceptionHandler(ServletRequestBindingException.class)
+	public ResponseEntity<ApiResponse<Void>> handleServletRequestBinding(ServletRequestBindingException ex) {
+		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR, "Request is missing a required parameter or part");
 		return ResponseEntity.badRequest().body(ApiResponse.error(error));
 	}
 

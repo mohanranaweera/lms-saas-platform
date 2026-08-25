@@ -33,6 +33,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   if (canProcessRefunds(role)) {
     items.push({ label: "Refunds", href: "/tenant-admin/payments/refunds" });
   }
+  if (canViewPaymentDashboard(role)) {
+    items.push({ label: "Payment Slips", href: "/tenant-admin/payments/slip-review" });
+  }
 
   return <NavLinks items={items} onNavigate={onNavigate} />;
 }

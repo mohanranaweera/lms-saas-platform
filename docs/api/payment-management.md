@@ -45,9 +45,12 @@ Every endpoint returns `com.lms.common.api.ApiResponse<T>` — see
   inconsistent gap, not a deliberate restriction).
 - A cross-tenant id is invisible before ownership is even evaluated — the owning
   repository's tenant-scoped `findById` returns empty for it, which callers turn into a
-  `404` before `PaymentDomainAccessGuard` runs at all. The guard itself only ever raises
-  `403`, for a same-tenant caller who is neither the owning student nor a staff member
-  holding the grant.
+  `404` before `PaymentDomainAccessGuard` runs at all. **Anti-enumeration convention**
+  (mirrors `SlipAccessGuard`/`MaterialAccessGuard`): the guard itself raises `404`, not
+  `403`, for a same-tenant Student caller who is not the resource's owning student — a
+  Student must never be able to distinguish "exists but isn't mine" from "doesn't exist".
+  A same-tenant staff caller who lacks the `PAYMENTS_SLIPS`/`VIEW` grant still gets `403`
+  — staff already have legitimate visibility into their own tenant's resource existence.
 - **Order creation** (`POST /orders`) and **payment initiation**
   (`POST /orders/{id}/payments`) are `hasRole('STUDENT')`-gated at the controller, with
   the service layer independently re-checking (defense-in-depth, mirroring
@@ -106,8 +109,10 @@ caller's own tenant.
 ### `GET /api/v1/orders/{id}`
 
 Read a single order. Owner-or-staff-`VIEW` (see "Authorization model"). **`200`**
-(`ApiResponse<OrderResponse>`). **`403`/`404`** uniform for cross-tenant, another
-student's order, or a nonexistent id.
+(`ApiResponse<OrderResponse>`). **`404`** for cross-tenant, another student's order (a
+same-tenant Student caller gets `404` here, not `403` — anti-enumeration), or a
+nonexistent id. **`403`** only for a same-tenant staff caller lacking `PAYMENTS_SLIPS`/
+`VIEW`.
 
 ### `GET /api/v1/orders/{id}/payment-status`
 
@@ -158,7 +163,9 @@ reference).
 ### `GET /api/v1/payments/{id}`
 
 Read a single payment. Owner-or-staff-`VIEW` (see the plan-deviation note above).
-**`200`** (`ApiResponse<PaymentResponse>`). **`403`/`404`** uniform.
+**`200`** (`ApiResponse<PaymentResponse>`). **`404`** for cross-tenant, another
+student's payment (anti-enumeration — see "Authorization model"), or a nonexistent id.
+**`403`** only for a same-tenant staff caller lacking `PAYMENTS_SLIPS`/`VIEW`.
 
 ```jsonc
 {
@@ -214,7 +221,9 @@ ever creates a new `payment_refund` row plus a reversing `ledger_entry`
 ### `GET /api/v1/payments/{id}/refunds`
 
 List refunds against a payment. Same owner-or-staff-`VIEW` rule as payment read.
-**`200`** (`ApiResponse<RefundResponse[]>`). **`403`/`404`** uniform.
+**`200`** (`ApiResponse<RefundResponse[]>`). **`404`** for cross-tenant, another
+student's payment (anti-enumeration), or a nonexistent id. **`403`** only for a
+same-tenant staff caller lacking `PAYMENTS_SLIPS`/`VIEW`.
 
 ## Refund model
 
@@ -228,6 +237,135 @@ never by `payment.status`. This resolves the "does `REFUNDED` on an already-term
 payment row violate immutability" question the plan's own draft flagged as open (§21
 item 8): the answer is that `REFUNDED` is unreachable by design, so the question doesn't
 arise.
+
+## Manual Payment Slip endpoints (MVP-011, `com.lms.paymentmanagement.slip`)
+
+Payment Slip Intelligence sub-module — a distinct state machine from
+`payment.status` above, never a generic "payment status" enum with extra values
+bolted on. States: `SUBMITTED -> UNDER_REVIEW -> APPROVED | REJECTED`, one-directional
+only (no reversal endpoint). See `docs/architecture/payment-ledger.md` §3-4 and
+`docs/adr/ADR-012-audit-log-slice-and-slip-enrollment-activation.md` for the full
+design/decision record — this section is the endpoint contract only.
+
+**Auth model**: identical owner-or-staff-`VIEW` convention as the rest of this file for
+reads (404, not 403, for a same-tenant Student who isn't the slip's own owner — see
+`PaymentDomainAccessGuard`, shared with the order/payment/refund reads above).
+Review-queue list and every mutating endpoint (approve/reject) require staff
+`PAYMENTS_SLIPS`/`APPROVE` specifically — a student is always `403` on those, regardless
+of ownership. `tenantId`/`studentId`/`reviewerId`/`status` are never accepted from the
+client on any request body.
+
+### `POST /api/v1/orders/{orderId}/slips` (multipart/form-data)
+
+Upload a manual payment slip against an order the caller owns. `hasRole('STUDENT')`,
+owning-student-only (server-resolved via `OrderService.loadOrderOwnedByCurrentStudent`,
+never a client-supplied student id). Parts: `referenceNumber` (text, required,
+non-blank, max 255 chars) + `file` (binary, required).
+
+Server-side validation, in order, before any write: ownership → bounded-size streaming
+read → magic-byte content sniff (PDF/PNG/JPEG/GIF signatures only — never trusts
+`Content-Type`/filename) → SHA-256 hash → object-store write → `payment_slip` row
+insert. Zero partial write on any failure — a save failure after a successful store
+triggers a best-effort compensating delete of the just-stored object.
+
+**Success — `201`** (`ApiResponse<PaymentSlipResponse>`, shape below — `flags` may
+already be non-empty, since duplicate checks run synchronously before the response is
+returned). **`404`** if `orderId` doesn't resolve to an order owned by the caller.
+**`409 CONFLICT`** if the target order already has another active (`SUBMITTED`/
+`UNDER_REVIEW`) slip — enforced by `uq_payment_slip_tenant_order_active`, one active
+slip per order. **`413 PAYLOAD_TOO_LARGE`** if the file exceeds
+`app.payment.slip.max-file-size-bytes` (25 MB default, unratified MVP value). **`415
+UNSUPPORTED_MEDIA_TYPE`** if the magic-byte sniff fails. **`400 VALIDATION_ERROR`** if
+`referenceNumber` is blank/missing or the `file` part is missing.
+
+`PaymentSlipResponse`:
+
+```jsonc
+{
+  "id": "...",
+  "orderId": "...",
+  "studentId": "...",
+  "referenceNumber": "REF-12345",
+  "status": "SUBMITTED",      // SUBMITTED | UNDER_REVIEW | APPROVED | REJECTED — SUBMITTED
+                                // is transient: SlipDuplicateCheckService.runChecksAndAdvance
+                                // runs synchronously inside the upload call, so every slip
+                                // has already advanced to UNDER_REVIEW by the time this
+                                // response (or any later read) is returned
+  "submittedAt": "2026-08-24T10:15:00Z",
+  "reviewerId": null,          // null until reviewed
+  "reviewedAt": null,          // null until reviewed
+  "flags": [
+    { "id": "...", "flagType": "DUPLICATE_REFERENCE", "detectedAt": "2026-08-24T10:15:00Z" }
+  ],                            // append-only — every flag ever detected, never filtered
+                                 // to latest-only; frontend renders this verbatim, computes
+                                 // zero duplicate-detection logic of its own
+  "studentEmail": "student@example.com",   // resolved via identity-access-service's
+                                             // UserProvisioningApi.findTenantUserSummaries,
+                                             // batched once per request/page — never a
+                                             // per-row cross-module call. Expected to be
+                                             // non-null in practice (FK-backed), but not
+                                             // schema-guaranteed — treat as nullable, same
+                                             // as reviewerEmail below
+  "reviewerEmail": null,        // null until reviewed, same resolution as studentEmail
+  "orderAmount": 49.99,         // from the same-domain student_order row this slip is
+                                 // evidence for — lets a reviewer cross-check the slip
+                                 // against the expected amount
+  "orderCurrency": "USD"
+}
+```
+
+### `GET /api/v1/payment-slips/{slipId}`
+
+Read a single slip's full detail, including complete flag history. Owner student OR
+staff `PAYMENTS_SLIPS`/`VIEW`. **`200`** (`ApiResponse<PaymentSlipResponse>`). **`404`**
+for cross-tenant, another student's slip (anti-enumeration — a Student caller always
+gets 404, never 403, for a slip that isn't theirs), or a nonexistent id. **`403`** only
+for a same-tenant staff caller lacking `PAYMENTS_SLIPS`/`VIEW`.
+
+### `GET /api/v1/payment-slips/{slipId}/download-url`
+
+Same auth as the detail read above. **`200`** →
+`{ "url": "https://...", "expiresAt": "2026-08-24T10:20:00Z" }` — a short-lived (5
+minute TTL) signed URL, never a raw storage key. Mirrors `MaterialController`'s
+`GET /{id}/download-url` pattern exactly. Fetch fresh on every click; never cache,
+prefetch, or persist client-side.
+
+### `GET /api/v1/payment-slips/review-queue`
+
+Staff `PAYMENTS_SLIPS`/`VIEW` only — `403` for a student regardless of ownership.
+Query params: `status` (optional — one of the four enum values; **omitting it entirely**
+returns the real default pending queue, `SUBMITTED` + `UNDER_REVIEW` combined; there is
+no "ALL" enum value), standard Spring `Pageable` params (`page`, `size`, `sort` —
+default `size=20`, `sort=submittedAt,ASC`, i.e. oldest-first/FIFO, to avoid reviewer
+starvation on old slips). **`200`** → `ApiResponse<PageResponse<PaymentSlipResponse>>`
+(same `PageResponse<T>` shape used elsewhere in this file). Every row's `studentEmail`/
+`reviewerEmail`/`orderAmount` is batch-resolved once for the whole page, not per row.
+
+### `POST /api/v1/payment-slips/{slipId}/approve`
+
+Staff `PAYMENTS_SLIPS`/`APPROVE` only. Body (optional): `{ "overrideReason": "..." }`
+(max 1000 chars). Approval and enrollment activation
+(`EnrollmentActivationApi.activateFromApprovedSlip`) commit in the same transaction as
+the slip-status write — and, when overriding, so does the audit-log write
+(`AuditLogApi.record`, `com.lms.auditlogmanagement`) — all three or none.
+
+**Success — `200`** (`ApiResponse<PaymentSlipResponse>`). **`409 CONFLICT`** if the
+slip carries unresolved flags and no/blank `overrideReason` was supplied — rejected
+before any row lock, state change, or audit write. **`409`** if the slip isn't
+`UNDER_REVIEW` and isn't already `APPROVED` either. **Idempotent**: calling this again
+on an already-`APPROVED` slip is always a no-op `200` with the existing view, regardless
+of whether `overrideReason` is resupplied (flags are append-only and never cleared, so a
+slip originally approved via override permanently carries flag rows — a bare retry must
+still succeed, not re-throw the reasonless-override `409`). **`403`** for any caller
+without `APPROVE` (including the slip's own student, or a `VIEW`-only staff role).
+
+### `POST /api/v1/payment-slips/{slipId}/reject`
+
+Staff `PAYMENTS_SLIPS`/`APPROVE` only. Body (required): `{ "reason": "..." }`
+(non-blank, max 1000 chars). One-directional terminal transition — no reversal
+endpoint; enrollment stays inactive. **Success — `200`**
+(`ApiResponse<PaymentSlipResponse>`). **`400`/`409`** if `reason` is blank or the slip
+isn't `UNDER_REVIEW`. **`403`** for any caller without `APPROVE`.
 
 ## Webhook ownership (not this domain's endpoint)
 

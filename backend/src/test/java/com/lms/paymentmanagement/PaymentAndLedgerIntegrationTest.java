@@ -218,6 +218,11 @@ class PaymentAndLedgerIntegrationTest extends PaymentManagementTestSupport {
 
 	@Test
 	void anotherStudentInTheSameTenantCannotReadSomeoneElsesOrder() {
+		// 404, not 403 (anti-enumeration convention, mirrors
+		// PaymentDomainAccessGuard/MaterialAccessGuard): a same-tenant Student who is
+		// not the order's owner must not be able to distinguish "exists but
+		// isn't mine" from "doesn't exist" - see PaymentDomainAccessGuard's
+		// javadoc.
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("pay-same-tenant"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
 		TenantUser teacher = seedTenantUser(tenant.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
@@ -234,7 +239,35 @@ class PaymentAndLedgerIntegrationTest extends PaymentManagementTestSupport {
 
 		HttpResult<OrderResponse> result = getOrder(host, otherToken, order.id());
 
-		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+	}
+
+	@Test
+	void anotherStudentInTheSameTenantCannotReadSomeoneElsesPayment() {
+		// Same anti-enumeration convention as
+		// anotherStudentInTheSameTenantCannotReadSomeoneElsesOrder, but for
+		// PaymentQueryService#getPayment - the third documented call site of
+		// PaymentDomainAccessGuard#requireOwnerOrStaffView (order.service,
+		// payment.service, slip.service) previously had no regression test
+		// of its own.
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("pay-payment-same-tenant"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		TenantUser teacher = seedTenantUser(tenant.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
+		seedActiveStudent(tenant.getId(), "student-owner@example.test");
+		seedActiveStudent(tenant.getId(), "student-other@example.test");
+		String host = hostFor(tenant.getSubdomain());
+		String adminToken = loginAndGetToken(host, "admin@example.test");
+		String ownerToken = loginAndGetToken(host, "student-owner@example.test");
+		String otherToken = loginAndGetToken(host, "student-other@example.test");
+		CourseResponse course = createCourseOrFail(host, adminToken,
+				newCourseRequest(uniqueSlug("pay-payment-same-tenant"), teacher.getId(), CourseStatus.PUBLIC));
+		OrderResponse order = createOrderOrFail(host, ownerToken, course.id());
+		PaymentInitiationResponse initiation = initiatePaymentOrFail(host, ownerToken, order.id());
+		sendPaymentWebhook(initiation.gatewayReference(), true);
+
+		HttpResult<PaymentResponse> result = getPayment(host, otherToken, initiation.paymentId());
+
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
 	}
 
 	@Test
