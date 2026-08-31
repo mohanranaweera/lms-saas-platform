@@ -1,8 +1,10 @@
 package com.lms.paymentmanagement.payment.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -83,7 +85,7 @@ class PaymentConfirmationServiceTest {
 
 		verify(paymentRepository, never()).save(any());
 		verify(ledgerEntryApi, never()).recordPaymentConfirmed(any(), any(), any());
-		verify(enrollmentActivationApi, never()).activateFromConfirmedPayment(any(), any(), any());
+		verify(enrollmentActivationApi, never()).activateOrReactivateFromConfirmedPayment(any(), any(), any(), any());
 		verify(eventPublisher, never()).publishEvent(any(PaymentConfirmedEvent.class));
 		verify(eventPublisher, never()).publishEvent(any(PaymentRejectedEvent.class));
 		verify(studentOrderRepository, never()).findById(any());
@@ -99,7 +101,7 @@ class PaymentConfirmationServiceTest {
 
 		verify(paymentRepository, never()).save(any());
 		verify(ledgerEntryApi, never()).recordPaymentConfirmed(any(), any(), any());
-		verify(enrollmentActivationApi, never()).activateFromConfirmedPayment(any(), any(), any());
+		verify(enrollmentActivationApi, never()).activateOrReactivateFromConfirmedPayment(any(), any(), any(), any());
 	}
 
 	@Test
@@ -121,8 +123,48 @@ class PaymentConfirmationServiceTest {
 		verify(paymentRepository, times(1)).save(pendingPayment);
 		verify(ledgerEntryApi, times(1)).recordPaymentConfirmed(orderId, pendingPayment.getId(),
 				pendingPayment.getAmount());
-		verify(enrollmentActivationApi, times(1)).activateFromConfirmedPayment(pendingPayment.getId(), studentId,
-				courseId);
+		verify(enrollmentActivationApi, times(1)).activateOrReactivateFromConfirmedPayment(pendingPayment.getId(),
+				orderId, studentId, courseId);
+		verify(eventPublisher, times(1)).publishEvent(any(PaymentConfirmedEvent.class));
+		assertThat(pendingPayment.getStatus())
+			.isEqualTo(com.lms.paymentmanagement.payment.domain.PaymentStatus.CONFIRMED);
+	}
+
+	/**
+	 * Bug fix (MVP-012 review): reactivation refusal - {@link
+	 * EnrollmentActivationApi#reactivateFromConfirmedPayment} throwing {@link
+	 * IllegalStateException} (e.g. no matching APPROVED reactivation
+	 * request) - must NOT propagate out of {@code confirmByGatewayReference}
+	 * and must NOT prevent the payment from reaching {@code CONFIRMED} or
+	 * the ledger entry / event from being recorded/published. Before this
+	 * fix, this exception was uncaught and (in the real, transactional call
+	 * path) marked the whole confirmation transaction rollback-only - see
+	 * {@code PaymentConfirmationReactivationRefusalIntegrationTest} for the
+	 * real-transaction-boundary proof of the same property.
+	 */
+	@Test
+	void aReactivationRefusalIsCaughtAndDoesNotPreventThePaymentFromReachingConfirmed() {
+		UUID orderId = UUID.randomUUID();
+		UUID studentId = UUID.randomUUID();
+		UUID courseId = UUID.randomUUID();
+		Payment pendingPayment = new Payment(TENANT_ID, orderId, new BigDecimal("100.00"), "USD");
+		pendingPayment.assignGatewayReference(GATEWAY_REFERENCE);
+		StudentOrder order = new StudentOrder(TENANT_ID, studentId, courseId, new BigDecimal("100.00"), "USD");
+		setId(order, orderId);
+		when(paymentRepository.findByGatewayReferenceAcrossTenantsForUpdate(GATEWAY_REFERENCE))
+			.thenReturn(Optional.of(pendingPayment));
+		when(studentOrderRepository.findById(orderId)).thenReturn(Optional.of(order));
+		when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		doThrow(new IllegalStateException("no APPROVED reactivation request linked to order " + orderId))
+			.when(enrollmentActivationApi)
+			.activateOrReactivateFromConfirmedPayment(any(), any(), any(), any());
+
+		assertThatCode(() -> service.confirmByGatewayReference(GATEWAY_REFERENCE, true)).doesNotThrowAnyException();
+
+		verify(ledgerEntryApi, times(1)).recordPaymentConfirmed(orderId, pendingPayment.getId(),
+				pendingPayment.getAmount());
+		verify(enrollmentActivationApi, times(1)).activateOrReactivateFromConfirmedPayment(pendingPayment.getId(),
+				orderId, studentId, courseId);
 		verify(eventPublisher, times(1)).publishEvent(any(PaymentConfirmedEvent.class));
 		assertThat(pendingPayment.getStatus())
 			.isEqualTo(com.lms.paymentmanagement.payment.domain.PaymentStatus.CONFIRMED);

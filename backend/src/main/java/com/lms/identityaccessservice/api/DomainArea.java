@@ -35,6 +35,25 @@ public enum DomainArea {
 	 */
 	FINANCE_EXPENSES,
 
-	ATTENDANCE, EXAMS, DEVICES, ACCESS_EXPIRY, REVIEWS_MODERATION, AUDIT_LOG, BRANDING_SETTINGS, SUPPORT_TICKETS
+	ATTENDANCE, EXAMS, DEVICES,
+
+	/**
+	 * A grant here (e.g. {@code APPROVE}) is a domain-level category grant
+	 * only - it never itself authorizes a direct {@code enrollment} write. A
+	 * grant authorizes exactly one thing: the {@code reactivation_request}
+	 * status transition (approve/reject) performed by {@code
+	 * ReactivationRequestService}. Enrollment activation/reactivation is
+	 * never decided by this permission result - it always requires the
+	 * independent {@code PaymentStatusApi}/{@code SlipStatusApi}
+	 * re-verification enforced inside {@code EnrollmentActivationApi}'s
+	 * {@code activateFrom*}/{@code reactivateFrom*} methods, regardless of
+	 * what {@link PermissionCheckService#hasPermission(DomainArea,
+	 * PermissionAction)} returns for this area. Mirrors {@link
+	 * #PAYMENTS_SLIPS}/{@link #FINANCE_EXPENSES}'s identical caveat, per
+	 * {@code .claude/rules/payments.md} §8.
+	 */
+	ACCESS_EXPIRY,
+
+	REVIEWS_MODERATION, AUDIT_LOG, BRANDING_SETTINGS, SUPPORT_TICKETS
 
 }

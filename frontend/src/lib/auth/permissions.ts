@@ -61,3 +61,31 @@ export function canViewPaymentDashboard(role: string | null): boolean {
 export function canReviewSlips(role: string | null): boolean {
   return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
 }
+
+/**
+ * Roles holding `ACCESS_EXPIRY`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (Tenant Admin, Finance Staff, Student Support, Read-only Auditor) —
+ * who may view the Reactivation Approvals queue
+ * (`GET /api/v1/reactivation-requests`). A superset of
+ * `canApproveReactivation`, mirroring `canViewPaymentDashboard`'s exact role
+ * set/shape for the payment-slip queue.
+ */
+export function canViewAccessExpiryQueue(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/**
+ * Roles holding `ACCESS_EXPIRY`/`APPROVE` per `PermissionCheckServiceImpl`'s
+ * matrix — Tenant Admin is the ONLY role granted `APPROVE` for this domain
+ * area (unlike `canReviewSlips`'s two-role `PAYMENTS_SLIPS`/`APPROVE` set),
+ * so this is the only role that may approve/reject a reactivation request
+ * (`POST /api/v1/reactivation-requests/{id}/approve|reject`).
+ */
+export function canApproveReactivation(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}

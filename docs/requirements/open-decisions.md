@@ -141,6 +141,10 @@ Affects: [07-orders-and-payments.md](specifications/07-orders-and-payments.md),
 
 Affects: [18-smart-expiry.md](specifications/18-smart-expiry.md).
 
+(See §18 below for MVP-012's implementation status against this section's items — course-level
+expiry and the reactivation core have since shipped; the items above remain open exactly as
+listed here, none were silently narrowed or assumed.)
+
 ## 9. Third-party provider selection (none named anywhere — do not invent a vendor)
 
 - SMS provider — not selected.
@@ -414,3 +418,59 @@ six-specialist review of the completed module found this file had never been upd
   order.
   Affects: this module's own (not-yet-written) spec file.
   Source: plan §21 item 13.
+
+## 18. Enrollment and Course Access (MVP-012) — carried-forward decisions
+
+Named by `docs/plans/MVP-012 Enrollment and Course Access.md` §19/§21 as items this module's
+own documentation pass must append here, per this log's established §15/§16/§17 convention. The
+two genuinely new *structural* decisions this module required (the lineage-row domain model, and
+the `OrderService` reactivation order-creation gate) were resolved with explicit sign-off via
+`docs/adr/ADR-013-enrollment-lineage-and-reactivation-order-gate.md` — they are not open
+decisions and are not repeated here. Everything below is an unresolved product/business
+question, carried forward unchanged from §8 or newly surfaced by this module's own
+implementation.
+
+- **Grace period length(s) — still open, unchanged from §8.** This MVP implements a hard
+  cutover at `access_expires_at` with no grace period at all — not "grace period = 0 days" as a
+  ratified value, simply "no grace period feature exists yet".
+  Affects: [18-smart-expiry.md](specifications/18-smart-expiry.md).
+  Source: plan §21 item 1.
+- **Expiry-rules-engine precedence order — still open, unchanged from §8.** Not built at all in
+  this MVP; only `course.access_duration_days` is read at (re)activation time, no
+  student/course/tenant/plan override layer exists.
+  Source: plan §21 item 2.
+- **Prorated/partial reactivation payment — still open, unchanged from §8.** This MVP always
+  requires a full new order at the course's current price; no partial-payment mechanism exists
+  anywhere in `OrderService`/`EnrollmentActivationService`.
+  Source: plan §21 item 3.
+- **Bulk expiry extension second-approver step — moot for this MVP**, since bulk extension
+  itself is out of scope: no admin action exists anywhere in this module to extend an
+  individual or bulk set of enrollments without a new payment.
+  Source: plan §21 item 4.
+- **Exact reminder timing before expiry — moot for this MVP**; no reminder notification exists
+  (requires `notification-management` event wiring — Phase 2).
+  Source: plan §21 item 5.
+- **Whether Finance Staff (in addition to Tenant Admin) should be able to approve reactivation
+  requests — newly surfaced by this module, not previously tracked here.** This module's
+  implementation deferred to the already-shipped RBAC matrix (`DomainArea.ACCESS_EXPIRY`/
+  `APPROVE` held only by Tenant Admin) rather than deciding this independently — three separate
+  source documents (`docs/architecture/enrollment-access.md` §9, `18-smart-expiry.md`,
+  `user-roles-and-permissions.md` Open Q2) still list this as unresolved, and the RBAC matrix's
+  shipped state does not itself claim to have resolved it. If the actual product intent is
+  "Finance Staff should also be able to approve," that is a change to the shipped RBAC matrix
+  (a different, already-existing module) and must go through its own change process.
+  Affects: [09-enrollments.md](specifications/09-enrollments.md),
+  [18-smart-expiry.md](specifications/18-smart-expiry.md),
+  `docs/requirements/user-roles-and-permissions.md` Open Q2.
+  Source: plan §2, §21 item 6.
+- **Whether reactivation approval should ever be tenant-configurable — newly surfaced by this
+  module, not previously tracked here.** This MVP makes approval unconditionally required for
+  every tenant; no config knob exists to let a tenant skip approval entirely.
+  Source: plan §21 item 7.
+- **Wiring `content-management`/`video-access-management` to the new `EnrollmentAccessApi` —
+  still open, tracked here for visibility.** This module exposes the read-only `api`
+  (`EnrollmentAccessApi.resolveAccessState`) those modules need to switch from their current
+  interim, non-enrollment-based access checks (per `module-catalog.md`), but does not itself
+  perform that switch — each module's own future PR must do so deliberately, not assume it
+  happens automatically.
+  Source: plan §21 item 10.

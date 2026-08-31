@@ -35,9 +35,14 @@ class SlipApprovalRollbackIntegrationTest extends SlipTestSupport {
 
 	@Test
 	void aFailureInEnrollmentActivationRollsBackTheEntireSlipApprovalTransaction() {
+		// MVP-012 review finding M2: SlipReviewService now calls the single
+		// consolidated activateOrReactivateFromApprovedSlip method (which
+		// internally decides activate vs reactivate) instead of calling
+		// activateFromApprovedSlip directly - stub the consolidated method
+		// so this mock is actually reached.
 		doThrow(new RuntimeException("Simulated mid-transaction failure in enrollment activation"))
 			.when(enrollmentActivationApi)
-			.activateFromApprovedSlip(any(), any(), any());
+			.activateOrReactivateFromApprovedSlip(any(), any(), any(), any());
 		SlipFixture fixture = seedTenantWithOrder("slip-approve-rollback");
 		PaymentSlipResponse slip = uploadSlipOrFail(fixture.host(), fixture.studentToken(), fixture.order().id(),
 				"REF-ROLLBACK", pdfFile("slip.pdf"));

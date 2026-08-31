@@ -116,8 +116,42 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 				payment.confirm(confirmedAt);
 				paymentRepository.save(payment);
 				ledgerEntryApi.recordPaymentConfirmed(order.getId(), payment.getId(), payment.getAmount());
-				enrollmentActivationApi.activateFromConfirmedPayment(payment.getId(), order.getStudentId(),
-						order.getCourseId());
+				// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
+				// activateOrReactivateFromConfirmedPayment owns the
+				// resolve-access-state-and-branch decision that used to be
+				// duplicated here (NEVER_ENROLLED -> activate, else ->
+				// reactivate - see its javadoc). Safe against the
+				// payment-status idempotency guard above (this branch only
+				// ever runs once per payment, since a retried webhook for an
+				// already-CONFIRMED payment returns early before reaching
+				// here).
+				try {
+					enrollmentActivationApi.activateOrReactivateFromConfirmedPayment(payment.getId(), order.getId(),
+							order.getStudentId(), order.getCourseId());
+				}
+				catch (IllegalStateException ex) {
+					// Bug fix (MVP-012 review): a refusal from either branch (no
+					// current enrollment / no APPROVED reactivation request
+					// linked to THIS order for the reactivation branch - see
+					// EnrollmentActivationApi#activateOrReactivateFromConfirmedPayment's
+					// javadoc) must NOT roll back this payment's own CONFIRMED
+					// transition or its ledger entry, per plan §13: "Activation
+					// refused, payment stays CONFIRMED, no enrollment change -
+					// logged as an ops-visible inconsistency, not silently
+					// swallowed." Deliberately catches ONLY IllegalStateException
+					// from THIS specific call - never widened to swallow an
+					// unrelated failure.
+					log.atWarn()
+						.setMessage("enrollment.reactivation_refused")
+						.addKeyValue("actor", WEBHOOK_SYSTEM_ACTOR)
+						.addKeyValue("tenantId", payment.getTenantId())
+						.addKeyValue("paymentId", payment.getId())
+						.addKeyValue("orderId", order.getId())
+						.addKeyValue("studentId", order.getStudentId())
+						.addKeyValue("courseId", order.getCourseId())
+						.addKeyValue("reason", ex.getMessage())
+						.log();
+				}
 				eventPublisher.publishEvent(new PaymentConfirmedEvent(payment.getTenantId(), payment.getId(),
 						order.getId(), previousStatus, PaymentStatus.CONFIRMED, confirmedAt));
 				log.atInfo()

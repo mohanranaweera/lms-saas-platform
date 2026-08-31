@@ -1,5 +1,6 @@
 package com.lms.coursemanagement.course.service;
 
+import com.lms.coursemanagement.api.CourseAccessWindow;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
 import com.lms.coursemanagement.course.domain.Course;
@@ -51,6 +52,11 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	@Override
 	public Optional<BigDecimal> getCurrentPrice(UUID courseId) {
 		return courseRepository.findById(courseId).map(Course::getPrice);
+	}
+
+	@Override
+	public Optional<CourseAccessWindow> getAccessDurationDays(UUID courseId) {
+		return courseRepository.findById(courseId).map(course -> new CourseAccessWindow(course.getAccessDurationDays()));
 	}
 
 	@Override

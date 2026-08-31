@@ -1,7 +1,11 @@
 "use client";
 
 import { useAuth } from "@/lib/auth/auth-context";
-import { canProcessRefunds, canViewPaymentDashboard } from "@/lib/auth/permissions";
+import {
+  canProcessRefunds,
+  canViewAccessExpiryQueue,
+  canViewPaymentDashboard,
+} from "@/lib/auth/permissions";
 import { NavLinks, type NavItem } from "./nav-links";
 
 const BASE_ITEMS: NavItem[] = [
@@ -14,12 +18,13 @@ const BASE_ITEMS: NavItem[] = [
 ];
 
 /**
- * "Payments"/"Refunds" are appended conditionally on the caller's role
- * (`canViewPaymentDashboard`/`canProcessRefunds`, `lib/auth/permissions.ts`)
- * — pure UX convenience so a role with no server-side access to either
- * screen (e.g. Content Manager, Exam Manager) isn't shown a dead-end nav
- * entry. This is not the authorization mechanism: both destination pages
- * still independently render `PermissionDeniedState` from a real backend
+ * "Payments"/"Refunds"/"Payment Slips"/"Reactivation Approvals" are appended
+ * conditionally on the caller's role (`canViewPaymentDashboard`/
+ * `canProcessRefunds`/`canViewAccessExpiryQueue`, `lib/auth/permissions.ts`)
+ * — pure UX convenience so a role with no server-side access to any of these
+ * screens (e.g. Content Manager, Exam Manager) isn't shown a dead-end nav
+ * entry. This is not the authorization mechanism: every destination page
+ * still independently renders `PermissionDeniedState` from a real backend
  * 403 regardless of this nav's contents (per `.claude/rules/frontend.md`).
  */
 export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
@@ -35,6 +40,12 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (canViewPaymentDashboard(role)) {
     items.push({ label: "Payment Slips", href: "/tenant-admin/payments/slip-review" });
+  }
+  if (canViewAccessExpiryQueue(role)) {
+    items.push({
+      label: "Reactivation Approvals",
+      href: "/tenant-admin/access-expiry/reactivation-approvals",
+    });
   }
 
   return <NavLinks items={items} onNavigate={onNavigate} />;

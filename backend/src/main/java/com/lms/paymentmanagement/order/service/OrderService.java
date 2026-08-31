@@ -4,6 +4,10 @@ import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
+import com.lms.enrollmentmanagement.api.ReactivationLinkingApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
@@ -48,13 +52,20 @@ public class OrderService {
 
 	private final PaymentDomainAccessGuard accessGuard;
 
+	private final EnrollmentAccessApi enrollmentAccessApi;
+
+	private final ReactivationLinkingApi reactivationLinkingApi;
+
 	public OrderService(StudentOrderRepository studentOrderRepository, PaymentRepository paymentRepository,
-			CourseLookupApi courseLookupApi, TenantContext tenantContext, PaymentDomainAccessGuard accessGuard) {
+			CourseLookupApi courseLookupApi, TenantContext tenantContext, PaymentDomainAccessGuard accessGuard,
+			EnrollmentAccessApi enrollmentAccessApi, ReactivationLinkingApi reactivationLinkingApi) {
 		this.studentOrderRepository = studentOrderRepository;
 		this.paymentRepository = paymentRepository;
 		this.courseLookupApi = courseLookupApi;
 		this.tenantContext = tenantContext;
 		this.accessGuard = accessGuard;
+		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.reactivationLinkingApi = reactivationLinkingApi;
 	}
 
 	/**
@@ -62,6 +73,17 @@ public class OrderService {
 	 * within the caller's own tenant; {@code amount}/{@code currency} are
 	 * snapshotted from {@link CourseLookupApi#getCurrentPrice(UUID)} at this
 	 * instant, never re-read later.
+	 *
+	 * <p><b>Reactivation gate (MVP-012/ADR-013 §9):</b> before creating the
+	 * order, resolves the caller's enrollment access state for this course -
+	 * {@code NEVER_ENROLLED} proceeds unchanged (ordinary first-time
+	 * purchase); {@code ACTIVE} is rejected {@code 409} ("already
+	 * enrolled"); {@code EXPIRED} requires an {@code APPROVED}, unfulfilled
+	 * reactivation request to already exist (checked BEFORE order creation,
+	 * never discovered via a failed link call afterwards), else {@code 409}
+	 * ("reactivation approval required"). On the {@code EXPIRED}+approved
+	 * path, the newly-created order is linked to that request in the SAME
+	 * transaction via {@link ReactivationLinkingApi}.
 	 */
 	public OrderView createOrder(UUID courseId) {
 		AuthenticatedPrincipal principal = requireStudent();
@@ -82,9 +104,52 @@ public class OrderService {
 		if (!courseLookupApi.isPublished(courseId)) {
 			throw new ConflictException("Course is not available for enrollment");
 		}
+
+		EnrollmentAccessState accessState = enrollmentAccessApi.resolveAccessState(principal.userId(), courseId);
+		boolean isReactivation = false;
+		if (accessState.state() == EnrollmentAccessStateType.ACTIVE) {
+			throw new ConflictException("You are already enrolled in this course");
+		}
+		else if (accessState.state() == EnrollmentAccessStateType.EXPIRED) {
+			if (!enrollmentAccessApi.hasApprovedUnfulfilledReactivationRequest(principal.userId(), courseId)) {
+				throw new ConflictException(
+						"Reactivation approval is required before you can re-order this course");
+			}
+			isReactivation = true;
+		}
+
 		StudentOrder order = new StudentOrder(tenantContext.getTenantId(), principal.userId(), courseId, price,
 				DEFAULT_CURRENCY);
 		order = studentOrderRepository.save(order);
+
+		if (isReactivation) {
+			try {
+				reactivationLinkingApi.linkApprovedRequestToNewOrder(principal.userId(), courseId, order.getId());
+			}
+			catch (IllegalStateException ex) {
+				// Bug fix (MVP-012 review): ReactivationLinkingApiImpl's
+				// locked finder means a second, concurrent createOrder call
+				// against the same approved-unfulfilled reactivation request
+				// can genuinely lose this race (the first caller's link
+				// commits first; this caller's locked read then correctly
+				// finds nothing left to link) - this IllegalStateException
+				// was previously uncaught here and fell through to
+				// GlobalExceptionHandler's generic 500 fallback, contradicting
+				// ReactivationLinkingApi's own documented "OrderService maps
+				// this to 409" contract. Mapped explicitly here, at the one
+				// call site that knows this specific exception means "the
+				// reactivation approval this order needed is no longer
+				// available" - never a generic global IllegalStateException
+				// -> 409 mapping, which would be too broad and could mask
+				// unrelated bugs elsewhere. This method's class-level
+				// @Transactional also means the just-inserted `order` row
+				// rolls back together with this rejection - the order is
+				// never left half-created.
+				throw new ConflictException(
+						"Reactivation approval is required before you can re-order this course");
+			}
+		}
+
 		return toView(order);
 	}
 

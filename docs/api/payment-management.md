@@ -89,6 +89,30 @@ snapshotted server-side from `course.price` at this instant). **`409 CONFLICT`**
 course isn't `PUBLIC`. **`404 NOT_FOUND`** if `courseId` doesn't resolve within the
 caller's own tenant.
 
+**Reactivation gate — two more `409 CONFLICT` variants (MVP-012/ADR-013 §9), added on top of
+the "course isn't `PUBLIC`" case above.** Before creating the order, `OrderService` resolves the
+caller's enrollment access state for this course via `enrollment-management`'s
+`EnrollmentAccessApi` (see `docs/api/enrollment-management.md`'s "Cross-module contract"
+section):
+
+- **`ACTIVE`** (a current, non-expired enrollment already exists) → `409`, message "You are
+  already enrolled in this course".
+- **`EXPIRED`** with no `APPROVED`, unfulfilled reactivation request for this (student, course)
+  pair → `409`, message "Reactivation approval is required before you can re-order this course".
+  The student must first submit a reactivation request
+  (`POST /api/v1/enrollments/{enrollmentId}/reactivation-requests`) and have a Tenant Admin
+  approve it before retrying this call.
+- **`EXPIRED`** with an `APPROVED`, unfulfilled request → the order is created normally and, in
+  the SAME transaction, linked to that request (`reactivation_request.new_order_id`). A second,
+  concurrent `createOrder` call racing against the same already-linked request also gets `409`
+  with the identical "Reactivation approval is required..." message (the request has already
+  been consumed) — the just-inserted order row rolls back with it, never left half-created.
+- **`NEVER_ENROLLED`** → unchanged, ordinary first-time purchase, no new precondition applies.
+
+All three `409` variants share the generic `ApiErrorCodes.CONFLICT` machine-readable code —
+callers distinguish them only by `error.message` text, exactly like the pre-existing
+"course isn't `PUBLIC`" case above; there is no dedicated error code per variant.
+
 `OrderResponse`:
 
 ```jsonc

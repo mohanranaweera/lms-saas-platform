@@ -164,7 +164,7 @@ class SlipReviewServiceTest {
 		PaymentSlipView view = slipReviewService.approve(slipId, null);
 
 		assertThat(view.status().name()).isEqualTo("APPROVED");
-		verify(enrollmentActivationApi).activateFromApprovedSlip(any(), any(), any());
+		verify(enrollmentActivationApi).activateOrReactivateFromApprovedSlip(any(), any(), any(), any());
 		verify(auditLogApi).record(any());
 	}
 
@@ -172,6 +172,38 @@ class SlipReviewServiceTest {
 	// State-machine transition validation: approve/reject only legal from
 	// UNDER_REVIEW.
 	// ------------------------------------------------------------------
+
+	/**
+	 * Bug fix (MVP-012 review): a reactivation refusal ({@link
+	 * EnrollmentActivationApi#reactivateFromApprovedSlip} throwing {@link
+	 * IllegalStateException}) must be caught and must NOT prevent this
+	 * slip's own {@code APPROVED} transition or its audit log entry - mirrors
+	 * {@code PaymentConfirmationServiceTest}'s identical coverage for the
+	 * payment path.
+	 */
+	@Test
+	void approveCatchesAReactivationRefusalAndStillCompletesTheApproval() {
+		UUID slipId = UUID.randomUUID();
+		when(paymentSlipFlagRepository.findAllBySlipId(slipId)).thenReturn(List.of());
+		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
+		PaymentSlip slip = underReviewSlip();
+		when(paymentSlipRepository.findByIdAndTenantIdForUpdate(slipId, TENANT_ID)).thenReturn(Optional.of(slip));
+		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenAnswer(inv -> inv.getArgument(0));
+		StudentOrder order = orderFixture(slip);
+		when(studentOrderRepository.findById(slip.getOrderId())).thenReturn(Optional.of(order));
+		doThrow(new IllegalStateException("no APPROVED reactivation request linked to order " + order.getId()))
+			.when(enrollmentActivationApi)
+			.activateOrReactivateFromApprovedSlip(any(), any(), any(), any());
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "FINANCE_STAFF",
+				UUID.randomUUID()));
+
+		PaymentSlipView view = slipReviewService.approve(slipId, null);
+
+		assertThat(view.status().name()).isEqualTo("APPROVED");
+		verify(enrollmentActivationApi).activateOrReactivateFromApprovedSlip(slip.getId(), order.getId(),
+				slip.getStudentId(), order.getCourseId());
+		verify(auditLogApi).record(any());
+	}
 
 	@Test
 	void approveFromSubmittedIsRejected() {

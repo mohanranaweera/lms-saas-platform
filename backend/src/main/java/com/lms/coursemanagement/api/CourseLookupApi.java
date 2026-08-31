@@ -55,4 +55,20 @@ public interface CourseLookupApi {
 	 */
 	Optional<LessonOwnership> resolveLessonOwnership(UUID lessonId);
 
+	/**
+	 * @return {@link Optional#empty()} if the course does not exist in the
+	 * caller's tenant; otherwise a present {@link CourseAccessWindow} - see
+	 * that record's own javadoc for why a plain {@code Optional<Integer>}
+	 * cannot express this method's three real outcomes (not found / lifetime
+	 * access / time-limited access), since {@code
+	 * course.access_duration_days} is itself nullable (V11, "{@code NULL} =
+	 * unlimited access") and a nested {@code null} cannot be represented
+	 * inside a present {@code Optional}. Added for {@code
+	 * enrollment-management} (MVP-012) - {@code
+	 * EnrollmentActivationService} reads this once, at (re)activation time,
+	 * and snapshots the result; it never re-reads this later to retroactively
+	 * change an already-activated enrollment's {@code accessExpiresAt}.
+	 */
+	Optional<CourseAccessWindow> getAccessDurationDays(UUID courseId);
+
 }

@@ -29,7 +29,7 @@ A confirmed `Payment` (gateway) or an `APPROVED` manual slip exists for the stud
 
 ## 5. Alternative flows
 
-- Reactivation after expiry: does not reactivate by itself — requires a **new** confirmed payment/approved slip tied to a **new** order, per an admin approval step if the tenant requires it. See [18-smart-expiry.md](./18-smart-expiry.md).
+- Reactivation after expiry: does not reactivate by itself — requires a **new** confirmed payment/approved slip tied to a **new** order, gated by an admin approval step that is unconditionally required for every tenant (shipped MVP-012 behavior — no tenant-configurable skip exists). See [18-smart-expiry.md](./18-smart-expiry.md).
 - Bulk expiry extension / student-specific override: admin/staff action, audit-logged, does not touch payment/ledger history.
 - Attempted activation from a frontend "success" payload alone: structurally impossible — no endpoint accepts client-reported payment success as evidence.
 
@@ -63,9 +63,12 @@ enrollment/student, timestamp, and before/after.
 
 ## 10. MVP or later-phase classification
 
-**MVP** for activation, course-level payment-based expiry, reactivation core (FR-EM-1/2/3;
-change-controlled per root `CLAUDE.md`). Session/material/video expiry and the full expiry
-rules engine (grace period, bulk extension, student override) are **Phase 2** (FR-EM-4).
+**MVP, shipped (MVP-012)** for activation, course-level payment-based expiry, reactivation
+core (FR-EM-1/2/3; change-controlled per root `CLAUDE.md`) — see
+`docs/adr/ADR-013-enrollment-lineage-and-reactivation-order-gate.md` and
+`docs/api/enrollment-management.md` for the shipped design/contract. Session/material/video
+expiry and the full expiry rules engine (grace period, bulk extension, student override)
+remain **Phase 2, not yet built** (FR-EM-4).
 
 ## Change control flag
 
@@ -81,5 +84,13 @@ implementation, not after.
 
 ## Open decisions
 
-- Whether reactivation always requires Tenant Admin approval or only when a tenant configures it that way.
-- Whether Finance Staff or Institute Owner (or both) is the correct reactivation approver.
+- **Whether reactivation always requires Tenant Admin approval or only when a tenant configures
+  it that way — implementation note (MVP-012): approval is unconditionally required for every
+  tenant.** No tenant-configurable "skip approval" toggle exists in the shipped code. Whether
+  it should ever become tenant-configurable remains genuinely open; see
+  `docs/requirements/open-decisions.md` §18.
+- **Whether Finance Staff or Institute Owner (or both) is the correct reactivation approver —
+  implementation note (MVP-012): deferred to the already-shipped RBAC matrix, not a new
+  business ratification.** Only Tenant Admin holds `ACCESS_EXPIRY`/`APPROVE`, so only Tenant
+  Admin can approve/reject in the shipped implementation. Whether Finance Staff should *also*
+  gain this permission remains genuinely open; see `docs/requirements/open-decisions.md` §18.

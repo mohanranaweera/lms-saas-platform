@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -68,6 +70,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class SlipReviewService {
+
+	private static final Logger log = LoggerFactory.getLogger(SlipReviewService.class);
 
 	private static final String TARGET_ENTITY = "payment_slip";
 
@@ -207,7 +211,42 @@ public class SlipReviewService {
 
 		StudentOrder order = studentOrderRepository.findById(slip.getOrderId())
 			.orElseThrow(() -> new NotFoundException("Order not found for this payment slip"));
-		enrollmentActivationApi.activateFromApprovedSlip(slip.getId(), slip.getStudentId(), order.getCourseId());
+		// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
+		// activateOrReactivateFromApprovedSlip owns the
+		// resolve-access-state-and-branch decision that used to be
+		// duplicated here - mirrors PaymentConfirmationService's identical
+		// call site, see that class's javadoc for the full rationale.
+		try {
+			enrollmentActivationApi.activateOrReactivateFromApprovedSlip(slip.getId(), order.getId(),
+					slip.getStudentId(), order.getCourseId());
+		}
+		catch (IllegalStateException ex) {
+			// Bug fix (MVP-012 review): mirrors PaymentConfirmationService's
+			// identical activation/reactivation-refusal handling - see that
+			// class's comment at the equivalent call site for the full
+			// rationale. Must NOT roll back this slip's own APPROVED
+			// transition or its audit log entry.
+			//
+			// Deliberately does NOT add a "tenantId" key here (finding L7):
+			// this method always runs inside an authenticated, tenant-resolved
+			// request, so CorrelationIdFilter has already put tenantId into
+			// MDC, which the structured logging format includes automatically
+			// - an explicit addKeyValue("tenantId", ...) here previously
+			// collided with that MDC-supplied key ("The name 'tenantId' has
+			// already been written"). Contrast PaymentConfirmationService's
+			// sibling warn call, which DOES need an explicit tenantId key,
+			// since its webhook request path never goes through the
+			// authenticated filter chain that populates MDC.
+			log.atWarn()
+				.setMessage("enrollment.reactivation_refused")
+				.addKeyValue("actor", "slip-review:" + principal.userId())
+				.addKeyValue("slipId", slip.getId())
+				.addKeyValue("orderId", order.getId())
+				.addKeyValue("studentId", slip.getStudentId())
+				.addKeyValue("courseId", order.getCourseId())
+				.addKeyValue("reason", ex.getMessage())
+				.log();
+		}
 
 		if (hasFlags) {
 			List<String> overriddenFlagTypes = flags.stream().map(f -> f.getFlagType().name()).distinct().toList();

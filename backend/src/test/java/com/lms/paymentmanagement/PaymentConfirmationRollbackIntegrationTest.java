@@ -41,9 +41,14 @@ class PaymentConfirmationRollbackIntegrationTest extends PaymentManagementTestSu
 
 	@Test
 	void aFailureInEnrollmentActivationRollsBackTheEntirePaymentConfirmationTransaction() {
+		// MVP-012 review finding M2: PaymentConfirmationService now calls the
+		// single consolidated activateOrReactivateFromConfirmedPayment
+		// method (which internally decides activate vs reactivate) instead
+		// of calling activateFromConfirmedPayment directly - stub the
+		// consolidated method so this mock is actually reached.
 		doThrow(new RuntimeException("Simulated mid-transaction failure in enrollment activation")).when(
 				enrollmentActivationApi)
-			.activateFromConfirmedPayment(any(), any(), any());
+			.activateOrReactivateFromConfirmedPayment(any(), any(), any(), any());
 
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("pay-rollback"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
