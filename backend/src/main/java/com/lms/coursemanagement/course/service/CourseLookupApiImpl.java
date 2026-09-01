@@ -2,6 +2,7 @@ package com.lms.coursemanagement.course.service;
 
 import com.lms.coursemanagement.api.CourseAccessWindow;
 import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.coursemanagement.api.LessonOwnership;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
@@ -9,7 +10,9 @@ import com.lms.coursemanagement.course.repository.CourseLessonRepository;
 import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +60,14 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	@Override
 	public Optional<CourseAccessWindow> getAccessDurationDays(UUID courseId) {
 		return courseRepository.findById(courseId).map(course -> new CourseAccessWindow(course.getAccessDurationDays()));
+	}
+
+	@Override
+	public List<CourseSummary> getCourseSummaries(Set<UUID> courseIds) {
+		return courseRepository.findAllById(courseIds)
+			.stream()
+			.map(course -> new CourseSummary(course.getId(), course.getName(), course.getSlug(), course.getCategory()))
+			.toList();
 	}
 
 	@Override

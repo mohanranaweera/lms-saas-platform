@@ -1,7 +1,9 @@
 package com.lms.coursemanagement.api;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -70,5 +72,21 @@ public interface CourseLookupApi {
 	 * change an already-activated enrollment's {@code accessExpiresAt}.
 	 */
 	Optional<CourseAccessWindow> getAccessDurationDays(UUID courseId);
+
+	/**
+	 * @return the display summary (name/slug/category) for every id in
+	 * {@code courseIds} that exists in the caller's tenant, in no particular
+	 * guaranteed order - resolved via the same tenant-scoped {@link
+	 * com.lms.common.tenant.TenantContext} as every other method on this
+	 * interface, never a caller-supplied tenant id. A nonexistent or
+	 * cross-tenant id is simply absent from the result - never an error, and
+	 * never a partial-failure exception for the whole batch. Added for
+	 * {@code enrollment-management}'s student-facing course-name resolution
+	 * (MVP-013, "My Courses") - a student holds no grant in {@code
+	 * DomainArea.COURSES}'s permission matrix, so this narrow read is the
+	 * only way that page can resolve its enrolled courses' names, batched in
+	 * a single call rather than one round trip per course id.
+	 */
+	List<CourseSummary> getCourseSummaries(Set<UUID> courseIds);
 
 }

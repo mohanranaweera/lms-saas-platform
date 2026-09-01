@@ -17,13 +17,19 @@ import type { PageResponse } from "./courses";
  * enrollment's access state in one call); wiring another module's per-course
  * screen to it is that module's own future work, not this one's.
  *
- * There is no course-name (or any other display-name) lookup reachable from
- * any of these endpoints for a Student caller, and `ReactivationRequestResponse`
- * carries no `courseId` at all — only `enrollmentId`. Every caller of this
- * client renders a short id fragment instead of a name (see
- * `lib/format.ts`'s `shortId`) rather than speculatively calling
- * `GET /api/v1/courses/{id}`, which 403s for a Student and adds nothing for
- * staff in the reactivation queue either.
+ * `GET /api/v1/enrollments/my/courses` (MVP-013 "Student Dashboard") closes
+ * the course-name gap MVP-012 left open: `hasRole('STUDENT')`, owner-only, no
+ * id/query param, returns one `CourseSummaryResponse` row (`id`, `name`,
+ * `slug`, `category`) per course the caller currently has a CURRENT
+ * enrollment in (any access state), as a bare array (empty if none). Callers
+ * (`student/courses`, `student/dashboard`) resolve a display name/category by
+ * matching `EnrollmentSummaryResponse.courseId` against this response's `id`;
+ * a course id this endpoint omits (should be structurally rare — see the
+ * backend's own doc) falls back to `shortId(courseId)` from `lib/format.ts`
+ * rather than the enrollment row disappearing. `ReactivationRequestResponse`
+ * still carries no `courseId` at all — only `enrollmentId` — so reactivation
+ * queue/history rows still render `shortId(enrollmentId, "Enrollment")`
+ * unchanged; this endpoint doesn't help there.
  */
 
 export type EnrollmentAccessStateType = "NEVER_ENROLLED" | "ACTIVE" | "EXPIRED";
@@ -36,6 +42,28 @@ export interface EnrollmentSummaryResponse {
   state: EnrollmentAccessStateType;
   accessExpiresAt: string | null;
   canRequestReactivation: boolean;
+}
+
+/** Mirrors `CourseSummaryResponse` — one row of `GET /api/v1/enrollments/my/courses`'s response body (a plain array, not a `PageResponse`). */
+export interface CourseSummaryResponse {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+}
+
+/**
+ * Builds the `courseId -> CourseSummaryResponse` lookup both `student/
+ * dashboard` and `student/courses` need to resolve a display name/category
+ * for an enrollment row. Shared here (rather than duplicated per page) so
+ * there's one place to change the shortId-fallback contract; callers should
+ * wrap this in `useMemo` keyed on the query's `data` reference, since it
+ * otherwise reallocates a new `Map` on every render.
+ */
+export function indexCourseSummariesById(
+  summaries: CourseSummaryResponse[] | undefined
+): Map<string, CourseSummaryResponse> {
+  return new Map((summaries ?? []).map((course) => [course.id, course]));
 }
 
 /** Mirrors `ReactivationRequestResponse` field-for-field. */
@@ -72,6 +100,7 @@ export interface ReactivationQueueParams {
 export const enrollmentKeys = {
   all: ["enrollments"] as const,
   my: () => [...enrollmentKeys.all, "my"] as const,
+  myCourses: () => [...enrollmentKeys.all, "my", "courses"] as const,
 };
 
 export const reactivationRequestKeys = {
@@ -91,6 +120,23 @@ export function useMyEnrollments() {
   return useQuery({
     queryKey: enrollmentKeys.my(),
     queryFn: () => authorizedFetch<EnrollmentSummaryResponse[]>("tenant", "/api/v1/enrollments/my"),
+  });
+}
+
+/**
+ * `GET /api/v1/enrollments/my/courses` — `hasRole('STUDENT')`, owner-only,
+ * plain array (no pagination). One `CourseSummaryResponse` per course the
+ * caller currently has a CURRENT enrollment in. Callers must treat a failure
+ * of this query as graceful degradation (fall back to `shortId(courseId)`
+ * per course row), never as blocking for the enrollment list itself — see
+ * `student/courses/page.tsx` and `student/dashboard/page.tsx`.
+ */
+export function useMyEnrolledCourseSummaries() {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: enrollmentKeys.myCourses(),
+    queryFn: () =>
+      authorizedFetch<CourseSummaryResponse[]>("tenant", "/api/v1/enrollments/my/courses"),
   });
 }
 

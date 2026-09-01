@@ -7,6 +7,7 @@ import com.lms.common.api.PageResponse;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.coursemanagement.course.web.dto.CourseResponse;
 import com.lms.enrollmentmanagement.domain.ReactivationRequestStatus;
+import com.lms.enrollmentmanagement.web.dto.CourseSummaryResponse;
 import com.lms.enrollmentmanagement.web.dto.EnrollmentAccessStateResponse;
 import com.lms.enrollmentmanagement.web.dto.EnrollmentSummaryResponse;
 import com.lms.enrollmentmanagement.web.dto.ReactivationRequestResponse;
@@ -114,6 +115,12 @@ public abstract class EnrollmentManagementTestSupport extends PaymentManagementT
 	protected HttpResult<List<EnrollmentSummaryResponse>> getMyEnrollments(String host, String token) {
 		MockHttpServletRequestBuilder builder = get("/api/v1/enrollments/my");
 		return parseList(perform(authenticated(builder, host, token)), EnrollmentSummaryResponse.class);
+	}
+
+	/** {@code GET /api/v1/enrollments/my/courses} (MVP-013, "My Courses" course-name resolution). */
+	protected HttpResult<List<CourseSummaryResponse>> getMyEnrolledCourseSummaries(String host, String token) {
+		MockHttpServletRequestBuilder builder = get("/api/v1/enrollments/my/courses");
+		return parseList(perform(authenticated(builder, host, token)), CourseSummaryResponse.class);
 	}
 
 	// ------------------------------------------------------------------

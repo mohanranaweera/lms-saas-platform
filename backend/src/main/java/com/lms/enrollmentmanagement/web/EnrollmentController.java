@@ -3,6 +3,7 @@ package com.lms.enrollmentmanagement.web;
 import com.lms.common.api.ApiResponse;
 import com.lms.enrollmentmanagement.service.EnrollmentQueryService;
 import com.lms.enrollmentmanagement.service.EnrollmentSummaryView;
+import com.lms.enrollmentmanagement.web.dto.CourseSummaryResponse;
 import com.lms.enrollmentmanagement.web.dto.EnrollmentSummaryResponse;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,16 @@ public class EnrollmentController {
 		List<EnrollmentSummaryResponse> response = enrollmentQueryService.listMyEnrollments()
 			.stream()
 			.map(EnrollmentController::toResponse)
+			.toList();
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
+	@GetMapping("/my/courses")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<List<CourseSummaryResponse>>> myEnrolledCourseSummaries() {
+		List<CourseSummaryResponse> response = enrollmentQueryService.listMyEnrolledCourseSummaries()
+			.stream()
+			.map(s -> new CourseSummaryResponse(s.id(), s.name(), s.slug(), s.category()))
 			.toList();
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}

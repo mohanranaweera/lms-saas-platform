@@ -214,7 +214,24 @@ value (H2/Display weight) → optional trend indicator (up/down icon + delta tex
 "never color alone" rule, not just a colored arrow).
 
 - **Usage:** Tenant Admin/Platform Admin dashboards (active students, revenue, pending
-  approvals, etc.).
+  approvals, etc.). Also used by the Student Overview page (MVP-013,
+  `frontend/src/components/students/stat-card.tsx`) for active/expired enrollment
+  counts and recent-payment status — kept feature-scoped under `components/students/`
+  rather than promoted here, per `.claude/rules/frontend.md`'s "extract to shared only
+  when a second role group needs it" rule; a future Teacher/Tenant-Admin/Platform-Admin
+  dashboard reusing this exact composition should extend `stat-card.tsx` (or promote it
+  here) rather than re-deriving it from scratch.
+
+**Student "My Courses" / Overview card-grid convention (MVP-013).** Both
+`student/courses/page.tsx` and the "recent courses" section of
+`student/dashboard/page.tsx` render enrolled courses as a card grid
+(`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`), mirroring `app/(public)/courses/page.tsx`'s
+`CourseCard` pattern rather than `DataTable` (§2.4) — `DataTable` remains reserved for
+admin-surface tabular data per `.claude/rules/ui-ux.md` §5's consumer-surface rule. The
+shipped student course card uses the minimal 4-field `CourseSummaryResponse` shape (name,
+slug, category, id) — no thumbnail/teacher-name/progress bar — a deliberate MVP scope
+cut (`docs/plans/MVP-013 Student Dashboard.md` §21 item 2), not drift from §2.3's richer
+spec; a future polish pass can extend the DTO without touching ownership/auth semantics.
 
 ### 2.3 Course Card
 

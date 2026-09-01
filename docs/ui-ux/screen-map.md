@@ -38,7 +38,9 @@ real submit behavior lands with that module.
 
 ## Student Portal (`app/(student)/`)
 
-- Student > Dashboard > Overview — enrollment/payment/attendance/exam summary + alerts
+- Student > Dashboard > Overview — enrollment/payment summary + expired-access alerts
+  (MVP-013). Attendance/exam summary tiles are a future addition once
+  `attendance-management`/`exam-management` ship — not present today.
 - Student > Courses > My Courses — list of enrolled courses
 - Student > Courses > Course Workspace — modules/lessons navigation for one course
 - Student > Courses > Lesson/Material View — PDF/notes/image viewer with watermark, expiry/view-limit enforcement

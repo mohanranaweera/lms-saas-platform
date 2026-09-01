@@ -3,13 +3,20 @@ package com.lms.enrollmentmanagement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lms.common.api.PageResponse;
+import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.coursemanagement.course.web.dto.CourseResponse;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.enrollmentmanagement.domain.ReactivationRequestStatus;
+import com.lms.enrollmentmanagement.web.dto.CourseSummaryResponse;
 import com.lms.enrollmentmanagement.web.dto.EnrollmentAccessStateResponse;
 import com.lms.enrollmentmanagement.web.dto.EnrollmentSummaryResponse;
 import com.lms.enrollmentmanagement.web.dto.ReactivationRequestResponse;
 import com.lms.identityaccessservice.HttpResult;
 import com.lms.identityaccessservice.domain.Role;
+import com.lms.identityaccessservice.domain.TenantUser;
+import com.lms.paymentmanagement.order.web.dto.OrderResponse;
+import com.lms.paymentmanagement.order.web.dto.PaymentInitiationResponse;
+import com.lms.tenantmanagement.domain.Tenant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -84,6 +91,50 @@ class EnrollmentCrossTenantIntegrationTest extends EnrollmentManagementTestSuppo
 				tenantA.studentToken());
 		assertThat(resultA.getBody().data()).extracting(EnrollmentSummaryResponse::enrollmentId)
 			.containsExactly(tenantA.enrollmentId());
+	}
+
+	/**
+	 * The single most important test for MVP-013's new {@code
+	 * /my/courses} endpoint (plan §18): Tenant A and Tenant B each enroll
+	 * their own student in a course with a DELIBERATELY colliding
+	 * name/slug/category (the same literal slug is used for both - legal
+	 * because {@code uq_course_tenant_slug} is tenant-scoped, V11), so a
+	 * passing test here proves real tenant isolation on {@code
+	 * CourseLookupApiImpl#getCourseSummaries}, not merely "different data
+	 * happened to differ". Tenant B's own course summary must be the only
+	 * row returned - never Tenant A's course id or name, even though it is
+	 * textually identical.
+	 */
+	@Test
+	void myCourseSummariesNeverContainsAnotherTenantsRowsEvenForAnIdenticallyNamedCourse() {
+		String collidingSlug = uniqueSlug("enr-xt-course-summary");
+		String collidingCategory = "Physics";
+		CourseSummaryCrossTenantFixture tenantA = seedActiveEnrollmentWithCourse("enr-xt-cs-a", collidingSlug,
+				collidingCategory);
+		CourseSummaryCrossTenantFixture tenantB = seedActiveEnrollmentWithCourse("enr-xt-cs-b", collidingSlug,
+				collidingCategory);
+		// Confirms the "colliding" setup actually collided, and the two courses
+		// are genuinely distinct rows (different tenants, different ids).
+		assertThat(tenantA.course().name()).isEqualTo(tenantB.course().name());
+		assertThat(tenantA.course().slug()).isEqualTo(tenantB.course().slug());
+		assertThat(tenantA.course().category()).isEqualTo(tenantB.course().category());
+		assertThat(tenantA.course().id()).isNotEqualTo(tenantB.course().id());
+
+		HttpResult<List<CourseSummaryResponse>> resultB = getMyEnrolledCourseSummaries(tenantB.host(),
+				tenantB.studentToken());
+
+		assertThat(resultB.getStatusCode()).isEqualTo(HttpStatus.OK);
+		List<CourseSummaryResponse> rowsB = resultB.getBody().data();
+		assertThat(rowsB).hasSize(1);
+		assertThat(rowsB).extracting(CourseSummaryResponse::id).containsExactly(tenantB.course().id())
+			.doesNotContain(tenantA.course().id());
+		assertThat(rowsB.get(0).name()).isEqualTo(tenantB.course().name());
+
+		// Sanity: tenant A's own list DOES see its own (identically-named) course.
+		HttpResult<List<CourseSummaryResponse>> resultA = getMyEnrolledCourseSummaries(tenantA.host(),
+				tenantA.studentToken());
+		assertThat(resultA.getBody().data()).extracting(CourseSummaryResponse::id)
+			.containsExactly(tenantA.course().id());
 	}
 
 	@Test
@@ -246,6 +297,45 @@ class EnrollmentCrossTenantIntegrationTest extends EnrollmentManagementTestSuppo
 				"SELECT count(*) FROM reactivation_request WHERE enrollment_id = ?", Long.class,
 				fixture.enrollmentId());
 		assertThat(requestCount).isEqualTo(1L);
+	}
+
+	// ------------------------------------------------------------------
+	// Fixture seeding (course-summary cross-tenant test only).
+	// ------------------------------------------------------------------
+
+	private record CourseSummaryCrossTenantFixture(String host, String studentToken, CourseResponse course) {
+	}
+
+	/**
+	 * Seeds a tenant, Tenant Admin, Teacher, Student, a published course
+	 * created with the CALLER-SUPPLIED slug/category (unlike {@code
+	 * seedExpiredEnrollmentFixture}, which always generates a random slug via
+	 * {@code uniqueSlug}), and completes a NORMAL first-time purchase (order
+	 * -&gt; payment -&gt; webhook confirm), leaving a genuinely current,
+	 * non-expired enrollment. Lets the caller force two different tenants'
+	 * courses to collide on name/slug/category, which {@code
+	 * uq_course_tenant_slug}'s tenant-scoping (V11) makes legal.
+	 */
+	private CourseSummaryCrossTenantFixture seedActiveEnrollmentWithCourse(String prefix, String slug,
+			String category) {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain(prefix));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		TenantUser teacher = seedTenantUser(tenant.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
+		seedActiveStudent(tenant.getId(), "student@example.test");
+		String host = hostFor(tenant.getSubdomain());
+		String adminToken = loginAndGetToken(host, "admin@example.test");
+		String studentToken = loginAndGetToken(host, "student@example.test");
+		CourseResponse course = createCourseOrFail(host, adminToken,
+				newCourseRequest(slug, teacher.getId(), CourseStatus.PUBLIC, category));
+
+		OrderResponse order = createOrderOrFail(host, studentToken, course.id());
+		PaymentInitiationResponse initiation = initiatePaymentOrFail(host, studentToken, order.id());
+		HttpResult<Void> webhook = sendPaymentWebhook(initiation.gatewayReference(), true);
+		if (webhook.getStatusCode() != HttpStatus.OK) {
+			throw new IllegalStateException("Webhook confirmation failed: " + webhook.getStatusCode());
+		}
+
+		return new CourseSummaryCrossTenantFixture(host, studentToken, course);
 	}
 
 }

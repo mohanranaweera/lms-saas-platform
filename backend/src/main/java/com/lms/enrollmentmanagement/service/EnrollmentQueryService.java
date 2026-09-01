@@ -1,12 +1,16 @@
 package com.lms.enrollmentmanagement.service;
 
+import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,10 +49,13 @@ public class EnrollmentQueryService {
 
 	private final EnrollmentExpiryService enrollmentExpiryService;
 
+	private final CourseLookupApi courseLookupApi;
+
 	public EnrollmentQueryService(EnrollmentRepository enrollmentRepository,
-			EnrollmentExpiryService enrollmentExpiryService) {
+			EnrollmentExpiryService enrollmentExpiryService, CourseLookupApi courseLookupApi) {
 		this.enrollmentRepository = enrollmentRepository;
 		this.enrollmentExpiryService = enrollmentExpiryService;
+		this.courseLookupApi = courseLookupApi;
 	}
 
 	/** See class javadoc for why this always resolves the calling student's own state. */
@@ -67,6 +74,24 @@ public class EnrollmentQueryService {
 			.map(enrollment -> new EnrollmentSummaryView(enrollment.getId(), enrollment.getCourseId(),
 					enrollmentExpiryService.resolveAccessState(enrollment.getStudentId(), enrollment.getCourseId())))
 			.toList();
+	}
+
+	/**
+	 * Course-name resolution for the caller's own current enrollments
+	 * (MVP-013) - no id param, mirrors listMyEnrollments()'s ownership shape
+	 * exactly. Resolves every distinct enrolled course id in a single
+	 * batched {@link CourseLookupApi#getCourseSummaries(Set)} call rather
+	 * than one round trip per course - avoids an N+1 query pattern for a
+	 * student enrolled in many courses.
+	 */
+	@Transactional(readOnly = true)
+	public List<CourseSummary> listMyEnrolledCourseSummaries() {
+		AuthenticatedPrincipal principal = requireStudent();
+		Set<UUID> courseIds = enrollmentRepository.findAllCurrentByStudentId(principal.userId())
+			.stream()
+			.map(Enrollment::getCourseId)
+			.collect(Collectors.toSet());
+		return courseLookupApi.getCourseSummaries(courseIds);
 	}
 
 	private AuthenticatedPrincipal requireStudent() {

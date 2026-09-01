@@ -209,6 +209,19 @@ points back at the prior row, so the full lineage is queryable forever (mirrors
   amount") and the access history ("this student's access to this course expired on
   this date, this enrollment lineage row was superseded on this date") are two
   related but distinct append-only trails. Neither is allowed to overwrite the other.
+- **Transaction-boundary decision (MVP-013 hardening).** The guarded
+  `enrollment_expiry_event` insert commits in its own `Propagation.REQUIRES_NEW`
+  transaction (`EnrollmentExpiryEventWriter`), independent of the ambient
+  read transaction that triggered it (`EnrollmentExpiryService.resolveAccessState`).
+  This is safe specifically *because* the event is idempotent, append-only, and
+  non-authoritative for anything else in the system per the two bullets above — a
+  lost race or a caller-side failure after this write commits leaves, at worst, one
+  extra harmless idempotent row (or, on the losing side of a genuine race, no new
+  row at all, since the unique constraint already has one). This paragraph is the
+  explicit approval this decision needs under this file's own change-control banner;
+  it does not change any of this section's stated guarantees (still idempotent,
+  still never an audit-log entry, still never touching `enrollment`/payment/ledger
+  rows).
 - Bulk expiry extension and student-specific override (§6) remain unbuilt (Phase 2);
   when built, they must not be implemented by reaching back into payment/ledger data
   to "extend" a payment's effective date — the same constraint this section already

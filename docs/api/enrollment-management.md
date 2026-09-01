@@ -127,6 +127,49 @@ pagination on this endpoint).
 One row per **current** (`superseded_at IS NULL`) enrollment — a superseded (reactivated-away)
 prior lineage row never appears here.
 
+### `GET /api/v1/enrollments/my/courses`
+
+Added for MVP-013 "Student Dashboard" (My Courses / Overview course-name resolution).
+`hasRole('STUDENT')`, owner-only, no id parameter — same anti-enumeration-by-construction
+shape as `GET /api/v1/enrollments/my` above. Returns a **plain array**, not paginated.
+
+**Deviation from `docs/plans/MVP-013 Student Dashboard.md` §9/§10's draft**: that plan
+sketched this as a `course-management`-owned endpoint, `GET /api/v1/courses/my-enrolled-
+summary`, backed by a new `EnrollmentAccessApi.myCurrentEnrolledCourseIds()` method. What
+shipped instead lives here, in `enrollment-management`, backed by a new
+`CourseLookupApi.getCourseSummaries(Set<UUID>)` method added to `course-management`'s `api`
+package. Rationale for keeping the as-shipped shape rather than moving it to match the
+draft: the primary aggregate this read composes over is "the caller's own current
+enrollments" (owned by this module), and `course-management` is consulted only for the
+narrow, already-tenant-scoped display fields per enrolled course id — this follows
+`.claude/rules/architecture.md`'s "pick the domain that owns the primary aggregate/table"
+guidance more directly than the plan's original sketch, and avoids adding a second new
+`api`-package method (`myCurrentEnrolledCourseIds()`) that would have had no other
+consumer. Both directions were reviewed and confirmed to already satisfy the cross-module
+rule (this module depends only on `course-management`'s `api` package, never its
+repository/entities).
+
+`EnrollmentQueryService.listMyEnrolledCourseSummaries()` resolves the caller's distinct
+current enrolled course ids, then calls `CourseLookupApi.getCourseSummaries(Set)` once,
+batched, for all of them; a course id that no longer resolves in `course-management` is
+silently omitted, never a `500` (course rows are never hard-deleted post-enrollment, per
+this codebase's soft-delete/status-based lifecycle).
+
+**Success — `200`** (`ApiResponse<CourseSummaryResponse[]>`):
+
+```jsonc
+[
+  {
+    "id": "...",
+    "name": "Intro to Algebra",
+    "slug": "intro-to-algebra",
+    "category": "Mathematics"
+  }
+]
+```
+
+Empty array if the caller has zero current enrollments — not an error.
+
 ### `POST /api/v1/enrollments/{enrollmentId}/reactivation-requests`
 
 Owning-student-only. No request body. Creates a `reactivation_request` row in `SUBMITTED`

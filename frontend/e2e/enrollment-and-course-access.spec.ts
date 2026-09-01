@@ -13,6 +13,13 @@ import {
  * MVP-012 Enrollment and Course Access — frontend flows:
  *
  * A. Student "My Courses" (`student/courses`) — `GET /api/v1/enrollments/my`.
+ *    MVP-013's card-grid rework (SDASH-2) additionally reads
+ *    `GET /api/v1/enrollments/my/courses` for course name/category
+ *    resolution — see "student — My Courses (card grid, MVP-013 SDASH-2)"
+ *    below; the CTA-selection logic itself (Reactivate / "already
+ *    requested" / "Proceed to checkout") is unchanged and covered by the
+ *    same regression tests as before, just re-scoped from `table` role to
+ *    `list` role assertions.
  * B. Student Reactivation submit + history (`student/payments/reactivation`)
  *    — `POST /api/v1/enrollments/{id}/reactivation-requests`,
  *    `GET /api/v1/reactivation-requests/my`.
@@ -41,6 +48,16 @@ function makeEnrollment(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function makeCourseSummary(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: "course-12345678-abcd",
+    name: "Intro to Testing",
+    slug: "intro-to-testing",
+    category: "Quality Assurance",
+    ...overrides,
+  };
+}
+
 function makeReactivationRequest(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: "reactivation-1",
@@ -64,14 +81,24 @@ const STUDENT_RECORD = {
   status: "ACTIVE",
 };
 
-test.describe("student — My Courses", () => {
-  test("renders enrollments with access-state badge and short course id fragment, no name lookup called", async ({
+// Cross-tenant scope note (MVP-013 plan §18): this describe block, like the
+// rest of this file, is mock-only — see `student-dashboard.spec.ts`'s header
+// comment for the full reasoning. Plan §18's cross-tenant/manual-seed
+// requirement for "My Courses" course-name/count rendering is satisfied by
+// `EnrollmentCrossTenantIntegrationTest#myCourseSummariesNeverContainsAnotherTenantsRowsEvenForAnIdenticallyNamedCourse`,
+// which proves the identical property against a real, two-tenant-seeded
+// Postgres database rather than a mocked one.
+test.describe("student — My Courses (card grid, MVP-013 SDASH-2)", () => {
+  test("with no matching course summary, renders the short course id fragment fallback — never a direct courses/{id} lookup", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
     const enrollment = makeEnrollment();
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    // Summary read succeeds but returns no row for this course id — the
+    // graceful-degradation ("omitted, not a 500") case per plan §13.
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     let courseLookupCalled = false;
     await page.route(`**/api/v1/courses/${enrollment.courseId}`, async (route) => {
@@ -81,16 +108,49 @@ test.describe("student — My Courses", () => {
 
     await page.goto("/student/courses");
 
-    // `DataTable` renders both the desktop table and the mobile card list in
-    // the DOM simultaneously (CSS, not conditional rendering, switches which
-    // is visible) — every assertion here scopes to the desktop `table` role,
-    // mirroring `manual-payment-slips.spec.ts`'s exact convention, so a bare
-    // `page.getByText(...)` doesn't hit Playwright's strict-mode "multiple
-    // elements" error.
-    const table = page.getByRole("table");
-    await expect(table.getByText(`Course #${enrollment.courseId.slice(0, 8)}`)).toBeVisible();
-    await expect(table.getByText("Active")).toBeVisible();
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByText(`Course #${enrollment.courseId.slice(0, 8)}`)).toBeVisible();
+    await expect(grid.getByText("Active")).toBeVisible();
     expect(courseLookupCalled).toBe(false);
+  });
+
+  test("renders the real course name and category from GET /api/v1/enrollments/my/courses, not a shortId fragment", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const enrollment = makeEnrollment();
+    const summary = makeCourseSummary({ id: enrollment.courseId });
+    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
+    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([summary]));
+
+    await page.goto("/student/courses");
+
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByText(summary.name)).toBeVisible();
+    await expect(grid.getByText(summary.category)).toBeVisible();
+    await expect(grid.getByText(`Course #${enrollment.courseId.slice(0, 8)}`)).toHaveCount(0);
+  });
+
+  test("a failed course-summary read degrades gracefully — the enrollment row still renders with the shortId fallback, page not blanked", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const enrollment = makeEnrollment();
+    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
+    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(
+      page,
+      "**/api/v1/enrollments/my/courses",
+      500,
+      apiError("INTERNAL_ERROR", "Something went wrong.")
+    );
+
+    await page.goto("/student/courses");
+
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByText(`Course #${enrollment.courseId.slice(0, 8)}`)).toBeVisible();
+    await expect(grid.getByText("Active")).toBeVisible();
   });
 
   test("a null accessExpiresAt on an ACTIVE row renders 'Lifetime access'", async ({ page }) => {
@@ -98,10 +158,11 @@ test.describe("student — My Courses", () => {
     const enrollment = makeEnrollment({ accessExpiresAt: null, state: "ACTIVE" });
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     await page.goto("/student/courses");
 
-    await expect(page.getByRole("table").getByText("Lifetime access")).toBeVisible();
+    await expect(page.getByRole("list", { name: "My enrolled courses" }).getByText("Lifetime access")).toBeVisible();
   });
 
   test("an EXPIRED row with canRequestReactivation shows a Reactivate link to the reactivation screen", async ({
@@ -115,14 +176,78 @@ test.describe("student — My Courses", () => {
     });
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     await page.goto("/student/courses");
 
-    const link = page.getByRole("table").getByRole("link", { name: /Reactivate/ });
+    const link = page.getByRole("list", { name: "My enrolled courses" }).getByRole("link", { name: /Reactivate/ });
     await expect(link).toBeVisible();
     await link.click();
 
     await expect(page).toHaveURL(`/student/payments/reactivation?enrollmentId=${enrollment.enrollmentId}`);
+  });
+
+  test("an EXPIRED row shows a neutral 'Checking access status…' placeholder while the reactivation-status read is in flight — never a premature Reactivate/Proceed CTA", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const enrollment = makeEnrollment({
+      state: "EXPIRED",
+      canRequestReactivation: true,
+      accessExpiresAt: new Date().toISOString(),
+    });
+    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
+
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/v1/reactivation-requests/my*", async (route) => {
+      await gate;
+      await fulfillJson(route, 200, apiPageSuccess([]));
+    });
+
+    await page.goto("/student/courses");
+
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByText("Checking access status…")).toBeVisible();
+    await expect(grid.getByRole("link", { name: /Reactivate/ })).toHaveCount(0);
+    await expect(grid.getByRole("link", { name: /Proceed to checkout/ })).toHaveCount(0);
+
+    release?.();
+
+    await expect(grid.getByRole("link", { name: /^Reactivate/ })).toBeVisible();
+    await expect(grid.getByText("Checking access status…")).toHaveCount(0);
+  });
+
+  test("a failed reactivation-status read leaves the neutral placeholder in place — never a false Reactivate/Proceed CTA", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const enrollment = makeEnrollment({
+      state: "EXPIRED",
+      canRequestReactivation: true,
+      accessExpiresAt: new Date().toISOString(),
+    });
+    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
+    await mockJson(
+      page,
+      "**/api/v1/reactivation-requests/my*",
+      500,
+      apiError("INTERNAL_ERROR", "Something went wrong.")
+    );
+
+    await page.goto("/student/courses");
+
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByText("Checking access status…")).toBeVisible();
+    await expect(grid.getByRole("link", { name: /Reactivate/ })).toHaveCount(0);
+    await expect(grid.getByRole("link", { name: /Proceed to checkout/ })).toHaveCount(0);
+    // The page itself is not blanked by this third query's failure — the
+    // enrollment row and its access-state badge still render.
+    await expect(grid.getByText("Expired")).toBeVisible();
   });
 
   test("an expired course renders the distinct 'Expired' access-state badge, not a generic error/alert", async ({
@@ -136,18 +261,19 @@ test.describe("student — My Courses", () => {
     });
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     await page.goto("/student/courses");
 
-    const table = page.getByRole("table");
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
     // The distinct expired state is the "Expired" badge (never a generic
     // error/permission-denied render) rendered alongside a live Reactivate
-    // CTA in the same row — not two disconnected states. (Next.js's own
+    // CTA in the same card — not two disconnected states. (Next.js's own
     // built-in, always-mounted empty route announcer also has `role="alert"`
     // in this app shell, so asserting a bare zero-count on that role would be
     // a false signal — scope to actual error/permission-denied copy instead.)
-    await expect(table.getByText("Expired")).toBeVisible();
-    await expect(table.getByRole("link", { name: /Reactivate/ })).toBeVisible();
+    await expect(grid.getByText("Expired")).toBeVisible();
+    await expect(grid.getByRole("link", { name: /Reactivate/ })).toBeVisible();
     await expect(page.getByText("Something went wrong", { exact: false })).toHaveCount(0);
     await expect(page.getByText("permission", { exact: false })).toHaveCount(0);
   });
@@ -156,6 +282,7 @@ test.describe("student — My Courses", () => {
     await mockTenantSession(page, "STUDENT");
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([]));
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     await page.goto("/student/courses");
 
@@ -182,6 +309,12 @@ test.describe("student — My Courses", () => {
       403,
       apiError("FORBIDDEN", "You do not have permission to view this.")
     );
+    await mockJson(
+      page,
+      "**/api/v1/enrollments/my/courses",
+      403,
+      apiError("FORBIDDEN", "You do not have permission to view this.")
+    );
 
     await page.goto("/student/courses");
 
@@ -190,12 +323,13 @@ test.describe("student — My Courses", () => {
     ).toBeVisible();
   });
 
-  test("shows the loading label while the fetch is in flight, then renders the table", async ({
+  test("shows the loading label while the fetch is in flight, then renders the card grid", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
     const enrollment = makeEnrollment();
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     let release: (() => void) | undefined;
     const gate = new Promise<void>((resolve) => {
@@ -212,9 +346,130 @@ test.describe("student — My Courses", () => {
     release?.();
 
     await expect(
-      page.getByRole("table").getByText(`Course #${enrollment.courseId.slice(0, 8)}`)
+      page.getByRole("list", { name: "My enrolled courses" }).getByText(`Course #${enrollment.courseId.slice(0, 8)}`)
     ).toBeVisible();
     await expect(page.getByText("Loading your courses…")).toHaveCount(0);
+  });
+
+  test("renders as a single-column list below sm and a multi-column grid at lg", async ({ page }) => {
+    await mockTenantSession(page, "STUDENT");
+    const enrollments = [
+      makeEnrollment({ enrollmentId: "enrollment-a", courseId: "course-a11111111111" }),
+      makeEnrollment({ enrollmentId: "enrollment-b", courseId: "course-b22222222222" }),
+    ];
+    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess(enrollments));
+    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/student/courses");
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid).toHaveClass(/grid-cols-1/);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(grid).toHaveClass(/lg:grid-cols-3/);
+  });
+
+  test("actually lays out 1/2/3 columns at sm/md/lg widths — a real computed-layout assertion, not just CSS class presence", async ({
+    page,
+  }) => {
+    // The sibling test above only proves the `grid-cols-*` class strings are
+    // present in the DOM, which is presence, not proof of the resulting
+    // layout (a typo'd/overridden Tailwind class could still "pass" that
+    // assertion). This test reads the browser's actual computed
+    // `grid-template-columns` track count at each breakpoint instead, per
+    // plan §18's explicit "actual layout/column-count assertion, not just
+    // DOM presence" requirement.
+    await mockTenantSession(page, "STUDENT");
+    const enrollments = [
+      makeEnrollment({ enrollmentId: "geo-a", courseId: "course-geo-aaaaaaaaaa" }),
+      makeEnrollment({ enrollmentId: "geo-b", courseId: "course-geo-bbbbbbbbbb" }),
+      makeEnrollment({ enrollmentId: "geo-c", courseId: "course-geo-cccccccccc" }),
+    ];
+    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess(enrollments));
+    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
+
+    await page.goto("/student/courses");
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByRole("listitem")).toHaveCount(3);
+
+    async function columnCount() {
+      return grid.evaluate(
+        (el) => getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length
+      );
+    }
+
+    // Below `sm` (375px): single column.
+    await page.setViewportSize({ width: 375, height: 900 });
+    await expect.poll(columnCount).toBe(1);
+
+    // Within `sm`/`md` (700px — at/above the 640px `sm` breakpoint, below
+    // the 1024px `lg` breakpoint): 2 columns.
+    await page.setViewportSize({ width: 700, height: 900 });
+    await expect.poll(columnCount).toBe(2);
+
+    // At `lg` (1280px) and above: 3 columns.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect.poll(columnCount).toBe(3);
+  });
+
+  test("keyboard Tab traversal reaches each reachable card CTA across multiple cards, in DOM order, skipping a card with no CTA", async ({
+    page,
+  }) => {
+    // The existing keyboard tests in this file directly `.focus()` a single,
+    // already-known CTA — that proves the CTA itself is focusable, but not
+    // that a keyboard-only user can actually *reach* it by tabbing through
+    // the grid. This test performs a real `Tab` traversal across three
+    // cards (one Reactivate CTA, one ACTIVE card with no CTA at all, one
+    // "already requested" CTA), proving Tab order flows correctly through
+    // the card grid rather than getting stuck or skipping unpredictably.
+    await mockTenantSession(page, "STUDENT");
+    const enrollmentA = makeEnrollment({
+      enrollmentId: "kb-grid-a",
+      courseId: "course-kb-grid-aaaaaa",
+      state: "EXPIRED",
+      canRequestReactivation: true,
+      accessExpiresAt: new Date().toISOString(),
+    });
+    const enrollmentB = makeEnrollment({
+      enrollmentId: "kb-grid-b",
+      courseId: "course-kb-grid-bbbbbb",
+      state: "ACTIVE",
+    });
+    const enrollmentC = makeEnrollment({
+      enrollmentId: "kb-grid-c",
+      courseId: "course-kb-grid-cccccc",
+      state: "EXPIRED",
+      canRequestReactivation: false,
+      accessExpiresAt: new Date().toISOString(),
+    });
+    await mockJson(
+      page,
+      "**/api/v1/enrollments/my",
+      200,
+      apiSuccess([enrollmentA, enrollmentB, enrollmentC])
+    );
+    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
+
+    await page.goto("/student/courses");
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+
+    const firstCta = grid.getByRole("link", {
+      name: `Reactivate Course #${enrollmentA.courseId.slice(0, 8)}`,
+    });
+    await firstCta.focus();
+    await expect(firstCta).toBeFocused();
+
+    // enrollmentB's card renders a plain, non-interactive "—" placeholder
+    // (an ACTIVE row has no CTA per `renderReactivateAction`) — a single Tab
+    // press from card A's CTA must land on card C's CTA, not get stuck.
+    await page.keyboard.press("Tab");
+    const secondCta = grid.getByRole("link", {
+      name: `Reactivation already requested for Course #${enrollmentC.courseId.slice(0, 8)}`,
+    });
+    await expect(secondCta).toBeFocused();
   });
 });
 
@@ -367,12 +622,13 @@ test.describe("student — approved reactivation can complete a new checkout", (
       newOrderId: null,
     });
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([approvedRequest]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     await page.goto("/student/courses");
 
-    const table = page.getByRole("table");
-    await expect(table.getByRole("link", { name: /Proceed to checkout/ })).toBeVisible();
-    await expect(table.getByRole("link", { name: /Reactivate/ })).toHaveCount(0);
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByRole("link", { name: /Proceed to checkout/ })).toBeVisible();
+    await expect(grid.getByRole("link", { name: /Reactivate/ })).toHaveCount(0);
 
     await mockJson(page, `**/api/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
     const order = {
@@ -406,7 +662,7 @@ test.describe("student — approved reactivation can complete a new checkout", (
     );
     await mockJson(page, `**/api/v1/orders/${order.id}`, 200, apiSuccess(order));
 
-    await table.getByRole("link", { name: /Proceed to checkout/ }).click();
+    await grid.getByRole("link", { name: /Proceed to checkout/ }).click();
     await expect(page).toHaveURL(`/student/checkout/${COURSE.id}`);
 
     await page.getByRole("button", { name: "Enroll" }).click();
@@ -454,15 +710,13 @@ test.describe("student — approved reactivation can complete a new checkout", (
       status: "SUBMITTED",
     });
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([submittedRequest]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     await page.goto("/student/courses");
 
-    await expect(
-      page.getByRole("table").getByRole("link", { name: /Proceed to checkout/ })
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("table").getByRole("link", { name: "Reactivation already requested" })
-    ).toBeVisible();
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByRole("link", { name: /Proceed to checkout/ })).toHaveCount(0);
+    await expect(grid.getByRole("link", { name: "Reactivation already requested" })).toBeVisible();
   });
 
   test("an APPROVED request that is already fulfilled (newOrderId set) never shows 'Proceed to checkout' again", async ({
@@ -485,14 +739,14 @@ test.describe("student — approved reactivation can complete a new checkout", (
       newOrderId: "order-already-linked-1",
     });
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([fulfilledRequest]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
 
     await page.goto("/student/courses");
 
-    await expect(
-      page.getByRole("table").getByRole("link", { name: /Proceed to checkout/ })
-    ).toHaveCount(0);
+    const grid = page.getByRole("list", { name: "My enrolled courses" });
+    await expect(grid.getByRole("link", { name: /Proceed to checkout/ })).toHaveCount(0);
     // Falls back to the ordinary Reactivate CTA (a fulfilled request never blocks a future one for this still-EXPIRED enrollment — see `ReactivationRequestRepository#findLiveByEnrollmentId`'s javadoc).
-    await expect(page.getByRole("table").getByRole("link", { name: /Reactivate/ })).toBeVisible();
+    await expect(grid.getByRole("link", { name: /Reactivate/ })).toBeVisible();
   });
 });
 
@@ -939,6 +1193,7 @@ test.describe("accessibility — keyboard-only completion (no mouse)", () => {
     });
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
     await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
     const created = makeReactivationRequest({
       id: "kb-request-1",
       enrollmentId: enrollment.enrollmentId,
@@ -955,7 +1210,9 @@ test.describe("accessibility — keyboard-only completion (no mouse)", () => {
     // No `.click()` anywhere below — focus is placed on the CTA (a keyboard
     // user having tabbed there) and every following interaction is a
     // keyboard event only (Enter to activate a link/button).
-    const reactivateLink = page.getByRole("table").getByRole("link", { name: /Reactivate/ });
+    const reactivateLink = page
+      .getByRole("list", { name: "My enrolled courses" })
+      .getByRole("link", { name: /Reactivate/ });
     await reactivateLink.focus();
     await expect(reactivateLink).toBeFocused();
     await page.keyboard.press("Enter");

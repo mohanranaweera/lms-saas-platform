@@ -24,13 +24,21 @@ test.describe("tenant login — role-based dashboard redirect", () => {
   const cases: Array<{ role: string; path: string; heading: string }> = [
     { role: "TENANT_ADMIN", path: "/tenant-admin/dashboard", heading: "Tenant Admin Dashboard" },
     { role: "TEACHER", path: "/teacher/dashboard", heading: "Teacher Dashboard" },
-    { role: "STUDENT", path: "/student/dashboard", heading: "Student Dashboard" },
+    // `/student/dashboard`'s heading is "Overview" as of MVP-013 (Student
+    // Dashboard, SDASH-1) — it stopped being the generic "Student Dashboard"
+    // placeholder shared with the other still-unbuilt role dashboards above.
+    { role: "STUDENT", path: "/student/dashboard", heading: "Overview" },
   ];
 
   for (const { role, path, heading } of cases) {
     test(`${role} login redirects to ${path}`, async ({ page }) => {
       const token = fakeJwt({ role });
       await mockJson(page, "**/v1/auth/login", 200, apiSuccess(loginResponseBody(token)));
+      if (role === "STUDENT") {
+        await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([]));
+        await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
+        await mockJson(page, "**/api/v1/ledger/history", 200, apiSuccess([]));
+      }
 
       await page.goto("/login");
       await submitLogin(page);
