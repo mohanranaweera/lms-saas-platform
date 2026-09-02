@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Receipt } from "lucide-react";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
-import { StatCard } from "@/components/students/stat-card";
+import { StatCard } from "@/components/dashboard/stat-card";
 import { AccessStateBadge } from "@/components/students/enrollment-status-badges";
 import { formatDateTime, formatMoney, shortId } from "@/lib/format";
 import {

@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import {
+  apiPageSuccess,
+  apiSuccess,
+  fakeJwt,
+  mockJson,
+  refreshResponseBody,
+} from "./fixtures/auth-mocks";
 
 /**
  * Structural/manual accessibility smoke checks. No new npm dependency (e.g.
@@ -39,6 +45,16 @@ test.describe("landmarks", () => {
   test("dashboard shell exposes a labeled primary navigation landmark", async ({
     page,
   }) => {
+    // `/teacher/dashboard` is guarded by `RouteGuard` (MVP-014 Teacher
+    // Dashboard) — mock a successful silent refresh so the guard resolves
+    // without a real backend, matching this file's "no npm dependency, real
+    // request interception only" posture.
+    const token = fakeJwt({ role: "TEACHER" });
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+    // The nav landmark renders independent of the courses fetch, but every
+    // request this environment makes must be mocked (see teacher-dashboard.spec.ts's
+    // own module doc) rather than left to hit a real, unavailable backend.
+    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([]));
     await page.goto("/teacher/dashboard");
     await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
   });

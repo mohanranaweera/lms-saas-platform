@@ -11,17 +11,28 @@ import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/a
  * Dashboards are reached by direct navigation (same pattern as
  * `route-groups.spec.ts`) with the refresh/logout endpoints mocked per
  * `fixtures/auth-mocks.ts` (no backend in this environment). As of MVP-006
- * Student Management, `/tenant-admin/dashboard` and `/student/dashboard` are
- * behind `RouteGuard` (`ensureAccessToken` on mount), so every test reaching
- * one of those two now mocks `POST .../v1/auth/refresh` before navigating;
- * `/teacher/dashboard` and `/platform-admin/dashboard` remain unguarded.
+ * Student Management and MVP-014 Teacher Dashboard, `/tenant-admin/dashboard`,
+ * `/student/dashboard`, and `/teacher/dashboard` are all behind `RouteGuard`
+ * (`ensureAccessToken` on mount), so every test reaching one of those three
+ * now mocks `POST .../v1/auth/refresh` before navigating; only
+ * `/platform-admin/dashboard` remains unguarded.
  */
 
 function mockSuccessfulLogoutFlow(page: import("@playwright/test").Page, role: string) {
   const token = fakeJwt({ role });
-  return mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token))).then(() =>
-    mockJson(page, "**/v1/auth/logout", 200, apiSuccess(null))
-  );
+  return mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)))
+    .then(() => mockJson(page, "**/v1/auth/logout", 200, apiSuccess(null)))
+    .then(() =>
+      // `/teacher/dashboard` (MVP-014) fetches its own course list — mock it
+      // so the page settles deterministically; the Student dashboard's own
+      // reads are separately mocked per test below.
+      mockJson(
+        page,
+        "**/v1/courses*",
+        200,
+        apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 })
+      )
+    );
 }
 
 test.describe("logout confirmation — Tenant Admin (requires confirmation)", () => {

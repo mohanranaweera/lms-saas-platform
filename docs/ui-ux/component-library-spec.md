@@ -214,13 +214,17 @@ value (H2/Display weight) → optional trend indicator (up/down icon + delta tex
 "never color alone" rule, not just a colored arrow).
 
 - **Usage:** Tenant Admin/Platform Admin dashboards (active students, revenue, pending
-  approvals, etc.). Also used by the Student Overview page (MVP-013,
-  `frontend/src/components/students/stat-card.tsx`) for active/expired enrollment
-  counts and recent-payment status — kept feature-scoped under `components/students/`
-  rather than promoted here, per `.claude/rules/frontend.md`'s "extract to shared only
-  when a second role group needs it" rule; a future Teacher/Tenant-Admin/Platform-Admin
-  dashboard reusing this exact composition should extend `stat-card.tsx` (or promote it
-  here) rather than re-deriving it from scratch.
+  approvals, etc.). Also used by the Student Overview (MVP-013) and Teacher Overview
+  (MVP-014) pages for their respective assigned/enrolled-course statistics —
+  **relocated in MVP-014** from `frontend/src/components/students/stat-card.tsx` to
+  `frontend/src/components/dashboard/stat-card.tsx` (pure move, no prop/behavior
+  change), since Teacher becoming a second consumer was the concrete trigger
+  `.claude/rules/frontend.md`'s "extract to shared only when a second role group needs
+  it" rule was written for. A future Tenant-Admin/Platform-Admin dashboard reusing this
+  exact composition should continue extending `components/dashboard/stat-card.tsx`
+  directly rather than promoting it further or re-deriving it from scratch — see
+  `docs/plans/MVP-014 Teacher Dashboard.md` §21 item 3, which leaves this location as a
+  deliberately non-final choice, not a settled architecture decision.
 
 **Student "My Courses" / Overview card-grid convention (MVP-013).** Both
 `student/courses/page.tsx` and the "recent courses" section of
@@ -232,6 +236,23 @@ shipped student course card uses the minimal 4-field `CourseSummaryResponse` sha
 slug, category, id) — no thumbnail/teacher-name/progress bar — a deliberate MVP scope
 cut (`docs/plans/MVP-013 Student Dashboard.md` §21 item 2), not drift from §2.3's richer
 spec; a future polish pass can extend the DTO without touching ownership/auth semantics.
+
+**Teacher "My Courses" / Overview card-grid convention (MVP-014).** Same pattern as the
+Student convention above, applied to the Teacher portal: `teacher/courses/page.tsx`
+renders its results via a new, Teacher-page-local `TeacherCourseCardGrid`
+(`frontend/src/components/courses/teacher-course-card-grid.tsx`,
+`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, mirroring `CourseCard`'s markup convention),
+and `teacher/dashboard/page.tsx`'s "recent courses" section uses the identical breakpoint
+grid. This **replaced** `CourseListTable` (§2.4-style admin table pattern) on the Teacher
+My Courses page specifically — `CourseListTable` itself, and Tenant Admin's Course List
+page (its remaining consumer), are unmodified and remain the correct pattern for that
+admin-heavy surface. `TeacherCourseCardGrid` renders the full `CourseResponse` shape
+(unlike Student's minimal `CourseSummaryResponse` card above) since Teacher already had
+richer authorized data available via the pre-existing `GET /api/v1/courses` read this
+module reuses unchanged. The next consumer-style dashboard needing a course/entity card
+grid (e.g. Tenant Admin's still-placeholder TADASH-1, if it ever needs a
+consumer-style sub-view) should extend this pattern rather than re-deriving it or
+reaching for `CourseListTable`.
 
 ### 2.3 Course Card
 

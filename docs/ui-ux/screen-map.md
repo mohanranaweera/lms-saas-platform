@@ -63,7 +63,13 @@ real submit behavior lands with that module.
 
 ## Teacher Portal (`app/(teacher)/`)
 
-- Teacher > Dashboard > Overview — assigned courses, pending marking, upcoming classes
+- Teacher > Dashboard > Overview — assigned-course statistics (total/published/draft counts)
+  and a recent-courses list, all from the teacher-ownership-scoped `GET /api/v1/courses` read
+  (MVP-014, shipped). Pending-marking and upcoming-classes tiles named in the original backlog
+  entry are **not** part of the shipped Overview — no `attendance-management`/`exam-management`/
+  `live-class-management` backend domain exists yet to supply that data; adding those tiles is
+  that future domain's own module scope, not a retrofit on MVP-014 (mirrors the identical
+  Student Overview correction above).
 - Teacher > Courses > My Courses — assigned courses list
 - Teacher > Courses > Course Builder — create/edit course metadata, pricing, enrollment rules, access duration, visibility, prerequisites
 - Teacher > Courses > Module & Lesson Editor — course modules/lessons structure

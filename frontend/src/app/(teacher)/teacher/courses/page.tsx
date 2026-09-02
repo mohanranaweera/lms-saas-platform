@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { CourseListTable } from "@/components/courses/course-list-table";
+import { EmptyState } from "@/components/states/empty-state";
+import { TeacherCourseCardGrid } from "@/components/courses/teacher-course-card-grid";
 import { useCourses, type CourseResponse, type CourseStatus } from "@/lib/api/courses";
+import {
+  TEACHER_NO_ASSIGNED_COURSES_TITLE,
+  TEACHER_NO_ASSIGNED_COURSES_DESCRIPTION,
+  TEACHER_NO_ASSIGNED_COURSES_ACTION_LABEL,
+} from "@/lib/copy/teacher-empty-states";
 
 const STATUS_FILTER_OPTIONS: Array<{ value: "all" | CourseStatus; label: string }> = [
   { value: "all", label: "All statuses" },
@@ -36,6 +43,7 @@ const STATUS_FILTER_OPTIONS: Array<{ value: "all" | CourseStatus; label: string 
  * controls for a bounded, per-teacher list.
  */
 export default function TeacherCoursesPage() {
+  const router = useRouter();
   const query = useCourses();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -65,7 +73,6 @@ export default function TeacherCoursesPage() {
     setStatusFilter("all");
   };
 
-  const hasAnyCourses = (query.data?.content ?? []).length > 0;
   const filtersActive = search.trim() !== "" || categoryFilter !== "all" || statusFilter !== "all";
 
   return (
@@ -88,24 +95,17 @@ export default function TeacherCoursesPage() {
         loadingLabel="Loading your courses…"
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
+        isEmpty={(data) => data.content.length === 0}
+        emptyState={{
+          title: TEACHER_NO_ASSIGNED_COURSES_TITLE,
+          description: TEACHER_NO_ASSIGNED_COURSES_DESCRIPTION,
+          action: {
+            label: TEACHER_NO_ASSIGNED_COURSES_ACTION_LABEL,
+            onClick: () => router.push("/teacher/courses/new"),
+          },
+        }}
       >
         {(courses) => {
-          if (!hasAnyCourses) {
-            return (
-              <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-12 text-center">
-                <p className="text-sm font-medium text-foreground">No assigned courses yet</p>
-                <p className="max-w-md text-sm text-muted-foreground">
-                  You don&apos;t own any courses yet. Create your first course to get started, or
-                  contact your tenant admin if you expected to see courses assigned here already.
-                </p>
-                <Button render={<Link href="/teacher/courses/new" />} size="sm">
-                  <Plus aria-hidden="true" />
-                  Create your first course
-                </Button>
-              </div>
-            );
-          }
-
           return (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -159,19 +159,17 @@ export default function TeacherCoursesPage() {
               </div>
 
               {filtered.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-12 text-center">
-                  <p className="text-sm font-medium text-foreground">No courses match your filters</p>
-                  <p className="text-sm text-muted-foreground">
-                    Try a different search term, or clear your filters to see all your courses.
-                  </p>
-                  {filtersActive ? (
-                    <Button type="button" size="sm" variant="outline" onClick={clearFilters}>
-                      Clear filters
-                    </Button>
-                  ) : null}
-                </div>
+                <EmptyState
+                  title="No courses match your filters"
+                  description="Try a different search term, or clear your filters to see all your courses."
+                  action={
+                    filtersActive
+                      ? { label: "Clear filters", onClick: clearFilters }
+                      : undefined
+                  }
+                />
               ) : (
-                <CourseListTable
+                <TeacherCourseCardGrid
                   courses={filtered}
                   renderActions={(course) => (
                     <>

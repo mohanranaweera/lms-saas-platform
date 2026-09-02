@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Generic statistic tile for the Student Overview (MVP-013 SDASH-1). Kept
- * feature-scoped under `components/students/` rather than `components/ui/`
- * per `.claude/rules/frontend.md`'s "extract to shared only when >= 2 role
- * groups actually need it" guidance — this plan only wires it into the
- * Student portal; Teacher/Tenant-Admin/Platform-Admin dashboards are still
- * placeholders and have not asked for this component yet.
+ * Generic statistic tile, originally built for the Student Overview (MVP-013
+ * SDASH-1) under `components/students/`. Relocated here (MVP-014 TDASH-1) now
+ * that the Teacher Overview is a second role-group consumer, per
+ * `.claude/rules/frontend.md`'s "extract to shared only when >= 2 role
+ * groups actually need it" guidance. Kept under `components/dashboard/`
+ * (dashboard-scoped, not a general-purpose `components/ui/` primitive) — see
+ * `docs/plans/MVP-014 Teacher Dashboard.md` §21 item 3 for the open question
+ * on whether this is the final long-term location.
  *
  * Pure presentation — `value`/`hint` are computed client-side by the caller
  * from already-fetched, already-scoped query data (display arithmetic only,

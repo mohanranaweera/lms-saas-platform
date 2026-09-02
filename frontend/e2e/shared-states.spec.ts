@@ -7,39 +7,33 @@ import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/a
  * render it, which is what the tests below exercise end-to-end.
  *
  * `/student/dashboard` stopped being a static `EmptyState`-only placeholder as of
- * MVP-013 (Student Dashboard, SDASH-1) — it's now a real data-driven Overview page.
- * Its own loading/empty/error states are covered by `student-dashboard.spec.ts`
- * instead of this file; the other three role dashboards (Teacher, Tenant Admin,
- * Platform Admin) remain the original static placeholder this file was written for.
+ * MVP-013 (Student Dashboard, SDASH-1), and `/teacher/dashboard` stopped being one
+ * as of MVP-014 (Teacher Dashboard, TDASH-1) — both are now real data-driven
+ * Overview pages. Their own loading/empty/error states are covered by
+ * `student-dashboard.spec.ts` and `teacher-dashboard.spec.ts` respectively, instead
+ * of this file; the remaining two role dashboards (Tenant Admin, Platform Admin)
+ * remain the original static placeholder this file was written for.
  *
  * `LoadingState`, `ErrorState`, and `PermissionDeniedState` (components/states/) exist
  * as a shared library with their own accessibility attributes (`aria-busy`,
  * `aria-live="polite"`, `role="alert"`) but are not yet rendered from any page/route
  * covered by *this* file — no data-fetching module exists yet for
- * Teacher/Tenant-Admin/Platform-Admin's own dashboards to trigger a real loading/error
+ * Tenant-Admin/Platform-Admin's own dashboards to trigger a real loading/error
  * state (see `src/lib/api/client.ts` and `error.ts`, which are unused infrastructure
- * for the same reason for those three). Writing a Playwright test against those
+ * for the same reason for those two). Writing a Playwright test against those
  * components today would require either modifying application source to add a
  * synthetic preview/demo route (out of scope for a test-only change) or asserting
  * against the component in isolation via a harness page, which would not prove
  * anything about real app behavior and would be misleading to report as "tested".
  * Deferring this: it should be added as part of the first module that actually
  * performs data fetching (React Query loading/error states) or the first
- * permission-gated route for each of those three, at which point this file's coverage
+ * permission-gated route for each of those two, at which point this file's coverage
  * should be extended to visit that real page in each state.
  */
 test.describe("empty state — contextual copy per role", () => {
   test("each still-placeholder dashboard's empty state has role-specific, non-generic copy", async ({
     page,
   }) => {
-    // `/teacher/dashboard`/`/tenant-admin/dashboard`/`/platform-admin/dashboard` are
-    // guarded by `RouteGuard` — mock a successful silent refresh so the guard
-    // resolves without a real backend.
-    const teacherToken = fakeJwt({ role: "TEACHER" });
-    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(teacherToken)));
-    await page.goto("/teacher/dashboard");
-    await expect(page.getByText("Teacher dashboard coming soon")).toBeVisible();
-
     // `(tenant-admin)` is wrapped in `RouteGuard` (MVP-007) — mock a
     // successful refresh so ensureAccessToken("tenant") resolves instead of
     // redirecting to /login.

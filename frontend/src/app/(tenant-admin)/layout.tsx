@@ -14,9 +14,13 @@ import { RouteGuard } from "@/components/auth/route-guard";
  * deliberate, portal-wide UX decision (avoids a flash of unauthenticated
  * dashboard/profile/settings content on a stale reload, consistent with how
  * this guard is meant to be used) — not an accidental scope expansion.
- * `(student)`, `(teacher)`, and `(platform-admin)` remain unguarded; wiring
- * `RouteGuard` into those is a separate decision for whoever first adds a
- * real authenticated data call to one of them, not implied by this change.
+ * `(student)` and `(teacher)` have since gained the same `RouteGuard
+ * kind="tenant"` wiring around their own route-group layouts (see
+ * `(student)/layout.tsx` and `(teacher)/layout.tsx`, the latter added in
+ * MVP-014), so all three tenant-context portals are now guarded the same
+ * way. `(platform-admin)` remains unguarded; wiring `RouteGuard` into it is
+ * a separate decision for whoever first adds a real authenticated data call
+ * there, not implied by this change.
  */
 export default function TenantAdminLayout({
   children,

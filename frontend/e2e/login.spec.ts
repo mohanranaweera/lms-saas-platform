@@ -23,10 +23,12 @@ async function submitLogin(page: import("@playwright/test").Page) {
 test.describe("tenant login — role-based dashboard redirect", () => {
   const cases: Array<{ role: string; path: string; heading: string }> = [
     { role: "TENANT_ADMIN", path: "/tenant-admin/dashboard", heading: "Tenant Admin Dashboard" },
-    { role: "TEACHER", path: "/teacher/dashboard", heading: "Teacher Dashboard" },
     // `/student/dashboard`'s heading is "Overview" as of MVP-013 (Student
-    // Dashboard, SDASH-1) — it stopped being the generic "Student Dashboard"
-    // placeholder shared with the other still-unbuilt role dashboards above.
+    // Dashboard, SDASH-1), and `/teacher/dashboard`'s heading is "Overview"
+    // as of MVP-014 (Teacher Dashboard, TDASH-1) — both stopped being the
+    // generic "<Role> Dashboard" placeholder still shared by Tenant Admin
+    // above.
+    { role: "TEACHER", path: "/teacher/dashboard", heading: "Overview" },
     { role: "STUDENT", path: "/student/dashboard", heading: "Overview" },
   ];
 
@@ -38,6 +40,9 @@ test.describe("tenant login — role-based dashboard redirect", () => {
         await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([]));
         await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
         await mockJson(page, "**/api/v1/ledger/history", 200, apiSuccess([]));
+      }
+      if (role === "TEACHER") {
+        await mockJson(page, "**/v1/courses*", 200, apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }));
       }
 
       await page.goto("/login");

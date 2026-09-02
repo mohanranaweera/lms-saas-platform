@@ -78,40 +78,43 @@ test.describe("platform-admin login route", () => {
 });
 
 test.describe("role dashboard route groups", () => {
-  const dashboards: Array<{ path: string; heading: string }> = [
+  const dashboards: Array<{ path: string; heading: string; placeholder: boolean }> = [
     // `/student/dashboard`'s heading is "Overview" as of MVP-013 (Student
-    // Dashboard, SDASH-1) — the other three role dashboards remain the
-    // original static "<Role> Dashboard" placeholder this test was written
-    // for.
-    { path: "/student/dashboard", heading: "Overview" },
-    { path: "/teacher/dashboard", heading: "Teacher Dashboard" },
-    { path: "/tenant-admin/dashboard", heading: "Tenant Admin Dashboard" },
-    { path: "/platform-admin/dashboard", heading: "Platform Admin Dashboard" },
+    // Dashboard, SDASH-1); `/teacher/dashboard`'s heading is "Overview" as of
+    // MVP-014 (Teacher Dashboard, TDASH-1). Tenant Admin and Platform Admin
+    // remain the original static "<Role> Dashboard" placeholder this test
+    // was written for.
+    { path: "/student/dashboard", heading: "Overview", placeholder: false },
+    { path: "/teacher/dashboard", heading: "Overview", placeholder: false },
+    { path: "/tenant-admin/dashboard", heading: "Tenant Admin Dashboard", placeholder: true },
+    { path: "/platform-admin/dashboard", heading: "Platform Admin Dashboard", placeholder: true },
   ];
 
   test.beforeEach(async ({ page }) => {
-    // `/student/dashboard` and `/tenant-admin/dashboard` are guarded by
-    // `RouteGuard` (MVP-006 Student Management) — mock a successful silent
-    // refresh so the guard resolves for those two; `/teacher/dashboard` and
-    // `/platform-admin/dashboard` remain unguarded and ignore this mock.
+    // `/student/dashboard`, `/teacher/dashboard`, and `/tenant-admin/dashboard`
+    // are guarded by `RouteGuard` (MVP-006 Student Management, MVP-014
+    // Teacher Dashboard) — mock a successful silent refresh so the guard
+    // resolves for those three; `/platform-admin/dashboard` remains
+    // unguarded and ignores this mock.
     const token = fakeJwt({ role: "STUDENT" });
     await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
-    // `/student/dashboard` is a real data-driven page as of MVP-013 — mock
-    // its three reads so it renders deterministically; the other three
-    // dashboards are still static placeholders and ignore these mocks.
+    // `/student/dashboard` and `/teacher/dashboard` are real data-driven
+    // pages — mock their reads so they render deterministically; the other
+    // two dashboards are still static placeholders and ignore these mocks.
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([]));
     await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
     await mockJson(page, "**/api/v1/ledger/history", 200, apiSuccess([]));
+    await mockJson(page, "**/v1/courses*", 200, apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }));
   });
 
-  for (const { path, heading } of dashboards) {
-    test(`${path} renders its portal shell${path === "/student/dashboard" ? "" : " and placeholder dashboard"}`, async ({
+  for (const { path, heading, placeholder } of dashboards) {
+    test(`${path} renders its portal shell${placeholder ? " and placeholder dashboard" : ""}`, async ({
       page,
     }) => {
       // `(tenant-admin)` is wrapped in `RouteGuard` (MVP-007), which calls
       // ensureAccessToken("tenant") on mount — mock a successful refresh so
-      // the guard resolves instead of redirecting to /login. The other three
-      // portals have no route guard yet and are reached by direct navigation.
+      // the guard resolves instead of redirecting to /login. Platform Admin
+      // has no route guard yet and is reached by direct navigation.
       if (path.startsWith("/tenant-admin")) {
         const token = fakeJwt({ role: "TENANT_ADMIN" });
         await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));

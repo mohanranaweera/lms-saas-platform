@@ -22,11 +22,20 @@ import {
  *
  * As of MVP-006 Student Management, `/student/dashboard` and
  * `/tenant-admin/dashboard` are behind `RouteGuard` (see
- * `route-groups.spec.ts`); `/teacher/dashboard` and `/platform-admin/dashboard`
- * remain unguarded. The scenarios below that need to reach a dashboard with
- * "no cached token" and no prior login (scenario B, and the failed-refresh
- * scenario) use `/teacher/dashboard` specifically so the guard's own silent
- * refresh call doesn't interfere with the one under test.
+ * `route-groups.spec.ts`); as of MVP-014 Teacher Dashboard, `/teacher/dashboard`
+ * is too (only `/platform-admin/dashboard` remains unguarded, and it uses a
+ * distinct `kind="platform-admin"` logout flow this file doesn't otherwise
+ * exercise, so it isn't a drop-in substitute here). The scenario below that
+ * needs to reach a dashboard with "no cached token" and no prior login
+ * (scenario B) uses `/teacher/dashboard`; because `RouteGuard` itself now
+ * performs the initial silent refresh on mount (via the same
+ * `ensureAccessToken`, before the Sign Out button even renders),
+ * `authorizedFetch`'s own call finds an already-cached session and makes no
+ * second refresh call — the assertions below still hold (exactly one refresh
+ * call total, carrying the token that ends up on the logout request), just
+ * triggered by `RouteGuard` rather than by `authorizedFetch` directly. The
+ * failed-refresh scenario further below is restructured for the same reason
+ * — see its own comment.
  */
 
 test.describe("silent refresh — cached token, protected call rejected then retried", () => {
@@ -89,7 +98,7 @@ test.describe("silent refresh — cached token, protected call rejected then ret
 });
 
 test.describe("silent refresh — no cached token", () => {
-  test("a fresh session with no in-memory token refreshes once before making the protected call", async ({
+  test("a fresh session with no in-memory token refreshes once (via RouteGuard) before the protected call reuses it", async ({
     page,
   }) => {
     let refreshCallCount = 0;
@@ -114,9 +123,16 @@ test.describe("silent refresh — no cached token", () => {
         body: JSON.stringify(apiSuccess(null)),
       });
     });
+    // `/teacher/dashboard` (MVP-014) fetches its own course list — mock it so
+    // the page settles deterministically; irrelevant to this test's actual
+    // refresh/logout assertions.
+    await mockJson(page, "**/v1/courses*", 200, apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }));
 
     // No prior login in this test — the access token is in-memory only and a
-    // fresh page load never had one to begin with.
+    // fresh page load never had one to begin with. `RouteGuard` (now wrapping
+    // `(teacher)/layout.tsx` per MVP-014) is what actually triggers this
+    // scenario's single refresh call, on mount, before the Sign Out button
+    // even renders.
     await page.goto("/teacher/dashboard");
     await page.getByRole("button", { name: "Sign out" }).click();
 
@@ -129,7 +145,9 @@ test.describe("silent refresh — no cached token", () => {
 });
 
 test.describe("silent refresh — refresh itself fails", () => {
-  test("a failed refresh surfaces an alert instead of silently redirecting", async ({ page }) => {
+  test("a failed refresh (on the recoverable-401 retry) surfaces an alert instead of silently redirecting", async ({
+    page,
+  }) => {
     // `ensureAccessToken`'s doc comment (lib/auth/auth-context.tsx) says
     // callers are responsible for redirecting to login with
     // `?reason=session_expired` when refresh fails. The only real caller in
@@ -138,13 +156,31 @@ test.describe("silent refresh — refresh itself fails", () => {
     // and does NOT redirect — the `?reason=session_expired` path itself is
     // exercised by `RouteGuard` directly (see `route-guard.tsx`), not by this
     // test, which stays scoped to `authorizedFetch`'s own retry/propagation
-    // behavior via `logout()`. Uses the still-unguarded `/teacher/dashboard`
-    // route so `RouteGuard`'s own silent-refresh call (on `/student/dashboard`,
-    // now guarded per MVP-006) doesn't consume this test's single-refresh-call
-    // assertion before the button click does.
+    // behavior via `logout()`.
+    //
+    // As of MVP-014, `(teacher)/layout.tsx` is itself wrapped in
+    // `RouteGuard`, so a bare "no cached token, refresh fails" scenario would
+    // now be intercepted by the guard's own redirect-on-failure before the
+    // Sign Out button ever renders (there is no longer any unguarded
+    // `kind="tenant"` dashboard left to reach it through — see this file's
+    // module doc). This test is restructured to reach the same
+    // `authorizedFetch`-level "refresh itself fails" behavior via its other
+    // trigger: the *first* refresh call (`RouteGuard`'s own, on mount) must
+    // succeed so the dashboard actually renders; the protected logout call
+    // then returns a recoverable 401 (`SESSION_REVOKED`), which drives
+    // `authorizedFetch`'s forced-refresh retry — and it is that *second*
+    // refresh call that fails here.
     let refreshCallCount = 0;
     await page.route("**/v1/auth/refresh", async (route) => {
       refreshCallCount += 1;
+      if (refreshCallCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(apiSuccess(refreshResponseBody(fakeJwt({ role: "TEACHER" })))),
+        });
+        return;
+      }
       await route.fulfill({
         status: 401,
         contentType: "application/json",
@@ -156,11 +192,15 @@ test.describe("silent refresh — refresh itself fails", () => {
     await page.route("**/v1/auth/logout", async (route) => {
       logoutCallCount += 1;
       await route.fulfill({
-        status: 200,
+        status: 401,
         contentType: "application/json",
-        body: JSON.stringify(apiSuccess(null)),
+        body: JSON.stringify(apiError("SESSION_REVOKED", "Session has been revoked")),
       });
     });
+    // `/teacher/dashboard` (MVP-014) fetches its own course list — mock it so
+    // the page settles deterministically; irrelevant to this test's actual
+    // refresh/logout assertions.
+    await mockJson(page, "**/v1/courses*", 200, apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }));
 
     await page.goto("/teacher/dashboard");
     const signOut = page.getByRole("button", { name: "Sign out" });
@@ -169,9 +209,10 @@ test.describe("silent refresh — refresh itself fails", () => {
     await expect(page.getByRole("alert").filter({ hasText: "Refresh token is invalid" })).toBeVisible();
     await expect(page).toHaveURL(/\/teacher\/dashboard$/);
 
-    expect(refreshCallCount).toBe(1);
-    // The protected logout call is never attempted once the token refresh
-    // that would have supplied its Authorization header has failed.
-    expect(logoutCallCount).toBe(0);
+    expect(refreshCallCount).toBe(2);
+    // The protected logout call is attempted exactly once (returning the
+    // recoverable 401 that triggers the forced-refresh retry above) — it is
+    // never retried once that retry's own token refresh has failed.
+    expect(logoutCallCount).toBe(1);
   });
 });
