@@ -6,9 +6,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 /**
  * Typed client for `user-management`'s Student Management endpoints
  * (MVP-006, `/v1/students/**`, no `/api` prefix — mirrors `lib/api/auth.ts`'s
- * convention; `NEXT_PUBLIC_API_BASE_URL` already ends in `/api`, unlike
- * `lib/api/tenant-registrations.ts`'s pre-existing `/api/v1/...` double-prefix
- * bug, which is a different module's issue and is not copied here).
+ * convention; `NEXT_PUBLIC_API_BASE_URL` already ends in `/api`, so a bare
+ * `/v1/...` path is correct here. Other modules previously had a doubled
+ * `/api/v1/...` prefix bug from not following this convention; that has
+ * since been fixed — see git history for the affected files).
  *
  * Every one of these endpoints requires an authenticated caller (staff
  * endpoints gated by the `STUDENTS` domain area, `/me` endpoints gated by

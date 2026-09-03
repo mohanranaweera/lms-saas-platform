@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useId } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,6 +22,11 @@ import { cn } from "@/lib/utils";
 
 export type StatCardTone = "default" | "warning" | "destructive";
 
+interface StatCardAction {
+  label: string;
+  href: string;
+}
+
 interface StatCardProps {
   label: string;
   value: string | number;
@@ -28,6 +35,8 @@ interface StatCardProps {
   icon?: ReactNode;
   tone?: StatCardTone;
   className?: string;
+  /** Optional next-action link rendered under `hint`, e.g. a zero-state CTA ("Add a student"). */
+  action?: StatCardAction;
 }
 
 const CONTAINER_TONE_STYLES: Record<StatCardTone, string> = {
@@ -42,11 +51,12 @@ const VALUE_TONE_STYLES: Record<StatCardTone, string> = {
   destructive: "text-destructive",
 };
 
-export function StatCard({ label, value, hint, icon, tone = "default", className }: StatCardProps) {
+export function StatCard({ label, value, hint, icon, tone = "default", className, action }: StatCardProps) {
+  const labelId = useId();
   return (
     <div
       role="group"
-      aria-label={label}
+      aria-labelledby={labelId}
       className={cn(
         "flex flex-col gap-1 rounded-xl border p-4",
         CONTAINER_TONE_STYLES[tone],
@@ -54,7 +64,7 @@ export function StatCard({ label, value, hint, icon, tone = "default", className
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p id={labelId} className="text-sm font-medium text-muted-foreground">{label}</p>
         {icon ? (
           <span className={cn("text-muted-foreground", tone !== "default" && VALUE_TONE_STYLES[tone])} aria-hidden="true">
             {icon}
@@ -63,6 +73,14 @@ export function StatCard({ label, value, hint, icon, tone = "default", className
       </div>
       <p className={cn("text-2xl font-semibold", VALUE_TONE_STYLES[tone])}>{value}</p>
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      {action ? (
+        <Link
+          href={action.href}
+          className="w-fit text-xs font-medium text-foreground hover:underline"
+        >
+          {action.label}
+        </Link>
+      ) : null}
     </div>
   );
 }

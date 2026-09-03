@@ -186,7 +186,7 @@ export function useCourses(params?: CourseListParams) {
   return useQuery({
     queryKey: courseKeys.list(),
     queryFn: () =>
-      authorizedFetch<PageResponse<CourseResponse>>("tenant", `/api/v1/courses${queryString}`),
+      authorizedFetch<PageResponse<CourseResponse>>("tenant", `/v1/courses${queryString}`),
   });
 }
 
@@ -194,7 +194,7 @@ export function useCourse(courseId: string) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: courseKeys.detail(courseId),
-    queryFn: () => authorizedFetch<CourseResponse>("tenant", `/api/v1/courses/${courseId}`),
+    queryFn: () => authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}`),
     enabled: courseId.length > 0,
   });
 }
@@ -204,7 +204,7 @@ export function useCreateCourse() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CourseCreateRequest) =>
-      authorizedFetch<CourseResponse>("tenant", "/api/v1/courses", {
+      authorizedFetch<CourseResponse>("tenant", "/v1/courses", {
         method: "POST",
         body: JSON.stringify(body),
       }),
@@ -219,7 +219,7 @@ export function useUpdateCourse(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CourseUpdateRequest) =>
-      authorizedFetch<CourseResponse>("tenant", `/api/v1/courses/${courseId}`, {
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}`, {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
@@ -240,7 +240,7 @@ export function useReassignCourseTeacher(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CourseTeacherReassignRequest) =>
-      authorizedFetch<CourseResponse>("tenant", `/api/v1/courses/${courseId}/teacher`, {
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/teacher`, {
         method: "POST",
         body: JSON.stringify(body),
       }),
@@ -256,7 +256,7 @@ export function useChangeCoursePrice(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CoursePriceChangeRequest) =>
-      authorizedFetch<CourseResponse>("tenant", `/api/v1/courses/${courseId}/price`, {
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/price`, {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
@@ -273,7 +273,7 @@ export function usePublishCourse(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      authorizedFetch<CourseResponse>("tenant", `/api/v1/courses/${courseId}/publish`, {
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/publish`, {
         method: "POST",
       }),
     onSuccess: (updated) => {
@@ -293,7 +293,7 @@ export function useUnpublishCourse(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      authorizedFetch<CourseResponse>("tenant", `/api/v1/courses/${courseId}/unpublish`, {
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/unpublish`, {
         method: "POST",
       }),
     onSuccess: (updated) => {
@@ -309,7 +309,7 @@ export function useDeleteCourse(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      authorizedFetch<null>("tenant", `/api/v1/courses/${courseId}`, {
+      authorizedFetch<null>("tenant", `/v1/courses/${courseId}`, {
         method: "DELETE",
       }),
     onSuccess: () => {
@@ -328,7 +328,7 @@ export function useCourseModules(courseId: string) {
   return useQuery({
     queryKey: courseKeys.modules(courseId),
     queryFn: () =>
-      authorizedFetch<CourseModuleResponse[]>("tenant", `/api/v1/courses/${courseId}/modules`),
+      authorizedFetch<CourseModuleResponse[]>("tenant", `/v1/courses/${courseId}/modules`),
     enabled: courseId.length > 0,
   });
 }
@@ -338,7 +338,7 @@ export function useCreateCourseModule(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CourseModuleRequest) =>
-      authorizedFetch<CourseModuleResponse>("tenant", `/api/v1/courses/${courseId}/modules`, {
+      authorizedFetch<CourseModuleResponse>("tenant", `/v1/courses/${courseId}/modules`, {
         method: "POST",
         body: JSON.stringify(body),
       }),
@@ -355,7 +355,7 @@ export function useUpdateCourseModule(courseId: string) {
     mutationFn: ({ moduleId, body }: { moduleId: string; body: CourseModuleRequest }) =>
       authorizedFetch<CourseModuleResponse>(
         "tenant",
-        `/api/v1/courses/${courseId}/modules/${moduleId}`,
+        `/v1/courses/${courseId}/modules/${moduleId}`,
         { method: "PATCH", body: JSON.stringify(body) }
       ),
     onSuccess: () => {
@@ -369,7 +369,7 @@ export function useDeleteCourseModule(courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (moduleId: string) =>
-      authorizedFetch<null>("tenant", `/api/v1/courses/${courseId}/modules/${moduleId}`, {
+      authorizedFetch<null>("tenant", `/v1/courses/${courseId}/modules/${moduleId}`, {
         method: "DELETE",
       }),
     onSuccess: (_data, moduleId) => {
@@ -390,7 +390,7 @@ export function useCourseLessons(courseId: string, moduleId: string, options?: {
     queryFn: () =>
       authorizedFetch<CourseLessonResponse[]>(
         "tenant",
-        `/api/v1/courses/${courseId}/modules/${moduleId}/lessons`
+        `/v1/courses/${courseId}/modules/${moduleId}/lessons`
       ),
     enabled: (options?.enabled ?? true) && courseId.length > 0 && moduleId.length > 0,
   });
@@ -403,7 +403,7 @@ export function useCreateCourseLesson(courseId: string, moduleId: string) {
     mutationFn: (body: CourseLessonRequest) =>
       authorizedFetch<CourseLessonResponse>(
         "tenant",
-        `/api/v1/courses/${courseId}/modules/${moduleId}/lessons`,
+        `/v1/courses/${courseId}/modules/${moduleId}/lessons`,
         { method: "POST", body: JSON.stringify(body) }
       ),
     onSuccess: () => {
@@ -419,7 +419,7 @@ export function useUpdateCourseLesson(courseId: string, moduleId: string) {
     mutationFn: ({ lessonId, body }: { lessonId: string; body: CourseLessonRequest }) =>
       authorizedFetch<CourseLessonResponse>(
         "tenant",
-        `/api/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
+        `/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
         { method: "PATCH", body: JSON.stringify(body) }
       ),
     onSuccess: () => {
@@ -435,7 +435,7 @@ export function useDeleteCourseLesson(courseId: string, moduleId: string) {
     mutationFn: (lessonId: string) =>
       authorizedFetch<null>(
         "tenant",
-        `/api/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
+        `/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
         { method: "DELETE" }
       ),
     onSuccess: () => {

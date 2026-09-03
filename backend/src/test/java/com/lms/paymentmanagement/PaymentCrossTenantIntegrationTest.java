@@ -1,6 +1,8 @@
 package com.lms.paymentmanagement;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.coursemanagement.course.web.dto.CourseResponse;
@@ -16,11 +18,15 @@ import com.lms.paymentmanagement.order.web.dto.PaymentInitiationResponse;
 import com.lms.paymentmanagement.payment.web.dto.PaymentResponse;
 import com.lms.paymentmanagement.payment.web.dto.RefundResponse;
 import com.lms.tenantmanagement.domain.Tenant;
+import com.lms.usermanagement.student.web.dto.StudentCreateRequest;
+import com.lms.usermanagement.student.web.dto.StudentResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
  * Closes plan §18's "Mandatory cross-tenant negative tests" list for the
@@ -36,6 +42,11 @@ import org.springframework.http.HttpStatus;
  * MISSING signature) and the dashboard half of item 9 (ledger-derived, not
  * {@code payment.status}-derived - the Payment History/student half is
  * already covered there too).
+ *
+ * <p>Also closes the MVP-015 (Tenant Admin Dashboard) plan's mandatory
+ * combined-fixture cross-tenant test (plan §18; {@code
+ * docs/requirements/open-decisions.md} §19) - see {@link
+ * #tenantAdminOverviewComposedStudentCourseAndLedgerCountsNeverIncludeAnotherTenantsRows}.
  */
 class PaymentCrossTenantIntegrationTest extends PaymentManagementTestSupport {
 
@@ -110,6 +121,64 @@ class PaymentCrossTenantIntegrationTest extends PaymentManagementTestSupport {
 		assertThat(dashboardA.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(dashboardA.getBody().data().content()).extracting(LedgerHistoryEntryResponse::paymentId)
 			.contains(a.initiation.paymentId());
+	}
+
+	/**
+	 * Closes the MVP-015 (Tenant Admin Dashboard) plan's own explicitly
+	 * flagged gap (plan §14/§18; {@code docs/requirements/open-decisions.md}
+	 * §19): a mandatory cross-tenant negative test proving the *combined*
+	 * three-domain shape the Tenant Admin Overview composes client-side
+	 * (student count + course total/published counts + ledger-entries-
+	 * recorded count) never includes another tenant's rows - not merely each
+	 * of the three underlying endpoints' own already-existing independent
+	 * cross-tenant tests ({@link #ledgerDashboardNeverLeaksAnotherTenantsEntries}
+	 * here, plus {@code StudentManagementIntegrationTest}'s and {@code
+	 * CourseManagementIntegrationTest}'s equivalents), since a bug that only
+	 * manifests when all three reads are composed together on one screen
+	 * would not be caught by any of those alone.
+	 */
+	@Test
+	void tenantAdminOverviewComposedStudentCourseAndLedgerCountsNeverIncludeAnotherTenantsRows() {
+		Fixture a = seedTenantWithConfirmedPayment("pay-xt-overview-a");
+		// Two API-created students (visible to GET /api/v1/students, unlike
+		// the fixture's own seedActiveStudent-only checkout student, which has
+		// no student_profile row and never appears in that list) and a second
+		// published course in tenant A, so its counts are distinguishably
+		// larger than tenant B's below - proving tenant B's smaller numbers
+		// are isolation, not coincidental emptiness.
+		createStudentOrFail(a.host, a.adminToken, "Overview Student A1", "overview-student-a1@example.test");
+		createStudentOrFail(a.host, a.adminToken, "Overview Student A2", "overview-student-a2@example.test");
+		TenantUser teacherA2 = seedTenantUser(a.tenant().getId(), "teacher2-a@example.test", RAW_PASSWORD,
+				Role.TEACHER);
+		createCourseOrFail(a.host, a.adminToken,
+				newCourseRequest(uniqueSlug("pay-xt-overview-a-2"), teacherA2.getId(), CourseStatus.PUBLIC));
+
+		Fixture b = seedTenantWithConfirmedPayment("pay-xt-overview-b");
+		createStudentOrFail(b.host, b.adminToken, "Overview Student B1", "overview-student-b1@example.test");
+
+		// The exact three-read shape the Tenant Admin Overview
+		// (MVP-015/TADASH-1) composes client-side, fired as tenant B's admin.
+		HttpResult<List<StudentResponse>> studentsB = listStudents(b.host, b.adminToken);
+		HttpResult<PageResponse<CourseResponse>> coursesTotalB = listCourses(b.host, b.adminToken, "size=1");
+		HttpResult<PageResponse<CourseResponse>> coursesPublishedB = listCourses(b.host, b.adminToken,
+				"status=PUBLIC&size=1");
+		HttpResult<PageResponse<LedgerHistoryEntryResponse>> ledgerB = getLedgerDashboard(b.host, b.adminToken);
+
+		assertThat(studentsB.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(studentsB.getBody().data()).extracting(StudentResponse::email)
+			.containsExactly("overview-student-b1@example.test");
+		assertThat(coursesTotalB.getBody().data().totalElements()).isEqualTo(1L);
+		assertThat(coursesPublishedB.getBody().data().totalElements()).isEqualTo(1L);
+		assertThat(ledgerB.getBody().data().totalElements()).isEqualTo(1L);
+		assertThat(ledgerB.getBody().data().content()).extracting(LedgerHistoryEntryResponse::paymentId)
+			.containsExactly(b.initiation.paymentId());
+
+		// Sanity: tenant A's own composed reads DO see its own larger counts,
+		// proving tenant B's numbers above are isolation, not a broken read.
+		HttpResult<List<StudentResponse>> studentsA = listStudents(a.host, a.adminToken);
+		HttpResult<PageResponse<CourseResponse>> coursesTotalA = listCourses(a.host, a.adminToken, "size=1");
+		assertThat(studentsA.getBody().data()).hasSize(2);
+		assertThat(coursesTotalA.getBody().data().totalElements()).isEqualTo(2L);
 	}
 
 	@Test
@@ -209,6 +278,36 @@ class PaymentCrossTenantIntegrationTest extends PaymentManagementTestSupport {
 		HttpResult<OrderPaymentStatusResponse> result = getOrderPaymentStatus(hostB, studentTokenB, a.order().id());
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+	}
+
+	/**
+	 * {@code GET /api/v1/students} - not exposed by any shared support class
+	 * this class already extends, so declared locally, mirroring {@code
+	 * StudentManagementIntegrationTest}'s identically-shaped private helper.
+	 */
+	private HttpResult<List<StudentResponse>> listStudents(String host, String token) {
+		MockHttpServletRequestBuilder builder = get("/api/v1/students");
+		return parseList(perform(authenticated(builder, host, token)), StudentResponse.class);
+	}
+
+	/**
+	 * {@code POST /api/v1/students} - unlike {@link #seedActiveStudent}
+	 * (a direct {@code tenant_user}-only DB insert this class's fixtures use
+	 * purely to obtain a checkout-capable student login), this goes through
+	 * the real endpoint so the resulting row also has a {@code
+	 * student_profile} and therefore actually appears in {@code GET
+	 * /api/v1/students} - required for the student-count assertions in
+	 * {@link #tenantAdminOverviewComposedStudentCourseAndLedgerCountsNeverIncludeAnotherTenantsRows}.
+	 */
+	private StudentResponse createStudentOrFail(String host, String token, String name, String email) {
+		MockHttpServletRequestBuilder builder = post("/api/v1/students").contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(new StudentCreateRequest(name, email, RAW_PASSWORD)));
+		HttpResult<StudentResponse> result = parseSingle(perform(authenticated(builder, host, token)),
+				StudentResponse.class);
+		if (result.getStatusCode() != HttpStatus.CREATED) {
+			throw new IllegalStateException("Student creation failed: " + result.getStatusCode() + " " + result.getBody());
+		}
+		return result.getBody().data();
 	}
 
 	// ------------------------------------------------------------------

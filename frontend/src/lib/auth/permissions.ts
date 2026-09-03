@@ -89,3 +89,21 @@ export function canViewAccessExpiryQueue(role: string | null): boolean {
 export function canApproveReactivation(role: string | null): boolean {
   return role === "TENANT_ADMIN";
 }
+
+/**
+ * Roles holding `TEACHERS`/`VIEW` per `PermissionCheckServiceImpl`'s matrix
+ * (Tenant Admin, Course Coordinator, Student Support, Read-only Auditor) —
+ * gates only the "Teachers" nav item's visibility
+ * (`components/layout/nav/tenant-admin-nav.tsx`). `TeacherController`'s own
+ * `@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")`
+ * remains the sole enforcement — a role without this grant that navigates
+ * directly to `/tenant-admin/teachers` still gets a real 403, unchanged.
+ */
+export function canViewTeachers(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "COURSE_COORDINATOR" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}

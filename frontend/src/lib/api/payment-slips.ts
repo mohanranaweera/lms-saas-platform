@@ -7,7 +7,8 @@ import type { PageResponse } from "./courses";
  * Intelligence sub-module (`/api/v1/orders/{orderId}/slips`,
  * `/api/v1/payment-slips/**` — see `SlipController`/`SlipReviewController`).
  * Follows `lib/api/payments.ts`/`lib/api/materials.ts`'s conventions exactly
- * (full `/api/v1/...` paths, every call through
+ * (`/v1/...` paths — the client's `NEXT_PUBLIC_API_BASE_URL` already includes
+ * the `/api` prefix — every call through
  * `useAuth().authorizedFetch("tenant", ...)`, query-keys object,
  * `onSuccess` cache invalidation).
  *
@@ -111,7 +112,7 @@ export function useUploadSlip(orderId: string) {
       const formData = new FormData();
       formData.append("referenceNumber", referenceNumber);
       formData.append("file", file);
-      return authorizedFetch<PaymentSlipResponse>("tenant", `/api/v1/orders/${orderId}/slips`, {
+      return authorizedFetch<PaymentSlipResponse>("tenant", `/v1/orders/${orderId}/slips`, {
         method: "POST",
         body: formData,
       });
@@ -128,7 +129,7 @@ export function useSlip(slipId: string) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: paymentSlipKeys.detail(slipId),
-    queryFn: () => authorizedFetch<PaymentSlipResponse>("tenant", `/api/v1/payment-slips/${slipId}`),
+    queryFn: () => authorizedFetch<PaymentSlipResponse>("tenant", `/v1/payment-slips/${slipId}`),
     enabled: slipId.length > 0,
   });
 }
@@ -146,7 +147,7 @@ export function useSlipDownloadUrl() {
     mutationFn: (slipId: string) =>
       authorizedFetch<SlipDownloadUrlResponse>(
         "tenant",
-        `/api/v1/payment-slips/${slipId}/download-url`
+        `/v1/payment-slips/${slipId}/download-url`
       ),
   });
 }
@@ -176,7 +177,7 @@ export function useSlipReviewQueue(params?: SlipReviewQueueParams) {
     queryFn: () =>
       authorizedFetch<PageResponse<PaymentSlipResponse>>(
         "tenant",
-        `/api/v1/payment-slips/review-queue${queryString}`
+        `/v1/payment-slips/review-queue${queryString}`
       ),
   });
 }
@@ -194,7 +195,7 @@ export function useApproveSlip(slipId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: SlipApproveRequest) =>
-      authorizedFetch<PaymentSlipResponse>("tenant", `/api/v1/payment-slips/${slipId}/approve`, {
+      authorizedFetch<PaymentSlipResponse>("tenant", `/v1/payment-slips/${slipId}/approve`, {
         method: "POST",
         body: JSON.stringify(body),
       }),
@@ -214,7 +215,7 @@ export function useRejectSlip(slipId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: SlipRejectRequest) =>
-      authorizedFetch<PaymentSlipResponse>("tenant", `/api/v1/payment-slips/${slipId}/reject`, {
+      authorizedFetch<PaymentSlipResponse>("tenant", `/v1/payment-slips/${slipId}/reject`, {
         method: "POST",
         body: JSON.stringify(body),
       }),

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import { apiPageSuccess, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
 /**
  * `LogoutControl` (components/auth/logout-control.tsx) coverage: Tenant Admin
@@ -35,6 +35,21 @@ function mockSuccessfulLogoutFlow(page: import("@playwright/test").Page, role: s
     );
 }
 
+/**
+ * As of MVP-015 TADASH-1, `/tenant-admin/dashboard` fires its own `GET
+ * /v1/students`, `GET /api/v1/courses*` (always), and `GET
+ * /api/v1/ledger/dashboard*` (Tenant Admin holds `PAYMENTS_SLIPS`/`VIEW`)
+ * reads — mock all three (zero/empty responses) alongside the refresh mock
+ * so every direct `page.goto("/tenant-admin/dashboard")` call site below
+ * never fires a live, unmocked request during that landing. Mirrors
+ * `student-management.spec.ts`'s already-fixed `loginAs` helper.
+ */
+async function mockTenantAdminDashboardReads(page: import("@playwright/test").Page): Promise<void> {
+  await mockJson(page, "**/v1/students", 200, apiSuccess([]));
+  await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([]));
+  await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
+}
+
 test.describe("logout confirmation — Tenant Admin (requires confirmation)", () => {
   test("opens a focus-trapped alertdialog and returns focus to the trigger on cancel", async ({
     page,
@@ -43,6 +58,7 @@ test.describe("logout confirmation — Tenant Admin (requires confirmation)", ()
     // Management) — mock a successful silent refresh so the guard resolves.
     const guardToken = fakeJwt({ role: "TENANT_ADMIN" });
     await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(guardToken)));
+    await mockTenantAdminDashboardReads(page);
 
     await page.goto("/tenant-admin/dashboard");
 
@@ -73,6 +89,7 @@ test.describe("logout confirmation — Tenant Admin (requires confirmation)", ()
   test("confirming calls the logout endpoint and redirects to /login", async ({ page }) => {
     const token = fakeJwt({ role: "TENANT_ADMIN" });
     await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+    await mockTenantAdminDashboardReads(page);
 
     let logoutCalled = false;
     await page.route("**/v1/auth/logout", async (route) => {
@@ -100,6 +117,7 @@ test.describe("logout confirmation — Tenant Admin (requires confirmation)", ()
   }) => {
     const token = fakeJwt({ role: "TENANT_ADMIN" });
     await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+    await mockTenantAdminDashboardReads(page);
     await page.route("**/v1/auth/logout", async (route) => {
       await route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
     });

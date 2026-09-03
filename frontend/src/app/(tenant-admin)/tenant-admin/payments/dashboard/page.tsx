@@ -36,6 +36,16 @@ const columns: DataTableColumn<LedgerHistoryEntryResponse>[] = [
  * (`components/layout/nav/tenant-admin-nav.tsx`) — pure UX convenience,
  * consistent with `canManageStudents`'s existing button-hiding pattern.
  *
+ * Deliberately different from the Tenant Admin Overview's Payments KPI tile
+ * (MVP-015, `app/(tenant-admin)/tenant-admin/dashboard/page.tsx`), which
+ * instead gates the *request itself* via `useLedgerDashboard`'s `enabled`
+ * option — that page is every in-scope role's landing page, so avoiding a
+ * guaranteed 403 on every load for the 4 roles without this grant is worth
+ * the extra gating; this dedicated page is only ever reached by clicking the
+ * already-gated nav entry, so relying on the real backend 403 here is
+ * simpler and sufficient. Both conventions are safe (neither weakens backend
+ * enforcement); this note exists so the divergence reads as deliberate.
+ *
  * Derived entirely from `ledger_entry` rows, never from `order`/`payment`
  * directly, per `.claude/rules/payments.md` §2.
  */

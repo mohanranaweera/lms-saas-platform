@@ -22,12 +22,12 @@ async function submitLogin(page: import("@playwright/test").Page) {
 
 test.describe("tenant login — role-based dashboard redirect", () => {
   const cases: Array<{ role: string; path: string; heading: string }> = [
-    { role: "TENANT_ADMIN", path: "/tenant-admin/dashboard", heading: "Tenant Admin Dashboard" },
-    // `/student/dashboard`'s heading is "Overview" as of MVP-013 (Student
-    // Dashboard, SDASH-1), and `/teacher/dashboard`'s heading is "Overview"
-    // as of MVP-014 (Teacher Dashboard, TDASH-1) — both stopped being the
-    // generic "<Role> Dashboard" placeholder still shared by Tenant Admin
-    // above.
+    // `/tenant-admin/dashboard`'s heading is "Overview" as of MVP-015
+    // (Tenant Admin Dashboard, TADASH-1) — no longer the generic "<Role>
+    // Dashboard" placeholder. `/student/dashboard`'s heading is "Overview"
+    // as of MVP-013 (Student Dashboard, SDASH-1), and `/teacher/dashboard`'s
+    // heading is "Overview" as of MVP-014 (Teacher Dashboard, TDASH-1).
+    { role: "TENANT_ADMIN", path: "/tenant-admin/dashboard", heading: "Overview" },
     { role: "TEACHER", path: "/teacher/dashboard", heading: "Overview" },
     { role: "STUDENT", path: "/student/dashboard", heading: "Overview" },
   ];
@@ -43,6 +43,12 @@ test.describe("tenant login — role-based dashboard redirect", () => {
       }
       if (role === "TEACHER") {
         await mockJson(page, "**/v1/courses*", 200, apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }));
+      }
+      if (role === "TENANT_ADMIN") {
+        // MVP-015 TADASH-1's three Overview reads.
+        await mockJson(page, "**/v1/students", 200, apiSuccess([]));
+        await mockJson(page, "**/api/v1/courses*", 200, apiSuccess({ content: [], page: 0, size: 1, totalElements: 0, totalPages: 0 }));
+        await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiSuccess({ content: [], page: 0, size: 1, totalElements: 0, totalPages: 0 }));
       }
 
       await page.goto("/login");

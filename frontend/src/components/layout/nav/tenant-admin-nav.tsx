@@ -5,33 +5,37 @@ import {
   canProcessRefunds,
   canViewAccessExpiryQueue,
   canViewPaymentDashboard,
+  canViewTeachers,
 } from "@/lib/auth/permissions";
 import { NavLinks, type NavItem } from "./nav-links";
 
-const BASE_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/tenant-admin/dashboard" },
-  { label: "Students", href: "/tenant-admin/students" },
-  { label: "Teachers", href: "/tenant-admin/teachers" },
-  { label: "Courses", href: "/tenant-admin/courses" },
-  { label: "Profile" },
-  { label: "Settings" },
-];
-
 /**
+ * "Teachers" (gated by `canViewTeachers` — Tenant Admin, Course Coordinator,
+ * Student Support, Read-only Auditor hold `TEACHERS`/`VIEW`; Finance Staff,
+ * Content Manager, Exam Manager, Attendance Operator do not) and
  * "Payments"/"Refunds"/"Payment Slips"/"Reactivation Approvals" are appended
- * conditionally on the caller's role (`canViewPaymentDashboard`/
- * `canProcessRefunds`/`canViewAccessExpiryQueue`, `lib/auth/permissions.ts`)
- * — pure UX convenience so a role with no server-side access to any of these
- * screens (e.g. Content Manager, Exam Manager) isn't shown a dead-end nav
- * entry. This is not the authorization mechanism: every destination page
- * still independently renders `PermissionDeniedState` from a real backend
- * 403 regardless of this nav's contents (per `.claude/rules/frontend.md`).
+ * conditionally on the caller's role — pure UX convenience so a role with no
+ * server-side access to a screen isn't shown a dead-end nav entry. This is
+ * not the authorization mechanism: every destination page still
+ * independently renders `PermissionDeniedState` from a real backend 403
+ * regardless of this nav's contents (per `.claude/rules/frontend.md`).
  */
 export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
 
-  const items: NavItem[] = [...BASE_ITEMS];
+  const items: NavItem[] = [
+    { label: "Dashboard", href: "/tenant-admin/dashboard" },
+    { label: "Students", href: "/tenant-admin/students" },
+  ];
+  if (canViewTeachers(role)) {
+    items.push({ label: "Teachers", href: "/tenant-admin/teachers" });
+  }
+  items.push(
+    { label: "Courses", href: "/tenant-admin/courses" },
+    { label: "Profile" },
+    { label: "Settings" }
+  );
   if (canViewPaymentDashboard(role)) {
     items.push({ label: "Payments", href: "/tenant-admin/payments/dashboard" });
   }

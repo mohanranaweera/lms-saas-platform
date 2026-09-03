@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import { apiPageSuccess, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
 test.describe("public route group", () => {
   test("home page renders marketing content and auth entry points", async ({ page }) => {
@@ -81,30 +81,39 @@ test.describe("role dashboard route groups", () => {
   const dashboards: Array<{ path: string; heading: string; placeholder: boolean }> = [
     // `/student/dashboard`'s heading is "Overview" as of MVP-013 (Student
     // Dashboard, SDASH-1); `/teacher/dashboard`'s heading is "Overview" as of
-    // MVP-014 (Teacher Dashboard, TDASH-1). Tenant Admin and Platform Admin
-    // remain the original static "<Role> Dashboard" placeholder this test
-    // was written for.
+    // MVP-014 (Teacher Dashboard, TDASH-1); `/tenant-admin/dashboard`'s
+    // heading is "Overview" as of MVP-015 (Tenant Admin Dashboard,
+    // TADASH-1) — no longer the original static "Tenant Admin Dashboard"
+    // placeholder. Platform Admin remains that original static "<Role>
+    // Dashboard" placeholder this test was written for.
     { path: "/student/dashboard", heading: "Overview", placeholder: false },
     { path: "/teacher/dashboard", heading: "Overview", placeholder: false },
-    { path: "/tenant-admin/dashboard", heading: "Tenant Admin Dashboard", placeholder: true },
+    { path: "/tenant-admin/dashboard", heading: "Overview", placeholder: false },
     { path: "/platform-admin/dashboard", heading: "Platform Admin Dashboard", placeholder: true },
   ];
 
   test.beforeEach(async ({ page }) => {
     // `/student/dashboard`, `/teacher/dashboard`, and `/tenant-admin/dashboard`
     // are guarded by `RouteGuard` (MVP-006 Student Management, MVP-014
-    // Teacher Dashboard) — mock a successful silent refresh so the guard
-    // resolves for those three; `/platform-admin/dashboard` remains
-    // unguarded and ignores this mock.
+    // Teacher Dashboard, MVP-015 Tenant Admin Dashboard) — mock a successful
+    // silent refresh so the guard resolves for those three;
+    // `/platform-admin/dashboard` remains unguarded and ignores this mock.
     const token = fakeJwt({ role: "STUDENT" });
     await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
-    // `/student/dashboard` and `/teacher/dashboard` are real data-driven
-    // pages — mock their reads so they render deterministically; the other
-    // two dashboards are still static placeholders and ignore these mocks.
+    // `/student/dashboard`, `/teacher/dashboard`, and `/tenant-admin/dashboard`
+    // are real data-driven pages — mock their reads so they render
+    // deterministically; `/platform-admin/dashboard` is still a static
+    // placeholder and ignores these mocks.
     await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([]));
     await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
     await mockJson(page, "**/api/v1/ledger/history", 200, apiSuccess([]));
     await mockJson(page, "**/v1/courses*", 200, apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }));
+    // `/tenant-admin/dashboard`'s own two new reads (MVP-015 TADASH-1):
+    // `GET /v1/students` and `GET /api/v1/ledger/dashboard*`. Its course-count
+    // reads (`GET /api/v1/courses...`) are already covered by the
+    // `**/v1/courses*` mock above.
+    await mockJson(page, "**/v1/students", 200, apiSuccess([]));
+    await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
   });
 
   for (const { path, heading, placeholder } of dashboards) {

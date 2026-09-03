@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { UseQueryResult } from "@tanstack/react-query";
 import { LoadingState } from "./loading-state";
 import { EmptyState } from "./empty-state";
 import { ErrorState } from "./error-state";
@@ -23,8 +22,27 @@ interface PermissionDeniedContent {
   action?: { label: string; onClick: () => void };
 }
 
+/**
+ * Deliberately looser than `Pick<UseQueryResult<T, unknown>, ...>`: this
+ * component only ever calls `query.refetch()` and discards the result (see
+ * the retry handler below), so it doesn't need — and shouldn't demand — the
+ * real `QueryObserverResult` return shape. A real `UseQueryResult<T,
+ * unknown>` remains structurally assignable here (TypeScript's function-type
+ * covariance makes `() => Promise<QueryObserverResult<T, unknown>>`
+ * assignable to `() => Promise<unknown>`), so every existing caller passing
+ * an actual React Query result keeps working unchanged. This also lets a
+ * hand-combined multi-query result (e.g. `useTenantCourseCounts` in
+ * `lib/api/tenant-overview.ts`) satisfy this prop without an unsafe cast.
+ */
+interface QueryLike<T> {
+  status: "pending" | "error" | "success";
+  data: T | undefined;
+  error: unknown;
+  refetch: () => Promise<unknown>;
+}
+
 interface QueryStateBoundaryProps<T> {
-  query: Pick<UseQueryResult<T, unknown>, "status" | "data" | "error" | "refetch">;
+  query: QueryLike<T>;
   loadingLabel?: string;
   /** Called on success to decide whether to render `emptyState` instead of `children`. Omit both if the surface is never meaningfully empty. */
   isEmpty?: (data: T) => boolean;
@@ -40,6 +58,8 @@ interface QueryStateBoundaryProps<T> {
    * itself.
    */
   loginPath?: string;
+  /** Fallback error message shown only when the failure is NOT a real `ApiClientError` (e.g. a network failure) — a real API error's own `.message` always takes precedence over this. Defaults to the existing generic copy; override per call site so screen-reader users can distinguish which of several independent boundaries on one page failed. */
+  genericErrorMessage?: string;
   children: (data: T) => ReactNode;
 }
 
@@ -57,6 +77,7 @@ export function QueryStateBoundary<T>({
   emptyState,
   permissionDenied,
   loginPath,
+  genericErrorMessage,
   children,
 }: QueryStateBoundaryProps<T>) {
   const router = useRouter();
@@ -85,7 +106,11 @@ export function QueryStateBoundary<T>({
     }
     return (
       <ErrorState
-        message={isApiClientError(query.error) ? query.error.message : "Something went wrong. Please try again."}
+        message={
+          isApiClientError(query.error)
+            ? query.error.message
+            : (genericErrorMessage ?? "Something went wrong. Please try again.")
+        }
         code={isApiClientError(query.error) ? query.error.code : undefined}
         fieldErrors={isApiClientError(query.error) ? query.error.fieldErrors : undefined}
         onRetry={() => query.refetch()}
@@ -93,12 +118,10 @@ export function QueryStateBoundary<T>({
     );
   }
 
-  // query.status === "success" here (Pick<UseQueryResult, ...>'s status is
-  // narrowed to "pending" | "error" | "success" in @tanstack/react-query v5;
-  // TypeScript can narrow `query.data` from the union via `status` alone only
-  // when discriminating the full `UseQueryResult` type, which this `Pick`
-  // intentionally loosens for caller convenience — so `data` is asserted here
-  // rather than narrowed structurally.
+  // query.status === "success" here. `QueryLike`'s `status`/`data` fields
+  // are independent (not a discriminated union keyed on `status`), so
+  // TypeScript can't narrow `query.data` from `T | undefined` via `status`
+  // alone — `data` is asserted here rather than narrowed structurally.
   const data = query.data as T;
 
   if (isEmpty && emptyState && isEmpty(data)) {

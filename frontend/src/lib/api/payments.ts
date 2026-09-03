@@ -6,8 +6,8 @@ import { ledgerKeys } from "./ledger";
  * Typed client + React Query hooks for `payment-management`'s authenticated
  * endpoints (`/api/v1/orders/**`, `/api/v1/payments/**` — see
  * `OrderController`/`PaymentController`/`RefundController`). Follows
- * `lib/api/courses.ts`'s conventions exactly: full `/api/v1/...` paths (not
- * the `/v1/...` shorthand `students.ts`/`teachers.ts` use), every call
+ * `students.ts`/`teachers.ts`'s `/v1/...` path convention (the client's
+ * `NEXT_PUBLIC_API_BASE_URL` already includes the `/api` prefix), every call
  * through `useAuth().authorizedFetch("tenant", ...)`.
  *
  * Enrollment activation is never computed here or anywhere in the frontend —
@@ -109,7 +109,7 @@ export function useCreateOrder() {
   const { authorizedFetch } = useAuth();
   return useMutation({
     mutationFn: (body: OrderCreateRequest) =>
-      authorizedFetch<OrderResponse>("tenant", "/api/v1/orders", {
+      authorizedFetch<OrderResponse>("tenant", "/v1/orders", {
         method: "POST",
         body: JSON.stringify(body),
       }),
@@ -121,7 +121,7 @@ export function useOrder(orderId: string) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: paymentKeys.order(orderId),
-    queryFn: () => authorizedFetch<OrderResponse>("tenant", `/api/v1/orders/${orderId}`),
+    queryFn: () => authorizedFetch<OrderResponse>("tenant", `/v1/orders/${orderId}`),
     enabled: orderId.length > 0,
   });
 }
@@ -145,7 +145,7 @@ export function useOrderPaymentStatus(orderId: string) {
     queryFn: () =>
       authorizedFetch<OrderPaymentStatusResponse>(
         "tenant",
-        `/api/v1/orders/${orderId}/payment-status`
+        `/v1/orders/${orderId}/payment-status`
       ),
     enabled: orderId.length > 0,
     refetchInterval: (query) => {
@@ -170,7 +170,7 @@ export function useInitiatePayment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (orderId: string) =>
-      authorizedFetch<PaymentInitiationResponse>("tenant", `/api/v1/orders/${orderId}/payments`, {
+      authorizedFetch<PaymentInitiationResponse>("tenant", `/v1/orders/${orderId}/payments`, {
         method: "POST",
       }),
     onSuccess: (_data, orderId) => {
@@ -184,7 +184,7 @@ export function usePayment(paymentId: string) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: paymentKeys.payment(paymentId),
-    queryFn: () => authorizedFetch<PaymentResponse>("tenant", `/api/v1/payments/${paymentId}`),
+    queryFn: () => authorizedFetch<PaymentResponse>("tenant", `/v1/payments/${paymentId}`),
     enabled: paymentId.length > 0,
   });
 }
@@ -195,7 +195,7 @@ export function usePaymentRefunds(paymentId: string) {
   return useQuery({
     queryKey: paymentKeys.paymentRefunds(paymentId),
     queryFn: () =>
-      authorizedFetch<RefundResponse[]>("tenant", `/api/v1/payments/${paymentId}/refunds`),
+      authorizedFetch<RefundResponse[]>("tenant", `/v1/payments/${paymentId}/refunds`),
     enabled: paymentId.length > 0,
   });
 }
@@ -213,7 +213,7 @@ export function useCreateRefund(paymentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: RefundCreateRequest) =>
-      authorizedFetch<RefundResponse>("tenant", `/api/v1/payments/${paymentId}/refunds`, {
+      authorizedFetch<RefundResponse>("tenant", `/v1/payments/${paymentId}/refunds`, {
         method: "POST",
         body: JSON.stringify(body),
       }),

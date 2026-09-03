@@ -474,3 +474,81 @@ implementation.
   perform that switch — each module's own future PR must do so deliberately, not assume it
   happens automatically.
   Source: plan §21 item 10.
+
+## 19. Tenant Admin Dashboard (MVP-015) — carried-forward decisions
+
+Named by `docs/plans/MVP-015 Tenant Admin Dashboard.md` §19/§21 as items this module's own
+documentation pass must append here, per this log's established §15/§16/§17/§18 convention.
+
+- **No ledger-derived currency/revenue-total read endpoint exists — newly surfaced by this
+  module.** The Overview's "Payments Recorded" tile is an entry count
+  (`GET /api/v1/ledger/dashboard`'s `totalElements`), not a currency sum — no
+  `GET /api/v1/ledger/summary`-shaped endpoint (or equivalent) has been built. Building one
+  requires a new `docs/api` entry, which the issue's own text said not to add for this module;
+  that tension is unresolved, not decided here.
+  Affects: a future Tenant Admin Overview enhancement; `ledger-settlement-management`'s own
+  scope decision if/when this is prioritized.
+  Source: plan Grounding note, §6, §21 item 1.
+- **No tenant-profile read endpoint exists (TEN-1) — newly surfaced by this module.** No
+  `GET /api/v1/tenants/me` or equivalent exists, so a tenant name/plan/status KPI tile cannot be
+  built without a new endpoint (same "no new docs/api entries" tension as above).
+  Affects: `tenant-management`'s own future scope decision.
+  Source: plan Grounding note, §6, §21 item 1.
+- **Whether "Payments Recorded" (an entry count, not a currency figure) is legible enough as a
+  KPI label — still open.** A UX wording/framing judgment call, not resolved by this module's
+  implementation.
+  Source: plan §21 item 2.
+- **Whether "Total Teachers" belongs on this Overview — still open.** Data is available
+  (`GET /api/v1/teachers`) but `TCH-1` was never in the issue's own TADASH-1 dependency list;
+  this module deliberately did not add it, to avoid inventing scope.
+  Source: plan Grounding note, §21 item 3.
+- **`courseKeys.list()`'s params-blindness (`lib/api/courses.ts`) — still open, worked around
+  locally.** This module's `useTenantCourseCounts()` hook (`lib/api/tenant-overview.ts`) uses
+  its own separately-keyed queries rather than fixing the shared hook's cache-key gap — a
+  future frontend-hygiene pass may want to fix `courseKeys.list()` itself.
+  Source: plan Grounding note item 4, §21 item 4.
+- **Whether the per-card independent-`QueryStateBoundary` pattern (this module's dashboard
+  page) is the right long-term shape for a multi-domain dashboard, vs. a shared "parallel
+  queries" boundary helper — still open.** This module ships the narrower, page-local
+  implementation since it's the first to need this; a second multi-domain dashboard (Platform
+  Admin's own future overview) may prompt extracting a shared helper.
+  Source: plan §21 item 5.
+- **The KPI grid DOES have per-role variation after all — corrected post-review, this file's own
+  §2 claim was factually wrong.** The plan's §2 stated "every role that reaches
+  `/tenant-admin/dashboard` sees the identical, tenant-scoped numbers," but that claim never
+  verified `GET /api/v1/ledger/dashboard`'s actual permission grant
+  (`PAYMENTS_SLIPS`/`VIEW` — Tenant Admin, Finance Staff, Student Support, Read-only Auditor
+  only). Course Coordinator, Content Manager, Exam Manager, and Attendance Operator were getting
+  a real, guaranteed 403 on the Payments card every dashboard load. Fixed by gating the
+  Payments card's read and rendering behind `canViewPaymentDashboard(role)`
+  (`lib/auth/permissions.ts`), the same pure-UX-visibility pattern already used for the
+  "Teachers" nav item — backend enforcement is unchanged. Those four roles now see a 2-card grid
+  (Students, Courses only); the other four see all 3 cards (adds Payments). This is a bug-fix
+  correcting the implementation to match the endpoint's real permission grant, not a new
+  business decision.
+  Affects: this module's own implementation (`app/(tenant-admin)/tenant-admin/dashboard/page.tsx`).
+  Source: post-ship review finding H1.
+- **RESOLVED — the plan's own §18 "combined two-tenant shape" backend integration-test
+  requirement has been added.** Originally deferred: §18 asked for one seeded Testcontainers
+  fixture proving Tenant A's *composed* Overview counts (students + courses + ledger entries,
+  together) exclude Tenant B's rows, added to whichever domain's existing test class is the
+  natural home. This is now
+  `PaymentCrossTenantIntegrationTest#tenantAdminOverviewComposedStudentCourseAndLedgerCountsNeverIncludeAnotherTenantsRows`
+  (chosen as the natural home since that class already builds the richest single-call fixture
+  spanning all three domains — tenant + admin + teacher + student + course + order + confirmed
+  payment/ledger entry — via its existing `seedTenantWithConfirmedPayment` helper). The test seeds
+  two tenants, gives Tenant A a distinguishably larger footprint (2 API-created students, 2
+  published courses) than Tenant B (1 of each plus its 1 ledger entry), then asserts Tenant B's
+  admin composed reads (`GET /api/v1/students`, `GET /api/v1/courses?size=1`, `GET
+  /api/v1/courses?status=PUBLIC&size=1`, `GET /api/v1/ledger/dashboard`) reflect only Tenant B's
+  own rows, with a same-shape sanity check on Tenant A's larger counts. All 9 tests in the class
+  (75 combined with `StudentManagementIntegrationTest`/`CourseManagementIntegrationTest`) pass.
+  Original deferral rationale: this module made zero backend changes (§9) and the initial
+  implementation/review rounds were frontend-only in scope, so adding a new backend test was
+  treated as a small, separate follow-up rather than blocking the frontend module — that follow-up
+  is what this entry now records as done.
+  Affects: backend test suite only (`backend/src/test/java/com/lms/paymentmanagement/
+  PaymentCrossTenantIntegrationTest.java`), no application code change.
+  Source: post-ship review (solution-architect) flagged the gap per plan §18; closed in a
+  follow-up session per explicit user request ("add missing mandatory cross-tenant isolation
+  test").

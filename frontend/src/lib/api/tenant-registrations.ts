@@ -31,7 +31,7 @@ export interface TenantRegistrationResult {
 export function registerTenant(
   input: TenantRegistrationInput
 ): Promise<TenantRegistrationResult> {
-  return apiFetch<TenantRegistrationResult>("/api/v1/tenant-registrations", {
+  return apiFetch<TenantRegistrationResult>("/v1/tenant-registrations", {
     method: "POST",
     body: JSON.stringify(input),
   });

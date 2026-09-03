@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import {
   apiError,
+  apiPageSuccess,
   apiSuccess,
   fakeJwt,
   loginResponseBody,
@@ -95,6 +96,19 @@ async function loginAs(page: Page, role: string) {
     200,
     apiSuccess(refreshResponseBody(fakeJwt({ role })))
   );
+  // This flow always lands on `/tenant-admin/dashboard` first (per
+  // `DASHBOARD_PATH_BY_ROLE`) before any test navigates on to Students. As of
+  // MVP-015 TADASH-1, that dashboard fires its own `GET /api/v1/courses*`
+  // (always) and, for a role holding `PAYMENTS_SLIPS`/`VIEW`, `GET
+  // /api/v1/ledger/dashboard*` reads — mock both here (zero/empty responses)
+  // so every `loginAs` call site in this file is covered without an
+  // unmocked, transient real network call during that landing, rather than
+  // fixing this per call site. Registered before `STUDENTS_ENDPOINT`
+  // (`**/v1/students`) is ever mocked by an individual test, and matches a
+  // disjoint URL shape from it, so this does not affect any test's own
+  // `STUDENTS_ENDPOINT`-scoped `requestCount`/`listCallCount` assertions.
+  await mockJson(page, "**/api/v1/courses*", 200, apiPageSuccess([]));
+  await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
   await page.goto("/login");
   await page.getByLabel("Email").fill("staff@example-institute.test");
   await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple");
@@ -142,6 +156,13 @@ test.describe("student list — accessible labels", () => {
 
 test.describe("student list — loading, error, and permission-denied states", () => {
   test("shows an accessible loading indicator while the list is in flight", async ({ page }) => {
+    // Direct navigation (`mockRefreshOnly` + `page.goto`), not
+    // `loginAs`/`goToStudents`: as of MVP-015 (Tenant Admin Dashboard,
+    // TADASH-1), `/tenant-admin/dashboard` — the page `loginAs` lands on —
+    // fires its own `GET /v1/students` read (`useStudents`, same endpoint
+    // this test instruments below). Routing through the dashboard first
+    // would let that unrelated read consume this test's single delayed
+    // response before the Students List page's own request ever fires.
     await page.route(STUDENTS_ENDPOINT, async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
       await route.fulfill({
@@ -150,8 +171,8 @@ test.describe("student list — loading, error, and permission-denied states", (
         body: JSON.stringify(envelope([ADA, GRACE])),
       });
     });
-    await loginAs(page, "TENANT_ADMIN");
-    await goToStudents(page);
+    await mockRefreshOnly(page, "TENANT_ADMIN");
+    await page.goto("/tenant-admin/students");
 
     await expect(page.getByRole("status").filter({ hasText: "Loading students…" })).toBeVisible();
     // Scoped to the table: `DataTable` also renders a (CSS-hidden at this
@@ -161,6 +182,11 @@ test.describe("student list — loading, error, and permission-denied states", (
   });
 
   test("a server error renders the shared error state with a retry action", async ({ page }) => {
+    // Direct navigation, not `loginAs`/`goToStudents` — see the identical
+    // MVP-015 TADASH-1 note in the loading-indicator test above: this test's
+    // `requestCount`-based mock must count only the Students List page's own
+    // requests, not also the Overview dashboard's unrelated `GET
+    // /v1/students` read.
     let requestCount = 0;
     await page.route(STUDENTS_ENDPOINT, async (route) => {
       requestCount += 1;
@@ -193,8 +219,8 @@ test.describe("student list — loading, error, and permission-denied states", (
         body: JSON.stringify(envelope([ADA, GRACE])),
       });
     });
-    await loginAs(page, "TENANT_ADMIN");
-    await goToStudents(page);
+    await mockRefreshOnly(page, "TENANT_ADMIN");
+    await page.goto("/tenant-admin/students");
 
     const alert = page.getByRole("alert");
     await expect(alert).toBeVisible();

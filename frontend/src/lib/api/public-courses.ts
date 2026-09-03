@@ -66,12 +66,12 @@ export function listPublicCourses(
   params?: PublicCourseListParams
 ): Promise<PageResponse<PublicCourseResponse>> {
   return apiFetch<PageResponse<PublicCourseResponse>>(
-    `/api/v1/public/courses${buildPublicCourseListQuery(params)}`
+    `/v1/public/courses${buildPublicCourseListQuery(params)}`
   );
 }
 
 export function getPublicCourseBySlug(slug: string): Promise<PublicCourseResponse> {
-  return apiFetch<PublicCourseResponse>(`/api/v1/public/courses/${encodeURIComponent(slug)}`);
+  return apiFetch<PublicCourseResponse>(`/v1/public/courses/${encodeURIComponent(slug)}`);
 }
 
 export function usePublicCourses(params?: PublicCourseListParams) {

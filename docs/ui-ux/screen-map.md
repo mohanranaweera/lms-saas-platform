@@ -91,7 +91,12 @@ real submit behavior lands with that module.
 
 ## Tenant Admin Portal (`app/(tenant-admin)/`)
 
-- Tenant Admin > Dashboard > Overview — tenant KPIs and alerts
+- Tenant Admin > Dashboard > Overview — Students/Courses (published+draft)/Payments-recorded-count
+  KPI tiles, all from three already-tenant-scoped reads (MVP-015, shipped). A ledger-derived
+  currency/revenue total and a tenant-profile (TEN-1) KPI tile are **not** part of the shipped
+  Overview — no revenue-summary or tenant-profile read endpoint exists yet
+  (`docs/requirements/open-decisions.md` §19). Alerts named in the original backlog entry are
+  also not shipped — no alerting domain exists yet.
 - Tenant Admin > Students > Student List — search/filter/manage students
 - Tenant Admin > Students > Student Detail — profile, enrollment/payment/attendance/exam/device/communication history, timeline
 - Tenant Admin > Students > Bulk Import — CSV/bulk student creation

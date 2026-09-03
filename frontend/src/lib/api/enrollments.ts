@@ -7,9 +7,10 @@ import type { PageResponse } from "./courses";
  * "Enrollment and Course Access" endpoints (`/api/v1/enrollments/**`,
  * `/api/v1/reactivation-requests/**` — see `EnrollmentController`/
  * `ReactivationRequestController`). Follows `lib/api/payment-slips.ts`'s
- * conventions exactly (full `/api/v1/...` paths, every call through
- * `useAuth().authorizedFetch("tenant", ...)`, query-keys object, `onSuccess`
- * cache invalidation).
+ * conventions exactly (`/v1/...` paths — the client's
+ * `NEXT_PUBLIC_API_BASE_URL` already includes the `/api` prefix — every call
+ * through `useAuth().authorizedFetch("tenant", ...)`, query-keys object,
+ * `onSuccess` cache invalidation).
  *
  * `GET /api/v1/courses/{courseId}/access-state` (`CourseAccessStateController`)
  * has no client here — nothing in this module's approved frontend scope needs
@@ -119,7 +120,7 @@ export function useMyEnrollments() {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: enrollmentKeys.my(),
-    queryFn: () => authorizedFetch<EnrollmentSummaryResponse[]>("tenant", "/api/v1/enrollments/my"),
+    queryFn: () => authorizedFetch<EnrollmentSummaryResponse[]>("tenant", "/v1/enrollments/my"),
   });
 }
 
@@ -136,7 +137,7 @@ export function useMyEnrolledCourseSummaries() {
   return useQuery({
     queryKey: enrollmentKeys.myCourses(),
     queryFn: () =>
-      authorizedFetch<CourseSummaryResponse[]>("tenant", "/api/v1/enrollments/my/courses"),
+      authorizedFetch<CourseSummaryResponse[]>("tenant", "/v1/enrollments/my/courses"),
   });
 }
 
@@ -170,7 +171,7 @@ export function useSubmitReactivationRequest(enrollmentId: string) {
     mutationFn: () =>
       authorizedFetch<ReactivationRequestResponse>(
         "tenant",
-        `/api/v1/enrollments/${enrollmentId}/reactivation-requests`,
+        `/v1/enrollments/${enrollmentId}/reactivation-requests`,
         { method: "POST" }
       ),
     onSuccess: () => {
@@ -189,7 +190,7 @@ export function useMyReactivationRequests(params?: { page?: number; size?: numbe
     queryFn: () =>
       authorizedFetch<PageResponse<ReactivationRequestResponse>>(
         "tenant",
-        `/api/v1/reactivation-requests/my${queryString}`
+        `/v1/reactivation-requests/my${queryString}`
       ),
   });
 }
@@ -203,7 +204,7 @@ export function useReactivationRequest(id: string) {
   return useQuery({
     queryKey: reactivationRequestKeys.detail(id),
     queryFn: () =>
-      authorizedFetch<ReactivationRequestResponse>("tenant", `/api/v1/reactivation-requests/${id}`),
+      authorizedFetch<ReactivationRequestResponse>("tenant", `/v1/reactivation-requests/${id}`),
     enabled: id.length > 0,
   });
 }
@@ -223,7 +224,7 @@ export function useReactivationQueue(params?: ReactivationQueueParams) {
     queryFn: () =>
       authorizedFetch<PageResponse<ReactivationRequestResponse>>(
         "tenant",
-        `/api/v1/reactivation-requests${queryString}`
+        `/v1/reactivation-requests${queryString}`
       ),
   });
 }
@@ -240,7 +241,7 @@ export function useApproveReactivationRequest(id: string) {
     mutationFn: (body: ReactivationApproveRequestBody) =>
       authorizedFetch<ReactivationRequestResponse>(
         "tenant",
-        `/api/v1/reactivation-requests/${id}/approve`,
+        `/v1/reactivation-requests/${id}/approve`,
         { method: "POST", body: JSON.stringify(body) }
       ),
     onSuccess: () => {
@@ -261,7 +262,7 @@ export function useRejectReactivationRequest(id: string) {
     mutationFn: (body: ReactivationRejectRequestBody) =>
       authorizedFetch<ReactivationRequestResponse>(
         "tenant",
-        `/api/v1/reactivation-requests/${id}/reject`,
+        `/v1/reactivation-requests/${id}/reject`,
         { method: "POST", body: JSON.stringify(body) }
       ),
     onSuccess: () => {

@@ -59,6 +59,20 @@ const COURSES = [
 async function loginAsTenantAdmin(page: Page) {
   const token = fakeJwt({ role: "TENANT_ADMIN" });
   await mockJson(page, "**/v1/auth/login", 200, apiSuccess(loginResponseBody(token)));
+  // This flow always lands on `/tenant-admin/dashboard` first (per
+  // `DASHBOARD_PATH_BY_ROLE`) before any test navigates on to Courses. As of
+  // MVP-015 TADASH-1, that dashboard fires its own `GET /v1/students`, `GET
+  // /api/v1/courses*` (always), and `GET /api/v1/ledger/dashboard*` (Tenant
+  // Admin holds `PAYMENTS_SLIPS`/`VIEW`) reads — mock all three here (zero/
+  // empty responses) so this helper's transient landing on the dashboard
+  // never fires a live, unmocked request. Registered before any test's own
+  // `**/v1/courses*` mock, so a test-specific mock registered afterward
+  // (Playwright routes take precedence in most-recently-registered order)
+  // still wins for that test's own Courses-page navigation — mirrors
+  // `student-management.spec.ts`'s already-fixed `loginAs` helper.
+  await mockJson(page, "**/v1/students", 200, apiSuccess([]));
+  await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([]));
+  await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
   await page.goto("/login");
   await page.getByLabel("Email").fill("admin@example.com");
   await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple");

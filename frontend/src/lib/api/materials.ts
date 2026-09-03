@@ -63,7 +63,7 @@ export const materialKeys = {
 };
 
 function materialsBasePath(courseId: string, moduleId: string, lessonId: string): string {
-  return `/api/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/materials`;
+  return `/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/materials`;
 }
 
 /**
