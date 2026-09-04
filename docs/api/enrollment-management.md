@@ -285,3 +285,17 @@ this module exposes via its `api` package, never via a REST call:
 Both interfaces resolve tenant identity exclusively from `TenantContext` — there is no overload
 accepting a caller-supplied tenant id, mirroring `PaymentStatusApi`/`SlipStatusApi`'s existing
 discipline.
+
+`attendance-management` (MVP-016) depends on one additional, additive method on this same
+interface:
+
+- `EnrollmentAccessApi.listCurrentlyEnrolledStudentIds(UUID courseId)` — the inverse of
+  `resolveAccessState`'s per-student direction: "which students are currently enrolled in course
+  X" rather than "is this one student currently enrolled in this one course." Computed live on
+  every call (`supersededAt IS NULL AND (accessExpiresAt IS NULL OR accessExpiresAt > now())`) —
+  an enrollment with only a superseded or access-expired current row does not count. Consumed by
+  `AttendanceMarkingService` as the roster-bypass guard (every submitted `studentId` on a mark
+  request must appear in this list) and by `AttendanceReportService`/`AttendanceController`'s
+  roster read. Purely additive — no existing method on this interface changed signature; see
+  `docs/api/attendance-management.md`'s own "Cross-module contract" section for the consumer
+  side.

@@ -76,7 +76,36 @@ attendance is **Phase 3** (FR-ATT-5).
 - Empty state: "no attendance records yet" distinct from "no sessions match the selected date filter."
 - Teacher's Attendance Reports is a mobile-first consumer-style surface; Tenant Admin's is admin-heavy with responsive data-table fallback.
 
+## Resolved during MVP-016 planning (not left open)
+
+Two structural questions this spec was silent on were explicitly put to the product owner
+during MVP-016's planning and confirmed — recorded here since this file previously had no
+answer for either:
+
+- **Session-equivalent scope = `course_lesson.id`.** No new `class_session`
+  scheduling table exists; `attendance_record.session_id` is a composite FK directly into
+  `course_lesson (tenant_id, id)`. Consequence: a lesson reused across multiple real-world
+  calendar occurrences (e.g. a weekly class attached to one lesson) cannot be distinguished by
+  this schema — see the next item and `docs/plans/MVP-016 Attendance.md` §21 for the accepted
+  limitation this implies.
+- **Re-marking a student for the same session is an in-place upsert, not a reject-on-duplicate
+  conflict.** A Teacher/staff re-mark of an already-marked (session, student) pair updates the
+  existing row's `status`/`marked_by`/`marked_at` — no duplicate row, no `409`. This also means
+  the shipped design has **no correction-with-history**: there is no record of who changed a
+  mark and from what prior value, only the current state.
+
 ## Open decisions
 
 - How "attendance-based access restrictions" (Phase 2) interacts with `enrollment-management`'s access/expiry model is not defined anywhere — is it a distinct gate or does it feed the expiry rules engine? This is a cross-domain ownership ambiguity, analogous to the Module C/D/F gaps.
 - No reconciliation rule is specified for Zoom-sync participant-name mismatches against enrolled students.
+- **Recurring-session ambiguity (new, surfaced by the session-scope decision above)**: since a
+  `course_lesson` has no built-in notion of repeated calendar occurrences, a weekly class
+  attached to one lesson has each week's marking overwrite the prior week's row rather than
+  creating a new occurrence's record. Accepted as an MVP limitation, not silently worked around —
+  the fix, if this proves unworkable in practice, is a schema migration adding an explicit
+  occurrence/date discriminator, not a service-layer workaround.
+- **Historical-roster accuracy gap**: the roster-bypass check
+  (`EnrollmentAccessApi.listCurrentlyEnrolledStudentIds`) is computed live — there is no "was
+  this student enrolled on date X" query, so a report re-run after a student unenrolls will not
+  show them even for a past date they attended. Flagged as a genuine gap in the currently
+  available API surface, not a deliberate design choice.

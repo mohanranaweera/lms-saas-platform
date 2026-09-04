@@ -2,6 +2,7 @@ package com.lms.enrollmentmanagement.repository;
 
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.enrollmentmanagement.domain.Enrollment;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,6 +58,24 @@ public interface EnrollmentRepository extends TenantAwareRepository<Enrollment, 
 	default List<Enrollment> findAllCurrentByStudentId(UUID studentId) {
 		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("studentId"), studentId),
 				cb.isNull(root.get("supersededAt"))));
+	}
+
+	/**
+	 * The inverse of {@link #findAllCurrentByStudentId(UUID)}, keyed by
+	 * {@code courseId} instead of {@code studentId} - backs {@link
+	 * com.lms.enrollmentmanagement.api.EnrollmentAccessApi
+	 * #listCurrentlyEnrolledStudentIds(UUID)} (MVP-016). Unlike {@link
+	 * #findAllCurrentByStudentId(UUID)}, this ALSO excludes an
+	 * access-expired current row ({@code accessExpiresAt IS NULL OR
+	 * accessExpiresAt > now()}) - "currently enrolled" for this consumer
+	 * means access-currency, not merely lineage-currency, per that
+	 * interface's own javadoc.
+	 */
+	default List<Enrollment> findAllCurrentByCourseId(UUID courseId) {
+		Instant now = Instant.now();
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
+				cb.isNull(root.get("supersededAt")),
+				cb.or(cb.isNull(root.get("accessExpiresAt")), cb.greaterThan(root.<Instant>get("accessExpiresAt"), now))));
 	}
 
 	/**

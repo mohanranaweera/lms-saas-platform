@@ -2,6 +2,7 @@ package com.lms.coursemanagement.api;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -88,5 +89,23 @@ public interface CourseLookupApi {
 	 * a single call rather than one round trip per course id.
 	 */
 	List<CourseSummary> getCourseSummaries(Set<UUID> courseIds);
+
+	/**
+	 * @return a map of {@code courseId -> teacherId} for every id in {@code
+	 * courseIds} that exists in the caller's tenant, resolved via the same
+	 * tenant-scoped {@link com.lms.common.tenant.TenantContext} as every
+	 * other method on this interface, never a caller-supplied tenant id. A
+	 * nonexistent or cross-tenant id is simply absent from the result -
+	 * never an error, and never a partial-failure exception for the whole
+	 * batch (same contract shape as {@link #getCourseSummaries(Set)}).
+	 * Added for {@code attendance-management}'s {@code
+	 * AttendanceReportService#resolveOwnedCourseIdsWithHistory} (MVP-016
+	 * post-review fix) - that method previously called {@link
+	 * #getTeacherId(UUID)} once per distinct course id with attendance
+	 * history in the tenant, an N+1-shaped read that grows linearly with
+	 * the number of such courses; this batches that resolution into a
+	 * single {@code findAllById} call.
+	 */
+	Map<UUID, UUID> getTeacherIdsByCourseId(Set<UUID> courseIds);
 
 }

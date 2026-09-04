@@ -1,5 +1,6 @@
 package com.lms.enrollmentmanagement.api;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -45,5 +46,22 @@ public interface EnrollmentAccessApi {
 	 * attempted, rather than discovering the answer via a failed link call.
 	 */
 	boolean hasApprovedUnfulfilledReactivationRequest(UUID studentId, UUID courseId);
+
+	/**
+	 * The inverse of {@link #resolveAccessState(UUID, UUID)}'s per-student
+	 * direction - "which students are currently enrolled in course X" rather
+	 * than "is this one student currently enrolled in this one course".
+	 * Computed LIVE on every call, scoped through the same tenant context as
+	 * every other method on this interface: {@code supersededAt IS NULL AND
+	 * (accessExpiresAt IS NULL OR accessExpiresAt > now())} - an enrollment
+	 * with only a superseded or access-expired current row does not count as
+	 * "currently enrolled". Added for {@code attendance-management} (MVP-016)
+	 * - {@code AttendanceMarkingService} uses this to validate every
+	 * submitted {@code studentId} against the live roster before persisting
+	 * an {@code attendance_record} row, rejecting any id not on this list.
+	 * @return the studentId of every CURRENT, non-expired enrollment for
+	 * {@code courseId}, in no particular guaranteed order.
+	 */
+	List<UUID> listCurrentlyEnrolledStudentIds(UUID courseId);
 
 }

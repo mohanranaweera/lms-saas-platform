@@ -552,3 +552,54 @@ documentation pass must append here, per this log's established §15/§16/§17/�
   Source: post-ship review (solution-architect) flagged the gap per plan §18; closed in a
   follow-up session per explicit user request ("add missing mandatory cross-tenant isolation
   test").
+
+## 20. Attendance (MVP-016) — carried-forward decisions
+
+Named by `docs/plans/MVP-016 Attendance.md` §21 as items this module's own documentation pass
+must append here, per this log's established §15-§19 convention.
+
+- **Two structural decisions confirmed, not left open** — session-equivalent scope =
+  `course_lesson.id` (no new `class_session` table), and re-marking a student for the same
+  session is an in-place upsert (never a `409` reject-on-duplicate). Both were explicitly put to
+  the product owner during planning; recorded in full in
+  `docs/requirements/specifications/10-attendance.md`'s "Resolved during MVP-016 planning"
+  section, not repeated here.
+- **Recurring-session ambiguity — still open, accepted as an MVP limitation.** A `course_lesson`
+  reused across multiple real calendar occurrences (e.g. a weekly class attached to one lesson)
+  cannot be distinguished by this schema — each week's marking overwrites the prior week's row.
+  If this proves unworkable in practice, the fix is a schema migration adding an explicit
+  occurrence/date discriminator, not a service-layer workaround.
+  Source: plan §21.
+- **Historical-roster accuracy gap — still open.** `EnrollmentAccessApi
+  .listCurrentlyEnrolledStudentIds` is computed live; there is no "was this student enrolled on
+  date X" query, so a report re-run after a student unenrolls omits them even for a past date
+  they attended. A genuine gap in the currently available API surface, not a deliberate design
+  choice.
+  Source: plan §21.
+- **Correction-with-history — deliberately not built.** The upsert-in-place re-mark design
+  overwrites the prior status with no `previous_status`/`changed_at` trail. No audit requirement
+  was specified for attendance marking (independently re-verified against
+  `.claude/rules/security.md`'s mandatory-audit-action list during post-ship review — attendance
+  marking is not on that list), so none is proposed. If an audit trail on corrections is later
+  wanted, that is an additive `attendance_change_log` table, not a change to the existing schema.
+  Source: plan §16/§21; confirmed by post-ship security review.
+- **Undisclosed `course-management` API addition, remediated post-ship.**
+  `CourseLookupApi.getTeacherIdsByCourseId(Set<UUID>)` was added to `course-management`'s `api`
+  package during this module's post-review hardening (an N+1 fix for the Teacher report path),
+  contradicting the plan's own explicit §9 claim that "no new method needed" existed for
+  course-management. A post-ship review (solution-architect) flagged this as scope creep against
+  a change-controlled "approved API contract" with no visible sign-off process, distinct from the
+  disclosed, reviewed `enrollment-management` addition below. Remediated by recording the
+  addition here and in a dated addendum to `docs/plans/MVP-016 Attendance.md` §9/§21, and by
+  documenting the method's contract in `docs/api/attendance-management.md`'s "Cross-module
+  contract" section and `docs/architecture/modular-monolith.md` §4's worked example — the
+  method itself was independently verified safe (tenant-scoped, additive, no existing signature
+  changed) by both the solution-architect and security-reviewer passes.
+  Source: post-ship review (solution-architect) finding; closed in a follow-up session per
+  explicit user request ("fix two High findings in process/governance gates").
+- **`EnrollmentAccessApi.listCurrentlyEnrolledStudentIds(UUID)` — disclosed, reviewed addition.**
+  Unlike the `course-management` addition above, this one was named in the plan's own §9 item 2
+  and its own §20 implementation-order step 1 ("get this reviewed/merged first since it's a
+  change to another domain's approved contract") — recorded here only for completeness alongside
+  the undisclosed addition, not because it was itself a process gap.
+  Source: plan §9/§20.

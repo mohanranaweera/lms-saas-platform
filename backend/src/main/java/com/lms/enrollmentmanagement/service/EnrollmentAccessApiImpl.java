@@ -5,6 +5,7 @@ import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
 import com.lms.enrollmentmanagement.repository.ReactivationRequestRepository;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,12 @@ public class EnrollmentAccessApiImpl implements EnrollmentAccessApi {
 			.map(enrollmentId -> reactivationRequestRepository.findApprovedUnfulfilledByEnrollmentId(enrollmentId)
 				.isPresent())
 			.orElse(false);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<UUID> listCurrentlyEnrolledStudentIds(UUID courseId) {
+		return enrollmentRepository.findAllCurrentByCourseId(courseId).stream().map(Enrollment::getStudentId).toList();
 	}
 
 }

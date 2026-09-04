@@ -149,6 +149,36 @@ this module defines its dependency on even though `integration-management` doesn
 yet, so the real implementation can be swapped in later without any caller-side change (see
 `docs/api/content-management.md`).
 
+**Worked example (`attendance-management`, MVP-016):** `attendance-management` owns the new
+`attendance_record` table (one row per tenant/session/student, `UNIQUE (tenant_id, session_id,
+student_id)`) but needs two reads it doesn't own: "who is the owning teacher of this session's
+course" and "which students are currently enrolled in this course." Both are resolved through
+`api`-package calls, never a foreign repository/entity import:
+
+- `CourseLookupApi.resolveLessonOwnership(UUID lessonId)` — the same method
+  `content-management` already depends on (this section's first worked example) — reused
+  unchanged to resolve a session's owning course/teacher for `AttendanceAccessGuard`'s
+  Teacher-ownership-or-staff-matrix check, and to derive `attendance_record.course_id`
+  server-side (never accepted from the client).
+- `CourseLookupApi.getTeacherIdsByCourseId(Set<UUID> courseIds)` — a second, **new** additive
+  method on `course-management.api`, added during this module's post-review hardening to batch-
+  resolve a set of course ids' owning teachers (avoiding an N+1 when narrowing a Teacher's
+  report to their own courses). See `docs/plans/MVP-016 Attendance.md`'s dated addendum for why
+  this wasn't in the original plan and the review that authorized it after the fact.
+- `EnrollmentAccessApi.listCurrentlyEnrolledStudentIds(UUID courseId)` — a **new** additive
+  method on `enrollment-management.api` (the plan's own §9 item 2, disclosed and reviewed as
+  part of this module's implementation) — the roster-bypass guard behind the mark endpoint.
+
+At the Java/JPA level, `AttendanceRecord.courseId`/`sessionId`/`studentId`/`markedBy` stay bare
+`UUID` fields — no `@ManyToOne`/no cross-domain entity import. The only place `attendance_record`
+is actually coupled to `course`/`course_lesson`/`tenant_user` is a SQL-level composite foreign key
+(e.g. `(tenant_id, session_id) -> course_lesson (tenant_id, id)`), which requires no Java import
+at all. Every index on `attendance_record` leads with `tenant_id`, matching this module's three
+real query shapes (student-own-history, per-course report, tenant-wide report) — see
+`docs/api/attendance-management.md` for the full contract and
+`backend/src/main/resources/db/migration/V25__create_attendance_management_schema.sql` for the
+schema itself.
+
 ## 5. When an ADR is required
 
 Raise an ADR **before**, not after, doing any of the following (in addition to the

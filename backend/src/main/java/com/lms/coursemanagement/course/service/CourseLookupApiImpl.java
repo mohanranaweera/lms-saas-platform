@@ -11,9 +11,11 @@ import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,6 +70,13 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 			.stream()
 			.map(course -> new CourseSummary(course.getId(), course.getName(), course.getSlug(), course.getCategory()))
 			.toList();
+	}
+
+	@Override
+	public Map<UUID, UUID> getTeacherIdsByCourseId(Set<UUID> courseIds) {
+		return courseRepository.findAllById(courseIds)
+			.stream()
+			.collect(Collectors.toMap(Course::getId, Course::getTeacherId));
 	}
 
 	@Override

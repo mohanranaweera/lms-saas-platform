@@ -47,7 +47,8 @@ real submit behavior lands with that module.
 - Student > Courses > Video Player — secure signed-URL playback, watch-time tracking, watermark
 - Student > Courses > Catalog / Browse More Courses — authenticated catalog to enroll in additional courses
 - Student > Live Classes > Upcoming/Past Live Classes — Zoom join links, recordings
-- Student > Attendance > My Attendance — session-by-session attendance history
+- Student > Attendance > My Attendance — session-by-session attendance history. **Shipped
+  (MVP-016)**: `app/(student)/student/attendance/page.tsx`.
 - Student > Exams > Exam List — scheduled/available exams
 - Student > Exams > Exam Taking — timed exam attempt screen
 - Student > Exams > Results & Review — published results, answer review
@@ -79,8 +80,10 @@ real submit behavior lands with that module.
 - Teacher > Roster > Course Roster — students enrolled in an assigned course
 - Teacher > Live Classes > Schedule Live Class — create Zoom session
 - Teacher > Live Classes > Recordings — manage/attach recordings to lessons
-- Teacher > Attendance > Mark Attendance — manual attendance marking per session
-- Teacher > Attendance > Attendance Reports — per-course/teacher attendance report
+- Teacher > Attendance > Mark Attendance — manual attendance marking per session. **Shipped
+  (MVP-016)**: `app/(teacher)/teacher/attendance/mark/page.tsx`.
+- Teacher > Attendance > Attendance Reports — per-course/teacher attendance report. **Shipped
+  (MVP-016)**: `app/(teacher)/teacher/attendance/reports/page.tsx`.
 - Teacher > Exams > Question Bank — MCQ/structured question management
 - Teacher > Exams > Exam Scheduler — create/schedule exams, time limits, attempt limits
 - Teacher > Exams > Marking Queue — manual marking of structured answers
@@ -110,7 +113,15 @@ real submit behavior lands with that module.
 - Tenant Admin > Materials > Materials Oversight — folder structure, bulk upload management
 - Tenant Admin > Live Classes > Zoom Accounts — tenant Zoom account integration, multiple accounts
 - Tenant Admin > Live Classes > Live Class Oversight — scheduled/past sessions across teachers
-- Tenant Admin > Attendance > Attendance Reports — student/course/teacher-level reports
+- Tenant Admin > Attendance > Attendance Reports — student/course/teacher-level reports.
+  **Shipped (MVP-016)**: `app/(tenant-admin)/tenant-admin/attendance/reports/page.tsx` (Tenant
+  Admin, Attendance Operator, Read-only Auditor — gated by `canViewAttendanceReports`).
+- Tenant Admin > Attendance > Mark Attendance — tenant-wide manual attendance marking (Attendance
+  Operator/Tenant Admin only, no course-ownership restriction). **Shipped (MVP-016)**:
+  `app/(tenant-admin)/tenant-admin/attendance/mark/page.tsx` (gated by `canMarkAttendanceStaff`).
+  Not part of the original screen catalog entry above — added because the permission matrix
+  already grants Attendance Operator `CREATE_EDIT`, so a marking surface for that role must exist
+  somewhere (plan §11's own reasoning).
 - Tenant Admin > Exams > Exam Oversight — exam list across courses
 - Tenant Admin > Exams > Model Paper Library — shared paper library
 - Tenant Admin > Payments > Payment Dashboard — all payments, statuses

@@ -107,3 +107,34 @@ export function canViewTeachers(role: string | null): boolean {
     role === "READ_ONLY_AUDITOR"
   );
 }
+
+/**
+ * Roles holding `ATTENDANCE`/`VIEW` per `PermissionCheckServiceImpl`'s matrix
+ * (Tenant Admin, Attendance Operator, Read-only Auditor) — gates the
+ * "Attendance Reports" nav entry
+ * (`components/layout/nav/tenant-admin-nav.tsx`) for the Tenant Admin
+ * Attendance Reports screen. `AttendanceController`'s own
+ * `AttendanceAccessGuard`/`PermissionCheckService` check remains the sole
+ * enforcement — a role without this grant that navigates directly to
+ * `/tenant-admin/attendance/reports` still gets a real 403, unchanged.
+ */
+export function canViewAttendanceReports(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "ATTENDANCE_OPERATOR" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/**
+ * Roles holding `ATTENDANCE`/`CREATE_EDIT` per `PermissionCheckServiceImpl`'s
+ * matrix (Tenant Admin, Attendance Operator) — gates the staff "Mark
+ * Attendance" nav entry (`/tenant-admin/attendance/mark`). A subset of
+ * `canViewAttendanceReports`: Read-only Auditor holds `VIEW` only and must
+ * never see this nav entry, though (per this codebase's UX-convenience-only
+ * framing) a direct-URL Read-only Auditor request still independently gets a
+ * real backend 403.
+ */
+export function canMarkAttendanceStaff(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "ATTENDANCE_OPERATOR";
+}
