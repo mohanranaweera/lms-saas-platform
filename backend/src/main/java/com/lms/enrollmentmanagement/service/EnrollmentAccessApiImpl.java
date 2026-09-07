@@ -6,7 +6,9 @@ import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
 import com.lms.enrollmentmanagement.repository.ReactivationRequestRepository;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,15 @@ public class EnrollmentAccessApiImpl implements EnrollmentAccessApi {
 	@Transactional(readOnly = true)
 	public List<UUID> listCurrentlyEnrolledStudentIds(UUID courseId) {
 		return enrollmentRepository.findAllCurrentByCourseId(courseId).stream().map(Enrollment::getStudentId).toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Set<UUID> listCurrentlyEnrolledCourseIds(UUID studentId) {
+		return enrollmentRepository.findAllCurrentlyEnrolledByStudentId(studentId)
+			.stream()
+			.map(Enrollment::getCourseId)
+			.collect(Collectors.toSet());
 	}
 
 }

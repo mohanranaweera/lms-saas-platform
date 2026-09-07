@@ -138,3 +138,99 @@ export function canViewAttendanceReports(role: string | null): boolean {
 export function canMarkAttendanceStaff(role: string | null): boolean {
   return role === "TENANT_ADMIN" || role === "ATTENDANCE_OPERATOR";
 }
+
+/**
+ * Roles holding the flat tenant-wide `DomainArea.EXAMS` grant
+ * (`VIEW`/`CREATE_EDIT`/`APPROVE`) per `PermissionCheckServiceImpl`'s matrix —
+ * Tenant Admin and Exam Manager may author questions, schedule/edit exams,
+ * mark, and publish results tenant-wide, no course-ownership check
+ * (`ExamAccessGuard#requireAuthoringAccess`/`#requireLifecycleTransitionAccess`,
+ * MVP-017 plan §9). Read-only Auditor holds `VIEW` only and must NOT be
+ * included here — it may view exam screens but every mutating action must
+ * still independently reject it server-side.
+ */
+export function canManageExamsStaff(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "EXAM_MANAGER";
+}
+
+/**
+ * Roles holding the flat tenant-wide `DomainArea.EXAMS` grant at `VIEW` or
+ * above per `PermissionCheckServiceImpl`'s matrix — every role
+ * `canManageExamsStaff` includes, PLUS `READ_ONLY_AUDITOR`, who holds
+ * `EXAMS`/`VIEW` only. Use this (not `canManageExamsStaff`) to gate
+ * visibility of the "Exams" nav entry and any other view-only exam surface —
+ * `canManageExamsStaff` stays scoped to gating mutation/action UI (create/
+ * edit/schedule/publish/mark), where Read-only Auditor must never see a
+ * control, only data. UX convenience only; every exam endpoint still
+ * independently enforces its own real access check server-side regardless of
+ * what this returns.
+ */
+export function canViewExamsStaff(role: string | null): boolean {
+  return canManageExamsStaff(role) || role === "READ_ONLY_AUDITOR";
+}
+
+/**
+ * Teacher-only: the owning Teacher may transition their own course's exam
+ * `DRAFT -> SCHEDULED` and publish results
+ * (`ExamAccessGuard#requireLifecycleTransitionAccess`). Deliberately excludes
+ * Teacher Assistant (denied this unconditionally server-side regardless of
+ * any course association, per the MVP-017 plan's boxed note in §7) and
+ * excludes Tenant Admin/Exam Manager (already covered by
+ * `canManageExamsStaff` above — do not OR the two role sets together inside
+ * this helper). A page needing "can this actor reach the schedule/publish
+ * action at all" should check `canScheduleOrPublishExam(role) ||
+ * canManageExamsStaff(role)` explicitly at the call site.
+ */
+export function canScheduleOrPublishExam(role: string | null): boolean {
+  return role === "TEACHER";
+}
+
+/**
+ * Roles that may reach any exam-authoring mutation (create/edit a question,
+ * create a draft exam, edit a `DRAFT` exam's details/linked questions) per
+ * `ExamAccessGuard.requireAuthoringAccess`: owning `TEACHER`, `TEACHER_ASSISTANT`
+ * (tenant-wide, capped server-side at `DRAFT` — a TA is still rejected by
+ * `schedule`/`publish-results` regardless of what this helper returns), and
+ * staff holding the flat tenant-wide `DomainArea.EXAMS`/`CREATE_EDIT` grant
+ * (`TENANT_ADMIN`, `EXAM_MANAGER`). UX convenience only — every gated
+ * mutation's real backend endpoint independently re-enforces this via
+ * `requireAuthoringAccess`, including the course-ownership check for
+ * `TEACHER` that this role-only helper cannot express client-side.
+ */
+export function canAuthorExams(role: string | null): boolean {
+  return (
+    role === "TEACHER" || role === "TEACHER_ASSISTANT" || role === "TENANT_ADMIN" || role === "EXAM_MANAGER"
+  );
+}
+
+/**
+ * Roles that may submit a manual mark on a structured exam answer, per
+ * `MarkingQueueService#requireMarkingAccess` — deliberately narrower than
+ * `canAuthorExams` above, and NOT the same role set: marking authorization is
+ * owning-`TEACHER`-or-staff-`CREATE_EDIT`, mirroring `AttendanceAccessGuard`'s
+ * shape rather than `ExamAccessGuard.requireAuthoringAccess`'s. Confirmed
+ * directly against `MarkingQueueService`'s source: `TEACHER_ASSISTANT` holds
+ * no `DomainArea.EXAMS` grant at all in `PermissionCheckServiceImpl` and is
+ * denied here (unlike `canAuthorExams`, which does include TA for
+ * authoring); `READ_ONLY_AUDITOR` holds `DomainArea.EXAMS`/`VIEW` only and
+ * must see a marking-queue row's data but never the score input/"Save score"
+ * action gated by this helper. UX convenience only — the real
+ * course-ownership check for `TEACHER` still happens server-side.
+ */
+export function canMarkExamAnswers(role: string | null): boolean {
+  return role === "TEACHER" || role === "TENANT_ADMIN" || role === "EXAM_MANAGER";
+}
+
+/**
+ * True for the two roles that own a course's Teacher Portal identity
+ * (`TEACHER`, `TEACHER_ASSISTANT`) — used purely for "Viewing as X"
+ * disclosure banners on exam screens nested under `app/(teacher)/` that
+ * Tenant Admin/Exam Manager also legitimately reach tenant-wide (see the
+ * Scheduler/Marking Queue/Publish pages' own doc comments). Display-only:
+ * this has no bearing on what any of those pages' actions are actually
+ * allowed to do — `canManageExamsStaff`/`canScheduleOrPublishExam`/
+ * `canMarkExamAnswers` remain the real UX-gating checks for that.
+ */
+export function isTeacherRole(role: string | null): boolean {
+  return role === "TEACHER" || role === "TEACHER_ASSISTANT";
+}

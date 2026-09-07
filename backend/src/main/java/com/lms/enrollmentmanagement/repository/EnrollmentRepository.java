@@ -79,6 +79,25 @@ public interface EnrollmentRepository extends TenantAwareRepository<Enrollment, 
 	}
 
 	/**
+	 * The inverse of {@link #findAllCurrentByCourseId(UUID)}, keyed by {@code
+	 * studentId} instead of {@code courseId} - backs {@link
+	 * com.lms.enrollmentmanagement.api.EnrollmentAccessApi
+	 * #listCurrentlyEnrolledCourseIds(UUID)} (MVP-017). Same "currently
+	 * enrolled" access-currency predicate as {@link #findAllCurrentByCourseId(UUID)}
+	 * exactly ({@code supersededAt IS NULL AND (accessExpiresAt IS NULL OR
+	 * accessExpiresAt > now())}) - unlike {@link #findAllCurrentByStudentId(UUID)},
+	 * which is lineage-currency only (no expiry filter, used by {@code
+	 * EnrollmentQueryService#listMyEnrollments} which resolves each row's
+	 * access state separately for display).
+	 */
+	default List<Enrollment> findAllCurrentlyEnrolledByStudentId(UUID studentId) {
+		Instant now = Instant.now();
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("studentId"), studentId),
+				cb.isNull(root.get("supersededAt")),
+				cb.or(cb.isNull(root.get("accessExpiresAt")), cb.greaterThan(root.<Instant>get("accessExpiresAt"), now))));
+	}
+
+	/**
 	 * Reactivation idempotency pre-check (plan §9/ADR-013): {@code
 	 * activating_payment_id} is set on at most one {@code enrollment} row
 	 * ever (current or superseded) for a given payment, whether that row was

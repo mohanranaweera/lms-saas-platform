@@ -603,3 +603,107 @@ must append here, per this log's established §15-§19 convention.
   change to another domain's approved contract") — recorded here only for completeness alongside
   the undisclosed addition, not because it was itself a process gap.
   Source: plan §9/§20.
+
+## 21. Exams (MVP-017) — carried-forward decisions
+
+- **Marking-queue "assigned courses" scoping applies only to Teacher, not to Exam
+  Manager/Tenant Admin** — confirmed as intended (mirrors `MVP-016 Attendance.md` §2's identical
+  disambiguation for Attendance Operator vs. Teacher). `MarkingQueueService` deliberately does
+  not reuse `ExamAccessGuard` for this reason; see `docs/api/exam-management.md`'s "Authorization
+  model" section.
+  Source: plan §21 item 2.
+- **Teacher Assistant question/exam authoring is tenant-wide, not course-scoped — shipped as
+  designed, PROVISIONAL/unratified per `user-roles-and-permissions.md` §3.** No TA-to-course
+  assignment table exists in this codebase; a TA can author/edit any course's questions and
+  `DRAFT` exams tenant-wide but can never transition past `DRAFT` (schedule/publish are both
+  unconditionally denied). Confirm before this becomes a stable business rule, or build a
+  TA-to-course assignment table if tighter scoping is later required.
+  Source: plan §7 boxed note/§21 item 1.
+- **Sequential re-attempts are not blocked at MVP** — only simultaneous duplicate/concurrent
+  `IN_PROGRESS` attempts are blocked, via a partial unique index. A student who revisits the Exam
+  Taking screen after already submitting (while the window is still open) silently starts a new
+  attempt with no "already submitted" warning, since the backend has no signal to distinguish
+  that case from a first attempt. Attempt-count limiting is Phase 2 (FR-EX-4) — flagged so a
+  future reviewer doesn't mistake this for an oversight.
+  Source: plan §6/§21 item 3.
+- **MCQ score recomputation after a question's correct-answer flags are edited post-submission —
+  still unresolved, no default assumed.** The schema does not prevent editing an MCQ question's
+  options after live attempts exist against it (beyond the post-review `QuestionInUseException`
+  fix, which only blocks the *options-replacing* edit path — see below); whether a later
+  recompute should use the answer key's value at submission time or its current value needs
+  explicit product/solution-architect sign-off before being relied on.
+  Source: plan §21 item 4.
+- **Whether exam-result publication requires a mandatory audit-log entry — still undecided, no
+  default assumed.** `ResultsPublishingService` raises `ExamResultPublishedEvent` in-process
+  (no consumer yet) specifically so `audit-log-management` can additively subscribe later with
+  zero schema change if the decision resolves to "yes" — the audit-write path itself was
+  deliberately not built pending that sign-off.
+  Source: plan §16/§21 item 8.
+- **Model Paper Library ownership (Teacher vs. Tenant Admin) — Phase 3, not resolved here, does
+  not block this module.**
+  Source: plan §21 item 9; also corrected in `docs/ui-ux/screen-map.md`.
+- **Grading-integrity fix, shipped: `QuestionBankService.updateQuestion` rejects an
+  options-replacing edit once a question is linked to any non-`DRAFT` exam or has any
+  `exam_answer` row** (409 `QUESTION_IN_USE`) — found by database-architect review during initial
+  implementation; a student's previously-correct answer could otherwise be silently invalidated
+  with no error, since `exam_answer.response` stores selected option ids as free text with no FK
+  by design.
+  Source: plan §22 addendum item 4.
+- **Grading-integrity gap, remediated post-ship: manual marking score had no upper bound.** A
+  multi-agent review after initial ship found `MarkAnswerRequest`/`exam_answer`'s schema/service
+  layer accepted an arbitrarily large `manualScore` for a single structured answer, violating
+  `.claude/rules/security.md`'s "range-validated against the question's configured max points"
+  requirement (plan §15). Since this schema has no per-question "max points" concept (every
+  question is worth a fixed one point, `ResultsPublishingService.POINTS_PER_QUESTION`),
+  remediated by capping `manualScore` at `1.00` — `MarkAnswerRequest`'s `@DecimalMax` (400) plus
+  a DB `CHECK` backstop (`ck_exam_answer_manual_score_at_most_one_point`, migration V27). If a
+  genuine per-question point-value concept is wanted later, that requires a schema change
+  (a `max_points` column) and explicit product sign-off, not a silent reinterpretation of this
+  fixed-one-point model.
+  Source: post-ship multi-agent review finding, remediated same session per explicit user
+  request ("fix all findings").
+- **API gap, remediated post-ship: no "list exams" endpoint existed.** Initial ship exposed only
+  `GET /exams/{examId}` (single, by id) and `GET /exams/my/upcoming` (Student-only) — leaving the
+  Teacher Marking Queue, Teacher Results Publishing (on revisit), and Tenant Admin Exam Oversight
+  screens with no way to browse to an exam whose id wasn't already known from a just-completed
+  action. The frontend shipped an honest, disclosed ID-paste workaround rather than fabricating a
+  list. Remediated post-ship by adding `GET /exams/courses/{courseId}/exams` (course-scoped,
+  every status) and `GET /exams` (tenant-wide, staff-only, optional `status` filter) — both
+  additive, within-module reads requiring no schema change; see `docs/api/exam-management.md`'s
+  "Change log". The frontend was rebuilt onto these endpoints (`ExamPicker` component, Tenant
+  Admin Oversight as a real paginated `DataTable`), and `ExamLookupForm`/`examLookupSchema` were
+  deleted as dead code.
+  Source: post-ship multi-agent review finding, remediated same session per explicit user
+  request ("fix all findings").
+- **Gap, remediated post-ship: no way for a student to rediscover their own past attempts across
+  devices/sessions.** The frontend's `lib/exam-attempt-storage.ts` `localStorage` convenience was
+  the only mechanism, and it explicitly does not survive a cleared browser or a different
+  device. Remediated by adding `GET /exams/attempts/my` (the calling student's own attempt
+  history, most recent first, including `CLOSED`-exam attempts that `/my/upcoming` never
+  returns) — the Student Results & Review screen now tries this real backend lookup before
+  falling back to `localStorage` as a same-browser fast path only.
+  Source: post-ship multi-agent review finding, remediated same session per explicit user
+  request ("fix all findings").
+- **UX gap, remediated post-ship: cross-tenant/cross-student exam and attempt ids fell through
+  to the generic retryable `ErrorState` instead of a dedicated not-found state.** Inconsistent
+  with this codebase's own established convention elsewhere (e.g. the Tenant Admin teacher-detail
+  page's "Teacher not found" pattern) and misleading (offering "Try again" on a permanently
+  nonexistent/not-yours resource). Remediated by special-casing a 404 on the Student Exam Taking
+  and Results & Review pages into a dedicated not-found `EmptyState` with a "Back to Exams"
+  action and no retry control.
+  Source: post-ship multi-agent review finding, remediated same session per explicit user
+  request ("fix all findings").
+- **Root cause found and fixed: the Exam Taking screen's attempt-start request could hang
+  indefinitely in local development.** Confirmed via a live debug session: firing `useMutation`'s
+  `mutate()` from a mount `useEffect` resolves the underlying network request correctly, but
+  under React's default `reactStrictMode: true` in `next dev` (Turbopack), the mutation observer
+  never notified the component of the result — `isPending` stayed `true` forever even though the
+  request had already succeeded. This is a dev-only artifact (StrictMode's double-render/
+  double-effect behavior is stripped from production builds, so it never manifested against
+  `next build`/`next start`), but it broke local development and any Playwright run against the
+  local dev server. Fixed by converting `useStartAttempt` from a `useMutation` fired on mount to
+  a `useQuery` (the operation is idempotent — "starts OR RESUMES" the single `IN_PROGRESS`
+  attempt, backed by a partial unique index — matching TanStack Query's own guidance to use
+  `useQuery`, not `useMutation`, for automatic/mount-triggered fetches).
+  Source: post-ship multi-agent review finding (reported as a reproducible E2E-suite failure),
+  root-caused and fixed same session per explicit user request ("fix all findings").

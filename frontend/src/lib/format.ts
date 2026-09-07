@@ -28,3 +28,18 @@ export function formatMoney(amount: number, currency?: string | null): string {
 export function shortId(id: string, label: string = "Course"): string {
   return `${label} #${id.slice(0, 8)}`;
 }
+
+/**
+ * Renders a raw backend role enum value (e.g. `TENANT_ADMIN`) as a
+ * human-readable label ("Tenant Admin") for display-only copy such as a
+ * role-context banner. Never used for any authorization decision — role
+ * comparisons elsewhere always compare against the raw enum string
+ * (`lib/auth/permissions.ts`).
+ */
+export function formatRoleLabel(role: string): string {
+  return role
+    .toLowerCase()
+    .split("_")
+    .map((word) => (word.length > 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}

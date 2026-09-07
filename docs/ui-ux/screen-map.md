@@ -84,10 +84,10 @@ real submit behavior lands with that module.
   (MVP-016)**: `app/(teacher)/teacher/attendance/mark/page.tsx`.
 - Teacher > Attendance > Attendance Reports — per-course/teacher attendance report. **Shipped
   (MVP-016)**: `app/(teacher)/teacher/attendance/reports/page.tsx`.
-- Teacher > Exams > Question Bank — MCQ/structured question management
-- Teacher > Exams > Exam Scheduler — create/schedule exams, time limits, attempt limits
-- Teacher > Exams > Marking Queue — manual marking of structured answers
-- Teacher > Exams > Results Publishing — publish results, rank lists
+- Teacher > Exams > Question Bank — MCQ/structured question management (shipped, MVP-017)
+- Teacher > Exams > Exam Scheduler — create/schedule exams, time limits (shipped, MVP-017; attempt limits are Phase 2, not built)
+- Teacher > Exams > Marking Queue — manual marking of structured answers (shipped, MVP-017)
+- Teacher > Exams > Results Publishing — publish results (shipped, MVP-017; rank lists are Phase 2, not built — FR-EX-4)
 - Teacher > Reports > My Performance — teacher performance analytics
 - Teacher > Support > My Tickets — teacher support tickets
 - Teacher > Profile > Profile & Availability — teacher profile, availability, payout profile
@@ -122,8 +122,8 @@ real submit behavior lands with that module.
   Not part of the original screen catalog entry above — added because the permission matrix
   already grants Attendance Operator `CREATE_EDIT`, so a marking surface for that role must exist
   somewhere (plan §11's own reasoning).
-- Tenant Admin > Exams > Exam Oversight — exam list across courses
-- Tenant Admin > Exams > Model Paper Library — shared paper library
+- Tenant Admin > Exams > Exam Oversight — exam list across courses (shipped, MVP-017)
+- Tenant Admin > Exams > Model Paper Library — shared paper library (**Phase 3, not part of the MVP-017 build** — `docs/plans/MVP-017 Exams.md` §6 explicitly excludes it; this line predates that scoping decision)
 - Tenant Admin > Payments > Payment Dashboard — all payments, statuses
 - Tenant Admin > Payments > Manual Slip Review Queue — pending slip approvals
 - Tenant Admin > Payments > Slip Detail / Duplicate & Suspicious Flags — OCR reference, duplicate check results, override with reason (audit-logged)

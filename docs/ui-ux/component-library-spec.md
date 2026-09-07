@@ -329,7 +329,9 @@ text per the brief's "never color alone" rule and `accessibility.md` §5:
 | Cancelled | `color/muted-foreground` | `x-circle` |
 | Expired | `color/destructive` | `calendar-x` |
 | Draft | `color/muted-foreground` | `pencil` |
+| Scheduled | `color/foreground` | `calendar-clock` |
 | Published | `color/chart-1`/success | `check` |
+| Closed | `color/muted-foreground` | `lock` |
 | Archived | `color/muted-foreground` | `archive` |
 | Payment Due | warning | `circle-dollar-sign` |
 | Pending Payment | warning | `clock` |
@@ -545,6 +547,63 @@ each `Upcoming`/`Current`/`Completed`. Used in multi-step flows: Course Builder,
 Checkout, Bulk Student Import. `aria-current="step"` on the active step; completed steps
 are not just visually checked but also announce "completed" to screen readers, not
 color alone.
+
+---
+
+## 8. Exam Management composed components (MVP-017)
+
+Feature-specific composed components under `frontend/src/components/exams/` — not shared
+primitives (those live in `components/ui/`), but domain building blocks reused across the
+Student/Teacher/Tenant Admin exam screens. Documented here per this doc's own registration
+convention, closing a gap flagged during MVP-017's post-ship review (these shipped without an
+entry here despite code comments claiming otherwise).
+
+### 8.1 Exam Status Chip
+
+`exam-status-chip.tsx`. Thin wrapper over the generic Status Chip (§2.10) for `ExamStatus`
+(`Draft`/`Scheduled`/`Published`/`Closed`) — the full color/icon vocabulary for these four
+values is already registered in §2.10's table above; this component just narrows the generic
+chip's `status` prop to the exam domain's enum so call sites can't pass an unrelated status
+string.
+
+### 8.2 Answer Result Chip
+
+`answer-result-chip.tsx`. Per-question review chip for the Student Results & Review screen.
+Three states, never color alone: auto-scored MCQ (`Correct (N pts)` / `Incorrect (0 pts)`,
+icon + text), manually-marked structured answer (`Marked (N pts)`), and not-yet-marked
+(`Pending review`, dashed border). Takes `autoScore`/`manualScore` directly (both
+nullable `number | string`, per the backend's `BigDecimal` serialization).
+
+### 8.3 Question Options Editor
+
+`question-options-editor.tsx`. MCQ answer-option editor shared by question create/edit forms
+(screens #4/#5). Add/remove/reorder options via explicit "Move up"/"Move down" buttons —
+deliberately no drag-and-drop, so the whole flow stays keyboard-operable per §4 of
+`.claude/rules/ui-ux.md`. Enforces (client-side, UX-only — the server independently validates)
+at least one option marked correct for an MCQ question.
+
+### 8.4 Exam Question Picker
+
+`exam-question-picker.tsx`. Ordered question-link picker for the Exam Scheduler (screen #5) —
+selection order is the exam's actual question sequence sent to the backend
+(`ExamUpdateRequest.questionIds` replaces the whole ordered set on save). Same keyboard-only
+"Move up"/"Move down" reordering pattern as §8.3, no drag-and-drop.
+
+### 8.5 Exam Picker
+
+`exam-picker.tsx`. Course → exam dropdown picker shared by the Teacher Marking Queue and
+Results Publishing screens (#6/#7), letting either screen be revisited without already knowing
+an exam id. Supports an `initialExamId` (e.g. a `?examId=...` deep link) to pre-select both
+dropdowns.
+
+### 8.6 Marking Queue Entry Row
+
+`marking-queue-entry-row.tsx`. One structured-answer row in the Marking Queue (screen #6): the
+question body, the student's submitted response, and an inline manual-score form
+(React Hook Form + Zod, `markingScoreSchema`). Hides the score input for a caller who cannot
+mark exam answers (`canMarkExamAnswers`) — UX convenience only; the `POST /answers/{id}/mark`
+endpoint independently enforces the real authorization and rejects a re-mark of an
+already-marked answer with `409`.
 
 ---
 

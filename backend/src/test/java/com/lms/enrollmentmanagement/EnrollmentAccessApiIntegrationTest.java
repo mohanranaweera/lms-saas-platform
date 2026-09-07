@@ -12,6 +12,7 @@ import com.lms.paymentmanagement.order.web.dto.OrderResponse;
 import com.lms.paymentmanagement.order.web.dto.PaymentInitiationResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,6 +121,82 @@ class EnrollmentAccessApiIntegrationTest extends EnrollmentManagementTestSupport
 		List<UUID> resultUnderTenantA = withTenant(tenantA.tenant().getId(),
 				() -> enrollmentAccessApi.listCurrentlyEnrolledStudentIds(tenantA.course().id()));
 		assertThat(resultUnderTenantA).containsExactly(tenantA.student().getId());
+	}
+
+	// ------------------------------------------------------------------
+	// listCurrentlyEnrolledCourseIds(UUID) - the reverse direction added for
+	// exam-management (MVP-017)'s "GET /api/v1/exams/my/upcoming" endpoint.
+	// No test of this method existed anywhere in the codebase before this -
+	// only indirect exercise via exam-management's own integration tests -
+	// mirroring exactly how listCurrentlyEnrolledStudentIds itself was
+	// missing direct coverage until the MVP-016 post-ship review (see this
+	// class's own header javadoc).
+	// ------------------------------------------------------------------
+
+	@Test
+	void aCurrentlyEnrolledCoursesIdAppearsInTheResult() {
+		Fixture fixture = seedActiveEnrollmentFixture("eaa-course-active");
+
+		Set<UUID> result = withTenant(fixture.tenant().getId(),
+				() -> enrollmentAccessApi.listCurrentlyEnrolledCourseIds(fixture.student().getId()));
+
+		assertThat(result).containsExactly(fixture.course().id());
+	}
+
+	/**
+	 * A student's only enrollment being access-expired (but still
+	 * lineage-current) must be excluded - identical "currently enrolled"
+	 * access-currency semantics as {@link
+	 * #aStudentWithOnlyAnAccessExpiredEnrollmentIsExcluded()}, just the
+	 * reverse (course-id) direction.
+	 */
+	@Test
+	void aStudentWithOnlyAnAccessExpiredEnrollmentHasNoCourseIdsReported() {
+		ExpiredEnrollmentFixture fixture = seedExpiredEnrollmentFixture("eaa-course-expired");
+
+		Set<UUID> result = withTenant(fixture.tenant().getId(),
+				() -> enrollmentAccessApi.listCurrentlyEnrolledCourseIds(fixture.student().getId()));
+
+		assertThat(result).isEmpty();
+	}
+
+	/** A student who has never enrolled in anything gets an empty set, never an error. */
+	@Test
+	void aStudentWithNoEnrollmentsAtAllGetsAnEmptySet() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("eaa-course-none"));
+		TenantUser student = seedActiveStudent(tenant.getId(), "student@example.test");
+
+		Set<UUID> result = withTenant(tenant.getId(),
+				() -> enrollmentAccessApi.listCurrentlyEnrolledCourseIds(student.getId()));
+
+		assertThat(result).isEmpty();
+	}
+
+	/**
+	 * The tenant-scoping proof, mirroring {@code
+	 * aDifferentTenantsEnrollmentForTheSameCourseIdIsExcluded}'s exact
+	 * technique but for the reverse direction: a genuinely current, active
+	 * enrollment for a real studentId exists in tenant A. Calling this method
+	 * for THAT SAME studentId while resolved as tenant B must return empty -
+	 * never tenant A's enrolled-course set - proving the underlying
+	 * {@code findAll} is genuinely tenant-scoped, not merely "correct because
+	 * student ids never collide in practice."
+	 */
+	@Test
+	void aDifferentTenantsStudentIdReturnsNoCoursesEvenIfTheSameIdIsAStudentInAnotherTenant() {
+		Fixture tenantA = seedActiveEnrollmentFixture("eaa-course-xt-a");
+		Tenant tenantB = seedActiveTenant(uniqueSubdomain("eaa-course-xt-b"));
+
+		Set<UUID> resultUnderTenantB = withTenant(tenantB.getId(),
+				() -> enrollmentAccessApi.listCurrentlyEnrolledCourseIds(tenantA.student().getId()));
+
+		assertThat(resultUnderTenantB).isEmpty();
+
+		// Sanity: the SAME studentId, resolved under tenant A's own context,
+		// DOES report the real enrolled-course set.
+		Set<UUID> resultUnderTenantA = withTenant(tenantA.tenant().getId(),
+				() -> enrollmentAccessApi.listCurrentlyEnrolledCourseIds(tenantA.student().getId()));
+		assertThat(resultUnderTenantA).containsExactly(tenantA.course().id());
 	}
 
 	// ------------------------------------------------------------------

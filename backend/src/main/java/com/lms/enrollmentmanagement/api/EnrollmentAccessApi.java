@@ -1,6 +1,7 @@
 package com.lms.enrollmentmanagement.api;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -63,5 +64,24 @@ public interface EnrollmentAccessApi {
 	 * {@code courseId}, in no particular guaranteed order.
 	 */
 	List<UUID> listCurrentlyEnrolledStudentIds(UUID courseId);
+
+	/**
+	 * The inverse of {@link #listCurrentlyEnrolledStudentIds(UUID)} - "which
+	 * courses is this one student currently enrolled in" rather than "which
+	 * students are currently enrolled in this one course". Computed LIVE on
+	 * every call, scoped through the same tenant context as every other
+	 * method on this interface: {@code supersededAt IS NULL AND
+	 * (accessExpiresAt IS NULL OR accessExpiresAt > now())} - identical
+	 * "currently enrolled" access-currency semantics as {@link
+	 * #listCurrentlyEnrolledStudentIds(UUID)}, just the reverse direction.
+	 * Added for {@code exam-management} (MVP-017) - {@code
+	 * ExamSchedulingService}'s {@code GET /api/v1/exams/my/upcoming} uses this
+	 * to resolve the calling student's own currently-enrolled course set
+	 * before intersecting it against {@code SCHEDULED}/{@code PUBLISHED}
+	 * exams in those courses.
+	 * @return the courseId of every CURRENT, non-expired enrollment for
+	 * {@code studentId}, in no particular guaranteed order.
+	 */
+	Set<UUID> listCurrentlyEnrolledCourseIds(UUID studentId);
 
 }

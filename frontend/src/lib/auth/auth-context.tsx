@@ -19,10 +19,19 @@ import {
 import { apiFetch } from "@/lib/api/client";
 import { isApiClientError } from "@/lib/api/error";
 import { decodeAccessTokenPayload } from "./jwt";
+import { clearAllRememberedExamAttempts } from "@/lib/exam-attempt-storage";
 
 interface Session {
   accessToken: string;
   role: string | null;
+  /**
+   * The authenticated user id (JWT `sub` claim), decoded client-side for
+   * DISPLAY/SCOPING CONVENIENCE ONLY — same caveat as `role` above, never an
+   * authorization signal. Used to scope purely-client-side, best-effort
+   * localStorage state (e.g. `lib/exam-attempt-storage.ts`) to the signed-in
+   * user on a shared device, never to gate access to anything.
+   */
+  userId: string | null;
   kind: PrincipalKind;
 }
 
@@ -98,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await loginRequest(kind, credentials);
     const decoded = decodeAccessTokenPayload(data.accessToken);
     const role = decoded?.role ?? null;
-    setSession({ accessToken: data.accessToken, role, kind });
+    setSession({ accessToken: data.accessToken, role, userId: decoded?.sub ?? null, kind });
     return { role, mustChangePassword: data.mustChangePassword };
   }, []);
 
@@ -113,7 +122,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const data = await refreshRequest(kind);
             const decoded = decodeAccessTokenPayload(data.accessToken);
-            setSession({ accessToken: data.accessToken, role: decoded?.role ?? null, kind });
+            setSession({
+              accessToken: data.accessToken,
+              role: decoded?.role ?? null,
+              userId: decoded?.sub ?? null,
+              kind,
+            });
             return data.accessToken;
           } finally {
             delete refreshInFlight.current[kind];
@@ -172,6 +186,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // as the user regardless of the network round-trip outcome (e.g. the
         // access token was already expired/revoked).
         setSession((current) => (current?.kind === kind ? null : current));
+        // Best-effort cleanup of the exam-attempt "remember" mapping
+        // (`lib/exam-attempt-storage.ts`) so a second student signing in on
+        // this same shared device/browser never inherits the previous
+        // student's remembered attempt id. Clearing unconditionally (not
+        // scoped to just this session's userId) is deliberate: it's simplest,
+        // and safe — the mapping is a client-only convenience with no
+        // sensitive content beyond an attempt id already owner-checked
+        // server-side on every read.
+        clearAllRememberedExamAttempts();
       }
       // Deliberately outside the try/finally: a failure above is rethrown here
       // (after local state is already cleared) so the caller can surface it

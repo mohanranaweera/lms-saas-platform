@@ -87,6 +87,23 @@ publishing, answer review, exam analytics (FR-EX-1/2/3; `source-requirements.md`
 
 ## Open decisions
 
+**Resolved during MVP-017 planning/implementation** (see `docs/requirements/open-decisions.md`
+§21 for the full record):
+- Marking-queue "assigned courses" scoping applies only to Teacher, not Exam Manager/Tenant Admin.
+- Teacher Assistant question/exam authoring is tenant-wide (no course-scoping table exists),
+  capped at `DRAFT` — shipped as designed, PROVISIONAL/unratified.
+- Exam status lifecycle: `DRAFT`/`SCHEDULED` manual, `PUBLISHED`/`CLOSED` system-computed
+  (lazy, one-idempotent-guarded-write, mirroring `EnrollmentAccessApi`'s existing pattern).
+
+**Still genuinely open, no default assumed:**
 - Whether exam-result publication requires an audit-log entry (FR-EX-2 vs. `security.md`'s canonical list disagree).
-- Model Paper Library ownership between Teacher and Tenant Admin.
+- Model Paper Library ownership between Teacher and Tenant Admin (Phase 3).
 - Exact recovery UX for a dropped connection during a timed exam attempt.
+- MCQ score recomputation after a question's correct-answer flags are edited post-submission
+  (submission-time value vs. current value — needs explicit sign-off).
+
+**New tension surfaced, not resolved here:** `functional-requirements.md` FR-EX-3 (exam
+analytics) is tagged MVP, but issue #17 (this module's source of truth) contains no mention of
+analytics anywhere — analytics was treated as out of scope for MVP-017's actual delivery
+(resolved by precedence, mirroring how `MVP-016 Attendance.md` resolved an analogous FR-vs-issue
+tension). The FR-EX-3 phase tag itself should be revisited in a separate documentation pass.

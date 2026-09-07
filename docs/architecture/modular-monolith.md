@@ -179,6 +179,48 @@ real query shapes (student-own-history, per-course report, tenant-wide report) �
 `backend/src/main/resources/db/migration/V25__create_attendance_management_schema.sql` for the
 schema itself.
 
+**Worked example (`exam-management`, MVP-017):** six new tables (`exam_question`,
+`exam_question_option`, `exam`, `exam_question_link`, `exam_attempt`, `exam_answer`) — see
+`docs/api/exam-management.md` for the full contract and
+`backend/src/main/resources/db/migration/V26__create_exam_management_schema.sql`/
+`V27__cap_exam_answer_manual_score_at_one_point.sql` for the schema itself. Two cross-module
+reads, both through `api`-package calls only:
+
+- `CourseLookupApi.getTeacherId(UUID courseId)` — course-ownership resolution behind
+  `ExamAccessGuard`'s Teacher-ownership-or-staff-matrix check (mirrors every other domain's
+  established discipline).
+- `EnrollmentAccessApi.resolveAccessState(UUID studentId, UUID courseId)` — the
+  enrollment-currency gate at attempt-start/save/submit time.
+- `EnrollmentAccessApi.listCurrentlyEnrolledCourseIds(UUID studentId)` — a **new** additive
+  reverse-lookup method on `enrollment-management.api` (mirroring the already-shipped
+  `listCurrentlyEnrolledStudentIds(courseId)`'s "currently enrolled" currency semantics, reverse
+  direction), added when implementation found `GET /exams/my/upcoming` needed a read
+  `EnrollmentAccessApi` didn't expose in either direction the plan anticipated — stopped and
+  reported, then approved as a minimal, additive, read-only extension (no existing caller
+  affected).
+
+**`exam.status` is lazily consistent, not authoritative if read directly.** `ExamLifecycleService`
+advances `DRAFT → SCHEDULED → PUBLISHED → CLOSED` only when some request path resolves the
+current status for that specific exam (attempt start/save/submit, or a list/detail read that
+happens to include it) — an exam nobody reads again after its window closes can keep a stale
+`SCHEDULED`/`PUBLISHED` value in the stored `status` column indefinitely. Every API response goes
+through `ExamLifecycleService.resolveCurrentStatus`, so this is invisible to any client of the
+`exam-management` API — but a future direct-SQL/reporting consumer of the raw `exam.status`
+column (e.g. a `reporting-analytics` read model built by joining tables rather than consuming
+this module's `api` reads/events) must not treat it as current without the same live-resolution
+step.
+
+The exam-lifecycle status advance (`DRAFT → SCHEDULED` manual, `SCHEDULED → PUBLISHED →
+CLOSED` system-computed) is a lazy, one-idempotent-guarded-write pattern, deliberately reusing
+`EnrollmentAccessApi.resolveAccessState`'s own "computed live, one idempotent guarded write"
+precedent rather than inventing a scheduled job — see `ExamLifecycleService`/
+`ExamStatusAdvanceWriter`. `exam.results_published_at` is a fully separate, independently-set
+gate on top of that lifecycle, never conflated with the `PUBLISHED` status value (which governs
+the exam's own visibility/attemptability, not its results' visibility). `exam_answer.exam_id` is
+a documented, accepted denormalization from `attempt_id`'s real parent exam (mirroring
+`attendance_record.course_id`'s V25 precedent) — always server-derived, never client-supplied,
+with dedicated test coverage proving it.
+
 ## 5. When an ADR is required
 
 Raise an ADR **before**, not after, doing any of the following (in addition to the

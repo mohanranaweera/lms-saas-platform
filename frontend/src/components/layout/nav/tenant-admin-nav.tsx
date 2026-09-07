@@ -6,6 +6,7 @@ import {
   canProcessRefunds,
   canViewAccessExpiryQueue,
   canViewAttendanceReports,
+  canViewExamsStaff,
   canViewPaymentDashboard,
   canViewTeachers,
 } from "@/lib/auth/permissions";
@@ -61,6 +62,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (canMarkAttendanceStaff(role)) {
     items.push({ label: "Mark Attendance", href: "/tenant-admin/attendance/mark" });
+  }
+  if (canViewExamsStaff(role)) {
+    items.push({ label: "Exams", href: "/tenant-admin/exams" });
   }
 
   return <NavLinks items={items} onNavigate={onNavigate} />;
