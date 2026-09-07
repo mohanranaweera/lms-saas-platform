@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
@@ -29,20 +29,16 @@ export function ExamPicker({
   onSelect: (examId: string) => void;
 }) {
   const coursesQuery = useCourses();
-  const [courseId, setCourseId] = useState("");
+  const [manualCourseId, setManualCourseId] = useState<string | null>(null);
   const [examId, setExamId] = useState(initialExamId ?? "");
 
-  const deepLinkExamQuery = useExam(courseId ? "" : (initialExamId ?? ""));
-  useEffect(() => {
-    if (deepLinkExamQuery.data && !courseId) {
-      setCourseId(deepLinkExamQuery.data.courseId);
-    }
-  }, [deepLinkExamQuery.data, courseId]);
+  const deepLinkExamQuery = useExam(manualCourseId ? "" : (initialExamId ?? ""));
+  const courseId = manualCourseId ?? deepLinkExamQuery.data?.courseId ?? "";
 
   const examsQuery = useCourseExams(courseId, { size: 100 });
 
   function handleCourseChange(value: string) {
-    setCourseId(value);
+    setManualCourseId(value);
     setExamId("");
   }
 
