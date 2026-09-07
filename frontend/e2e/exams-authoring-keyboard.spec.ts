@@ -268,6 +268,9 @@ test.describe("Teacher Question Bank (screen #4) — editing a STRUCTURED questi
       if (route.request().method() === "PUT") {
         updateCalls++;
         updateRequestBody = route.request().postDataJSON();
+        // Delay the response so the transient "Saving…" busy state below is
+        // actually observable, per the pattern in student-management.spec.ts.
+        await new Promise((resolve) => setTimeout(resolve, 500));
         await fulfillJson(
           route,
           200,
