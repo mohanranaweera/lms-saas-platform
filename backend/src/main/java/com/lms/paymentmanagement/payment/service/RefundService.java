@@ -1,6 +1,7 @@
 package com.lms.paymentmanagement.payment.service;
 
 import com.lms.common.error.ConflictException;
+import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
@@ -9,6 +10,8 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.paymentmanagement.api.PaymentRefundedEvent;
+import com.lms.paymentmanagement.order.domain.StudentOrder;
+import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.domain.PaymentStatus;
 import com.lms.paymentmanagement.refund.domain.PaymentRefund;
@@ -45,6 +48,8 @@ public class RefundService {
 
 	private final PaymentRefundRepository paymentRefundRepository;
 
+	private final StudentOrderRepository studentOrderRepository;
+
 	private final LedgerEntryApi ledgerEntryApi;
 
 	private final PermissionCheckService permissionCheckService;
@@ -54,10 +59,12 @@ public class RefundService {
 	private final ApplicationEventPublisher eventPublisher;
 
 	public RefundService(PaymentQueryService paymentQueryService, PaymentRefundRepository paymentRefundRepository,
-			LedgerEntryApi ledgerEntryApi, PermissionCheckService permissionCheckService, TenantContext tenantContext,
+			StudentOrderRepository studentOrderRepository, LedgerEntryApi ledgerEntryApi,
+			PermissionCheckService permissionCheckService, TenantContext tenantContext,
 			ApplicationEventPublisher eventPublisher) {
 		this.paymentQueryService = paymentQueryService;
 		this.paymentRefundRepository = paymentRefundRepository;
+		this.studentOrderRepository = studentOrderRepository;
 		this.ledgerEntryApi = ledgerEntryApi;
 		this.permissionCheckService = permissionCheckService;
 		this.tenantContext = tenantContext;
@@ -110,6 +117,21 @@ public class RefundService {
 			}
 		}
 
+		// Additive read-only lookup (MVP-018 §9.3) so notification-management
+		// knows which student to email - Payment itself has no studentId
+		// field, only StudentOrder does (mirrors PaymentConfirmationService's
+		// identical order lookup). Deliberately run AFTER the idempotency-key
+		// replay short-circuit above (payment-ledger-specialist review
+		// finding) - a replay returns the original row without ever needing
+		// this read, so paying for it on every replay was an unneeded read;
+		// still before any write below, so a missing order on a genuinely NEW
+		// request fails fast before the refund/ledger rows are ever
+		// attempted, not abort an already-written refund via transaction
+		// rollback. Read-only - no change to the locking/idempotency/
+		// refund-remainder/ledger semantics.
+		StudentOrder order = studentOrderRepository.findById(payment.getOrderId())
+			.orElseThrow(() -> new NotFoundException("Order not found for this payment"));
+
 		if (payment.getStatus() != PaymentStatus.CONFIRMED) {
 			throw new ConflictException("Only a CONFIRMED payment can be refunded");
 		}
@@ -134,7 +156,7 @@ public class RefundService {
 
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		eventPublisher.publishEvent(new PaymentRefundedEvent(tenantContext.getTenantId(), paymentId, refund.getId(),
-				principal.userId(), amount, reason, Instant.now()));
+				principal.userId(), amount, reason, Instant.now(), order.getStudentId()));
 		log.atInfo()
 			.setMessage("payment.refunded")
 			.addKeyValue("actor", principal.userId())

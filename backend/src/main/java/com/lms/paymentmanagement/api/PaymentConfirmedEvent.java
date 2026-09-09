@@ -1,6 +1,7 @@
 package com.lms.paymentmanagement.api;
 
 import com.lms.paymentmanagement.payment.domain.PaymentStatus;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,9 +15,12 @@ import java.util.UUID;
  * approvals/rejections" canonical mandatory-audit-action. {@code actorId} is
  * {@code null} here (unlike a human-reviewer-driven action) - the webhook
  * path's "actor" is the verified integration/system identity, not a human,
- * so the trail must not imply human judgment where there was none.
+ * so the trail must not imply human judgment where there was none. {@code
+ * studentId}/{@code amount}/{@code currency} are additive fields (MVP-018
+ * §9.3) so {@code notification-management} can email the correct student the
+ * correct confirmed amount without re-querying {@code payment-management}.
  */
 public record PaymentConfirmedEvent(UUID tenantId, UUID paymentId, UUID orderId, PaymentStatus previousStatus,
-		PaymentStatus newStatus, Instant confirmedAt) {
+		PaymentStatus newStatus, Instant confirmedAt, UUID studentId, BigDecimal amount, String currency) {
 
 }

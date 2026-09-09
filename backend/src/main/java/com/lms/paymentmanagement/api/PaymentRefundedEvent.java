@@ -13,9 +13,11 @@ import java.util.UUID;
  * the eventual listener; PAY-4's own acceptance criterion requires exactly
  * one audit row per refund, sourced from this event's {@code actorUserId}
  * (a real, authenticated Finance Staff/Institute Owner - unlike the webhook
- * path's {@code null} actor).
+ * path's {@code null} actor). {@code studentId} is an additive field
+ * (MVP-018 §9.3) so {@code notification-management} can email the correct
+ * student without itself reaching into {@code payment-management}'s tables.
  */
 public record PaymentRefundedEvent(UUID tenantId, UUID paymentId, UUID refundId, UUID actorUserId, BigDecimal amount,
-		String reason, Instant refundedAt) {
+		String reason, Instant refundedAt, UUID studentId) {
 
 }

@@ -25,6 +25,14 @@
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
+    properties:
+      mail:
+        smtp:
+          # Local dev talks to a local SMTP catcher (MailHog/Mailpit), not
+          # Gmail - override the base application.yml's Gmail-oriented
+          # auth: true back off here so local startup/send never depends on
+          # a catcher supporting SMTP AUTH.
+          auth: false
 
 server:
   port: ${BACKEND_PORT:8080}

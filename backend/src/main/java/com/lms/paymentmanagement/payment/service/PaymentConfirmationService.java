@@ -30,9 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
  * it hits one platform-level URL directly, so {@code TenantResolutionFilter}
  * never runs for this request and {@link com.lms.common.tenant.TenantContext}
  * is never populated the normal way. {@link
- * PaymentRepository#findByGatewayReferenceAcrossTenants(String)} is the ONE
- * repository method in this module that is not tenant-scoped by the base
- * class, used deliberately here (and ONLY here) to locate the {@link
+ * PaymentRepository#findByGatewayReferenceAcrossTenantsForUpdate(String)} is
+ * the ONE repository method in this module that is not tenant-scoped by the
+ * base class, used deliberately here (and ONLY here) to locate the {@link
  * Payment} row by its gateway reference alone. The found row's OWN {@code
  * tenantId} field - set correctly when the row was created during the
  * earlier, authenticated payment-initiation request - is then the trusted
@@ -153,7 +153,8 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 						.log();
 				}
 				eventPublisher.publishEvent(new PaymentConfirmedEvent(payment.getTenantId(), payment.getId(),
-						order.getId(), previousStatus, PaymentStatus.CONFIRMED, confirmedAt));
+						order.getId(), previousStatus, PaymentStatus.CONFIRMED, confirmedAt, order.getStudentId(),
+						payment.getAmount(), payment.getCurrency()));
 				log.atInfo()
 					.setMessage("payment.confirmed")
 					.addKeyValue("actor", WEBHOOK_SYSTEM_ACTOR)
@@ -168,7 +169,8 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 				payment.reject();
 				paymentRepository.save(payment);
 				eventPublisher.publishEvent(new PaymentRejectedEvent(payment.getTenantId(), payment.getId(),
-						order.getId(), previousStatus, PaymentStatus.REJECTED, Instant.now()));
+						order.getId(), previousStatus, PaymentStatus.REJECTED, Instant.now(), order.getStudentId(),
+						payment.getAmount(), payment.getCurrency()));
 				log.atInfo()
 					.setMessage("payment.rejected")
 					.addKeyValue("actor", WEBHOOK_SYSTEM_ACTOR)

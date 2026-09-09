@@ -221,6 +221,94 @@ a documented, accepted denormalization from `attempt_id`'s real parent exam (mir
 `attendance_record.course_id`'s V25 precedent) — always server-derived, never client-supplied,
 with dedicated test coverage proving it.
 
+**Worked example (`notification-management`, MVP-018) — the reference precedent for crossing
+a real thread/timing boundary with `TenantContextHolder`:** three new tables
+(`notification_outbox`, `notification_template`, `in_app_notification`) — see
+`docs/api/notification-management.md` for the REST contract and
+`backend/src/main/resources/db/migration/V28__create_notification_management_schema.sql`/
+`V29__add_notification_outbox_claimed_at_reconciliation.sql` for the schema itself. This is
+the first shipped domain in this codebase whose own production code must manually manage
+`TenantContextHolder` across a boundary where Spring's usual request-scoped propagation
+doesn't reach — every future domain needing the same thing should follow this pattern, not
+invent a new one.
+
+*Why a boundary-crossing problem exists at all.* Payment-management's own request-time
+transaction (`PaymentConfirmationService`/`RefundService`) already runs with
+`TenantContextHolder` set from the inbound request. But `notification-management` cannot
+just reuse that ambient value, because it consumes work at two points that are **not** the
+same request thread:
+
+- `NotificationOutboxService`'s three listeners (`onPaymentConfirmed`/`onPaymentRejected`/
+  `onPaymentRefunded`) are `@TransactionalEventListener(phase = AFTER_COMMIT)` — same thread
+  as the triggering request, but *after* that request's own transaction has already
+  committed, deliberately **not** `@Async` (an `@Async`/`ThreadPoolTaskExecutor` design was
+  considered and rejected during review: a rejected-task-runs-on-calling-thread policy
+  (`CallerRunsPolicy`) could make an unconditional `TenantContextHolder.clear()` in that
+  task's `finally` wipe the *request* thread's own context mid-request — see
+  `docs/plans/MVP-018 Email Notifications.md` §9.2 for the full rejected-design rationale).
+- `NotificationDispatchPoller` runs on Spring's dedicated `@Scheduled` scheduler thread,
+  entirely decoupled from any request thread, claiming `PENDING` rows across **all**
+  tenants in one query (`FOR UPDATE SKIP LOCKED`) — there is no "current tenant" for that
+  thread at all until a specific claimed row supplies one.
+
+*The pattern.* Every one of this module's five independent call sites that touch a
+tenant-owned repository — `NotificationOutboxService`'s three listeners,
+`NotificationDispatchClaimService.claim()`, `NotificationDispatchFinalizeService.markSent()`/
+`markFailed()`, `NotificationDispatchService.dispatchOne()`, and
+`NotificationTemplateSeedingService.onTenantRegistered()` — follows the same shape:
+`TenantContextHolder.set(...)` as the **first statement inside `try`**, sourced from that
+unit of work's own persisted/event `tenantId` field (never an inherited or ambient value),
+with `TenantContextHolder.clear()` **unconditionally in `finally`**, so a thrown exception
+can never leave a stale tenant id set for whatever runs next on that thread. Each of these
+five sites has its own deterministic, non-Spring, non-thread-pool unit test (see
+`NotificationDispatchServiceTenantContextSymmetryTest` and its four siblings under
+`backend/src/test/java/com/lms/notificationmanagement/service/`) proving `clear()` ran after
+**both** a normal return and a thrown exception — this style was chosen over a
+thread-pool/back-to-back-dispatch integration test because that style was found during
+review to only prove `set()` ran, not `clear()` (a stale leftover value would be silently
+overwritten, not detected).
+
+*Dispatch is three separate short transactions, not one, to avoid holding a transaction (or
+its row lock) open across the blocking SMTP call* (`.claude/rules/backend.md`'s "do not span
+a transaction across an outbound call to an external system" rule) —
+`NotificationDispatchClaimService.claim()` commits the `PENDING → SENDING` transition and
+releases the claim lock *before* any SMTP call; the SMTP send itself runs with no open
+transaction; `NotificationDispatchFinalizeService` commits the terminal `SENT`/`FAILED`
+status (+ the `in_app_notification` insert on success) afterward in its own transaction. A
+crash between claim-commit and finalize-commit leaves a row stuck at `SENDING`; V29's
+`claimed_at` column plus `NotificationDispatchReconciliationService` (wired into the poller
+as a separate, less-frequent `@Scheduled` method) finds any `SENDING` row older than a
+timeout constant and marks it `FAILED` — failing a stuck claim forward, not a retry of the
+send (this module's "a `FAILED` row is never automatically retried" decision is unaffected).
+See `docs/requirements/open-decisions.md`'s notification-management entries for the full,
+dated history of this design evolving from the plan's original two-state
+(`PENDING → SENT|FAILED`) sketch to the shipped three-state design.
+
+*Cross-module reads, all through `api`-package calls only, never a foreign repository/entity
+import:*
+
+- `UserProvisioningApi.findTenantUserSummaries` (`identity-access-service`) — resolves a
+  claimed row's recipient email strictly by `(tenant_id, recipientUserId)`, never by email
+  lookup (a same-email user in a different tenant must never be cross-matched — `user-management`'s
+  email uniqueness is only `UNIQUE (tenant_id, email)`, not global).
+- `MessagingProviderApi.sendEmail` (`integration-management`, **new** in this module) — the
+  sole outbound email path; `notification-management` never holds SMTP credentials itself.
+- `PaymentConfirmedEvent`/`PaymentRejectedEvent`/`PaymentRefundedEvent` (`payment-management`)
+  and `TenantRegisteredEvent` (`tenant-management`, **new**, added post-ship so
+  `NotificationTemplateSeedingService` can seed default `notification_template` rows at
+  tenant-registration time — see `docs/requirements/open-decisions.md` for why this was
+  needed: without it, no tenant could ever receive real email at MVP launch) — all consumed
+  via `@TransactionalEventListener`, never a synchronous call into either owning domain.
+
+At the Java/JPA level, `NotificationOutbox.recipientUserId`/`InAppNotification.recipientUserId`
+stay bare `UUID` fields — no cross-domain entity import. Every index on all three tables leads
+with `tenant_id` except the two deliberately cross-tenant, explicitly-named dispatch/
+reconciliation claim queries (`findPendingIdsAcrossTenants`,
+`claimPendingByIdAcrossTenantsForUpdateSkipLocked`, `findStuckSendingIdsAcrossTenants`,
+`claimStuckSendingByIdAcrossTenantsForUpdateSkipLocked` — `NotificationOutboxRepository`),
+which are platform-level background operations by design, not tenant-scoped reads, and are
+named accordingly per `.claude/rules/backend.md`'s bypass-naming convention.
+
 ## 5. When an ADR is required
 
 Raise an ADR **before**, not after, doing any of the following (in addition to the

@@ -1,12 +1,15 @@
 package com.lms.tenantmanagement.service;
 
 import com.lms.common.error.ConflictException;
+import com.lms.tenantmanagement.api.TenantRegisteredEvent;
 import com.lms.tenantmanagement.domain.Tenant;
 import com.lms.tenantmanagement.repository.TenantRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
+import java.time.Instant;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,9 +28,13 @@ public class TenantRegistrationService {
 
 	private final Validator validator;
 
-	public TenantRegistrationService(TenantRepository tenantRepository, Validator validator) {
+	private final ApplicationEventPublisher eventPublisher;
+
+	public TenantRegistrationService(TenantRepository tenantRepository, Validator validator,
+			ApplicationEventPublisher eventPublisher) {
 		this.tenantRepository = tenantRepository;
 		this.validator = validator;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public TenantRegistrationResult register(TenantRegistrationCommand command) {
@@ -55,6 +62,8 @@ public class TenantRegistrationService {
 			// message is accurate without needing to inspect the cause.
 			throw new ConflictException("A tenant with this subdomain already exists");
 		}
+
+		eventPublisher.publishEvent(new TenantRegisteredEvent(tenant.getId(), tenant.getName(), Instant.now()));
 
 		return new TenantRegistrationResult(tenant.getId(), tenant.getSubdomain(), tenant.getStatus());
 	}

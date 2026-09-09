@@ -166,7 +166,9 @@ Source requirements module 16 calls for "Integration health checks." Architectur
 - **SMS and WhatsApp Business API provider(s)** -- not selected; source requirements
   name "WhatsApp official API" generically and "SMS provider" generically, no specific
   vendor.
-- **Email/SMTP provider** -- not selected.
+- **Email/SMTP provider** -- Gmail/Google Workspace SMTP, confirmed for MVP-018 (see
+  `docs/requirements/open-decisions.md` §22 for the daily-send-cap caveat and the
+  no-code-change swap path via `MAIL_HOST`/`MAIL_PORT`).
 - **Credential vault technology** -- depends on the secrets-management mechanism
   decision flagged in `deployment-architecture.md`; not decided here.
 - **Health-check scheduling mechanism/frequency** -- conceptually described (section

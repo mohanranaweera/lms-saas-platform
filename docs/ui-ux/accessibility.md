@@ -92,6 +92,25 @@ complete — not just the generic "accessible form labels" baseline.
 - [ ] The shared status-badge component (`design-system.md` §4.3) is the only
   implementation of this pattern — no module hand-rolls its own color-only
   badge.
+- [x] Notification Center unread/read rows (`notification-list.tsx`) pair
+  color with a visible "Unread" badge and a font-weight change — not color
+  alone. **Shipped (MVP-018)**.
+
+### 5.1 Unread-count nav badge (MVP-018)
+
+- [x] The Notification Center's nav-item unread-count indicator
+  (`notifications-nav-badge.tsx`) exposes an accessible name that states the
+  count in context — `aria-label="N unread notifications"` — never a bare
+  visually-rendered numeral a screen reader would announce with no context.
+- [x] The badge renders nothing (not "0") when the unread count is zero, so a
+  screen reader user isn't told "0 unread notifications" for every visit —
+  absence of the badge is itself the zero-state signal, consistent with
+  `empty-state.tsx`'s "distinct copy, never invented default text" rule
+  applying equally to "distinct absence" for a count indicator.
+- [x] The `aria-label` is attached so it contributes to the containing nav
+  link's accessible name (not a separately-focusable element), matching this
+  file's general preference for one accessible unit per interactive control
+  rather than two overlapping ones.
 
 ## 6. Accessible form labels (baseline, expanded)
 

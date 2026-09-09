@@ -9,12 +9,35 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  mail:
+    # Mirrors src/main/resources/application.yml's local-dev default.
+    # Required here for the same shadowing reason as app.content.material
+    # below - spring.mail.host must be present for Spring Boot's
+    # MailSenderAutoConfiguration to register a JavaMailSender bean at all;
+    # without it, every @SpringBootTest in the whole backend fails to build
+    # its ApplicationContext once notification-management's beans (which
+    # depend on JavaMailSender) are on the classpath. No test sends real
+    # mail - MessagingProviderApi is mocked/faked wherever a test would
+    # otherwise trigger an actual send.
+    host: localhost
+    port: 1025
+    username: ""
+    password: ""
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+  health:
+    mail:
+      # Mirrors src/main/resources/application.yml's fix - the mail starter's
+      # auto-registered MailHealthIndicator opens a real SMTP connection as
+      # part of /actuator/health, which fails in this environment (no SMTP
+      # server actually listening on localhost:1025) and flips the endpoint
+      # to 503. Disabled for the same reason as the main config: SMTP
+      # reachability is not a meaningful platform liveness signal.
+      enabled: false
 
 logging:
   structured:
@@ -30,6 +53,8 @@ payment:
     webhook-secret: "test-only-webhook-secret-not-for-production-use"
 
 app:
+  mail:
+    from-address: "no-reply@example.com"
   content:
     material:
       # Mirrors src/main/resources/application.yml's default. Required here

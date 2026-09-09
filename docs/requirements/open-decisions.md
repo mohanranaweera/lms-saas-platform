@@ -707,3 +707,148 @@ must append here, per this log's established §15-§19 convention.
   `useQuery`, not `useMutation`, for automatic/mount-triggered fetches).
   Source: post-ship multi-agent review finding (reported as a reproducible E2E-suite failure),
   root-caused and fixed same session per explicit user request ("fix all findings").
+
+## 22. Email Notifications (MVP-018) — carried-forward decisions
+
+- **Which staff sub-role(s) may manage `notification_template` rows, or trigger sends manually —
+  still unresolved, no default assumed.** Unspecified anywhere in the source requirements
+  (`12-notifications.md` §11); this MVP ships no authoring endpoint/UI at all (see the
+  template-origination item below), so the question of who would be authorized to use one remains
+  open until a future module adds authoring.
+  Source: plan §21 item 1 (issue's own explicit open decision).
+- **MVP-level failure handling for a failed email send is undefined by design — no retry/backoff
+  was implemented, and none should be assumed.** A `FAILED` `notification_outbox` row is terminal;
+  the issue itself explicitly instructed against silently implementing a retry mechanism. If a
+  retry/backoff policy is wanted later, it needs its own product decision and schema
+  consideration (this table has no attempt-count/next-retry-at column today).
+  Source: plan §9.2/§13/§21 item 1 (issue's own explicit open decision).
+- **Template-origination gap — resolved for newly-registered tenants only, not backfilled for
+  tenants that existed before this module shipped.** No staff role/UI can author a
+  `notification_template` row in this MVP. Decision made (outside the plan document, confirmed
+  directly with the requester before implementation): `TenantRegistrationService.register()` — the
+  only production code path in this codebase that actually creates a `tenant` row today (there is
+  no tenant-approval endpoint wired to anything real yet, so registration is the only available
+  hook) — now publishes `tenantmanagement.api.TenantRegisteredEvent`, which
+  `notificationmanagement.service.NotificationTemplateSeedingService` consumes
+  (`@TransactionalEventListener(phase = AFTER_COMMIT)`) to seed three default, per-tenant
+  `notification_template` rows (`PAYMENT_CONFIRMED`/`PAYMENT_REJECTED`/`PAYMENT_REFUNDED`) with
+  fixed platform-default copy. This satisfies "tenant-owned, never a shared runtime default" for
+  every tenant registered from this point forward. **It does not backfill tenants registered
+  before this feature shipped** — no data migration was written for this (a raw-SQL seed would
+  have deviated from this codebase's app-generated-UUIDv7 convention, and it was not part of the
+  confirmed scope) — those tenants' dispatch attempts will honestly fail closed (`FAILED` rows)
+  until either a future authoring/seeding pass backfills them, or an operator manually inserts
+  their three rows. Not a bug; a disclosed, accepted gap matching this module's own "a tenant with
+  zero template rows simply gets FAILED dispatch rows, which is a real, testable, honest failure
+  mode" framing.
+  Source: plan §21 item 1 (option (a) chosen); confirmed directly with the requester
+  (2026-09-07) before implementation began.
+- **`RefundService`/`StudentOrder` scope addition — confirmed and implemented.** Populating
+  `PaymentRefundedEvent.studentId` required a new read-only `StudentOrderRepository.findById`
+  lookup inside `RefundService.processRefund` (`Payment` itself has no `studentId` field). Confirmed
+  directly with the requester before implementation (2026-09-07); implemented, then relocated
+  during payment-ledger-specialist review to run immediately after the existing pessimistic lock
+  and before the `payment_refund`/`ledger_entry` writes, so a missing order fails fast rather than
+  aborting an already-attempted write via transaction rollback. No ledger/refund/locking semantics
+  changed; `payment.status` remains untouched by this service, as before.
+  Source: plan §21 item 2; payment-ledger-specialist review (2026-09-07).
+- **`12-notifications.md` internal documentation inconsistency on "result published" — not
+  resolved here, flagged for a future doc-reconciliation pass.** That doc's own §4/§8 name "result
+  published" as an MVP-scope trigger example with no phase qualifier, while its §10 correctly
+  cites `functional-requirements.md` FR-NM-5 placing it in Phase 2. This implementation follows
+  the authoritative phase table, not the inconsistent narrative text, and does not wire
+  `ExamResultPublishedEvent` — no code change resolves the documentation contradiction itself.
+  Source: plan §6/§21 item 3.
+- **Async-thread `TenantContextHolder` discipline is precedent-setting for this codebase.** This is
+  the first shipped production code path (`NotificationOutboxService`,
+  `NotificationTemplateSeedingService`, `NotificationDispatchService`) to manually manage
+  `TenantContextHolder` across a real thread/timing boundary (`@TransactionalEventListener(phase =
+  AFTER_COMMIT)` and the `@Scheduled` dispatch poller) — the set-in-try/clear-in-finally pattern,
+  keyed off the event/row's own `tenantId` field rather than ambient context, is now the reference
+  precedent for any future domain needing to cross a similar boundary. A dedicated security review
+  pass confirmed the pattern is sound across all four call sites (2026-09-07) — see
+  `docs/architecture/modular-monolith.md`'s notification-management worked example once written.
+  Source: plan §14/§21 item 4.
+- **RESOLVED — `NotificationDispatchService.dispatchOne` no longer holds a DB transaction (or its
+  `FOR UPDATE SKIP LOCKED` row lock) open across the blocking `MessagingProviderApi.sendEmail`
+  call.** The original design (below, superseded) was a disclosed, deliberate exception to
+  `.claude/rules/backend.md`'s "do not span a transaction across an outbound call" rule, reviewed
+  and accepted 2026-09-07 as an MVP tradeoff. A subsequent multi-agent review (security-reviewer,
+  database-architect, solution-architect) re-flagged it — database-architect as High,
+  solution-architect as Critical — as a real duplicate-send risk (a later statement failing after
+  the email had already sent would roll back the `SENT` transition, leaving the row `PENDING`
+  again for the next poll to re-send) and an availability risk with no SMTP timeouts configured.
+  Fixed same session per explicit user request ("fix all findings"): V28 gained a `SENDING`
+  claimed-state (`PENDING -> SENDING -> SENT|FAILED`), and dispatch is now three phases across two
+  new collaborator beans — `NotificationDispatchClaimService#claim` commits the `PENDING ->
+  SENDING` transition (and releases the claim lock) in its own short transaction BEFORE any SMTP
+  call; the SMTP call itself runs with no open transaction; `NotificationDispatchFinalizeService`
+  commits the terminal status (+ `in_app_notification` insert on success) afterward in a final
+  short transaction. The "two concurrent dispatch attempts never both send" guarantee is preserved
+  (only one caller ever wins the claim). Residual, disclosed, bounded gap: a crash between the
+  claim committing and finalize committing leaves a row stuck at `SENDING` with no automatic
+  recovery — no retry policy exists for this module at all (already an accepted decision, see
+  below) — but that window is now bounded by the SMTP timeouts added in the same fix (previously
+  unbounded) and is far narrower than the previous design's exposure (the entire SMTP call).
+  Original source: security-reviewer finding (2026-09-07), design per plan §9.2. Fix source:
+  post-ship multi-agent review finding, resolved same session per explicit user request ("fix all
+  findings").
+- **RESOLVED — the residual "stuck at `SENDING` with no automatic recovery" gap noted immediately
+  above is now closed.** V29 (additive, does not edit V28) adds `claimed_at` to
+  `notification_outbox`, written by `NotificationDispatchClaimService#claim` in the same
+  transaction as the `PENDING -> SENDING` write. `NotificationDispatchReconciliationService`, wired
+  into `NotificationDispatchPoller` as its own, less-frequent `@Scheduled` method
+  (`reconcileStuckSendingRows`), finds any `SENDING` row whose `claimed_at` is older than a
+  timeout constant (2 minutes — an implementation-time tuning constant set well above this
+  module's configured SMTP connect/read/write timeouts, not a ratified SLA) and marks it `FAILED`.
+  This is failing a stuck claim forward, not a retry: the row never re-enters `PENDING` and no send
+  is re-attempted, so the module's "no automatic retry" decision (below) is unaffected. A row
+  claimed within the timeout window is left alone, so a genuinely in-flight dispatch is never
+  falsely failed.
+  Source: post-ship multi-agent review finding, resolved same session per explicit user request
+  ("fix all findings").
+- **SMTP relay: Gmail/Google Workspace SMTP, confirmed for this MVP.** `integration-architecture.md`
+  §8's "Email/SMTP provider — not selected" open question, and the plan's own explicit "this plan
+  does not resolve it" line, both predate this decision. Confirmed directly with the requester in
+  conversation ("No production SMTP relay/vendor - Let's configure google smtp for sending
+  emails.") before `application.yml` was written to default `MAIL_HOST` to `smtp.gmail.com`. Not
+  independently re-litigated by the later multi-agent review that flagged this as an
+  "undocumented decision" (architecture finding, High) — that finding is addressed by this entry
+  existing, not by reverting the config. Known, accepted operational limitation: consumer
+  Gmail/Workspace SMTP enforces per-account daily send caps (roughly 500/day on a plain Gmail
+  account, ~2000/day on Workspace) and is not a dedicated transactional-email provider — acceptable
+  for MVP/low-volume traffic, but worth revisiting via a real vendor decision (`MAIL_HOST`/
+  `MAIL_PORT` are already externalized via env vars for a no-code-change swap later) before this
+  platform's notification volume approaches those caps.
+  Source: user decision (prior session, 2026-09-08); architecture-reviewer finding (this session)
+  addressed by documenting the decision rather than reverting it.
+- **Poll interval (5s), dispatch batch size (50), and the Notification Center's real-time-delivery
+  mechanism/page size are implementation-time technical defaults, not ratified SLAs or business
+  decisions.**
+  Source: plan §21 item 6.
+- **RESOLVED — Teacher activity-feed screen's `screen-map.md` IA gap is closed.** The Teacher
+  Notification Center frontend shipped at `app/(teacher)/teacher/notifications/page.tsx`, reusing
+  the Student list/mark-read/unread-count components against the same role-agnostic,
+  self-scoped backend endpoints, and `docs/ui-ux/screen-map.md`'s Teacher Portal section now has
+  its own "Activity Feed" line documenting it. Genuinely empty at launch by construction — no
+  Teacher-triggering event exists in MVP-018's wiring (all three trigger events are payment
+  outcomes, which only reach Student recipients).
+  Source: plan §11/§21 item 5. Fix source: post-ship multi-agent review finding, resolved same
+  session per explicit user request ("fix all findings").
+- **Template seeding happens at tenant *registration*, before any tenant-approval gate exists in
+  this codebase — flagged as a forward-looking risk, not a defect.**
+  `NotificationTemplateSeedingService` seeds a new tenant's default `notification_template` rows
+  from `TenantRegisteredEvent`, published by `TenantRegistrationService.register()` at the point a
+  tenant record is created — which today is always `PENDING_APPROVAL` status, since no separate
+  "approval" workflow/state-transition exists anywhere in this codebase yet
+  (`TenantRegistrationService`'s own javadoc confirms there is no parameter or code path that lets
+  a caller choose a different initial status). This is an accurate description of the current
+  system, not a bug: a tenant's templates (and therefore its email-sending eligibility) exist from
+  the moment of registration, not from some later "approved" moment, because there currently is no
+  later moment. If/when a real tenant-approval workflow is built, whoever builds it must
+  re-examine whether seeding-at-registration is still the intended semantics, or whether it should
+  move to fire on approval instead (e.g. to avoid an unapproved/rejected tenant ever having live
+  templates, if that later becomes a concern) — this is not decided here, only flagged so it isn't
+  silently assumed correct forever.
+  Source: post-ship multi-agent review finding (solution-architect), logged same session per
+  explicit user request ("fix all findings").

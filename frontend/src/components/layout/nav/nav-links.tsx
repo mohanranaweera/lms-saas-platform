@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,8 @@ export interface NavItem {
   label: string;
   /** Omit when the destination page doesn't exist yet — renders as a "Soon" item, not a dead link. */
   href?: string;
+  /** Optional trailing indicator (e.g. `<NotificationsNavBadge />`) rendered next to the label. Only meaningful when `href` is set. */
+  badge?: ReactNode;
 }
 
 /**
@@ -57,6 +60,7 @@ export function NavLinks({
               )}
             >
               {item.label}
+              {item.badge}
             </Link>
           </li>
         );

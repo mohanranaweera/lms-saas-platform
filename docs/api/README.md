@@ -24,7 +24,17 @@ endpoints within it by resource.
 
 ## Status
 
-No domain contract files exist yet — this directory is scaffolding ahead of the first
-module. The first file should land alongside the first implemented endpoint (see
-`docs/architecture` for module sequencing), written by `review-api-contract` before
-`implement-backend`/`implement-frontend` work begins on that endpoint.
+Domain contract files, in the order they landed:
+
+- `identity-access-service.md`
+- `user-management.md`
+- `course-management.md`
+- `content-management.md`
+- `payment-management.md`
+- `ledger-settlement-management.md`
+- `enrollment-management.md`
+- `attendance-management.md`
+- `exam-management.md`
+- `notification-management.md` — MVP-018, written post-ship per this file's own
+  documented "process gap" (the plan's §10 draft contract was never finalized into this
+  directory until a post-ship review found the gap).

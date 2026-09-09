@@ -58,7 +58,13 @@ real submit behavior lands with that module.
 - Student > Payments > Reactivation — reactivate expired course access
 - Student > Devices > My Devices — registered device list, device history
 - Student > Reviews > My Reviews — reviews submitted; submit new review (verified-enrollment only)
-- Student > Notifications > Notification Center — in-app notifications, preference center
+- Student > Notifications > Notification Center — paginated in-app notification list,
+  mark-as-read, unread-count nav badge. **Shipped (MVP-018)**:
+  `app/(student)/student/notifications/page.tsx`.
+- Student > Notifications > Notification Preferences — per-channel notification preference
+  center. **Not shipped** — Phase 2 (`functional-requirements.md` FR-NM-2..5); this line was
+  previously bundled with the Notification Center entry above as if both had shipped
+  together, which was inaccurate once MVP-018 shipped only the Center.
 - Student > Support > My Tickets — ticket list, ticket detail, new ticket
 - Student > Profile > Profile & Guardian Info — student profile, guardian/parent fields, school/grade/stream
 
@@ -89,6 +95,14 @@ real submit behavior lands with that module.
 - Teacher > Exams > Marking Queue — manual marking of structured answers (shipped, MVP-017)
 - Teacher > Exams > Results Publishing — publish results (shipped, MVP-017; rank lists are Phase 2, not built — FR-EX-4)
 - Teacher > Reports > My Performance — teacher performance analytics
+- Teacher > Notifications > Activity Feed — same underlying list/mark-read/unread-count
+  component as the Student Notification Center, server-filtered to the Teacher's own
+  notifications under a Teacher-scoped route. Genuinely empty at launch (no
+  Teacher-triggering event exists in MVP-018's wiring — all three trigger events are
+  payment outcomes, which only reach Student recipients). **Shipped (MVP-018)**:
+  `app/(teacher)/teacher/notifications/page.tsx`. This line did not previously exist
+  anywhere in this file — a genuine IA gap found during MVP-018's post-ship review, not a
+  pre-existing entry that was merely updated.
 - Teacher > Support > My Tickets — teacher support tickets
 - Teacher > Profile > Profile & Availability — teacher profile, availability, payout profile
 

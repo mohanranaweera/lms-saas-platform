@@ -5,12 +5,65 @@ spring:
     multipart:
       max-file-size: 25MB
       max-request-size: 26MB
+  mail:
+    # MVP-018 email notifications - production relay is Google/Gmail SMTP,
+    # confirmed directly with the requester (see
+    # docs/requirements/open-decisions.md §22 "SMTP relay: Gmail" and
+    # docs/architecture/integration-architecture.md §8, both updated to
+    # record this choice - not an unreviewed default).
+    # host/port are Gmail's well-known, non-secret SMTP endpoint (STARTTLS on
+    # 587) - safe to default directly; MAIL_HOST/MAIL_PORT remain available to
+    # override for a different relay later with no code change. This base
+    # profile's defaults apply whenever application-local.yml's own
+    # MAIL_HOST/MAIL_PORT-driven override (localhost:1025, a local SMTP
+    # catcher) is NOT active - i.e. every non-local environment.
+    #
+    # MAIL_USERNAME must be a full Gmail/Google Workspace address; MAIL_PASSWORD
+    # MUST be a 16-character Google "App Password" (Google rejects the regular
+    # account password for SMTP auth) - generated under the Google Account's
+    # Security > 2-Step Verification > App passwords settings (2-Step
+    # Verification must be enabled on that account first). Never a real
+    # credential in this file - both intentionally have no default, so a
+    # misconfigured non-local deployment fails closed at send time (auth
+    # failure -> that row marked FAILED) rather than silently trying with an
+    # empty credential. app.mail.from-address below should match MAIL_USERNAME
+    # unless a verified Gmail "Send As" alias is configured - Gmail rejects or
+    # silently rewrites a From address that doesn't match the authenticated
+    # account.
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          # MVP-018 fix (database-architect review finding): without these,
+          # a stalled/unresponsive relay blocks NotificationDispatchService's
+          # sendEmail call indefinitely, stalling the whole sequential
+          # dispatch batch behind it. All three in milliseconds, matching
+          # JavaMailSender's expected property type.
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+  health:
+    mail:
+      # spring-boot-starter-mail auto-registers a MailHealthIndicator that
+      # opens a real SMTP connection as part of /actuator/health - disabled
+      # here because SMTP reachability is not a meaningful platform liveness
+      # signal (no production SMTP relay/vendor is selected yet per
+      # integration-architecture.md §8, and NotificationDispatchService
+      # already handles a down/unreachable relay gracefully by marking that
+      # row FAILED - it should never make the whole platform report DOWN).
+      enabled: false
 
 logging:
   structured:
@@ -60,6 +113,13 @@ app:
       # allow-list in ContentSniffer are this implementation's own default,
       # flagged for confirmation, not a ratified business decision.
       max-file-size-bytes: 26214400
+  mail:
+    # MVP-018 email notifications - the one email-sending property Spring
+    # Boot's spring.mail.* auto-configuration doesn't provide: the From
+    # address stamped on outgoing mail by SmtpMessagingProviderApi. Never a
+    # real address in this file; override via MAIL_FROM_ADDRESS per
+    # environment.
+    from-address: ${MAIL_FROM_ADDRESS:no-reply@example.com}
   payment:
     slip:
       # MVP working default, mirroring app.content.material's own
