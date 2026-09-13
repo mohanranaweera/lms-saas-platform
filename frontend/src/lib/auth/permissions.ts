@@ -222,6 +222,23 @@ export function canMarkExamAnswers(role: string | null): boolean {
 }
 
 /**
+ * Roles allowed to reach the Audit Log Viewer
+ * (`GET /api/v1/audit-log`) per that endpoint's "Authorization model"
+ * (`docs/api/audit-log-management.md`, MVP-019 plan §21 decision 1, option
+ * B). This deliberately mirrors the backend's *interim* allowlist — an
+ * explicit `TENANT_ADMIN`/`READ_ONLY_AUDITOR` check that is narrower than the
+ * general `DomainArea.AUDIT_LOG`/`VIEW` grant every staff sub-role currently
+ * holds in `PermissionCheckServiceImpl`'s matrix. Do not widen this helper to
+ * match the coarser grant without a corresponding backend change (per the
+ * plan's own note) — doing so here would only produce a UX dead end (a nav
+ * entry/route that always ends in a real 403), never actual access, since the
+ * backend's own allowlist is the one enforcing this restriction.
+ */
+export function canViewAuditLog(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "READ_ONLY_AUDITOR";
+}
+
+/**
  * True for the two roles that own a course's Teacher Portal identity
  * (`TEACHER`, `TEACHER_ASSISTANT`) — used purely for "Viewing as X"
  * disclosure banners on exam screens nested under `app/(teacher)/` that

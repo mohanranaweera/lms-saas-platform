@@ -76,6 +76,11 @@ async function mockDashboardReads(page: Page): Promise<void> {
  *     regression this matrix entry guards: before Fix 2, the nav gated
  *     "Exams" on `canManageExamsStaff` alone, so a Read-only Auditor had no
  *     nav path into a module their role can otherwise view real data in.
+ *   - `auditLog` (MVP-019): `canViewAuditLog` — Tenant Admin and Read-only
+ *     Auditor only, mirroring the backend's own interim allowlist
+ *     (`docs/api/audit-log-management.md`'s "Authorization model"), which is
+ *     narrower than the general `DomainArea.AUDIT_LOG`/`VIEW` grant every
+ *     other role in this matrix (e.g. Finance Staff) also happens to hold.
  */
 const NAV_ITEM_VISIBILITY_MATRIX: Array<{
   role: string;
@@ -85,6 +90,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
   paymentSlips: boolean;
   reactivationApprovals: boolean;
   exams: boolean;
+  auditLog: boolean;
 }> = [
   {
     role: "TENANT_ADMIN",
@@ -94,6 +100,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: true,
     reactivationApprovals: true,
     exams: true,
+    auditLog: true,
   },
   {
     role: "FINANCE_STAFF",
@@ -103,6 +110,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: true,
     reactivationApprovals: true,
     exams: false,
+    auditLog: false,
   },
   {
     role: "COURSE_COORDINATOR",
@@ -112,6 +120,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: false,
     reactivationApprovals: false,
     exams: false,
+    auditLog: false,
   },
   {
     role: "STUDENT_SUPPORT",
@@ -121,6 +130,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: true,
     reactivationApprovals: true,
     exams: false,
+    auditLog: false,
   },
   {
     role: "CONTENT_MANAGER",
@@ -130,6 +140,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: false,
     reactivationApprovals: false,
     exams: false,
+    auditLog: false,
   },
   {
     role: "EXAM_MANAGER",
@@ -139,6 +150,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: false,
     reactivationApprovals: false,
     exams: true,
+    auditLog: false,
   },
   {
     role: "ATTENDANCE_OPERATOR",
@@ -148,6 +160,7 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: false,
     reactivationApprovals: false,
     exams: false,
+    auditLog: false,
   },
   {
     role: "READ_ONLY_AUDITOR",
@@ -157,10 +170,11 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     paymentSlips: true,
     reactivationApprovals: true,
     exams: true,
+    auditLog: true,
   },
 ];
 
-test.describe("tenant admin nav — full 7-nav-item x 8-role visibility matrix (TADASH-2, plan §18)", () => {
+test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (TADASH-2, plan §18; audit log entry added by MVP-019)", () => {
   test.beforeEach(async ({ page }) => {
     await mockDashboardReads(page);
   });
@@ -183,6 +197,7 @@ test.describe("tenant admin nav — full 7-nav-item x 8-role visibility matrix (
         ["Payment Slips", entry.paymentSlips],
         ["Reactivation Approvals", entry.reactivationApprovals],
         ["Exams", entry.exams],
+        ["Audit Log", entry.auditLog],
       ];
       for (const [label, visible] of gatedItems) {
         const link = page.getByRole("link", { name: label });

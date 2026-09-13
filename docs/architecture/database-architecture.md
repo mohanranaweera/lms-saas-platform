@@ -164,6 +164,19 @@ Schema-level reflection of "append-only":
   explicitly approved process (not a repository `delete` call, not a migration that
   drops rows) — out of scope for normal feature migrations.
 
+### `audit_log` query index (V30, MVP-019)
+
+`V30__add_audit_log_action_index.sql` adds `idx_audit_log_tenant_action_occurred_at`
+on `audit_log (tenant_id, action, occurred_at DESC)` — purely additive, no change to
+`audit_log`'s columns or the three indexes already created by V21. Rationale: the
+AUDIT-3 viewer's "filter by action type, sorted by time, paginated" query shape isn't
+efficiently served by the existing `(tenant_id, id)`, `(tenant_id, target_entity,
+target_id)`, `(tenant_id, occurred_at DESC)`, and `(tenant_id, actor_id)` indexes — that
+combination would otherwise degenerate into a full tenant-partition scan plus filesort
+as the table grows platform-wide. No partitioning/retention strategy exists yet for
+`audit_log` (or `ledger_entry`/`payment`/`notification_outbox`) — a longer-term,
+non-blocking note for a future retention/partitioning ADR as volume grows.
+
 ## 4. Schema-enforced invariants
 
 Per `.claude/rules/backend.md`, the following domains prefer invariants enforced by the

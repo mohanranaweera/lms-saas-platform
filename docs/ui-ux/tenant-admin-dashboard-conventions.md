@@ -51,3 +51,23 @@ Rules for this convention:
 The next domain added to `TenantAdminNav` (e.g. a future Staff nav item, once its frontend
 module ships) should add a `canViewStaff` helper following this same shape rather than
 re-deriving the pattern.
+
+## 3. Audit Log Viewer conventions (MVP-019)
+
+`app/(tenant-admin)/tenant-admin/audit-log/page.tsx` follows the established filtered-list
+screen shape (`AttendanceFilterForm` + `DataTable` + `QueryStateBoundary`), plus three
+conventions specific to this screen worth calling out for the next similar module:
+
+- **Two distinct empty states, never shared copy.** "No audit events yet" (whole-page, via
+  `QueryStateBoundary`'s `emptyState`, only when no filters are active and the tenant truly has
+  zero rows) is a different message from "No events match your filters" (inline `EmptyState` +
+  "Reset filters", when a filter yields zero rows) — per `.claude/rules/ui-ux.md` §3, these must
+  never reuse the same title/description.
+- **No-mutation-affordance rule.** `audit_log` has no `PUT`/`PATCH`/`DELETE` route for any role
+  (append-only at the backend). The viewer accordingly has no row action column, no bulk-action
+  checkbox column, and no context menu — none of these are built at all, not hidden/disabled.
+- **Metadata accordion pattern.** A row's `reason`/`metadata` don't fit a compact cell — they're
+  exposed via `DataTable`'s new `renderExpandedRow` prop (an additive extension, see the
+  component itself), with `metadata` further collapsed behind the new shared `Accordion`
+  component (`components/ui/accordion.tsx`) showing a field-count summary that expands to a
+  `<pre>`-formatted JSON block — never an inline stringified blob.

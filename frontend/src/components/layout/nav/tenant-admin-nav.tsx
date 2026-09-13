@@ -6,6 +6,7 @@ import {
   canProcessRefunds,
   canViewAccessExpiryQueue,
   canViewAttendanceReports,
+  canViewAuditLog,
   canViewExamsStaff,
   canViewPaymentDashboard,
   canViewTeachers,
@@ -16,10 +17,12 @@ import { NavLinks, type NavItem } from "./nav-links";
  * "Teachers" (gated by `canViewTeachers` — Tenant Admin, Course Coordinator,
  * Student Support, Read-only Auditor hold `TEACHERS`/`VIEW`; Finance Staff,
  * Content Manager, Exam Manager, Attendance Operator do not),
- * "Payments"/"Refunds"/"Payment Slips"/"Reactivation Approvals", and
+ * "Payments"/"Refunds"/"Payment Slips"/"Reactivation Approvals",
  * "Attendance Reports"/"Mark Attendance" (MVP-016, gated by
  * `canViewAttendanceReports`/`canMarkAttendanceStaff` — Tenant Admin,
- * Attendance Operator, and for reports only, Read-only Auditor) are appended
+ * Attendance Operator, and for reports only, Read-only Auditor), and
+ * "Audit Log" (MVP-019, gated by `canViewAuditLog` — Tenant Admin and
+ * Read-only Auditor only, per that endpoint's interim allowlist) are appended
  * conditionally on the caller's role — pure UX convenience so a role with no
  * server-side access to a screen isn't shown a dead-end nav entry. This is
  * not the authorization mechanism: every destination page still
@@ -65,6 +68,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (canViewExamsStaff(role)) {
     items.push({ label: "Exams", href: "/tenant-admin/exams" });
+  }
+  if (canViewAuditLog(role)) {
+    items.push({ label: "Audit Log", href: "/tenant-admin/audit-log" });
   }
 
   return <NavLinks items={items} onNavigate={onNavigate} />;

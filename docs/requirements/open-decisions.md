@@ -54,8 +54,12 @@ date and a pointer to the decision record (an ADR, if the item touches a change-
   Affects: [04-teacher-management.md](specifications/04-teacher-management.md).
 - **Custom-domain approval**: whether Platform Admin must approve/verify a tenant's custom domain is not addressed.
   Affects: [15-custom-domains.md](specifications/15-custom-domains.md).
-- **Staff sub-role "own-area" audit scoping**: the matrix labels staff access to the audit log as "V (own-area actions)" but no document defines the enforcement mechanism for what counts as a sub-role's "own area."
+- **Staff sub-role "own-area" audit scoping — interim resolution shipped in MVP-019, "own area" itself still undefined.** No document defines what counts as a sub-role's "own area," so MVP-019's `AuditLogQueryService` does not attempt to enforce it. Instead, the viewer (`GET /api/v1/audit-log`) is restricted, on top of the existing coarse `AUDIT_LOG`/`VIEW` grant, to an explicit allowlist of `TENANT_ADMIN`/`READ_ONLY_AUDITOR` only (plan §21 decision 1, option B) — every other staff sub-role that already holds the grant (Finance Staff, Course Coordinator, Content Manager, etc.) is denied `403` by this endpoint until a real "own-area" mechanism is defined, rather than being shipped with full tenant-wide visibility. See `docs/api/audit-log-management.md`'s "Authorization model" section.
   Affects: [13-audit-logs.md](specifications/13-audit-logs.md).
+  Source: `docs/plans/MVP-019 Audit Logs.md` §21 item 1.
+- **Payment-gateway webhook actor gap — declined for MVP-019, tracked as open.** `PaymentConfirmedEvent`/`PaymentRejectedEvent` (webhook-driven gateway confirm/reject) have no real, authenticated `tenant_user` actor, and `audit_log.actor_id` is a `NOT NULL` FK to `tenant_user` — MVP-019 deliberately does not wire a listener for either event rather than inventing a synthetic actor or relaxing the FK. This means `PAY-2` (gateway confirm/reject) has no audit trail, a real gap against `.claude/rules/security.md`'s canonical mandatory-audit list. Live options if a future module wants this closed: (a) a reserved per-tenant "system" `tenant_user` row as a well-known FK target (requires its own migration/seeding design), or (b) make `actor_id` nullable with a documented "null = system/automated" convention (reverses a schema-enforced invariant in `.claude/rules/backend.md`) — neither is decided here.
+  Affects: [13-audit-logs.md](specifications/13-audit-logs.md).
+  Source: `docs/plans/MVP-019 Audit Logs.md` §21 item 2.
 
 ## 3. Provisional / unratified roles
 
@@ -391,14 +395,23 @@ six-specialist review of the completed module found this file had never been upd
   slips) has now shipped (MVP-011) with this question deliberately left open, exactly
   as flagged here — it faced, and did not resolve, the identical question.
   Source: plan §21 item 12; MVP-011 plan §21 item 1.
-- **`audit-log-management` central scoping — resolved for MVP-011's needs, Module 19's
-  full build-out still open.** MVP-011 pulled forward a minimal `com.lms.auditlogmanagement`
-  domain (a real `audit_log` table + a narrow `AuditLogApi.record(...)` write contract,
-  no read/query UI, no consumption of other domains' pending events) per
-  `docs/adr/ADR-012-audit-log-slice-and-slip-enrollment-activation.md`. Module 19's own
-  eventual full scope (query UI, cross-domain event consumption, retention policy)
-  remains unbuilt and is not assumed to be an implicit extension of this slice.
-  Source: MVP-011 plan §21 item 2; ADR-012.
+- **`audit-log-management` central scoping — MVP-011's minimal slice now extended by
+  MVP-019's backend and frontend (AUDIT-2/AUDIT-3); retention policy still open.**
+  MVP-011 pulled forward a minimal `com.lms.auditlogmanagement` domain (a real
+  `audit_log` table + a narrow `AuditLogApi.record(...)` write contract, no read/query
+  surface, no consumption of other domains' pending events) per
+  `docs/adr/ADR-012-audit-log-slice-and-slip-enrollment-activation.md`. MVP-019 now
+  adds, on both backend and frontend: (AUDIT-2) an `AuditLogEventListener` consuming
+  `CoursePriceChangedEvent`/`MaterialDeletedEvent`/`PaymentRefundedEvent` — 3 of the 5
+  canonical mandatory-audit actions still lacking a consumer at MVP-011 time — (AUDIT-3)
+  a tenant-scoped, filterable, paginated read endpoint (`GET /api/v1/audit-log`, see
+  `docs/api/audit-log-management.md`), interim-restricted to Institute Owner/Read-only
+  Auditor per the "own-area" entry above, and the tenant-admin Audit Log Viewer frontend
+  (`frontend/src/app/(tenant-admin)/tenant-admin/audit-log/page.tsx`) that consumes it,
+  independently enforcing the same allowlist as UX-only gating. **Still open:**
+  retention/purge policy (none exists; rows retained indefinitely by default), and the
+  payment-gateway-webhook-actor gap tracked separately above.
+  Source: MVP-011 plan §21 item 2; ADR-012; `docs/plans/MVP-019 Audit Logs.md`.
 - **`ledger_entry.entry_type` for manual-slip approval — resolved: declined.** The
   product owner explicitly declined adding a new `ledger_entry.entry_type` value (e.g.
   `SLIP_APPROVED`) for the manual-slip approval path; an approved slip's enrollment

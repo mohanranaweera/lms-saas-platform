@@ -38,3 +38,5 @@ Domain contract files, in the order they landed:
 - `notification-management.md` — MVP-018, written post-ship per this file's own
   documented "process gap" (the plan's §10 draft contract was never finalized into this
   directory until a post-ship review found the gap).
+- `audit-log-management.md` — MVP-019 (AUDIT-3's read endpoint only; AUDIT-2's event
+  wiring has no HTTP surface of its own).

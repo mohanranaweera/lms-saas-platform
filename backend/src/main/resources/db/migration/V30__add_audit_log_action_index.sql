@@ -1,0 +1,32 @@
+-- MVP-019 Audit Logs: the viewer's "filter by action type, sorted by time,
+-- paginated" query shape isn't efficiently served by audit_log's three
+-- existing indexes ((tenant_id,id) unique, (tenant_id,target_entity,
+-- target_id), (tenant_id,occurred_at DESC), (tenant_id,actor_id)).
+--
+-- CONCURRENTLY was considered and deliberately NOT used, for the same
+-- underlying Flyway constraint V23/V24 already documented for this repo:
+-- `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block, and
+-- this project's Flyway configuration runs every SQL migration in Flyway's
+-- default single-transaction-per-migration mode - there is no `mixed` flag,
+-- no per-script `executeInTransaction = false` override, and no existing
+-- precedent for one anywhere in this repo today. Using `CONCURRENTLY` here
+-- would make this migration fail outright with Postgres error 25001
+-- ("CREATE INDEX CONCURRENTLY cannot run inside a transaction block").
+--
+-- Unlike V23/V24's target tables (`reactivation_request`, `enrollment`),
+-- which are low-row-count pre-launch tables, `audit_log` is fed
+-- continuously by `AuditLogEventListener` from multiple domains (course
+-- price changes, material deletions, payment refunds, and more event
+-- sources planned per `.claude/rules/security.md`'s mandatory-audit list),
+-- making it the fastest-growing, most write-concentrated table in this
+-- schema. A blocking `CREATE INDEX` build here is a heavier, longer-held
+-- lock than the equivalent build on those tables. It is still accepted
+-- here because the project remains pre-launch / low-row-count overall
+-- today, but this trade-off should be revisited - and this index rebuilt
+-- `CONCURRENTLY` - once a `mixed`/per-migration `executeInTransaction`
+-- Flyway configuration exists and audit_log's write volume has grown
+-- enough that a blocking rebuild would be operationally risky. That
+-- Flyway config change is out of scope for this migration-only file, per
+-- the same reasoning V23/V24 already gave for not bundling it in.
+CREATE INDEX IF NOT EXISTS idx_audit_log_tenant_action_occurred_at
+    ON audit_log (tenant_id, action, occurred_at DESC);
