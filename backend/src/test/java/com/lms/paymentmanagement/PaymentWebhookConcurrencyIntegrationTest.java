@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -39,6 +40,7 @@ import org.springframework.http.HttpStatus;
  * PESSIMISTIC_WRITE} row lock (and, as a defensive backstop, V20's partial
  * unique index on {@code ledger_entry}).
  */
+@Tag("idempotency")
 class PaymentWebhookConcurrencyIntegrationTest extends PaymentManagementTestSupport {
 
 	@Test

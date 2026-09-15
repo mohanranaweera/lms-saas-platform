@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.Test;
  * {@code @Query}-backed {@code *Unchecked} methods - no Spring context or
  * database is needed for this.
  */
+@Tag("cross-tenant")
 class AttendanceRecordRepositoryTenantGuardTest {
 
 	private final AttendanceRecordRepository repository = mock(AttendanceRecordRepository.class,

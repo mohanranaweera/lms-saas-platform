@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -43,6 +44,7 @@ import org.springframework.http.HttpStatus;
  * {@link CyclicBarrier} so both HTTP calls reach {@code
  * RefundService#processRefund} at effectively the same moment.
  */
+@Tag("idempotency")
 class RefundIdempotencyConcurrencyIntegrationTest extends PaymentManagementTestSupport {
 
 	@Test

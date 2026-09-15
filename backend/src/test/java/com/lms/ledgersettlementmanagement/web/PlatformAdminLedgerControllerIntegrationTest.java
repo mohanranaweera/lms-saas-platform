@@ -18,6 +18,7 @@ import com.lms.tenantmanagement.domain.Tenant;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -86,6 +87,7 @@ class PlatformAdminLedgerControllerIntegrationTest extends PaymentManagementTest
 	// ------------------------------------------------------------------
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantPaymentDashboardNeverMixesTenantAAndTenantBAmountsInOneAggregateRow() {
 		Fixture a = seedTenantWithConfirmedLedgerEntry("padash2-dash-a");
 		Fixture b = seedTenantWithConfirmedLedgerEntry("padash2-dash-b");
@@ -139,6 +141,7 @@ class PlatformAdminLedgerControllerIntegrationTest extends PaymentManagementTest
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantDrillDownReturnsOnlyThatTenantsRowsWithCorrectDiscriminator() {
 		Fixture a = seedTenantWithConfirmedLedgerEntry("padash2-drill-a");
 		Fixture b = seedTenantWithConfirmedLedgerEntry("padash2-drill-b");

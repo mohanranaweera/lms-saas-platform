@@ -13,6 +13,7 @@ import com.lms.notificationmanagement.web.dto.NotificationResponse;
 import com.lms.notificationmanagement.web.dto.UnreadCountResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.util.Map;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpStatus;
  * </ul>
  * Plus the plan's explicit empty-state acceptance criterion.
  */
+@Tag("cross-tenant")
 class NotificationCrossTenantIntegrationTest extends NotificationManagementTestSupport {
 
 	@Test

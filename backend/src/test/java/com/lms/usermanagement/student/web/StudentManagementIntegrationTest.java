@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -309,6 +310,7 @@ class StudentManagementIntegrationTest extends AuthIntegrationTestSupport {
 	// ------------------------------------------------------------------
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBAdminGettingTenantAsStudentAccountByIdReturns404NeverTenantAsData() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("student-cross-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("student-cross-b"));
@@ -329,6 +331,7 @@ class StudentManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBListingNeverIncludesTenantAsStudentRow() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("student-cross-list-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("student-cross-list-b"));
@@ -350,6 +353,7 @@ class StudentManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBAdminEditingTenantAsStudentReturns404AndLeavesTheRowUnchanged() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("student-cross-edit-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("student-cross-edit-b"));

@@ -23,6 +23,7 @@ import com.lms.usermanagement.student.web.dto.StudentResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -48,6 +49,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * docs/requirements/open-decisions.md} §19) - see {@link
  * #tenantAdminOverviewComposedStudentCourseAndLedgerCountsNeverIncludeAnotherTenantsRows}.
  */
+@Tag("cross-tenant")
 class PaymentCrossTenantIntegrationTest extends PaymentManagementTestSupport {
 
 	@Test

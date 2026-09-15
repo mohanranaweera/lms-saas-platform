@@ -3,6 +3,7 @@ package com.lms.paymentmanagement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lms.paymentmanagement.slip.web.dto.PaymentSlipResponse;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Test;
  * on the flag repository - is covered at the unit level instead, in {@code
  * SlipDuplicateCheckServiceTest}.
  */
+@Tag("idempotency")
 class SlipDuplicateDetectionIntegrationTest extends SlipTestSupport {
 
 	@Test

@@ -13,6 +13,7 @@ import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.domain.TenantUser;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.util.List;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -104,6 +105,7 @@ class MaterialFetchVisibilityIntegrationTest extends ContentManagementTestSuppor
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void staffFromTenantARequestingAMaterialIdBelongingToTenantBReceives404WithNoDataLeaked() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("fetch-cross-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("fetch-cross-b"));
@@ -208,6 +210,7 @@ class MaterialFetchVisibilityIntegrationTest extends ContentManagementTestSuppor
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void downloadUrlForACrossTenantMaterialIdReturns404WithNoUrlLeaked() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("download-url-cross-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("download-url-cross-b"));

@@ -9,6 +9,7 @@ import com.lms.identityaccessservice.service.ParsedToken;
 import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.util.List;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
  * still resolve to tenant A - tenant resolution reads the {@code Host}
  * header's subdomain exclusively, never a client-supplied identifier.
  */
+@Tag("cross-tenant")
 class CrossTenantTenantIdHeaderManipulationIntegrationTest extends AuthIntegrationTestSupport {
 
 	@Test

@@ -8,6 +8,7 @@ import com.lms.identityaccessservice.domain.Role;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipStatus;
 import com.lms.paymentmanagement.slip.web.dto.PaymentSlipResponse;
 import com.lms.paymentmanagement.slip.web.dto.SlipDownloadUrlResponse;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
  * mirroring {@code PaymentCrossTenantIntegrationTest}'s exact assertion
  * style.
  */
+@Tag("cross-tenant")
 class SlipCrossTenantIntegrationTest extends SlipTestSupport {
 
 	@Test

@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -589,6 +590,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	// ------------------------------------------------------------------
 
 	@Test
+	@Tag("cross-tenant")
 	void courseCreateWithATeacherIdFromAnotherTenantIsRejectedByTheServiceLayerCheck() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("course-cross-create-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("course-cross-create-b"));
@@ -608,6 +610,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantCourseDetailReturns404NeverTenantAsData() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-detail");
 
@@ -618,6 +621,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantCourseEditReturns404() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-edit");
 
@@ -628,6 +632,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantCourseDeleteReturns404AndTenantAsRowSurvives() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-delete");
 
@@ -640,6 +645,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantCourseListingNeverIncludesTenantARows() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-list");
 
@@ -767,6 +773,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	 * simply match nothing.
 	 */
 	@Test
+	@Tag("cross-tenant")
 	void teacherIdFilterCannotBeUsedToLeakAnotherTenantsCourses() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("course-filter-cross-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("course-filter-cross-b"));
@@ -819,6 +826,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantPriceChangeReturns404() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-price");
 
@@ -829,6 +837,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantTeacherReassignmentReturns404() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-reassign");
 		TenantUser teacherB = seedTenantUser(fixture.tenantB.getId(), "teacher-target@example.test", RAW_PASSWORD,
@@ -841,6 +850,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantPublishReturns404() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-publish");
 
@@ -850,6 +860,7 @@ class CourseManagementIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantUnpublishReturns404() {
 		CrossTenantFixture fixture = seedCrossTenantFixture("cross-unpublish");
 

@@ -8,6 +8,7 @@ import com.lms.identityaccessservice.domain.DeviceSession;
 import com.lms.identityaccessservice.domain.SessionStatus;
 import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
  * JwtAuthenticationFilter}'s {@code tenant_id}-claim-vs-resolved-context
  * cross-check actually runs, not merely that the DTO has no tenant field.
  */
+@Tag("cross-tenant")
 class CrossTenantSessionReplayIntegrationTest extends AuthIntegrationTestSupport {
 
 	@Test

@@ -14,6 +14,7 @@ import com.lms.exammanagement.domain.QuestionType;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * AttendanceRecordRepositoryTenantGuardTest}'s exact package placement) so it
  * can autowire these package-private-facing repositories directly.
  */
+@Tag("cross-tenant")
 class ExamRepositoryTenantGuardIntegrationTest extends ExamManagementTestSupport {
 
 	@Autowired

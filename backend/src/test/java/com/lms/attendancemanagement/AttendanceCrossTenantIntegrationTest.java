@@ -11,6 +11,7 @@ import com.lms.identityaccessservice.HttpResult;
 import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.domain.TenantUser;
 import java.util.List;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -22,6 +23,7 @@ import org.springframework.http.HttpStatus;
  * mutation attempt proves zero side effects (no row created, no row
  * mutated).
  */
+@Tag("cross-tenant")
 class AttendanceCrossTenantIntegrationTest extends AttendanceManagementTestSupport {
 
 	/**

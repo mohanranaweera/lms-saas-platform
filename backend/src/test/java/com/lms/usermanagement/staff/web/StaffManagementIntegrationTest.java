@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -248,6 +249,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 	// ------------------------------------------------------------------
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBAdminGettingTenantAsStaffAccountByIdReturns404NeverTenantAsData() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("staff-cross-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("staff-cross-b"));
@@ -268,6 +270,7 @@ class StaffManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBListingNeverIncludesTenantAsStaffRow() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("staff-cross-list-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("staff-cross-list-b"));

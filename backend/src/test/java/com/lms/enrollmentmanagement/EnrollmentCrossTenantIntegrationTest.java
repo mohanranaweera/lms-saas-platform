@@ -18,6 +18,7 @@ import com.lms.paymentmanagement.order.web.dto.OrderResponse;
 import com.lms.paymentmanagement.order.web.dto.PaymentInitiationResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.util.List;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -47,6 +48,7 @@ import org.springframework.http.HttpStatus;
  * tenant" from "this course id does not exist at all" from "I really was
  * never enrolled in my own tenant's course of this id" - proven below.
  */
+@Tag("cross-tenant")
 class EnrollmentCrossTenantIntegrationTest extends EnrollmentManagementTestSupport {
 
 	@Test

@@ -8,6 +8,7 @@ import com.lms.identityaccessservice.domain.TenantUser;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.time.Instant;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
  * response never contains any row belonging to tenant B, including when a
  * filter is deliberately crafted to match one of tenant B's real rows.
  */
+@Tag("cross-tenant")
 class AuditLogCrossTenantIntegrationTest extends AuditLogManagementTestSupport {
 
 	@Test

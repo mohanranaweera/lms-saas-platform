@@ -12,6 +12,7 @@ import com.lms.paymentmanagement.order.web.dto.PaymentInitiationResponse;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.repository.PaymentRepository;
 import com.lms.tenantmanagement.domain.Tenant;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -29,6 +30,7 @@ import org.springframework.dao.DataIntegrityViolationException;
  * constraint violation surfaces as a clean, translated Spring exception -
  * never an unhandled crash.
  */
+@Tag("cross-tenant")
 class GatewayReferenceGlobalUniquenessIntegrationTest extends PaymentManagementTestSupport {
 
 	@Autowired

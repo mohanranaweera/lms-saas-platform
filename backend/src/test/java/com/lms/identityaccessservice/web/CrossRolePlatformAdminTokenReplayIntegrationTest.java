@@ -9,6 +9,7 @@ import com.lms.identityaccessservice.HttpResult;
 import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import tools.jackson.databind.JavaType;
  * !request.getRequestURI().startsWith("/api/v1/platform-admin/")} guard
  * actually runs, before principal resolution ever gets a chance to succeed.
  */
+@Tag("cross-tenant")
 class CrossRolePlatformAdminTokenReplayIntegrationTest extends AuthIntegrationTestSupport {
 
 	@Test

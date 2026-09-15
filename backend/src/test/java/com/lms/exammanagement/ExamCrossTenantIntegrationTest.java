@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
  * mutation attempt proves zero side effects. Requires Docker - compile-
  * verified only in a sandbox without a reachable Docker daemon.
  */
+@Tag("cross-tenant")
 class ExamCrossTenantIntegrationTest extends ExamManagementTestSupport {
 
 	@Test

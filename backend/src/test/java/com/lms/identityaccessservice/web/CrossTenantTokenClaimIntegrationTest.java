@@ -7,6 +7,7 @@ import com.lms.identityaccessservice.HttpResult;
 import com.lms.identityaccessservice.service.ParsedToken;
 import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
  * request, even when an identically-emailed user exists under a different
  * tenant too.
  */
+@Tag("cross-tenant")
 class CrossTenantTokenClaimIntegrationTest extends AuthIntegrationTestSupport {
 
 	@Test

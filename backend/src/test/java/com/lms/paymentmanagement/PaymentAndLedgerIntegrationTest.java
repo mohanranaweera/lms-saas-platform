@@ -15,6 +15,7 @@ import com.lms.paymentmanagement.payment.web.dto.PaymentResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.math.BigDecimal;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -72,6 +73,7 @@ class PaymentAndLedgerIntegrationTest extends PaymentManagementTestSupport {
 	}
 
 	@Test
+	@Tag("idempotency")
 	void aDuplicateWebhookDeliveryForTheSameGatewayReferenceIsIdempotent() {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("pay-idem"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
@@ -123,6 +125,7 @@ class PaymentAndLedgerIntegrationTest extends PaymentManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void anUnsignedWebhookIsRejectedAndCreatesNoStateChange() {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("pay-unsigned"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);

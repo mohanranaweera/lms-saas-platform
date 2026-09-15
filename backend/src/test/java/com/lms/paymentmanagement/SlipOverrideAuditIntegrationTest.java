@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lms.identityaccessservice.HttpResult;
 import com.lms.paymentmanagement.slip.web.dto.PaymentSlipResponse;
 import java.util.Map;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -104,6 +105,7 @@ class SlipOverrideAuditIntegrationTest extends SlipTestSupport {
 	 * guard and return {@code 409}.
 	 */
 	@Test
+	@Tag("idempotency")
 	void reapprovingAnAlreadyOverrideApprovedSlipWithNoOverrideReasonIsStillAnIdempotentNoOp() {
 		FlaggedSlip flagged = seedFlaggedSlip("slip-override-reapprove");
 		String overrideReason = "Verified manually against the bank statement - reference number legitimately reused";

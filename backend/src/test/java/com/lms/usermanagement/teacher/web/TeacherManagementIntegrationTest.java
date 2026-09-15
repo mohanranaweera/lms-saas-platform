@@ -17,6 +17,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -510,6 +511,7 @@ class TeacherManagementIntegrationTest extends AuthIntegrationTestSupport {
 	// ------------------------------------------------------------------
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBListingNeverIncludesTenantAsTeacherRow() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("teacher-cross-list-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("teacher-cross-list-b"));
@@ -532,6 +534,7 @@ class TeacherManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBAdminGettingTenantAsTeacherByIdReturns404NeverTenantAsData() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("teacher-cross-get-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("teacher-cross-get-b"));
@@ -551,6 +554,7 @@ class TeacherManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBAdminApprovingTenantAsTeacherFailsAndLeavesTheRowUnchanged() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("teacher-cross-approve-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("teacher-cross-approve-b"));
@@ -573,6 +577,7 @@ class TeacherManagementIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantBAdminRejectingTenantAsTeacherFailsAndLeavesTheRowUnchanged() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("teacher-cross-reject-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("teacher-cross-reject-b"));
