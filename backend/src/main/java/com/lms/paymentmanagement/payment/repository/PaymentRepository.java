@@ -1,6 +1,8 @@
 package com.lms.paymentmanagement.payment.repository;
 
+import com.lms.common.persistence.CrossTenantPersistenceException;
 import com.lms.common.persistence.TenantAwareRepository;
+import com.lms.common.tenant.TenantContextHolder;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import jakarta.persistence.LockModeType;
 import java.util.List;
@@ -86,10 +88,43 @@ public interface PaymentRepository extends TenantAwareRepository<Payment, UUID> 
 	 * payment amount. Holding this lock for the duration of the
 	 * check-then-insert serializes concurrent refund attempts against the
 	 * same payment row.
+	 *
+	 * <p>Guarded by {@link #assertTenantIdMatchesContext(UUID)} - see that
+	 * method's javadoc - before delegating to {@link
+	 * #findByIdAndTenantIdForUpdateUnchecked}, the actual {@code @Lock}/{@code
+	 * @Query} method.
 	 */
+	default Optional<Payment> findByIdAndTenantIdForUpdate(UUID id, UUID tenantId) {
+		assertTenantIdMatchesContext(tenantId);
+		return findByIdAndTenantIdForUpdateUnchecked(id, tenantId);
+	}
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT p FROM Payment p WHERE p.id = :id AND p.tenantId = :tenantId")
-	Optional<Payment> findByIdAndTenantIdForUpdate(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
+	Optional<Payment> findByIdAndTenantIdForUpdateUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
+
+	/**
+	 * Defense-in-depth guard (post-ship review, mirroring {@code
+	 * AttendanceRecordRepository#assertTenantIdMatchesContext}'s exact idiom)
+	 * for {@link #findByIdAndTenantIdForUpdate}: that method takes {@code
+	 * tenantId} as an explicit parameter (see its javadoc) rather than relying
+	 * on {@code TenantAwareRepositoryImpl}'s structural {@code Specification}
+	 * filtering, so - unlike every other tenant-scoped query in this
+	 * repository - there is no compiler/framework safety net if a future
+	 * caller passes the wrong value. This asserts the passed {@code tenantId}
+	 * agrees with {@link TenantContextHolder}'s own resolved value, throwing
+	 * before the query executes on any mismatch. The current call site ({@code
+	 * PaymentQueryService#loadPaymentForRefundUpdate}) already passes {@code
+	 * TenantContext#getTenantId()}, so this changes no currently-correct
+	 * caller's behavior.
+	 */
+	private static void assertTenantIdMatchesContext(UUID tenantId) {
+		UUID currentTenantId = new TenantContextHolder().getTenantId();
+		if (!currentTenantId.equals(tenantId)) {
+			throw new CrossTenantPersistenceException(
+					"Attempted to query payment using a tenantId that does not match the current tenant context");
+		}
+	}
 
 	default List<Payment> findAllByOrderIdOrderByCreatedAtDesc(UUID orderId) {
 		return findAll((root, query, cb) -> cb.equal(root.get("orderId"), orderId),

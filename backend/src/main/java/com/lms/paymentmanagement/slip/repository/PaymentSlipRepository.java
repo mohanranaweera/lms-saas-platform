@@ -1,6 +1,8 @@
 package com.lms.paymentmanagement.slip.repository;
 
+import com.lms.common.persistence.CrossTenantPersistenceException;
 import com.lms.common.persistence.TenantAwareRepository;
+import com.lms.common.tenant.TenantContextHolder;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipStatus;
 import jakarta.persistence.LockModeType;
@@ -84,10 +86,43 @@ public interface PaymentSlipRepository extends TenantAwareRepository<PaymentSlip
 	 * with {@link TenantAwareRepository}'s tenant predicate - the caller must
 	 * always pass {@code tenantContext.getTenantId()}, never a
 	 * client-supplied value.
+	 *
+	 * <p>Guarded by {@link #assertTenantIdMatchesContext(UUID)} - see that
+	 * method's javadoc - before delegating to {@link
+	 * #findByIdAndTenantIdForUpdateUnchecked}, the actual {@code @Lock}/{@code
+	 * @Query} method.
 	 */
+	default Optional<PaymentSlip> findByIdAndTenantIdForUpdate(UUID id, UUID tenantId) {
+		assertTenantIdMatchesContext(tenantId);
+		return findByIdAndTenantIdForUpdateUnchecked(id, tenantId);
+	}
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT s FROM PaymentSlip s WHERE s.id = :id AND s.tenantId = :tenantId")
-	Optional<PaymentSlip> findByIdAndTenantIdForUpdate(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
+	Optional<PaymentSlip> findByIdAndTenantIdForUpdateUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
+
+	/**
+	 * Defense-in-depth guard (post-ship review, mirroring {@code
+	 * AttendanceRecordRepository#assertTenantIdMatchesContext}'s exact idiom)
+	 * for {@link #findByIdAndTenantIdForUpdate}: that method takes {@code
+	 * tenantId} as an explicit parameter (see its javadoc) rather than relying
+	 * on {@code TenantAwareRepositoryImpl}'s structural {@code Specification}
+	 * filtering, so - unlike every other tenant-scoped query in this
+	 * repository - there is no compiler/framework safety net if a future
+	 * caller passes the wrong value. This asserts the passed {@code tenantId}
+	 * agrees with {@link TenantContextHolder}'s own resolved value, throwing
+	 * before the query executes on any mismatch. The current call sites
+	 * ({@code SlipReviewService#approve}/{@code reject}) already pass {@code
+	 * TenantContext#getTenantId()}, so this changes no currently-correct
+	 * caller's behavior.
+	 */
+	private static void assertTenantIdMatchesContext(UUID tenantId) {
+		UUID currentTenantId = new TenantContextHolder().getTenantId();
+		if (!currentTenantId.equals(tenantId)) {
+			throw new CrossTenantPersistenceException(
+					"Attempted to query payment_slip using a tenantId that does not match the current tenant context");
+		}
+	}
 
 	/**
 	 * A scalar/projection status-only peek, deliberately NOT an entity load -

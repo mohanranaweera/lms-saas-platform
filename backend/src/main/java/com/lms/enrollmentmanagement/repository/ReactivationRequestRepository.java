@@ -1,6 +1,8 @@
 package com.lms.enrollmentmanagement.repository;
 
+import com.lms.common.persistence.CrossTenantPersistenceException;
 import com.lms.common.persistence.TenantAwareRepository;
+import com.lms.common.tenant.TenantContextHolder;
 import com.lms.enrollmentmanagement.domain.ReactivationRequest;
 import com.lms.enrollmentmanagement.domain.ReactivationRequestStatus;
 import jakarta.persistence.LockModeType;
@@ -157,10 +159,44 @@ public interface ReactivationRequestRepository extends TenantAwareRepository<Rea
 	 * proceed. {@code tenantId} is passed explicitly since a custom {@code
 	 * @Query} method isn't automatically composed with {@link
 	 * TenantAwareRepository}'s tenant predicate.
+	 *
+	 * <p>Guarded by {@link #assertTenantIdMatchesContext(UUID)} - see that
+	 * method's javadoc - before delegating to {@link
+	 * #findByIdAndTenantIdForUpdateUnchecked}, the actual {@code @Lock}/{@code
+	 * @Query} method.
 	 */
+	default Optional<ReactivationRequest> findByIdAndTenantIdForUpdate(UUID id, UUID tenantId) {
+		assertTenantIdMatchesContext(tenantId);
+		return findByIdAndTenantIdForUpdateUnchecked(id, tenantId);
+	}
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT r FROM ReactivationRequest r WHERE r.id = :id AND r.tenantId = :tenantId")
-	Optional<ReactivationRequest> findByIdAndTenantIdForUpdate(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
+	Optional<ReactivationRequest> findByIdAndTenantIdForUpdateUnchecked(@Param("id") UUID id,
+			@Param("tenantId") UUID tenantId);
+
+	/**
+	 * Defense-in-depth guard (post-ship review, mirroring {@code
+	 * AttendanceRecordRepository#assertTenantIdMatchesContext}'s exact idiom)
+	 * for {@link #findByIdAndTenantIdForUpdate}: that method takes {@code
+	 * tenantId} as an explicit parameter (see its javadoc) rather than relying
+	 * on {@code TenantAwareRepositoryImpl}'s structural {@code Specification}
+	 * filtering, so - unlike every other tenant-scoped query in this
+	 * repository - there is no compiler/framework safety net if a future
+	 * caller passes the wrong value. This asserts the passed {@code tenantId}
+	 * agrees with {@link TenantContextHolder}'s own resolved value, throwing
+	 * before the query executes on any mismatch. The current call sites
+	 * ({@code ReactivationRequestService#approve}/{@code reject}) already pass
+	 * {@code TenantContext#getTenantId()}, so this changes no
+	 * currently-correct caller's behavior.
+	 */
+	private static void assertTenantIdMatchesContext(UUID tenantId) {
+		UUID currentTenantId = new TenantContextHolder().getTenantId();
+		if (!currentTenantId.equals(tenantId)) {
+			throw new CrossTenantPersistenceException(
+					"Attempted to query reactivation_request using a tenantId that does not match the current tenant context");
+		}
+	}
 
 	@Override
 	default void deleteById(UUID id) {
