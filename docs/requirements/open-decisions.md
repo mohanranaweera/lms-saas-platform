@@ -932,3 +932,39 @@ forward — none of the following is resolved by this module, only scoped out of
   convention for closing a plan-vs-shipped-behavior gap.
   Source: post-ship multi-agent review finding (ui-ux-reviewer, qa-test-engineer), logged same
   session per explicit user request ("fix all findings").
+
+## 24. Integration and Staging Review (MVP-021) — carried-forward decisions
+
+Surfaced while building MVP-021's frontend deliverable (`docs/plans/MVP-021 Integration and
+Staging Review.md` §9.3/§18.4's real-backend, two-tenant Playwright fixture layer). Both items
+below are structural gaps that block **every** one of the ~15 planned cross-tenant E2E specs
+identically, not a per-area gap — full evidence trail in `frontend/e2e/README.md` §4.
+
+- **No API path exists to provision a tenant's first Tenant Admin, or any Platform Admin,
+  account.** Tenant self-registration (`POST /api/v1/tenant-registrations`) only creates a
+  loginless `pending_approval` row; every downstream account-creation endpoint requires an
+  already-authenticated Tenant-Admin-or-higher actor that itself has no provisioning path
+  (`V4__create_platform_admin_user.sql` seeds zero rows; no `CommandLineRunner`/dev-seed bean
+  exists anywhere in `backend/src/main/java`; `StaffCreateRequest.roleCode` explicitly excludes
+  `TENANT_ADMIN`, citing "provisioned by other flows" — no such flow exists). This is a genuine
+  product/engineering decision (how is a tenant's first admin meant to be provisioned in real
+  life?), not just a test-infra gap, and touches authentication/account-provisioning architecture
+  — change-controlled per root `CLAUDE.md`; needs an explicit decision (and an Accepted ADR if it
+  changes authentication architecture) before implementation.
+  Tracked: [GitHub issue #26](https://github.com/mohanranaweera/lms-saas-platform/issues/26).
+- **No CORS configuration exists on the backend**, already flagged as a caveat in
+  `docs/api/identity-access-service.md`'s "CORS caveat" section and independently reproduced
+  during this module's implementation: every cross-origin browser request from the natively-run
+  local frontend (`localhost:3000`) to the natively-run local backend (`localhost:8080`) is
+  unconditionally blocked, credentialed or not. This is a narrower, more mechanical fix (an
+  explicit, origin-allowlisted CORS config scoped to local dev) than the account-provisioning item
+  above, but still requires a `backend/` change outside this frontend-only task's authorization.
+  Tracked: [GitHub issue #27](https://github.com/mohanranaweera/lms-saas-platform/issues/27).
+- Once both are resolved, the remaining ~14 of MVP-021's planned cross-tenant Playwright specs
+  (identity/session, tenant management, content/material, enrollment, payment (orders), payment
+  slip, ledger/settlement, attendance, exams, notifications, audit log, teacher management,
+  student management, staff management) are mechanical to add — same fixture
+  (`frontend/e2e/fixtures/real-backend-session.ts`), same pattern as the one already-built
+  demonstration spec (`frontend/e2e/cross-tenant/course-management.spec.ts`), different
+  route/endpoint per `docs/api/*.md`. Not silently dropped — tracked as explicit follow-up work in
+  `frontend/e2e/README.md` §6.
