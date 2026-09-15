@@ -193,6 +193,19 @@ this codebase. A leading-`tenant_id` index cannot help an unfiltered, cross-tena
 time-ordered scan, so it would otherwise degenerate the same way §3's `audit_log`
 rationale describes for a different query shape.
 
+**Update (V35, MVP-020 post-review):** `V31`'s three indexes were built on the assumption
+that the Platform Admin payment dashboard would need an unfiltered, cross-tenant
+`ORDER BY created_at DESC` scan against `payment` directly. The shipped implementation is
+ledger-derived only — `PlatformAdminLedgerQueryService`/`LedgerEntryRepository` read
+`ledger_entry` exclusively, and no repository method anywhere queries `payment` with that
+shape — so `idx_payment_created_at_tenant` had zero read benefit and pure write-path
+maintenance cost on `payment`, one of this schema's hottest tables.
+`V35__drop_unused_payment_created_at_tenant_index.sql` drops it (`V31` itself is not
+edited — migration history is append-only). `idx_ledger_entry_created_at_tenant` and
+`idx_audit_log_occurred_at_tenant` (V31's other two indexes) remain in place and in active
+use by `LedgerEntryRepository#findAllAcrossTenantsForPlatformReport` and
+`AuditLogRepository#findAllAcrossTenantsForPlatformReport` respectively.
+
 `tenant_id` is a trailing column (not an `INCLUDE` clause) on each new index, so the
 per-row tenant attribution these dashboards must display can be read directly from the
 index without an extra heap fetch, while staying compatible with every
