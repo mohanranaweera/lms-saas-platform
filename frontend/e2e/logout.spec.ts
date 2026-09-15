@@ -13,9 +13,11 @@ import { apiPageSuccess, apiSuccess, fakeJwt, mockJson, refreshResponseBody } fr
  * `fixtures/auth-mocks.ts` (no backend in this environment). As of MVP-006
  * Student Management and MVP-014 Teacher Dashboard, `/tenant-admin/dashboard`,
  * `/student/dashboard`, and `/teacher/dashboard` are all behind `RouteGuard`
- * (`ensureAccessToken` on mount), so every test reaching one of those three
- * now mocks `POST .../v1/auth/refresh` before navigating; only
- * `/platform-admin/dashboard` remains unguarded.
+ * (`ensureAccessToken` on mount); as of MVP-020 Platform Admin Dashboard,
+ * `(platform-admin)` is `RouteGuard`-wrapped too (see this file's
+ * "Platform Admin logout" tests below, which mock
+ * `POST .../v1/platform-admin/auth/refresh`) - every dashboard route this
+ * file reaches is now guarded, none is left unguarded.
  */
 
 function mockSuccessfulLogoutFlow(page: import("@playwright/test").Page, role: string) {
@@ -174,6 +176,17 @@ test.describe("logout confirmation — Platform Admin (requires confirmation)", 
   test("cancelling leaves the platform admin on the dashboard, no logout call made", async ({
     page,
   }) => {
+    // `(platform-admin)` is `RouteGuard`-wrapped (MVP-020) — mock a
+    // successful silent refresh so the guard resolves and the dashboard
+    // (and its "Sign out" trigger) actually renders on direct navigation.
+    const token = fakeJwt({ role: "PLATFORM_ADMIN" });
+    await mockJson(
+      page,
+      "**/v1/platform-admin/auth/refresh",
+      200,
+      apiSuccess(refreshResponseBody(token))
+    );
+
     let logoutCalled = false;
     await page.route("**/v1/platform-admin/auth/logout", async (route) => {
       logoutCalled = true;

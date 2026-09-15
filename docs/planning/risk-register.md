@@ -125,6 +125,13 @@ Admin" without the formal dual-identity audit trail.
 - **Mitigation:** No implicit tenant-operational access from Platform Admin role. Any impersonation
   must be a backend-issued session with start/end audit entries recording both identities
   distinctly.
+- **Status (MVP-020):** `PADASH-2` shipped read-only — `PlatformAdminLedgerController`/
+  `PlatformAdminAuditLogController` have no mutation endpoint, no impersonation session start/end
+  exists anywhere, and every query is scoped to the authenticated Platform Admin's own JWT (never
+  a "query as if Tenant Admin" pathway). `.claude/rules/ui-ux.md` §1's requirement — any future
+  "view as tenant" capability must be a visually loud, backend-issued session, never a locally
+  toggled UI state — remains unbuilt and unresolved (`docs/requirements/open-decisions.md` §23);
+  this risk is not closed, only confirmed not-yet-introduced.
 
 ---
 
@@ -198,6 +205,12 @@ temptation to violate the `reporting-analytics` no-live-joins guidance under MVP
   single aggregate row if done carelessly (escalates toward R2's severity).
 - **Mitigation:** BFF-style aggregation of narrow `api` reads per domain, not ad hoc joins — flag
   explicitly in implementation review for both stories.
+- **Status (MVP-020):** `PADASH-2` shipped compliant — `PlatformAdminLedgerQueryService`/
+  `PlatformAdminAuditLogQueryService` read via `LedgerEntryRepository`/`AuditLogRepository`'s own
+  JPA methods and resolve tenant names through `TenantLookupApi#resolveTenantSummaries` (an
+  in-process API call to `tenant-management`, not a live cross-schema SQL join). No raw join
+  across module schemas exists in either service. `TADASH-1`'s own half of this risk is unaffected
+  by this module and remains separately tracked.
 
 ### R18 — Public tenant-registration endpoint has no rate limiting or abuse control
 `POST /api/v1/tenant-registrations` (`TEN-1`, implemented 2026-08-08) is intentionally public/anonymous by

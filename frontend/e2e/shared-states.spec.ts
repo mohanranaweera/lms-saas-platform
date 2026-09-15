@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
 /**
  * Coverage note: `EmptyState` (components/states/empty-state.tsx) is a shared
@@ -36,8 +37,24 @@ test.describe("empty state — contextual copy per role", () => {
   test("the still-placeholder Platform Admin dashboard's empty state has role-specific, non-generic copy", async ({
     page,
   }) => {
+    // `(platform-admin)` is `RouteGuard`-wrapped as of MVP-020 — mock a
+    // successful silent refresh so the guard resolves and the dashboard
+    // actually renders on direct navigation.
+    const token = fakeJwt({ role: "PLATFORM_ADMIN" });
+    await mockJson(
+      page,
+      "**/v1/platform-admin/auth/refresh",
+      200,
+      apiSuccess(refreshResponseBody(token))
+    );
+
     await page.goto("/platform-admin/dashboard");
-    await expect(page.getByText("Platform admin dashboard coming soon")).toBeVisible();
+    // Copy updated by MVP-020: Tenants/Payments/Audit Log are now live (see
+    // the links this empty state sits above), so the old "coming soon"
+    // wording covering all of them would be false — only the dashboard's own
+    // summary/KPI rollup remains unbuilt, which is what this empty state now
+    // says specifically.
+    await expect(page.getByText("No dashboard summary yet")).toBeVisible();
   });
 });
 

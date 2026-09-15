@@ -24,6 +24,15 @@ required an ADR. Backend implementation for `TEN-1` (registration) plus the unwi
 described in §20 is complete and passed a four-agent review (security, database, architecture, test
 quality) with no Critical/High defects remaining — see §21's updated risk list for what's still open.
 
+**Update (MVP-020):** `TEN-2`'s live endpoints shipped as part of the MVP-020 Platform Admin Dashboard
+module (`docs/plans/MVP-020 Platform Admin Dashboard.md`, PADASH-1), not as a standalone follow-up to
+this module — a deliberate scope decision recorded in that plan's §21 item 1 (Option A: narrow `TEN-2`
+to approve/reject of a `pending_approval` tenant only, deferring suspend/cancel/reactivate). Live
+endpoints and their contract are documented in `docs/api/tenant-management.md` (new file, since this
+domain had no HTTP contract file until then). Suspend/cancel of an already-`active` tenant, plan/feature
+editing, and tenant usage metrics remain unbuilt — see that plan's own out-of-scope note and
+`docs/requirements/open-decisions.md`.
+
 ---
 
 ## 1. Business goal

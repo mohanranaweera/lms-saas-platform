@@ -1,0 +1,29 @@
+-- MVP-020 Platform Admin Dashboard follow-up (post-review recommended
+-- improvement, database-architect): drop `idx_payment_created_at_tenant`,
+-- added by V31__add_platform_admin_cross_tenant_dashboard_indexes.sql.
+--
+-- V31 added three indexes on the assumption that the Platform Admin
+-- payment dashboard would need an unfiltered, cross-tenant
+-- `ORDER BY created_at DESC` scan against `payment` directly. The shipped
+-- implementation is ledger-derived only (per plan §9.2/§17 - "never
+-- payment.status/order-derived", mirroring the tenant-scoped dashboard's
+-- own precedent): `PlatformAdminLedgerQueryService`/`LedgerEntryRepository`
+-- read `ledger_entry` exclusively, and no repository method anywhere
+-- queries `payment` with an unfiltered, `created_at`-ordered, cross-tenant
+-- shape. `idx_payment_created_at_tenant` is therefore dead weight - pure
+-- write-path index-maintenance overhead on `payment`, one of this schema's
+-- hottest, most write-concentrated tables - with zero read benefit today.
+--
+-- `idx_ledger_entry_created_at_tenant` and `idx_audit_log_occurred_at_tenant`
+-- (V31's other two indexes) ARE used, by
+-- `LedgerEntryRepository#findAllAcrossTenantsForPlatformReport` and
+-- `AuditLogRepository#findAllAcrossTenantsForPlatformReport` respectively,
+-- and are unaffected by this migration.
+--
+-- New, additive-in-effect migration - V31 is NOT edited (migration history
+-- is append-only). If a future cross-tenant, payment-derived (as opposed to
+-- ledger-derived) view is built, it should add back whatever index that
+-- view's actual query shape needs, re-justified against that query - not
+-- assume this index would still be correct.
+
+DROP INDEX idx_payment_created_at_tenant;

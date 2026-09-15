@@ -1,5 +1,7 @@
 package com.lms.identityaccessservice.api;
 
+import org.springframework.security.access.AccessDeniedException;
+
 /**
  * Thread-local holder for the current request's {@link AuthenticatedPrincipal},
  * mirroring {@code com.lms.common.tenant.TenantContextHolder} exactly:
@@ -39,6 +41,24 @@ public final class AuthenticatedPrincipalHolder {
 
 	public static boolean isSet() {
 		return CURRENT.get() != null;
+	}
+
+	/**
+	 * Throws {@link AccessDeniedException} unless the current thread's
+	 * resolved {@link AuthenticatedPrincipal#role()} exactly equals {@code
+	 * role}. Added to de-duplicate the identical hand-rolled
+	 * {@code requirePlatformAdmin()}/{@code PLATFORM_ADMIN_ROLE} check
+	 * previously copy-pasted across {@code TenantApprovalService}, {@code
+	 * PlatformAdminLedgerQueryService}, and {@code
+	 * PlatformAdminAuditLogQueryService} - callers should invoke this instead
+	 * of hand-rolling their own role string comparison. This is a defensive,
+	 * service-layer re-confirmation of a role already enforced by each
+	 * caller's own {@code @PreAuthorize}, never the sole authorization gate.
+	 */
+	public static void requireRole(String role) {
+		if (!get().role().equals(role)) {
+			throw new AccessDeniedException("You do not have permission to perform this action");
+		}
 	}
 
 }

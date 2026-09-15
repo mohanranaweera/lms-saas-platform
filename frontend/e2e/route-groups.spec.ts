@@ -1,5 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { apiPageSuccess, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import {
+  apiError,
+  apiPageSuccess,
+  apiSuccess,
+  fakeJwt,
+  mockJson,
+  refreshResponseBody,
+} from "./fixtures/auth-mocks";
 
 test.describe("public route group", () => {
   test("home page renders marketing content and auth entry points", async ({ page }) => {
@@ -96,8 +103,10 @@ test.describe("role dashboard route groups", () => {
     // `/student/dashboard`, `/teacher/dashboard`, and `/tenant-admin/dashboard`
     // are guarded by `RouteGuard` (MVP-006 Student Management, MVP-014
     // Teacher Dashboard, MVP-015 Tenant Admin Dashboard) — mock a successful
-    // silent refresh so the guard resolves for those three;
-    // `/platform-admin/dashboard` remains unguarded and ignores this mock.
+    // silent refresh so the guard resolves for those three.
+    // `/platform-admin/dashboard` is now also `RouteGuard`-wrapped (MVP-020) —
+    // its own refresh mock is set up per-test below (different `kind`/token
+    // shape than the other three), not here.
     const token = fakeJwt({ role: "STUDENT" });
     await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
     // `/student/dashboard`, `/teacher/dashboard`, and `/tenant-admin/dashboard`
@@ -120,13 +129,22 @@ test.describe("role dashboard route groups", () => {
     test(`${path} renders its portal shell${placeholder ? " and placeholder dashboard" : ""}`, async ({
       page,
     }) => {
-      // `(tenant-admin)` is wrapped in `RouteGuard` (MVP-007), which calls
-      // ensureAccessToken("tenant") on mount — mock a successful refresh so
-      // the guard resolves instead of redirecting to /login. Platform Admin
-      // has no route guard yet and is reached by direct navigation.
+      // `(tenant-admin)` and `(platform-admin)` are each wrapped in their own
+      // `RouteGuard` (MVP-007; MVP-020 for platform-admin), which calls
+      // ensureAccessToken(kind) on mount — mock a successful refresh so the
+      // guard resolves instead of redirecting to the role's own login route.
       if (path.startsWith("/tenant-admin")) {
         const token = fakeJwt({ role: "TENANT_ADMIN" });
         await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+      }
+      if (path.startsWith("/platform-admin")) {
+        const token = fakeJwt({ role: "PLATFORM_ADMIN" });
+        await mockJson(
+          page,
+          "**/v1/platform-admin/auth/refresh",
+          200,
+          apiSuccess(refreshResponseBody(token))
+        );
       }
       await page.goto(path);
       await expect(page.getByRole("heading", { name: heading })).toBeVisible();
@@ -135,13 +153,89 @@ test.describe("role dashboard route groups", () => {
     });
   }
 
-  test("platform admin nav links to the tenant list scaffold", async ({ page }) => {
+  test("platform admin nav links to the live tenant list (MVP-020)", async ({ page }) => {
+    const token = fakeJwt({ role: "PLATFORM_ADMIN" });
+    await mockJson(
+      page,
+      "**/v1/platform-admin/auth/refresh",
+      200,
+      apiSuccess(refreshResponseBody(token))
+    );
+    await mockJson(page, "**/v1/platform-admin/tenants*", 200, apiPageSuccess([]));
+
     await page.goto("/platform-admin/dashboard");
-    const link = page.getByRole("link", { name: "Tenants" });
+    // Scoped to the nav landmark: the dashboard placeholder's own body also
+    // links to `/platform-admin/tenants` ("Go to tenants") — an unscoped
+    // `getByRole("link", { name: "Tenants" })` substring-matches both.
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    const link = nav.getByRole("link", { name: "Tenants" });
     await expect(link).toBeVisible();
     await link.click();
     await expect(page).toHaveURL(/\/platform-admin\/tenants$/);
     await expect(page.getByRole("heading", { name: "Tenants" })).toBeVisible();
+  });
+});
+
+test.describe("platform admin portal — RouteGuard", () => {
+  // Mirrors `teacher-dashboard.spec.ts`'s and `tenant-admin-dashboard.spec.ts`'s
+  // "an unauthenticated visit ... redirects to /login before portal chrome
+  // renders" pattern (MVP-020 plan §18's frontend route-guard check). Plan
+  // wording says "sees a permission-denied state" but `RouteGuard`'s actual,
+  // confirmed behavior (route-guard.tsx) for every portal — Platform Admin
+  // included — is a client-side redirect to `<loginPath>?reason=session_expired`
+  // when `ensureAccessToken` rejects, not a rendered permission-denied
+  // component; this test asserts that real behavior rather than the plan's
+  // literal (and here, inaccurate) wording.
+  test("an unauthenticated visit to /platform-admin/tenants redirects to /platform-admin/login before portal chrome renders", async ({
+    page,
+  }) => {
+    // No session mocked at all: `POST /v1/platform-admin/auth/refresh` fails,
+    // so `RouteGuard kind="platform-admin"` redirects instead of resolving
+    // `ready`.
+    await mockJson(
+      page,
+      "**/v1/platform-admin/auth/refresh",
+      401,
+      apiError("UNAUTHENTICATED", "No session.")
+    );
+
+    await page.goto("/platform-admin/tenants");
+
+    await expect(page).toHaveURL(/\/platform-admin\/login(\?|$)/);
+    await expect(page).toHaveURL(/reason=session_expired/);
+    // Lands on the real, chrome-less login form (`route-groups.spec.ts`'s own
+    // "platform-admin login route" describe block above establishes this is
+    // the login page's actual content) — no `DashboardShell` dashboard chrome
+    // (primary nav landmark, mobile nav trigger) ever renders on the way to
+    // the redirect. Deliberately not asserting on the text "Platform Admin"
+    // itself: the login page's own heading ("Platform Admin sign in") and
+    // header label legitimately contain that text too, so it can't
+    // distinguish chrome from the login page.
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeEnabled();
+    await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Open navigation menu" })).toHaveCount(0);
+  });
+
+  test("a Tenant Admin session (wrong portal kind) visiting /platform-admin/dashboard also redirects to /platform-admin/login", async ({
+    page,
+  }) => {
+    // A session exists, but for the wrong `kind` — `ensureAccessToken("platform-admin")`
+    // still attempts its own refresh (session state is keyed per-`kind`, see
+    // auth-context.tsx) against the platform-admin refresh endpoint, which
+    // this Tenant Admin session was never issued against, so it fails the
+    // same way an entirely unauthenticated visit does.
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(fakeJwt({ role: "TENANT_ADMIN" }))));
+    await mockJson(
+      page,
+      "**/v1/platform-admin/auth/refresh",
+      401,
+      apiError("UNAUTHENTICATED", "No session.")
+    );
+
+    await page.goto("/platform-admin/dashboard");
+
+    await expect(page).toHaveURL(/\/platform-admin\/login(\?|$)/);
+    await expect(page.getByRole("heading", { name: "Platform Admin Dashboard" })).toHaveCount(0);
   });
 });
 

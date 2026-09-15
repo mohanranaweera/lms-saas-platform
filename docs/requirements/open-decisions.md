@@ -865,3 +865,70 @@ must append here, per this log's established §15-§19 convention.
   silently assumed correct forever.
   Source: post-ship multi-agent review finding (solution-architect), logged same session per
   explicit user request ("fix all findings").
+  **Update (MVP-020):** a real tenant-approval workflow now exists (approve/reject of a
+  `pending_approval` tenant, `docs/api/tenant-management.md`) — the "if/when" above is resolved to
+  "now." Whether template seeding should move from registration-time to approval-time remains
+  unre-examined; this item is left open rather than silently assumed still-correct.
+
+## 23. Platform Admin Dashboard (MVP-020) — carried-forward decisions
+
+Per `docs/plans/MVP-020 Platform Admin Dashboard.md` §19's own instruction to carry these
+forward — none of the following is resolved by this module, only scoped out of it explicitly:
+
+- **Suspend/cancel of an already-`active` tenant** — no endpoint exists. Carries forward
+  MVP-004 §21 item 9's open question about the session-invalidation mechanism a suspend would
+  need (revoking every active session for that tenant's users), still unresolved.
+- **Cancellation reversibility** — whether a cancelled tenant can ever be reactivated, and by
+  what mechanism, is undecided; no endpoint exists for either cancel or a hypothetical
+  reactivation.
+- **Rejection-reason capture** — `POST /api/v1/platform-admin/tenants/{id}/reject` takes no
+  request body and records no reason; a rejected applicant currently has no structured record of
+  why. Whether this needs a reason field (and whether it should be visible to the rejected
+  applicant) is a product decision, not made here.
+- **Revenue-total / tenant-profile KPI gaps** — no endpoint anywhere computes a platform-wide
+  revenue total; the Cross-Tenant Payment Dashboard intentionally shows individual ledger rows
+  only, per `.claude/rules/payments.md` §1's "ledger is the source of truth" rule (a client-side
+  sum across paginated cross-tenant rows would violate that rule — see
+  `docs/api/ledger-settlement-management.md`'s Platform Admin section). The Platform Admin
+  Dashboard's own Overview screen remains a static placeholder with no KPI/summary data-fetching
+  at all (`docs/ui-ux/screen-map.md`'s Platform Admin Portal section).
+- **Tenant name/subdomain search** — `GET /api/v1/platform-admin/tenants` has no search query
+  param and no supporting index; the module plan's own §8 documents this as a deliberate
+  scope decision, not an oversight, but it remains a real gap for a platform with many tenants.
+- **Currency on cross-tenant ledger rows** — `ledger_entry` has no `currency` column, so
+  `PlatformLedgerEntryResponse.amount` renders with no unit on both payment dashboard screens.
+  Surfaced during this module's own frontend review; see
+  `docs/api/ledger-settlement-management.md`'s Platform Admin section for the full note.
+  Resolving it requires a backend/schema change or a platform-wide implicit-currency decision,
+  neither made here.
+- **Plan & feature-flag editing, platform integrations config, platform analytics, support
+  ticket queue, impersonation ("view as tenant")** — none of these shipped; see
+  `docs/ui-ux/screen-map.md`'s Platform Admin Portal section for the full unshipped list. Any
+  future impersonation capability specifically must be a visually loud, backend-issued session
+  per `.claude/rules/ui-ux.md` §1 — never a locally toggled UI state — when it is eventually
+  built.
+- **RESOLVED — plan §21 item 6 (whether the Tenant Approval Detail screen needs the full
+  persistent tenant-context banner).** Shipped as `showTenantContext={false}`: the tenant's own
+  name already anchors the page as its `PageHeader` title, and the banner exists specifically to
+  disambiguate "inspecting a *different* domain's data while 'in' a tenant's context" (the
+  payments/audit-log drill-downs), which doesn't apply to a same-tenant detail view. See
+  `docs/ui-ux/platform-admin-dashboard-conventions.md` §1's screen table for the full rationale.
+  Recorded here per the plan's own instruction not to leave a flagged decision resolved only
+  implicitly in a component/conventions-doc comment.
+  Source: plan §21 item 6; closed same session per explicit user request ("fix all findings").
+- **Test-naming clarification, not a coverage gap: `emptyPendingApprovalQueueIsDistinguishableFromFilteredToZeroResults`-style backend tests are intentionally narrower than their plan-implied name.** `PageResponse` carries no field distinguishing "true zero" from "filtered-to-zero" — that distinction is a frontend-only UX concern (both Testcontainers tests assert `200` with an empty page for either case, mirroring the actual backend contract), and the two-empty-states requirement is separately, fully covered by the frontend Playwright suites (`platform-admin-tenants.spec.ts`, `platform-admin-audit-log.spec.ts`). Recorded here so a future reviewer doesn't re-flag the backend test names as a missing scenario.
+  Source: post-ship multi-agent review finding (qa-test-engineer), logged same session per
+  explicit user request ("fix all findings").
+- **RESOLVED — a wrong-portal-kind session (e.g. a Tenant Admin token) visiting a Platform Admin
+  route redirects to `/platform-admin/login?reason=session_expired`, not a rendered
+  `PermissionDeniedState`.** The module plan's own wording ("sees a permission-denied state") was
+  imprecise: `RouteGuard`'s actual, tested behavior for this case is the same
+  session-expired-style redirect used for an unauthenticated visitor, which still fully blocks
+  access (and the backend independently, and separately, rejects the underlying API calls with
+  401/403 regardless of what the frontend does) — this is a UX presentation choice, not a security
+  gap. Two independent reviewers (ui-ux-reviewer, qa-test-engineer) surfaced this as only
+  documented inside a Playwright test comment (`route-groups.spec.ts`,
+  `shared-states.spec.ts`) rather than in `docs/ui-ux/`; recorded here per this file's own
+  convention for closing a plan-vs-shipped-behavior gap.
+  Source: post-ship multi-agent review finding (ui-ux-reviewer, qa-test-engineer), logged same
+  session per explicit user request ("fix all findings").

@@ -177,6 +177,94 @@ as the table grows platform-wide. No partitioning/retention strategy exists yet 
 `audit_log` (or `ledger_entry`/`payment`/`notification_outbox`) — a longer-term,
 non-blocking note for a future retention/partitioning ADR as volume grows.
 
+### Cross-tenant dashboard indexes (V31, MVP-020)
+
+`V31__add_platform_admin_cross_tenant_dashboard_indexes.sql` adds one index each on
+`payment (created_at DESC, tenant_id)`, `ledger_entry (created_at DESC, tenant_id)`,
+and `audit_log (occurred_at DESC, tenant_id)` — purely additive, no table/column
+change. Every pre-existing index on these three append-only tables leads with
+`tenant_id` (correct for every other module's tenant-scoped query shape, per §2 above).
+PADASH-2's Cross-Tenant Payment Dashboard and Platform Audit Log
+(`docs/api/ledger-settlement-management.md` / `docs/api/audit-log-management.md`'s own
+"Platform Admin" sections) introduced this codebase's first genuinely cross-tenant,
+platform-wide `ORDER BY <timestamp> DESC` scans against these tables — filterable (by
+tenant/status/action) but **not** tenant-scoped by default, unlike every other query in
+this codebase. A leading-`tenant_id` index cannot help an unfiltered, cross-tenant,
+time-ordered scan, so it would otherwise degenerate the same way §3's `audit_log`
+rationale describes for a different query shape.
+
+`tenant_id` is a trailing column (not an `INCLUDE` clause) on each new index, so the
+per-row tenant attribution these dashboards must display can be read directly from the
+index without an extra heap fetch, while staying compatible with every
+currently-supported PostgreSQL version (`INCLUDE` support/behavior varies more across
+versions/index types). `CREATE INDEX CONCURRENTLY` is deliberately not used, for the
+same reason as V30: this project's Flyway configuration runs every migration inside a
+single transaction, and `CONCURRENTLY` cannot run inside one — accepted for now given
+the project's pre-launch, low-row-count stage. This migration builds three blocking
+`CREATE INDEX` statements back-to-back against `payment`, `ledger_entry`, and
+`audit_log` (the three most write-heavy tables in this schema) inside that one
+transaction — the file's own header comment now flags that the *cumulative* lock
+duration across all three builds, not just any single index's build time, should be
+timed against production-representative row counts before a live deploy.
+
+### `audit_log.actor_id`: FK removal, then schema-level restoration via trigger (V32/V33, MVP-020)
+
+`audit_log.actor_id` was originally FK'd to `tenant_user (tenant_id, id)` only (V21),
+under the assumption that every audit-logged action is performed by an authenticated
+tenant user. PADASH-1/PADASH-2 broke that assumption: a Platform Admin approving or
+rejecting a tenant writes an audit row whose `actor_id` is a `platform_admin_user.id` —
+an id that is never present in `tenant_user`, so the original FK would reject every
+single platform-admin-authored row. `actor_id` became genuinely polymorphic the moment
+a second actor table existed (the same situation `target_id`/`target_entity` already
+accepted at V21 for the same structural reason).
+
+`V32__relax_audit_log_actor_fk_for_platform_admin_actors.sql` dropped
+`fk_audit_log_actor` to unblock this — a pure constraint-loosening, `actor_id UUID NOT
+NULL` itself untouched. At the time V32 shipped, actor-existence enforcement moved
+entirely to the service layer (`AuditLogService#requireKnownActor`, backed by
+`identityaccessservice.api.UserProvisioningApi#actorExists`), with no compensating
+schema-level check — a deliberate, but incorrect, trade-off: a post-implementation
+review (database-architect, security-reviewer, and solution-architect, independently)
+flagged this as a Critical gap against this section's own "Audit log completeness" rule
+(below) and `.claude/rules/backend.md`'s schema-enforced-invariants requirement, since a
+service-layer-only guard is bypassable by any insert/update path that does not route
+through `AuditLogService` (a future bug, a new call site using `EntityManager.persist`
+directly, a direct data-fix script).
+
+`V33__restore_audit_log_actor_integrity_trigger.sql` closes that gap. Since a single
+declarative FK still cannot express "`actor_id` exists in `tenant_user` OR
+`platform_admin_user`" (two independent UUID id spaces, no shared parent table), V33
+adds a PL/pgSQL function plus a `BEFORE INSERT OR UPDATE OF actor_id` trigger
+(`trg_audit_log_actor_must_exist`) that raises an exception (`ERRCODE =
+foreign_key_violation`) unless `NEW.actor_id` resolves to a row in `tenant_user` or
+`platform_admin_user`. A trigger runs inside the same transaction as the write, for
+every write path regardless of which Java code performs it (Spring Data `save`,
+`EntityManager.persist`, a raw JDBC insert, a future data-fix script) — restoring
+genuine, un-bypassable schema-level enforcement of actor integrity. `AuditLogService
+#requireKnownActor` is kept as-is alongside the trigger: it still gives a clean, early,
+descriptive `IllegalArgumentException` in the normal application code path, with the
+trigger as the backstop underneath it — the same "constraint plus service-layer guard"
+pattern this section already documents for payment/ledger state machines.
+
+**V33's first cut was itself incomplete — closed by `V34__tighten_audit_log_actor_tenant_match_trigger.sql`.**
+The original composite FK V32 dropped enforced two things at once: (a) `actor_id`
+names a real user, and (b) that user belongs to the *same tenant* as the row's own
+`tenant_id`. V33's trigger restored only (a) — it checked `tenant_user` existence
+globally, with no `tenant_id` comparison, so it would have silently accepted an
+`audit_log` row with `tenant_id` = Tenant B and `actor_id` = a real `tenant_user`
+belonging to Tenant A. A subsequent review (database-architect and security-reviewer,
+independently) flagged this as a required correction: not exploitable through
+`AuditLogService`'s current two call sites (which already keep `tenant_id`/`actor_id`
+consistent), but the schema no longer backstopped the invariant against a future
+call site, data-fix script, or direct insert/update. V34 tightens the trigger's
+`tenant_user` branch to `EXISTS (... WHERE id = NEW.actor_id AND tenant_id =
+NEW.tenant_id)`, via `CREATE OR REPLACE FUNCTION` (the trigger itself did not need to
+be dropped/recreated). The `platform_admin_user` branch is deliberately left
+tenant-independent — a Platform Admin actor is not scoped to the target tenant it is
+acting on. `AuditLogActorIntegrityTriggerIntegrationTest` was extended with a
+same-tenant-mismatch regression test proving the database itself now rejects this
+case.
+
 ## 4. Schema-enforced invariants
 
 Per `.claude/rules/backend.md`, the following domains prefer invariants enforced by the
@@ -219,9 +307,21 @@ forgets the rule:
   race condition a pure application-level check would leave open.
 - **Audit log completeness.** `tenant_id` (or an explicit platform-scope marker),
   `actor_id`, `action`, `target_entity`/`target_id`, and `occurred_at` are all `NOT NULL`
-  on the audit table, with `actor_id` and `target_id` FK'd to known user/entity rows where
-  applicable — an audit row with an unidentified actor or target is rejected at insert
-  time by the schema, not merely discouraged by convention.
+  on the audit table — an audit row with an unidentified actor or target is rejected at
+  write time by the schema, not merely discouraged by convention. `target_id` carries no
+  FK (`target_entity` names an arbitrary table this table must stay decoupled from, so a
+  single polymorphic FK is not possible; validated at the service layer only). `actor_id`
+  is similarly polymorphic (`tenant_user.id` OR `platform_admin_user.id`, since PADASH-1
+  introduced Platform-Admin-authored audit rows — see the V32/V33 section above), so it
+  is no longer enforced by a single-table FK either; instead, as of
+  `V33__restore_audit_log_actor_integrity_trigger.sql` (tightened by
+  `V34__tighten_audit_log_actor_tenant_match_trigger.sql` to also require a
+  `tenant_user` actor to belong to the row's own `tenant_id`), a `BEFORE INSERT OR
+  UPDATE OF actor_id` trigger (`trg_audit_log_actor_must_exist`) rejects any write
+  whose `actor_id` does not resolve to a `tenant_user` row belonging to that same
+  tenant, or a known `platform_admin_user` row — genuinely schema-level, un-bypassable
+  enforcement, complemented (not replaced) by `AuditLogService#requireKnownActor`'s
+  earlier, more descriptive application-layer check.
 
 ## 5. Mapping to the confirmed backend domain list
 

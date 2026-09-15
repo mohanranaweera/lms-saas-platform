@@ -3,12 +3,14 @@ package com.lms.identityaccessservice.service;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.common.tenant.TenantContextHolder;
 import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.domain.TenantUser;
 import com.lms.identityaccessservice.error.InvalidRoleCodeException;
+import com.lms.identityaccessservice.repository.PlatformAdminUserRepository;
 import com.lms.identityaccessservice.repository.TenantUserRepository;
 import java.util.Collection;
 import java.util.List;
@@ -34,13 +36,17 @@ public class UserProvisioningService implements UserProvisioningApi {
 
 	private final TenantUserRepository tenantUserRepository;
 
+	private final PlatformAdminUserRepository platformAdminUserRepository;
+
 	private final PasswordEncoder passwordEncoder;
 
 	private final TenantContext tenantContext;
 
-	public UserProvisioningService(TenantUserRepository tenantUserRepository, PasswordEncoder passwordEncoder,
+	public UserProvisioningService(TenantUserRepository tenantUserRepository,
+			PlatformAdminUserRepository platformAdminUserRepository, PasswordEncoder passwordEncoder,
 			TenantContext tenantContext) {
 		this.tenantUserRepository = tenantUserRepository;
+		this.platformAdminUserRepository = platformAdminUserRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.tenantContext = tenantContext;
 	}
@@ -105,6 +111,20 @@ public class UserProvisioningService implements UserProvisioningApi {
 			.orElseThrow(() -> new NotFoundException("User not found"));
 		user.activate();
 		tenantUserRepository.save(user);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public boolean actorExists(UUID actorId) {
+		if (TenantContextHolder.isSet()) {
+			// Tenant-scoped path: findById is tenant-scoped by
+			// TenantAwareRepositoryImpl, so an id belonging to a different
+			// tenant correctly reports as not-existing here too.
+			return tenantUserRepository.findById(actorId).isPresent();
+		}
+		// No TenantContext resolved - the Platform Admin request path.
+		// platform_admin_user is platform-level, never tenant-scoped.
+		return platformAdminUserRepository.findById(actorId).isPresent();
 	}
 
 	private static Role parseRole(String roleCode) {

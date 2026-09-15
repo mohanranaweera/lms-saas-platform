@@ -2,9 +2,13 @@ package com.lms.tenantmanagement.service;
 
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import com.lms.tenantmanagement.api.TenantResolution;
+import com.lms.tenantmanagement.api.TenantSummary;
 import com.lms.tenantmanagement.domain.Tenant;
 import com.lms.tenantmanagement.repository.TenantRepository;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +36,20 @@ public class TenantLookupService implements TenantLookupApi {
 		return tenantRepository.findBySubdomain(subdomain).map(TenantLookupService::toResolution);
 	}
 
+	@Override
+	public List<TenantSummary> resolveTenantSummaries(Set<UUID> tenantIds) {
+		if (tenantIds == null || tenantIds.isEmpty()) {
+			return List.of();
+		}
+		return tenantRepository.findAllById(tenantIds).stream().map(TenantLookupService::toSummary).toList();
+	}
+
 	private static TenantResolution toResolution(Tenant tenant) {
 		return new TenantResolution(tenant.getId(), tenant.getSubdomain(), tenant.getStatus());
+	}
+
+	private static TenantSummary toSummary(Tenant tenant) {
+		return new TenantSummary(tenant.getId(), tenant.getName(), tenant.getStatus());
 	}
 
 }

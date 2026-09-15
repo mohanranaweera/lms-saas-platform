@@ -168,21 +168,43 @@ real submit behavior lands with that module.
 
 ## Platform Admin Portal (`app/(platform-admin)/`)
 
-- Platform Admin > Dashboard > Overview — platform-wide KPIs
-- Platform Admin > Tenants > Tenant List — all tenants, status, plan
-- Platform Admin > Tenants > Tenant Approval — review/approve/reject new tenant registration
-- Platform Admin > Tenants > Tenant Detail — profile, plan, usage, status control (suspend/cancel/reactivate)
-- Platform Admin > Plans > Plan & Feature Flag Editor — plan limits, feature toggles
-- Platform Admin > Payments > Cross-Tenant Payment Dashboard — platform-wide payment oversight
-- Platform Admin > Payments > Settlement Runs — tutor/tenant settlement calculation, status, export
-- Platform Admin > Finance > Platform Finance Reports — platform-level financial reporting
-- Platform Admin > Integrations > Platform Default Integrations — default Zoom/SMS/WhatsApp/email/gateway/storage config
-- Platform Admin > Integrations > Credential Vault — API credential management
-- Platform Admin > Reports > Platform Analytics — churn risk, most-watched courses, bandwidth/storage usage, device violations, ticket volume
-- Platform Admin > Audit Log > Platform Audit Log — platform-scope actions
-- Platform Admin > Audit Log > Tenant Audit Log Drill-down — per-tenant audit log, tenant-context banner required
-- Platform Admin > Support > Cross-Tenant Ticket Queue — escalated/all-tenant tickets
-- Platform Admin > Impersonation > Start/End Impersonation — enter/exit "view as tenant" mode
+- Platform Admin > Dashboard > Overview — platform-wide KPIs. **Not shipped** — still the
+  original static placeholder (MVP-001); MVP-020 updated only its copy (it previously claimed
+  Tenants/Payments/Audit Log were themselves unshipped, which became false once MVP-020 landed
+  them) and added links to the three live screens below. No KPI/summary data-fetching exists.
+- Platform Admin > Tenants > Tenant List — all tenants, status, plan. **Shipped (MVP-020,
+  PADASH-1)**: `app/(platform-admin)/platform-admin/(dashboard)/tenants/page.tsx`.
+- Platform Admin > Tenants > Tenant Approval — review/approve/reject new tenant registration.
+  **Shipped (MVP-020, PADASH-1)** — not a separate screen; Approve/Reject actions live inline on
+  the Tenant List row and the Tenant Detail screen (both `AlertDialog`-confirmed).
+- Platform Admin > Tenants > Tenant Detail — profile, plan, usage, status control
+  (suspend/cancel/reactivate). **Partially shipped (MVP-020, PADASH-1)**:
+  `.../tenants/[tenantId]/page.tsx` — profile/plan/contact summary + Approve/Reject only.
+  Suspend/cancel/reactivate and any usage data are explicitly out of scope (module plan §6/§21
+  item 1) — do not assume this screen's status control is complete.
+- Platform Admin > Plans > Plan & Feature Flag Editor — plan limits, feature toggles. Not
+  shipped.
+- Platform Admin > Payments > Cross-Tenant Payment Dashboard — platform-wide payment oversight.
+  **Shipped (MVP-020, PADASH-2)**: `.../payments/page.tsx` (list) +
+  `.../payments/[tenantId]/page.tsx` (per-tenant drill-down, persistent tenant-context banner).
+  Read-only — no refund/adjustment action reachable from here (module plan §17).
+- Platform Admin > Payments > Settlement Runs — tutor/tenant settlement calculation, status,
+  export. Not shipped — Phase 2 (payment roadmap step 2, root `CLAUDE.md`).
+- Platform Admin > Finance > Platform Finance Reports — platform-level financial reporting. Not
+  shipped.
+- Platform Admin > Integrations > Platform Default Integrations — default
+  Zoom/SMS/WhatsApp/email/gateway/storage config. Not shipped.
+- Platform Admin > Integrations > Credential Vault — API credential management. Not shipped.
+- Platform Admin > Reports > Platform Analytics — churn risk, most-watched courses,
+  bandwidth/storage usage, device violations, ticket volume. Not shipped.
+- Platform Admin > Audit Log > Platform Audit Log — platform-scope actions. **Shipped (MVP-020,
+  PADASH-2)**: `.../audit-log/page.tsx`.
+- Platform Admin > Audit Log > Tenant Audit Log Drill-down — per-tenant audit log,
+  tenant-context banner required. **Shipped (MVP-020, PADASH-2)**: `.../audit-log/[tenantId]/page.tsx`.
+- Platform Admin > Support > Cross-Tenant Ticket Queue — escalated/all-tenant tickets. Not
+  shipped.
+- Platform Admin > Impersonation > Start/End Impersonation — enter/exit "view as tenant" mode.
+  Not shipped — MVP-020 is read-only/non-impersonating by design (module plan §21, risk R9/R15).
 
 ## Shared / Cross-Role Screens (implemented once, reused per role's route group)
 

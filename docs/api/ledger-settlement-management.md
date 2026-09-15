@@ -96,3 +96,85 @@ separate, later Platform-Admin-authorized surface per the plan's §6 scope note)
 a DB `CHECK` constraint and ratified in
 `docs/adr/ADR-010-ledger-entry-type-and-enrollment-slice.md`. Do not add, remove, or
 change the meaning of a value without a new ADR, per `.claude/rules/payments.md` §4.
+
+## Platform Admin cross-tenant payment dashboard (MVP-020, PADASH-2)
+
+Structurally distinct from `GET /api/v1/ledger/dashboard` above: a different
+controller (`PlatformAdminLedgerController`), a different service
+(`PlatformAdminLedgerQueryService`), a different response DTO
+(`PlatformLedgerEntryResponse` — never a reuse of `LedgerHistoryEntryResponse`, which
+has no tenant field and must not be widened for this use per this file's own
+approved-contract discipline), and genuinely cross-tenant — the one place in this
+domain where a single read spans every tenant's rows.
+
+**Auth**: `Authorization: Bearer <accessToken>` issued via the Platform Admin login
+path. **Authorization**: class-level `@PreAuthorize("hasRole('PLATFORM_ADMIN')")`,
+re-confirmed at the service layer. Neither endpoint accepts a `tenantId` query/body
+param on the dashboard read — cross-tenant scope is the endpoint's whole purpose, not
+something callers can narrow via a client-supplied filter (the drill-down below is a
+`tenantId` **path** variable, resolved server-side against `TenantLookupApi`, not a
+client-trusted filter value).
+
+**Read-only**: no mutation endpoint exists on this controller. No refund/adjustment
+action is reachable from either endpoint below — such actions stay on the existing,
+tenant-scoped payment/refund endpoints documented above.
+
+### `GET /api/v1/platform-admin/payments/dashboard`
+
+Platform-wide, paginated, default sort `createdAt,DESC`. No filter query params exist
+(no status/date-range/tenant filter) — module plan §6's deliberate scope decision; a
+client-side filter over one server-paginated page would silently miss matches on other
+pages, so none is implemented.
+
+Response: `ApiResponse<PageResponse<PlatformLedgerEntryResponse>>`.
+
+```jsonc
+// PlatformLedgerEntryResponse
+{
+  "id": "uuid",
+  "tenantId": "uuid",
+  "tenantName": "string | null",   // null if the tenant id no longer resolves to a real tenant row
+  "orderId": "uuid",
+  "paymentId": "uuid | null",
+  "entryType": "PAYMENT_CONFIRMED", // PAYMENT_CONFIRMED | REFUND — same change-controlled enum as above
+  "amount": 49.99,
+  "reversesEntryId": "uuid | null",
+  "createdAt": "instant"
+}
+```
+
+`tenantName` is `null` only if `tenantId` no longer resolves to a real `tenant` row.
+No code path in this codebase hard-deletes a `tenant` row today, so this is currently
+unreachable/forward-looking, not a live data-integrity gap — documented here so a
+future reader doesn't mistake the nullable field for masking a real problem.
+
+No `currency` field exists — `ledger_entry` has no `currency` column (unlike
+`student_order`/`payment`, which each carry `currency VARCHAR(3) NOT NULL`), so a
+platform-wide, cross-tenant amount currently renders as a bare decimal with no unit.
+This is a known gap (surfaced during MVP-020's frontend review), not an oversight to
+silently work around on the client — resolving it requires either a backend/schema
+change or a product decision on a platform-wide implicit currency assumption.
+
+### `GET /api/v1/platform-admin/payments/tenants/{tenantId}`
+
+Single-tenant drill-down — same `PlatformLedgerEntryResponse` shape and pagination
+defaults as the dashboard above, filtered to `{tenantId}`.
+
+Error cases: `404 NOT_FOUND` ("Tenant not found") if `{tenantId}` doesn't resolve to a
+real `tenant` row (checked via `TenantLookupApi` before the ledger query runs, so an
+unknown tenant id never returns an empty-but-200 page as if the tenant existed).
+
+## Database indexing for cross-tenant scans (MVP-020, `V31`)
+
+Every pre-existing index on `payment`/`ledger_entry`/`audit_log` leads with `tenant_id`
+(correct for every other module's tenant-scoped query shape). The dashboard endpoint
+above introduced this domain's first genuinely cross-tenant, platform-wide `ORDER BY
+created_at DESC` scan, which a leading-`tenant_id` index cannot serve efficiently at
+platform-wide row counts. `V31__add_platform_admin_cross_tenant_dashboard_indexes.sql`
+adds `idx_ledger_entry_created_at_tenant ON ledger_entry (created_at DESC, tenant_id)`
+(plus matching indexes on `payment` and `audit_log` for the sibling Platform Admin
+screens) — purely additive, no table/column change. `tenant_id` is a trailing column
+(not an `INCLUDE` clause) so the per-row tenant attribution these dashboards display can
+be read directly from the index, while staying compatible with every currently-supported
+PostgreSQL version. See `docs/architecture/database-architecture.md` for the fuller
+rationale.

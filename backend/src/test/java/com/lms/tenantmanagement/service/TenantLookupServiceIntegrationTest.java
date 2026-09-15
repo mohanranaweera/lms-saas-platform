@@ -5,7 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lms.common.AbstractIntegrationTest;
 import com.lms.tenantmanagement.api.TenantResolution;
 import com.lms.tenantmanagement.api.TenantStatus;
+import com.lms.tenantmanagement.api.TenantSummary;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +78,49 @@ class TenantLookupServiceIntegrationTest extends AbstractIntegrationTest {
 		Optional<TenantResolution> resolved = tenantLookupService.resolveBySubdomain(uniqueSubdomain("nonexistent"));
 
 		assertThat(resolved).isEmpty();
+	}
+
+	// ------------------------------------------------------------------
+	// resolveTenantSummaries (consumed by PlatformAdminLedgerQueryService /
+	// PlatformAdminAuditLogQueryService, MVP-020 §7) - previously exercised
+	// only via Mockito mocks in those two services' own unit tests; these
+	// tests instead prove the real repository-backed batch lookup against
+	// Postgres.
+	// ------------------------------------------------------------------
+
+	@Test
+	void resolveTenantSummariesBatchResolvesEverySeededTenantInOneCall() {
+		UUID tenantAId = UUID.randomUUID();
+		UUID tenantBId = UUID.randomUUID();
+		seedTenant(tenantAId, uniqueSubdomain("summary-a"), TenantStatus.TRIAL);
+		seedTenant(tenantBId, uniqueSubdomain("summary-b"), TenantStatus.ACTIVE);
+
+		List<TenantSummary> summaries = tenantLookupService.resolveTenantSummaries(Set.of(tenantAId, tenantBId));
+
+		assertThat(summaries).hasSize(2);
+		assertThat(summaries).extracting(TenantSummary::id).containsExactlyInAnyOrder(tenantAId, tenantBId);
+		TenantSummary summaryA = summaries.stream().filter(s -> s.id().equals(tenantAId)).findFirst().orElseThrow();
+		assertThat(summaryA.status()).isEqualTo(TenantStatus.TRIAL);
+		assertThat(summaryA.name()).isNotBlank();
+	}
+
+	@Test
+	void resolveTenantSummariesSilentlyOmitsAnUnknownIdRatherThanFailingTheWholeBatch() {
+		UUID knownTenantId = UUID.randomUUID();
+		UUID unknownTenantId = UUID.randomUUID();
+		seedTenant(knownTenantId, uniqueSubdomain("summary-partial"), TenantStatus.ACTIVE);
+
+		List<TenantSummary> summaries = tenantLookupService
+			.resolveTenantSummaries(Set.of(knownTenantId, unknownTenantId));
+
+		assertThat(summaries).hasSize(1);
+		assertThat(summaries.get(0).id()).isEqualTo(knownTenantId);
+	}
+
+	@Test
+	void resolveTenantSummariesReturnsEmptyListForAnEmptyOrNullIdSet() {
+		assertThat(tenantLookupService.resolveTenantSummaries(Set.of())).isEmpty();
+		assertThat(tenantLookupService.resolveTenantSummaries(null)).isEmpty();
 	}
 
 	private void seedTenant(UUID id, String subdomain, TenantStatus status) {

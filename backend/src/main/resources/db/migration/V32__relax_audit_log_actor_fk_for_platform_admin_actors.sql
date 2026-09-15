@@ -1,0 +1,60 @@
+-- MVP-020 Platform Admin Dashboard (PADASH-16): a Platform Admin performing
+-- a tenant approval/rejection must write an audit_log row with
+-- `actor_id` = the acting Platform Admin's id and `tenant_id` = the *target
+-- tenant's* id (the tenant being approved/rejected), per plan section 16.
+--
+-- audit_log's `fk_audit_log_actor` constraint, added in
+-- V21__create_payment_slip_schema.sql, was scoped to that migration's
+-- narrower assumption at the time (see that file's own header comment):
+-- "Every audit-logged action in this codebase's current scope is performed
+-- by an authenticated tenant user", enforced with:
+--
+--     CONSTRAINT fk_audit_log_actor FOREIGN KEY (tenant_id, actor_id)
+--         REFERENCES tenant_user (tenant_id, id)
+--
+-- That assumption no longer holds. A Platform Admin's id lives in
+-- `platform_admin_user` (V4__create_platform_admin_user.sql), never in
+-- `tenant_user`, and is never paired with an arbitrary target tenant's id in
+-- `tenant_user`. The composite FK above would therefore always be violated
+-- by the write this feature requires, for every single platform-admin
+-- audited action - it must be relaxed, not worked around.
+--
+-- `actor_id` becomes a polymorphic reference the moment a second actor table
+-- (`platform_admin_user`) exists alongside `tenant_user` - the exact same
+-- situation V21 already accepted for `target_id`, whose header comment
+-- states: "`target_id` deliberately carries no FK - `target_entity` names an
+-- arbitrary table ... this table must stay decoupled from, so a single
+-- polymorphic FK is not possible; the pairing is validated at the service
+-- layer, not the schema layer." `actor_id` now needs the identical
+-- treatment: it may reference either `tenant_user` or `platform_admin_user`
+-- depending on who performed the action, so a single non-polymorphic FK can
+-- no longer express the invariant. Validation moves to the service layer,
+-- which resolves `AuthenticatedPrincipal` from a live re-read of either
+-- `tenant_user` or `platform_admin_user`
+-- (com.lms.identityaccessservice.config.JwtAuthenticationFilter) before the
+-- audit row is written.
+--
+-- This is a pure constraint-loosening: it removes a restriction and cannot
+-- invalidate any existing row (every row already in `audit_log` today
+-- satisfies the now-absent stricter constraint, since it was only ever
+-- enforced going forward on new inserts). `actor_id UUID NOT NULL` is left
+-- untouched - every audit row must still name an actor, just not
+-- necessarily one enforceable by a single-table FK. No other constraint,
+-- the `uq_audit_log_tenant_id` unique constraint, or any index on
+-- `audit_log` is touched by this migration.
+--
+-- Post-review addendum (see "docs/plans/MVP-020 Platform Admin Dashboard.md"
+-- ss22): DB-level enforcement of "actor_id names a real actor" now lives in
+-- AuditLogService's requireKnownActor(...) service-layer guard (checked via
+-- identityaccessservice.api.UserProvisioningApi#actorExists before either
+-- record() or recordForTenant() persists a row), NOT in a schema constraint.
+-- This was a deliberate, reviewed choice over building a full polymorphic-FK
+-- schema redesign (e.g. a discriminator column + per-table partial FKs, or a
+-- CHECK-constraint-backed lookup table covering both tenant_user and
+-- platform_admin_user) - that redesign would touch every existing
+-- audited-action call site across the whole platform, which is out of
+-- proportion for closing this one gap. Application-layer enforcement was
+-- accepted as the pragmatic alternative for this pre-launch codebase.
+
+ALTER TABLE audit_log
+    DROP CONSTRAINT fk_audit_log_actor;

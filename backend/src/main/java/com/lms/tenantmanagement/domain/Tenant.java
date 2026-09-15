@@ -109,4 +109,25 @@ public class Tenant extends Auditable {
 		return contactPhone;
 	}
 
+	/**
+	 * The one mutation path for {@link #status} beyond initial registration.
+	 * Deliberately does not validate the transition itself - that is {@code
+	 * TenantStatusService}'s job (its own {@code nextStatus} method), always
+	 * called by {@code TenantApprovalService} before this method, which then
+	 * simply persists the already-validated result. There is no bare {@code
+	 * setStatus} accepting an arbitrary caller-chosen value.
+	 *
+	 * <p>Public (not package-private, despite some earlier planning notes
+	 * suggesting otherwise) because its only caller, {@code
+	 * TenantApprovalService}, lives in the sibling {@code
+	 * com.lms.tenantmanagement.service} package - a different Java package
+	 * from this one, so package-private visibility would not compile. Mirrors
+	 * {@code com.lms.identityaccessservice.domain.TenantUser#suspend()}/
+	 * {@code #activate()}'s exact style: public, narrow, state-mutating, no
+	 * validation of its own.
+	 */
+	public void applyStatusTransition(TenantStatus next) {
+		this.status = next;
+	}
+
 }

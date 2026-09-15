@@ -1,6 +1,9 @@
 package com.lms.tenantmanagement.api;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * The contract {@code identity-access-service} will call, once it exists, to
@@ -28,5 +31,19 @@ public interface TenantLookupApi {
 	 * this method itself applies no such filtering.
 	 */
 	Optional<TenantResolution> resolveBySubdomain(String subdomain);
+
+	/**
+	 * Batch-resolves display-name/status summaries for the given tenant ids,
+	 * for a caller (e.g. {@code ledger-settlement-management}'s or {@code
+	 * audit-log-management}'s cross-tenant platform-admin query services)
+	 * composing a response row that must carry a human-readable tenant name
+	 * alongside a bare {@code tenantId}. Deliberately batch-shaped (not one
+	 * id per call) to avoid an in-process N+1 across the module boundary,
+	 * mirroring {@code UserProvisioningApi#findTenantUserSummaries}'s exact
+	 * idiom. Ids that don't resolve to a real {@code tenant} row are silently
+	 * omitted from the result - callers should not assume the result list is
+	 * the same size as {@code tenantIds}.
+	 */
+	List<TenantSummary> resolveTenantSummaries(Set<UUID> tenantIds);
 
 }

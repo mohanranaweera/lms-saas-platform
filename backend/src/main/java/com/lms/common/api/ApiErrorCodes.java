@@ -48,6 +48,18 @@ public final class ApiErrorCodes {
 	/** An uploaded file's declared or sniffed content type is not on the accepted allow-list. */
 	public static final String UNSUPPORTED_MEDIA_TYPE = "UNSUPPORTED_MEDIA_TYPE";
 
+	/** The requested route exists but does not support the HTTP method used (e.g. PUT/PATCH/DELETE on a GET-only resource). */
+	public static final String METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
+
+	/**
+	 * An audit log write's {@code actorId} does not resolve to a known
+	 * {@code tenant_user}/{@code platform_admin_user} row (see {@code
+	 * auditlogmanagement.service.AuditLogService#requireKnownActor}) - a
+	 * genuine internal-integrity inconsistency (5xx), distinguished from the
+	 * generic {@link #INTERNAL_ERROR} purely for log/metric triage.
+	 */
+	public static final String UNKNOWN_AUDIT_ACTOR = "UNKNOWN_AUDIT_ACTOR";
+
 	private ApiErrorCodes() {
 	}
 

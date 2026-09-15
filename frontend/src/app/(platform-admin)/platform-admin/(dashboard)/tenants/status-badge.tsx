@@ -1,18 +1,15 @@
 import { Ban, CheckCircle2, Clock, FlaskConical, XCircle, XOctagon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { TenantStatus } from "@/lib/api/platform-admin-tenants";
 
 /**
- * Mirrors the backend's `tenant.status` CHECK-constrained enum
- * (`pending_approval | trial | active | suspended | cancelled | rejected`), see
- * `backend/src/main/resources/db/migration/V2__create_tenant_table.sql`.
+ * Re-exported from `lib/api/platform-admin-tenants.ts` (the canonical
+ * definition — see its own doc comment) so every existing `import { ...,
+ * type TenantStatus } from "./status-badge"` call site keeps working
+ * unchanged; this file must not be the source of truth for a type the `lib/`
+ * API layer also needs, since `lib/` must never import from `app/`.
  */
-export type TenantStatus =
-  | "pending_approval"
-  | "trial"
-  | "active"
-  | "suspended"
-  | "cancelled"
-  | "rejected";
+export type { TenantStatus };
 
 export const TENANT_STATUS_LABELS: Record<TenantStatus, string> = {
   pending_approval: "Pending approval",

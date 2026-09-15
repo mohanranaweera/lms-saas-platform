@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -114,6 +115,25 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> handleServletRequestBinding(ServletRequestBindingException ex) {
 		ApiError error = ApiError.of(ApiErrorCodes.VALIDATION_ERROR, "Request is missing a required parameter or part");
 		return ResponseEntity.badRequest().body(ApiResponse.error(error));
+	}
+
+	/**
+	 * A route that exists but does not support the HTTP method used (e.g. a
+	 * {@code PUT}/{@code PATCH}/{@code DELETE} against a controller that only
+	 * declares {@code @GetMapping} routes) - Spring's {@code
+	 * DispatcherServlet} throws this before any controller method runs.
+	 * Previously had no dedicated handler here, so it fell through to {@link
+	 * #handleUnexpected}'s generic {@code 500} - a pre-existing, app-wide
+	 * defect (not specific to any one module) surfaced by {@code
+	 * PlatformAdminAuditLogControllerIntegrationTest}'s "no PUT/PATCH/DELETE
+	 * route" tests. Must be declared (and therefore matched by Spring) before
+	 * the generic {@link #handleUnexpected} catch-all below.
+	 */
+	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+		return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+			.body(ApiResponse.error(ApiError.of(ApiErrorCodes.METHOD_NOT_ALLOWED,
+					"HTTP method '" + ex.getMethod() + "' is not supported for this endpoint")));
 	}
 
 	@ExceptionHandler(NotFoundException.class)

@@ -100,4 +100,32 @@ public interface UserProvisioningApi {
 	 */
 	void activateTenantUser(UUID userId);
 
+	/**
+	 * True if {@code actorId} resolves to a real, known actor row - added for
+	 * {@code audit-log-management}'s {@code AuditLogService} to guard against
+	 * persisting an {@code audit_log} row for an actor that doesn't actually
+	 * exist, now that {@code fk_audit_log_actor} has been dropped (V32; {@code
+	 * actor_id} is polymorphic across {@code tenant_user}/{@code
+	 * platform_admin_user} and can no longer be enforced by a single-table
+	 * FK). Mirrors {@code
+	 * com.lms.identityaccessservice.config.JwtAuthenticationFilter}'s own
+	 * dual-path actor resolution:
+	 * <ul>
+	 * <li>If a {@link com.lms.common.tenant.TenantContext} is currently
+	 * resolved for this thread (the normal tenant-scoped request path), checks
+	 * {@code tenant_user} scoped to that tenant (via the same tenant-aware
+	 * repository every other tenant-scoped read in this module uses - an id
+	 * belonging to a different tenant is treated as not existing, never
+	 * leaked across tenants).
+	 * <li>If no {@code TenantContext} is resolved (the Platform Admin request
+	 * path - {@code TenantResolutionFilter} never resolves one for {@code
+	 * /api/v1/platform-admin/**}), checks {@code platform_admin_user}
+	 * directly, since that table is platform-level and never tenant-scoped.
+	 * </ul>
+	 * This is an existence check only - it does not return which table the
+	 * actor was found in, nor any other actor detail, keeping this method
+	 * narrow to its one caller's one need.
+	 */
+	boolean actorExists(UUID actorId);
+
 }

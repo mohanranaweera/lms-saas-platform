@@ -142,3 +142,108 @@ to `tenant_user`. See `docs/requirements/open-decisions.md` and plan §21 decisi
   filter combinations deliberately crafted to match another tenant's real rows
   (by `action`, by `targetEntity` + date range, and by a colliding `targetId` value),
   all return zero rows from the other tenant.
+
+## Platform Admin audit log (MVP-020, PADASH-2)
+
+Structurally distinct from `GET /api/v1/audit-log` above: a different controller
+(`PlatformAdminAuditLogController`), a different service
+(`PlatformAdminAuditLogQueryService`), a different repository query, and a different
+response DTO (`PlatformAuditLogEntryResponse` — identical in shape to
+`AuditLogEntryResponse` plus a mandatory `tenantId`/`tenantName` discriminator, per
+plan §14/§15's "every cross-tenant response row carries an explicit tenant
+discriminator" rule; never the `AuditLog` JPA entity itself). This is a genuinely
+cross-tenant read — the tenant-scoped viewer's own `AUDIT_LOG`/`VIEW` +
+`TENANT_ADMIN`/`READ_ONLY_AUDITOR` allowlist (see above) does not apply here at all.
+
+**Auth**: `Authorization: Bearer <accessToken>` issued via the Platform Admin login
+path. **Authorization**: class-level `@PreAuthorize("hasRole('PLATFORM_ADMIN')")`,
+re-confirmed at the service layer — not the tenant-scoped module's two-layer
+grant+allowlist check.
+
+**Read-only, no exceptions**: only `GET` mappings exist on this controller — no
+`PUT`/`PATCH`/`DELETE` route exists anywhere on the platform audit log, for any role,
+same as the tenant-scoped viewer above.
+
+### `GET /api/v1/platform-admin/audit-log`
+
+Platform-wide, filterable, paginated. Ordering is always `occurredAt DESC`,
+enforced server-side by `PlatformAdminAuditLogQueryService` (which strips any
+`Sort` from the incoming `Pageable` before it reaches the native `@Query`, since
+native queries don't translate Java property names to SQL columns) — a
+client-supplied `sort` query parameter is silently ignored, never merged into or
+overriding this order.
+
+Query params:
+- `from` (optional) — ISO-8601 instant, inclusive lower bound on `occurredAt`.
+- `to` (optional) — ISO-8601 instant, inclusive upper bound on `occurredAt`. `from`
+  after `to` → `400 VALIDATION_ERROR`.
+- `action` (optional) — exact-match string (not a substring/prefix search).
+- `page`, `size` — see Pagination envelope above (this endpoint's own default `size`
+  of `20`, same server-side clamp behavior as the tenant-scoped endpoint).
+
+Deliberately **no `targetEntity` param** — that remains a tenant-scoped-only filter on
+`GET /api/v1/audit-log` above; do not add it here without confirming the underlying
+query/index supports a cross-tenant `targetEntity` scan first.
+
+Response: `ApiResponse<PageResponse<PlatformAuditLogEntryResponse>>`.
+
+```jsonc
+// PlatformAuditLogEntryResponse
+{
+  "id": "uuid",
+  "tenantId": "uuid",
+  "tenantName": "string | null",   // null if the tenant id no longer resolves to a real tenant row
+  "actorId": "uuid",
+  "action": "string",               // e.g. "tenant.approved" / "tenant.rejected" — see below
+  "targetEntity": "string",
+  "targetId": "uuid",
+  "reason": "string | null",
+  "metadata": { "...": "..." } , // "object | null", action-specific
+  "occurredAt": "instant"
+}
+```
+
+Unlike the tenant-scoped `AuditLogEntryResponse`, there is **no `actorDisplayName`**
+field — the frontend renders a `shortId(actorId, "Actor")` fallback for every row (see
+`docs/ui-ux/platform-admin-dashboard-conventions.md`). Resolving a cross-tenant actor
+display name is a separate, unshipped capability.
+
+### `GET /api/v1/platform-admin/audit-log/tenants/{tenantId}`
+
+Single-tenant drill-down — same query params, response shape, and pagination defaults
+as the platform-wide endpoint above, filtered to `{tenantId}`.
+
+Error cases: `404 NOT_FOUND` ("Tenant not found") if `{tenantId}` doesn't resolve to a
+real `tenant` row (checked via `TenantLookupApi` before the log query runs, so an
+unknown tenant id never returns an empty-but-200 page as if the tenant existed).
+
+### Actions currently written for this endpoint
+
+`tenant.approved` / `tenant.rejected`, written by `TenantApprovalService` on every
+successful approve/reject transition (see `docs/api/tenant-management.md`) — actor id
+is the approving/rejecting Platform Admin, target entity/id is the tenant. Every other
+action already listed in "Actions currently written (AUDIT-2 event wiring)" above
+remains tenant-scoped-only and does **not** appear through this endpoint (this
+endpoint's underlying query is scoped to actions recorded with a Platform Admin actor,
+not a general "audit_log minus tenant filter" view).
+
+### `V32` — actor FK relaxed for Platform Admin actors
+
+`audit_log.actor_id` was originally a `NOT NULL FK` to `tenant_user` (`fk_audit_log_actor`,
+added in `V21__create_payment_slip_schema.sql` under the then-valid assumption that every
+actor was a tenant-scoped user). A Platform Admin's id lives in `platform_admin_user`
+instead, so `V32__relax_audit_log_actor_fk_for_platform_admin_actors.sql` drops
+`fk_audit_log_actor` entirely — a pure constraint-loosening, no existing row is
+invalidated. `actor_id UUID NOT NULL` itself is untouched; only the FK is removed,
+since `actor_id` is now genuinely polymorphic (either table) and a single non-polymorphic
+FK can no longer express the invariant, mirroring `target_id`'s own pre-existing,
+deliberately-FK-less treatment for the same reason.
+
+DB-level enforcement of "`actor_id` names a real actor" moved to the service layer
+instead: `AuditLogService`'s `requireKnownActor(UUID)` guard (shared by both `record()`
+and `recordForTenant()`, not Platform-Admin-specific) checks
+`identityaccessservice.api.UserProvisioningApi#actorExists(UUID)` before persisting any
+audit row, for every domain — not only Platform Admin actions. A full polymorphic-FK
+schema redesign (discriminator column + per-table partial FKs) was considered and
+rejected as out of proportion for this one gap; see the migration's own header comment
+and the plan's §22 post-review addendum.
