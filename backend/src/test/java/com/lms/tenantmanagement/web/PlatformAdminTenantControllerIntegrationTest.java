@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -74,6 +75,7 @@ class PlatformAdminTenantControllerIntegrationTest extends AuthIntegrationTestSu
 	// ------------------------------------------------------------------
 
 	@Test
+	@Tag("cross-tenant")
 	void tenantScopedJwtAgainstPlatformAdminTenantEndpointsIsRejectedWith401SessionRevoked() {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("padash1-cross-role"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
@@ -329,6 +331,7 @@ class PlatformAdminTenantControllerIntegrationTest extends AuthIntegrationTestSu
 	// ------------------------------------------------------------------
 
 	@Test
+	@Tag("cross-tenant")
 	void mutationEndpointIgnoresAClientSuppliedTenantIdInTheRequestBody() {
 		Tenant tenant = seedTenant(uniqueSubdomain("padash1-body-ignored"), TenantStatus.PENDING_APPROVAL);
 		String token = loginOrSeedAndLoginPlatformAdmin("padash1-body-ignored-admin@platform.test");

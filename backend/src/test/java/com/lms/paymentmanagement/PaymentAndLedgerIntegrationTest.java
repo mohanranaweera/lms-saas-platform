@@ -197,6 +197,7 @@ class PaymentAndLedgerIntegrationTest extends PaymentManagementTestSupport {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void crossTenantOrderReadReturns404NeverTenantAsData() {
 		Tenant tenantA = seedActiveTenant(uniqueSubdomain("pay-cross-a"));
 		Tenant tenantB = seedActiveTenant(uniqueSubdomain("pay-cross-b"));

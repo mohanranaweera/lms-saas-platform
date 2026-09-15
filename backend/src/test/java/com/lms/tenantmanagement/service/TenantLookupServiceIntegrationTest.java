@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -69,6 +70,7 @@ class TenantLookupServiceIntegrationTest extends AbstractIntegrationTest {
 	}
 
 	@Test
+	@Tag("cross-tenant")
 	void resolvingAnUnregisteredSubdomainReturnsEmptyWithNoFallbackToAnotherTenant() {
 		// A registered tenant exists in the DB at the same time, so an empty
 		// result here can only mean "not found" - never an accidental match

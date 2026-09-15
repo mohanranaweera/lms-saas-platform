@@ -15,6 +15,7 @@ import com.lms.paymentmanagement.payment.domain.Payment;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Test;
  * org.mockito.Mockito#CALLS_REAL_METHODS} while the underlying {@code
  * @Query}-backed {@code *Unchecked} method is stubbed.
  */
+@Tag("cross-tenant")
 class PaymentRepositoryTenantGuardTest {
 
 	private final PaymentRepository repository = mock(PaymentRepository.class, CALLS_REAL_METHODS);
