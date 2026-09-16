@@ -13,6 +13,8 @@ import com.lms.identityaccessservice.web.dto.RefreshResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,10 +39,14 @@ public class PlatformAdminAuthController {
 
 	private final RefreshTokenService refreshTokenService;
 
+	/** See {@code AuthController#secureRefreshCookie}'s javadoc - same local-profile-only relaxation. */
+	private final boolean secureRefreshCookie;
+
 	public PlatformAdminAuthController(PlatformAdminAuthenticationService platformAdminAuthenticationService,
-			RefreshTokenService refreshTokenService) {
+			RefreshTokenService refreshTokenService, Environment environment) {
 		this.platformAdminAuthenticationService = platformAdminAuthenticationService;
 		this.refreshTokenService = refreshTokenService;
+		this.secureRefreshCookie = !environment.acceptsProfiles(Profiles.of("local"));
 	}
 
 	@PostMapping("/login")
@@ -50,7 +56,7 @@ public class PlatformAdminAuthController {
 		LoginResult result = platformAdminAuthenticationService.login(request.email(), request.password(),
 				deviceIdentifierHash);
 		RefreshCookieSupport.set(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawRefreshToken(),
-				result.refreshCookieMaxAge());
+				result.refreshCookieMaxAge(), secureRefreshCookie);
 		return ApiResponse.success(new LoginResponse(result.accessToken(), result.expiresIn().toSeconds(),
 				result.sessionId(), result.mustChangePassword()));
 	}
@@ -64,7 +70,7 @@ public class PlatformAdminAuthController {
 		}
 		RotationResult result = refreshTokenService.rotatePlatformAdminSession(refreshToken);
 		RefreshCookieSupport.set(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawRefreshToken(),
-				result.refreshCookieMaxAge());
+				result.refreshCookieMaxAge(), secureRefreshCookie);
 		return ApiResponse.success(new RefreshResponse(result.accessToken(), result.expiresIn().toSeconds()));
 	}
 
@@ -72,7 +78,7 @@ public class PlatformAdminAuthController {
 	public ApiResponse<Void> logout(HttpServletResponse httpResponse) {
 		var principal = AuthenticatedPrincipalHolder.get();
 		refreshTokenService.revokePlatformAdminSession(principal.sessionId());
-		RefreshCookieSupport.clear(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH);
+		RefreshCookieSupport.clear(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, secureRefreshCookie);
 		return ApiResponse.success(null);
 	}
 

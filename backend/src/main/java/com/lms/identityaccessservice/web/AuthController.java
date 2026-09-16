@@ -13,6 +13,8 @@ import com.lms.identityaccessservice.web.dto.RefreshResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,9 +38,18 @@ public class AuthController {
 
 	private final RefreshTokenService refreshTokenService;
 
-	public AuthController(AuthenticationService authenticationService, RefreshTokenService refreshTokenService) {
+	/**
+	 * {@code Secure} is forced off only under the {@code local} profile - see
+	 * {@link RefreshCookieSupport}'s javadoc. Resolved once at construction
+	 * rather than per-request; profile membership never changes at runtime.
+	 */
+	private final boolean secureRefreshCookie;
+
+	public AuthController(AuthenticationService authenticationService, RefreshTokenService refreshTokenService,
+			Environment environment) {
 		this.authenticationService = authenticationService;
 		this.refreshTokenService = refreshTokenService;
+		this.secureRefreshCookie = !environment.acceptsProfiles(Profiles.of("local"));
 	}
 
 	@PostMapping("/login")
@@ -47,7 +58,7 @@ public class AuthController {
 		String deviceIdentifierHash = DeviceFingerprint.hash(httpRequest);
 		LoginResult result = authenticationService.login(request.email(), request.password(), deviceIdentifierHash);
 		RefreshCookieSupport.set(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawRefreshToken(),
-				result.refreshCookieMaxAge());
+				result.refreshCookieMaxAge(), secureRefreshCookie);
 		return ApiResponse.success(new LoginResponse(result.accessToken(), result.expiresIn().toSeconds(),
 				result.sessionId(), result.mustChangePassword()));
 	}
@@ -61,7 +72,7 @@ public class AuthController {
 		}
 		RotationResult result = refreshTokenService.rotateTenantSession(refreshToken);
 		RefreshCookieSupport.set(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawRefreshToken(),
-				result.refreshCookieMaxAge());
+				result.refreshCookieMaxAge(), secureRefreshCookie);
 		return ApiResponse.success(new RefreshResponse(result.accessToken(), result.expiresIn().toSeconds()));
 	}
 
@@ -69,7 +80,7 @@ public class AuthController {
 	public ApiResponse<Void> logout(HttpServletResponse httpResponse) {
 		var principal = AuthenticatedPrincipalHolder.get();
 		refreshTokenService.revokeTenantSession(principal.sessionId());
-		RefreshCookieSupport.clear(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH);
+		RefreshCookieSupport.clear(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, secureRefreshCookie);
 		return ApiResponse.success(null);
 	}
 

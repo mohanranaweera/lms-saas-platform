@@ -23,7 +23,11 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.ObjectMapper;
+import java.util.List;
 
 /**
  * Real authentication chain (replaces the {@code com.lms.common.config.SecurityConfig}
@@ -112,6 +116,10 @@ public class SecurityFilterChainConfig {
 			JwtAuthenticationFilter jwtAuthenticationFilter, AuthenticationEntryPoint authenticationEntryPoint,
 			AccessDeniedHandler accessDeniedHandler) throws Exception {
 		boolean exposeApiDocs = environment.acceptsProfiles(Profiles.of("local", "test"));
+		boolean enableLocalCors = environment.acceptsProfiles(Profiles.of("local"));
+		if (enableLocalCors) {
+			http.cors(cors -> cors.configurationSource(localCorsConfigurationSource()));
+		}
 		http.csrf(csrf -> csrf.disable())
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.exceptionHandling(handling -> handling.authenticationEntryPoint(authenticationEntryPoint)
@@ -155,6 +163,39 @@ public class SecurityFilterChainConfig {
 			.addFilterAfter(correlationIdFilter, TenantResolutionFilter.class)
 			.addFilterAfter(jwtAuthenticationFilter, CorrelationIdFilter.class);
 		return http.build();
+	}
+
+	/**
+	 * Local-dev-only CORS policy so the Next.js dev server (a different origin
+	 * from this API) can call it during `local` profile development. Never
+	 * enabled outside {@code local} - not wired into {@code filterChain} unless
+	 * {@code enableLocalCors} is true, so test/staging/production origins get
+	 * no CORS headers at all (browsers default-deny cross-origin, matching
+	 * current behavior there). Credentials are allowed (refresh-token cookie),
+	 * so origins must be named explicitly - {@code allowedOrigins("*")} is not
+	 * legal together with {@code allowCredentials(true)}.
+	 *
+	 * <p>{@code http://demo.lms.test:3000} is included alongside {@code
+	 * http://localhost:3000} because the refresh-token cookie is {@code
+	 * SameSite=Strict} (see {@code RefreshCookieSupport}): a browser only sends
+	 * a {@code SameSite=Strict} cookie back on a same-site request, and {@code
+	 * localhost} and {@code demo.lms.test} are different sites even though
+	 * both resolve to 127.0.0.1 locally. Browsing the frontend at {@code
+	 * demo.lms.test:3000} (same registrable domain, {@code lms.test}, as the
+	 * API's {@code demo.lms.test:8080}) is what actually lets refresh/session
+	 * persistence work locally - {@code localhost:3000} still works for
+	 * Platform Admin (no tenant subdomain involved) but not for tenant-scoped
+	 * session refresh.
+	 */
+	private CorsConfigurationSource localCorsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://demo.lms.test:3000"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+		configuration.setAllowCredentials(true);
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
 	}
 
 }
