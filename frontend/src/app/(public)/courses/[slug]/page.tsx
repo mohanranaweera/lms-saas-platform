@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { LoadingState } from "@/components/states/loading-state";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
+import { Button } from "@/components/ui/button";
 import { isApiClientError } from "@/lib/api/error";
 import { usePublicCourse } from "@/lib/api/public-courses";
+import { useAuth } from "@/lib/auth/auth-context";
 
 const DETAIL_FIELDS: Array<{ key: "subject" | "stream" | "grade" | "academicYear"; label: string }> = [
   { key: "subject", label: "Subject" },
@@ -27,9 +31,40 @@ export default function PublicCourseDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const query = usePublicCourse(slug);
+  const { session, ensureAccessToken } = useAuth();
 
   const is404 =
     query.status === "error" && isApiClientError(query.error) && query.error.status === 404;
+
+  /**
+   * The access token is memory-only per tab (see auth-context.tsx), so a
+   * student who logged in earlier and then opened this page in a fresh tab
+   * (or via a direct/bookmarked link) would otherwise show `session === null`
+   * here even though their refresh-token cookie is still valid. This page
+   * never makes an authenticated request on its own (the public course
+   * lookup doesn't need one) to trigger that self-heal, so it's done
+   * explicitly on mount, best-effort - a failure just means "not signed in",
+   * which is already the correct fallback (render the sign-in CTA below).
+   */
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    ensureAccessToken("tenant")
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCheckingAuth(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally run once per mount only - re-running on every `session`/
+    // `ensureAccessToken` identity change (both change on login/logout, since
+    // `ensureAccessToken` closes over `session`) would re-trigger this
+    // best-effort check pointlessly after it has already resolved.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isStudent = session?.kind === "tenant" && session.role === "STUDENT";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
@@ -105,6 +140,20 @@ export default function PublicCourseDetailPage() {
               </p>
             </div>
           ) : null}
+
+          <div>
+            {checkingAuth ? (
+              <Button type="button" disabled aria-busy="true">
+                Loading…
+              </Button>
+            ) : isStudent ? (
+              <Button render={<Link href={`/student/checkout/${query.data.id}`} />}>
+                Enroll now
+              </Button>
+            ) : (
+              <Button render={<Link href="/login" />}>Sign in to enroll</Button>
+            )}
+          </div>
         </article>
       ) : null}
     </div>
