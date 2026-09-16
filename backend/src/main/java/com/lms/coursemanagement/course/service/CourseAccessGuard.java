@@ -1,6 +1,7 @@
 package com.lms.coursemanagement.course.service;
 
 import com.lms.coursemanagement.course.domain.Course;
+import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -52,6 +53,20 @@ public class CourseAccessGuard {
 				throw new AccessDeniedException("You do not have permission to perform this action");
 			}
 			return; // ownership confirmed, Teacher may proceed
+		}
+		if (action == PermissionAction.VIEW && course.getStatus() == CourseStatus.PUBLIC) {
+			// A PUBLIC course is already visible to anyone, unauthenticated,
+			// via CoursePublicController's storefront (see CourseStatus's own
+			// javadoc) - denying an authenticated tenant user (e.g. Student,
+			// deliberately absent from the flat RBAC matrix below since their
+			// access model is ownership/assignment-scoped, not domain-flat)
+			// the same read via this internal endpoint would only break
+			// legitimate flows (e.g. the checkout page's course lookup) while
+			// protecting nothing, since the same data is already public.
+			// DRAFT/PRIVATE courses are unaffected - they fall through to the
+			// matrix check below, which correctly denies Student/every role
+			// with no explicit grant.
+			return;
 		}
 		permissionCheckService.requirePermission(DomainArea.COURSES, action);
 	}
