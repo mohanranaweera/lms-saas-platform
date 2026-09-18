@@ -141,6 +141,14 @@ public class SecurityFilterChainConfig {
 				// tenantId is ever accepted. See CoursePublicController.
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**")
 					.permitAll();
+				// Public, unauthenticated branding read path (Wave 1 - Tenant
+				// Admin IA + Configuration Framework) - tenant is still
+				// resolved server-side from the subdomain by
+				// TenantResolutionFilter; no client-supplied tenantId is ever
+				// accepted. See PublicBrandingController for why this one
+				// endpoint deliberately bypasses BRANDING_SETTINGS's
+				// permission gate.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding").permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
 				authorize
 					.requestMatchers(HttpMethod.POST, "/api/v1/platform-admin/auth/login",

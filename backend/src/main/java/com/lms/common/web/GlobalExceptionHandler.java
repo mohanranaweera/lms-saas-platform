@@ -6,6 +6,7 @@ import com.lms.common.api.ApiResponse;
 import com.lms.common.api.FieldError;
 import com.lms.common.error.ApplicationException;
 import com.lms.common.error.ConflictException;
+import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -146,6 +147,20 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> handleConflict(ConflictException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(ApiResponse.error(ApiError.of(ApiErrorCodes.CONFLICT, ex.getMessage())));
+	}
+
+	/**
+	 * Generic handler for a service's own manual, multi-field batch
+	 * validation (see {@link FieldValidationException}'s javadoc) - matched
+	 * in preference to the generic {@link #handleApplicationException}
+	 * fallback below since it is more specific, so {@code fieldErrors} is
+	 * never dropped the way it would be if this fell through to that
+	 * handler's plain {@code ApiError.of(...)}.
+	 */
+	@ExceptionHandler(FieldValidationException.class)
+	public ResponseEntity<ApiResponse<Void>> handleFieldValidation(FieldValidationException ex) {
+		return ResponseEntity.badRequest()
+			.body(ApiResponse.error(ApiError.validation(ex.getMessage(), ex.getFieldErrors())));
 	}
 
 	/**

@@ -41,7 +41,7 @@ without checking whether the change should be an ADR first
 | Domain | Responsibility (one line) |
 |---|---|
 | `identity-access-service` | Authentication, session/token issuance and validation, device authentication, foundational identity for all other domains. |
-| `tenant-management` | Tenant lifecycle (registration, approval, status, plan/feature limits, usage tracking), tenant profile/branding data ownership. |
+| `tenant-management` | Tenant lifecycle (registration, approval, status, plan/feature limits, usage tracking), tenant profile/branding data ownership. **Also owns the typed tenant-configuration framework** (Wave 1, `docs/api/tenant-configuration-management.md`) — confirmed here rather than added as a new domain, since configuration is an extension of the `Tenant` aggregate this row already anticipated owning. |
 | `user-management` | Student, Teacher, and Staff profile/account management and role assignment within a tenant. |
 | `course-management` | Course/module/lesson/session structure, pricing, enrollment rules, visibility, teacher assignment, reviews toggle. |
 | `content-management` | Learning materials (PDF/images/notes/attachments) organization, versioning, visibility, expiry — storage delegated externally. |
