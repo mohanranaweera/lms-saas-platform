@@ -113,33 +113,43 @@ unresolved business requirements:
 None of these block Wave 1, which is scoped entirely around items that do not depend on any of
 the above.
 
-## 6. Recommended Wave 1 scope
+## 6. Recommended Wave 1 scope — STATUS: DONE (see `klass-parity-matrix.md` for row-level detail)
 
 Per master instruction §39, Wave 1 is "Tenant Admin navigation and tenant configuration
-framework." Based on this Wave 0 audit, the concrete Wave 1 backlog should be:
+framework." Based on this Wave 0 audit, the concrete Wave 1 backlog was:
 
-1. **Fix the two dead-end nav items** (`Profile`, `Settings` with no `href`) — smallest possible
-   first change, directly resolves a named anti-pattern (master instruction §34).
-2. **Design and build the tenant-configuration framework's data shape and API contract**
-   (decision required first: one-table-per-domain vs. typed `tenant_config` — see
-   `migration-strategy.md` §4). This is the single highest-leverage item: it unblocks Branding
-   (PAR-14-01–04), publish-approval policy (PAR-05-03), review toggle (PAR-26-04), and is a
-   prerequisite for device-limit overrides (PAR-16-02) and expiry precedence (PAR-18-03) even
-   though those ship in later waves.
-3. **Restructure `TenantAdminNav`** into the six target groups (Dashboard / Academic / Finance /
-   Communication / Administration / Institute Configuration), keeping all existing
-   `canView*`-style backend-permission-driven gating logic unchanged.
-4. **Build `tenant-admin/staff` and `tenant-admin/roles-permissions`** against the
-   already-existing `StaffController`/`RoleCatalogController` backend — no new backend domain
-   required, purely a frontend build-out, and the fastest concrete parity win identified in this
-   audit (PAR-02-01/02).
-5. **Build the Branding Settings + Preview Panel screens** (PAR-14-01/02) as the first real
-   consumer of the new tenant-configuration framework, proving the framework's contract works
-   end-to-end before other config domains are built on top of it in later waves.
-6. Explicitly **do not** start Course pricing-model work (Wave 2), video/secure-content work
-   (Wave 5), or any Phase-2/3 communication/finance/settlement work in Wave 1 — those are
-   correctly sequenced into their own waves per master instruction §39 and this roadmap's §6 of
-   `migration-strategy.md`.
+1. **Fix the two dead-end nav items** (`Profile`, `Settings` with no `href`) — **done.** Removed
+   outright rather than wired, since neither ever had a real destination.
+2. **Design and build the tenant-configuration framework's data shape and API contract** — **done.**
+   Table-shape decision made explicitly (not deferred): one narrow `tenant_config_entry` table,
+   one row per `(tenant, domain, key)`, JSONB value validated per-key against a code-side
+   `ConfigPropertyRegistry` (type/default/validator/permission/`sensitive`) — not one arbitrary
+   blob, and not 17 near-empty tables up front. See `klass-parity-matrix.md` PAR-XC-02. All 17
+   domains from master instruction §7 are registered; only `GENERAL`/`BRANDING` have real
+   properties this wave.
+3. **Restructure `TenantAdminNav`** — **done.** Five populated groups (Communication omitted,
+   nothing built for it yet); all existing `canView*` gates preserved, just re-bucketed.
+4. **Build `tenant-admin/staff` and `tenant-admin/roles-permissions`** — **done** against the
+   existing `StaffController`/`RoleCatalogController`, no new backend endpoints needed.
+   `roles-permissions` is intentionally read-only (RBAC grants are code-fixed, not
+   tenant-editable); a per-staff-member detail/edit page is still open (PAR-02-02, no backend
+   update/delete endpoint exists yet to build it against).
+5. **Build the Branding Settings + Preview Panel screens** — **done** for
+   primary/secondary color, logo URL, favicon URL, with server-side WCAG AA contrast validation
+   (PAR-14-03) and a values-in preview panel. No file-upload pipeline yet (logo/favicon are URL
+   references only) and no shared production theming pipeline exists yet for the preview to
+   plug into — both flagged as open in `klass-parity-matrix.md`, not silently skipped.
+6. Course pricing-model work (Wave 2), video/secure-content work (Wave 5), and Phase-2/3
+   communication/finance/settlement work were correctly **not** started in Wave 1.
+
+**Two judgment calls made explicitly during Wave 1's plan step** (flagged for product-owner
+review, not silently decided): (a) all 15 Institute Configuration menu domains share the single
+existing `BRANDING_SETTINGS` RBAC grant (Tenant Admin write, Read-only Auditor read, nobody
+else) rather than inventing 14 new `DomainArea` enum values, since that is the only matrix row
+in `docs/requirements/user-roles-and-permissions.md` §2 covering configuration at all; (b)
+`GENERAL`'s five properties (institute_name/support_email/support_phone/default_timezone/
+default_currency) are a conservative starter set, since no spec document enumerates a fuller
+"General settings" field list anywhere in this repo.
 
 ## 7. Full wave-by-wave cross-reference
 
