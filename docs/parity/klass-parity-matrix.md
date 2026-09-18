@@ -1,0 +1,314 @@
+# Klass Parity Matrix (Wave 0)
+
+Status: analysis only. No production code, migration, or test was modified to produce this
+document.
+
+## How to read this matrix
+
+- **Parity ID**: `PAR-<spec-domain-number>-<seq>`, matching `docs/requirements/specifications/NN-*.md`
+  numbering (01–28). Cross-cutting items that don't belong to one spec file use `PAR-XC-<seq>`.
+- **Target behavior** is sourced from the corresponding `docs/requirements/specifications/*.md`
+  file (source-of-truth precedence level 2 in `KLASS-PARITY-MASTER-INSTRUCTION.md` §2), which
+  already encodes the Klass reference behavior mapped onto this platform's confirmed
+  architecture. Where that file itself flags something as an Open Decision / unratified /
+  undocumented Klass behavior, this matrix does **not** guess — it carries the flag forward as
+  `NEEDS_VERIFICATION`.
+- **Current implementation** is sourced from direct repository inspection recorded in
+  `current-architecture-inventory.md` (controllers, routes, migrations, RBAC enums) — not from
+  GitHub issue status. An issue being closed is not treated as evidence of correctness.
+- **Classification** uses exactly the enum from `KLASS-PARITY-MASTER-INSTRUCTION.md` §4.
+- **Wave** references the wave sequence in `KLASS-PARITY-MASTER-INSTRUCTION.md` §39. A row with
+  no safe wave yet (e.g. blocked on an unresolved business/procurement decision) is marked
+  **BLOCKED** instead of a wave number.
+
+Full per-domain narrative (business purpose, actors, acceptance criteria, open decisions) lives
+in `docs/requirements/specifications/*.md` and is not repeated here — this matrix only records
+the parity-relevant delta.
+
+---
+
+## 01 — Tenant Onboarding (`tenant-management`, Module 1)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-01-01 | Prospective institute | Public registration entry point creates a pending-approval tenant | BE: `TenantRegistrationController` (`/api/v1/tenant-registrations`); FE: `(public)/register-institute`; DB: `tenant` (V2) | n/a (public) | MATCHES | — | — |
+| PAR-01-02 | Platform Admin | Tenant List filterable by status, Tenant Approval detail | BE: `PlatformAdminTenantController`; FE: `(platform-admin)/tenants` | Platform-Admin-only | MATCHES | — | — |
+| PAR-01-03 | Platform Admin | Approve/reject is an atomic, backend-authoritative status transition | BE: `PlatformAdminTenantController` status-transition endpoint | Platform-Admin-only | MATCHES | — | — |
+| PAR-01-04 | Platform Admin | Every approval/rejection/status-change writes exactly one audit row | Audit-log-management exists and consumes events tenant-wide; **whether tenant-approval specifically publishes an event was not directly verified in this pass** (spec itself notes this obligation is sourced from FR docs, not `security.md`'s canonical list — flagged so it isn't silently dropped) | Platform-Admin-only | NEEDS_VERIFICATION | Confirm in code whether `PlatformAdminTenantController`'s approve/reject path publishes an audit event; if not, this is a MISSING_WORKFLOW, not a documentation gap | Wave 15 (verification), fix folds into whichever wave touches tenant-management next |
+| PAR-01-05 | Platform Admin → Tenant Admin | On approval, backend provisions tenant-scoped branding/plan-feature defaults | No branding/config domain exists at all (see PAR-14, PAR-XC-02) — this provisioning step cannot be happening today | n/a | MISSING_CONFIGURATION | Build as part of the tenant-configuration framework (PAR-XC-02); wire into the approval transaction once it exists | Wave 1 |
+| PAR-01-06 | Platform Admin | Suspend/cancel an active tenant, immediately affecting login/access | **Confirmed absent by direct code inspection**: `PlatformAdminTenantController` exposes exactly `list`, `getDetail`, `/approve`, `/reject` — no suspend/cancel endpoint exists. The controller's own Javadoc states this explicitly: "suspend/cancel of an already-active tenant is out of scope" (narrowed TEN-2 slice, plan §6). Rejection-reason/re-application flow remains a genuinely unspecified business decision on top of this | Platform-Admin-only | MISSING_WORKFLOW | Build suspend/cancel as a new `TenantApprovalService` transition (immediate login/access block, not just a status flag) — this is a confirmed gap, not an open question. Rejection-reason/re-application UX is a separate open business decision to raise, not invent, before finishing this item | Unscheduled — low-complexity, non-blocking; recommend scheduling alongside or immediately after Wave 1 |
+
+## 02 — Staff Management (`user-management`, Module 5)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-02-01 | Tenant Admin | Staff List + create staff account scoped to tenant, role from fixed sub-role list | BE: `StaffController` (`/api/v1/staff`) exists; FE: **no `tenant-admin/staff` route anywhere** | Institute Owner `V/C/E/D`; all others `—` except Read-only Auditor `V` | MISSING_SCREEN | Build the Tenant Admin Staff List / Staff Detail / Role Editor screens against the existing `StaffController` contract — backend groundwork already exists | Wave 1 (part of Tenant Admin IA build-out) |
+| PAR-02-02 | Tenant Admin | Staff Detail / Role Editor | BE exists (`StaffController`); FE missing (same gap as above) | same | MISSING_SCREEN | Same as PAR-02-01 | Wave 1 |
+| PAR-02-03 | Tenant Admin | Staff Activity Log (per-staff-member) | No dedicated staff activity log; the generic tenant Audit Log Viewer (PAR-13-01) is not staff-scoped/filtered per staff member | same | MISSING_SCREEN | Either filter the existing Audit Log Viewer by actor, or build a dedicated view — needs a design decision, not a new backend domain | Wave 1 |
+| PAR-02-04 | Tenant Admin | Admin-triggered password reset for a staff account | Not verified whether `StaffController` exposes a reset endpoint; spec itself notes the self-service-vs-admin-triggered mechanism is unspecified | same | NEEDS_VERIFICATION | Check `StaffController`/`StaffService` for an existing reset path before building a new one | Wave 1 |
+| PAR-02-05 | Tenant Admin | Staff-count vs. plan-limit enforcement rejects creation server-side | Blocked on Module D (Feature Flag & Plan Limit Engine), whose ownership is explicitly unratified anywhere in the docs | same | NEEDS_VERIFICATION | Do not build ad hoc; needs an explicit ownership/architecture decision for Module D first | BLOCKED |
+
+## 03 — Student Management (`user-management`, Module 3)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-03-01 | Student | Self-registration via tenant-resolved storefront | BE: `StudentController`; FE: `(auth)/register` (tenant resolved via subdomain per ADR-002/006) | public (tenant-scoped) | MATCHES | — | — |
+| PAR-03-02 | Tenant Admin / Student Support | Manual single-student creation with `must_change_password` flag | Not directly verified whether `tenant-admin/students` exposes an "Add Student" action distinct from the list view | Student Support `V/C/E` | NEEDS_VERIFICATION | Verify manual-create path exists; if absent, it's MISSING_FIELD_ACTION | Wave 3 |
+| PAR-03-03 | Tenant Admin / Student Support | Bulk CSV import of students | No import route/UI found anywhere in the frontend inventory | Student Support `V/C/E` | MISSING_WORKFLOW | Build bulk-import screen + backend endpoint; partial-row-failure behavior is an open decision to raise, not invent | Wave 3 |
+| PAR-03-04 | Tenant Admin / Student Support | Student Detail composes profile + enrollment + payment + attendance + exam + material-access + device + activity + notification history, each read from its owning domain's API | FE: `tenant-admin/students/[studentId]` exists as a single detail page; enrollment/payment/attendance/exam tabs are plausible since those domains exist, but **device history (domain 16 missing) and a unified activity/notification timeline cannot currently be populated** | Student Support `V/C/E`; most other staff `V` | PARTIAL | Extend the existing detail page's composition once devices (Wave 10) and notifications expansion (Wave 11) exist; do not duplicate cross-domain data into `user-management`'s own tables | Wave 3 (available tabs), Wave 10/11 (device/notification tabs) |
+| PAR-03-05 | Student Support / Tenant Admin | Actions: edit, activate/deactivate, enroll, revoke enrollment, password reset, device reset, access extension | Edit/enroll/revoke-enrollment plausible via existing student + enrollment endpoints; device reset is structurally impossible today (no device domain); access extension depends on the expiry rules engine (PAR-18-03, not built) | Student Support `V/C/E` | PARTIAL | Device-reset and access-extension actions are blocked on Waves 10 and 6 respectively; edit/activate/enroll/revoke should be verified as already present before re-building | Wave 3 (verify existing), Wave 6 / Wave 10 (blocked actions) |
+| PAR-03-06 | Teacher | Course roster is a scoped, backend-pre-filtered read-only view | Teacher course detail plausibly embeds a roster; no standalone "Roster" screen distinct from course detail was found | assigned-courses only | PARTIAL | Confirm the roster view is backend-filtered (not client-filtered) per `.claude/rules/ui-ux.md` §1; cosmetic-only gap if so | Wave 3 |
+| PAR-03-07 | (architectural) | Cross-domain student history must be read via owning-domain APIs, never duplicated into `user-management`'s own tables | Confirmed by module-boundary rules already in force (`.claude/rules/architecture.md`) and by the absence of any duplicated tables in the V1–V35 migration set | n/a | MATCHES | — | — |
+
+## 04 — Teacher Management (`user-management`, Module 4)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-04-01 | Teacher / Tenant Admin | Registration → approval-pending → approved lifecycle | BE: `TeacherController`; FE: `tenant-admin/teachers`, `teachers/new`, `teachers/[teacherId]` | Institute Owner `V/C/E/D` | MATCHES | — | — |
+| PAR-04-02 | Teacher | "My Courses" backend-filtered to own assigned courses only | FE: `teacher/courses` | assigned-courses only | MATCHES | — | — |
+| PAR-04-03 | Teacher / Tenant Admin | Teacher Detail composes assigned courses, rosters, sessions, materials, attendance, exams, financial summary, activity | FE: `teachers/[teacherId]` exists but sessions (domain 19, missing), financial summary (domain 10/24, missing/partial) cannot be populated today | Course Coordinator `V/C/E` | PARTIAL | Extend detail composition as Waves 4/7 land their owning domains | Wave 3 (available parts), Wave 4/7 (blocked parts) |
+| PAR-04-04 | Tenant Admin | Teacher lifecycle states PENDING/APPROVED/SUSPENDED/REJECTED | Approval flow plausible; SUSPENDED/REJECTED as distinct, durable states not verified; spec itself calls the exact mechanism unspecified | Institute Owner only for approval per Open Decision | NEEDS_VERIFICATION | Verify against `Teacher` entity's actual status enum before adding states | Wave 3 |
+| PAR-04-05 | Tenant Admin / Course Coordinator | Only Tenant Admin/permitted staff (never the teacher themself) can assign/reassign a course's teacher | Course-teacher assignment is server-authorized per `CourseController` | Course Coordinator `V/C/E` | MATCHES | — | — |
+
+## 05 — Course Management (`course-management`, Module 6)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-05-01 | Teacher | Multi-step Course Builder (category, pricing, enrollment rules, visibility) | FE: `teacher/courses/new` exists | Teacher (owner) | MATCHES | — | — |
+| PAR-05-02 | Course Coordinator / Tenant Admin | Equivalent course-creation entry point for staff, not just Teacher | **No `tenant-admin/courses/new` (or equivalent) route found** despite Course Coordinator holding `V/C/E/A` | Course Coordinator `V/C/E/A` | MISSING_SCREEN | Add a staff-facing course-creation entry point reusing the same builder/contract | Wave 2 |
+| PAR-05-03 | Teacher / Tenant Admin | Draft → (optional under-review) → Published visibility lifecycle | Publish/draft state plausibly exists on `Course`; the conditional "tenant policy requires approval" under-review state has **no tenant-configuration mechanism defined anywhere**, per the spec's own flag | Course Coordinator `A` | PARTIAL | Publish-approval policy needs the tenant-configuration framework (PAR-XC-02) before it can be tenant-configurable | Wave 1 (config framework), Wave 2 (feature) |
+| PAR-05-04 | Teacher / Tenant Admin | Pricing models FREE / ONE_TIME / MONTHLY / SESSION / CUSTOM + billing periods | Current `Course` almost certainly has a single flat price field with an audit-logged change path (PAR-05-05) — **no pricing-model enum or billing-period concept exists anywhere in the schema or spec digests** | Course Coordinator `V/C/E/A` | MISSING_CONFIGURATION | This is the highest-impact schema/domain change in the whole matrix — needs its own architectural analysis before Wave 2 starts (see `migration-strategy.md` §"Pricing model expansion") | Wave 2 |
+| PAR-05-05 | Teacher / Tenant Admin | Price change on a published course is audit-logged via one non-bypassable code path | Course-management has shipped since MVP-008 and "course/session price changes" is the most explicit mandatory audit item in `.claude/rules/security.md` | Course Coordinator `V/C/E/A` | MATCHES | — | — |
+| PAR-05-06 | Teacher / Tenant Admin | Course Detail composes Overview/Students/Teachers/Fees/Schedule/Live Sessions/Recordings/Materials/Attendance/Exams/Access/Settings/Analytics | Current course detail (`courses/[courseId]`, both portals) plausibly covers Overview/Students/Materials/Attendance/Exams; Live Sessions/Recordings need domain 19 (missing); Analytics needs `reporting-analytics` (missing); Access/Settings need the config framework (missing) | Course Coordinator `V/C/E/A` | PARTIAL | Extend incrementally as Waves 2 (Fees/Settings), 4 (Live Sessions/Recordings), 12 (Analytics) land | Wave 2 / 4 / 12 |
+| PAR-05-07 | Teacher | Course clone (never carries over enrollment/payment/review history) | Phase 2 per spec; not found in current routes | Teacher (owner) | MISSING_WORKFLOW | Build once core pricing/detail expansion (Wave 2) lands | Wave 2 |
+| PAR-05-08 | Teacher | Course archive | Not found | Teacher (owner) | MISSING_FIELD_ACTION | — | Wave 2 |
+| PAR-05-09 | Anonymous / Public | Public storefront course listing + detail | BE: `CoursePublicController`; FE: `(public)/courses`, `courses/[slug]`; recently active (Enroll CTA, PUBLIC-course visibility fixes per git log) | public | MATCHES | — | — |
+
+## 06 — Lessons and Materials (`content-management`, Module 7)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-06-01 | Teacher / Content Manager | Upload PDF/image/notes with server-side MIME/size/ownership validation | BE: `MaterialController` | Content Manager `V/C/E/D` | MATCHES | — | — |
+| PAR-06-02 | Student | Material list/visibility enforced at fetch time, organized by lesson/module | BE/FE per course detail material views | scoped by enrollment | MATCHES | — | — |
+| PAR-06-03 | Teacher / Content Manager | Material expiry date, view/download limits, static watermarking | Phase 2 per spec; no evidence of these fields | Content Manager `V/C/E/D` | MISSING_CONFIGURATION | — | Wave 5 |
+| PAR-06-04 | Teacher / Content Manager | Drag-and-drop lesson/material ordering with a working keyboard alternative | Phase 2 per spec (versioning/bulk/drag-and-drop); not verified present | Content Manager `V/C/E/D` | NEEDS_VERIFICATION | Verify current ordering UX (even a simple move-up/down control would satisfy the accessibility requirement even without drag-and-drop) | Wave 5 |
+| PAR-06-05 | Teacher / Content Manager | Attach YouTube/Vimeo external video as material | Phase 3; not built (duplicate of PAR-27-01) | Content Manager `V/C/E/D` | MISSING_WORKFLOW | — | Wave 5 (cross-ref Wave for domain 27) |
+
+## 07 — Orders and Payments (`payment-management`, Module 12)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-07-01 | Student | Checkout creates a server-side, tenant-aware `Order` | BE: `OrderController`; FE: `student/checkout/[courseId]` | student-initiated, tenant server-resolved | MATCHES | — | — |
+| PAR-07-02 | Student | Gateway webhook confirms `Payment` and activates enrollment in one transaction | BE: `PaymentWebhookController`, `PaymentController`; recent commit `9133bd7` "fix course payment flow" shows active maintenance here | n/a | MATCHES | Re-verify the recent payment-flow fix didn't regress the atomicity/webhook-idempotency guarantees (routine regression check, not a new gap) | Wave 15 (regression check) |
+| PAR-07-03 | Student | Payment History distinguishes pending / failed / rejected / confirmed with accessible status treatment | FE: `student/payments/history`, `payments/awaiting-confirmation` | own records only | MATCHES | — | — |
+| PAR-07-04 | Finance Staff / Tenant Admin | Payment Dashboard filterable by date/student/course/teacher/status/method/reference | FE: `tenant-admin/payments/dashboard` | Finance Staff `V/C/E/A` | PARTIAL | Full filter-set completeness (especially by teacher) not verified — likely a small gap, not a missing screen | Wave 2 (course/teacher linkage), Wave 15 (verify) |
+| PAR-07-05 | Finance Staff / Tenant Admin | Refunds create a new linked row, never mutate the original | BE: `RefundController`; FE: `tenant-admin/payments/refunds` | Finance Staff `V/C/E/A` | MATCHES | — | — |
+| PAR-07-06 | Platform Admin | Cross-tenant payment dashboard, read-oriented oversight | BE: `PlatformAdminLedgerController`; FE: `(platform-admin)/payments` | Platform-Admin-only | MATCHES | — | — |
+
+## 08 — Manual Payment Slips (`payment-management`, Module 12/13)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-08-01 | Student | Slip upload with reference number + server-side MIME/size/ownership validation | BE: `SlipController`; FE: `student/payments/slip-upload` | student (own order) | MATCHES | — | — |
+| PAR-08-02 | Finance Staff / Tenant Admin | Manual Slip Review Queue + Slip Detail with duplicate/suspicious flags | BE: `SlipReviewController`; FE: `tenant-admin/payments/slip-review` | Finance Staff `V/C/E/A` | MATCHES | — | — |
+| PAR-08-03 | Finance Staff / Tenant Admin | One-directional `SUBMITTED→UNDER_REVIEW→APPROVED\|REJECTED` state machine | `PaymentSlip` domain + `SlipReviewService` | Finance Staff `A` | MATCHES | — | — |
+| PAR-08-04 | Finance Staff / Tenant Admin | Override-with-reason required before "Approve anyway" on a flagged slip; audit-logged | `PaymentSlipFlag`/`FlagType` confirmed in code | Finance Staff `A` | MATCHES | Verify the frontend disables "Approve anyway" until a reason is entered (UX convenience layer) — cosmetic verification only | Wave 15 (verify) |
+| PAR-08-05 | (system) | Approval + enrollment activation commit in one transaction | ADR-012/013-governed, shipped | n/a | MATCHES | — | — |
+
+## 09 — Enrollments (`enrollment-management`, Modules 13/18)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-09-01 | (system) | Activation only from a confirmed payment/approved slip, FK/NOT NULL trail, never a bare boolean | Shipped per ADR-013 | n/a | MATCHES | — | — |
+| PAR-09-02 | Student | Course-level access-expiry evaluation | Shipped (MVP-012) | n/a | MATCHES | — | — |
+| PAR-09-03 | Student / Tenant Admin | Reactivation always creates a new order/payment, gated by Tenant-Admin-only approval (unconditional, no tenant-configurable skip) | FE: `student/payments/reactivation`, `tenant-admin/access-expiry/reactivation-approvals` | Tenant Admin only (sole `ACCESS_EXPIRY`/`APPROVE` holder) | MATCHES | — | — |
+| PAR-09-04 | Student | Session/material/video-level expiry (independently evaluated per type) | Not built — depends on domains 19/20, both missing | Institute Owner `V/C/E/A` | MISSING_WORKFLOW | — | Wave 6 |
+| PAR-09-05 | Tenant Admin / Finance Staff | Bulk expiry extension / student-specific override, audit-logged | Not built | Institute Owner `V/C/E/A` | MISSING_WORKFLOW | — | Wave 6 |
+
+## 10 — Attendance (`attendance-management`, Module 10)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-10-01 | Teacher / Attendance Operator | Mark attendance for an assigned session, tenant+course-scoped | BE: `AttendanceController`; FE: `teacher/attendance/mark`, `tenant-admin/attendance/mark`. **Known accepted limitation**: session-equivalent is `course_lesson.id` (composite FK), so a weekly class reusing one lesson overwrites the prior week's marks rather than creating a new occurrence — explicitly accepted as an MVP limitation during MVP-016 planning, not a silent workaround | Attendance Operator `V/C/E` | MATCHES (with a documented limitation) | If recurring-session accuracy becomes a real problem, the fix is a schema migration adding an explicit occurrence/date discriminator — not a service-layer workaround. Track as a candidate for Wave 4 once `ClassSession` is introduced | Wave 4 (only if `ClassSession` migration also updates attendance's FK target) |
+| PAR-10-02 | Student / Teacher / Tenant Admin | Attendance reports, each role backend-filtered to its own scope | FE: `student/attendance`, `teacher/attendance/reports`, `tenant-admin/attendance/reports` | Attendance Operator `V/C/E` | MATCHES | — | — |
+| PAR-10-03 | (system) | Zoom-synced attendance consumed via `live-class-management`'s API, never a direct table join | Domain 19 doesn't exist | n/a | MISSING_WORKFLOW | — | Wave 4/8 |
+| PAR-10-04 | (system) | Absent-student alerts dispatched asynchronously | Not built | n/a | MISSING_WORKFLOW | — | Wave 8 |
+
+## 11 — Exams (`exam-management`, Module 11)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-11-01 | Teacher / Exam Manager | Question bank (MCQ + structured) | BE: `QuestionBankController`; FE: `teacher/exams/questions` | Exam Manager `V/C/E/A` | MATCHES | — | — |
+| PAR-11-02 | Teacher / Exam Manager | Exam scheduling with time limits | BE: `ExamController`; FE: `teacher/exams` | Exam Manager `V/C/E/A` | MATCHES | — | — |
+| PAR-11-03 | Teacher / Exam Manager | Auto-marking MCQ, manual Marking Queue for structured answers | BE: `MarkingQueueController`; FE: `teacher/exams/marking` | Exam Manager `V/C/E/A` | MATCHES | — | — |
+| PAR-11-04 | Student | Results publishing + Results & Review | BE: `ResultsController`; FE: `student/exams/[examId]` | Exam Manager `A` | MATCHES | — | — |
+| PAR-11-05 | Teacher / Exam Manager | Negative marking, randomization, question pools, attempt limits, rank lists | Phase 2 per spec; not built | Exam Manager `V/C/E/A` | MISSING_CONFIGURATION | — | Wave 9 |
+| PAR-11-06 | Teacher / Tenant Admin | Model Paper Library | Phase 3; ownership between Teacher and Tenant Admin explicitly unratified | unresolved | NEEDS_VERIFICATION | Needs an ownership decision before scaffolding | BLOCKED |
+
+## 12 — Notifications (`notification-management`, Modules 15 + E)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-12-01 | (system) | Async email + in-app dispatch consuming domain events, tenant_id explicit in payload | BE: notification outbox (`V28`/`V29` migrations), `NotificationController` | n/a | MATCHES | — | — |
+| PAR-12-02 | Student / Teacher | Notification Center | FE: `student/notifications`, `teacher/notifications` | own records only | MATCHES | — | — |
+| PAR-12-03 | (system) | SMS/WhatsApp channels | Domains 21/22 not built | n/a | MISSING_WORKFLOW | Cross-ref PAR-21, PAR-22 | Wave 11 |
+| PAR-12-04 | Tenant Admin | Templates / Bulk Messaging / Delivery Logs | Phase 2; **no permission-matrix row exists for this at all** — an authorization gap to resolve alongside the feature gap | unassigned (open decision) | MISSING_SCREEN | Resolve staff-sub-role authorization for Communications before building the screen, not after | Wave 11 |
+
+## 13 — Audit Logs (`audit-log-management`, Module A)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-13-01 | Tenant Admin / Read-only Auditor | Tenant-scoped, read-only Audit Log Viewer | BE: `AuditLogController`; FE: `tenant-admin/audit-log` | Institute Owner `V` (full); Read-only Auditor `V` (full) | MATCHES | — | — |
+| PAR-13-02 | Platform Admin | Platform-level log + per-tenant drill-down with persistent, non-dismissible tenant-context banner | BE: `PlatformAdminAuditLogController`; FE: `(platform-admin)/audit-log`; the specific persistent-banner UI requirement during drill-down was not directly verified in this pass | Platform-Admin-only | NEEDS_VERIFICATION | Verify the banner requirement against `.claude/rules/ui-ux.md` §1 in the actual component | Wave 15 (verify) |
+| PAR-13-03 | (system) | Append-only: no update/delete endpoint or repository method targets an audit row | Architecturally enforced per `.claude/rules/backend.md`; explicitly tested per MVP-019/MVP-021 commit history | n/a | MATCHES | — | — |
+| PAR-13-04 | Staff sub-roles | Each staff sub-role sees only "own-area actions" in the audit log | Enforcement mechanism explicitly unspecified anywhere in the spec (Open Decision) | each staff row = `V` ("own-area") | NEEDS_VERIFICATION | Needs a concrete design decision (filter by `DomainArea` of the action?) before building | Wave 15 (design decision), then implementation wave TBD |
+
+## 14 — White Labelling (`tenant-management`, Module 2) — Phase 2, nothing built
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-14-01 | Tenant Admin | Branding Settings (name/logo/colors/favicon/portal branding/email templates) | No backend module, no DB table, no frontend screen | Institute Owner `V/C/E` | MISSING_CONFIGURATION | Build as the first concrete instance of the tenant-configuration framework (PAR-XC-02) | Wave 1 |
+| PAR-14-02 | Tenant Admin | Branding Preview Panel sharing the live theming pipeline | Not built | Institute Owner `V/C/E` | MISSING_SCREEN | Must reuse production theming pipeline, never a separate preview-only render path | Wave 1 |
+| PAR-14-03 | (system) | Server-side WCAG AA contrast validation at save time | Not built | n/a | MISSING_WORKFLOW | — | Wave 1 |
+| PAR-14-04 | all portals | Runtime branding resolution by tenant (subdomain/custom domain), fallback to platform default on ambiguous resolution | Not built — platform currently renders one shared look | n/a | MISSING_CONFIGURATION | — | Wave 1 |
+
+## 15 — Custom Domains (`tenant-management` + `identity-access-service`) — Phase 2, nothing built
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-15-01 | Tenant Admin | Custom domain entry + ownership verification workflow | Not built; verification mechanism itself undecided anywhere in the docs | Institute Owner `V/C/E` | MISSING_WORKFLOW | — | Wave 13 |
+| PAR-15-02 | (system) | TLS provisioning + edge tenant-resolution extended to match custom domains through the **same** resolution point as subdomain resolution | Not built. **Architectural risk**: if implemented as a parallel/separate resolution path instead of extending ADR-002/006's existing mechanism, this becomes an ARCHITECTURAL_CONFLICT — flagging pre-emptively | Institute Owner `V/C/E` | MISSING_CONFIGURATION | Raise the lightweight ADR the spec itself recommends before implementation, confirming single-resolution-point extension | Wave 13 |
+| PAR-15-03 | (system) | Domain-claim conflict rejection (one tenant per domain) | Not built | n/a | MISSING_WORKFLOW | — | Wave 13 |
+
+## 16 — Device Authentication (`identity-access-service`, Module 17) — ADR-007 Accepted, not implemented
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-16-01 | Student | Device registered server-side at login | DB: `device_session` (V5) exists but is scoped to refresh-token/session rotation only — no `device_slot`, no per-device identity/limit concept | n/a (automatic) | PARTIAL | Extend `device_session` (additive migration) with the device-slot/limit concept ADR-007 already specifies, rather than building a parallel table | Wave 10 |
+| PAR-16-02 | (system) | Device-limit precedence: student > course > tenant > plan | Not built | n/a | MISSING_WORKFLOW | Depends on the tenant-configuration framework (PAR-XC-02) for course/tenant/plan-level override storage | Wave 10 |
+| PAR-16-03 | Tenant Admin | Device reset with persisted `reset_at` cooldown, audit-logged | `device_session.reset_at` column exists but is explicitly documented in the migration itself as "reserved and unused — Phase 2 device-reset cooldown" | Institute Owner `V/C/E` | MISSING_WORKFLOW | Column already reserved — implement the service/endpoint against it | Wave 10 |
+| PAR-16-04 | Student | "My Devices" view | Not built | own records only | MISSING_SCREEN | — | Wave 10 |
+| PAR-16-05 | (system) | Suspicious-login detection (impossible travel, rapid device churn) → audit/security log | Not built | n/a | MISSING_WORKFLOW | — | Wave 10 |
+
+## 17 — Session / View Limits (`video-access-management`, Module 8) — Phase 2, blocked on domain 20
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-17-01 | Student | Concurrent playback session cap enforced via Redis single-use `jti` | No `video-access-management` package exists at all | n/a | MISSING_WORKFLOW | Cannot be built before PAR-20's baseline token issuance exists | Wave 5 |
+| PAR-17-02 | Student | View-count/watch-duration limits with a distinct denied state | Not built | n/a | MISSING_CONFIGURATION | — | Wave 5 |
+| PAR-17-03 | (system) | IP/device anomaly mid-session → server-side revocation + audit entry | Not built | n/a | MISSING_WORKFLOW | — | Wave 5 |
+| PAR-17-04 | (system) | Token single-use race-condition enforcement (two simultaneous validations, only one succeeds) | Not built | n/a | MISSING_WORKFLOW | — | Wave 5 |
+
+## 18 — Smart Expiry (`enrollment-management` + `content-management`/`video-access-management`, Module 18)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-18-01 | Student / Tenant Admin | Course-level expiry + reactivation core | Shipped (MVP-012) — duplicate of PAR-09-02/03 | Institute Owner `V/C/E/A` | MATCHES | — | — |
+| PAR-18-02 | Student | Session/material/video-level expiry | Not built (duplicate of PAR-09-04) | Institute Owner `V/C/E/A` | MISSING_WORKFLOW | — | Wave 6 |
+| PAR-18-03 | (system) | Centralized expiry-rules engine (grace period, precedence order — explicitly NOT assumed to mirror device-limit precedence) | Not built; no `AccessPolicyService` or equivalent exists (duplicate of PAR-XC-04) | n/a | MISSING_CONFIGURATION | Build one centralized service per master instruction §29 — do not duplicate expiry checks per controller | Wave 6 |
+| PAR-18-04 | Student | Auto-reminder notification before expiry (event-driven, not client-computed) | Not built | n/a | MISSING_WORKFLOW | — | Wave 6 |
+
+## 19 — Zoom / Live Classes (`live-class-management`, Module 9) — Phase 2, nothing built
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-19-01 | (system) | `MeetingProvider`/`ZoomMeetingProvider` abstraction behind `integration-management` | No package, no interface | n/a | MISSING_WORKFLOW | Build the interface first so course/session code never contains vendor-specific HTTP calls (master instruction §13) | Wave 4 |
+| PAR-19-02 | Teacher / Student | `ClassSession` domain (schedule/status lifecycle SCHEDULED→LIVE→COMPLETED→CANCELLED) distinct from `Lesson` | Does not exist. **Architectural conflict risk**: attendance (PAR-10-01) currently treats `course_lesson.id` as the session-equivalent by an explicit MVP-016 decision. Introducing a real `ClassSession` later means attendance's FK target must migrate, which is a schema-sensitive, non-trivial change, not an additive side-effect-free one | Course Coordinator `V/C/E/A` | ARCHITECTURAL_CONFLICT | Design the `ClassSession`↔`attendance_record` migration path explicitly before Wave 4 starts; see `migration-strategy.md` §"ClassSession introduction" | Wave 4 |
+| PAR-19-03 | Teacher | Schedule Live Class screen | Not built | Course Coordinator `V/C/E/A` (no explicit live-class-scheduling permission row exists — a gap in its own right) | MISSING_SCREEN | Resolve the missing permission-matrix row before/alongside the screen | Wave 4 |
+| PAR-19-04 | Student | Live Classes (upcoming/past) list + join | Not built | enrolled students | MISSING_SCREEN | — | Wave 4 |
+| PAR-19-05 | (system) | Recording import + attendance sync consumed via `api`, never a direct table join | Not built | n/a | MISSING_WORKFLOW | — | Wave 4 |
+
+## 20 — Secure Video (`video-access-management`, Module 8) — **MVP baseline per FR-VAM-1/2, but not built at all**
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-20-01 | Student | Signed, short-lived (2–5 min), single-use JWT playback token — **spec explicitly classifies this as MVP baseline, not Phase 2** | No `video-access-management` package exists at all | n/a | MISSING_WORKFLOW | **Highest-priority functional gap in this entire matrix relative to its own stated MVP classification** — flag explicitly for Wave 1/5 prioritization discussion with the human reviewer | Wave 5 |
+| PAR-20-02 | (system) | Every playback request re-validated server-side (signature, expiry, single-use) | Not built | n/a | MISSING_WORKFLOW | — | Wave 5 |
+| PAR-20-03 | (system) | `VideoAsset`/`VideoPlaybackPolicy`/`VideoWatchSession`/`VideoWatchProgress` domain model | Not built | n/a | MISSING_SCREEN | — | Wave 5 |
+| PAR-20-04 | Student | Client-side dynamic watermark overlay (name/id, repositioning) | Not built | n/a | MISSING_WORKFLOW | Never claim "prevention" of screen recording in any UI/marketing copy — deterrence only | Wave 5 |
+| PAR-20-05 | (system) | External video/object storage provider integration | Not built; **provider itself is an open procurement decision named in the spec — cannot be finalized by engineering alone** | n/a | NEEDS_VERIFICATION | Escalate the provider decision; do not default to self-hosting per-VPS video storage under `.claude/rules/architecture.md`'s scalability guidance | BLOCKED (provider decision), Wave 5 (once decided) |
+
+## 21 — SMS (`notification-management` + `integration-management`) — Phase 2, nothing built
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-21-01 | (system) | SMS dispatch via `integration-management`'s `MessagingProviderApi` | Not built | n/a | MISSING_WORKFLOW | — | Wave 11 |
+| PAR-21-02 | Tenant Admin | Sender name/template configuration | Not built | unassigned (no permission-matrix row) | MISSING_CONFIGURATION | — | Wave 11 |
+| PAR-21-03 | Tenant Admin | Delivery Logs | Not built; **no SMS provider selected anywhere** — a procurement blocker, not an engineering gap | unassigned | NEEDS_VERIFICATION | Escalate provider decision | BLOCKED (provider), Wave 11 (once decided) |
+
+## 22 — WhatsApp (`notification-management` + `integration-management`) — Phase 2, nothing built
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-22-01 | (system) | WhatsApp Business API dispatch | Not built | n/a | MISSING_WORKFLOW | — | Wave 11 |
+| PAR-22-02 | Tenant Admin | Template pre-approval status tracking (state machine unspecified) | Not built | unassigned | MISSING_WORKFLOW | Design the state machine explicitly — it is not specified anywhere yet | Wave 11 |
+| PAR-22-03 | (system) | Opt-in / 24-hour session-window handling | Not built; **no WhatsApp provider selected** | n/a | NEEDS_VERIFICATION | Escalate provider decision | BLOCKED (provider), Wave 11 (once decided) |
+
+## 23 — Finance and Expenses (`finance-expense-management`, Module 14) — Phase 2, no domain exists
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-23-01 | Finance Staff / Tenant Admin | Expense / ExpenseCategory CRUD, bank/cash account tracking | No `finance-expense-management` package exists | Finance Staff `V/C/E/D` | MISSING_SCREEN | New domain, additive migrations | Wave 7 |
+| PAR-23-02 | Finance Staff / Tenant Admin | Income Dashboard / Expense Dashboard | Not built | Finance Staff `V/C/E/D` | MISSING_SCREEN | — | Wave 7 |
+| PAR-23-03 | Finance Staff / Tenant Admin | Tutor Payouts **consumed** from `ledger-settlement-management`'s settlement API, never independently computed | Not built; depends on PAR-24 (settlement calculation), also not built — a compounding gap | Finance Staff `V/C/E/D` | MISSING_WORKFLOW | Do not compute payout figures independently even as a stopgap — wait for Wave 7's settlement API | Wave 7 |
+| PAR-23-04 | Finance Staff / Tenant Admin | Financial Reports | Not built | Finance Staff `V/C/E/D` | MISSING_SCREEN | — | Wave 7 |
+| PAR-23-05 | Finance Staff / Tenant Admin | Receipt upload through the standard MIME/size/ownership validation gate | Not built | Finance Staff `V/C/E/D` | MISSING_WORKFLOW | Reuse the existing upload-validation gate pattern from `content-management`/`payment-management`, don't reinvent it | Wave 7 |
+
+## 24 — Settlements (`ledger-settlement-management`) — Phase 2, ledger foundation exists, calculation doesn't
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-24-01 | (system) | Append-only ledger entry model (Phase 1 foundation) | BE: `LedgerController`, ledger domain exists since Phase 1 | n/a | MATCHES | — | — |
+| PAR-24-02 | Platform Admin | Settlement run calculation (commission %, gateway fees), stored at run-time rate, idempotent per `(tenant_id, settlement_period, run marker)` | No `Settlement`/`TeacherSettlement` entity exists | who may trigger a run is itself an open decision | MISSING_WORKFLOW | DB uniqueness constraint on the run-marker tuple is mandatory per the spec's own acceptance criteria — build it as a schema-enforced invariant, not an app-level check | Wave 7 |
+| PAR-24-03 | (system) | Settlement correction = new adjustment entry referencing the original run, never a mutation | Not built (no settlement entity to mutate/not-mutate yet) | n/a | MISSING_CONFIGURATION | — | Wave 7 |
+| PAR-24-04 | Tenant Admin | Tutor Payouts view (Finance area, consumes settlement records) | Not built | Finance Staff `V/C/E/D` | MISSING_SCREEN | — | Wave 7 |
+
+## 25 — Duplicate Payment Slip Detection (`payment-management`, Payment Slip Intelligence sub-module) — MVP exact-match shipped
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-25-01 | (system) | Duplicate reference-number check, structurally tenant-scoped | `SlipDuplicateCheckService` confirmed in code | n/a | MATCHES | — | — |
+| PAR-25-02 | (system) | Duplicate image-hash check, structurally tenant-scoped | Same service | n/a | MATCHES | — | — |
+| PAR-25-03 | Finance Staff / Tenant Admin | Override-with-reason writes an audit entry; re-run checks add a new flag, never overwrite a prior one | `PaymentSlipFlag`/`FlagType` confirmed additive-by-design | Finance Staff `A` | MATCHES | — | — |
+
+## 26 — Course Reviews (`course-management`, Module 19) — Phase 2, nothing built
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-26-01 | Student | Review submission, verified-enrollment-only | Not built | n/a (verified-enrollment gate) | MISSING_SCREEN | — | Wave 2 (course expansion) or its own slice |
+| PAR-26-02 | Course Coordinator / Tenant Admin | Moderation Queue | Not built | `V/A` | MISSING_SCREEN | Domain ownership of the moderation *workflow* (vs. just the toggle) is itself an unresolved open question — resolve before scaffolding | Wave 2 |
+| PAR-26-03 | Public | Storefront review display (approved + toggle-enabled only) | Not built | public | MISSING_SCREEN | — | Wave 2 |
+| PAR-26-04 | Teacher / Tenant Admin | Course-level review enable/disable toggle | Not built | course-level config | MISSING_CONFIGURATION | Depends on the tenant/course configuration framework | Wave 1/2 |
+
+## 27 — YouTube and Vimeo Integrations (`content-management`) — Phase 3, nothing built
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-27-01 | Teacher / Content Manager | Attach external YouTube/Vimeo URL as material (attach-only, platform never hosts) | Not built (duplicate of PAR-06-05) | Content Manager `V/C/E/D` | MISSING_WORKFLOW | — | Wave 5 |
+| PAR-27-02 | (system) | URL validation at attach time | Not built | n/a | MISSING_WORKFLOW | — | Wave 5 |
+| PAR-27-03 | (system) | Whether externally-hosted content is exempt from secure-video controls | Undecided anywhere in the docs — an inherent platform-vs-external-URL limitation, not a bug | n/a | NEEDS_VERIFICATION | Needs explicit product/architecture resolution before implementation, not silent assumption | BLOCKED |
+
+## 28 — WordPress Migration — not a scoped product feature
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-28-01 | n/a | Legacy WordPress/MasterStudy/WooCommerce/MariaDB data migration | Exists only as an internal engineering skill/agent definition (`legacy-migration-engineer`, read-only); **zero product-requirements footprint anywhere in `docs/requirements/`** | n/a | NEEDS_VERIFICATION | Raise with the product/architecture owner for proper scoping (business purpose, target domains, phase) before treating this as a phase-tagged parity item at all | BLOCKED |
+
+## Cross-cutting (not tied to a single spec file)
+
+| ID | Role | Target behavior | Current implementation | Permission | Classification | Remediation | Wave |
+|---|---|---|---|---|---|---|---|
+| PAR-XC-01 | Tenant Admin | IA restructured into Dashboard / Academic / Finance / Communication / Administration / Institute Configuration groups (master instruction §6) | `TenantAdminNav` renders one flat list; **"Profile" and "Settings" nav items have no `href` at all** — dead-end placeholders violating master instruction §34 | role-conditional per item, backend-enforced | WRONG_UX_IA | Restructure the nav into the six target groups; remove or wire up the two dead-end items before any new items are added | Wave 1 |
+| PAR-XC-02 | Tenant Admin | Coherent, typed tenant-configuration framework (16 domains: GENERAL, BRANDING, ACADEMIC, STUDENT, TEACHER, COURSE, PAYMENT, FINANCE, ATTENDANCE, EXAM, CONTENT, VIDEO, NOTIFICATION, SECURITY, DEVICE, DOMAIN, INTEGRATION), each with tenant ownership, validation, default, permission requirement, API contract, audit decision, frontend control, tests | **Nothing exists.** No `tenant_config` table, no config domain package; `common/config/TenantConfig.java` is unrelated (it's the tenant-context-resolution Spring bean, not a settings domain) | Institute Owner `V/C/E` (Branding & settings row is the closest existing analog) | MISSING_CONFIGURATION | This is the single highest-leverage Wave 1 deliverable — nearly every other missing screen in this matrix (branding, registration policy, publish-approval policy, review toggle, device-limit overrides, expiry precedence) depends on it existing first | Wave 1 |
+| PAR-XC-03 | (architectural) | Course/Class relationship: is "Class" a genuinely separate aggregate, or does Course/Module/Lesson already cover it? | Only Course/Module/Lesson exist today — no separate Class concept. Master instruction §8 defaults to "do not create a duplicate Class domain unless architectural analysis proves otherwise," which is already what the current implementation does by omission | n/a | NEEDS_VERIFICATION | Confirm explicitly in Wave 2's plan step that extending Course remains correct once pricing-model/billing-period work (PAR-05-04) is scoped, rather than assuming it silently | Wave 2 (confirm during planning) |
+| PAR-XC-04 | (architectural) | Centralized `AccessPolicyService` (or equivalent) evaluating course/billing-period/material/video access + manual extensions + grace periods, instead of duplicated per-controller expiry checks | Does not exist; today's only expiry logic lives inside `enrollment-management` for course-level access. Adding session/material/video expiry (Waves 5–6) without first centralizing this risks duplicating the check per domain | n/a | MISSING_CONFIGURATION | Design this service before Wave 5/6 add more per-domain expiry logic, not after | Wave 6 |
+| PAR-XC-05 | Tenant Admin / Teacher / Student | Dashboards backed by server-scoped, indexed KPI queries (never broad-dataset-then-filter-in-browser) | Dashboards exist for all three portals (MVP-013/014/015 shipped) and platform-level dashboard indexing work is evidenced by migration `V31` ("platform-admin cross-tenant dashboard indexes"); the exact KPI list against master instruction §30 (e.g. "pending slips," "outstanding fees," "recent registrations" on the Tenant Admin dashboard) was not individually verified in this pass | scoped per role | NEEDS_VERIFICATION | Verify KPI completeness against §30's list per dashboard before Wave 12 builds new reporting on top | Wave 12 (verify + extend) |
+
+---
+
+## Classification counts
+
+See `implementation-roadmap.md` §"Wave 0 findings summary" for the authoritative tally (computed
+by counting each classification token across this file, not estimated by hand) and the
+architectural-conflict / migration-risk / security-risk digest requested by
+`KLASS-PARITY-MASTER-INSTRUCTION.md` §43.
