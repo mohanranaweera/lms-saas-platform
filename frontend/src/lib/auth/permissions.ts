@@ -239,6 +239,66 @@ export function canViewAuditLog(role: string | null): boolean {
 }
 
 /**
+ * Roles holding `STAFF_AND_ROLES`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (Tenant Admin, Read-only Auditor) — gates the "Staff" and "Roles &
+ * Permissions" nav entries (`components/layout/nav/tenant-admin-nav.tsx`)
+ * and both screens' initial render. `StaffController`'s own
+ * `@PreAuthorize("@permissionCheckService.hasPermission('STAFF_AND_ROLES', 'VIEW')")`
+ * (and `RoleCatalogController`'s identical check) remain the sole
+ * enforcement — a role without this grant that navigates directly to
+ * `/tenant-admin/staff` or `/tenant-admin/roles-permissions` still gets a
+ * real 403, unchanged.
+ */
+export function canViewStaff(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "READ_ONLY_AUDITOR";
+}
+
+/**
+ * Roles holding `STAFF_AND_ROLES`/`CREATE_EDIT` per
+ * `PermissionCheckServiceImpl`'s matrix — Tenant Admin is the ONLY role
+ * granted `CREATE_EDIT` for this domain area, so this is the only role that
+ * may create a staff account (`POST /api/v1/staff`). Gates the "Add staff"
+ * action's visibility on `/tenant-admin/staff` — Read-only Auditor holds
+ * `VIEW` only (via `canViewStaff`) and must never see this control, though a
+ * direct submit attempt still independently gets a real backend 403.
+ */
+export function canManageStaff(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * Roles holding `BRANDING_SETTINGS`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (Tenant Admin, Read-only Auditor) — gates the "General"/"Branding"
+ * nav entries under Institute Configuration
+ * (`components/layout/nav/tenant-admin-nav.tsx`) and both settings screens'
+ * initial render. `TenantConfigController`'s own
+ * `@PreAuthorize("@permissionCheckService.hasPermission('BRANDING_SETTINGS', 'VIEW')")`
+ * remains the sole enforcement for `GET /api/v1/tenant-config/**` — a role
+ * without this grant that navigates directly to
+ * `/tenant-admin/settings/general` or `/tenant-admin/settings/branding`
+ * still gets a real 403, unchanged.
+ */
+export function canViewInstituteConfig(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "READ_ONLY_AUDITOR";
+}
+
+/**
+ * Roles holding `BRANDING_SETTINGS`/`CREATE_EDIT` per
+ * `PermissionCheckServiceImpl`'s matrix — Tenant Admin is the ONLY role
+ * granted `CREATE_EDIT` for this domain area, so this is the only role that
+ * may save General/Branding settings
+ * (`PUT /api/v1/tenant-config/{domain}`). Gates whether the General/Branding
+ * forms render editable vs. read-only (disabled fieldset, no save action)
+ * for the caller — Read-only Auditor holds `VIEW` only (via
+ * `canViewInstituteConfig`) and must see the current values but never a save
+ * action, though a direct submit attempt still independently gets a real
+ * backend 403.
+ */
+export function canManageInstituteConfig(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
  * True for the two roles that own a course's Teacher Portal identity
  * (`TEACHER`, `TEACHER_ASSISTANT`) — used purely for "Viewing as X"
  * disclosure banners on exam screens nested under `app/(teacher)/` that

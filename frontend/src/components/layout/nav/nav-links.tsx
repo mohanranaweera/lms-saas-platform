@@ -68,3 +68,37 @@ export function NavLinks({
     </ul>
   );
 }
+
+/**
+ * Minimal grouped-section wrapper around `NavLinks` (Wave 1 — Tenant Admin
+ * IA restructure, `docs/parity/KLASS-PARITY-MASTER-INSTRUCTION.md` §6):
+ * a visually-hidden-to-nobody group heading followed by that group's
+ * `NavLinks`. Renders nothing at all — not even the heading — when `items`
+ * is empty, so a group with zero currently-visible entries for a given role
+ * (e.g. a staff sub-role with no Institute Configuration access) doesn't
+ * leave a dangling empty heading in the sidebar. Deliberately not a heavier
+ * nav framework (accordion/collapsible sections, icons, nesting) — none of
+ * the current per-role nav shells need that yet.
+ */
+export function NavGroup({
+  label,
+  items,
+  onNavigate,
+}: {
+  label: string;
+  items: NavItem[];
+  onNavigate?: () => void;
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="px-2.5 py-1 text-xs font-semibold tracking-wide text-muted-foreground/70 uppercase">
+        {label}
+      </span>
+      <NavLinks items={items} onNavigate={onNavigate} />
+    </div>
+  );
+}

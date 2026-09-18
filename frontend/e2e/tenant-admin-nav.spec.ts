@@ -33,6 +33,21 @@ import {
  * this file is the single source of truth for the full matrix, not a
  * duplicate of those.
  *
+ * Wave 1 (Tenant Admin IA + Configuration Framework) regrouped this nav into
+ * six labeled sections (Dashboard, Academic, Finance, Communication,
+ * Administration, Institute Configuration —
+ * `docs/parity/KLASS-PARITY-MASTER-INSTRUCTION.md` §6) and added two new
+ * gated entries, extended into this same matrix rather than a separate file:
+ *   - `staff` (Administration: "Staff", "Roles & Permissions") —
+ *     `canViewStaff` (`STAFF_AND_ROLES`/`VIEW`: Tenant Admin, Read-only
+ *     Auditor only — both entries share this one gate).
+ *   - `instituteConfig` (Institute Configuration: "General", "Branding") —
+ *     `canViewInstituteConfig` (`BRANDING_SETTINGS`/`VIEW`: Tenant Admin,
+ *     Read-only Auditor only — both entries share this one gate).
+ * "Communication" has no built destination yet and renders nothing (see
+ * `tenant-admin-nav.tsx`'s own doc comment) — not asserted here as it has no
+ * observable content either way.
+ *
  * No real backend runs in this environment (see `fixtures/auth-mocks.ts`'s
  * module doc) — every test mocks `/v1/**`/`/api/v1/**` responses shaped like
  * the documented `ApiResponse<T>` envelope.
@@ -91,6 +106,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
   reactivationApprovals: boolean;
   exams: boolean;
   auditLog: boolean;
+  staff: boolean;
+  instituteConfig: boolean;
 }> = [
   {
     role: "TENANT_ADMIN",
@@ -101,6 +118,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: true,
     exams: true,
     auditLog: true,
+    staff: true,
+    instituteConfig: true,
   },
   {
     role: "FINANCE_STAFF",
@@ -111,6 +130,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: true,
     exams: false,
     auditLog: false,
+    staff: false,
+    instituteConfig: false,
   },
   {
     role: "COURSE_COORDINATOR",
@@ -121,6 +142,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: false,
     exams: false,
     auditLog: false,
+    staff: false,
+    instituteConfig: false,
   },
   {
     role: "STUDENT_SUPPORT",
@@ -131,6 +154,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: true,
     exams: false,
     auditLog: false,
+    staff: false,
+    instituteConfig: false,
   },
   {
     role: "CONTENT_MANAGER",
@@ -141,6 +166,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: false,
     exams: false,
     auditLog: false,
+    staff: false,
+    instituteConfig: false,
   },
   {
     role: "EXAM_MANAGER",
@@ -151,6 +178,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: false,
     exams: true,
     auditLog: false,
+    staff: false,
+    instituteConfig: false,
   },
   {
     role: "ATTENDANCE_OPERATOR",
@@ -161,6 +190,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: false,
     exams: false,
     auditLog: false,
+    staff: false,
+    instituteConfig: false,
   },
   {
     role: "READ_ONLY_AUDITOR",
@@ -171,6 +202,8 @@ const NAV_ITEM_VISIBILITY_MATRIX: Array<{
     reactivationApprovals: true,
     exams: true,
     auditLog: true,
+    staff: true,
+    instituteConfig: true,
   },
 ];
 
@@ -198,6 +231,10 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
         ["Reactivation Approvals", entry.reactivationApprovals],
         ["Exams", entry.exams],
         ["Audit Log", entry.auditLog],
+        ["Staff", entry.staff],
+        ["Roles & Permissions", entry.staff],
+        ["General", entry.instituteConfig],
+        ["Branding", entry.instituteConfig],
       ];
       for (const [label, visible] of gatedItems) {
         const link = page.getByRole("link", { name: label });
@@ -209,6 +246,50 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
       }
     });
   }
+});
+
+test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockDashboardReads(page);
+  });
+
+  test("Tenant Admin sees every non-empty group heading; Communication (no built destination) renders no heading", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await page.goto("/tenant-admin/dashboard");
+
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    // "Dashboard" is both this group's own heading text AND its single
+    // link's accessible name, so `getByText` resolves to 2 matches for it
+    // specifically (a `getByRole("heading")` locator doesn't apply either —
+    // the group heading is a plain `<span>`, not a semantic heading element)
+    // — assert it's present at least once rather than exactly-one for that
+    // single case; every other group heading has no same-named link, so
+    // exactly one match is the correct assertion there.
+    await expect(nav.getByText("Dashboard", { exact: true }).first()).toBeVisible();
+    for (const heading of ["Academic", "Finance", "Administration", "Institute Configuration"]) {
+      await expect(nav.getByText(heading, { exact: true })).toBeVisible();
+    }
+    await expect(nav.getByText("Communication", { exact: true })).toHaveCount(0);
+  });
+
+  test("a role without BRANDING_SETTINGS/STAFF_AND_ROLES (Course Coordinator) sees no Institute Configuration/Staff/Roles & Permissions links or headings", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "COURSE_COORDINATOR");
+    await page.goto("/tenant-admin/dashboard");
+
+    await expect(page.getByRole("link", { name: "Staff" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Roles & Permissions" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "General" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Branding" })).toHaveCount(0);
+    // Institute Configuration's heading is only rendered when it has at
+    // least one item (`NavGroup` renders nothing for an empty group) — this
+    // role has zero items in that group, so the heading itself must be gone
+    // too, not just the links inside it.
+    await expect(page.getByText("Institute Configuration", { exact: true })).toHaveCount(0);
+  });
 });
 
 test.describe("tenant admin nav — hidden link is not access control", () => {
