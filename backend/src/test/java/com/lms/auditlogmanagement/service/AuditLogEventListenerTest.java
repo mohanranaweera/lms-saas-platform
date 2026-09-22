@@ -7,7 +7,14 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.contentmanagement.api.MaterialDeletedEvent;
+import com.lms.coursemanagement.api.CourseArchiveStateChangedEvent;
+import com.lms.coursemanagement.api.CourseBillingConfigurationChangedEvent;
+import com.lms.coursemanagement.api.CourseBillingPeriodAddedEvent;
+import com.lms.coursemanagement.api.CourseClonedEvent;
 import com.lms.coursemanagement.api.CoursePriceChangedEvent;
+import com.lms.coursemanagement.api.CoursePricingModelChangedEvent;
+import com.lms.coursemanagement.course.domain.CoursePricingModel;
+import com.lms.paymentmanagement.api.OrderCustomAmountAppliedEvent;
 import com.lms.paymentmanagement.api.PaymentRefundedEvent;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -127,6 +134,153 @@ class AuditLogEventListenerTest {
 		assertThat(entry.metadata()).containsEntry("paymentId", paymentId);
 		assertThat(entry.metadata()).containsEntry("amount", new BigDecimal("15.00"));
 		assertThat(entry.toString()).doesNotContain(tenantId.toString());
+	}
+
+	// ------------------------------------------------------------------
+	// Wave 2 (course/class billing foundation).
+	// ------------------------------------------------------------------
+
+	/**
+	 * Regression test for the bug this module's own review found: {@code
+	 * sessionRate == null} (a course NOT priced {@code SESSION}) must not
+	 * reach {@link AuditLogEntry}'s constructor as a null-valued map entry -
+	 * {@code Map.copyOf} throws {@link NullPointerException} on one, even
+	 * though a wholly-null {@code metadata} map is accepted fine. Found via
+	 * {@code CourseBillingAndLifecycleIntegrationTest} surfacing a real
+	 * {@code 500} where a {@code 200} was expected.
+	 */
+	@Test
+	void onCourseBillingConfigurationChangedWithANullSessionRateOmitsItFromMetadataRatherThanThrowing() {
+		AuditLogEventListener listener = new AuditLogEventListener(auditLogApi);
+		UUID courseId = UUID.randomUUID();
+		UUID changedBy = UUID.randomUUID();
+		CourseBillingConfigurationChangedEvent event = new CourseBillingConfigurationChangedEvent(UUID.randomUUID(),
+				courseId, changedBy, null, "USD", false, true, Instant.now());
+
+		listener.onCourseBillingConfigurationChanged(event);
+
+		ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+		verify(auditLogApi).record(captor.capture());
+		AuditLogEntry entry = captor.getValue();
+		assertThat(entry.action()).isEqualTo("course.billing_configuration_changed");
+		assertThat(entry.metadata()).doesNotContainKey("sessionRate");
+		assertThat(entry.metadata()).containsEntry("currency", "USD");
+	}
+
+	@Test
+	void onCourseBillingConfigurationChangedWithANonNullSessionRateIncludesIt() {
+		AuditLogEventListener listener = new AuditLogEventListener(auditLogApi);
+		CourseBillingConfigurationChangedEvent event = new CourseBillingConfigurationChangedEvent(UUID.randomUUID(),
+				UUID.randomUUID(), UUID.randomUUID(), new BigDecimal("12.00"), "USD", false, true, Instant.now());
+
+		listener.onCourseBillingConfigurationChanged(event);
+
+		ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+		verify(auditLogApi).record(captor.capture());
+		assertThat(captor.getValue().metadata()).containsEntry("sessionRate", new BigDecimal("12.00"));
+	}
+
+	/** Mirrors the {@code sessionRate} regression above, for {@code previousAmount} on the first-ever period added. */
+	@Test
+	void onCourseBillingPeriodAddedWithNoPriorPeriodOmitsPreviousAmountRatherThanThrowing() {
+		AuditLogEventListener listener = new AuditLogEventListener(auditLogApi);
+		CourseBillingPeriodAddedEvent event = new CourseBillingPeriodAddedEvent(UUID.randomUUID(), UUID.randomUUID(),
+				UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null, new BigDecimal("30.00"), "USD",
+				Instant.now(), Instant.now());
+
+		listener.onCourseBillingPeriodAdded(event);
+
+		ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+		verify(auditLogApi).record(captor.capture());
+		AuditLogEntry entry = captor.getValue();
+		assertThat(entry.action()).isEqualTo("course.billing_period_added");
+		assertThat(entry.metadata()).doesNotContainKey("previousAmount");
+		assertThat(entry.metadata()).containsEntry("newAmount", new BigDecimal("30.00"));
+	}
+
+	@Test
+	void onCourseArchiveStateChangedUsesTheArchivedOrUnarchivedActionName() {
+		AuditLogEventListener listener = new AuditLogEventListener(auditLogApi);
+		UUID courseId = UUID.randomUUID();
+		UUID actorId = UUID.randomUUID();
+
+		listener.onCourseArchiveStateChanged(
+				new CourseArchiveStateChangedEvent(UUID.randomUUID(), courseId, actorId, true, Instant.now()));
+		listener.onCourseArchiveStateChanged(
+				new CourseArchiveStateChangedEvent(UUID.randomUUID(), courseId, actorId, false, Instant.now()));
+
+		ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+		verify(auditLogApi, org.mockito.Mockito.times(2)).record(captor.capture());
+		assertThat(captor.getAllValues()).extracting(AuditLogEntry::action)
+			.containsExactly("course.archived", "course.unarchived");
+	}
+
+	/**
+	 * Fix 3 (Phase E architecture review, ADR-015): {@code cloneCourse}
+	 * previously published no event at all, so this listener never ran for
+	 * it - this proves the new wiring records exactly one entry, keyed on the
+	 * NEW clone's id (never the source's), with the source id traceable via
+	 * metadata.
+	 */
+	@Test
+	void onCourseClonedRecordsExactlyOneEntryKeyedOnTheNewCloneIdWithTheSourceIdInMetadata() {
+		AuditLogEventListener listener = new AuditLogEventListener(auditLogApi);
+		UUID sourceCourseId = UUID.randomUUID();
+		UUID newCourseId = UUID.randomUUID();
+		UUID actorId = UUID.randomUUID();
+		CourseClonedEvent event = new CourseClonedEvent(UUID.randomUUID(), sourceCourseId, newCourseId, actorId,
+				Instant.now());
+
+		listener.onCourseCloned(event);
+
+		ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+		verify(auditLogApi).record(captor.capture());
+		verifyNoMoreInteractions(auditLogApi);
+		AuditLogEntry entry = captor.getValue();
+		assertThat(entry.actorId()).isEqualTo(actorId);
+		assertThat(entry.action()).isEqualTo("course.cloned");
+		assertThat(entry.targetEntity()).isEqualTo("course");
+		assertThat(entry.targetId()).isEqualTo(newCourseId);
+		assertThat(entry.reason()).isNull();
+		assertThat(entry.metadata()).containsOnlyKeys("sourceCourseId");
+		assertThat(entry.metadata()).containsEntry("sourceCourseId", sourceCourseId);
+	}
+
+	@Test
+	void onCoursePricingModelChangedRecordsPreviousAndNewValues() {
+		AuditLogEventListener listener = new AuditLogEventListener(auditLogApi);
+		UUID courseId = UUID.randomUUID();
+		UUID changedBy = UUID.randomUUID();
+
+		listener.onCoursePricingModelChanged(new CoursePricingModelChangedEvent(UUID.randomUUID(), courseId,
+				changedBy, CoursePricingModel.ONE_TIME, CoursePricingModel.SESSION, Instant.now()));
+
+		ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+		verify(auditLogApi).record(captor.capture());
+		AuditLogEntry entry = captor.getValue();
+		assertThat(entry.actorId()).isEqualTo(changedBy);
+		assertThat(entry.metadata()).containsEntry("previousPricingModel", CoursePricingModel.ONE_TIME);
+		assertThat(entry.metadata()).containsEntry("newPricingModel", CoursePricingModel.SESSION);
+	}
+
+	@Test
+	void onOrderCustomAmountAppliedRecordsExactlyOneEntryWithExpectedFields() {
+		AuditLogEventListener listener = new AuditLogEventListener(auditLogApi);
+		UUID orderId = UUID.randomUUID();
+		UUID courseId = UUID.randomUUID();
+		UUID appliedBy = UUID.randomUUID();
+
+		listener.onOrderCustomAmountApplied(new OrderCustomAmountAppliedEvent(UUID.randomUUID(), orderId, courseId,
+				appliedBy, new BigDecimal("75.00"), "USD", Instant.now()));
+
+		ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+		verify(auditLogApi).record(captor.capture());
+		AuditLogEntry entry = captor.getValue();
+		assertThat(entry.actorId()).isEqualTo(appliedBy);
+		assertThat(entry.action()).isEqualTo("order.custom_amount_applied");
+		assertThat(entry.targetEntity()).isEqualTo("student_order");
+		assertThat(entry.targetId()).isEqualTo(orderId);
+		assertThat(entry.metadata()).containsEntry("amount", new BigDecimal("75.00"));
 	}
 
 	/**

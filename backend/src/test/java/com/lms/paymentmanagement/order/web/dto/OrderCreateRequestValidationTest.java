@@ -39,7 +39,7 @@ class OrderCreateRequestValidationTest {
 
 	@Test
 	void aFullyValidRequestHasNoViolations() {
-		OrderCreateRequest request = new OrderCreateRequest(UUID.randomUUID());
+		OrderCreateRequest request = new OrderCreateRequest(UUID.randomUUID(), null);
 
 		Set<ConstraintViolation<OrderCreateRequest>> violations = validator.validate(request);
 
@@ -48,7 +48,7 @@ class OrderCreateRequestValidationTest {
 
 	@Test
 	void nullCourseIdIsRejected() {
-		OrderCreateRequest request = new OrderCreateRequest(null);
+		OrderCreateRequest request = new OrderCreateRequest(null, null);
 
 		Set<ConstraintViolation<OrderCreateRequest>> violations = validator.validate(request);
 
@@ -56,11 +56,13 @@ class OrderCreateRequestValidationTest {
 	}
 
 	@Test
-	void theRecordHasNoPriceAmountTenantIdOrStudentIdComponentAtAll() {
+	void theRecordHasNoPriceTenantIdOrStudentIdComponentAtAll() {
+		// customAmount (Wave 2) is the one deliberate exception to "server
+		// resolves every value" - see this record's own javadoc.
 		RecordComponent[] components = OrderCreateRequest.class.getRecordComponents();
 
 		assertThat(components).extracting(RecordComponent::getName)
-			.containsExactly("courseId")
+			.containsExactly("courseId", "customAmount")
 			.doesNotContain("price", "amount", "tenantId", "studentId", "status");
 	}
 

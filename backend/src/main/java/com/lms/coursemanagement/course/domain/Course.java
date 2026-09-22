@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -64,6 +65,26 @@ public class Course extends Auditable implements TenantOwned {
 
 	@Column(name = "status", nullable = false)
 	private CourseStatus status;
+
+	/**
+	 * {@code course.pricing_model} (V37, Wave 2). Defaults to {@link
+	 * CoursePricingModel#ONE_TIME} via this field initializer - not a
+	 * constructor parameter - so every existing caller of this entity's
+	 * constructor (predating Wave 2) keeps compiling unchanged and keeps
+	 * producing the same pre-Wave-2 behavior (a flat one-time {@code price})
+	 * without having to pass an explicit value. Mutated only via {@link
+	 * #setPricingModel}.
+	 */
+	@Column(name = "pricing_model", nullable = false, length = 20)
+	private CoursePricingModel pricingModel = CoursePricingModel.ONE_TIME;
+
+	/**
+	 * {@code course.archived_at} (V37, Wave 2) - {@code null} means "not
+	 * archived". Mutated only via {@link #archive(Instant)}/{@link
+	 * #unarchive()}.
+	 */
+	@Column(name = "archived_at")
+	private Instant archivedAt;
 
 	protected Course() {
 	}
@@ -220,6 +241,51 @@ public class Course extends Auditable implements TenantOwned {
 
 	public void setStatus(CourseStatus status) {
 		this.status = status;
+	}
+
+	public CoursePricingModel getPricingModel() {
+		return pricingModel;
+	}
+
+	/**
+	 * Callers outside {@code CourseService#changePricingModel} must not call
+	 * this - that is the sole write path for this field (a new course always
+	 * starts {@link CoursePricingModel#ONE_TIME}, per this field's own
+	 * initializer, matching V37's column default; {@code createCourse}/{@code
+	 * updateCourse} never touch it). Unlike {@link #setPrice}, no
+	 * {@code course_pricing_model_history} append-only trail was specified
+	 * for this field in the Wave 2 plan - {@code changePricingModel} still
+	 * publishes an audit event on every genuine change, mirroring {@link
+	 * #setPrice}'s audit discipline, just without a dedicated history table.
+	 * Enforced by convention and code review only, same caveat as every other
+	 * service-only mutation in this class.
+	 */
+	public void setPricingModel(CoursePricingModel pricingModel) {
+		this.pricingModel = pricingModel;
+	}
+
+	public Instant getArchivedAt() {
+		return archivedAt;
+	}
+
+	public boolean isArchived() {
+		return archivedAt != null;
+	}
+
+	/**
+	 * Callers outside {@code CourseService#archiveCourse} must not call this -
+	 * see that method's javadoc.
+	 */
+	public void archive(Instant at) {
+		this.archivedAt = at;
+	}
+
+	/**
+	 * Callers outside {@code CourseService#unarchiveCourse} must not call
+	 * this - see that method's javadoc.
+	 */
+	public void unarchive() {
+		this.archivedAt = null;
 	}
 
 }

@@ -1,14 +1,22 @@
 package com.lms.coursemanagement.course.service;
 
+import com.lms.coursemanagement.api.CheckoutAmount;
 import com.lms.coursemanagement.api.CourseAccessWindow;
+import com.lms.coursemanagement.api.CourseBillingNotConfiguredException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.coursemanagement.api.LessonOwnership;
 import com.lms.coursemanagement.course.domain.Course;
+import com.lms.coursemanagement.course.domain.CourseBillingConfiguration;
+import com.lms.coursemanagement.course.domain.CourseBillingPeriod;
+import com.lms.coursemanagement.course.domain.CoursePricingModel;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.coursemanagement.course.repository.CourseBillingConfigurationRepository;
+import com.lms.coursemanagement.course.repository.CourseBillingPeriodRepository;
 import com.lms.coursemanagement.course.repository.CourseLessonRepository;
 import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
+import com.lms.common.money.PlatformCurrency;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +45,19 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 
 	private final CourseLessonRepository courseLessonRepository;
 
+	private final CourseBillingConfigurationRepository courseBillingConfigurationRepository;
+
+	private final CourseBillingPeriodRepository courseBillingPeriodRepository;
+
 	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
-			CourseLessonRepository courseLessonRepository) {
+			CourseLessonRepository courseLessonRepository,
+			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
+			CourseBillingPeriodRepository courseBillingPeriodRepository) {
 		this.courseRepository = courseRepository;
 		this.courseModuleRepository = courseModuleRepository;
 		this.courseLessonRepository = courseLessonRepository;
+		this.courseBillingConfigurationRepository = courseBillingConfigurationRepository;
+		this.courseBillingPeriodRepository = courseBillingPeriodRepository;
 	}
 
 	@Override
@@ -77,6 +93,40 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 		return courseRepository.findAllById(courseIds)
 			.stream()
 			.collect(Collectors.toMap(Course::getId, Course::getTeacherId));
+	}
+
+	@Override
+	public Optional<CheckoutAmount> getResolvedCheckoutAmount(UUID courseId) {
+		return courseRepository.findById(courseId).map(this::resolveCheckoutAmount);
+	}
+
+	private CheckoutAmount resolveCheckoutAmount(Course course) {
+		CoursePricingModel pricingModel = course.getPricingModel();
+		boolean freePricing = pricingModel == CoursePricingModel.FREE;
+		return switch (pricingModel) {
+			case FREE ->
+				new CheckoutAmount(BigDecimal.ZERO, PlatformCurrency.DEFAULT_CURRENCY, null, false, freePricing);
+			case ONE_TIME ->
+				new CheckoutAmount(course.getPrice(), PlatformCurrency.DEFAULT_CURRENCY, null, false, freePricing);
+			case MONTHLY, SESSION -> {
+				CourseBillingConfiguration configuration = requireBillingConfiguration(course);
+				CourseBillingPeriod period = courseBillingPeriodRepository
+					.findCurrentOpenByBillingConfigurationId(configuration.getId())
+					.orElseThrow(() -> new CourseBillingNotConfiguredException(
+							"No active billing period is configured for this course"));
+				yield new CheckoutAmount(period.getAmount(), period.getCurrency(), period.getId(), false,
+						freePricing);
+			}
+			case CUSTOM -> {
+				CourseBillingConfiguration configuration = requireBillingConfiguration(course);
+				yield new CheckoutAmount(null, configuration.getCurrency(), null, true, freePricing);
+			}
+		};
+	}
+
+	private CourseBillingConfiguration requireBillingConfiguration(Course course) {
+		return courseBillingConfigurationRepository.findByCourseId(course.getId())
+			.orElseThrow(() -> new CourseBillingNotConfiguredException("Course billing is not configured for this course"));
 	}
 
 	@Override

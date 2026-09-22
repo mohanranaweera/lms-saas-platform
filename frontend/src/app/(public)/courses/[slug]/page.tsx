@@ -10,6 +10,11 @@ import { Button } from "@/components/ui/button";
 import { isApiClientError } from "@/lib/api/error";
 import { usePublicCourse } from "@/lib/api/public-courses";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+  CoursePriceText,
+  CoursePricingNotice,
+  isCourseCheckoutAvailable,
+} from "@/components/courses/course-price-display";
 
 const DETAIL_FIELDS: Array<{ key: "subject" | "stream" | "grade" | "academicYear"; label: string }> = [
   { key: "subject", label: "Subject" },
@@ -119,7 +124,7 @@ export default function PublicCourseDetailPage() {
             <div>
               <dt className="text-xs font-medium text-muted-foreground">Price</dt>
               <dd className="text-base font-semibold text-foreground">
-                {query.data.price.toFixed(2)}
+                <CoursePriceText course={query.data} />
               </dd>
             </div>
             <div>
@@ -132,6 +137,8 @@ export default function PublicCourseDetailPage() {
             </div>
           </dl>
 
+          <CoursePricingNotice course={query.data} />
+
           {query.data.enrollmentRule ? (
             <div>
               <h2 className="text-sm font-medium text-foreground">Enrollment rule</h2>
@@ -142,7 +149,13 @@ export default function PublicCourseDetailPage() {
           ) : null}
 
           <div>
-            {checkingAuth ? (
+            {!isCourseCheckoutAvailable(query.data) ? (
+              <p className="text-sm text-muted-foreground">
+                {query.data.requiresManualQuote
+                  ? "Enrollment for this course is arranged manually by our staff — contact the institute to enroll."
+                  : "Enrollment isn't open yet — pricing for this course hasn't been configured."}
+              </p>
+            ) : checkingAuth ? (
               <Button type="button" disabled aria-busy="true">
                 Loading…
               </Button>

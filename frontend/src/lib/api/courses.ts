@@ -15,6 +15,9 @@ import { useAuth } from "@/lib/auth/auth-context";
 
 export type CourseStatus = "DRAFT" | "PRIVATE" | "PUBLIC";
 
+/** Mirrors `CoursePricingModel` (backend `com.lms.coursemanagement.course.domain`). */
+export type CoursePricingModel = "FREE" | "ONE_TIME" | "MONTHLY" | "SESSION" | "CUSTOM";
+
 /**
  * Mirrors the backend's generic `PageResponse<T>` envelope (wrapped inside
  * `ApiResponse<T>` like every other response). Every paginated list endpoint
@@ -29,7 +32,17 @@ export interface PageResponse<T> {
   totalPages: number;
 }
 
-/** Mirrors `CourseResponse` (backend `com.lms.coursemanagement.course.web.dto`) field-for-field. */
+/**
+ * Mirrors `CourseResponse` (backend `com.lms.coursemanagement.course.web.dto`)
+ * field-for-field, including Wave 2's `pricingModel`/`archivedAt` additions
+ * and the pricing-model-aware `resolvedAmount`/`currency`/`requiresManualQuote`
+ * gap-fix fields. `archivedAt` is `null` for an active (non-archived) course —
+ * see `CourseListFilter`'s javadoc for the "excluded from default listing"
+ * behavior this drives. `price` must never be rendered directly for checkout
+ * purposes — see `components/courses/course-price-display.tsx`'s
+ * `CoursePricingInfo` doc comment for `resolvedAmount`'s exact semantics per
+ * pricing model.
+ */
 export interface CourseResponse {
   id: string;
   teacherId: string;
@@ -45,16 +58,25 @@ export interface CourseResponse {
   accessDurationDays: number | null;
   enrollmentRule: string | null;
   status: CourseStatus;
+  pricingModel: CoursePricingModel;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  resolvedAmount: number | null;
+  currency: string;
+  requiresManualQuote: boolean;
 }
 
 /**
- * Mirrors `CourseCreateRequest`. Deliberately has no `teacherId` field: per
- * the module brief, only the Teacher-role self-create flow is built at MVP
- * (Tenant Admin has no create-course screen), and `teacherId` is ignored
- * server-side for a Teacher-role caller regardless of what's sent — so this
- * client never sends it.
+ * Mirrors `CourseCreateRequest`. `teacherId` is staff-only effective (Wave 2
+ * PAR-05-02) — silently ignored server-side for a Teacher-role caller
+ * regardless of what's sent, and mandatory server-side for a staff caller
+ * (`CourseService#createCourse`); the Teacher self-create flow never sends
+ * it. There is no `pricingModel` field here — `CourseCreateRequest` has no
+ * such field on the backend; every course is created `ONE_TIME` (the
+ * column default) and, if a different model is chosen in the create form,
+ * the client follows up with a separate `PATCH .../pricing-model` call
+ * after creation succeeds (see `useCreateCourse`'s callers).
  */
 export interface CourseCreateRequest {
   name: string;
@@ -69,6 +91,12 @@ export interface CourseCreateRequest {
   accessDurationDays?: number;
   enrollmentRule?: string;
   status: CourseStatus;
+  /** Staff-only effective; omit entirely for the Teacher self-create flow. */
+  teacherId?: string;
+}
+
+export interface CoursePricingModelChangeRequest {
+  pricingModel: CoursePricingModel;
 }
 
 /**
@@ -131,8 +159,18 @@ export interface CourseLessonRequest {
 
 export const courseKeys = {
   all: ["courses"] as const,
-  list: () => [...courseKeys.all, "list"] as const,
+  /**
+   * `params` is included in the key (when supplied) so two callers using
+   * different filters (e.g. toggling `includeArchived`) don't collide in the
+   * cache. `queryClient.invalidateQueries({ queryKey: courseKeys.list() })`
+   * (no args) still invalidates every params-specific entry too — React
+   * Query's default `exact: false` treats the shorter key as a prefix match.
+   */
+  list: (params?: CourseListParams) => [...courseKeys.all, "list", params ?? {}] as const,
   detail: (courseId: string) => [...courseKeys.all, "detail", courseId] as const,
+  billingConfiguration: (courseId: string) => [...courseKeys.detail(courseId), "billing-configuration"] as const,
+  billingPeriods: (courseId: string, page: number) =>
+    [...courseKeys.detail(courseId), "billing-periods", page] as const,
   modules: (courseId: string) => [...courseKeys.detail(courseId), "modules"] as const,
   lessons: (courseId: string, moduleId: string) =>
     [...courseKeys.modules(courseId), moduleId, "lessons"] as const,
@@ -148,6 +186,12 @@ export interface CourseListParams {
   category?: string;
   /** Staff-only effective — silently ignored server-side for a Teacher caller. */
   teacherId?: string;
+  /**
+   * Wave 2 (`includeArchived` query param). Defaults to `false` server-side
+   * (`CourseListFilter.EMPTY`) — an archived course is excluded from every
+   * listing read unless this is explicitly set `true`.
+   */
+  includeArchived?: boolean;
   page?: number;
   size?: number;
   sort?: string;
@@ -158,6 +202,7 @@ function buildCourseListQuery(params?: CourseListParams): string {
   if (params?.status) search.set("status", params.status);
   if (params?.category) search.set("category", params.category);
   if (params?.teacherId) search.set("teacherId", params.teacherId);
+  if (params?.includeArchived) search.set("includeArchived", "true");
   search.set("page", String(params?.page ?? 0));
   // Defaults to 100 (the server's own clamp/max) rather than the server's
   // own default of 20: both current callers (Teacher "My Courses", Tenant
@@ -184,7 +229,7 @@ export function useCourses(params?: CourseListParams) {
   const { authorizedFetch } = useAuth();
   const queryString = buildCourseListQuery(params);
   return useQuery({
-    queryKey: courseKeys.list(),
+    queryKey: courseKeys.list(params),
     queryFn: () =>
       authorizedFetch<PageResponse<CourseResponse>>("tenant", `/v1/courses${queryString}`),
   });
@@ -314,6 +359,109 @@ export function useDeleteCourse(courseId: string) {
       }),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: courseKeys.detail(courseId) });
+      queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+    },
+  });
+}
+
+/**
+ * `PATCH /api/v1/courses/{id}/pricing-model` (Wave 2) — the sole write path
+ * for `pricingModel`. Staff (`CREATE_EDIT`) or the owning Teacher.
+ */
+export function useChangeCoursePricingModel(courseId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CoursePricingModelChangeRequest) =>
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/pricing-model`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(courseKeys.detail(courseId), updated);
+      queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+    },
+  });
+}
+
+/**
+ * Create-flow-only variant of {@link useChangeCoursePricingModel}: the
+ * target `courseId` isn't known until the just-created course's response
+ * comes back, so it's supplied per-`mutate()` call instead of baked into the
+ * hook via closure (there is no stable `courseId` to close over yet at the
+ * point this hook is declared in `course-create-form.tsx`). Used to compose
+ * "create, then set the chosen non-`ONE_TIME` pricing model" into two
+ * sequential calls — see that component's doc comment for why
+ * `CourseCreateRequest` itself has no `pricingModel` field to set this in
+ * one call.
+ */
+export function useChangeCoursePricingModelForCourse() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, pricingModel }: { courseId: string; pricingModel: CoursePricingModel }) =>
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/pricing-model`, {
+        method: "PATCH",
+        body: JSON.stringify({ pricingModel }),
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(courseKeys.detail(updated.id), updated);
+      queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+    },
+  });
+}
+
+/**
+ * `POST /api/v1/courses/{id}/archive` (Wave 2) — sets `archivedAt`, a purely
+ * listing-visibility flag (never deletes anything). Staff (`CREATE_EDIT`) or
+ * the owning Teacher.
+ */
+export function useArchiveCourse(courseId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/archive`, {
+        method: "POST",
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(courseKeys.detail(courseId), updated);
+      queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+    },
+  });
+}
+
+/** The inverse of {@link useArchiveCourse} — `POST /api/v1/courses/{id}/unarchive`. */
+export function useUnarchiveCourse(courseId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/unarchive`, {
+        method: "POST",
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(courseKeys.detail(courseId), updated);
+      queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+    },
+  });
+}
+
+/**
+ * `POST /api/v1/courses/{id}/clone` (Wave 2) — creates a brand-new course (a
+ * new id, `DRAFT` status, never archived) that copies classification/content
+ * structure only, never enrollment/payment/billing-period history. Staff
+ * (`CREATE_EDIT`) or the owning Teacher, on the SOURCE course.
+ */
+export function useCloneCourse(courseId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authorizedFetch<CourseResponse>("tenant", `/v1/courses/${courseId}/clone`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: courseKeys.list() });
     },
   });

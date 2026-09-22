@@ -1,10 +1,16 @@
 import { z } from "zod";
 import type {
   CourseCreateRequest,
+  CoursePricingModel,
+  CoursePricingModelChangeRequest,
   CourseResponse,
   CourseStatus,
   CourseUpdateRequest,
 } from "@/lib/api/courses";
+import type {
+  CourseBillingConfigurationRequest,
+  CourseBillingPeriodRequest,
+} from "@/lib/api/course-billing";
 
 /**
  * Zod schemas for the Course Builder (Teacher `new`/`edit`) and the small
@@ -32,6 +38,11 @@ export const PRICE_HELPER_TEXT = "Up to 10 digits, with up to 2 decimal places (
 const POSITIVE_INT_PATTERN = /^[1-9]\d*$/;
 export const ACCESS_DURATION_HELPER_TEXT =
   "A positive whole number of days, or leave blank for lifetime access.";
+
+const CURRENCY_PATTERN = /^[A-Za-z]{3}$/;
+export const CURRENCY_HELPER_TEXT = "A 3-letter currency code (e.g. USD, LKR, INR).";
+
+export const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 // --- Step 1: Basics --------------------------------------------------------
 
@@ -78,6 +89,62 @@ export const coursePricingSchema = z.object({
 });
 export type CoursePricingFormValues = z.infer<typeof coursePricingSchema>;
 
+/**
+ * Wave 2's pricing-model selector (`CoursePricingModel`: `FREE`, `ONE_TIME`,
+ * `MONTHLY`, `SESSION`, `CUSTOM`). Same "plain string + refine" pattern as
+ * `courseVisibilitySchema.status` below (not a native `z.enum`), for the
+ * identical reason: keeps `""` assignable as a not-yet-selected default.
+ */
+export const COURSE_PRICING_MODEL_VALUES: CoursePricingModel[] = [
+  "FREE",
+  "ONE_TIME",
+  "MONTHLY",
+  "SESSION",
+  "CUSTOM",
+];
+
+export const coursePricingModelFieldSchema = z.object({
+  pricingModel: z.string().refine(
+    (value) => COURSE_PRICING_MODEL_VALUES.includes(value as CoursePricingModel),
+    { message: "Select a pricing model." }
+  ),
+});
+export type CoursePricingModelFormValues = z.infer<typeof coursePricingModelFieldSchema>;
+
+/**
+ * The Course Builder's combined pricing step: pricing-model selector plus a
+ * price input required only when `ONE_TIME` is selected — `price` is
+ * meaningless for every other model server-side (`CoursePricingModel`'s
+ * javadoc), so `CoursePricingFields`/`CoursePricingModelFields` only render
+ * the price input in that case. There is no `pricingModel` field on the
+ * backend's `CourseCreateRequest` at all (every course is created `ONE_TIME`
+ * and, if a different model was chosen here, the create form follows up with
+ * a separate `PATCH .../pricing-model` call after `POST /v1/courses`
+ * succeeds — see `course-create-form.tsx`), so this schema's `pricingModel`
+ * value is consumed by the form component directly, never by
+ * `toCourseCreateRequest` below.
+ */
+export const coursePricingStepSchema = coursePricingModelFieldSchema.extend({
+  price: z.string().optional().or(z.literal("")),
+});
+export type CoursePricingStepFormValues = z.infer<typeof coursePricingStepSchema>;
+
+function applyPricingModelPriceRefinement(
+  values: { pricingModel: string; price?: string },
+  ctx: z.RefinementCtx
+) {
+  if (values.pricingModel !== "ONE_TIME") {
+    return;
+  }
+  if (!values.price) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: "Price is required." });
+    return;
+  }
+  if (!PRICE_PATTERN.test(values.price)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: PRICE_HELPER_TEXT });
+  }
+}
+
 // --- Step 4: Enrollment & access ---------------------------------------------
 
 export const courseEnrollmentAccessSchema = z.object({
@@ -109,14 +176,41 @@ export const courseVisibilitySchema = z.object({
 });
 export type CourseVisibilityFormValues = z.infer<typeof courseVisibilitySchema>;
 
+// --- Step: staff-only teacher assignment (create only) -----------------------
+
+/**
+ * PAR-05-02: the staff-facing create flow (`tenant-admin/courses/new`) adds
+ * this one extra required field on top of every other Course Builder step —
+ * `CourseCreateRequest.teacherId` is mandatory server-side for a staff
+ * caller (`CourseService#createCourse`). Deliberately a plain UUID text
+ * input, not a searchable picker, for the identical "no list-teachers
+ * endpoint exposed to the frontend" reason `CourseTeacherReassignForm`
+ * documents.
+ */
+export const courseStaffTeacherFieldSchema = z.object({
+  teacherId: z
+    .string()
+    .min(1, "Teacher ID is required.")
+    .regex(UUID_PATTERN, "Enter a valid teacher ID (UUID format)."),
+});
+export type CourseStaffTeacherFormValues = z.infer<typeof courseStaffTeacherFieldSchema>;
+
 // --- Combined schemas --------------------------------------------------------
 
-export const courseCreateSchema = courseBasicsSchema
+const courseCreateObjectSchema = courseBasicsSchema
   .extend(courseClassificationSchema.shape)
-  .extend(coursePricingSchema.shape)
+  .extend(coursePricingStepSchema.shape)
   .extend(courseEnrollmentAccessSchema.shape)
   .extend(courseVisibilitySchema.shape);
+
+export const courseCreateSchema = courseCreateObjectSchema.superRefine(applyPricingModelPriceRefinement);
 export type CourseCreateFormValues = z.infer<typeof courseCreateSchema>;
+
+/** Staff variant (`tenant-admin/courses/new`) — adds the required `teacherId` field. */
+export const courseStaffCreateSchema = courseCreateObjectSchema
+  .extend(courseStaffTeacherFieldSchema.shape)
+  .superRefine(applyPricingModelPriceRefinement);
+export type CourseStaffCreateFormValues = z.infer<typeof courseStaffCreateSchema>;
 
 export const courseEditSchema = courseBasicsSchema
   .extend(courseClassificationSchema.shape)
@@ -132,12 +226,21 @@ export const COURSE_CREATE_DEFAULT_VALUES: CourseCreateFormValues = {
   stream: "",
   grade: "",
   academicYear: "",
+  // Defaults to ONE_TIME, matching the backend's own column default for
+  // every newly created course (`CoursePricingModel`'s javadoc) — still an
+  // explicit, changeable choice on the Pricing step, never hidden.
+  pricingModel: "ONE_TIME",
   price: "",
   enrollmentRule: "",
   accessDurationDays: "",
   // Deliberately no default selection — the builder requires an explicit
   // choice, never a silent default to PUBLIC (or any other status).
   status: "",
+};
+
+export const COURSE_STAFF_CREATE_DEFAULT_VALUES: CourseStaffCreateFormValues = {
+  ...COURSE_CREATE_DEFAULT_VALUES,
+  teacherId: "",
 };
 
 export function courseToEditFormValues(course: CourseResponse): CourseEditFormValues {
@@ -160,6 +263,15 @@ function trimmedOrUndefined(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+/**
+ * `CourseCreateRequest.price` has no `pricingModel` counterpart on the
+ * backend (see `coursePricingStepSchema`'s doc comment) and is `@NotNull`
+ * regardless of which pricing model the caller intends — for every model
+ * other than `ONE_TIME`, `price` is meaningless, so this sends `0` rather
+ * than the (hidden, possibly stale) form value. The caller is responsible
+ * for following up with `PATCH .../pricing-model` after creation when
+ * `values.pricingModel !== "ONE_TIME"` — see `course-create-form.tsx`.
+ */
 export function toCourseCreateRequest(values: CourseCreateFormValues): CourseCreateRequest {
   return {
     name: values.name.trim(),
@@ -170,10 +282,18 @@ export function toCourseCreateRequest(values: CourseCreateFormValues): CourseCre
     grade: trimmedOrUndefined(values.grade),
     academicYear: trimmedOrUndefined(values.academicYear),
     description: trimmedOrUndefined(values.description),
-    price: Number(values.price),
+    price: values.pricingModel === "ONE_TIME" ? Number(values.price) : 0,
     accessDurationDays: values.accessDurationDays ? Number(values.accessDurationDays) : undefined,
     enrollmentRule: trimmedOrUndefined(values.enrollmentRule),
     status: values.status as CourseStatus,
+  };
+}
+
+/** Staff variant of {@link toCourseCreateRequest} — adds `teacherId`. */
+export function toCourseStaffCreateRequest(values: CourseStaffCreateFormValues): CourseCreateRequest {
+  return {
+    ...toCourseCreateRequest(values),
+    teacherId: values.teacherId.trim(),
   };
 }
 
@@ -192,12 +312,43 @@ export function toCourseUpdateRequest(values: CourseEditFormValues): CourseUpdat
   };
 }
 
+/**
+ * Builds a full `CourseUpdateRequest` for the Access tab's narrow form: the
+ * two Access fields come from the submitted (possibly changed) form values,
+ * every other `CourseUpdateRequest` field is carried over verbatim from the
+ * already-loaded `course` — `PATCH /api/v1/courses/{id}` has no partial-patch
+ * semantics (`name`/`slug`/`category` are `@NotBlank` server-side), so this
+ * tab cannot submit accessDurationDays/enrollmentRule alone.
+ */
+export function courseAndAccessValuesToUpdateRequest(
+  course: CourseResponse,
+  values: CourseAccessFormValues
+): CourseUpdateRequest {
+  return {
+    name: course.name,
+    slug: course.slug,
+    category: course.category,
+    subject: course.subject ?? undefined,
+    stream: course.stream ?? undefined,
+    grade: course.grade ?? undefined,
+    academicYear: course.academicYear ?? undefined,
+    description: course.description ?? undefined,
+    enrollmentRule: trimmedOrUndefined(values.enrollmentRule),
+    accessDurationDays: values.accessDurationDays ? Number(values.accessDurationDays) : undefined,
+  };
+}
+
+export function courseToAccessFormValues(course: CourseResponse): CourseAccessFormValues {
+  return {
+    enrollmentRule: course.enrollmentRule ?? "",
+    accessDurationDays: course.accessDurationDays != null ? String(course.accessDurationDays) : "",
+  };
+}
+
 // --- Dedicated-action forms --------------------------------------------------
 
 export const priceChangeSchema = coursePricingSchema;
 export type PriceChangeFormValues = z.infer<typeof priceChangeSchema>;
-
-const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export const teacherReassignSchema = z.object({
   teacherId: z
@@ -214,3 +365,85 @@ export const titleOnlySchema = z.object({
     .max(255, "Title must be 255 characters or fewer."),
 });
 export type TitleOnlyFormValues = z.infer<typeof titleOnlySchema>;
+
+/** Standalone pricing-model change form (Fees/Billing tab, `PATCH .../pricing-model`). */
+export const pricingModelChangeSchema = coursePricingModelFieldSchema;
+export type PricingModelChangeFormValues = CoursePricingModelFormValues;
+
+export function toPricingModelChangeRequest(
+  values: PricingModelChangeFormValues
+): CoursePricingModelChangeRequest {
+  return { pricingModel: values.pricingModel as CoursePricingModel };
+}
+
+// --- Billing configuration / billing period (Fees & Billing tab) -------------
+
+/**
+ * Mirrors `CourseBillingConfigurationRequest`'s constraints. `sessionRate` is
+ * optional at the schema level (only meaningful for `SESSION` — the backend
+ * rejects it outright for any other pricing model, see
+ * `BillingConfigurationService#validateAgainstPricingModel`); the form only
+ * renders/sends it when the course's pricing model is `SESSION`.
+ */
+export const courseBillingConfigurationSchema = z.object({
+  sessionRate: z.string().optional().or(z.literal("")).refine(
+    (value) => !value || PRICE_PATTERN.test(value),
+    { message: PRICE_HELPER_TEXT }
+  ),
+  currency: z
+    .string()
+    .min(1, "Currency is required.")
+    .regex(CURRENCY_PATTERN, CURRENCY_HELPER_TEXT),
+  requiresManualQuote: z.boolean(),
+});
+export type CourseBillingConfigurationFormValues = z.infer<typeof courseBillingConfigurationSchema>;
+
+export function toCourseBillingConfigurationRequest(
+  values: CourseBillingConfigurationFormValues
+): CourseBillingConfigurationRequest {
+  return {
+    sessionRate: values.sessionRate ? Number(values.sessionRate) : undefined,
+    currency: values.currency.trim().toUpperCase(),
+    requiresManualQuote: values.requiresManualQuote,
+  };
+}
+
+/**
+ * Mirrors `CourseBillingPeriodRequest`. `effectiveFrom` uses a native
+ * `datetime-local` input's own value format (`YYYY-MM-DDTHH:mm`) — converted
+ * to a full ISO instant only at submission time
+ * (`toCourseBillingPeriodRequest`), matching `DateInput`'s established
+ * "bare form value, convert at submit" convention.
+ */
+export const courseBillingPeriodSchema = z.object({
+  amount: z.string().min(1, "Amount is required.").regex(PRICE_PATTERN, PRICE_HELPER_TEXT),
+  currency: z
+    .string()
+    .min(1, "Currency is required.")
+    .regex(CURRENCY_PATTERN, CURRENCY_HELPER_TEXT),
+  effectiveFrom: z.string().optional().or(z.literal("")),
+});
+export type CourseBillingPeriodFormValues = z.infer<typeof courseBillingPeriodSchema>;
+
+export function toCourseBillingPeriodRequest(
+  values: CourseBillingPeriodFormValues
+): CourseBillingPeriodRequest {
+  return {
+    amount: Number(values.amount),
+    currency: values.currency.trim().toUpperCase(),
+    effectiveFrom: values.effectiveFrom ? new Date(values.effectiveFrom).toISOString() : undefined,
+  };
+}
+
+// --- Access tab (accessDurationDays / enrollmentRule only) -------------------
+
+/**
+ * The Access tab's dedicated form re-shares `courseEnrollmentAccessSchema`
+ * (same two fields, same constraints) rather than duplicating it — see
+ * `course-access-form.tsx`, which merges the submitted values back into a
+ * full `CourseUpdateRequest` using the rest of the already-loaded course's
+ * own values (`CourseUpdateRequest.name`/`slug`/`category` are `@NotBlank`
+ * server-side, so this tab cannot submit a partial patch).
+ */
+export const courseAccessSchema = courseEnrollmentAccessSchema;
+export type CourseAccessFormValues = CourseEnrollmentAccessFormValues;

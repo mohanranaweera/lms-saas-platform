@@ -598,6 +598,10 @@ test.describe("student — approved reactivation can complete a new checkout", (
     accessDurationDays: 180,
     enrollmentRule: null,
     status: "PUBLIC" as const,
+    pricingModel: "ONE_TIME" as const,
+    resolvedAmount: 49.99,
+    currency: "USD",
+    requiresManualQuote: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

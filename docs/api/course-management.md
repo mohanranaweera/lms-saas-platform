@@ -8,6 +8,13 @@ file. Written retroactively, after a full module review found the contract file 
 been produced despite the plan requiring it before frontend work began (§20 step 8); see
 the "Process gap" note at the bottom.
 
+> **Wave 2 note:** `course-management` gained new pricing-model/billing/archive/clone surface
+> (`docs/api/course-billing.md`) after this file was written. `CourseResponse`/
+> `PublicCourseResponse` below now carry additional fields (`pricingModel`, `archivedAt`,
+> `resolvedAmount`, `currency`, `requiresManualQuote`) and `GET /api/v1/courses` gained an
+> `includeArchived` query param — see that file for the full detail; not repeated/duplicated
+> here.
+
 ## Response envelope
 
 Every endpoint below returns `com.lms.common.api.ApiResponse<T>` — see
@@ -104,7 +111,9 @@ VALIDATION_ERROR`** on any other Bean Validation failure.
 List courses. **Query params**: `status` (optional, `DRAFT`/`PRIVATE`/`PUBLIC`),
 `category` (optional, exact match), `teacherId` (optional, UUID — **staff-only
 effective**; silently ignored for a Teacher-role caller, who always sees only their own
-courses regardless of what's sent), plus the standard pagination params above.
+courses regardless of what's sent), `includeArchived` (optional boolean, default `false`,
+Wave 2 — archived courses are excluded from every listing unless explicitly requested), plus
+the standard pagination params above.
 
 - **Teacher-role caller**: sees only courses where `teacher_id` = their own id, further
   narrowed by `status`/`category` if supplied.
@@ -205,11 +214,15 @@ different tenant — all three cases are indistinguishable by design (anti-enume
   "academicYear": null, "description": null, "price": 49.99,
   "accessDurationDays": 180, "enrollmentRule": null,
   "status": "DRAFT", // DRAFT | PRIVATE | PUBLIC
-  "createdAt": "2026-08-01T00:00:00Z", "updatedAt": "2026-08-01T00:00:00Z"
+  "createdAt": "2026-08-01T00:00:00Z", "updatedAt": "2026-08-01T00:00:00Z",
+  // Wave 2 additions — see docs/api/course-billing.md for full detail:
+  "pricingModel": "ONE_TIME", // FREE | ONE_TIME | MONTHLY | SESSION | CUSTOM
+  "archivedAt": null,
+  "resolvedAmount": 49.99, "currency": "USD", "requiresManualQuote": false
 }
 ```
 
-**`PublicCourseResponse`** (public endpoints) — same fields minus `teacherId`,
+**`PublicCourseResponse`** (public endpoints) — same fields minus `teacherId`, `archivedAt`,
 `createdAt`, `updatedAt`.
 
 **`CourseModuleResponse`**: `{ id, courseId, title, sequence, createdAt, updatedAt }`.

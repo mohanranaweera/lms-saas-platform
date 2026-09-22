@@ -6,6 +6,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record OrderResponse(UUID id, UUID studentId, UUID courseId, BigDecimal amount, String currency,
-		OrderStatus status, Instant createdAt, Instant updatedAt) {
+		UUID billingPeriodId, OrderStatus status, Instant createdAt, Instant updatedAt) {
 
 }

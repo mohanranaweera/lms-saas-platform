@@ -1,80 +1,78 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { QueryStateBoundary } from "@/components/states/query-state-boundary";
+import { Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LoadingState } from "@/components/states/loading-state";
+import { CourseWorkspaceShell } from "@/components/courses/course-workspace-shell";
 import { CourseEditForm } from "@/components/courses/course-edit-form";
-import { CourseVisibilityControl } from "@/components/courses/course-visibility-control";
-import { CoursePriceChangeForm } from "@/components/courses/course-price-change-form";
-import { CourseTeacherReassignForm } from "@/components/courses/course-teacher-reassign-form";
-import { CourseDeleteAction } from "@/components/courses/course-delete-action";
-import { useCourse } from "@/lib/api/courses";
-import { useAuth } from "@/lib/auth/auth-context";
 
 /**
- * Tenant Admin course detail / approval surface. Composes the same
- * structural edit form Teacher uses (`CourseEditForm`) plus visibility and
- * price actions shared with the Teacher edit page, and additionally the two
- * Tenant-Admin-only actions (`CourseTeacherReassignForm`,
- * `CourseDeleteAction`) that must never render in Teacher UI.
+ * Tenant Admin course workspace — Overview tab (`tenant-admin/courses/[courseId]`,
+ * the workspace's index route). Wave 2 restructured this page from a single
+ * flat "everything" screen into a tabbed workspace (`CourseWorkspaceShell`) —
+ * Overview now holds only the structural course-details edit form
+ * (`CourseEditForm`, unchanged); publish/unpublish, teacher reassignment,
+ * archive/unarchive, clone, and delete moved to the Settings tab, and
+ * price/pricing-model/billing-configuration controls moved to the Fees &
+ * Billing tab — see those routes.
  *
- * `GET /api/v1/courses/{id}` succeeds for a Teacher requesting their own
- * course (ownership-scoped access, not Tenant-Admin-scoped), so a Teacher who
- * directly navigates to this URL for a course they own would otherwise see
- * these two admin-only controls rendered as if live — the backend
- * independently 403s both `POST .../teacher` and `DELETE` regardless
- * (`CourseService.reassignTeacher`/`deleteCourse`, both hard-checked against
- * `Role.TENANT_ADMIN`), so this is not an authorization bypass, but showing a
- * non-functional "Delete course" button to a Teacher is misleading UX and
- * breaks this project's "hide actions outside the caller's permission set"
- * convention (`.claude/rules/ui-ux.md` §1). Gated here on the caller's own
- * decoded role — a UX convenience only, never the authorization boundary
- * (`frontend/CLAUDE.md`).
- *
- * There is no module/lesson management surface here — that stays
- * Teacher-only per the module plan §11.
+ * `?created=1`/`?cloned=1` are one-time, purely-informational confirmations
+ * appended by `course-create-form.tsx`'s and `CourseCloneAction`'s redirects
+ * — neither ever activates or confirms anything itself (the course already
+ * exists server-side by the time this page renders); this only decides
+ * whether to show a banner, matching `course-edit-form.tsx`'s "Course
+ * details saved." confirmation pattern.
  */
-export default function TenantAdminCourseDetailPage() {
+function TenantAdminCourseOverviewPageContent() {
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
-  const query = useCourse(courseId);
-  const { session } = useAuth();
-  const isTenantAdmin = session?.role === "TENANT_ADMIN";
+  const searchParams = useSearchParams();
+  const justCreated = searchParams.get("created") === "1";
+  const justCloned = searchParams.get("cloned") === "1";
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          Course details{query.data ? `: ${query.data.name}` : ""}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {isTenantAdmin
-            ? "Review and manage this course on behalf of your tenant — update its details, control visibility and price, reassign its teacher, or delete it."
-            : "Review and manage this course — update its details, and control its visibility and price."}
-        </p>
-      </div>
-
-      <QueryStateBoundary
-        query={query}
-        loadingLabel="Loading course…"
-        loginPath="/login"
-        permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
+      <CourseWorkspaceShell
+        courseId={courseId}
+        basePath={`/tenant-admin/courses/${courseId}`}
+        dashboardHref="/tenant-admin/dashboard"
       >
         {(course) => (
           <div className="flex flex-col gap-6">
-            <CourseEditForm key={course.id} courseId={course.id} course={course} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <CourseVisibilityControl courseId={course.id} course={course} />
-              <CoursePriceChangeForm courseId={course.id} course={course} />
-            </div>
-            {isTenantAdmin ? (
-              <>
-                <CourseTeacherReassignForm courseId={course.id} course={course} />
-                <CourseDeleteAction courseId={course.id} course={course} />
-              </>
+            {justCreated ? (
+              <Alert role="status">
+                <CheckCircle2 aria-hidden="true" />
+                <AlertDescription>Course created.</AlertDescription>
+              </Alert>
             ) : null}
+            {justCloned ? (
+              <Alert role="status">
+                <CheckCircle2 aria-hidden="true" />
+                <AlertDescription>
+                  Course cloned. This is a new, separate Draft course with its own content copy —
+                  no enrollment, payment, or billing-period history carried over.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <CourseEditForm key={course.id} courseId={course.id} course={course} />
           </div>
         )}
-      </QueryStateBoundary>
+      </CourseWorkspaceShell>
     </div>
+  );
+}
+
+/**
+ * `useSearchParams()` requires a `Suspense` boundary (mirrors
+ * `tenant-admin/audit-log/page.tsx`'s identical wrapper) — this page is
+ * already fully client-rendered, so in practice this never visibly suspends.
+ */
+export default function TenantAdminCourseOverviewPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Loading course…" />}>
+      <TenantAdminCourseOverviewPageContent />
+    </Suspense>
   );
 }

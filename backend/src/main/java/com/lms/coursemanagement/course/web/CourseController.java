@@ -10,6 +10,7 @@ import com.lms.coursemanagement.course.service.CourseView;
 import com.lms.coursemanagement.course.service.NewCourseCommand;
 import com.lms.coursemanagement.course.web.dto.CourseCreateRequest;
 import com.lms.coursemanagement.course.web.dto.CoursePriceChangeRequest;
+import com.lms.coursemanagement.course.web.dto.CoursePricingModelChangeRequest;
 import com.lms.coursemanagement.course.web.dto.CourseResponse;
 import com.lms.coursemanagement.course.web.dto.CourseTeacherReassignRequest;
 import com.lms.coursemanagement.course.web.dto.CourseUpdateRequest;
@@ -75,9 +76,10 @@ public class CourseController {
 	public ResponseEntity<ApiResponse<PageResponse<CourseResponse>>> listCourses(
 			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
 			@RequestParam(required = false) CourseStatus status, @RequestParam(required = false) String category,
-			@RequestParam(required = false) UUID teacherId) {
+			@RequestParam(required = false) UUID teacherId,
+			@RequestParam(required = false, defaultValue = "false") boolean includeArchived) {
 		PageResponse<CourseView> page = courseService.listCourses(pageable,
-				new CourseListFilter(status, category, teacherId));
+				new CourseListFilter(status, category, teacherId, includeArchived));
 		PageResponse<CourseResponse> response = new PageResponse<>(
 				page.content().stream().map(CourseController::toResponse).toList(), page.page(), page.size(),
 				page.totalElements(), page.totalPages());
@@ -147,10 +149,41 @@ public class CourseController {
 		return ResponseEntity.ok(ApiResponse.success(null));
 	}
 
+	@PatchMapping("/{id}/pricing-model")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<CourseResponse>> changePricingModel(@PathVariable UUID id,
+			@Valid @RequestBody CoursePricingModelChangeRequest request) {
+		CourseView view = courseService.changePricingModel(id, request.pricingModel());
+		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
+	}
+
+	@PostMapping("/{id}/archive")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<CourseResponse>> archiveCourse(@PathVariable UUID id) {
+		CourseView view = courseService.archiveCourse(id);
+		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
+	}
+
+	@PostMapping("/{id}/unarchive")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<CourseResponse>> unarchiveCourse(@PathVariable UUID id) {
+		CourseView view = courseService.unarchiveCourse(id);
+		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
+	}
+
+	@PostMapping("/{id}/clone")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<CourseResponse>> cloneCourse(@PathVariable UUID id) {
+		CourseView view = courseService.cloneCourse(id);
+		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(view)));
+	}
+
 	private static CourseResponse toResponse(CourseView view) {
 		return new CourseResponse(view.id(), view.teacherId(), view.name(), view.slug(), view.category(),
 				view.subject(), view.stream(), view.grade(), view.academicYear(), view.description(), view.price(),
-				view.accessDurationDays(), view.enrollmentRule(), view.status(), view.createdAt(), view.updatedAt());
+				view.accessDurationDays(), view.enrollmentRule(), view.status(), view.pricingModel(),
+				view.archivedAt(), view.createdAt(), view.updatedAt(), view.resolvedAmount(), view.currency(),
+				view.requiresManualQuote());
 	}
 
 }

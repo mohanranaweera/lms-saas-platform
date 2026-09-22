@@ -47,7 +47,13 @@ class PaymentLedgerCheckConstraintIntegrationTest extends PaymentManagementTestS
 	}
 
 	@Test
-	void aRawInsertWithAPaymentAmountOfZeroIsRejectedByTheDatabase() {
+	void aRawInsertWithAPaymentAmountOfZeroIsAcceptedByTheDatabase() {
+		// V41: ck_payment_amount was widened from `amount > 0` to
+		// `amount >= 0` to allow a FREE-pricing-model course's payment row
+		// (amount = 0) to be created and immediately confirmed via the
+		// existing Payment.confirm() transition - see V41's migration
+		// header comment. Zero is now valid; only negative amounts remain
+		// rejected (see below).
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("pay-check-amount"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
 		TenantUser teacher = seedTenantUser(tenant.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
@@ -58,12 +64,44 @@ class PaymentLedgerCheckConstraintIntegrationTest extends PaymentManagementTestS
 		CourseResponse course = createCourseOrFail(host, adminToken,
 				newCourseRequest(uniqueSlug("pay-check-amount"), teacher.getId(), CourseStatus.PUBLIC));
 		OrderResponse order = createOrderOrFail(host, studentToken, course.id());
+		UUID zeroAmountPaymentId = UUID.randomUUID();
+
+		int rowsInserted = jdbcTemplate.update(
+				"INSERT INTO payment (id, tenant_id, order_id, amount, currency, status, created_at, updated_at) "
+						+ "VALUES (?, ?, ?, 0, 'USD', 'PENDING', now(), now())",
+				zeroAmountPaymentId, tenant.getId(), order.id());
+
+		org.assertj.core.api.Assertions.assertThat(rowsInserted).isEqualTo(1);
+		Long count = jdbcTemplate.queryForObject("SELECT count(*) FROM payment WHERE id = ?", Long.class,
+				zeroAmountPaymentId);
+		org.assertj.core.api.Assertions.assertThat(count).isEqualTo(1L);
+	}
+
+	@Test
+	void aRawInsertWithANegativePaymentAmountIsRejectedByTheDatabase() {
+		// Companion coverage for V41: widening `ck_payment_amount` to
+		// `amount >= 0` must not have also opened the door to negative
+		// amounts - the constraint still rejects anything below zero.
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("pay-check-neg-amount"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		TenantUser teacher = seedTenantUser(tenant.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
+		seedActiveStudent(tenant.getId(), "student@example.test");
+		String host = hostFor(tenant.getSubdomain());
+		String adminToken = loginAndGetToken(host, "admin@example.test");
+		String studentToken = loginAndGetToken(host, "student@example.test");
+		CourseResponse course = createCourseOrFail(host, adminToken,
+				newCourseRequest(uniqueSlug("pay-check-neg-amount"), teacher.getId(), CourseStatus.PUBLIC));
+		OrderResponse order = createOrderOrFail(host, studentToken, course.id());
 		UUID bogusPaymentId = UUID.randomUUID();
 
 		assertThatThrownBy(() -> jdbcTemplate.update(
 				"INSERT INTO payment (id, tenant_id, order_id, amount, currency, status, created_at, updated_at) "
-						+ "VALUES (?, ?, ?, 0, 'USD', 'PENDING', now(), now())",
+						+ "VALUES (?, ?, ?, -1, 'USD', 'PENDING', now(), now())",
 				bogusPaymentId, tenant.getId(), order.id())).isInstanceOf(DataIntegrityViolationException.class);
+
+		Long count = jdbcTemplate.queryForObject("SELECT count(*) FROM payment WHERE id = ?", Long.class,
+				bogusPaymentId);
+		org.assertj.core.api.Assertions.assertThat(count).isEqualTo(0L);
 	}
 
 	@Test

@@ -4,10 +4,19 @@ import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.common.api.PageResponse;
+import com.lms.coursemanagement.api.CheckoutAmount;
+import com.lms.coursemanagement.api.CourseArchiveStateChangedEvent;
+import com.lms.coursemanagement.api.CourseClonedEvent;
 import com.lms.coursemanagement.api.CoursePriceChangedEvent;
+import com.lms.coursemanagement.api.CoursePricingModelChangedEvent;
 import com.lms.coursemanagement.course.domain.Course;
+import com.lms.coursemanagement.course.domain.CourseLesson;
+import com.lms.coursemanagement.course.domain.CourseModule;
 import com.lms.coursemanagement.course.domain.CoursePriceHistory;
+import com.lms.coursemanagement.course.domain.CoursePricingModel;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.coursemanagement.course.repository.CourseLessonRepository;
+import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CoursePriceHistoryRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import com.lms.coursemanagement.course.repository.CourseSpecifications;
@@ -21,6 +30,7 @@ import com.lms.identityaccessservice.api.UserProvisioningApi;
 import java.time.Instant;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
@@ -63,6 +73,10 @@ public class CourseService {
 
 	private final CoursePriceHistoryRepository coursePriceHistoryRepository;
 
+	private final CourseModuleRepository courseModuleRepository;
+
+	private final CourseLessonRepository courseLessonRepository;
+
 	private final TenantContext tenantContext;
 
 	private final PermissionCheckService permissionCheckService;
@@ -73,17 +87,23 @@ public class CourseService {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private final CourseCheckoutAmountResolver courseCheckoutAmountResolver;
+
 	public CourseService(CourseRepository courseRepository, CoursePriceHistoryRepository coursePriceHistoryRepository,
+			CourseModuleRepository courseModuleRepository, CourseLessonRepository courseLessonRepository,
 			TenantContext tenantContext, PermissionCheckService permissionCheckService,
 			UserProvisioningApi userProvisioningApi, CourseAccessGuard courseAccessGuard,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher, CourseCheckoutAmountResolver courseCheckoutAmountResolver) {
 		this.courseRepository = courseRepository;
 		this.coursePriceHistoryRepository = coursePriceHistoryRepository;
+		this.courseModuleRepository = courseModuleRepository;
+		this.courseLessonRepository = courseLessonRepository;
 		this.tenantContext = tenantContext;
 		this.permissionCheckService = permissionCheckService;
 		this.userProvisioningApi = userProvisioningApi;
 		this.courseAccessGuard = courseAccessGuard;
 		this.eventPublisher = eventPublisher;
+		this.courseCheckoutAmountResolver = courseCheckoutAmountResolver;
 	}
 
 	/**
@@ -148,7 +168,8 @@ public class CourseService {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		Pageable safePageable = clampPageSize(pageable);
 		Specification<Course> spec = CourseSpecifications.withStatus(filter.status())
-			.and(CourseSpecifications.withCategory(filter.category()));
+			.and(CourseSpecifications.withCategory(filter.category()))
+			.and(CourseSpecifications.excludeArchivedUnless(filter.includeArchived()));
 
 		if (TEACHER_ROLE.equals(principal.role())) {
 			spec = spec.and(CourseSpecifications.withTeacherId(principal.userId()));
@@ -159,7 +180,8 @@ public class CourseService {
 		}
 
 		Page<Course> page = courseRepository.findAll(spec, safePageable);
-		return PageResponse.from(page.map(CourseService::toView));
+		Map<UUID, CheckoutAmount> resolvedAmounts = courseCheckoutAmountResolver.resolveBatch(page.getContent());
+		return PageResponse.from(page.map(course -> toView(course, resolvedAmounts)));
 	}
 
 	private Pageable clampPageSize(Pageable pageable) {
@@ -310,6 +332,138 @@ public class CourseService {
 		courseRepository.delete(course);
 	}
 
+	/**
+	 * The sole write path for {@code course.pricing_model} (Wave 2) - see
+	 * {@link Course#setPricingModel}'s javadoc. A new course always starts
+	 * {@code ONE_TIME}; this is the only way to change it afterward, audited
+	 * exactly like {@link #changePrice}. A true no-op (new value equal to
+	 * current) writes no event, mirroring {@link #changePrice}'s own no-op
+	 * behavior.
+	 */
+	public CourseView changePricingModel(UUID id, CoursePricingModel newPricingModel) {
+		Course course = loadCourse(id);
+		courseAccessGuard.requireCourseAccess(course, PermissionAction.CREATE_EDIT);
+
+		CoursePricingModel previous = course.getPricingModel();
+		if (previous == newPricingModel) {
+			return toView(course);
+		}
+		course.setPricingModel(newPricingModel);
+
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		eventPublisher.publishEvent(new CoursePricingModelChangedEvent(tenantContext.getTenantId(), course.getId(),
+				principal.userId(), previous, newPricingModel, Instant.now()));
+
+		return toView(course);
+	}
+
+	/**
+	 * Sets {@code archived_at = now()} (Wave 2) - the sole write path for
+	 * this field, per {@link Course#archive}'s javadoc. A true no-op (already
+	 * archived) writes no event. Archiving does not touch enrollment/payment
+	 * data or any child row at all - it is purely a listing-visibility flag
+	 * (see {@link CourseListFilter}'s javadoc), never a delete.
+	 */
+	public CourseView archiveCourse(UUID id) {
+		Course course = loadCourse(id);
+		courseAccessGuard.requireCourseAccess(course, PermissionAction.CREATE_EDIT);
+		if (course.isArchived()) {
+			return toView(course);
+		}
+		course.archive(Instant.now());
+
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		eventPublisher.publishEvent(
+				new CourseArchiveStateChangedEvent(tenantContext.getTenantId(), course.getId(), principal.userId(),
+						true, Instant.now()));
+
+		return toView(course);
+	}
+
+	/** The inverse of {@link #archiveCourse} - see its javadoc. */
+	public CourseView unarchiveCourse(UUID id) {
+		Course course = loadCourse(id);
+		courseAccessGuard.requireCourseAccess(course, PermissionAction.CREATE_EDIT);
+		if (!course.isArchived()) {
+			return toView(course);
+		}
+		course.unarchive();
+
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		eventPublisher.publishEvent(
+				new CourseArchiveStateChangedEvent(tenantContext.getTenantId(), course.getId(), principal.userId(),
+						false, Instant.now()));
+
+		return toView(course);
+	}
+
+	/**
+	 * Creates a brand-new course (a new id, {@code DRAFT} status, never
+	 * archived) that copies the source course's classification/content
+	 * structure only - never its billing configuration/billing-period
+	 * history/price history, and never any enrollment/payment/review data
+	 * (structurally impossible for any of those to reference the new id,
+	 * since nothing populates them here). {@code price} is copied only when
+	 * the source course's pricing model is {@code ONE_TIME}; every other
+	 * pricing model clones with {@code price = 0} (mirroring this schema's
+	 * existing "{@code price} is meaningless outside {@code ONE_TIME}"
+	 * framing) - {@code pricingModel} itself IS copied, so the clone starts
+	 * out requiring the same billing configuration setup the source course
+	 * would (deliberately not auto-created here). Gated identically to {@link
+	 * #createCourse} would be for the cloning caller's own role (Teacher:
+	 * ownership-forced, per {@link CourseAccessGuard}; staff:
+	 * {@code CREATE_EDIT}) via the same {@link CourseAccessGuard} check every
+	 * other mutation on the SOURCE course uses. Publishes {@link
+	 * CourseClonedEvent} (Fix 3, ADR-015/Phase E architecture review) so
+	 * {@code AuditLogEventListener} records this the same way every other
+	 * course mutation is audited - cloning previously left no audit trail at
+	 * all.
+	 */
+	public CourseView cloneCourse(UUID id) {
+		Course source = loadCourse(id);
+		courseAccessGuard.requireCourseAccess(source, PermissionAction.CREATE_EDIT);
+
+		BigDecimal clonedPrice = source.getPricingModel() == CoursePricingModel.ONE_TIME ? source.getPrice()
+				: BigDecimal.ZERO;
+		String clonedSlug = uniqueCloneSlug(source.getSlug());
+
+		Course clone = new Course(source.getTenantId(), source.getTeacherId(), source.getName() + " (Copy)",
+				clonedSlug, source.getCategory(), source.getSubject(), source.getStream(), source.getGrade(),
+				source.getAcademicYear(), source.getDescription(), clonedPrice, source.getAccessDurationDays(),
+				source.getEnrollmentRule(), CourseStatus.DRAFT);
+		clone.setPricingModel(source.getPricingModel());
+		clone = courseRepository.save(clone);
+
+		for (CourseModule module : courseModuleRepository.findByCourseId(source.getId())) {
+			CourseModule clonedModule = new CourseModule(clone.getTenantId(), clone.getId(), module.getTitle(),
+					module.getSequence());
+			clonedModule = courseModuleRepository.save(clonedModule);
+			for (CourseLesson lesson : courseLessonRepository.findByModuleId(module.getId())) {
+				CourseLesson clonedLesson = new CourseLesson(clone.getTenantId(), clonedModule.getId(),
+						lesson.getTitle(), lesson.getSequence());
+				courseLessonRepository.save(clonedLesson);
+			}
+		}
+
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		eventPublisher.publishEvent(new CourseClonedEvent(tenantContext.getTenantId(), source.getId(), clone.getId(),
+				principal.userId(), Instant.now()));
+
+		return toView(clone);
+	}
+
+	/**
+	 * A cloned course's slug must still satisfy {@code course}'s tenant
+	 * -scoped {@code UNIQUE (tenant_id, slug)} constraint - {@code source}'s
+	 * own slug is never reused verbatim. Appends a short random suffix rather
+	 * than a fixed "-copy" literal so a course cloned more than once never
+	 * collides with an earlier clone either.
+	 */
+	private String uniqueCloneSlug(String sourceSlug) {
+		String candidate = sourceSlug + "-copy-" + UUID.randomUUID().toString().substring(0, 8);
+		return candidate.length() <= 160 ? candidate : candidate.substring(0, 160);
+	}
+
 	private Course loadCourse(UUID id) {
 		// CourseRepository#findById is tenant-scoped by TenantAwareRepositoryImpl
 		// - a cross-tenant id is structurally invisible here, surfacing as
@@ -333,12 +487,26 @@ public class CourseService {
 		}
 	}
 
-	private static CourseView toView(Course course) {
+	/**
+	 * Single-course convenience wrapper around {@link #toView(Course, Map)} -
+	 * every mutation/detail method here operates on exactly one course, so a
+	 * single-entry batch resolution is the correct (never N+1-prone, since
+	 * there is only ever one course) call shape for those call sites.
+	 */
+	private CourseView toView(Course course) {
+		Map<UUID, CheckoutAmount> resolvedAmounts = courseCheckoutAmountResolver.resolveBatch(List.of(course));
+		return toView(course, resolvedAmounts);
+	}
+
+	private static CourseView toView(Course course, Map<UUID, CheckoutAmount> resolvedAmounts) {
+		CheckoutAmount resolved = resolvedAmounts.get(course.getId());
 		return new CourseView(course.getId(), course.getTeacherId(), course.getName(), course.getSlug(),
 				course.getCategory(), course.getSubject(), course.getStream(), course.getGrade(),
 				course.getAcademicYear(), course.getDescription(), course.getPrice(),
 				course.getAccessDurationDays(), course.getEnrollmentRule(), course.getStatus(),
-				course.getCreatedAt(), course.getUpdatedAt());
+				course.getPricingModel(), course.getArchivedAt(), course.getCreatedAt(), course.getUpdatedAt(),
+				resolved != null ? resolved.amount() : null, resolved != null ? resolved.currency() : null,
+				resolved != null && resolved.requiresManualQuote());
 	}
 
 }

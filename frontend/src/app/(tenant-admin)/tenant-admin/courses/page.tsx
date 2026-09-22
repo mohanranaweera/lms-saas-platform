@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,16 +34,22 @@ const STATUS_FILTER_OPTIONS: Array<{ value: "all" | CourseStatus; label: string 
  * search-box/dropdown filter UX for MVP scope rather than building real
  * pagination controls for this tenant-scoped (not unboundedly-growable) list.
  *
- * There is no course-creation screen for Tenant Admin at MVP (courses are
- * created by teachers, see `CourseCreateRequest`'s doc comment in
- * `lib/api/courses.ts`), so this page never renders a "New course" CTA.
+ * Wave 2 (PAR-05-02): Tenant Admin now has a "New course" CTA
+ * (`tenant-admin/courses/new`, staff-facing create flow — see
+ * `CourseCreateForm`'s `mode="staff"`), and archived courses
+ * (`archivedAt != null`) are excluded from the fetch by default, matching
+ * `CourseListFilter`'s server-side default — the "Show archived courses"
+ * toggle below re-fetches with `includeArchived: true` rather than filtering
+ * client-side (an archived course isn't even returned otherwise).
  */
 export default function TenantAdminCoursesPage() {
-  const query = useCourses();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | CourseStatus>("all");
   const [teacherFilter, setTeacherFilter] = useState("");
+  const [includeArchived, setIncludeArchived] = useState(false);
+
+  const query = useCourses({ includeArchived });
 
   const categories = useMemo(() => {
     const values = new Set((query.data?.content ?? []).map((course) => course.category));
@@ -79,11 +86,30 @@ export default function TenantAdminCoursesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Courses</h1>
-        <p className="text-sm text-muted-foreground">
-          Every course in your tenant, across all teachers.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Courses</h1>
+          <p className="text-sm text-muted-foreground">
+            Every course in your tenant, across all teachers.
+          </p>
+        </div>
+        <Button render={<Link href="/tenant-admin/courses/new" />}>
+          <Plus aria-hidden="true" />
+          New course
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          id="tenant-admin-courses-include-archived"
+          type="checkbox"
+          className="size-4 rounded border-input"
+          checked={includeArchived}
+          onChange={(event) => setIncludeArchived(event.target.checked)}
+        />
+        <Label htmlFor="tenant-admin-courses-include-archived" className="font-normal">
+          Show archived courses
+        </Label>
       </div>
 
       <QueryStateBoundary
@@ -96,11 +122,18 @@ export default function TenantAdminCoursesPage() {
           if (!hasAnyCourses) {
             return (
               <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-12 text-center">
-                <p className="text-sm font-medium text-foreground">No courses in this tenant yet</p>
-                <p className="max-w-md text-sm text-muted-foreground">
-                  Courses are created by teachers, not tenant admins. Once a teacher in your
-                  tenant creates a course, it will appear here for you to review and manage.
+                <p className="text-sm font-medium text-foreground">
+                  {includeArchived ? "No courses in this tenant yet" : "No active courses in this tenant yet"}
                 </p>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  {includeArchived
+                    ? "Create a course yourself, or wait for a teacher in your tenant to create one."
+                    : "Create a course yourself, wait for a teacher in your tenant to create one, or turn on “Show archived courses” if you expect to see one here."}
+                </p>
+                <Button render={<Link href="/tenant-admin/courses/new" />} size="sm">
+                  <Plus aria-hidden="true" />
+                  New course
+                </Button>
               </div>
             );
           }

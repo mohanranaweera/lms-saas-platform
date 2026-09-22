@@ -7,13 +7,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
+import com.lms.coursemanagement.course.domain.CoursePricingModel;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.coursemanagement.course.web.dto.CourseBillingConfigurationRequest;
+import com.lms.coursemanagement.course.web.dto.CourseBillingConfigurationResponse;
+import com.lms.coursemanagement.course.web.dto.CourseBillingPeriodRequest;
+import com.lms.coursemanagement.course.web.dto.CourseBillingPeriodResponse;
 import com.lms.coursemanagement.course.web.dto.CourseCreateRequest;
 import com.lms.coursemanagement.course.web.dto.CourseLessonRequest;
 import com.lms.coursemanagement.course.web.dto.CourseLessonResponse;
 import com.lms.coursemanagement.course.web.dto.CourseModuleRequest;
 import com.lms.coursemanagement.course.web.dto.CourseModuleResponse;
 import com.lms.coursemanagement.course.web.dto.CoursePriceChangeRequest;
+import com.lms.coursemanagement.course.web.dto.CoursePricingModelChangeRequest;
 import com.lms.coursemanagement.course.web.dto.CourseResponse;
 import com.lms.coursemanagement.course.web.dto.CourseTeacherReassignRequest;
 import com.lms.coursemanagement.course.web.dto.CourseUpdateRequest;
@@ -144,6 +150,67 @@ public abstract class CourseManagementTestSupport extends AuthIntegrationTestSup
 	protected HttpResult<Void> deleteCourse(String host, String token, UUID id) {
 		MockHttpServletRequestBuilder builder = delete("/api/v1/courses/{id}", id);
 		return parseSingle(perform(authenticated(builder, host, token)), Void.class);
+	}
+
+	// ------------------------------------------------------------------
+	// Wave 2: pricing model / archive / unarchive / clone.
+	// ------------------------------------------------------------------
+
+	protected HttpResult<CourseResponse> changePricingModel(String host, String token, UUID id,
+			CoursePricingModel pricingModel) {
+		MockHttpServletRequestBuilder builder = patch("/api/v1/courses/{id}/pricing-model", id)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(new CoursePricingModelChangeRequest(pricingModel)));
+		return parseSingle(perform(authenticated(builder, host, token)), CourseResponse.class);
+	}
+
+	protected HttpResult<CourseResponse> archiveCourse(String host, String token, UUID id) {
+		MockHttpServletRequestBuilder builder = post("/api/v1/courses/{id}/archive", id);
+		return parseSingle(perform(authenticated(builder, host, token)), CourseResponse.class);
+	}
+
+	protected HttpResult<CourseResponse> unarchiveCourse(String host, String token, UUID id) {
+		MockHttpServletRequestBuilder builder = post("/api/v1/courses/{id}/unarchive", id);
+		return parseSingle(perform(authenticated(builder, host, token)), CourseResponse.class);
+	}
+
+	protected HttpResult<CourseResponse> cloneCourse(String host, String token, UUID id) {
+		MockHttpServletRequestBuilder builder = post("/api/v1/courses/{id}/clone", id);
+		return parseSingle(perform(authenticated(builder, host, token)), CourseResponse.class);
+	}
+
+	// ------------------------------------------------------------------
+	// Wave 2: billing configuration / billing periods.
+	// ------------------------------------------------------------------
+
+	protected HttpResult<CourseBillingConfigurationResponse> getBillingConfiguration(String host, String token,
+			UUID courseId) {
+		MockHttpServletRequestBuilder builder = get("/api/v1/courses/{courseId}/billing-configuration", courseId);
+		return parseSingle(perform(authenticated(builder, host, token)), CourseBillingConfigurationResponse.class);
+	}
+
+	protected HttpResult<CourseBillingConfigurationResponse> createOrUpdateBillingConfiguration(String host,
+			String token, UUID courseId, java.math.BigDecimal sessionRate, String currency,
+			boolean requiresManualQuote) {
+		MockHttpServletRequestBuilder builder = post("/api/v1/courses/{courseId}/billing-configuration", courseId)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(
+					new CourseBillingConfigurationRequest(sessionRate, currency, requiresManualQuote)));
+		return parseSingle(perform(authenticated(builder, host, token)), CourseBillingConfigurationResponse.class);
+	}
+
+	protected HttpResult<PageResponse<CourseBillingPeriodResponse>> listBillingPeriods(String host, String token,
+			UUID courseId) {
+		MockHttpServletRequestBuilder builder = get("/api/v1/courses/{courseId}/billing-periods", courseId);
+		return parsePage(perform(authenticated(builder, host, token)), CourseBillingPeriodResponse.class);
+	}
+
+	protected HttpResult<CourseBillingPeriodResponse> addBillingPeriod(String host, String token, UUID courseId,
+			java.math.BigDecimal amount, String currency, java.time.Instant effectiveFrom) {
+		MockHttpServletRequestBuilder builder = post("/api/v1/courses/{courseId}/billing-periods", courseId)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(new CourseBillingPeriodRequest(amount, currency, effectiveFrom)));
+		return parseSingle(perform(authenticated(builder, host, token)), CourseBillingPeriodResponse.class);
 	}
 
 	// ------------------------------------------------------------------

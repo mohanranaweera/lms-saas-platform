@@ -309,6 +309,52 @@ reconciliation claim queries (`findPendingIdsAcrossTenants`,
 which are platform-level background operations by design, not tenant-scoped reads, and are
 named accordingly per `.claude/rules/backend.md`'s bypass-naming convention.
 
+**Worked example (`course-management`/`payment-management`, Wave 2 — Course/Class model +
+billing foundation):** extends `course-management`'s existing `Course` aggregate (MVP-008)
+rather than introducing a new Class domain (confirmed explicitly during planning — see
+`docs/parity/klass-parity-matrix.md` PAR-XC-03). Two new structural child entities of `Course`,
+mirroring `CourseModule`/`CourseLesson`'s established "opaque parent id, not a JPA association"
+pattern exactly:
+
+- `CourseBillingConfiguration` (V38) — one-per-course (`UNIQUE (tenant_id, course_id)`),
+  holding the settings that vary by `course.pricing_model` (V37) but don't belong on `course`
+  itself: a per-session rate (`SESSION` pricing only) and a manual-quote flag (`CUSTOM` pricing
+  only). `ON DELETE CASCADE` back to `course` (V38, mirroring V14's `course_module`/
+  `course_lesson` precedent) — live, mutable configuration with no independent audit value once
+  its owning course is deleted.
+- `CourseBillingPeriod` (V39) — append-only billed-amount history for a billing configuration,
+  the Wave 2 analogue of `CoursePriceHistory` for `course.price`. Deliberately carries **no**
+  live FK back to `CourseBillingConfiguration` (V39's header comment) — the same orphan-tolerant
+  technique V12 used for `course_price_history.course_id`, so a course delete cascading through
+  `CourseBillingConfiguration` never blocks on, or destroys, billing-period financial history.
+  `uq_course_billing_period_current` (a partial unique index, `WHERE effective_to IS NULL`)
+  enforces "at most one open period per billing configuration," mirroring `enrollment`'s
+  lineage-row technique (V22): closing a period sets `effective_to`, then a new row is inserted.
+
+The one new cross-module read, through an `api`-package call only: `CourseLookupApi
+.getResolvedCheckoutAmount(UUID courseId)` returns a `CheckoutAmount` record (`amount`,
+`currency`, `billingPeriodId`, `requiresManualQuote`, `freePricing`) — the single place
+`payment-management`'s `OrderService` resolves what a student owes at checkout time, replacing
+the old `ONE_TIME`-only `getCurrentPrice` read. `freePricing` is a deliberately narrow derived
+`boolean` (`true` only when `course.pricing_model == FREE`), not the raw
+`course.domain.CoursePricingModel` enum — exposing the enum directly would let
+`payment-management` import a `course-management`-internal `domain`-package type, violating this
+document's "may depend only on another module's `api` package" rule from the *consuming*
+module's side. `OrderService` branches its FREE-checkout auto-activation on this boolean alone,
+never on the resolved amount happening to be `$0` — a misconfigured `$0` `ONE_TIME` price or
+`MONTHLY`/`SESSION` billing period is a real, reachable case (neither request DTO enforces a
+floor above zero) and is rejected outright (`409`) rather than silently free-activated. See
+`docs/adr/ADR-015-free-course-zero-amount-payment-and-ledger.md` for the full decision record —
+a Phase E (architecture/security/payment-ledger) review caught the original, broader
+implementation gating on the resolved amount alone, and this narrower contract plus a new,
+additive `V42` ledger-entry CHECK-constraint migration were both explicitly reviewed and
+approved as the fix. `CUSTOM` pricing resolves server-side (an authorized staff actor may supply
+`customAmount`) but has no reachable checkout endpoint yet — `OrderService.createOrder` remains
+student-only, so this is a documented, deferred limitation, not a bug. See
+`docs/api/course-billing.md` for the full REST contract and
+`backend/src/main/resources/db/migration/V37__add_course_pricing_model_and_archive.sql` through
+`V42__allow_zero_amount_ledger_entry_for_free_course_confirmations.sql` for the schema itself.
+
 ## 5. When an ADR is required
 
 Raise an ADR **before**, not after, doing any of the following (in addition to the

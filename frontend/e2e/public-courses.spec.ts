@@ -21,6 +21,10 @@ const PUBLIC_COURSES = [
     price: 49.99,
     accessDurationDays: 180,
     enrollmentRule: "Open enrollment, no prerequisites.",
+    pricingModel: "ONE_TIME",
+    resolvedAmount: 49.99,
+    currency: "USD",
+    requiresManualQuote: false,
   },
   {
     id: "22222222-2222-2222-2222-222222222222",
@@ -35,8 +39,28 @@ const PUBLIC_COURSES = [
     price: 99.5,
     accessDurationDays: null,
     enrollmentRule: null,
+    pricingModel: "ONE_TIME",
+    resolvedAmount: 99.5,
+    currency: "USD",
+    requiresManualQuote: false,
   },
 ];
+
+/** Base fields shared by every pricing-model-variant fixture below. */
+const BASE_PUBLIC_COURSE = {
+  id: "33333333-3333-3333-3333-333333333333",
+  name: "Weekly Chess Club",
+  slug: "weekly-chess-club",
+  category: "Enrichment",
+  subject: null,
+  stream: null,
+  grade: null,
+  academicYear: null,
+  description: null,
+  price: 0,
+  accessDurationDays: null,
+  enrollmentRule: null,
+};
 
 test.describe("public course list", () => {
   test("renders a card per course with name, category, and price", async ({ page }) => {
@@ -211,5 +235,86 @@ test.describe("public course detail", () => {
 
     await expect(page.getByRole("alert").filter({ hasText: "Something broke" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+});
+
+test.describe("public course detail — pricing-model-aware rendering (course-management gap fix)", () => {
+  test("a FREE course shows \"Free\", never a dollar amount", async ({ page }) => {
+    const freeCourse = {
+      ...BASE_PUBLIC_COURSE,
+      slug: "free-course",
+      pricingModel: "FREE",
+      resolvedAmount: 0,
+      currency: "USD",
+      requiresManualQuote: false,
+    };
+    await mockJson(page, "**/v1/public/courses/free-course", 200, apiSuccess(freeCourse));
+    await page.goto("/courses/free-course");
+
+    await expect(page.getByRole("heading", { name: freeCourse.name })).toBeVisible();
+    await expect(page.getByText("Free", { exact: true })).toBeVisible();
+  });
+
+  test("a MONTHLY course with no configured billing period shows a not-yet-available state instead of a broken price, and hides the enroll CTA", async ({
+    page,
+  }) => {
+    const unconfigured = {
+      ...BASE_PUBLIC_COURSE,
+      slug: "monthly-unconfigured",
+      pricingModel: "MONTHLY",
+      resolvedAmount: null,
+      currency: "USD",
+      requiresManualQuote: false,
+    };
+    await mockJson(page, "**/v1/public/courses/monthly-unconfigured", 200, apiSuccess(unconfigured));
+    await page.goto("/courses/monthly-unconfigured");
+
+    await expect(page.getByText("Pricing not yet available")).toBeVisible();
+    await expect(
+      page.getByText("Pricing for this course hasn't been configured yet", { exact: false })
+    ).toBeVisible();
+    // No enroll/sign-in CTA is offered for a course that can't be checked out yet.
+    await expect(page.getByRole("link", { name: "Sign in to enroll" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Enroll now" })).toHaveCount(0);
+  });
+
+  test("a MONTHLY course with a configured billing period shows the resolved amount with a /month suffix", async ({
+    page,
+  }) => {
+    const configured = {
+      ...BASE_PUBLIC_COURSE,
+      slug: "monthly-configured",
+      pricingModel: "MONTHLY",
+      resolvedAmount: 15,
+      currency: "USD",
+      requiresManualQuote: false,
+    };
+    await mockJson(page, "**/v1/public/courses/monthly-configured", 200, apiSuccess(configured));
+    await page.goto("/courses/monthly-configured");
+
+    await expect(page.getByText("15.00 USD/month")).toBeVisible();
+  });
+
+  test("a CUSTOM-priced course shows contact-us messaging, never an amount, and never a checkout CTA", async ({
+    page,
+  }) => {
+    const customCourse = {
+      ...BASE_PUBLIC_COURSE,
+      slug: "custom-priced",
+      pricingModel: "CUSTOM",
+      resolvedAmount: null,
+      currency: "USD",
+      requiresManualQuote: true,
+    };
+    await mockJson(page, "**/v1/public/courses/custom-priced", 200, apiSuccess(customCourse));
+    await page.goto("/courses/custom-priced");
+
+    await expect(page.getByText("Contact us for pricing")).toBeVisible();
+    await expect(
+      page.getByText("pricing and enrollment are arranged manually by our staff", { exact: false })
+    ).toBeVisible();
+    // No self-serve checkout CTA — this is the actual bug fix under test.
+    await expect(page.getByRole("link", { name: "Sign in to enroll" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Enroll now" })).toHaveCount(0);
   });
 });

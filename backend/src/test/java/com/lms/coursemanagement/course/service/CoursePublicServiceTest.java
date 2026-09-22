@@ -3,17 +3,27 @@ package com.lms.coursemanagement.course.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.NotFoundException;
+import com.lms.common.persistence.BaseEntity;
 import com.lms.coursemanagement.course.domain.Course;
+import com.lms.coursemanagement.course.domain.CourseBillingConfiguration;
+import com.lms.coursemanagement.course.domain.CourseBillingPeriod;
+import com.lms.coursemanagement.course.domain.CoursePricingModel;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.coursemanagement.course.repository.CourseBillingConfigurationRepository;
+import com.lms.coursemanagement.course.repository.CourseBillingPeriodRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,11 +58,19 @@ class CoursePublicServiceTest {
 	@Mock
 	private CourseRepository courseRepository;
 
+	@Mock
+	private CourseBillingConfigurationRepository billingConfigurationRepository;
+
+	@Mock
+	private CourseBillingPeriodRepository billingPeriodRepository;
+
 	private CoursePublicService coursePublicService;
 
 	@BeforeEach
 	void setUp() {
-		coursePublicService = new CoursePublicService(courseRepository);
+		CourseCheckoutAmountResolver resolver = new CourseCheckoutAmountResolver(billingConfigurationRepository,
+				billingPeriodRepository);
+		coursePublicService = new CoursePublicService(courseRepository, resolver);
 	}
 
 	@Test
@@ -147,9 +165,150 @@ class CoursePublicServiceTest {
 			.isInstanceOf(NotFoundException.class);
 	}
 
+	// ------------------------------------------------------------------
+	// Pricing-model-aware resolved amount (Wave 2 QA gap fix).
+	// ------------------------------------------------------------------
+
+	@Test
+	void freePricedCourseResolvesToZeroAmount() {
+		Course course = courseFixture("Free Course", "free-course", CourseStatus.PUBLIC);
+		course.setPricingModel(CoursePricingModel.FREE);
+		when(courseRepository.findBySlugAndStatus("free-course", CourseStatus.PUBLIC)).thenReturn(Optional.of(course));
+
+		PublicCourseView view = coursePublicService.getPublishedCourseBySlug("free-course");
+
+		assertThat(view.pricingModel()).isEqualTo(CoursePricingModel.FREE);
+		assertThat(view.resolvedAmount()).isEqualByComparingTo("0.00");
+		assertThat(view.requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void oneTimePricedCourseResolvesToItsStaticPrice() {
+		Course course = courseFixture("Paid Course", "paid-course", CourseStatus.PUBLIC);
+		when(courseRepository.findBySlugAndStatus("paid-course", CourseStatus.PUBLIC)).thenReturn(Optional.of(course));
+
+		PublicCourseView view = coursePublicService.getPublishedCourseBySlug("paid-course");
+
+		assertThat(view.pricingModel()).isEqualTo(CoursePricingModel.ONE_TIME);
+		assertThat(view.resolvedAmount()).isEqualByComparingTo("10.00");
+	}
+
+	@Test
+	void monthlyPricedCourseWithAnOpenBillingPeriodResolvesToItsCurrentAmount() {
+		Course course = courseFixture("Monthly Course", "monthly-course", CourseStatus.PUBLIC);
+		course.setPricingModel(CoursePricingModel.MONTHLY);
+		UUID courseId = UUID.randomUUID();
+		setId(course, courseId);
+		CourseBillingConfiguration configuration = new CourseBillingConfiguration(TENANT_ID, courseId, null, "LKR",
+				false);
+		setId(configuration, UUID.randomUUID());
+		CourseBillingPeriod period = new CourseBillingPeriod(TENANT_ID, configuration.getId(), new BigDecimal("30.00"),
+				"LKR", Instant.now(), null);
+		setId(period, UUID.randomUUID());
+		when(courseRepository.findBySlugAndStatus("monthly-course", CourseStatus.PUBLIC))
+			.thenReturn(Optional.of(course));
+		when(billingConfigurationRepository.findByCourseIdIn(Set.of(courseId))).thenReturn(List.of(configuration));
+		when(billingPeriodRepository.findCurrentOpenByBillingConfigurationIdIn(Set.of(configuration.getId())))
+			.thenReturn(List.of(period));
+
+		PublicCourseView view = coursePublicService.getPublishedCourseBySlug("monthly-course");
+
+		assertThat(view.resolvedAmount()).isEqualByComparingTo("30.00");
+		assertThat(view.currency()).isEqualTo("LKR");
+		assertThat(view.requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void monthlyPricedCourseWithNoBillingConfiguredYetResolvesToNullRatherThanErroringOrZero() {
+		Course course = courseFixture("Not Yet Configured", "not-yet-configured", CourseStatus.PUBLIC);
+		course.setPricingModel(CoursePricingModel.MONTHLY);
+		UUID courseId = UUID.randomUUID();
+		setId(course, courseId);
+		when(courseRepository.findBySlugAndStatus("not-yet-configured", CourseStatus.PUBLIC))
+			.thenReturn(Optional.of(course));
+		when(billingConfigurationRepository.findByCourseIdIn(Set.of(courseId))).thenReturn(List.of());
+
+		PublicCourseView view = coursePublicService.getPublishedCourseBySlug("not-yet-configured");
+
+		assertThat(view.pricingModel()).isEqualTo(CoursePricingModel.MONTHLY);
+		assertThat(view.resolvedAmount()).isNull();
+		assertThat(view.currency()).isNull();
+		assertThat(view.requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void customPricedCourseResolvesToNullAmountWithRequiresManualQuoteTrue() {
+		Course course = courseFixture("Custom Course", "custom-course", CourseStatus.PUBLIC);
+		course.setPricingModel(CoursePricingModel.CUSTOM);
+		UUID courseId = UUID.randomUUID();
+		setId(course, courseId);
+		CourseBillingConfiguration configuration = new CourseBillingConfiguration(TENANT_ID, courseId, null, "USD",
+				true);
+		when(courseRepository.findBySlugAndStatus("custom-course", CourseStatus.PUBLIC)).thenReturn(Optional.of(course));
+		when(billingConfigurationRepository.findByCourseIdIn(Set.of(courseId))).thenReturn(List.of(configuration));
+
+		PublicCourseView view = coursePublicService.getPublishedCourseBySlug("custom-course");
+
+		assertThat(view.resolvedAmount()).isNull();
+		assertThat(view.currency()).isEqualTo("USD");
+		assertThat(view.requiresManualQuote()).isTrue();
+	}
+
+	@Test
+	void listingMultipleMonthlyPricedCoursesResolvesBillingInOneBatchedQueryPairNeverOnePerCourse() {
+		Course courseOne = courseFixture("Monthly One", "monthly-one", CourseStatus.PUBLIC);
+		courseOne.setPricingModel(CoursePricingModel.MONTHLY);
+		UUID courseOneId = UUID.randomUUID();
+		setId(courseOne, courseOneId);
+		Course courseTwo = courseFixture("Monthly Two", "monthly-two", CourseStatus.PUBLIC);
+		courseTwo.setPricingModel(CoursePricingModel.MONTHLY);
+		UUID courseTwoId = UUID.randomUUID();
+		setId(courseTwo, courseTwoId);
+
+		CourseBillingConfiguration configurationOne = new CourseBillingConfiguration(TENANT_ID, courseOneId, null,
+				"LKR", false);
+		setId(configurationOne, UUID.randomUUID());
+		CourseBillingConfiguration configurationTwo = new CourseBillingConfiguration(TENANT_ID, courseTwoId, null,
+				"LKR", false);
+		setId(configurationTwo, UUID.randomUUID());
+		CourseBillingPeriod periodOne = new CourseBillingPeriod(TENANT_ID, configurationOne.getId(),
+				new BigDecimal("15.00"), "LKR", Instant.now(), null);
+		CourseBillingPeriod periodTwo = new CourseBillingPeriod(TENANT_ID, configurationTwo.getId(),
+				new BigDecimal("25.00"), "LKR", Instant.now(), null);
+
+		Pageable pageable = PageRequest.of(0, 20);
+		when(courseRepository.findAll(any(Specification.class), any(Pageable.class)))
+			.thenReturn(new PageImpl<>(List.of(courseOne, courseTwo), pageable, 2));
+		when(billingConfigurationRepository.findByCourseIdIn(Set.of(courseOneId, courseTwoId)))
+			.thenReturn(List.of(configurationOne, configurationTwo));
+		when(billingPeriodRepository
+			.findCurrentOpenByBillingConfigurationIdIn(Set.of(configurationOne.getId(), configurationTwo.getId())))
+			.thenReturn(List.of(periodOne, periodTwo));
+
+		PageResponse<PublicCourseView> page = coursePublicService.listPublishedCourses(pageable);
+
+		assertThat(page.content()).hasSize(2);
+		assertThat(page.content()).extracting(PublicCourseView::resolvedAmount)
+			.containsExactlyInAnyOrder(new BigDecimal("15.00"), new BigDecimal("25.00"));
+		// The N+1 guard: exactly one batched call each, never one per course.
+		verify(billingConfigurationRepository, times(1)).findByCourseIdIn(any());
+		verify(billingPeriodRepository, times(1)).findCurrentOpenByBillingConfigurationIdIn(any());
+	}
+
 	private static Course courseFixture(String name, String slug, CourseStatus status) {
 		return new Course(TENANT_ID, UUID.randomUUID(), name, slug, "Math", null, null, null, null, null,
 				new BigDecimal("10.00"), null, null, status);
+	}
+
+	private static void setId(BaseEntity entity, UUID id) {
+		try {
+			Field field = BaseEntity.class.getDeclaredField("id");
+			field.setAccessible(true);
+			field.set(entity, id);
+		}
+		catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 }

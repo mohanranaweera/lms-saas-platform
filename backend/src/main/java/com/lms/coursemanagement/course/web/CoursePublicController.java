@@ -52,7 +52,8 @@ public class CoursePublicController {
 	private static PublicCourseResponse toResponse(PublicCourseView view) {
 		return new PublicCourseResponse(view.id(), view.name(), view.slug(), view.category(), view.subject(),
 				view.stream(), view.grade(), view.academicYear(), view.description(), view.price(),
-				view.accessDurationDays(), view.enrollmentRule());
+				view.accessDurationDays(), view.enrollmentRule(), view.pricingModel(), view.resolvedAmount(),
+				view.currency(), view.requiresManualQuote());
 	}
 
 }

@@ -108,4 +108,21 @@ public interface CourseLookupApi {
 	 */
 	Map<UUID, UUID> getTeacherIdsByCourseId(Set<UUID> courseIds);
 
+	/**
+	 * Resolves the checkout amount for a course per its current {@code
+	 * pricing_model} (V37, Wave 2) - the single replacement for the old
+	 * {@code ONE_TIME}-only {@link #getCurrentPrice(UUID)} read that {@code
+	 * OrderService#createOrder} now uses. See {@link CheckoutAmount}'s own
+	 * javadoc for the per-pricing-model resolution rules.
+	 * @return {@link Optional#empty()} if the course does not exist in the
+	 * caller's tenant (identical "not found vs. cross-tenant" non-distinction
+	 * as every other method on this interface); otherwise a present {@link
+	 * CheckoutAmount}.
+	 * @throws CourseBillingNotConfiguredException if the course's pricing
+	 * model requires a {@code course_billing_configuration}/open {@code
+	 * course_billing_period} that does not exist - a genuine misconfiguration,
+	 * never silently resolved to a {@code $0} amount.
+	 */
+	Optional<CheckoutAmount> getResolvedCheckoutAmount(UUID courseId);
+
 }

@@ -49,6 +49,10 @@ const COURSE = {
   accessDurationDays: 180,
   enrollmentRule: null,
   status: "PUBLIC" as const,
+  pricingModel: "ONE_TIME" as const,
+  resolvedAmount: 49.99,
+  currency: "USD",
+  requiresManualQuote: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -113,6 +117,80 @@ test.describe("checkout — no editable price field", () => {
     await page.getByRole("button", { name: "Enroll" }).click();
 
     await expect(page).toHaveURL(`/student/payments/awaiting-confirmation/${order.id}`);
+  });
+});
+
+test.describe("checkout — pricing-model-aware rendering (course-management gap fix)", () => {
+  test("a FREE course shows \"Free\" and keeps the Enroll/Pay-by-bank-transfer actions enabled", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const freeCourse = {
+      ...COURSE,
+      id: "course-free",
+      pricingModel: "FREE" as const,
+      resolvedAmount: 0,
+      currency: "USD",
+      requiresManualQuote: false,
+    };
+    await mockJson(page, `**/api/v1/courses/${freeCourse.id}`, 200, apiSuccess(freeCourse));
+
+    await page.goto(`/student/checkout/${freeCourse.id}`);
+
+    await expect(page.getByText("Free", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Enroll" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toBeEnabled();
+  });
+
+  test("a MONTHLY course with no configured billing period shows a not-yet-available state and disables checkout rather than letting it fail", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const unconfigured = {
+      ...COURSE,
+      id: "course-monthly-unconfigured",
+      pricingModel: "MONTHLY" as const,
+      resolvedAmount: null,
+      currency: "USD",
+      requiresManualQuote: false,
+    };
+    await mockJson(page, `**/api/v1/courses/${unconfigured.id}`, 200, apiSuccess(unconfigured));
+
+    await page.goto(`/student/checkout/${unconfigured.id}`);
+
+    await expect(page.getByText("Pricing not yet available")).toBeVisible();
+    await expect(
+      page.getByText("Pricing for this course hasn't been configured yet", { exact: false })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Enroll" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toBeDisabled();
+  });
+
+  test("a CUSTOM-priced course shows contact-us messaging and never renders the Enroll/Pay-by-bank-transfer form at all", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const customCourse = {
+      ...COURSE,
+      id: "course-custom",
+      pricingModel: "CUSTOM" as const,
+      resolvedAmount: null,
+      currency: "USD",
+      requiresManualQuote: true,
+    };
+    await mockJson(page, `**/api/v1/courses/${customCourse.id}`, 200, apiSuccess(customCourse));
+
+    await page.goto(`/student/checkout/${customCourse.id}`);
+
+    await expect(page.getByText("Contact us for pricing")).toBeVisible();
+    await expect(
+      page.getByText("pricing and enrollment are arranged manually by our staff", { exact: false })
+    ).toBeVisible();
+    // The actual bug fix under test: no checkout form/buttons for a
+    // manual-quote course, since order creation would always 409.
+    await expect(page.getByRole("button", { name: "Enroll" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toHaveCount(0);
+    await expect(page.locator("input")).toHaveCount(0);
   });
 });
 

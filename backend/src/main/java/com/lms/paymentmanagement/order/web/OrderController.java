@@ -68,7 +68,7 @@ public class OrderController {
 	@PostMapping
 	@PreAuthorize("hasRole('STUDENT')")
 	public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody OrderCreateRequest request) {
-		OrderView view = orderService.createOrder(request.courseId());
+		OrderView view = orderService.createOrder(request.courseId(), request.customAmount());
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(view)));
 	}
 
@@ -122,7 +122,7 @@ public class OrderController {
 
 	private static OrderResponse toResponse(OrderView view) {
 		return new OrderResponse(view.id(), view.studentId(), view.courseId(), view.amount(), view.currency(),
-				view.status(), view.createdAt(), view.updatedAt());
+				view.billingPeriodId(), view.status(), view.createdAt(), view.updatedAt());
 	}
 
 	private static PaymentSlipResponse toSlipResponse(PaymentSlipView view) {

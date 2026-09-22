@@ -206,4 +206,89 @@ class CoursePublicStorefrontIntegrationTest extends CourseManagementTestSupport 
 		return email;
 	}
 
+	// ------------------------------------------------------------------
+	// Pricing-model-aware storefront exposure (Wave 2 QA gap fix): the
+	// storefront must be able to correctly render "Free"/"$X per
+	// month"/"$X per session"/"Contact us" without ever 500ing or silently
+	// falling back to $0.
+	// ------------------------------------------------------------------
+
+	@Test
+	void oneTimePricedPublicCourseExposesItsStaticPriceAsTheResolvedAmount() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("storefront-one-time"));
+		String token = loginAndGetToken(hostFor(tenant.getSubdomain()), seedTeacherAndReturnEmail(tenant));
+		String host = hostFor(tenant.getSubdomain());
+		String slug = uniqueSlug("one-time-course");
+		CourseResponse created = createCourseOrFail(host, token, newCourseRequest(slug, null, CourseStatus.PUBLIC));
+
+		HttpResult<PublicCourseResponse> detail = getPublicCourse(host, slug);
+
+		assertThat(detail.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(detail.getBody().data().pricingModel())
+			.isEqualTo(com.lms.coursemanagement.course.domain.CoursePricingModel.ONE_TIME);
+		assertThat(detail.getBody().data().resolvedAmount()).isEqualByComparingTo(created.price());
+		assertThat(detail.getBody().data().requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void monthlyPricedPublicCourseWithAnOpenBillingPeriodExposesItsCurrentPeriodAmount() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("storefront-monthly"));
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, seedTeacherAndReturnEmail(tenant));
+		String slug = uniqueSlug("monthly-course");
+		CourseResponse created = createCourseOrFail(host, token, newCourseRequest(slug, null, CourseStatus.PUBLIC));
+		changePricingModel(host, token, created.id(), com.lms.coursemanagement.course.domain.CoursePricingModel.MONTHLY);
+		createOrUpdateBillingConfiguration(host, token, created.id(), null, "USD", false);
+		addBillingPeriod(host, token, created.id(), new java.math.BigDecimal("40.00"), "USD",
+				java.time.Instant.now());
+
+		HttpResult<PublicCourseResponse> detail = getPublicCourse(host, slug);
+
+		assertThat(detail.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(detail.getBody().data().pricingModel())
+			.isEqualTo(com.lms.coursemanagement.course.domain.CoursePricingModel.MONTHLY);
+		assertThat(detail.getBody().data().resolvedAmount()).isEqualByComparingTo("40.00");
+		assertThat(detail.getBody().data().currency()).isEqualTo("USD");
+		assertThat(detail.getBody().data().requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void monthlyPricedPublicCourseWithNoBillingConfiguredYetExposesANullResolvedAmountRatherThanErroringOrZero() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("storefront-monthly-unset"));
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, seedTeacherAndReturnEmail(tenant));
+		String slug = uniqueSlug("monthly-unset-course");
+		CourseResponse created = createCourseOrFail(host, token, newCourseRequest(slug, null, CourseStatus.PUBLIC));
+		changePricingModel(host, token, created.id(), com.lms.coursemanagement.course.domain.CoursePricingModel.MONTHLY);
+		// Deliberately never calls createOrUpdateBillingConfiguration/
+		// addBillingPeriod - this course is MONTHLY-priced but genuinely not
+		// yet ready to sell.
+
+		HttpResult<PageResponse<PublicCourseResponse>> listResult = listPublicCourses(host);
+		HttpResult<PublicCourseResponse> detail = getPublicCourse(host, slug);
+
+		assertThat(listResult.getStatusCode()).isEqualTo(HttpStatus.OK); // never a 500
+		assertThat(detail.getStatusCode()).isEqualTo(HttpStatus.OK); // never a 500
+		assertThat(detail.getBody().data().resolvedAmount()).isNull();
+		assertThat(detail.getBody().data().currency()).isNull();
+		assertThat(detail.getBody().data().requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void customPricedPublicCourseExposesRequiresManualQuoteTrueWithNullAmount() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("storefront-custom"));
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, seedTeacherAndReturnEmail(tenant));
+		String slug = uniqueSlug("custom-course");
+		CourseResponse created = createCourseOrFail(host, token, newCourseRequest(slug, null, CourseStatus.PUBLIC));
+		changePricingModel(host, token, created.id(), com.lms.coursemanagement.course.domain.CoursePricingModel.CUSTOM);
+		createOrUpdateBillingConfiguration(host, token, created.id(), null, "USD", true);
+
+		HttpResult<PublicCourseResponse> detail = getPublicCourse(host, slug);
+
+		assertThat(detail.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(detail.getBody().data().resolvedAmount()).isNull();
+		assertThat(detail.getBody().data().requiresManualQuote()).isTrue();
+	}
+
 }

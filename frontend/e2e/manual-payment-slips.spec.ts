@@ -45,6 +45,10 @@ const COURSE = {
   accessDurationDays: 180,
   enrollmentRule: null,
   status: "PUBLIC" as const,
+  pricingModel: "ONE_TIME" as const,
+  resolvedAmount: 49.99,
+  currency: "USD",
+  requiresManualQuote: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

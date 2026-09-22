@@ -39,13 +39,21 @@ public abstract class PaymentManagementTestSupport extends CourseManagementTestS
 	// ------------------------------------------------------------------
 
 	protected HttpResult<OrderResponse> createOrder(String host, String token, UUID courseId) {
+		return createOrder(host, token, courseId, null);
+	}
+
+	protected HttpResult<OrderResponse> createOrder(String host, String token, UUID courseId, BigDecimal customAmount) {
 		MockHttpServletRequestBuilder builder = post("/api/v1/orders").contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(new OrderCreateRequest(courseId)));
+			.content(objectMapper.writeValueAsString(new OrderCreateRequest(courseId, customAmount)));
 		return parseSingle(perform(authenticated(builder, host, token)), OrderResponse.class);
 	}
 
 	protected OrderResponse createOrderOrFail(String host, String token, UUID courseId) {
-		HttpResult<OrderResponse> result = createOrder(host, token, courseId);
+		return createOrderOrFail(host, token, courseId, null);
+	}
+
+	protected OrderResponse createOrderOrFail(String host, String token, UUID courseId, BigDecimal customAmount) {
+		HttpResult<OrderResponse> result = createOrder(host, token, courseId, customAmount);
 		if (result.getStatusCode() != org.springframework.http.HttpStatus.CREATED) {
 			throw new IllegalStateException("Order creation failed: " + result.getStatusCode() + " " + result.getBody());
 		}

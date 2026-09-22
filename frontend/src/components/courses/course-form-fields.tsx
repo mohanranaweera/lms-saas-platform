@@ -1,5 +1,5 @@
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
-import type { CourseStatus } from "@/lib/api/courses";
+import type { CoursePricingModel, CourseStatus } from "@/lib/api/courses";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,9 +17,14 @@ import {
   type CourseClassificationFormValues,
   type CourseEnrollmentAccessFormValues,
   type CoursePricingFormValues,
+  type CourseStaffTeacherFormValues,
   type CourseVisibilityFormValues,
 } from "@/lib/validation/course";
 import { COURSE_STATUS_LABELS } from "@/components/courses/course-status-badge";
+import {
+  COURSE_PRICING_MODEL_DESCRIPTIONS,
+  COURSE_PRICING_MODEL_LABELS,
+} from "@/components/courses/course-pricing-model-badge";
 
 /**
  * Course Builder step field groups — one component per stepper step, shared
@@ -204,6 +209,112 @@ export function CoursePricingFields({
       {errors.price ? (
         <p id={ids.errorId} role="alert" className="text-xs text-destructive">
           {errors.price.message as string}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+const PRICING_MODEL_OPTIONS: CoursePricingModel[] = ["FREE", "ONE_TIME", "MONTHLY", "SESSION", "CUSTOM"];
+
+/**
+ * Wave 2's pricing-model selector (Course Builder create flow, both Teacher
+ * and Staff variants) — controlled `value`/`onChange`, same pattern as
+ * `CourseVisibilityFields` below (the shared `Select` primitive isn't an
+ * RHF-`register`-compatible native input). Only `CoursePricingFields`'s price
+ * input is shown by the caller when `value === "ONE_TIME"` — this component
+ * never renders it itself, since it has no opinion on layout/step
+ * composition.
+ */
+export function CoursePricingModelFields({
+  errors,
+  idPrefix,
+  value,
+  onChange,
+  disabled,
+}: {
+  errors: FieldErrors<{ pricingModel: string }>;
+  idPrefix: string;
+  value: string;
+  onChange: (value: string | null) => void;
+  disabled?: boolean;
+}) {
+  const ids = fieldIds(idPrefix, "pricingModel");
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={ids.inputId}>Pricing model</Label>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger
+          id={ids.inputId}
+          aria-invalid={!!errors.pricingModel}
+          aria-describedby={errors.pricingModel ? ids.errorId : undefined}
+          className="w-full sm:w-72"
+        >
+          <SelectValue placeholder="Select a pricing model">
+            {(selected: string | null) =>
+              selected
+                ? COURSE_PRICING_MODEL_LABELS[selected as CoursePricingModel]
+                : "Select a pricing model"
+            }
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {PRICING_MODEL_OPTIONS.map((option) => (
+            <SelectItem key={option} value={option}>
+              {COURSE_PRICING_MODEL_LABELS[option]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+        {PRICING_MODEL_OPTIONS.map((option) => (
+          <li key={option}>
+            <span className="font-medium text-foreground">{COURSE_PRICING_MODEL_LABELS[option]}:</span>{" "}
+            {COURSE_PRICING_MODEL_DESCRIPTIONS[option]}
+          </li>
+        ))}
+      </ul>
+      {errors.pricingModel ? (
+        <p id={ids.errorId} role="alert" className="text-xs text-destructive">
+          {errors.pricingModel.message as string}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * PAR-05-02's staff-only "assign to teacher" field (`tenant-admin/courses/new`
+ * only) — see `courseStaffTeacherFieldSchema`'s doc comment for why this is a
+ * plain UUID text input rather than a picker.
+ */
+export function CourseStaffTeacherFields({
+  register,
+  errors,
+  disabled,
+  idPrefix,
+}: StepFieldsProps<CourseStaffTeacherFormValues> & { idPrefix: string }) {
+  const ids = fieldIds(idPrefix, "teacherId");
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={ids.inputId}>Teacher ID (UUID)</Label>
+      <Input
+        id={ids.inputId}
+        disabled={disabled}
+        autoComplete="off"
+        aria-invalid={!!errors.teacherId}
+        aria-describedby={[ids.helperId, errors.teacherId ? ids.errorId : undefined]
+          .filter(Boolean)
+          .join(" ")}
+        {...register("teacherId")}
+      />
+      <p id={ids.helperId} className="text-xs text-muted-foreground">
+        There is no teacher directory/picker yet — enter the target teacher&apos;s user ID
+        directly.
+      </p>
+      {errors.teacherId ? (
+        <p id={ids.errorId} role="alert" className="text-xs text-destructive">
+          {errors.teacherId.message as string}
         </p>
       ) : null}
     </div>

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
-import type { PageResponse } from "./courses";
+import type { CoursePricingModel, PageResponse } from "./courses";
 
 /**
  * Typed client for course-management's anonymous public storefront endpoints
@@ -15,6 +15,13 @@ import type { PageResponse } from "./courses";
  * Mirrors `PublicCourseResponse` field-for-field. Deliberately has no
  * `teacherId`, no audit fields, and no `status` — every course returned here
  * is implicitly `PUBLIC` by construction (existence-leakage prevention).
+ *
+ * `price` is kept for backward compatibility but must never be rendered
+ * directly — `pricingModel`/`resolvedAmount`/`currency`/`requiresManualQuote`
+ * (Wave 2 gap fix) are the fields a storefront must actually render pricing
+ * from; see `components/courses/course-price-display.tsx`'s
+ * `CoursePricingInfo` doc comment for exactly what each means per pricing
+ * model.
  */
 export interface PublicCourseResponse {
   id: string;
@@ -29,6 +36,10 @@ export interface PublicCourseResponse {
   price: number;
   accessDurationDays: number | null;
   enrollmentRule: string | null;
+  pricingModel: CoursePricingModel;
+  resolvedAmount: number | null;
+  currency: string;
+  requiresManualQuote: boolean;
 }
 
 export const publicCourseKeys = {

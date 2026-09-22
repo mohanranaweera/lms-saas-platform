@@ -52,15 +52,34 @@ public class StudentOrder extends Auditable implements TenantOwned {
 	@Column(name = "status", nullable = false, length = 20)
 	private OrderStatus status;
 
+	/**
+	 * {@code student_order.billing_period_id} (V40, Wave 2) - an OPAQUE,
+	 * purely-traceability reference to the {@code course_billing_period} row
+	 * this order's {@code amount} snapshot was resolved from, for {@code
+	 * MONTHLY}/{@code SESSION} pricing only. {@code null} for every other
+	 * pricing model (mirrors {@code studentId}/{@code courseId}'s "opaque id,
+	 * never a JPA association across the module boundary" convention). Never
+	 * mutated after construction - set once, at order-creation time, exactly
+	 * like {@code amount}/{@code currency}.
+	 */
+	@Column(name = "billing_period_id", updatable = false)
+	private UUID billingPeriodId;
+
 	protected StudentOrder() {
 	}
 
 	public StudentOrder(UUID tenantId, UUID studentId, UUID courseId, BigDecimal amount, String currency) {
+		this(tenantId, studentId, courseId, amount, currency, null);
+	}
+
+	public StudentOrder(UUID tenantId, UUID studentId, UUID courseId, BigDecimal amount, String currency,
+			UUID billingPeriodId) {
 		this.tenantId = tenantId;
 		this.studentId = studentId;
 		this.courseId = courseId;
 		this.amount = amount;
 		this.currency = currency;
+		this.billingPeriodId = billingPeriodId;
 		this.status = OrderStatus.PLACED;
 	}
 
@@ -92,6 +111,10 @@ public class StudentOrder extends Auditable implements TenantOwned {
 
 	public OrderStatus getStatus() {
 		return status;
+	}
+
+	public UUID getBillingPeriodId() {
+		return billingPeriodId;
 	}
 
 	/**

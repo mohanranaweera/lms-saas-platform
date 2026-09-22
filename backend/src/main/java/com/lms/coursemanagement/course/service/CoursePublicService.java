@@ -2,10 +2,14 @@ package com.lms.coursemanagement.course.service;
 
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.NotFoundException;
+import com.lms.coursemanagement.api.CheckoutAmount;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import com.lms.coursemanagement.course.repository.CourseSpecifications;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,15 +41,27 @@ public class CoursePublicService {
 
 	private final CourseRepository courseRepository;
 
-	public CoursePublicService(CourseRepository courseRepository) {
+	private final CourseCheckoutAmountResolver courseCheckoutAmountResolver;
+
+	public CoursePublicService(CourseRepository courseRepository,
+			CourseCheckoutAmountResolver courseCheckoutAmountResolver) {
 		this.courseRepository = courseRepository;
+		this.courseCheckoutAmountResolver = courseCheckoutAmountResolver;
 	}
 
+	/**
+	 * Resolves every listed course's checkout amount via a single batched
+	 * {@link CourseCheckoutAmountResolver#resolveBatch(java.util.Collection)}
+	 * call - never one billing-configuration/billing-period lookup per course
+	 * in a loop, since this is a public, unauthenticated, potentially
+	 * high-traffic endpoint (Wave 2 gap fix).
+	 */
 	public PageResponse<PublicCourseView> listPublishedCourses(Pageable pageable) {
 		Pageable safePageable = clampPageSize(pageable);
 		Page<Course> page = courseRepository.findAll(CourseSpecifications.withStatus(CourseStatus.PUBLIC),
 				safePageable);
-		return PageResponse.from(page.map(CoursePublicService::toView));
+		Map<UUID, CheckoutAmount> resolvedAmounts = courseCheckoutAmountResolver.resolveBatch(page.getContent());
+		return PageResponse.from(page.map(course -> toView(course, resolvedAmounts)));
 	}
 
 	private Pageable clampPageSize(Pageable pageable) {
@@ -61,14 +77,17 @@ public class CoursePublicService {
 			// from a real DRAFT/PRIVATE slug in the same tenant, per plan
 			// §13/§15(d).
 			.orElseThrow(() -> new NotFoundException("Course not found"));
-		return toView(course);
+		Map<UUID, CheckoutAmount> resolvedAmounts = courseCheckoutAmountResolver.resolveBatch(List.of(course));
+		return toView(course, resolvedAmounts);
 	}
 
-	private static PublicCourseView toView(Course course) {
+	private static PublicCourseView toView(Course course, Map<UUID, CheckoutAmount> resolvedAmounts) {
+		CheckoutAmount resolved = resolvedAmounts.get(course.getId());
 		return new PublicCourseView(course.getId(), course.getName(), course.getSlug(), course.getCategory(),
 				course.getSubject(), course.getStream(), course.getGrade(), course.getAcademicYear(),
 				course.getDescription(), course.getPrice(), course.getAccessDurationDays(),
-				course.getEnrollmentRule());
+				course.getEnrollmentRule(), course.getPricingModel(), resolved != null ? resolved.amount() : null,
+				resolved != null ? resolved.currency() : null, resolved != null && resolved.requiresManualQuote());
 	}
 
 }

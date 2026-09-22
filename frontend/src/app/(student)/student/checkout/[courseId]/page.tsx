@@ -10,15 +10,29 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useCourse } from "@/lib/api/courses";
 import { useCreateOrder, useInitiatePayment } from "@/lib/api/payments";
 import { isApiClientError } from "@/lib/api/error";
+import {
+  CoursePriceText,
+  CoursePricingNotice,
+  isCourseCheckoutAvailable,
+} from "@/components/courses/course-price-display";
 
 /**
  * Checkout entry point (PAY-1/PAY-2). Shows the course's server-computed
  * name/price/access as read-only display only — there is no editable price
- * field anywhere on this screen, structurally: `CourseResponse.price` is
- * only ever rendered via `.toFixed(2)` text, never bound to a form input,
- * and `OrderCreateRequest`/`useCreateOrder` only ever sends `{ courseId }`
- * (see `lib/api/payments.ts` — the type has no `price`/`amount` field to
- * even populate).
+ * field anywhere on this screen, structurally: pricing is only ever rendered
+ * via `CoursePriceText`/`getCoursePriceLabel` (see
+ * `components/courses/course-price-display.tsx`), never bound to a form
+ * input, and `OrderCreateRequest`/`useCreateOrder` only ever sends
+ * `{ courseId }` (see `lib/api/payments.ts` — the type has no `price`/
+ * `amount` field to even populate).
+ *
+ * A `CUSTOM`-priced course (`requiresManualQuote: true`) has no self-serve
+ * checkout at all — the backend always rejects order creation for it with a
+ * 409 since only an authorized staff actor may supply a custom amount, so
+ * this page never renders the Enroll/Pay-by-bank-transfer form for one;
+ * see the `checkoutAvailable` gate below. A `MONTHLY`/`SESSION` course with
+ * no configured billing period yet (`resolvedAmount === null`) is gated the
+ * same way rather than letting checkout attempt and fail.
  *
  * "Enroll" creates the order, then immediately initiates a gateway payment
  * attempt for it, then redirects to the awaiting-confirmation screen for
@@ -92,82 +106,92 @@ export default function CheckoutPage() {
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
       >
-        {(course) => (
-          <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-            <div>
-              <h2 className="text-lg font-medium text-foreground">{course.name}</h2>
-              <p className="text-sm text-muted-foreground">{course.category}</p>
-            </div>
+        {(course) => {
+          const checkoutAvailable = isCourseCheckoutAvailable(course) && course.status === "PUBLIC";
 
-            <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4 text-sm">
+          return (
+            <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
               <div>
-                <dt className="text-xs font-medium text-muted-foreground">Price</dt>
-                {/* Read-only display only — never a student-editable input. */}
-                <dd className="text-base font-semibold text-foreground">
-                  {course.price.toFixed(2)}
-                </dd>
+                <h2 className="text-lg font-medium text-foreground">{course.name}</h2>
+                <p className="text-sm text-muted-foreground">{course.category}</p>
               </div>
-              <div>
-                <dt className="text-xs font-medium text-muted-foreground">Access</dt>
-                <dd className="text-foreground">
-                  {course.accessDurationDays
-                    ? `${course.accessDurationDays} days`
-                    : "Lifetime access"}
-                </dd>
-              </div>
-            </dl>
 
-            {course.status !== "PUBLIC" ? (
-              <Alert role="status">
-                <AlertCircle aria-hidden="true" />
-                <AlertDescription>
-                  This course isn&apos;t currently open for enrollment.
-                </AlertDescription>
-              </Alert>
-            ) : null}
+              <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4 text-sm">
+                <div>
+                  <dt className="text-xs font-medium text-muted-foreground">Price</dt>
+                  {/* Read-only display only — never a student-editable input. */}
+                  <dd className="text-base font-semibold text-foreground">
+                    <CoursePriceText course={course} />
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium text-muted-foreground">Access</dt>
+                  <dd className="text-foreground">
+                    {course.accessDurationDays
+                      ? `${course.accessDurationDays} days`
+                      : "Lifetime access"}
+                  </dd>
+                </div>
+              </dl>
 
-            {flowError ? (
-              <Alert variant="destructive">
-                <AlertCircle aria-hidden="true" />
-                <AlertDescription>{flowError}</AlertDescription>
-              </Alert>
-            ) : null}
+              {course.status !== "PUBLIC" ? (
+                <Alert role="status">
+                  <AlertCircle aria-hidden="true" />
+                  <AlertDescription>
+                    This course isn&apos;t currently open for enrollment.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
 
-            <LiveRegion
-              message={
-                mode === "gateway"
-                  ? "Starting checkout…"
-                  : mode === "slip"
-                    ? "Preparing bank transfer upload…"
-                    : ""
-              }
-            />
+              <CoursePricingNotice course={course} />
 
-            <div className="flex flex-col gap-2">
-              <Button
-                type="button"
-                onClick={handleEnroll}
-                disabled={isSubmitting || course.status !== "PUBLIC"}
-                aria-busy={mode === "gateway"}
-              >
-                {mode === "gateway" ? "Starting checkout…" : "Enroll"}
-              </Button>
+              {flowError ? (
+                <Alert variant="destructive">
+                  <AlertCircle aria-hidden="true" />
+                  <AlertDescription>{flowError}</AlertDescription>
+                </Alert>
+              ) : null}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handlePayBySlip}
-                disabled={isSubmitting || course.status !== "PUBLIC"}
-                aria-busy={mode === "slip"}
-              >
-                {mode === "slip" ? "Preparing…" : "Pay by bank transfer"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Already sent a bank transfer? Upload your payment slip instead of paying online.
-              </p>
+              {course.requiresManualQuote ? null : (
+                <>
+                  <LiveRegion
+                    message={
+                      mode === "gateway"
+                        ? "Starting checkout…"
+                        : mode === "slip"
+                          ? "Preparing bank transfer upload…"
+                          : ""
+                    }
+                  />
+
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleEnroll}
+                      disabled={isSubmitting || !checkoutAvailable}
+                      aria-busy={mode === "gateway"}
+                    >
+                      {mode === "gateway" ? "Starting checkout…" : "Enroll"}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePayBySlip}
+                      disabled={isSubmitting || !checkoutAvailable}
+                      aria-busy={mode === "slip"}
+                    >
+                      {mode === "slip" ? "Preparing…" : "Pay by bank transfer"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Already sent a bank transfer? Upload your payment slip instead of paying online.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-        )}
+          );
+        }}
       </QueryStateBoundary>
     </div>
   );

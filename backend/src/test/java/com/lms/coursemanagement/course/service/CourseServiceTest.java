@@ -3,6 +3,7 @@ package com.lms.coursemanagement.course.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -12,8 +13,10 @@ import static org.mockito.Mockito.when;
 import com.lms.common.api.PageResponse;
 import com.lms.common.persistence.BaseEntity;
 import com.lms.common.tenant.TenantContext;
+import com.lms.coursemanagement.api.CheckoutAmount;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CoursePriceHistory;
+import com.lms.coursemanagement.course.domain.CoursePricingModel;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.coursemanagement.course.repository.CoursePriceHistoryRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
@@ -26,6 +29,7 @@ import com.lms.identityaccessservice.api.UserProvisioningApi;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -63,6 +67,12 @@ class CourseServiceTest {
 	private CoursePriceHistoryRepository coursePriceHistoryRepository;
 
 	@Mock
+	private com.lms.coursemanagement.course.repository.CourseModuleRepository courseModuleRepository;
+
+	@Mock
+	private com.lms.coursemanagement.course.repository.CourseLessonRepository courseLessonRepository;
+
+	@Mock
 	private TenantContext tenantContext;
 
 	@Mock
@@ -77,12 +87,21 @@ class CourseServiceTest {
 	@Mock
 	private ApplicationEventPublisher eventPublisher;
 
+	@Mock
+	private CourseCheckoutAmountResolver courseCheckoutAmountResolver;
+
 	private CourseService courseService;
 
 	@BeforeEach
 	void setUp() {
-		courseService = new CourseService(courseRepository, coursePriceHistoryRepository, tenantContext,
-				permissionCheckService, userProvisioningApi, courseAccessGuard, eventPublisher);
+		courseService = new CourseService(courseRepository, coursePriceHistoryRepository, courseModuleRepository,
+				courseLessonRepository, tenantContext, permissionCheckService, userProvisioningApi, courseAccessGuard,
+				eventPublisher, courseCheckoutAmountResolver);
+		// A plain HashMap (never java.util.Map.of()) - a not-yet-persisted
+		// Course fixture in several tests here has a null id, and Map.of()'s
+		// null-key-forbidding get() would NPE on the lookup, unlike the real
+		// CourseCheckoutAmountResolver's own HashMap-backed result.
+		lenient().when(courseCheckoutAmountResolver.resolveBatch(any())).thenReturn(new java.util.HashMap<>());
 	}
 
 	@AfterEach
@@ -319,7 +338,7 @@ class CourseServiceTest {
 		when(courseRepository.findAll(any(Specification.class), any(Pageable.class)))
 			.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-		courseService.listCourses(pageable, new CourseListFilter(null, null, suppliedOtherTeacherId));
+		courseService.listCourses(pageable, new CourseListFilter(null, null, suppliedOtherTeacherId, false));
 
 		verifyNoInteractions(permissionCheckService);
 		verify(courseRepository).findAll(any(Specification.class), any(Pageable.class));
@@ -370,6 +389,151 @@ class CourseServiceTest {
 		assertThat(result.size()).isEqualTo(2);
 		assertThat(result.totalElements()).isEqualTo(5);
 		assertThat(result.totalPages()).isEqualTo(3);
+	}
+
+	// ------------------------------------------------------------------
+	// Resolved checkout amount exposure (Wave 2 QA gap fix) - the
+	// authenticated-caller equivalent of PublicCourseView's storefront
+	// fields, e.g. for a Student reading a MONTHLY/SESSION course's current
+	// price via CourseAccessGuard's PUBLIC-course carve-out before checkout.
+	// ------------------------------------------------------------------
+
+	@Test
+	void getCourseExposesTheResolversCheckoutAmountForAMonthlyPricedCourse() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CourseStatus.PUBLIC, new BigDecimal("0.00"));
+		course.setPricingModel(CoursePricingModel.MONTHLY);
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		when(courseCheckoutAmountResolver.resolveBatch(List.of(course))).thenReturn(
+				Map.of(courseId, new CheckoutAmount(new BigDecimal("30.00"), "LKR", UUID.randomUUID(), false, false)));
+
+		CourseView view = courseService.getCourse(courseId);
+
+		assertThat(view.resolvedAmount()).isEqualByComparingTo("30.00");
+		assertThat(view.currency()).isEqualTo("LKR");
+		assertThat(view.requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void getCourseResolvedAmountIsNullRatherThanZeroWhenTheResolverHasNoAnswerYet() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CourseStatus.PUBLIC, new BigDecimal("0.00"));
+		course.setPricingModel(CoursePricingModel.MONTHLY);
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		// Default @BeforeEach stub already returns an empty map for any input
+		// - simulates a MONTHLY course with no billing period configured yet.
+
+		CourseView view = courseService.getCourse(courseId);
+
+		assertThat(view.resolvedAmount()).isNull();
+		assertThat(view.currency()).isNull();
+		assertThat(view.requiresManualQuote()).isFalse();
+	}
+
+	@Test
+	void listCoursesResolvesCheckoutAmountsInOneBatchedCallAcrossTheWholePageNeverOnePerCourse() {
+		AuthenticatedPrincipalHolder
+			.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
+		Course courseOne = courseFixture(UUID.randomUUID(), CourseStatus.PUBLIC, new BigDecimal("10.00"));
+		Course courseTwo = courseFixture(UUID.randomUUID(), CourseStatus.PUBLIC, new BigDecimal("20.00"));
+		Pageable pageable = PageRequest.of(0, 20);
+		when(courseRepository.findAll(any(Specification.class), any(Pageable.class)))
+			.thenReturn(new PageImpl<>(List.of(courseOne, courseTwo), pageable, 2));
+
+		courseService.listCourses(pageable, CourseListFilter.EMPTY);
+
+		// The N+1 guard: exactly one batched call across the whole page,
+		// never one call per course in a loop.
+		verify(courseCheckoutAmountResolver, times(1)).resolveBatch(List.of(courseOne, courseTwo));
+	}
+
+	// ------------------------------------------------------------------
+	// Wave 2: archive / unarchive / clone / pricing model.
+	// ------------------------------------------------------------------
+
+	@Test
+	void archiveCourseSetsArchivedAtAndPublishesAnEventOnGenuineTransition() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CourseStatus.PUBLIC, new BigDecimal("10.00"));
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
+
+		courseService.archiveCourse(courseId);
+
+		assertThat(course.isArchived()).isTrue();
+		verify(eventPublisher, times(1))
+			.publishEvent(any(com.lms.coursemanagement.api.CourseArchiveStateChangedEvent.class));
+	}
+
+	@Test
+	void archiveCourseIsANoOpAndPublishesNoEventWhenAlreadyArchived() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CourseStatus.PUBLIC, new BigDecimal("10.00"));
+		course.archive(java.time.Instant.now());
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
+
+		courseService.archiveCourse(courseId);
+
+		verifyNoInteractions(eventPublisher);
+	}
+
+	@Test
+	void unarchiveCourseClearsArchivedAt() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CourseStatus.PUBLIC, new BigDecimal("10.00"));
+		course.archive(java.time.Instant.now());
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
+
+		courseService.unarchiveCourse(courseId);
+
+		assertThat(course.isArchived()).isFalse();
+	}
+
+	@Test
+	void changePricingModelWritesAnEventOnGenuineChangeAndNoneOnANoOp() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CourseStatus.PUBLIC, new BigDecimal("10.00"));
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
+
+		courseService.changePricingModel(courseId, com.lms.coursemanagement.course.domain.CoursePricingModel.SESSION);
+		assertThat(course.getPricingModel())
+			.isEqualTo(com.lms.coursemanagement.course.domain.CoursePricingModel.SESSION);
+		verify(eventPublisher, times(1))
+			.publishEvent(any(com.lms.coursemanagement.api.CoursePricingModelChangedEvent.class));
+
+		courseService.changePricingModel(courseId, com.lms.coursemanagement.course.domain.CoursePricingModel.SESSION);
+		verify(eventPublisher, times(1))
+			.publishEvent(any(com.lms.coursemanagement.api.CoursePricingModelChangedEvent.class)); // still exactly once
+	}
+
+	@Test
+	void cloneCourseCopiesStructureButNotPriceOrTakesADraftStatusAndZeroPriceOutsideOneTime() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CourseStatus.PUBLIC, new BigDecimal("10.00"));
+		course.setPricingModel(com.lms.coursemanagement.course.domain.CoursePricingModel.SESSION);
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		when(courseRepository.save(any(Course.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(courseModuleRepository.findByCourseId(courseId)).thenReturn(List.of());
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
+
+		CourseView cloned = courseService.cloneCourse(courseId);
+
+		assertThat(cloned.status()).isEqualTo(CourseStatus.DRAFT);
+		assertThat(cloned.price()).isEqualByComparingTo("0.00");
+		assertThat(cloned.pricingModel())
+			.isEqualTo(com.lms.coursemanagement.course.domain.CoursePricingModel.SESSION);
+		assertThat(cloned.name()).contains("(Copy)");
+		verify(courseRepository, never()).delete(any(Course.class));
+		// Fix 3 (Phase E architecture review, ADR-015): cloning now publishes
+		// CourseClonedEvent, so AuditLogEventListener records it - previously
+		// this mutation published no event at all.
+		verify(eventPublisher, times(1)).publishEvent(any(com.lms.coursemanagement.api.CourseClonedEvent.class));
 	}
 
 	// ------------------------------------------------------------------

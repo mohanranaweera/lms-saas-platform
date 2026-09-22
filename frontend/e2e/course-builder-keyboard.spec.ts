@@ -178,6 +178,15 @@ test.describe("course builder — keyboard-only traversal", () => {
     await expect(pricingHeading).toBeFocused();
     await expect(currentStepIndicator(page)).toContainText("Pricing");
 
+    // Wave 2: the pricing-model selector is the first focusable control on
+    // this step, defaulting to "One-time" (so the price input below it is
+    // already visible without any interaction — see
+    // `course-create-form.tsx`'s `COURSE_CREATE_DEFAULT_VALUES`).
+    await page.keyboard.press("Tab");
+    const pricingModelTrigger = page.locator("#course-create-pricingModel");
+    await expect(pricingModelTrigger).toBeFocused();
+    await expect(pricingModelTrigger).toContainText("One-time");
+
     await page.keyboard.press("Tab");
     await expect(page.locator("#course-create-price")).toBeFocused();
     await page.keyboard.type("49.99");

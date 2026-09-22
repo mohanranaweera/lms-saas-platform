@@ -50,4 +50,17 @@ public final class CourseSpecifications {
 		return (root, query, cb) -> cb.equal(root.get("teacherId"), teacherId);
 	}
 
+	/**
+	 * Wave 2: excludes archived courses ({@code archived_at IS NOT NULL},
+	 * V37) from a listing read unless {@code includeArchived} is {@code
+	 * true}, per {@link com.lms.coursemanagement.course.service.CourseListFilter}'s
+	 * javadoc.
+	 */
+	public static Specification<Course> excludeArchivedUnless(boolean includeArchived) {
+		if (includeArchived) {
+			return Specification.unrestricted();
+		}
+		return (root, query, cb) -> cb.isNull(root.get("archivedAt"));
+	}
+
 }

@@ -3,7 +3,13 @@ package com.lms.auditlogmanagement.service;
 import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.contentmanagement.api.MaterialDeletedEvent;
+import com.lms.coursemanagement.api.CourseArchiveStateChangedEvent;
+import com.lms.coursemanagement.api.CourseBillingConfigurationChangedEvent;
+import com.lms.coursemanagement.api.CourseBillingPeriodAddedEvent;
+import com.lms.coursemanagement.api.CourseClonedEvent;
 import com.lms.coursemanagement.api.CoursePriceChangedEvent;
+import com.lms.coursemanagement.api.CoursePricingModelChangedEvent;
+import com.lms.paymentmanagement.api.OrderCustomAmountAppliedEvent;
 import com.lms.paymentmanagement.api.PaymentRefundedEvent;
 import com.lms.tenantmanagement.api.TenantStatusChangedEvent;
 import java.util.LinkedHashMap;
@@ -70,6 +76,100 @@ public class AuditLogEventListener {
 		metadata.put("newPrice", event.newPrice());
 		auditLogApi.record(new AuditLogEntry(event.changedBy(), "course.price_changed", "course", event.courseId(),
 				null, metadata));
+	}
+
+	/**
+	 * Wave 2 (course/class billing foundation) - mirrors {@link
+	 * #onCoursePriceChanged}'s exact shape. {@code sessionRate} is put ONLY
+	 * when non-null (meaningful only for {@code SESSION} pricing) - {@link
+	 * AuditLogEntry}'s canonical constructor calls {@code Map.copyOf} on
+	 * {@code metadata}, which throws {@link NullPointerException} on a
+	 * null-valued entry (unlike a null metadata map itself, which it accepts
+	 * fine) - found via {@code CourseBillingAndLifecycleIntegrationTest}
+	 * during this module's own review.
+	 */
+	@EventListener
+	public void onCourseBillingConfigurationChanged(CourseBillingConfigurationChangedEvent event) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		if (event.sessionRate() != null) {
+			metadata.put("sessionRate", event.sessionRate());
+		}
+		metadata.put("currency", event.currency());
+		metadata.put("requiresManualQuote", event.requiresManualQuote());
+		metadata.put("created", event.created());
+		auditLogApi.record(new AuditLogEntry(event.changedBy(), "course.billing_configuration_changed", "course",
+				event.courseId(), null, metadata));
+	}
+
+	/**
+	 * Wave 2 - a new billing period closes the prior one (if any); never
+	 * mutates its stored amount. {@code previousAmount} is put ONLY when
+	 * non-null (absent for the very first period added, with nothing to
+	 * close) - see {@link #onCourseBillingConfigurationChanged}'s javadoc for
+	 * why a null-valued map entry (as opposed to a null map) is rejected by
+	 * {@link AuditLogEntry}.
+	 */
+	@EventListener
+	public void onCourseBillingPeriodAdded(CourseBillingPeriodAddedEvent event) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("billingConfigurationId", event.billingConfigurationId());
+		metadata.put("newPeriodId", event.newPeriodId());
+		if (event.previousAmount() != null) {
+			metadata.put("previousAmount", event.previousAmount());
+		}
+		metadata.put("newAmount", event.newAmount());
+		metadata.put("currency", event.currency());
+		metadata.put("effectiveFrom", event.effectiveFrom());
+		auditLogApi.record(new AuditLogEntry(event.addedBy(), "course.billing_period_added", "course",
+				event.courseId(), null, metadata));
+	}
+
+	/** Wave 2 - {@code action} branches on {@code archived} the same way {@link #onTenantStatusChanged} branches. */
+	@EventListener
+	public void onCourseArchiveStateChanged(CourseArchiveStateChangedEvent event) {
+		String action = event.archived() ? "course.archived" : "course.unarchived";
+		auditLogApi.record(new AuditLogEntry(event.actorId(), action, "course", event.courseId(), null, null));
+	}
+
+	/**
+	 * Fix 3 (Phase E architecture review, ADR-015) - {@code targetId} is the
+	 * newly-created clone's own id (not the source course's), mirroring
+	 * every other course-mutation listener's "{@code targetId} = the row
+	 * that just changed" convention; the source course id is recorded in
+	 * {@code metadata} instead, so the clone's audit trail is still
+	 * traceable back to where it came from.
+	 */
+	@EventListener
+	public void onCourseCloned(CourseClonedEvent event) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("sourceCourseId", event.sourceCourseId());
+		auditLogApi.record(
+				new AuditLogEntry(event.actorId(), "course.cloned", "course", event.newCourseId(), null, metadata));
+	}
+
+	/** Wave 2 - mirrors {@link #onCoursePriceChanged}'s exact shape for {@code pricing_model} instead of {@code price}. */
+	@EventListener
+	public void onCoursePricingModelChanged(CoursePricingModelChangedEvent event) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("previousPricingModel", event.previousPricingModel());
+		metadata.put("newPricingModel", event.newPricingModel());
+		auditLogApi.record(new AuditLogEntry(event.changedBy(), "course.pricing_model_changed", "course",
+				event.courseId(), null, metadata));
+	}
+
+	/**
+	 * Wave 2 - a staff-supplied {@code CUSTOM}-pricing checkout amount is
+	 * itself a price-setting action performed by staff on a student's behalf,
+	 * audited like a price change per the plan's explicit requirement.
+	 */
+	@EventListener
+	public void onOrderCustomAmountApplied(OrderCustomAmountAppliedEvent event) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("courseId", event.courseId());
+		metadata.put("amount", event.amount());
+		metadata.put("currency", event.currency());
+		auditLogApi.record(new AuditLogEntry(event.appliedBy(), "order.custom_amount_applied", "student_order",
+				event.orderId(), null, metadata));
 	}
 
 	@EventListener

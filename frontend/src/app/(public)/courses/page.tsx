@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { usePublicCourses, type PublicCourseResponse } from "@/lib/api/public-courses";
+import { CoursePriceText } from "@/components/courses/course-price-display";
 
 function CourseCard({ course }: { course: PublicCourseResponse }) {
   return (
@@ -23,9 +24,7 @@ function CourseCard({ course }: { course: PublicCourseResponse }) {
         {course.description ? (
           <p className="line-clamp-3 text-sm text-muted-foreground">{course.description}</p>
         ) : null}
-        <p className="mt-auto pt-2 text-sm font-medium text-foreground">
-          {course.price.toFixed(2)}
-        </p>
+        <CoursePriceText course={course} className="mt-auto pt-2 text-sm font-medium text-foreground" />
       </Link>
     </li>
   );

@@ -32,6 +32,13 @@ correct, not superficially similar — the gap in this codebase is almost entire
 (NEEDS_VERIFICATION, 17 items = 13%), not rework of something built wrong. This is a materially
 easier remediation posture than a matrix dominated by WRONG_BEHAVIOR/ROLE_MISMATCH would be.
 
+> **Note (post-Wave 2):** the table above is the original Wave 0 point-in-time snapshot and is
+> **not** recomputed here — several rows' classifications have since changed as Wave 1 and Wave 2
+> shipped (e.g. PAR-05-02/07/08 moved to `MATCHES`; PAR-05-03/04/06 and PAR-07-04 moved to
+> `PARTIAL` with new detail; PAR-26-01–04 were explicitly descoped, not resolved). Treat
+> `klass-parity-matrix.md` itself as authoritative for current per-row status; this summary
+> table is left as originally computed, as a dated record of the Wave 0 audit only.
+
 ## 2. Architectural conflicts identified
 
 Only one item earned `ARCHITECTURAL_CONFLICT` in this pass:
@@ -156,7 +163,7 @@ default_currency) are a conservative starter set, since no spec document enumera
 | Wave | Scope (per master instruction §39) | Parity IDs primarily addressed |
 |---|---|---|
 | 1 | Tenant Admin nav + tenant configuration framework | PAR-XC-01, PAR-XC-02, PAR-02-01/02/03, PAR-14-01–04, PAR-26-04 (toggle only) |
-| 2 | Course/Class expansion + billing model foundation | PAR-05-02/03/04/06/07/08, PAR-XC-03, PAR-26-01/02/03, PAR-07-04 (course/teacher filter) |
+| 2 | Course/Class expansion + billing model foundation — **STATUS: DONE, with caveats (see §8)** | PAR-05-02/03/04/06/07/08, PAR-XC-03, PAR-26-01/02/03, PAR-07-04 (course/teacher filter) |
 | 3 | Student and Teacher operational profiles | PAR-03-02/03/04/05/06, PAR-04-03/04 |
 | 4 | ClassSession and Zoom/meeting integration | PAR-19-01–05, PAR-10-01 (interaction only), PAR-10-03 |
 | 5 | Materials, video and playback policies | PAR-06-03/04/05, PAR-17-01–04, PAR-20-01–05, PAR-27-01/02 |
@@ -173,7 +180,63 @@ default_currency) are a conservative starter set, since no spec document enumera
 | Unscheduled | Confirmed gap, no wave slot in master instruction §39; recommend alongside/after Wave 1 | PAR-01-06 (Platform Admin tenant suspend/cancel — confirmed absent by code inspection, not merely unverified) |
 | BLOCKED | Awaiting business/procurement decisions | PAR-02-05, PAR-11-06, PAR-20-05, PAR-21-03, PAR-22-03, PAR-27-03, PAR-28-01 |
 
-## 8. What Wave 0 explicitly did not do
+## 8. Recommended Wave 2 scope — STATUS: DONE, with caveats (see `klass-parity-matrix.md` for row-level detail)
+
+Per master instruction §39 and §7's cross-reference table, Wave 2 is "Course/Class expansion +
+billing model foundation." It shipped as the Course/Class model + billing foundation module
+(backend: 1644 tests, `mvnw verify` BUILD SUCCESS; frontend: lint/typecheck/build clean,
+Playwright green; reviewed by architecture, security/tenant-isolation, and payment-ledger
+reviewers, with a Phase E review finding — ADR-015 — fixed before sign-off). The concrete Wave 2
+backlog, against the items `implementation-roadmap.md` §7 assigned to it:
+
+1. **PAR-05-02 (staff course-creation entry point)** — **done.** `tenant-admin/courses/new`,
+   posting to the existing `POST /api/v1/courses` contract.
+2. **PAR-05-03 (draft → under-review → published lifecycle)** — **partially done.**
+   Draft/published/archived shipped (`CourseStatus` unchanged, plus new `archived_at`, V37); the
+   tenant-configurable "requires approval" under-review state remains blocked on `COURSE` domain
+   config properties that Wave 1's framework registered but never populated — still open, no wave
+   assigned.
+3. **PAR-05-04 (pricing models + billing periods)** — **done as a foundation**, with two
+   explicitly deferred downstream flows: `CUSTOM` pricing has no reachable checkout completion
+   (no staff-on-behalf-of-student order endpoint), and `MONTHLY`/`SESSION` billing periods are
+   manual/on-demand only (no recurring auto-charge scheduler) — both are documented,
+   intentional limitations of a "foundation" wave, not bugs.
+4. **PAR-05-06 (course detail workspace tabs)** — **partially done.** Fees & Billing, Settings,
+   and Access tabs are real and functional. Schedule/Sessions/Recordings/Analytics are deliberate
+   structural placeholders, blocked on Live Sessions (Wave 4) and `reporting-analytics`
+   (Wave 12). Students/Teachers/Materials/Attendance/Exams were never in this wave's scope as
+   course-scoped tabs and remain a pre-existing boundary, not a new gap.
+5. **PAR-05-07 (course clone)** — **done.** Copies structure + pricing config only, now
+   audit-logged (`CourseClonedEvent`, a Phase E review fix).
+6. **PAR-05-08 (course archive)** — **done.** Pure listing-visibility flag, no data touched.
+7. **PAR-XC-03 (Course/Class aggregate confirmation)** — **confirmed during planning**: Course
+   remains the single aggregate root; billing configuration/billing-period history were added as
+   new child tables (V38/V39), not a separate Class domain — matches the master instruction §8
+   default this row called for confirming explicitly.
+8. **PAR-26-01/02/03 (Course Reviews: submission, moderation queue, storefront display)** —
+   **explicitly descoped from this wave**, with the user's sign-off, in favor of the Course/Class
+   + billing foundation scope. Not started, not a regression — see the matrix rows for detail.
+9. **PAR-07-04 (Payment Dashboard course/teacher filter)** — **explicitly descoped from this
+   wave** for the same reason as the reviews items above; confirmed still absent from
+   `tenant-admin/payments/dashboard` by direct inspection, not merely unverified as the Wave 0
+   pass had recorded it.
+
+**One decision surfaced and resolved mid-wave, via a formal Phase E review and ADR (not silently
+decided by implementation):** the initial FREE-course `$0` checkout implementation gated
+auto-activation on the *resolved amount* being zero rather than on the course's `pricing_model`
+genuinely being `FREE`, and wrote no ledger entry for a FREE confirmation at all. Both gaps were
+caught by the architecture/security/payment-ledger review pass, escalated to the product owner
+as an explicit decision request, and resolved via `docs/adr/ADR-015-free-course-zero-amount-payment-and-ledger.md`
+(narrower auto-activation gate + a new, additive `V42` migration correcting the ledger-entry
+CHECK constraint) before the wave was considered done.
+
+See `docs/api/course-billing.md` for the full new API contract and
+`docs/plans/MVP-022 Course Billing and Lifecycle.md` for the reconstructed module plan (produced
+retroactively — this module's own plan was never persisted as a repo artifact before
+implementation began, a gap a Phase E review flagged, matching the same process gap
+`docs/api/course-management.md`'s own "Process gap" note records for MVP-008).
+
+## 9. What Wave 0 explicitly did not do
 
 Per the master instruction, this pass performed no production code, migration, or test changes.
 It also did not: re-derive every raw-SQL constraint file-by-file (relied on each spec's own
