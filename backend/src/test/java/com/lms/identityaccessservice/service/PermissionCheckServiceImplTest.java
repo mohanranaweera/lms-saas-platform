@@ -283,7 +283,10 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW),
 							cell(DomainArea.BRANDING_SETTINGS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
 							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-									PermissionAction.DELETE))),
+									PermissionAction.DELETE),
+							// Wave 4 (PAR-19-03) - "Live classes" row.
+							cell(DomainArea.LIVE_CLASSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+									PermissionAction.DELETE, PermissionAction.APPROVE))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
@@ -300,7 +303,10 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.COURSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT, PermissionAction.APPROVE),
 							cell(DomainArea.MATERIALS, PermissionAction.VIEW),
 							cell(DomainArea.REVIEWS_MODERATION, PermissionAction.VIEW, PermissionAction.APPROVE),
-							cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW))),
+							cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW),
+							// Wave 4 (PAR-19-03) - "Live classes" row, no DELETE.
+							cell(DomainArea.LIVE_CLASSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+									PermissionAction.APPROVE))),
 			Map.entry(Role.STUDENT_SUPPORT,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
 							cell(DomainArea.TEACHERS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),

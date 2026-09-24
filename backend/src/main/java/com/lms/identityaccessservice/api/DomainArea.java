@@ -54,6 +54,16 @@ public enum DomainArea {
 	 */
 	ACCESS_EXPIRY,
 
-	REVIEWS_MODERATION, AUDIT_LOG, BRANDING_SETTINGS, SUPPORT_TICKETS
+	REVIEWS_MODERATION, AUDIT_LOG, BRANDING_SETTINGS, SUPPORT_TICKETS,
+
+	/**
+	 * Wave 4 (PAR-19-03) - who may schedule/manage a live class ({@code
+	 * class_session}). Teacher/Teacher Assistant are deliberately absent from
+	 * this flat matrix (their access is course-ownership-scoped, enforced by
+	 * {@code liveclassmanagement.support.LiveClassAccessGuard}, mirroring
+	 * {@link #COURSES}'s identical Teacher-ownership carve-out) - a grant
+	 * here only ever applies to a staff sub-role.
+	 */
+	LIVE_CLASSES
 
 }

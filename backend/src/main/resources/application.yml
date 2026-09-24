@@ -80,6 +80,14 @@ payment:
     # unlike JWT_SECRET's dev-only-placeholder pattern above.
     webhook-secret: ${PAYMENT_GATEWAY_WEBHOOK_SECRET:}
 
+live-class:
+  provider:
+    # Wave 4 live-class meeting-provider webhook HMAC secret - never a real
+    # secret in this file, same fail-closed-empty-default rationale as
+    # payment.gateway.webhook-secret above. LIVE_CLASS_PROVIDER_WEBHOOK_SECRET
+    # must be set via a real env var in every non-local environment.
+    webhook-secret: ${LIVE_CLASS_PROVIDER_WEBHOOK_SECRET:}
+
 app:
   security:
     # Argon2id parameters (AUTH-3), OWASP-baseline defaults - see

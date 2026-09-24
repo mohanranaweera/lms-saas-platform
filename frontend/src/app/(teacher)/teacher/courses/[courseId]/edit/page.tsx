@@ -45,9 +45,14 @@ export default function EditCoursePage() {
             dedicated actions below.
           </p>
         </div>
-        <Button render={<Link href={`/teacher/courses/${courseId}/modules`} />} variant="outline">
-          Manage modules & lessons
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button render={<Link href={`/teacher/courses/${courseId}/modules`} />} variant="outline">
+            Manage modules & lessons
+          </Button>
+          <Button render={<Link href={`/teacher/live-classes?courseId=${courseId}`} />} variant="outline">
+            Manage live classes
+          </Button>
+        </div>
       </div>
 
       {justCloned ? (

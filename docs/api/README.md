@@ -40,3 +40,5 @@ Domain contract files, in the order they landed:
   directory until a post-ship review found the gap).
 - `audit-log-management.md` — MVP-019 (AUDIT-3's read endpoint only; AUDIT-2's event
   wiring has no HTTP surface of its own).
+- `live-class-management.md` — Wave 4 (PAR-19-01–05), plus the `integration-management`-owned
+  `live-class` webhook.

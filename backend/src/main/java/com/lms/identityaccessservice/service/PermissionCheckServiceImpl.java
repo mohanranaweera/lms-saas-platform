@@ -151,7 +151,11 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
 			.grant(DomainArea.BRANDING_SETTINGS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
 			.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-					PermissionAction.DELETE)));
+					PermissionAction.DELETE)
+			// Wave 4 (PAR-19-03) - full grant, mirrors this role's pattern
+			// elsewhere in the matrix.
+			.grant(DomainArea.LIVE_CLASSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+					PermissionAction.DELETE, PermissionAction.APPROVE)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
 			.grant(DomainArea.COURSES, PermissionAction.VIEW)
@@ -173,7 +177,12 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 							PermissionAction.APPROVE)
 					.grant(DomainArea.MATERIALS, PermissionAction.VIEW)
 					.grant(DomainArea.REVIEWS_MODERATION, PermissionAction.VIEW, PermissionAction.APPROVE)
-					.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)));
+					.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
+					// Wave 4 (PAR-19-03) - "Course Coordinator V/C/E/A" per the
+					// parity matrix's own suggested mapping (Wave 4 plan §3/§10
+					// judgment call 3) - no DELETE.
+					.grant(DomainArea.LIVE_CLASSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+							PermissionAction.APPROVE)));
 
 		matrix.put(Role.STUDENT_SUPPORT,
 				roleGrants(builder -> builder

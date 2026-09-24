@@ -165,7 +165,7 @@ default_currency) are a conservative starter set, since no spec document enumera
 | 1 | Tenant Admin nav + tenant configuration framework | PAR-XC-01, PAR-XC-02, PAR-02-01/02/03, PAR-14-01–04, PAR-26-04 (toggle only) |
 | 2 | Course/Class expansion + billing model foundation — **STATUS: DONE, with caveats (see §8)** | PAR-05-02/03/04/06/07/08, PAR-XC-03, PAR-26-01/02/03, PAR-07-04 (course/teacher filter) |
 | 3 | Student and Teacher operational profiles — **STATUS: DONE (see §10)** | PAR-03-01/02/03/04/05/06, PAR-04-03/04 |
-| 4 | ClassSession and Zoom/meeting integration | PAR-19-01–05, PAR-10-01 (interaction only), PAR-10-03 |
+| 4 | ClassSession and Zoom/meeting integration — **STATUS: DONE, with one deferral (see `docs/parity/waves/wave-04-plan.md` §11)** | PAR-19-01–05 (done), PAR-10-01 (verified unchanged), PAR-10-03 (event contract done, consumer deferred to Wave 8) |
 | 5 | Materials, video and playback policies | PAR-06-03/04/05, PAR-17-01–04, PAR-20-01–05, PAR-27-01/02 |
 | 6 | Billing periods and Student Payment parity | PAR-09-04/05, PAR-18-02/03/04, PAR-XC-04 |
 | 7 | Finance, expenses and settlement foundation | PAR-23-01–05, PAR-24-02/03/04 |

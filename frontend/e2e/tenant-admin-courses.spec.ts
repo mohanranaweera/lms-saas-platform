@@ -274,9 +274,12 @@ test.describe("tenant admin course workspace — Overview tab", () => {
 });
 
 test.describe("tenant admin course workspace — placeholder tabs", () => {
-  test("Schedule/Sessions/Recordings/Analytics are visible, clickable, and show an honest not-yet-available state", async ({
+  test("Schedule/Recordings/Analytics are visible, clickable, and show an honest not-yet-available state", async ({
     page,
   }) => {
+    // Sessions is no longer a placeholder as of Wave 4 (PAR-19-03/live-class-
+    // management) — see the dedicated "Sessions tab (Wave 4)" describe block
+    // below for its real-content coverage.
     const course = COURSES[0];
     await loginAsTenantAdmin(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
@@ -285,7 +288,6 @@ test.describe("tenant admin course workspace — placeholder tabs", () => {
 
     for (const [label, expectedTitle] of [
       ["Schedule", "Schedule isn't available yet"],
-      ["Sessions", "Sessions isn't available yet"],
       ["Recordings", "Recordings isn't available yet"],
       ["Analytics", "Analytics isn't available yet"],
     ] as const) {
@@ -294,6 +296,23 @@ test.describe("tenant admin course workspace — placeholder tabs", () => {
       await expect(page.getByText(expectedTitle)).toBeVisible();
       await expect(page.getByText("Coming in a later release.")).toBeVisible();
     }
+  });
+});
+
+test.describe("tenant admin course workspace — Sessions tab (Wave 4)", () => {
+  test("lists this course's live class sessions, scoped via courseId, with an empty state when none exist", async ({
+    page,
+  }) => {
+    const course = COURSES[0];
+    await loginAsTenantAdmin(page);
+    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
+    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
+    await mockJson(page, "**/v1/class-sessions*", 200, apiSuccess([]));
+    await gotoCourseDetail(page, course);
+
+    await gotoTab(page, "Sessions");
+    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${course.id}/sessions$`));
+    await expect(page.getByText("No live class sessions for this course yet")).toBeVisible();
   });
 });
 

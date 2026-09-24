@@ -52,6 +52,13 @@ payment:
     # @TestPropertySource.
     webhook-secret: "test-only-webhook-secret-not-for-production-use"
 
+live-class:
+  provider:
+    # Fixed, clearly-not-a-production test-only secret (Wave 4) - see
+    # src/main/resources/application.yml's own comment for why the main
+    # default is empty instead.
+    webhook-secret: "test-only-live-class-webhook-secret-not-for-production-use"
+
 app:
   mail:
     from-address: "no-reply@example.com"

@@ -299,6 +299,34 @@ export function canManageInstituteConfig(role: string | null): boolean {
 }
 
 /**
+ * Roles holding `LIVE_CLASSES`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (Wave 4) — Tenant Admin (full grant) and Course Coordinator
+ * (`V/C/E/A`, no `DELETE`). No other staff sub-role holds any `LIVE_CLASSES`
+ * grant (absence = deny). Gates the Tenant Admin "Live Classes" nav entry and
+ * the oversight list's initial render — `LiveClassAccessGuard`'s own
+ * `requireManagementAccess`/`requireEntitlement` checks remain the sole
+ * enforcement for a role without this grant that navigates directly to
+ * `/tenant-admin/live-classes`.
+ */
+export function canViewLiveClassesStaff(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "COURSE_COORDINATOR";
+}
+
+/**
+ * Roles holding `LIVE_CLASSES`/`CREATE_EDIT` per `PermissionCheckServiceImpl`'s
+ * matrix — the same two roles as {@link canViewLiveClassesStaff} today
+ * (Tenant Admin and Course Coordinator both hold `CREATE_EDIT`), kept as its
+ * own named export since "can view the oversight list" and "can retry a
+ * stuck provisioning" are conceptually distinct capabilities. Gates the
+ * Tenant Admin oversight list's per-row "Retry provisioning" action — UX
+ * convenience only, `LiveClassAccessGuard#requireManagementAccess` remains
+ * the real enforcement on `POST .../retry-provisioning`.
+ */
+export function canManageLiveClassesStaff(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "COURSE_COORDINATOR";
+}
+
+/**
  * True for the two roles that own a course's Teacher Portal identity
  * (`TEACHER`, `TEACHER_ASSISTANT`) — used purely for "Viewing as X"
  * disclosure banners on exam screens nested under `app/(teacher)/` that

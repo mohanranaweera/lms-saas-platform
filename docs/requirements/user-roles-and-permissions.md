@@ -65,6 +65,15 @@ results), `—` = no access. This is a starting matrix for IA/navigation purpose
 | Audit log | V | V (own-area actions) | V (own-area actions) | V (own-area actions) | V (own-area actions) | V (own-area actions) | V (own-area actions) | V (full) |
 | Branding & settings | V/C/E | — | — | — | — | — | — | V |
 | Support tickets | V/C/E/D | — | — | V/C/E | — | — | — | V |
+| Live classes | V/C/E/D/A | — | V/C/E/A | — | — | — | — | — |
+
+Live classes (Wave 4, PAR-19-03): who may schedule/manage a `class_session` at the
+staff-matrix level — Teacher/Teacher Assistant ownership access is separate, scoped to
+their own assigned courses, enforced by `liveclassmanagement.support.LiveClassAccessGuard`
+(same carve-out shape as Courses' V/C/E/D column, not a matrix row of its own). No grant
+for Read-only Auditor beyond the base "no mutating permission" guarantee below — unlike
+every other domain area, this role gets no `V` entry either (`—`), since Wave 4 introduced
+no separate Tenant-Admin-oversight-only view requirement for this role.
 
 Read-only Auditor: server-side, **no mutating endpoint may succeed for this role,
 regardless of what a stale client UI exposes** (`authentication-authorization.md` §9).

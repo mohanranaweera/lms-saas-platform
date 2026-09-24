@@ -5,6 +5,7 @@ export function StudentNav({ onNavigate }: { onNavigate?: () => void }) {
   const items: NavItem[] = [
     { label: "Dashboard", href: "/student/dashboard" },
     { label: "My Courses", href: "/student/courses" },
+    { label: "Live Classes", href: "/student/live-classes" },
     { label: "My Attendance", href: "/student/attendance" },
     { label: "Exams", href: "/student/exams" },
     { label: "Payments", href: "/student/payments/history" },
