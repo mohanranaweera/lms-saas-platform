@@ -106,7 +106,12 @@ These cannot be resolved by engineering judgment and should be escalated to the 
 owner before their wave starts, per root `CLAUDE.md`'s instruction not to silently decide
 unresolved business requirements:
 
-1. Video/object storage provider selection (blocks PAR-20-05, and therefore all of Wave 5).
+1. Video/object storage provider selection (blocks PAR-20-05). **Update (Wave 5):** this
+   no longer blocks all of Wave 5 — a real, vendor-agnostic `S3ObjectStorageApi` was
+   wired against the already-provisioned dev MinIO, unblocking end-to-end testing
+   without deciding the vendor. Only the **production** vendor choice remains blocked;
+   see `docs/parity/waves/wave-05-plan.md` §10 item 1 and
+   `docs/parity/klass-parity-matrix.md`'s PAR-20-05 row.
 2. SMS provider selection (blocks PAR-21-03, Wave 11).
 3. WhatsApp Business API provider selection (blocks PAR-22-03, Wave 11).
 4. Staff-count vs. plan-limit enforcement's owning module ("Module D," unratified — blocks
@@ -114,8 +119,12 @@ unresolved business requirements:
 5. Model Paper Library ownership, Teacher vs. Tenant Admin (blocks PAR-11-06).
 6. WordPress migration's product scope, if it is ever to be treated as a phase-tagged feature at
    all (blocks PAR-28-01).
-7. Whether YouTube/Vimeo-attached content is exempt from secure-video controls (blocks PAR-27-03,
-   and indirectly informs how urgently PAR-20 needs to ship first).
+7. Whether YouTube/Vimeo-attached content is exempt from secure-video controls (blocked
+   PAR-27-03). **Update (Wave 5):** resolved as a documented judgment call rather than
+   left blocked — decided yes, exempt (no server-side control over a third-party
+   player exists), implemented, and flagged in `docs/parity/waves/wave-05-plan.md` §10
+   item 2 as a product-facing claim still worth explicit product-owner sign-off, not a
+   silently final decision.
 
 None of these block Wave 1, which is scoped entirely around items that do not depend on any of
 the above.
@@ -166,7 +175,7 @@ default_currency) are a conservative starter set, since no spec document enumera
 | 2 | Course/Class expansion + billing model foundation — **STATUS: DONE, with caveats (see §8)** | PAR-05-02/03/04/06/07/08, PAR-XC-03, PAR-26-01/02/03, PAR-07-04 (course/teacher filter) |
 | 3 | Student and Teacher operational profiles — **STATUS: DONE (see §10)** | PAR-03-01/02/03/04/05/06, PAR-04-03/04 |
 | 4 | ClassSession and Zoom/meeting integration — **STATUS: DONE, with one deferral (see `docs/parity/waves/wave-04-plan.md` §11)** | PAR-19-01–05 (done), PAR-10-01 (verified unchanged), PAR-10-03 (event contract done, consumer deferred to Wave 8) |
-| 5 | Materials, video and playback policies | PAR-06-03/04/05, PAR-17-01–04, PAR-20-01–05, PAR-27-01/02 |
+| 5 | Materials, video and playback policies — **STATUS: DONE, with two explicit judgment calls (see `docs/parity/waves/wave-05-plan.md` §10)** | PAR-06-02 (fix — corrects a stale Wave 0 `MATCHES`), PAR-06-03/05 (done), PAR-06-04 (verified, not built), PAR-06-05/PAR-27-01 (done), PAR-17-01 (done), PAR-20-01–04 (done), PAR-20-05 (dev/test done, production vendor still BLOCKED), PAR-27-03 (resolved as a documented judgment call, product sign-off recommended) |
 | 6 | Billing periods and Student Payment parity | PAR-09-04/05, PAR-18-02/03/04, PAR-XC-04 |
 | 7 | Finance, expenses and settlement foundation | PAR-23-01–05, PAR-24-02/03/04 |
 | 8 | Attendance parity using ClassSession | PAR-10-04 |
@@ -176,9 +185,9 @@ default_currency) are a conservative starter set, since no spec document enumera
 | 12 | Dashboards and reporting | PAR-05-06 (Analytics tab), PAR-XC-05 |
 | 13 | Public storefront, branding and domain parity | PAR-15-01/02/03 |
 | 14 | Cross-role product parity regression | (regression pass over all MATCHES + newly shipped items) |
-| 15 | Security, performance, staging and final readiness review | PAR-01-04, PAR-07-02, PAR-08-04, PAR-13-02/04, PAR-03-02, PAR-04-04, PAR-06-04, PAR-XC-05 (all remaining NEEDS_VERIFICATION items) |
+| 15 | Security, performance, staging and final readiness review | PAR-01-04, PAR-07-02, PAR-08-04, PAR-13-02/04, PAR-03-02, PAR-04-04, PAR-XC-05 (all remaining NEEDS_VERIFICATION items — PAR-06-04 removed from this list, verified in Wave 5) |
 | Unscheduled | Confirmed gap, no wave slot in master instruction §39; recommend alongside/after Wave 1 | PAR-01-06 (Platform Admin tenant suspend/cancel — confirmed absent by code inspection, not merely unverified) |
-| BLOCKED | Awaiting business/procurement decisions | PAR-02-05, PAR-11-06, PAR-20-05, PAR-21-03, PAR-22-03, PAR-27-03, PAR-28-01 |
+| BLOCKED | Awaiting business/procurement decisions | PAR-02-05, PAR-11-06, PAR-20-05 (dev/test unblocked in Wave 5; **production vendor decision only** remains BLOCKED), PAR-21-03, PAR-22-03, PAR-28-01 |
 
 ## 8. Recommended Wave 2 scope — STATUS: DONE, with caveats (see `klass-parity-matrix.md` for row-level detail)
 

@@ -43,6 +43,21 @@ management:
       exposure:
         include: health,info
 
+object-storage:
+  # Local dev talks to the docker-compose.dev.yml MinIO service (S3
+  # -compatible) - endpoint/bucket/region are dev-only defaults with no
+  # equivalent in the base application.yml (which fails closed to
+  # UnavailableObjectStorageApi until every OBJECT_STORAGE_* var is set).
+  # Credentials default to the same MINIO_ROOT_USER/MINIO_ROOT_PASSWORD
+  # values docker-compose.dev.yml provisions the MinIO container with
+  # (see infrastructure/.env.dev), mirroring how spring.datasource above
+  # defaults to POSTGRES_USER/POSTGRES_PASSWORD's own dev values.
+  endpoint: ${OBJECT_STORAGE_ENDPOINT:http://localhost:9000}
+  region: ${OBJECT_STORAGE_REGION:us-east-1}
+  bucket: ${OBJECT_STORAGE_BUCKET:lms-dev}
+  access-key: ${OBJECT_STORAGE_ACCESS_KEY:${MINIO_ROOT_USER:lms_minio}}
+  secret-key: ${OBJECT_STORAGE_SECRET_KEY:${MINIO_ROOT_PASSWORD:change_this_local_password}}
+
 app:
   security:
     jwt:

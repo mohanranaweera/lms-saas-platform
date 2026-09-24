@@ -3,6 +3,9 @@ package com.lms.contentmanagement.material.service;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -23,13 +26,26 @@ import org.springframework.stereotype.Component;
  * <p><b>Student anti-enumeration rule (plan §16/§21 item 6):</b> every
  * denial for a STUDENT-role caller throws {@link NotFoundException} (never
  * {@link AccessDeniedException}) - a Student must never be able to
- * distinguish "wrong tenant", "wrong course", "unpublished course", or
- * (checked separately, in {@code MaterialService}) "hidden material" from a
- * genuinely nonexistent id. Staff/Teacher callers keep the existing 403/404
- * split already established by {@code CourseAccessGuard} (403 = exists in
- * my tenant, I lack the specific right; 404 = doesn't exist in my tenant)
- * since they already have legitimate visibility into their own tenant's
- * course existence.
+ * distinguish "wrong tenant", "wrong course", "unpublished course", "not
+ * enrolled"/"expired enrollment", or (checked separately, in {@code
+ * MaterialService}) "hidden material" from a genuinely nonexistent id.
+ * Staff/Teacher callers keep the existing 403/404 split already established
+ * by {@code CourseAccessGuard} (403 = exists in my tenant, I lack the
+ * specific right; 404 = doesn't exist in my tenant) since they already have
+ * legitimate visibility into their own tenant's course existence.
+ *
+ * <p><b>Wave 5 security fix (plan §1's "pre-existing security gap found"):</b>
+ * the Student branch previously checked only {@code ownership.coursePublished()}
+ * - ANY authenticated Student in the tenant could list/view/download
+ * materials of any published course, enrolled or not. This now additionally
+ * requires {@link EnrollmentAccessApi#resolveAccessState} to report {@link
+ * EnrollmentAccessStateType#ACTIVE}, mirroring {@code
+ * liveclassmanagement.support.LiveClassAccessGuard#requireEntitlement}'s
+ * identical, already-established pattern exactly. This closes a gap - it
+ * does not introduce a new enrollment-activation mechanism (root {@code
+ * CLAUDE.md}'s change-controlled "enrollment activation rules" is
+ * untouched: enrollment itself still only ever activates from verified
+ * payment/manual-slip confirmation elsewhere).
  *
  * <p>Teacher Assistant is treated identically to Teacher here per {@code
  * docs/requirements/user-roles-and-permissions.md} §3's proposed default -
@@ -65,9 +81,13 @@ public class MaterialAccessGuard {
 
 	private final PermissionCheckService permissionCheckService;
 
-	public MaterialAccessGuard(CourseLookupApi courseLookupApi, PermissionCheckService permissionCheckService) {
+	private final EnrollmentAccessApi enrollmentAccessApi;
+
+	public MaterialAccessGuard(CourseLookupApi courseLookupApi, PermissionCheckService permissionCheckService,
+			EnrollmentAccessApi enrollmentAccessApi) {
 		this.courseLookupApi = courseLookupApi;
 		this.permissionCheckService = permissionCheckService;
+		this.enrollmentAccessApi = enrollmentAccessApi;
 	}
 
 	public LessonOwnership requireLessonAccess(UUID courseId, UUID moduleId, UUID lessonId, PermissionAction action) {
@@ -86,6 +106,10 @@ public class MaterialAccessGuard {
 
 		if (STUDENT_ROLE.equals(principal.role())) {
 			if (action != PermissionAction.VIEW || !ownership.coursePublished()) {
+				throw new NotFoundException("Lesson not found");
+			}
+			EnrollmentAccessState state = enrollmentAccessApi.resolveAccessState(principal.userId(), ownership.courseId());
+			if (state.state() != EnrollmentAccessStateType.ACTIVE) {
 				throw new NotFoundException("Lesson not found");
 			}
 			return ownership;

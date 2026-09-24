@@ -153,6 +153,17 @@
 			<artifactId>testcontainers-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<!-- Wave 5 (PAR-20-05 dev-scoped, S3ObjectStorageApi) - AWS SDK v2
+			     S3 client, also usable against any S3-compatible endpoint
+			     (e.g. MinIO in dev, see docker-compose.dev.yml) via
+			     endpoint-override + path-style access. Not covered by
+			     Spring Boot's dependency-management BOM, so the version is
+			     pinned explicitly here. -->
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.55.4</version>
+		</dependency>
 	</dependencies>
 
 	<build>

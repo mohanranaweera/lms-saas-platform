@@ -22,9 +22,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Accordion } from "@/components/ui/accordion";
 import { TitleInlineForm } from "@/components/courses/title-inline-form";
+import { SecureVideoPlayer } from "@/components/courses/secure-video-player";
 import {
   formatFileSize,
+  materialDownloadErrorMessage,
   useDeleteMaterial,
   useMaterialDownloadUrl,
   useUpdateMaterial,
@@ -32,6 +36,22 @@ import {
   type MaterialVisibility,
 } from "@/lib/api/materials";
 import { isApiClientError } from "@/lib/api/error";
+
+const MATERIAL_TYPE_LABELS: Record<MaterialResponse["materialType"], string> = {
+  PDF: "PDF",
+  IMAGE: "Image",
+  DOCUMENT: "Document",
+  OTHER: "File",
+  LINK: "Link",
+  NOTE: "Note",
+  VIDEO: "Video",
+  RECORDING: "Recording",
+};
+
+/** Materials whose content is served through the generic signed-download-url endpoint (see `MaterialService#getDownloadUrl`'s per-type branching) — everything except `NOTE`/`VIDEO`/`RECORDING`. */
+function usesDownloadUrlAction(materialType: MaterialResponse["materialType"]): boolean {
+  return materialType !== "NOTE" && materialType !== "VIDEO" && materialType !== "RECORDING";
+}
 
 interface MaterialRowProps {
   courseId: string;
@@ -82,6 +102,13 @@ export function MaterialRow({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [visibilityError, setVisibilityError] = useState<string | null>(null);
   const [viewError, setViewError] = useState<string | null>(null);
+  // Controlled (not `Accordion`'s own internal state) so `SecureVideoPlayer`
+  // is only ever mounted — and only ever issues a playback session — once
+  // the Teacher actually expands the preview, never eagerly for every video
+  // material row (`Accordion` itself always keeps its children mounted in
+  // the DOM, just visually `hidden`, so relying on that alone would issue a
+  // session on every page load regardless of whether this row is expanded).
+  const [videoPreviewOpen, setVideoPreviewOpen] = useState(false);
 
   const renameMutation = useUpdateMaterial(courseId, moduleId, lessonId);
   const visibilityMutation = useUpdateMaterial(courseId, moduleId, lessonId);
@@ -128,7 +155,10 @@ export function MaterialRow({
       window.open(result.url, "_blank", "noopener,noreferrer");
     } catch (error) {
       setViewError(
-        isApiClientError(error) ? error.message : "Couldn't open this material. Please try again."
+        materialDownloadErrorMessage(
+          error,
+          isApiClientError(error) ? error.message : "Couldn't open this material. Please try again."
+        )
       );
     }
   };
@@ -150,10 +180,36 @@ export function MaterialRow({
             });
           }}
         />
-        <p className="mt-1 truncate text-xs text-muted-foreground">
-          {material.originalFilename} &middot; {material.mimeType} &middot;{" "}
-          {formatFileSize(material.sizeBytes)}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline">{MATERIAL_TYPE_LABELS[material.materialType]}</Badge>
+          <p className="truncate text-xs text-muted-foreground">
+            {material.materialType === "LINK"
+              ? material.externalUrl
+              : material.materialType === "NOTE"
+                ? "Inline note"
+                : material.originalFilename && material.mimeType
+                  ? `${material.originalFilename} · ${material.mimeType} · ${formatFileSize(material.sizeBytes)}`
+                  : null}
+          </p>
+        </div>
+
+        {material.materialType === "NOTE" ? (
+          <p className="mt-2 whitespace-pre-wrap rounded-md border border-border/70 bg-background p-2 text-sm text-foreground">
+            {material.noteContent}
+          </p>
+        ) : null}
+
+        {(material.materialType === "VIDEO" || material.materialType === "RECORDING") &&
+        material.videoAssetId ? (
+          <div className="mt-2">
+            <Accordion title="Preview video" open={videoPreviewOpen} onOpenChange={setVideoPreviewOpen}>
+              {videoPreviewOpen ? (
+                <SecureVideoPlayer videoAssetId={material.videoAssetId} title={material.title} />
+              ) : null}
+            </Accordion>
+          </div>
+        ) : null}
+
         {visibilityError ? (
           <Alert variant="destructive" className="mt-2">
             <AlertDescription>{visibilityError}</AlertDescription>
@@ -198,16 +254,18 @@ export function MaterialRow({
           </Select>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleView}
-          disabled={disabled || downloadUrlMutation.isPending}
-          aria-busy={downloadUrlMutation.isPending}
-        >
-          {downloadUrlMutation.isPending ? "Opening…" : "View"}
-        </Button>
+        {usesDownloadUrlAction(material.materialType) ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleView}
+            disabled={disabled || downloadUrlMutation.isPending}
+            aria-busy={downloadUrlMutation.isPending}
+          >
+            {downloadUrlMutation.isPending ? "Opening…" : "View"}
+          </Button>
+        ) : null}
 
         <Button
           type="button"

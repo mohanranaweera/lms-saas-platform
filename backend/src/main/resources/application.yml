@@ -88,6 +88,36 @@ live-class:
     # must be set via a real env var in every non-local environment.
     webhook-secret: ${LIVE_CLASS_PROVIDER_WEBHOOK_SECRET:}
 
+object-storage:
+  # Wave 5 (S3ObjectStorageApi / UnavailableObjectStorageApi conditional
+  # bean pair) - S3-compatible object storage (AWS SDK v2, works against
+  # MinIO in dev and any S3-compatible vendor in production). Never a real
+  # value in this file, same blank-default-fail-closed rationale as
+  # payment.gateway.webhook-secret above - bucket blank means
+  # UnavailableObjectStorageApi (503) stays the active bean; setting all
+  # four OBJECT_STORAGE_* env vars in a real environment activates
+  # S3ObjectStorageApi instead. See application-local.yml for this
+  # environment's own MinIO-pointed override.
+  endpoint: ${OBJECT_STORAGE_ENDPOINT:}
+  region: ${OBJECT_STORAGE_REGION:us-east-1}
+  bucket: ${OBJECT_STORAGE_BUCKET:}
+  access-key: ${OBJECT_STORAGE_ACCESS_KEY:}
+  secret-key: ${OBJECT_STORAGE_SECRET_KEY:}
+
+video-playback:
+  token:
+    # Wave 5 (PAR-20-01) video-playback JWT signing secret - deliberately a
+    # DISTINCT secret from app.security.jwt.secret (never reused/derived from
+    # it), so a leaked playback token can never be replayed as a login
+    # session and vice versa (PlaybackTokenService's own javadoc). Same
+    # empty-default-fail-closed rationale as payment.gateway.webhook-secret
+    # above (never a dev-only placeholder like JWT_SECRET) -
+    # VIDEO_PLAYBACK_TOKEN_SECRET must be set via a real env var in every
+    # non-local environment; until then PlaybackTokenService refuses to
+    # issue/validate any playback token with a clean 503, not a silently
+    # -accepted forged token.
+    secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:}
+
 app:
   security:
     # Argon2id parameters (AUTH-3), OWASP-baseline defaults - see
@@ -136,4 +166,12 @@ app:
       # reusing app.content.material.max-file-size-bytes, since the two
       # upload paths are differently scoped and nothing ties their limits
       # together as a matter of ratified business decision.
+      max-file-size-bytes: 26214400
+  video-access:
+    asset:
+      # Wave 5 working default, mirroring app.content.material/app.payment.slip's
+      # own not-ratified-anywhere gap - 25 MB, deliberately re-declared here
+      # rather than reusing either sibling property, for the same
+      # differently-scoped-upload-path reason documented on
+      # app.payment.slip.max-file-size-bytes above.
       max-file-size-bytes: 26214400

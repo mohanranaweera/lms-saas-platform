@@ -42,3 +42,9 @@ Domain contract files, in the order they landed:
   wiring has no HTTP surface of its own).
 - `live-class-management.md` — Wave 4 (PAR-19-01–05), plus the `integration-management`-owned
   `live-class` webhook.
+- `content-management.md` — updated in Wave 5 (PAR-06-02/03/05, PAR-27-01) for the
+  `materialType` discriminator, availability-window/download-limit fields, and the
+  Student enrollment-check security fix; originally written retroactively for MVP-009.
+- `video-access-management.md` — Wave 5 (PAR-17-01, PAR-20-01–04), new domain's first
+  contract file: video upload, playback-policy upsert, and entitlement-checked
+  playback-session issuance/heartbeat/end.

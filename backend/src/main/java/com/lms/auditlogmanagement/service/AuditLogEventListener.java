@@ -12,6 +12,7 @@ import com.lms.coursemanagement.api.CoursePricingModelChangedEvent;
 import com.lms.paymentmanagement.api.OrderCustomAmountAppliedEvent;
 import com.lms.paymentmanagement.api.PaymentRefundedEvent;
 import com.lms.tenantmanagement.api.TenantStatusChangedEvent;
+import com.lms.videoaccessmanagement.api.VideoPlaybackSessionRevokedEvent;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.context.event.EventListener;
@@ -179,6 +180,27 @@ public class AuditLogEventListener {
 		metadata.put("courseId", event.courseId());
 		auditLogApi.record(new AuditLogEntry(event.deletedBy(), "material.deleted", "material", event.materialId(),
 				null, metadata));
+	}
+
+	/**
+	 * Wave 5 (PAR-20-02, {@code .claude/rules/security.md}'s "IP/device
+	 * anomaly signals detected during playback... must trigger session
+	 * revocation server-side and an audit/security log entry" requirement).
+	 * {@code actorId} = the student whose own request (a progress heartbeat
+	 * reporting a mismatched device fingerprint, or one that would exceed
+	 * {@code max_watch_duration_seconds}) triggered the automatic,
+	 * server-side revocation - there is no separate staff/admin actor for
+	 * this event, mirroring {@link #onPaymentRefunded}'s "the authenticated
+	 * caller whose action the audit row is about" convention for a
+	 * system-detected rather than manually-initiated action.
+	 */
+	@EventListener
+	public void onVideoPlaybackSessionRevoked(VideoPlaybackSessionRevokedEvent event) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("videoAssetId", event.videoAssetId());
+		metadata.put("reason", event.reason());
+		auditLogApi.record(new AuditLogEntry(event.studentId(), "video_watch_session.revoked", "video_watch_session",
+				event.watchSessionId(), event.reason(), metadata));
 	}
 
 	@EventListener

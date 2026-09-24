@@ -5,11 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
+import com.lms.contentmanagement.material.domain.MaterialType;
 import com.lms.contentmanagement.material.domain.MaterialVisibility;
 import com.lms.contentmanagement.material.web.dto.MaterialDownloadUrlResponse;
 import com.lms.contentmanagement.material.web.dto.MaterialResponse;
 import com.lms.contentmanagement.material.web.dto.MaterialUpdateRequest;
-import com.lms.coursemanagement.CourseManagementTestSupport;
+import com.lms.enrollmentmanagement.EnrollmentManagementTestSupport;
 import com.lms.identityaccessservice.HttpResult;
 import com.lms.integrationmanagement.InMemoryObjectStorageApiTestConfig;
 import java.nio.charset.StandardCharsets;
@@ -25,14 +26,19 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 /**
- * Shared Testcontainers/MockMvc helpers for Content Management (MVP-009)'s
- * integration tests, mirroring {@code CourseManagementTestSupport}'s
- * established technique exactly (MockMvc, not a real socket round-trip, so
- * {@code Host} header spoofing - which {@code TenantResolutionFilter} depends
- * on - works; see {@code HttpResult}'s javadoc). Extends {@code
- * CourseManagementTestSupport} so material tests get its tenant/user/course
- * /module/lesson seeding and login helpers for free - materials always
- * attach to a real course/module/lesson. Also imports {@link
+ * Shared Testcontainers/MockMvc helpers for Content Management (MVP-009,
+ * extended Wave 5)'s integration tests, mirroring {@code
+ * CourseManagementTestSupport}'s established technique exactly (MockMvc, not
+ * a real socket round-trip, so {@code Host} header spoofing - which {@code
+ * TenantResolutionFilter} depends on - works; see {@code HttpResult}'s
+ * javadoc). Extends {@code EnrollmentManagementTestSupport} (Wave 5 change -
+ * previously extended {@code CourseManagementTestSupport} directly) so
+ * material tests get its tenant/user/course/module/lesson seeding AND real
+ * order/payment/webhook-driven enrollment seeding for free, mirroring {@code
+ * LiveClassManagementTestSupport}'s identical precedent - a real,
+ * webhook-confirmed payment is the only legitimate way a Student's {@code
+ * ACTIVE} entitlement can exist for {@code MaterialAccessGuard} to see, now
+ * that its Wave 5 security fix actually checks for one. Also imports {@link
  * InMemoryObjectStorageApiTestConfig} so {@code createMaterial}/{@code
  * getDownloadUrl}/{@code deleteMaterial} actually succeed against a real
  * (in-memory) object store instead of the production {@code
@@ -43,7 +49,21 @@ import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequ
  * @Test} methods, name doesn't match Surefire's inclusion patterns).
  */
 @Import(InMemoryObjectStorageApiTestConfig.class)
-public abstract class ContentManagementTestSupport extends CourseManagementTestSupport {
+public abstract class ContentManagementTestSupport extends EnrollmentManagementTestSupport {
+
+	/**
+	 * Completes a real order -> payment -> webhook-confirm purchase,
+	 * activating a current enrollment - mirrors {@code
+	 * LiveClassManagementTestSupport#enrollStudentOrFail} exactly (Wave 5).
+	 */
+	protected void enrollStudentOrFail(String host, String studentToken, UUID courseId) {
+		var order = createOrderOrFail(host, studentToken, courseId);
+		var initiation = initiatePaymentOrFail(host, studentToken, order.id());
+		HttpResult<Void> webhook = sendPaymentWebhook(initiation.gatewayReference(), true);
+		if (webhook.getStatusCode() != HttpStatus.OK) {
+			throw new IllegalStateException("Enrollment webhook confirmation failed: " + webhook.getStatusCode());
+		}
+	}
 
 	// ------------------------------------------------------------------
 	// Fixture byte helpers - matching ContentSniffer's accepted signatures
@@ -126,6 +146,84 @@ public abstract class ContentManagementTestSupport extends CourseManagementTestS
 		if (result.getStatusCode() != HttpStatus.CREATED) {
 			throw new IllegalStateException(
 					"Material creation failed: " + result.getStatusCode() + " " + result.getBody());
+		}
+		return result.getBody().data();
+	}
+
+	/**
+	 * General-purpose create-material helper (Wave 5) exercising every new
+	 * per-type field via raw multipart form params - {@code null} arguments
+	 * are simply omitted from the request rather than sent as an empty
+	 * string, so a test can precisely simulate "this field was never
+	 * supplied at all".
+	 */
+	protected HttpResult<MaterialResponse> createMaterialRaw(String host, String token, UUID courseId, UUID moduleId,
+			UUID lessonId, String title, MaterialType materialType, MockMultipartFile file, String externalUrl,
+			String noteContent, UUID videoAssetId, UUID sessionId, Integer maxDownloads, String availableFromAt,
+			String expiryAt) {
+		MockMultipartHttpServletRequestBuilder builder = multipart(
+				"/api/v1/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}/materials", courseId, moduleId,
+				lessonId).param("title", title);
+		if (file != null) {
+			builder.file(file);
+		}
+		if (materialType != null) {
+			builder.param("materialType", materialType.name());
+		}
+		if (externalUrl != null) {
+			builder.param("externalUrl", externalUrl);
+		}
+		if (noteContent != null) {
+			builder.param("noteContent", noteContent);
+		}
+		if (videoAssetId != null) {
+			builder.param("videoAssetId", videoAssetId.toString());
+		}
+		if (sessionId != null) {
+			builder.param("sessionId", sessionId.toString());
+		}
+		if (maxDownloads != null) {
+			builder.param("maxDownloads", maxDownloads.toString());
+		}
+		if (availableFromAt != null) {
+			builder.param("availableFromAt", availableFromAt);
+		}
+		if (expiryAt != null) {
+			builder.param("expiryAt", expiryAt);
+		}
+		return parseSingle(performMultipart(authenticatedMultipart(builder, host, token)), MaterialResponse.class);
+	}
+
+	protected MaterialResponse createLinkMaterialOrFail(String host, String token, UUID courseId, UUID moduleId,
+			UUID lessonId, String title, String externalUrl) {
+		HttpResult<MaterialResponse> result = createMaterialRaw(host, token, courseId, moduleId, lessonId, title,
+				MaterialType.LINK, null, externalUrl, null, null, null, null, null, null);
+		if (result.getStatusCode() != HttpStatus.CREATED) {
+			throw new IllegalStateException(
+					"LINK material creation failed: " + result.getStatusCode() + " " + result.getBody());
+		}
+		return result.getBody().data();
+	}
+
+	protected MaterialResponse createNoteMaterialOrFail(String host, String token, UUID courseId, UUID moduleId,
+			UUID lessonId, String title, String noteContent) {
+		HttpResult<MaterialResponse> result = createMaterialRaw(host, token, courseId, moduleId, lessonId, title,
+				MaterialType.NOTE, null, null, noteContent, null, null, null, null, null);
+		if (result.getStatusCode() != HttpStatus.CREATED) {
+			throw new IllegalStateException(
+					"NOTE material creation failed: " + result.getStatusCode() + " " + result.getBody());
+		}
+		return result.getBody().data();
+	}
+
+	protected MaterialResponse createFileMaterialOrFail(String host, String token, UUID courseId, UUID moduleId,
+			UUID lessonId, String title, MaterialType materialType, MockMultipartFile file, Integer maxDownloads,
+			String availableFromAt, String expiryAt) {
+		HttpResult<MaterialResponse> result = createMaterialRaw(host, token, courseId, moduleId, lessonId, title,
+				materialType, file, null, null, null, null, maxDownloads, availableFromAt, expiryAt);
+		if (result.getStatusCode() != HttpStatus.CREATED) {
+			throw new IllegalStateException(
+					"File material creation failed: " + result.getStatusCode() + " " + result.getBody());
 		}
 		return result.getBody().data();
 	}

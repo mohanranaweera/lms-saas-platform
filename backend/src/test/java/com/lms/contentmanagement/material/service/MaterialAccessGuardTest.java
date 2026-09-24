@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -45,11 +47,14 @@ class MaterialAccessGuardTest {
 	@Mock
 	private PermissionCheckService permissionCheckService;
 
+	@Mock
+	private EnrollmentAccessApi enrollmentAccessApi;
+
 	private MaterialAccessGuard guard;
 
 	@BeforeEach
 	void setUp() {
-		guard = new MaterialAccessGuard(courseLookupApi, permissionCheckService);
+		guard = new MaterialAccessGuard(courseLookupApi, permissionCheckService, enrollmentAccessApi);
 	}
 
 	@AfterEach
@@ -176,17 +181,46 @@ class MaterialAccessGuardTest {
 	}
 
 	@Test
-	void studentViewOnAPublishedCoursesLessonIsAllowed() {
+	void studentViewOnAPublishedCoursesLessonIsAllowedWhenEnrollmentIsActive() {
+		UUID studentId = UUID.randomUUID();
 		UUID courseId = UUID.randomUUID();
 		UUID moduleId = UUID.randomUUID();
 		UUID lessonId = UUID.randomUUID();
 		LessonOwnership ownership = new LessonOwnership(lessonId, moduleId, courseId, UUID.randomUUID(), true);
 		when(courseLookupApi.resolveLessonOwnership(lessonId)).thenReturn(Optional.of(ownership));
-		AuthenticatedPrincipalHolder
-			.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "STUDENT", UUID.randomUUID()));
+		when(enrollmentAccessApi.resolveAccessState(studentId, courseId))
+			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
 
 		assertThatCode(() -> guard.requireLessonAccess(courseId, moduleId, lessonId, PermissionAction.VIEW))
 			.doesNotThrowAnyException();
+		verifyNoInteractions(permissionCheckService);
+	}
+
+	/**
+	 * Wave 5 security-fix regression test (plan §1's "pre-existing security
+	 * gap found"): before this fix, ANY authenticated Student in the tenant
+	 * could view materials of any published course, enrolled or not. A
+	 * Student whose course is published but who is NOT currently, actively
+	 * enrolled must now be denied - anti-enumeration ({@link
+	 * NotFoundException}), matching {@code
+	 * liveclassmanagement.support.LiveClassAccessGuard#requireEntitlement}'s
+	 * identical rule.
+	 */
+	@Test
+	void studentViewOnAPublishedCoursesLessonIsDeniedWhenNotActivelyEnrolled() {
+		UUID studentId = UUID.randomUUID();
+		UUID courseId = UUID.randomUUID();
+		UUID moduleId = UUID.randomUUID();
+		UUID lessonId = UUID.randomUUID();
+		LessonOwnership ownership = new LessonOwnership(lessonId, moduleId, courseId, UUID.randomUUID(), true);
+		when(courseLookupApi.resolveLessonOwnership(lessonId)).thenReturn(Optional.of(ownership));
+		when(enrollmentAccessApi.resolveAccessState(studentId, courseId))
+			.thenReturn(EnrollmentAccessState.neverEnrolled());
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
+
+		assertThatThrownBy(() -> guard.requireLessonAccess(courseId, moduleId, lessonId, PermissionAction.VIEW))
+			.isInstanceOf(NotFoundException.class);
 		verifyNoInteractions(permissionCheckService);
 	}
 

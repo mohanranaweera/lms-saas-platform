@@ -28,6 +28,7 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
 import com.lms.integrationmanagement.api.StoredObject;
+import com.lms.videoaccessmanagement.api.VideoAccessApi;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -74,6 +75,9 @@ class MaterialServiceTest {
 	private ObjectStorageApi objectStorageApi;
 
 	@Mock
+	private VideoAccessApi videoAccessApi;
+
+	@Mock
 	private ApplicationEventPublisher eventPublisher;
 
 	@Mock
@@ -84,12 +88,26 @@ class MaterialServiceTest {
 	@BeforeEach
 	void setUp() {
 		materialService = new MaterialService(materialRepository, materialAccessGuard, objectStorageApi,
-				eventPublisher, tenantContext, MAX_FILE_SIZE_BYTES);
+				videoAccessApi, eventPublisher, tenantContext, MAX_FILE_SIZE_BYTES);
 	}
 
 	@AfterEach
 	void clearPrincipal() {
 		AuthenticatedPrincipalHolder.clear();
+	}
+
+	/**
+	 * Wave 5 (plan §3/§4) - {@code MaterialService#createMaterial} now takes
+	 * a {@link MaterialCreateCommand} rather than a flat parameter list; this
+	 * mirrors every pre-existing call site's original title+file-only shape
+	 * exactly (materialType {@code null} -> defaults to {@code OTHER}, every
+	 * other new field {@code null}/absent), so the pre-existing uploaded-file
+	 * test coverage below is otherwise untouched.
+	 */
+	private static MaterialCreateCommand uploadedFileCommand(UUID courseId, UUID moduleId, UUID lessonId,
+			String title, MultipartFile file) {
+		return new MaterialCreateCommand(courseId, moduleId, lessonId, title, null, file, null, null, null, null,
+				null, null, null);
 	}
 
 	// ------------------------------------------------------------------
@@ -111,7 +129,7 @@ class MaterialServiceTest {
 			.set(new AuthenticatedPrincipal(actorId, TENANT_ID, "TEACHER", UUID.randomUUID()));
 		MockMultipartFile file = new MockMultipartFile("file", "lecture-1.pdf", "application/pdf", validPdfBytes());
 
-		MaterialView view = materialService.createMaterial(courseId, moduleId, lessonId, "Lecture 1", file);
+		MaterialView view = materialService.createMaterial(uploadedFileCommand(courseId, moduleId, lessonId, "Lecture 1", file));
 
 		assertThat(view.mimeType()).isEqualTo("application/pdf");
 		assertThat(view.sequence()).isEqualTo(3);
@@ -130,7 +148,7 @@ class MaterialServiceTest {
 		System.arraycopy("%PDF-".getBytes(StandardCharsets.US_ASCII), 0, oversized, 0, 5);
 		MockMultipartFile file = new MockMultipartFile("file", "big.pdf", "application/pdf", oversized);
 
-		assertThatThrownBy(() -> materialService.createMaterial(courseId, moduleId, lessonId, "Big File", file))
+		assertThatThrownBy(() -> materialService.createMaterial(uploadedFileCommand(courseId, moduleId, lessonId, "Big File", file)))
 			.isInstanceOf(PayloadTooLargeException.class);
 
 		verifyNoInteractions(objectStorageApi);
@@ -160,7 +178,7 @@ class MaterialServiceTest {
 		MultipartFile file = mock(MultipartFile.class);
 		when(file.getInputStream()).thenReturn(new BoundedRejectingInputStream(allowedBeforeExplosion));
 
-		assertThatThrownBy(() -> materialService.createMaterial(courseId, moduleId, lessonId, "Huge File", file))
+		assertThatThrownBy(() -> materialService.createMaterial(uploadedFileCommand(courseId, moduleId, lessonId, "Huge File", file)))
 			.isInstanceOf(PayloadTooLargeException.class);
 
 		verifyNoInteractions(objectStorageApi);
@@ -176,7 +194,7 @@ class MaterialServiceTest {
 		MockMultipartFile file = new MockMultipartFile("file", "disguised.pdf", "application/pdf", mzHeader);
 
 		assertThatThrownBy(
-				() -> materialService.createMaterial(courseId, moduleId, lessonId, "Disguised", file))
+				() -> materialService.createMaterial(uploadedFileCommand(courseId, moduleId, lessonId, "Disguised", file)))
 			.isInstanceOf(UnsupportedMediaTypeException.class);
 
 		verifyNoInteractions(objectStorageApi);
@@ -195,7 +213,7 @@ class MaterialServiceTest {
 		when(objectStorageApi.store(any(StoreObjectCommand.class))).thenThrow(new RuntimeException("storage unavailable"));
 		MockMultipartFile file = new MockMultipartFile("file", "lecture-1.pdf", "application/pdf", validPdfBytes());
 
-		assertThatThrownBy(() -> materialService.createMaterial(courseId, moduleId, lessonId, "Lecture 1", file))
+		assertThatThrownBy(() -> materialService.createMaterial(uploadedFileCommand(courseId, moduleId, lessonId, "Lecture 1", file)))
 			.isInstanceOf(RuntimeException.class)
 			.hasMessage("storage unavailable");
 
@@ -211,7 +229,7 @@ class MaterialServiceTest {
 			.thenThrow(new AccessDeniedException("denied"));
 		MockMultipartFile file = new MockMultipartFile("file", "notes.pdf", "application/pdf", validPdfBytes());
 
-		assertThatThrownBy(() -> materialService.createMaterial(courseId, moduleId, lessonId, "Notes", file))
+		assertThatThrownBy(() -> materialService.createMaterial(uploadedFileCommand(courseId, moduleId, lessonId, "Notes", file)))
 			.isInstanceOf(AccessDeniedException.class);
 
 		verifyNoInteractions(objectStorageApi);

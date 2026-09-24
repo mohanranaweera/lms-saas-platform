@@ -59,9 +59,24 @@ live-class:
     # default is empty instead.
     webhook-secret: "test-only-live-class-webhook-secret-not-for-production-use"
 
+video-playback:
+  token:
+    # Fixed, clearly-not-a-production test-only secret (Wave 5, PAR-20-01) -
+    # see src/main/resources/application.yml's own comment for why the main
+    # default is empty instead. Long enough to satisfy HS256's minimum
+    # 256-bit key length so PlaybackTokenServiceTest/integration tests never
+    # hit WeakKeyException.
+    secret: "test-only-video-playback-token-secret-not-for-production-use-32bytes+"
+
 app:
   mail:
     from-address: "no-reply@example.com"
+  video-access:
+    asset:
+      # Mirrors src/main/resources/application.yml's default - required here
+      # for the same classpath-shadowing reason as app.content.material
+      # below (VideoAssetService's @Value binding has no Java-side default).
+      max-file-size-bytes: 26214400
   content:
     material:
       # Mirrors src/main/resources/application.yml's default. Required here

@@ -38,6 +38,11 @@ class MaterialFetchVisibilityIntegrationTest extends ContentManagementTestSuppor
 		CourseModuleResponse module = createModuleOrFail(host, teacherToken, course.id(), "Module 1", 1);
 		var lesson = createLessonOrFail(host, teacherToken, course.id(), module.id(), "Lesson 1", 1);
 		publish(host, teacherToken, course.id());
+		// Wave 5 security fix (MaterialAccessGuard now requires ACTIVE
+		// enrollment, not just a published course) - seed a real,
+		// webhook-confirmed enrollment for this Student before any
+		// Student-success assertion below.
+		enrollStudentOrFail(host, studentToken, course.id());
 
 		MaterialResponse visible = createMaterialOrFail(host, teacherToken, course.id(), module.id(), lesson.id(),
 				"Visible Material", pdfFile("visible.pdf"));
@@ -55,6 +60,49 @@ class MaterialFetchVisibilityIntegrationTest extends ContentManagementTestSuppor
 			.doesNotContain(hidden.id());
 	}
 
+	/**
+	 * HTTP-layer regression test for the Wave 5 security fix (plan §1's
+	 * "pre-existing security gap found") - {@code
+	 * MaterialAccessGuardTest} already covers this at the guard-unit-test
+	 * level; this proves the same behavior end-to-end over real HTTP against
+	 * a real Postgres-backed {@code EnrollmentAccessApi}. Before the fix, a
+	 * Student in a published course could list/fetch materials whether or
+	 * not they were ever enrolled - this must now be 404 for BOTH the list
+	 * and single-item fetch, and for the download-url endpoint too.
+	 */
+	@Test
+	void anUnenrolledStudentInAPublishedCourseIsDenied404OnListFetchAndDownloadUrl() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("fetch-unenrolled"));
+		TenantUser teacher = seedTenantUser(tenant.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
+		seedActiveStudent(tenant.getId(), "student@example.test");
+		String host = hostFor(tenant.getSubdomain());
+		String teacherToken = loginAndGetToken(host, "teacher@example.test");
+		String studentToken = loginAndGetToken(host, "student@example.test");
+		CourseResponse course = createCourseOrFail(host, teacherToken,
+				newCourseRequest(uniqueSlug("fetch-unenrolled"), null));
+		CourseModuleResponse module = createModuleOrFail(host, teacherToken, course.id(), "Module 1", 1);
+		var lesson = createLessonOrFail(host, teacherToken, course.id(), module.id(), "Lesson 1", 1);
+		publish(host, teacherToken, course.id());
+		// Deliberately never calls enrollStudentOrFail - this Student is
+		// authenticated, in the same tenant, and the course IS published, but
+		// they never purchased/were granted access.
+		MaterialResponse material = createMaterialOrFail(host, teacherToken, course.id(), module.id(), lesson.id(),
+				"Visible Material", pdfFile("visible.pdf"));
+
+		HttpResult<List<MaterialResponse>> listed = listMaterials(host, studentToken, course.id(), module.id(),
+				lesson.id());
+		HttpResult<MaterialResponse> fetched = getMaterial(host, studentToken, course.id(), module.id(), lesson.id(),
+				material.id());
+		HttpResult<MaterialDownloadUrlResponse> downloadUrl = getDownloadUrl(host, studentToken, course.id(),
+				module.id(), lesson.id(), material.id());
+
+		assertThat(listed.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(fetched.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(fetched.getBody().data()).isNull();
+		assertThat(downloadUrl.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(downloadUrl.getBody().data()).isNull();
+	}
+
 	@Test
 	void studentFetchingAHiddenMaterialDirectlyByIdReturns404NotTheMaterial() {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("fetch-hidden-single"));
@@ -68,6 +116,7 @@ class MaterialFetchVisibilityIntegrationTest extends ContentManagementTestSuppor
 		CourseModuleResponse module = createModuleOrFail(host, teacherToken, course.id(), "Module 1", 1);
 		var lesson = createLessonOrFail(host, teacherToken, course.id(), module.id(), "Lesson 1", 1);
 		publish(host, teacherToken, course.id());
+		enrollStudentOrFail(host, studentToken, course.id());
 		MaterialResponse hidden = createMaterialOrFail(host, teacherToken, course.id(), module.id(), lesson.id(),
 				"Hidden Material", pdfFile("hidden.pdf"));
 		updateMaterial(host, teacherToken, course.id(), module.id(), lesson.id(), hidden.id(), hidden.title(),
@@ -173,6 +222,7 @@ class MaterialFetchVisibilityIntegrationTest extends ContentManagementTestSuppor
 		CourseModuleResponse module = createModuleOrFail(host, teacherToken, course.id(), "Module 1", 1);
 		var lesson = createLessonOrFail(host, teacherToken, course.id(), module.id(), "Lesson 1", 1);
 		publish(host, teacherToken, course.id());
+		enrollStudentOrFail(host, studentToken, course.id());
 		MaterialResponse material = createMaterialOrFail(host, teacherToken, course.id(), module.id(), lesson.id(),
 				"Visible Material", pdfFile("visible.pdf"));
 
@@ -197,6 +247,7 @@ class MaterialFetchVisibilityIntegrationTest extends ContentManagementTestSuppor
 		CourseModuleResponse module = createModuleOrFail(host, teacherToken, course.id(), "Module 1", 1);
 		var lesson = createLessonOrFail(host, teacherToken, course.id(), module.id(), "Lesson 1", 1);
 		publish(host, teacherToken, course.id());
+		enrollStudentOrFail(host, studentToken, course.id());
 		MaterialResponse hidden = createMaterialOrFail(host, teacherToken, course.id(), module.id(), lesson.id(),
 				"Hidden Material", pdfFile("hidden.pdf"));
 		updateMaterial(host, teacherToken, course.id(), module.id(), lesson.id(), hidden.id(), hidden.title(),

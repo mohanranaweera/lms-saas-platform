@@ -24,16 +24,26 @@ export const LESSON_ID = "lesson-1";
 export const LESSON_TITLE = "What is a cell?";
 
 export type MaterialVisibility = "VISIBLE" | "HIDDEN";
+export type MaterialType = "PDF" | "IMAGE" | "DOCUMENT" | "LINK" | "NOTE" | "VIDEO" | "RECORDING" | "OTHER";
 
+/** Mirrors `MaterialResponse` (Wave 5) field-for-field — see `lib/api/materials.ts`. */
 export interface MaterialRecord {
   id: string;
-  lessonId: string;
+  lessonId: string | null;
+  sessionId: string | null;
+  materialType: MaterialType;
   title: string;
-  originalFilename: string;
-  mimeType: string;
-  sizeBytes: number;
+  originalFilename: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  externalUrl: string | null;
+  noteContent: string | null;
+  videoAssetId: string | null;
   sequence: number;
   visibility: MaterialVisibility;
+  maxDownloads: number | null;
+  downloadCount: number;
+  availableFromAt: string | null;
   expiryAt: string | null;
   uploadedBy: string;
   createdAt: string;
@@ -44,15 +54,24 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+/** Defaults to an `OTHER` uploaded-file material (the pre-Wave-5 shape every existing spec already assumes) — pass `materialType`/`externalUrl`/`noteContent`/`videoAssetId` overrides for the new Wave 5 types. */
 export function makeMaterial(
   overrides: Partial<MaterialRecord> & { id: string; title: string; sequence: number }
 ): MaterialRecord {
   return {
     lessonId: LESSON_ID,
+    sessionId: null,
+    materialType: "OTHER",
     originalFilename: "material.pdf",
     mimeType: "application/pdf",
     sizeBytes: 1024,
+    externalUrl: null,
+    noteContent: null,
+    videoAssetId: null,
     visibility: "VISIBLE",
+    maxDownloads: null,
+    downloadCount: 0,
+    availableFromAt: null,
     expiryAt: null,
     uploadedBy: "teacher-1",
     createdAt: nowIso(),
@@ -159,7 +178,14 @@ export interface UploadFailure {
 export interface TeacherMaterialsMockState {
   materials: MaterialRecord[];
   patchCalls: Array<{ id: string; body: { title: string; sequence: number; visibility: MaterialVisibility } }>;
-  createCalls: Array<{ title: string; filename: string | undefined }>;
+  createCalls: Array<{
+    title: string;
+    filename: string | undefined;
+    materialType: string | undefined;
+    externalUrl: string | undefined;
+    noteContent: string | undefined;
+    videoAssetId: string | undefined;
+  }>;
 }
 
 export interface TeacherMaterialsMockOptions {
@@ -296,7 +322,14 @@ export async function setupTeacherMaterialsMocks(
         const contentType = request.headers()["content-type"] ?? "";
         const raw = request.postData() ?? "";
         const { fields, file } = parseMultipart(contentType, raw);
-        state.createCalls.push({ title: fields.title, filename: file?.filename });
+        state.createCalls.push({
+          title: fields.title,
+          filename: file?.filename,
+          materialType: fields.materialType,
+          externalUrl: fields.externalUrl,
+          noteContent: fields.noteContent,
+          videoAssetId: fields.videoAssetId,
+        });
 
         const failure = uploadFailureQueue.shift();
         if (failure) {
@@ -309,13 +342,25 @@ export async function setupTeacherMaterialsMocks(
         }
 
         const maxSequence = state.materials.reduce((h, m) => Math.max(h, m.sequence), 0);
+        const materialType = (fields.materialType as MaterialType | undefined) ?? "OTHER";
+        // Mirrors `MaterialService#createMaterial`'s per-type shape (Wave
+        // 5): a `file` part only ever exists for an uploaded-file type;
+        // `LINK`/`NOTE`/`VIDEO`/`RECORDING` never carry `originalFilename`/
+        // `mimeType`/`sizeBytes`.
         const created = makeMaterial({
           id: `material-new-${state.materials.length + 1}`,
           title: fields.title ?? "",
           sequence: maxSequence + 1,
-          originalFilename: file?.filename ?? "upload.pdf",
-          mimeType: file?.contentType ?? "application/pdf",
-          sizeBytes: file?.content.length ?? 0,
+          materialType,
+          originalFilename: file ? file.filename : null,
+          mimeType: file ? file.contentType : null,
+          sizeBytes: file ? file.content.length : null,
+          externalUrl: fields.externalUrl ?? null,
+          noteContent: fields.noteContent ?? null,
+          videoAssetId: fields.videoAssetId ?? null,
+          maxDownloads: fields.maxDownloads ? Number(fields.maxDownloads) : null,
+          availableFromAt: fields.availableFromAt ?? null,
+          expiryAt: fields.expiryAt ?? null,
         });
         state.materials.push(created);
         await route.fulfill({

@@ -60,6 +60,32 @@ public final class ApiErrorCodes {
 	 */
 	public static final String UNKNOWN_AUDIT_ACTOR = "UNKNOWN_AUDIT_ACTOR";
 
+	/** Wave 5 (PAR-06-03) - {@code material.available_from_at} is in the future for this caller. */
+	public static final String MATERIAL_NOT_YET_AVAILABLE = "MATERIAL_NOT_YET_AVAILABLE";
+
+	/** Wave 5 (PAR-06-03) - {@code material.expiry_at} has passed for this caller. */
+	public static final String MATERIAL_EXPIRED = "MATERIAL_EXPIRED";
+
+	/** Wave 5 (PAR-06-03) - {@code material.max_downloads} has already been reached for this material. */
+	public static final String DOWNLOAD_LIMIT_REACHED = "DOWNLOAD_LIMIT_REACHED";
+
+	/** Wave 5 (PAR-20-02) - a seek/jump beyond {@code furthest_position_seconds} while {@code allow_seeking = false}. */
+	public static final String SEEK_NOT_ALLOWED = "SEEK_NOT_ALLOWED";
+
+	/**
+	 * Wave 5 (PAR-17-01/PAR-20-02) - a {@code video_watch_session} was just
+	 * revoked (device-fingerprint mismatch, or a max-watch-duration breach)
+	 * as a direct result of the request that triggered this response.
+	 */
+	public static final String POLICY_VIOLATION = "POLICY_VIOLATION";
+
+	/**
+	 * Wave 5 (PAR-20-01/PAR-20-02) - the supplied video playback token failed
+	 * signature/expiry/{@code jti}-to-session validation, or the session it
+	 * names is no longer {@code ACTIVE}.
+	 */
+	public static final String PLAYBACK_TOKEN_INVALID = "PLAYBACK_TOKEN_INVALID";
+
 	private ApiErrorCodes() {
 	}
 

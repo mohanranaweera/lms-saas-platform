@@ -83,7 +83,7 @@ export function MaterialsSection({ courseId, moduleId, lessonId, lessonTitle }: 
               {sorted.length === 0 ? (
                 <EmptyState
                   title="No materials added to this lesson yet"
-                  description="Use the upload form below to add a PDF, image, or text file to this lesson."
+                  description="Use the form below to add a file, an external link, a note, or a video to this lesson."
                   className="py-6"
                 />
               ) : (
