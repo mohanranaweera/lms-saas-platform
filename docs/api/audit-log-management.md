@@ -1,6 +1,9 @@
 # audit-log-management — API Contract
 
-Covers AUDIT-3's single read endpoint (MVP-019 — `com.lms.auditlogmanagement`). The
+Covers AUDIT-3's single read endpoint (MVP-019 — `com.lms.auditlogmanagement`), plus
+the two Wave 3 per-target Activity endpoints (`GET /api/v1/students/{id}/activity`,
+`GET /api/v1/teachers/{id}/activity` — owned by `com.lms.usermanagement`, backed by
+this module's `AuditLogApi.findForTarget`) documented at the bottom of this file. The
 write side (`AuditLogApi.record`, MVP-011) has no HTTP surface — it is an in-process
 contract other domains call directly or via `AuditLogEventListener` (MVP-019's event
 wiring); nothing in this file documents it.
@@ -247,3 +250,59 @@ audit row, for every domain — not only Platform Admin actions. A full polymorp
 schema redesign (discriminator column + per-table partial FKs) was considered and
 rejected as out of proportion for this one gap; see the migration's own header comment
 and the plan's §22 post-review addendum.
+
+## Per-target Activity endpoints (Wave 3 — Student/Teacher operational profiles)
+
+Two more endpoints read through this module's write history, owned and exposed by
+`com.lms.usermanagement` (not `com.lms.auditlogmanagement`'s own controller), backed by
+`AuditLogApi.findForTarget(String targetEntity, UUID targetId, Pageable pageable)`
+(`AuditLogService.findForTarget`):
+
+### `GET /api/v1/students/{id}/activity`
+
+`StudentController.getActivity` → `StudentService.listActivity` → `AuditLogApi
+.findForTarget("student_profile", id, pageable)`. Returns every `audit_log` row
+targeting the given student's own `student_profile` id — e.g. `student.deactivated`,
+`student.password_reset`, plus the `enrollment.manually_granted`/`enrollment.revoked`
+rows described below.
+
+### `GET /api/v1/teachers/{id}/activity`
+
+`TeacherController.getActivity` → `TeacherService.listActivity` → `AuditLogApi
+.findForTarget("teacher_profile", id, pageable)`. Same shape, scoped to the given
+teacher's `teacher_profile` id.
+
+**Response**: `ApiResponse<PageResponse<StudentActivityResponse|TeacherActivityResponse>>`
+— same per-row shape as `AuditLogEntryResponse` above, minus `targetEntity`/`targetId`
+(both are already implied by which endpoint/id was requested).
+
+**Existence + tenant isolation**: both services call `existsById(id)` against their own
+`TenantAwareRepository`-backed profile repository *before* calling `findForTarget` — a
+cross-tenant or nonexistent `id` is rejected `404` by the caller itself, never surfaced
+as a `200` with an empty page.
+
+**Authorization — same two-layer gate as `GET /api/v1/audit-log` above, now enforced
+inside `AuditLogService.findForTarget` itself** (Wave 3 fix-pass, security review):
+
+1. The coarse `DomainArea.AUDIT_LOG`/`PermissionAction.VIEW` grant (`PermissionCheckService
+   .requirePermission`) — same as the general Audit Log Viewer.
+2. The same interim `TENANT_ADMIN`/`READ_ONLY_AUDITOR`-only allowlist as the general
+   Audit Log Viewer, applied via the shared `com.lms.auditlogmanagement.support
+   .AuditViewerAccessGuard` (used by both `AuditLogQueryService.search` and
+   `AuditLogService.findForTarget`, so the two read paths can never independently drift).
+   A caller holding only the coarse grant (`FINANCE_STAFF`, `COURSE_COORDINATOR`,
+   `STUDENT_SUPPORT`, `CONTENT_MANAGER`, `EXAM_MANAGER`, `ATTENDANCE_OPERATOR`) is
+   rejected `403` on both of these endpoints, same as on `GET /api/v1/audit-log`.
+
+Both controller methods themselves are gated only `@PreAuthorize("isAuthenticated()")`
+— the real authorization decision is made once, inside `findForTarget`, not duplicated
+at either controller.
+
+**Dual audit rows for staff-granted enroll/revoke (Wave 3 fix-pass, Bug 2)**:
+`ManualEnrollmentService.grantEnrollment` and `EnrollmentActivationService.revoke` each
+write two audit rows in the same transaction as the state change — the pre-existing row
+(`targetEntity="payment"` for enroll, `targetEntity="enrollment"` for revoke, preserving
+their existing traceability) plus a new row with `targetEntity="student_profile"` /
+`targetId=<the student's own id>` and the same `action`/`reason`, so both actions are
+now discoverable through the student's own Activity tab. Both rows are independent,
+immutable, append-only facts — the pre-existing row is never mutated or removed.

@@ -138,7 +138,7 @@ test.describe("teacher course list — content and actions", () => {
     await expect(grid.getByText(COURSES[0].teacherId)).toHaveCount(0);
   });
 
-  test("each card's Edit and Modules actions link to the right routes", async ({ page }) => {
+  test("each card's Edit, Modules, and Roster actions link to the right routes", async ({ page }) => {
     await loginAsTeacher(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
 
@@ -154,6 +154,11 @@ test.describe("teacher course list — content and actions", () => {
     await expect(card.getByRole("link", { name: "Modules" })).toHaveAttribute(
       "href",
       `/teacher/courses/${COURSES[0].id}/modules`
+    );
+    // Wave 3 (PAR-03-06) addition — a course-scoped Roster view.
+    await expect(card.getByRole("link", { name: "Roster" })).toHaveAttribute(
+      "href",
+      `/teacher/courses/${COURSES[0].id}/roster`
     );
   });
 
@@ -243,7 +248,7 @@ test.describe("teacher course list — filters", () => {
 });
 
 test.describe("teacher course list — keyboard-only navigation", () => {
-  test("Tab traversal reaches every card's Edit and Modules actions, in DOM order, across multiple cards", async ({
+  test("Tab traversal reaches every card's Edit, Modules, and Roster actions, in DOM order, across multiple cards", async ({
     page,
   }) => {
     // Mirrors `teacher-dashboard.spec.ts`'s "Tab order flows..." test's own
@@ -274,14 +279,20 @@ test.describe("teacher course list — keyboard-only navigation", () => {
     await page.keyboard.press("Tab");
     await expect(firstCard.getByRole("link", { name: "Modules" })).toBeFocused();
 
+    await page.keyboard.press("Tab");
+    await expect(firstCard.getByRole("link", { name: "Roster" })).toBeFocused();
+
     const secondCard = grid.getByRole("listitem").filter({ hasText: "Advanced Calculus" });
     await page.keyboard.press("Tab");
     await expect(secondCard.getByRole("link", { name: "Edit" })).toBeFocused();
 
     await page.keyboard.press("Tab");
-    const secondModules = secondCard.getByRole("link", { name: "Modules" });
-    await expect(secondModules).toBeFocused();
-    await expect(secondModules).toHaveAttribute("href", `/teacher/courses/${COURSES[1].id}/modules`);
+    await expect(secondCard.getByRole("link", { name: "Modules" })).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    const secondRoster = secondCard.getByRole("link", { name: "Roster" });
+    await expect(secondRoster).toBeFocused();
+    await expect(secondRoster).toHaveAttribute("href", `/teacher/courses/${COURSES[1].id}/roster`);
   });
 });
 

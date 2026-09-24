@@ -105,6 +105,18 @@ public class ExamAttemptController {
 				new PageResponse<>(content, page.page(), page.size(), page.totalElements(), page.totalPages())));
 	}
 
+	/** Wave 3 staff-facing, studentId-scoped attempts read - see {@link ExamAttemptService#listAttemptsForStudent}. */
+	@GetMapping("/students/{id}/attempts")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<PageResponse<ExamAttemptResponse>>> listAttemptsForStudent(
+			@PathVariable java.util.UUID id,
+			@PageableDefault(size = 20, sort = "startedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+		PageResponse<ExamAttemptView> page = examAttemptService.listAttemptsForStudent(id, pageable);
+		List<ExamAttemptResponse> content = page.content().stream().map(ExamAttemptController::toResponse).toList();
+		return ResponseEntity.ok(ApiResponse.success(
+				new PageResponse<>(content, page.page(), page.size(), page.totalElements(), page.totalPages())));
+	}
+
 	private static ExamAttemptResponse toResponse(ExamAttemptView view) {
 		return new ExamAttemptResponse(view.id(), view.examId(), view.studentId(), view.startedAt(),
 				view.submittedAt(), view.status());

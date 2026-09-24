@@ -1,24 +1,27 @@
-import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TeacherApprovalStatus } from "@/lib/api/teachers";
 
 /**
  * Mirrors `TeacherResponse.approvalStatus`
  * (`backend/.../usermanagement/teacher/web/dto/TeacherResponse.java`):
- * `PENDING | APPROVED | REJECTED`. Follows the same icon+text pairing
- * convention as `(platform-admin)/platform-admin/tenants/status-badge.tsx` —
- * never color alone, per `.claude/rules/ui-ux.md` §4.
+ * `PENDING | APPROVED | REJECTED | SUSPENDED` (Wave 3, PAR-04-04 adds
+ * `SUSPENDED`). Follows the same icon+text pairing convention as
+ * `(platform-admin)/platform-admin/tenants/status-badge.tsx` — never color
+ * alone, per `.claude/rules/ui-ux.md` §4.
  */
 export const TEACHER_APPROVAL_STATUS_LABELS: Record<TeacherApprovalStatus, string> = {
   PENDING: "Pending approval",
   APPROVED: "Approved",
   REJECTED: "Rejected",
+  SUSPENDED: "Suspended",
 };
 
 const STATUS_STYLES: Record<TeacherApprovalStatus, { icon: typeof Clock; className: string }> = {
   PENDING: { icon: Clock, className: "text-muted-foreground" },
   APPROVED: { icon: CheckCircle2, className: "text-foreground" },
   REJECTED: { icon: XCircle, className: "text-destructive" },
+  SUSPENDED: { icon: Ban, className: "text-destructive" },
 };
 
 export function TeacherStatusBadge({ status }: { status: TeacherApprovalStatus }) {

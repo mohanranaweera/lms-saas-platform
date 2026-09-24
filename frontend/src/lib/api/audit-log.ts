@@ -88,3 +88,79 @@ export function useAuditLogSearch(params?: AuditLogSearchParams) {
     placeholderData: keepPreviousData,
   });
 }
+
+/**
+ * Mirrors `StudentActivityResponse`/`TeacherActivityResponse` (Wave 3) —
+ * these two backend DTOs are field-for-field identical to each other, so one
+ * shared type covers both `GET /v1/students/{id}/activity` and `GET
+ * /v1/teachers/{id}/activity`. Deliberately NOT the same shape as
+ * `AuditLogEntryResponse` above (no `targetEntity`/`targetId` — both are
+ * implicit from which endpoint/id was called).
+ */
+export interface ActivityEntryResponse {
+  id: string;
+  actorId: string;
+  actorDisplayName: string | null;
+  action: string;
+  reason: string | null;
+  metadata: Record<string, unknown> | null;
+  occurredAt: string;
+}
+
+export interface ActivityListParams {
+  page?: number;
+  size?: number;
+}
+
+function buildActivityQuery(params?: ActivityListParams): string {
+  const search = new URLSearchParams();
+  search.set("page", String(params?.page ?? 0));
+  search.set("size", String(params?.size ?? 20));
+  return `?${search.toString()}`;
+}
+
+export const activityKeys = {
+  studentAll: (studentId: string) => ["students", studentId, "activity"] as const,
+  student: (studentId: string, params?: ActivityListParams) =>
+    [...activityKeys.studentAll(studentId), params ?? {}] as const,
+  teacherAll: (teacherId: string) => ["teachers", teacherId, "activity"] as const,
+  teacher: (teacherId: string, params?: ActivityListParams) =>
+    [...activityKeys.teacherAll(teacherId), params ?? {}] as const,
+};
+
+/**
+ * `GET /v1/students/{id}/activity` (Wave 3) — `isAuthenticated()` server-side
+ * (coarser than the generic `/v1/audit-log` viewer's `AUDIT_LOG`/`VIEW`
+ * allowlist), backed by the same append-only `AuditLogQueryService`, filtered
+ * to `targetEntity='student_profile' AND targetId={id}`.
+ */
+export function useStudentActivity(studentId: string, params?: ActivityListParams) {
+  const { authorizedFetch } = useAuth();
+  const queryString = buildActivityQuery(params);
+  return useQuery({
+    queryKey: activityKeys.student(studentId, params),
+    queryFn: () =>
+      authorizedFetch<PageResponse<ActivityEntryResponse>>(
+        "tenant",
+        `/v1/students/${studentId}/activity${queryString}`
+      ),
+    enabled: studentId.length > 0,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** `GET /v1/teachers/{id}/activity` (Wave 3) — same contract as `useStudentActivity` above, for `teacher_profile`. */
+export function useTeacherActivity(teacherId: string, params?: ActivityListParams) {
+  const { authorizedFetch } = useAuth();
+  const queryString = buildActivityQuery(params);
+  return useQuery({
+    queryKey: activityKeys.teacher(teacherId, params),
+    queryFn: () =>
+      authorizedFetch<PageResponse<ActivityEntryResponse>>(
+        "tenant",
+        `/v1/teachers/${teacherId}/activity${queryString}`
+      ),
+    enabled: teacherId.length > 0,
+    placeholderData: keepPreviousData,
+  });
+}

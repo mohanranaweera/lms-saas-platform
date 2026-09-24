@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/states/empty-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useTeachers, type Teacher, type TeacherApprovalStatus } from "@/lib/api/teachers";
 import { TeacherStatusBadge, TEACHER_APPROVAL_STATUS_LABELS } from "./status-badge";
 import { TeacherDecisionDialog } from "./teacher-decision-dialog";
+import { TeacherSuspendDialog } from "./teacher-suspend-dialog";
 
 /**
  * Teacher List (Tenant Admin) — MVP-007 TCH-1.
@@ -32,6 +34,7 @@ const STATUS_FILTER_OPTIONS: Array<{ value: "all" | TeacherApprovalStatus; label
   { value: "PENDING", label: TEACHER_APPROVAL_STATUS_LABELS.PENDING },
   { value: "APPROVED", label: TEACHER_APPROVAL_STATUS_LABELS.APPROVED },
   { value: "REJECTED", label: TEACHER_APPROVAL_STATUS_LABELS.REJECTED },
+  { value: "SUSPENDED", label: TEACHER_APPROVAL_STATUS_LABELS.SUSPENDED },
 ];
 
 export default function TenantAdminTeachersPage() {
@@ -152,6 +155,93 @@ function TeacherListResults({
   // matched nothing," per plan §4/§11 and acceptance criterion #7.
   const isPendingQueueEmpty = noMatch && statusFilter === "PENDING" && search.trim() === "";
 
+  // Distinguishable success feedback for row-level Suspend/Reactivate — this
+  // app has no toast library (`components/ui/live-region.tsx`'s doc
+  // comment), so this mirrors `students/page.tsx#createdNotice`'s
+  // established brief, auto-clearing, `role="status" aria-live="polite"`
+  // page-level notice pattern rather than inventing a new one. (Approve/
+  // Reject already gets its own distinguishable confirmation for free: the
+  // row disappears from the PENDING-filtered view /the badge updates in
+  // place, which is why only Suspend/Reactivate wires this.)
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timeout);
+  }, [notice]);
+
+  function renderActions(teacher: Teacher, triggerVariant: "icon" | "full") {
+    if (!canDecide) return null;
+    if (teacher.approvalStatus === "PENDING") {
+      return triggerVariant === "icon" ? (
+        <div className="flex items-center gap-2">
+          <TeacherDecisionDialog teacher={teacher} action="approve" triggerVariant="icon" />
+          <TeacherDecisionDialog teacher={teacher} action="reject" triggerVariant="icon" />
+        </div>
+      ) : (
+        // Full-label, size="lg" triggers (not the icon-only pair used in
+        // the desktop table) — two adjacent small icon buttons for a
+        // consequential action is a mis-tap risk on a touch surface, per
+        // ui-ux.md §4/§5. `flex-1` gives each button an equal, wide tap
+        // target instead.
+        <div className="flex items-stretch gap-3 pt-1">
+          <TeacherDecisionDialog teacher={teacher} action="approve" triggerVariant="full" className="flex-1" />
+          <TeacherDecisionDialog teacher={teacher} action="reject" triggerVariant="full" className="flex-1" />
+        </div>
+      );
+    }
+    if (teacher.approvalStatus === "APPROVED") {
+      return (
+        <TeacherSuspendDialog
+          teacher={teacher}
+          action="suspend"
+          triggerVariant={triggerVariant}
+          className={triggerVariant === "full" ? "w-full" : undefined}
+          onSuccess={() => setNotice(`${teacher.name} was suspended.`)}
+        />
+      );
+    }
+    if (teacher.approvalStatus === "SUSPENDED") {
+      return (
+        <TeacherSuspendDialog
+          teacher={teacher}
+          action="reactivate"
+          triggerVariant={triggerVariant}
+          className={triggerVariant === "full" ? "w-full" : undefined}
+          onSuccess={() => setNotice(`${teacher.name} was reactivated.`)}
+        />
+      );
+    }
+    return null;
+  }
+
+  const columns: DataTableColumn<Teacher>[] = [
+    {
+      key: "name",
+      header: "Name",
+      cell: (teacher) => (
+        <Link href={`/tenant-admin/teachers/${teacher.id}`} className="font-medium text-foreground hover:underline">
+          {teacher.name}
+        </Link>
+      ),
+      hideOnCard: true,
+    },
+    { key: "email", header: "Email", cell: (teacher) => teacher.email },
+    {
+      key: "approvalStatus",
+      header: "Approval status",
+      cell: (teacher) => <TeacherStatusBadge status={teacher.approvalStatus} />,
+      hideOnCard: true,
+    },
+    { key: "accountStatus", header: "Account status", cell: (teacher) => teacher.accountStatus },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (teacher) => renderActions(teacher, "icon"),
+      hideOnCard: true,
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -184,6 +274,10 @@ function TeacherListResults({
         </div>
       </div>
 
+      <div role="status" aria-live="polite">
+        {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+      </div>
+
       {noMatch ? (
         isPendingQueueEmpty ? (
           <EmptyState
@@ -199,113 +293,19 @@ function TeacherListResults({
           />
         )
       ) : (
-        <>
-          {/* Desktop/tablet: table. Below md: card list (.claude/rules/ui-ux.md §5). */}
-          <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-muted/40">
-                <tr>
-                  <th scope="col" className="px-4 py-2 font-medium text-foreground">
-                    Name
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium text-foreground">
-                    Email
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium text-foreground">
-                    Approval status
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium text-foreground">
-                    Account status
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium text-foreground">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((teacher) => (
-                  <tr key={teacher.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-2.5 font-medium text-foreground">
-                      <Link
-                        href={`/tenant-admin/teachers/${teacher.id}`}
-                        className="hover:underline"
-                      >
-                        {teacher.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{teacher.email}</td>
-                    <td className="px-4 py-2.5">
-                      <TeacherStatusBadge status={teacher.approvalStatus} />
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{teacher.accountStatus}</td>
-                    <td className="px-4 py-2.5">
-                      {canDecide && teacher.approvalStatus === "PENDING" ? (
-                        <div className="flex items-center gap-2">
-                          <TeacherDecisionDialog
-                            teacher={teacher}
-                            action="approve"
-                            triggerVariant="icon"
-                          />
-                          <TeacherDecisionDialog
-                            teacher={teacher}
-                            action="reject"
-                            triggerVariant="icon"
-                          />
-                        </div>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <ul className="flex flex-col gap-3 md:hidden">
-            {filtered.map((teacher) => (
-              <li
-                key={teacher.id}
-                className="flex flex-col gap-2 rounded-lg border border-border p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <Link
-                    href={`/tenant-admin/teachers/${teacher.id}`}
-                    className="font-medium text-foreground hover:underline"
-                  >
-                    {teacher.name}
-                  </Link>
-                  <TeacherStatusBadge status={teacher.approvalStatus} />
-                </div>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <dt className="font-medium text-foreground">Email</dt>
-                  <dd>{teacher.email}</dd>
-                  <dt className="font-medium text-foreground">Account status</dt>
-                  <dd>{teacher.accountStatus}</dd>
-                </dl>
-                {canDecide && teacher.approvalStatus === "PENDING" ? (
-                  // Full-label, size="lg" triggers (not the icon-only pair
-                  // used in the desktop table) — two adjacent small icon
-                  // buttons for a consequential action is a mis-tap risk on
-                  // a touch surface, per ui-ux.md §4/§5. `flex-1` gives each
-                  // button an equal, wide tap target instead.
-                  <div className="flex items-stretch gap-3 pt-1">
-                    <TeacherDecisionDialog
-                      teacher={teacher}
-                      action="approve"
-                      triggerVariant="full"
-                      className="flex-1"
-                    />
-                    <TeacherDecisionDialog
-                      teacher={teacher}
-                      action="reject"
-                      triggerVariant="full"
-                      className="flex-1"
-                    />
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </>
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(teacher) => teacher.id}
+          caption="Teachers"
+          cardHeading={(teacher) => (
+            <Link href={`/tenant-admin/teachers/${teacher.id}`} className="hover:underline">
+              {teacher.name}
+            </Link>
+          )}
+          cardHeadingAdornment={(teacher) => <TeacherStatusBadge status={teacher.approvalStatus} />}
+          cardFooter={(teacher) => renderActions(teacher, "full")}
+        />
       )}
 
       {!noMatch ? (

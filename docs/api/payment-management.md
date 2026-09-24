@@ -391,6 +391,70 @@ endpoint; enrollment stays inactive. **Success — `200`**
 (`ApiResponse<PaymentSlipResponse>`). **`400`/`409`** if `reason` is blank or the slip
 isn't `UNDER_REVIEW`. **`403`** for any caller without `APPROVE`.
 
+## Staff-granted manual enrollment (Wave 3, ADR-016)
+
+`POST /api/v1/students/{id}/enroll` — a Tenant Admin/Student Support action letting staff
+manually grant a student access to a course (scholarship, goodwill grant, payment
+collected out-of-band) without the student completing a normal checkout. Lives here, in
+`payment-management` (`com.lms.paymentmanagement.order.web.ManualEnrollmentController`),
+**not** in `user-management`, despite the `/students/{id}/...` URL — this is a Wave 3
+fix-pass architectural correction: the endpoint originally lived on
+`user-management`'s `StudentController` and called outward into this module, closing a
+`payment-management → enrollment-management → user-management → payment-management`
+cross-module cycle. It now resolves the path's `student_profile` id via
+`user-management`'s `StudentLookupApi` (an already-approved `api`-only dependency
+direction) instead. The public contract — path, request/response shape — is unchanged by
+that move.
+
+This is change-controlled per `.claude/rules/payments.md` §7 (a new way for enrollment to
+activate) and was approved by the product owner before implementation, recorded in full in
+`docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md` — read that file for the
+complete decision record, alternatives considered, and consequences; this section
+documents only the REST contract.
+
+### `POST /api/v1/students/{id}/enroll`
+
+Staff (`STUDENTS`/`CREATE_EDIT`, re-verified independently inside `ManualEnrollmentService`
+as `PAYMENTS_SLIPS`/`APPROVE` — mirroring `SlipReviewService#approve`'s exact gate, per
+`wave-03-plan.md` §4's "exact second gate decided during backend implementation").
+
+**Request body** (`StudentEnrollRequest`):
+
+```jsonc
+{ "courseId": "<uuid>", "reason": "Scholarship grant approved by finance committee" }
+// courseId required; reason required, non-blank, max 1000 chars
+```
+
+Creates a real `student_order` row and a real `payment` row for the course's genuinely
+resolved checkout amount (never a synthesized `$0`, unless the course itself is priced
+`FREE` — mirrors ADR-015's precedent exactly), confirms that payment, and writes a real
+`PAYMENT_CONFIRMED` ledger entry via the same `LedgerEntryApi#recordPaymentConfirmed` call
+every other CONFIRMED-payment path uses — **never** a bespoke ledger-write code path. The
+evidence trail distinguishing this from a gateway/slip-confirmed payment is a synthesized
+`gatewayReference` of `"STAFF_GRANTED-" + paymentId` (mirroring `activateFreeCheckout`'s
+own `"FREE-" + paymentId` precedent) plus a new, mandatory `payment.staff_grant_reason`
+column (`V47__add_enrollment_staff_granted_evidence.sql`). Enrollment activation happens
+through a new, explicit, narrowly-scoped 5th call site on `EnrollmentActivationApi`,
+`fromApprovedManualEvidence(paymentId, orderId, studentId, courseId)` — internally
+delegates to the SAME `activateOrReactivateFromConfirmedPayment` mechanics every other
+confirmed-payment path already uses (same independent `PaymentStatusApi`
+re-verification), so this new call site can never skip the re-verification every other
+evidence type already gets.
+
+Writes **two** `AuditLogApi.record(...)` entries in the same transaction (a Wave 3
+fix-pass addition, same rationale as `POST /enrollments/{id}/revoke`'s dual-row behavior
+in `docs/api/enrollment-management.md`): one targeting `payment`/`{paymentId}` (`action:
+"enrollment.manually_granted"`), and a second targeting `student_profile`/`{id}` with the
+same action/reason, so the grant is discoverable via `GET /students/{id}/activity`.
+
+**Success — `200`** (`ApiResponse<Void>`). **`404`** — `courseId` doesn't resolve in the
+caller's own tenant, or isn't published. **`409 CONFLICT`** — the student is already
+actively enrolled in this course; or the course is `CUSTOM`-priced (requires a manually
+quoted amount, not supported by this action — mirrors `OrderService`'s own "customAmount
+required" rejection). **`400`** — `reason` blank/missing, or `courseId` missing. **`403`**
+— caller lacks `STUDENTS`/`CREATE_EDIT`, or (independently) lacks `PAYMENTS_SLIPS`/
+`APPROVE`.
+
 ## Webhook ownership (not this domain's endpoint)
 
 `POST /api/v1/integrations/webhooks/payment` receives the gateway's confirmation

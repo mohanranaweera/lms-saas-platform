@@ -3,8 +3,8 @@ package com.lms.auditlogmanagement.service;
 import com.lms.auditlogmanagement.domain.AuditLog;
 import com.lms.auditlogmanagement.repository.AuditLogRepository;
 import com.lms.auditlogmanagement.repository.AuditLogSpecifications;
+import com.lms.auditlogmanagement.support.AuditViewerAccessGuard;
 import com.lms.auditlogmanagement.web.dto.AuditLogEntryResponse;
-import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
@@ -20,7 +20,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
@@ -39,34 +38,6 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 @Transactional(readOnly = true)
 public class AuditLogQueryService {
-
-	/**
-	 * Plan §21 decision 1, option B (product-owner approved): the coarse
-	 * {@link DomainArea#AUDIT_LOG}/{@link PermissionAction#VIEW} grant in
-	 * {@code PermissionCheckServiceImpl}'s matrix is currently held by every
-	 * staff sub-role (each transcribed as "V (own-area actions)"/"V (full)"
-	 * for the auditor), which would - without a narrower gate - over-expose
-	 * refund amounts, actor identities, and material-deletion history to
-	 * every staff sub-role before any "own-area" scoping is ever defined.
-	 * This is a deliberate, interim restriction narrower than the generic
-	 * grant, not a redundant duplicate of it: {@link #search} still calls
-	 * {@link PermissionCheckService#requirePermission} first (the existing,
-	 * unchanged mechanism), then additionally requires the caller's actual
-	 * role be one of these two - Institute Owner or Read-only Auditor - via
-	 * this explicit allowlist.
-	 *
-	 * <p>Compared directly as a raw string (rather than importing {@code
-	 * com.lms.identityaccessservice.domain.Role}) because that enum lives in
-	 * {@code identityaccessservice}'s {@code domain} package, not its {@code
-	 * api} package - {@code .claude/rules/architecture.md} forbids any other
-	 * module depending on a foreign domain's {@code domain} classes. {@link
-	 * com.lms.identityaccessservice.api.AuthenticatedPrincipal#role()} is
-	 * already the same live, server-re-read role string {@code
-	 * PermissionCheckServiceImpl.hasPermission} itself parses with {@code
-	 * Role.valueOf} - an unrecognized/absent value here denies exactly like
-	 * that method's own catch block, without this module importing the enum.
-	 */
-	private static final Set<String> VIEWER_ALLOWED_ROLES = Set.of("TENANT_ADMIN", "READ_ONLY_AUDITOR");
 
 	/** Defensive server-side cap on search page size, mirroring {@code CourseService#MAX_PAGE_SIZE} exactly. */
 	private static final int MAX_PAGE_SIZE = 100;
@@ -108,13 +79,12 @@ public class AuditLogQueryService {
 		// input validity, e.g. via a 400 for an unsortable property).
 		permissionCheckService.requirePermission(DomainArea.AUDIT_LOG, PermissionAction.VIEW);
 
-		// 2. Narrower, MVP-specific gate - see VIEWER_ALLOWED_ROLES' javadoc
+		// 2. Narrower, MVP-specific gate - see AuditViewerAccessGuard's javadoc
 		// for why this is required in addition to (not instead of) the check
-		// above.
-		String role = AuthenticatedPrincipalHolder.get().role();
-		if (role == null || !VIEWER_ALLOWED_ROLES.contains(role)) {
-			throw new AccessDeniedException("You do not have permission to perform this action");
-		}
+		// above. Shared with AuditLogService#findForTarget so both audit-log
+		// read paths in this module enforce the exact same allowlist through
+		// one definition.
+		AuditViewerAccessGuard.requireViewerRole();
 
 		// 3. Input validation - only reached once the caller is confirmed
 		// authorized. (AuditLogSearchCriteria's own compact-constructor

@@ -61,12 +61,15 @@ class StudentServiceTest {
 	@Mock
 	private PermissionCheckService permissionCheckService;
 
+	@Mock
+	private com.lms.auditlogmanagement.api.AuditLogApi auditLogApi;
+
 	private StudentService studentService;
 
 	@BeforeEach
 	void setUp() {
 		studentService = new StudentService(userProvisioningApi, studentProfileRepository, tenantContext,
-				permissionCheckService);
+				permissionCheckService, auditLogApi);
 	}
 
 	@AfterEach
@@ -265,6 +268,73 @@ class StudentServiceTest {
 		assertThat(account.name()).isEqualTo("New Self Name");
 		assertThat(profile.getName()).isEqualTo("New Self Name");
 		verifyNoInteractions(permissionCheckService);
+	}
+
+	// ------------------------------------------------------------------
+	// Wave 3 (Student actions) - activate/deactivate/reset-password, each
+	// independently permission-checked and audit-logged. "Enroll" moved to
+	// payment-management's StudentEnrollmentService in the Wave 3 fix-pass
+	// (architecture review, module dependency cycle) - see
+	// StudentEnrollmentServiceTest there.
+	// ------------------------------------------------------------------
+
+	@Test
+	void activateStudentRequiresPermissionAndAuditsTheAction() {
+		UUID studentId = UUID.randomUUID();
+		UUID userId = UUID.randomUUID();
+		UUID actorId = UUID.randomUUID();
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(actorId, TENANT_ID, "TENANT_ADMIN", null));
+		StudentProfile profile = new StudentProfile(TENANT_ID, userId, "Some Student");
+		setId(profile, studentId);
+		when(studentProfileRepository.findById(studentId)).thenReturn(Optional.of(profile));
+		when(userProvisioningApi.findTenantUserSummaries(List.of(userId)))
+			.thenReturn(List.of(new TenantUserSummary(userId, "student@example.test", "STUDENT", "ACTIVE")));
+
+		studentService.activateStudent(studentId);
+
+		verify(permissionCheckService).requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
+		verify(userProvisioningApi).activateTenantUser(userId);
+		verify(auditLogApi).record(any());
+	}
+
+	@Test
+	void deactivateStudentOfANonexistentIdThrowsNotFoundAndNeverTouchesUserProvisioning() {
+		UUID studentId = UUID.randomUUID();
+		when(studentProfileRepository.findById(studentId)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> studentService.deactivateStudent(studentId))
+			.isInstanceOf(com.lms.common.error.NotFoundException.class);
+
+		verify(userProvisioningApi, never()).suspendTenantUser(any());
+		verifyNoInteractions(auditLogApi);
+	}
+
+	@Test
+	void resetStudentPasswordReturnsTheGeneratedTempPasswordAndAudits() {
+		UUID studentId = UUID.randomUUID();
+		UUID userId = UUID.randomUUID();
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TENANT_ADMIN", null));
+		StudentProfile profile = new StudentProfile(TENANT_ID, userId, "Some Student");
+		setId(profile, studentId);
+		when(studentProfileRepository.findById(studentId)).thenReturn(Optional.of(profile));
+		when(userProvisioningApi.resetPassword(userId)).thenReturn("Temp-Pass-123!");
+
+		String temp = studentService.resetStudentPassword(studentId);
+
+		assertThat(temp).isEqualTo("Temp-Pass-123!");
+		verify(permissionCheckService).requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
+		verify(auditLogApi).record(any());
+	}
+
+	@Test
+	void listActivityOfANonexistentStudentIdThrowsNotFoundWithoutCallingAuditLogApi() {
+		UUID studentId = UUID.randomUUID();
+		when(studentProfileRepository.existsById(studentId)).thenReturn(false);
+
+		assertThatThrownBy(() -> studentService.listActivity(studentId, org.springframework.data.domain.PageRequest.of(0, 20)))
+			.isInstanceOf(com.lms.common.error.NotFoundException.class);
+
+		verifyNoInteractions(auditLogApi);
 	}
 
 	/**

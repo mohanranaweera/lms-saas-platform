@@ -18,6 +18,10 @@ import com.lms.exammanagement.repository.ExamQuestionLinkRepository;
 import com.lms.exammanagement.repository.ExamRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
+import com.lms.identityaccessservice.api.PermissionCheckService;
+import com.lms.usermanagement.api.StudentLookupApi;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -63,10 +67,15 @@ public class ExamAttemptService {
 
 	private final TenantContext tenantContext;
 
+	private final StudentLookupApi studentLookupApi;
+
+	private final PermissionCheckService permissionCheckService;
+
 	public ExamAttemptService(ExamRepository examRepository, ExamAttemptRepository examAttemptRepository,
 			ExamAnswerRepository examAnswerRepository, ExamQuestionLinkRepository examQuestionLinkRepository,
 			ExamLifecycleService examLifecycleService, McqAutoMarkingService mcqAutoMarkingService,
-			EnrollmentAccessApi enrollmentAccessApi, TenantContext tenantContext) {
+			EnrollmentAccessApi enrollmentAccessApi, TenantContext tenantContext, StudentLookupApi studentLookupApi,
+			PermissionCheckService permissionCheckService) {
 		this.examRepository = examRepository;
 		this.examAttemptRepository = examAttemptRepository;
 		this.examAnswerRepository = examAnswerRepository;
@@ -75,6 +84,29 @@ public class ExamAttemptService {
 		this.mcqAutoMarkingService = mcqAutoMarkingService;
 		this.enrollmentAccessApi = enrollmentAccessApi;
 		this.tenantContext = tenantContext;
+		this.studentLookupApi = studentLookupApi;
+		this.permissionCheckService = permissionCheckService;
+	}
+
+	/**
+	 * Wave 3 staff-facing read: {@code GET
+	 * /api/v1/exams/students/{studentProfileId}/attempts}. Gated {@code
+	 * EXAMS}/{@code VIEW}; {@code studentProfileId} resolved via {@link
+	 * StudentLookupApi#resolveUserId} FIRST - a cross-tenant/nonexistent id
+	 * is 404, never 200-with-empty-page. Reuses the same tenant-scoped
+	 * {@code findByStudentId} repository read {@link #listMyAttempts} already
+	 * uses.
+	 */
+	@Transactional(readOnly = true)
+	public PageResponse<ExamAttemptView> listAttemptsForStudent(UUID studentProfileId, Pageable pageable) {
+		permissionCheckService.requirePermission(DomainArea.EXAMS, PermissionAction.VIEW);
+		UUID studentId = studentLookupApi.resolveUserId(studentProfileId)
+			.orElseThrow(() -> new NotFoundException("Student not found"));
+		Pageable safePageable = clampPageSize(pageable);
+		Page<ExamAttempt> page = examAttemptRepository.findByStudentId(studentId, safePageable);
+		List<ExamAttemptView> content = page.getContent().stream().map(this::toView).toList();
+		return new PageResponse<>(content, page.getNumber(), page.getSize(), page.getTotalElements(),
+				page.getTotalPages());
 	}
 
 	/**

@@ -22,7 +22,13 @@ and never from `Order`/request-payload state alone.
 1. Student browses `Public > Storefront > Course Listing` (or `Student > Courses >
    Catalog`) and opens `Course Detail`.
 2. Student selects "Enroll" — if unauthenticated, routed through `Public > Auth >
-   Student Registration` / `Login` first.
+   Student Registration` / `Login` first. **Shipped (Wave 3):** Registration itself is
+   tenant-configurable, not a fixed form — the frontend fetches the tenant's registration
+   policy (`GET /api/v1/public/tenant-config/student-registration-policy`) before
+   rendering, so the fields shown, whether an email-OTP verification step appears, and
+   whether the new account can log in immediately or lands in a pending-approval state
+   all vary by tenant. See `docs/api/user-management.md`'s "Public student
+   self-registration" section for the full contract.
 3. Student is presented `Student > Payments > Checkout` (order creation): order is
    created tenant-aware, server-side, from the authenticated session — the frontend
    never supplies `tenant_id`.

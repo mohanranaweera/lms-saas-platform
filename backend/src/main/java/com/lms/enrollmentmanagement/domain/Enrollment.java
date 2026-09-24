@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -92,6 +93,36 @@ public class Enrollment extends BaseEntity implements TenantOwned {
 
 	@Column(name = "reactivated_from_enrollment_id", updatable = false)
 	private UUID reactivatedFromEnrollmentId;
+
+	/**
+	 * Wave 3 (Student actions - revoke) evidence trail, set exactly once
+	 * together with {@link #supersede()} by {@link #revoke(UUID, String)} -
+	 * never set at construction time, never set independently of {@code
+	 * supersededAt}.
+	 */
+	@Column(name = "revoked_at")
+	private java.time.Instant revokedAt;
+
+	@Column(name = "revoked_by")
+	private UUID revokedBy;
+
+	@Column(name = "revoke_reason")
+	private String revokeReason;
+
+	/**
+	 * Wave 3 fix-pass (architecture/security review) - optimistic-lock guard
+	 * added ONLY to this entity (V48), not to {@link BaseEntity}, so two
+	 * near-simultaneous {@link #revoke(UUID, String)} calls for the same row
+	 * can never both silently win: the later-committing transaction's {@code
+	 * UPDATE} (via {@code EnrollmentRepository#save}) affects zero rows and
+	 * Hibernate raises {@code ObjectOptimisticLockingFailureException}, which
+	 * {@code EnrollmentActivationService#revoke} maps to a clean {@code 409}.
+	 * Never set/read directly by application code beyond this field - purely
+	 * a Hibernate-managed concurrency guard.
+	 */
+	@Version
+	@Column(name = "version", nullable = false)
+	private long version;
 
 	protected Enrollment() {
 	}
@@ -209,6 +240,22 @@ public class Enrollment extends BaseEntity implements TenantOwned {
 		return reactivatedFromEnrollmentId;
 	}
 
+	public java.time.Instant getRevokedAt() {
+		return revokedAt;
+	}
+
+	public UUID getRevokedBy() {
+		return revokedBy;
+	}
+
+	public String getRevokeReason() {
+		return revokeReason;
+	}
+
+	public long getVersion() {
+		return version;
+	}
+
 	/**
 	 * Pure, unit-testable-in-isolation access-currency computation (plan §7/
 	 * §18) - {@code NOT superseded AND (accessExpiresAt IS NULL OR
@@ -241,6 +288,29 @@ public class Enrollment extends BaseEntity implements TenantOwned {
 			throw new IllegalStateException("Enrollment " + getId() + " is already superseded");
 		}
 		this.supersededAt = Instant.now();
+	}
+
+	/**
+	 * Wave 3 (Student actions - staff "revoke enrollment", change-controlled
+	 * per {@code .claude/rules/payments.md} §7, approved per ADR-016 - see
+	 * {@code docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md}) -
+	 * calls the existing {@link #supersede()} mutation (its only ever write,
+	 * per this class's own contract) with no replacement row, then records
+	 * this row's own revoke evidence (V47's {@code revoked_at}/{@code
+	 * revoked_by}/{@code revoke_reason} columns) in the SAME call - never
+	 * touches the immutable activation columns ({@code activatingPaymentId}/
+	 * {@code activatingSlipId}/{@code activatedAt}). No new {@code
+	 * EnrollmentStatus} value, no ledger/payment write - see {@code
+	 * EnrollmentActivationService#revoke} for the full orchestration
+	 * (permission gate, mandatory-reason validation, audit log).
+	 * @throws IllegalStateException if this row is already superseded (via
+	 * {@link #supersede()}'s own guard).
+	 */
+	public void revoke(UUID revokedBy, String reason) {
+		supersede();
+		this.revokedAt = Instant.now();
+		this.revokedBy = revokedBy;
+		this.revokeReason = reason;
 	}
 
 }

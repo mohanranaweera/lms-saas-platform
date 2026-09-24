@@ -155,6 +155,21 @@ tenant-wide read with no course/teacher restriction. Same query params/paginatio
 
 **Success — `200`** → `ApiResponse<PageResponse<AttendanceRecordResponse>>`.
 
+### `GET /api/v1/attendance/students/{id}/report` (Wave 3)
+
+Staff-facing, studentId-scoped attendance read behind Student Detail's Attendance tab —
+extends the existing `AttendanceReportFilter`/pagination shape used by `GET /reports`
+above with a path-bound `studentId`, rather than a new query param. `{id}` is the
+`StudentProfile`'s own resource id, resolved internally via `StudentLookupApi`. Requires
+`ATTENDANCE`/`VIEW`. Same query params as `GET /my`/`GET /reports` (`courseId`
+optional, `from`/`to` optional `Instant`, standard `Pageable`).
+
+**Success — `200`** → `ApiResponse<PageResponse<AttendanceRecordResponse>>`, same shape
+as every other attendance read in this file. **`404`** — `{id}` doesn't resolve to a
+student in the caller's own tenant. **`403`** — caller lacks `ATTENDANCE`/`VIEW` (this
+read has no Teacher-ownership branch — it is staff-only, unlike the roster/mark
+endpoints above).
+
 ## `AttendanceRecordResponse` shape
 
 Returned inside every `PageResponse` above and as each successful row's `record` on the mark

@@ -175,16 +175,20 @@ class AuditLogQueryServiceTest {
 
 	/**
 	 * Closes the hardcoded-role-string-allowlist finding: {@link
-	 * AuditLogQueryService#VIEWER_ALLOWED_ROLES}' javadoc explains why it is
-	 * compared as a raw string rather than the {@code Role} enum directly
-	 * (cross-module {@code domain}-package dependency rule) - this proves
-	 * those literals have not silently drifted from the real, live {@code
-	 * Role} enum values by reflectively reading the actual field and
-	 * asserting every entry still round-trips through {@code Role.valueOf}.
+	 * com.lms.auditlogmanagement.support.AuditViewerAccessGuard}'s javadoc
+	 * explains why it is compared as a raw string rather than the {@code
+	 * Role} enum directly (cross-module {@code domain}-package dependency
+	 * rule) - this proves those literals have not silently drifted from the
+	 * real, live {@code Role} enum values by reflectively reading the actual
+	 * field and asserting every entry still round-trips through {@code
+	 * Role.valueOf}. The allowlist now lives on the shared guard (used by
+	 * both {@link AuditLogQueryService#search} and {@code
+	 * AuditLogService#findForTarget}), not on this service directly.
 	 */
 	@Test
 	void viewerAllowedRoleStringLiteralsStillMatchLiveRoleEnumValues() throws Exception {
-		Field field = AuditLogQueryService.class.getDeclaredField("VIEWER_ALLOWED_ROLES");
+		Field field = com.lms.auditlogmanagement.support.AuditViewerAccessGuard.class
+			.getDeclaredField("VIEWER_ALLOWED_ROLES");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")
 		Set<String> allowedRoles = (Set<String>) field.get(null);

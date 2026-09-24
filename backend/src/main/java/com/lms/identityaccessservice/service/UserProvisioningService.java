@@ -12,6 +12,7 @@ import com.lms.identityaccessservice.domain.TenantUser;
 import com.lms.identityaccessservice.error.InvalidRoleCodeException;
 import com.lms.identityaccessservice.repository.PlatformAdminUserRepository;
 import com.lms.identityaccessservice.repository.TenantUserRepository;
+import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +34,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class UserProvisioningService implements UserProvisioningApi {
+
+	/** Alphanumeric-plus-symbol charset for generated temporary passwords - avoids ambiguous-looking characters. */
+	private static final String TEMP_PASSWORD_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+
+	private static final int TEMP_PASSWORD_LENGTH = 16;
+
+	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 	private final TenantUserRepository tenantUserRepository;
 
@@ -125,6 +133,24 @@ public class UserProvisioningService implements UserProvisioningApi {
 		// No TenantContext resolved - the Platform Admin request path.
 		// platform_admin_user is platform-level, never tenant-scoped.
 		return platformAdminUserRepository.findById(actorId).isPresent();
+	}
+
+	@Override
+	public String resetPassword(UUID userId) {
+		TenantUser user = tenantUserRepository.findById(userId)
+			.orElseThrow(() -> new NotFoundException("User not found"));
+		String rawTempPassword = generateTempPassword();
+		user.resetPassword(passwordEncoder.encode(rawTempPassword));
+		tenantUserRepository.save(user);
+		return rawTempPassword;
+	}
+
+	private static String generateTempPassword() {
+		StringBuilder builder = new StringBuilder(TEMP_PASSWORD_LENGTH);
+		for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+			builder.append(TEMP_PASSWORD_CHARSET.charAt(SECURE_RANDOM.nextInt(TEMP_PASSWORD_CHARSET.length())));
+		}
+		return builder.toString();
 	}
 
 	private static Role parseRole(String roleCode) {

@@ -1,5 +1,6 @@
 package com.lms.enrollmentmanagement.service;
 
+import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
@@ -7,6 +8,10 @@ import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
+import com.lms.identityaccessservice.api.PermissionCheckService;
+import com.lms.usermanagement.api.StudentLookupApi;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -51,11 +56,40 @@ public class EnrollmentQueryService {
 
 	private final CourseLookupApi courseLookupApi;
 
+	private final StudentLookupApi studentLookupApi;
+
+	private final PermissionCheckService permissionCheckService;
+
 	public EnrollmentQueryService(EnrollmentRepository enrollmentRepository,
-			EnrollmentExpiryService enrollmentExpiryService, CourseLookupApi courseLookupApi) {
+			EnrollmentExpiryService enrollmentExpiryService, CourseLookupApi courseLookupApi,
+			StudentLookupApi studentLookupApi, PermissionCheckService permissionCheckService) {
 		this.enrollmentRepository = enrollmentRepository;
 		this.enrollmentExpiryService = enrollmentExpiryService;
 		this.courseLookupApi = courseLookupApi;
+		this.studentLookupApi = studentLookupApi;
+		this.permissionCheckService = permissionCheckService;
+	}
+
+	/**
+	 * Wave 3 staff-facing read: {@code GET
+	 * /api/v1/students/{studentProfileId}/enrollments}. {@code
+	 * studentProfileId} is resolved to the opaque cross-domain {@code
+	 * studentId} via {@link StudentLookupApi#resolveUserId} FIRST - an id
+	 * that does not resolve in the caller's own tenant is 404, never a
+	 * 200-with-empty-list (per {@code .claude/rules/tenancy.md}'s
+	 * anti-enumeration requirement).
+	 */
+	@Transactional(readOnly = true)
+	public List<EnrollmentHistoryEntryView> listForStudent(UUID studentProfileId) {
+		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.VIEW);
+		UUID studentId = studentLookupApi.resolveUserId(studentProfileId)
+			.orElseThrow(() -> new NotFoundException("Student not found"));
+		return enrollmentRepository.findAllByStudentIdOrderByActivatedAtDesc(studentId)
+			.stream()
+			.map(e -> new EnrollmentHistoryEntryView(e.getId(), e.getCourseId(), e.getSupersededAt() == null,
+					e.getActivatedAt(), e.getAccessExpiresAt(), e.getSupersededAt(), e.getRevokedAt(),
+					e.getRevokeReason(), e.getReactivatedFromEnrollmentId()))
+			.toList();
 	}
 
 	/** See class javadoc for why this always resolves the calling student's own state. */

@@ -122,4 +122,18 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 		this.status = AccountStatus.ACTIVE;
 	}
 
+	/**
+	 * Sets a new, already-hashed password and forces {@code
+	 * must_change_password = true} - added for {@code UserProvisioningApi
+	 * #resetPassword} (Wave 3, Student actions). Mirrors the existing
+	 * admin-created-account convention (temp password + forced change at
+	 * next login) rather than inventing a new credential-reset mechanism.
+	 * Never called with a raw password - hashing happens in {@code
+	 * UserProvisioningService}, this class never sees a plaintext value.
+	 */
+	public void resetPassword(String newPasswordHash) {
+		this.passwordHash = newPasswordHash;
+		this.mustChangePassword = true;
+	}
+
 }

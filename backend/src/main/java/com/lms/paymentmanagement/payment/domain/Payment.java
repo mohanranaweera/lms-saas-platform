@@ -62,6 +62,15 @@ public class Payment extends BaseEntity implements TenantOwned {
 	@Column(name = "confirmed_at")
 	private Instant confirmedAt;
 
+	/**
+	 * Wave 3 (Student actions - staff "enroll student in course") evidence
+	 * column (V47) - set only via {@link #recordStaffGrantReason(String)},
+	 * only by {@code ManualEnrollmentService}. {@code null} for every
+	 * gateway/slip/FREE-checkout-confirmed payment.
+	 */
+	@Column(name = "staff_grant_reason")
+	private String staffGrantReason;
+
 	@CreatedDate
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -115,6 +124,10 @@ public class Payment extends BaseEntity implements TenantOwned {
 		return confirmedAt;
 	}
 
+	public String getStaffGrantReason() {
+		return staffGrantReason;
+	}
+
 	public Instant getCreatedAt() {
 		return createdAt;
 	}
@@ -130,6 +143,20 @@ public class Payment extends BaseEntity implements TenantOwned {
 	 */
 	public void assignGatewayReference(String gatewayReference) {
 		this.gatewayReference = gatewayReference;
+	}
+
+	/**
+	 * Sets this row's {@code staff_grant_reason} evidence - must be called
+	 * BEFORE {@link #confirm(Instant)} (mirrors {@link
+	 * #assignGatewayReference}'s own "set before confirm" ordering
+	 * requirement), only by {@code ManualEnrollmentService}, only with a
+	 * non-blank reason.
+	 */
+	public void recordStaffGrantReason(String reason) {
+		if (reason == null || reason.isBlank()) {
+			throw new IllegalArgumentException("reason must not be blank");
+		}
+		this.staffGrantReason = reason;
 	}
 
 	/**

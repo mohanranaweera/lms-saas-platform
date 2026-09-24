@@ -89,3 +89,21 @@ export function useLedgerDashboard(
     enabled: options?.enabled ?? true,
   });
 }
+
+/**
+ * `GET /v1/students/{id}/ledger` (Wave 3, staff-facing, studentId-scoped —
+ * lives in `ledger-settlement-management`, the owning domain of
+ * `ledger_entry`, not duplicated into `user-management`, per the wave-03 plan
+ * §4). Plain array, no pagination — matches `StudentLedgerController`. Query
+ * key intentionally matches the shape `lib/api/students.ts#useEnrollStudent`'s
+ * `onSuccess` invalidates (`["students", id, "ledger"]`).
+ */
+export function useStudentLedger(studentId: string) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: ["students", studentId, "ledger"],
+    queryFn: () =>
+      authorizedFetch<LedgerHistoryEntryResponse[]>("tenant", `/v1/students/${studentId}/ledger`),
+    enabled: studentId.length > 0,
+  });
+}

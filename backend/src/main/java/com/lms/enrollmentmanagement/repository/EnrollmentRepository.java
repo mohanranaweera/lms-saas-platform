@@ -61,6 +61,20 @@ public interface EnrollmentRepository extends TenantAwareRepository<Enrollment, 
 	}
 
 	/**
+	 * Every row (current AND superseded/revoked) for a student, most recent
+	 * first - backs the Wave 3 staff-facing {@code GET
+	 * /api/v1/students/{id}/enrollments} read, which deliberately shows the
+	 * full lineage/history for transparency, unlike {@link
+	 * #findAllCurrentByStudentId(UUID)}.
+	 */
+	default List<Enrollment> findAllByStudentIdOrderByActivatedAtDesc(UUID studentId) {
+		return findAll((root, query, cb) -> {
+			query.orderBy(cb.desc(root.get("activatedAt")));
+			return cb.equal(root.get("studentId"), studentId);
+		});
+	}
+
+	/**
 	 * The inverse of {@link #findAllCurrentByStudentId(UUID)}, keyed by
 	 * {@code courseId} instead of {@code studentId} - backs {@link
 	 * com.lms.enrollmentmanagement.api.EnrollmentAccessApi

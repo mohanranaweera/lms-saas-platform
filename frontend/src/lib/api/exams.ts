@@ -201,6 +201,10 @@ export const examKeys = {
     [...examKeys.tenantExamsAll(), status ?? null, params ?? {}] as const,
   myAttemptsAll: () => [...examKeys.all, "my-attempts"] as const,
   myAttempts: (params?: ExamListParams) => [...examKeys.myAttemptsAll(), params ?? {}] as const,
+  studentAttemptsAll: (studentId: string) =>
+    [...examKeys.all, "student-attempts", studentId] as const,
+  studentAttempts: (studentId: string, params?: ExamListParams) =>
+    [...examKeys.studentAttemptsAll(studentId), params ?? {}] as const,
   markingQueueAll: (examId: string) => [...examKeys.all, "marking-queue", examId] as const,
   markingQueue: (examId: string, params?: ExamListParams) =>
     [...examKeys.markingQueueAll(examId), params ?? {}] as const,
@@ -394,6 +398,26 @@ export function useMyAttempts(params?: ExamListParams, options?: { enabled?: boo
     queryKey: examKeys.myAttempts(params),
     queryFn: () => authorizedFetch<PageResponse<ExamAttemptResponse>>("tenant", `/v1/exams/attempts/my${queryString}`),
     enabled: options?.enabled ?? true,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * `GET /v1/exams/students/{id}/attempts` (Wave 3, staff-facing, studentId-
+ * scoped — see `ExamAttemptController#listAttemptsForStudent`). Same param
+ * shape/default sort/`keepPreviousData` behavior as `useMyAttempts`.
+ */
+export function useStudentAttempts(studentId: string, params?: ExamListParams) {
+  const { authorizedFetch } = useAuth();
+  const queryString = buildListQuery(params);
+  return useQuery({
+    queryKey: examKeys.studentAttempts(studentId, params),
+    queryFn: () =>
+      authorizedFetch<PageResponse<ExamAttemptResponse>>(
+        "tenant",
+        `/v1/exams/students/${studentId}/attempts${queryString}`
+      ),
+    enabled: studentId.length > 0,
     placeholderData: keepPreviousData,
   });
 }

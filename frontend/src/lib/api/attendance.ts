@@ -97,6 +97,10 @@ export const attendanceKeys = {
   my: (params?: AttendanceListParams) => [...attendanceKeys.myAll(), params ?? {}] as const,
   reportsAll: () => [...attendanceKeys.all, "reports"] as const,
   reports: (params?: AttendanceListParams) => [...attendanceKeys.reportsAll(), params ?? {}] as const,
+  studentReportAll: (studentId: string) =>
+    [...attendanceKeys.all, "student-report", studentId] as const,
+  studentReport: (studentId: string, params?: AttendanceListParams) =>
+    [...attendanceKeys.studentReportAll(studentId), params ?? {}] as const,
 };
 
 function buildAttendanceListQuery(params?: AttendanceListParams): string {
@@ -196,7 +200,10 @@ export function useMyAttendance(params?: AttendanceListParams) {
  * (and the same `isFetching`/`isPlaceholderData`-for-busy-indicator caveat)
  * as `useMyAttendance` above.
  */
-export function useAttendanceReports(params?: AttendanceListParams) {
+export function useAttendanceReports(
+  params?: AttendanceListParams,
+  options?: { enabled?: boolean }
+) {
   const { authorizedFetch } = useAuth();
   const queryString = buildAttendanceListQuery(params);
   return useQuery({
@@ -206,6 +213,29 @@ export function useAttendanceReports(params?: AttendanceListParams) {
         "tenant",
         `/v1/attendance/reports${queryString}`
       ),
+    placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/**
+ * `GET /v1/attendance/students/{id}/report` (Wave 3, staff-facing,
+ * studentId-scoped — extends the existing `AttendanceReportFilter` with an
+ * optional `studentId` server-side; this hook calls the dedicated
+ * studentId-in-path variant instead). Same param shape/default sort/
+ * `keepPreviousData` behavior as `useAttendanceReports`.
+ */
+export function useStudentAttendanceReport(studentId: string, params?: AttendanceListParams) {
+  const { authorizedFetch } = useAuth();
+  const queryString = buildAttendanceListQuery(params);
+  return useQuery({
+    queryKey: attendanceKeys.studentReport(studentId, params),
+    queryFn: () =>
+      authorizedFetch<PageResponse<AttendanceRecordResponse>>(
+        "tenant",
+        `/v1/attendance/students/${studentId}/report${queryString}`
+      ),
+    enabled: studentId.length > 0,
     placeholderData: keepPreviousData,
   });
 }

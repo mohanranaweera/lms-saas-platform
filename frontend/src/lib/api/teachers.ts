@@ -12,7 +12,14 @@ import { useAuth } from "@/lib/auth/auth-context";
  * param and only exists on the auth context.
  */
 
-export type TeacherApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+/**
+ * `SUSPENDED` (Wave 3, master instruction §11) is a second, independent
+ * transition pair layered on top of the original `PENDING -> APPROVED |
+ * REJECTED` approval workflow — only reachable via `APPROVED -> SUSPENDED`
+ * and back, never from `PENDING`/`REJECTED` (see `ApprovalStatus`'s own
+ * backend doc comment).
+ */
+export type TeacherApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
 export type TeacherAccountStatus = "ACTIVE" | "SUSPENDED";
 
 /** Mirrors `TeacherResponse` exactly (backend `.../teacher/web/dto/TeacherResponse.java`). */
@@ -98,6 +105,43 @@ export function useRejectTeacher() {
   return useMutation({
     mutationFn: (id: string) =>
       authorizedFetch<Teacher>("tenant", `/v1/teachers/${id}/reject`, {
+        method: "POST",
+      }),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: TEACHERS_KEY });
+      queryClient.invalidateQueries({ queryKey: teacherKey(id) });
+    },
+  });
+}
+
+/**
+ * `POST /v1/teachers/{id}/suspend` (Wave 3, PAR-04-04) — same gate as
+ * approve/reject (`TEACHERS`/`CREATE_EDIT` + `requireTenantAdmin()`,
+ * enforced server-side in `TeacherService`). Only legal from `APPROVED`
+ * (409 otherwise).
+ */
+export function useSuspendTeacher() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      authorizedFetch<Teacher>("tenant", `/v1/teachers/${id}/suspend`, {
+        method: "POST",
+      }),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: TEACHERS_KEY });
+      queryClient.invalidateQueries({ queryKey: teacherKey(id) });
+    },
+  });
+}
+
+/** `POST /v1/teachers/{id}/reactivate` — inverse of `useSuspendTeacher`. Only legal from `SUSPENDED` (409 otherwise). */
+export function useReactivateTeacher() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      authorizedFetch<Teacher>("tenant", `/v1/teachers/${id}/reactivate`, {
         method: "POST",
       }),
     onSuccess: (data, id) => {

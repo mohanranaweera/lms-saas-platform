@@ -82,13 +82,19 @@ class ExamAttemptServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private com.lms.usermanagement.api.StudentLookupApi studentLookupApi;
+
+	@Mock
+	private com.lms.identityaccessservice.api.PermissionCheckService permissionCheckService;
+
 	private ExamAttemptService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new ExamAttemptService(examRepository, examAttemptRepository, examAnswerRepository,
 				examQuestionLinkRepository, examLifecycleService, mcqAutoMarkingService, enrollmentAccessApi,
-				tenantContext);
+				tenantContext, studentLookupApi, permissionCheckService);
 		when(examLifecycleService.now()).thenReturn(NOW);
 	}
 

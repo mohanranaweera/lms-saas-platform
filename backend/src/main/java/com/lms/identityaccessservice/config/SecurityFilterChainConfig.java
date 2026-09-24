@@ -149,6 +149,23 @@ public class SecurityFilterChainConfig {
 				// endpoint deliberately bypasses BRANDING_SETTINGS's
 				// permission gate.
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding").permitAll();
+				// Public, unauthenticated student-registration-policy read path
+				// (Wave 3 gap-fill) - same rationale as the branding read
+				// above, for ConfigDomain.STUDENT's registration-relevant
+				// properties only. See
+				// PublicStudentRegistrationPolicyController.
+				authorize
+					.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/student-registration-policy")
+					.permitAll();
+				// Public, unauthenticated student self-registration path
+				// (Wave 3, PAR-03-01) - tenant is still resolved server-side
+				// from the subdomain by TenantResolutionFilter; no
+				// client-supplied tenantId is ever accepted. See
+				// StudentRegistrationController.
+				authorize
+					.requestMatchers(HttpMethod.POST, "/api/v1/students/register",
+							"/api/v1/students/register/otp/send", "/api/v1/students/register/otp/verify")
+					.permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
 				authorize
 					.requestMatchers(HttpMethod.POST, "/api/v1/platform-admin/auth/login",

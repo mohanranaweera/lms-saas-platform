@@ -50,4 +50,20 @@ public final class AuditLogSpecifications {
 		return (root, query, cb) -> cb.equal(root.get("targetEntity"), targetEntity);
 	}
 
+	/**
+	 * Added for Wave 3's per-student/per-teacher Activity tab ({@code GET
+	 * /students/{id}/activity}, {@code GET /teachers/{id}/activity}) -
+	 * always combined with {@link #withTargetEntity(String)} by {@link
+	 * com.lms.auditlogmanagement.service.AuditLogQueryService#findForTarget},
+	 * never used alone (a bare {@code targetId} could otherwise collide
+	 * across unrelated target entities sharing the same UUID space in
+	 * theory).
+	 */
+	public static Specification<AuditLog> withTargetId(java.util.UUID targetId) {
+		if (targetId == null) {
+			return Specification.unrestricted();
+		}
+		return (root, query, cb) -> cb.equal(root.get("targetId"), targetId);
+	}
+
 }

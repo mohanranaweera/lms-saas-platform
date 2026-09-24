@@ -77,7 +77,7 @@ mean nobody can currently answer "who is allowed to do this":
 | Zoom/live-class scheduling and recording management authority | **No row exists** (closest analogs — Course Coordinator on Courses, Teacher on assigned courses — don't explicitly cover it) | PAR-19-03 |
 | Settlement-run trigger authority (Platform Admin only, vs. tenant-level Finance Staff/Institute Owner also) | **Explicitly unresolved**, not just undocumented | PAR-24-02 |
 | Course-approval second-approver requirement for high-value/published courses | **Explicitly unresolved** | (cross-ref PAR-05-03) |
-| Teacher approval as a distinct `A`-level permission vs. folded into Course Coordinator's `C/E` | **Explicitly unresolved** — no `A` column exists for Teachers unlike Courses/Payments/Exams | PAR-04-04 |
+| Teacher approval as a distinct `A`-level permission vs. folded into Course Coordinator's `C/E` | **Still unresolved as a `DomainArea`/permission-matrix question — but Wave 3 made an explicit, documented judgment call on the concrete mechanism, not a silent decision.** Wave 3 needed to gate two *new* Teacher transitions (`suspend`/`reactivate`, PAR-04-04) and chose to reuse the exact existing approve/reject mechanism — `TEACHERS`/`CREATE_EDIT` at the controller, narrowed to Tenant-Admin-only by a hardcoded `requireTenantAdmin()` check inside `TeacherService` (no new `DomainArea`/`PermissionAction` value was added) — rather than resolving this row's underlying question first. Carried-forward precedent, flagged for product-owner awareness in `docs/parity/waves/wave-03-plan.md` §10 item 2, not an answer to this row. A future wave introducing a genuine `A`-level Teacher permission (distinct from `CREATE_EDIT`) would need to migrate four transitions (`approve`/`reject`/`suspend`/`reactivate`), not two. | PAR-04-04 |
 
 **Recommendation**: resolve these as explicit product decisions (not engineering defaults)
 before scaffolding the corresponding `DomainArea` values and controllers in Waves 11, 19, and
@@ -106,6 +106,36 @@ pass relied on that per-domain assertion rather than independently re-running a 
 against every mutating endpoint as Read-only Auditor — that level of verification belongs to
 `security-reviewer`/`qa-regression` as a standing regression check, not a one-time Wave 0
 narrative claim. No evidence contradicting the assertion was found during this pass.
+
+## 6a. Wave 3 additions — studentId/teacherId-scoped staff reads and the Activity-endpoint allowlist
+
+Wave 3 ("Student and Teacher operational profiles") added several new staff-facing,
+studentId/teacherId-scoped reads, each gated on its **owning** domain's existing
+`VIEW`-level `DomainArea` grant — no new `DomainArea` value was introduced for any of
+them, confirming this Wave 0 pass's §2 finding (the RBAC skeleton already had headroom
+for exactly this shape of expansion):
+
+| Endpoint | Gate |
+|---|---|
+| `GET /students/{id}/enrollments` | `STUDENTS`/`VIEW` |
+| `GET /students/{id}/ledger` | `PAYMENTS_SLIPS`/`VIEW` |
+| `GET /attendance/students/{id}/report` | `ATTENDANCE`/`VIEW` |
+| `GET /exams/students/{id}/attempts` | `EXAMS`/`VIEW` |
+| `GET /courses/{courseId}/roster` | Teacher-own-course-only, or staff `STUDENTS`/`VIEW` or `COURSES`/`VIEW` |
+| `POST /students/{id}/enroll` | `STUDENTS`/`CREATE_EDIT` **and** (independently, `payment-management`-side) `PAYMENTS_SLIPS`/`APPROVE` |
+| `POST /enrollments/{id}/revoke` | `STUDENTS`/`CREATE_EDIT` |
+
+The two new per-entity Activity endpoints (`GET /students/{id}/activity`, `GET
+/teachers/{id}/activity`) reuse — rather than re-implement — the exact
+`TENANT_ADMIN`/`READ_ONLY_AUDITOR`-only allowlist this document's own MVP-019 precedent
+already established for the general Audit Log Viewer (§3 above,
+`docs/adr/ADR-014-audit-log-viewer-access-scope.md`), via a new shared
+`AuditViewerAccessGuard` extracted specifically so both read paths (the general viewer and
+these two per-entity ones) can never independently drift. A caller holding only the
+coarse `AUDIT_LOG`/`VIEW` grant (Finance Staff, Course Coordinator, Student Support,
+Content Manager, Exam Manager, Attendance Operator) is rejected `403` on both new
+endpoints, same as on the general viewer — this is a **reuse** of an already-reviewed
+restriction, not a new one requiring separate sign-off.
 
 ## 7. Impersonation — not yet built, correctly not built
 

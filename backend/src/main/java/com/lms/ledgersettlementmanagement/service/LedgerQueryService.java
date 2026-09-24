@@ -1,11 +1,13 @@
 package com.lms.ledgersettlementmanagement.service;
 
+import com.lms.common.error.NotFoundException;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.ledgersettlementmanagement.api.LedgerHistoryEntryView;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
+import com.lms.usermanagement.api.StudentLookupApi;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -33,17 +35,34 @@ public class LedgerQueryService {
 
 	private final PermissionCheckService permissionCheckService;
 
+	private final StudentLookupApi studentLookupApi;
+
 	public LedgerQueryService(LedgerEntryApi ledgerEntryApi, PaymentStatusApi paymentStatusApi,
-			PermissionCheckService permissionCheckService) {
+			PermissionCheckService permissionCheckService, StudentLookupApi studentLookupApi) {
 		this.ledgerEntryApi = ledgerEntryApi;
 		this.paymentStatusApi = paymentStatusApi;
 		this.permissionCheckService = permissionCheckService;
+		this.studentLookupApi = studentLookupApi;
 	}
 
 	/** Student's own confirmed-payment history, ledger-derived (PAY-3). */
 	public List<LedgerHistoryEntryView> getHistoryForStudent(UUID studentId) {
 		List<UUID> orderIds = paymentStatusApi.findOrderIdsForStudent(studentId);
 		return ledgerEntryApi.findHistoryForOrders(orderIds);
+	}
+
+	/**
+	 * Wave 3 staff-facing read: {@code GET
+	 * /api/v1/students/{studentProfileId}/ledger}. {@code studentProfileId}
+	 * is resolved via {@link StudentLookupApi#resolveUserId} FIRST - an id
+	 * that does not resolve in the caller's own tenant is 404, never
+	 * 200-with-empty-list.
+	 */
+	public List<LedgerHistoryEntryView> getHistoryForStudentProfile(UUID studentProfileId) {
+		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW);
+		UUID studentId = studentLookupApi.resolveUserId(studentProfileId)
+			.orElseThrow(() -> new NotFoundException("Student not found"));
+		return getHistoryForStudent(studentId);
 	}
 
 	/** Tenant-admin Payment Dashboard - {@code PAYMENTS_SLIPS}/{@code VIEW}-gated, tenant-scoped only. */

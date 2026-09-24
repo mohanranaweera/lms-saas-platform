@@ -82,6 +82,23 @@ is always one student's own, naturally bounded history):
 ]
 ```
 
+### `GET /api/v1/students/{id}/ledger` (Wave 3)
+
+Staff-facing, studentId-scoped ledger read behind Student Detail's Payments tab — lives
+here (the owning domain of `ledger_entry`), not duplicated into `user-management`, per
+`wave-03-plan.md` §4. `{id}` is the `StudentProfile`'s own resource id, resolved
+internally to the opaque cross-domain `studentId` via `user-management.api
+.StudentLookupApi`, never a client-supplied `tenant_user` id. Requires
+`PAYMENTS_SLIPS`/`VIEW` (Tenant Admin, Finance Staff, Student Support, Read-only
+Auditor — the same grant `GET /api/v1/ledger/dashboard` requires below).
+
+**Success — `200`** (`ApiResponse<LedgerHistoryEntryResponse[]>`, not paginated) — same
+`LedgerHistoryEntryResponse` shape documented below, strictly ledger-derived (never
+`payment.status`/`order` directly), per `.claude/rules/payments.md` §2.
+
+**`404`** — `{id}` doesn't resolve to a student in the caller's own tenant. **`403`** —
+caller lacks `PAYMENTS_SLIPS`/`VIEW`.
+
 ### `GET /api/v1/ledger/dashboard`
 
 **Success — `200`** (`ApiResponse<PageResponse<LedgerHistoryEntryResponse>>`), same

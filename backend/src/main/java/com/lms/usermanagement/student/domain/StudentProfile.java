@@ -4,6 +4,8 @@ import com.lms.common.persistence.Auditable;
 import com.lms.common.persistence.TenantOwned;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.util.UUID;
 
@@ -17,6 +19,12 @@ import java.util.UUID;
  * {@code .claude/rules/architecture.md}: a module must never import another
  * domain's {@code domain} classes). Any read/mutation of the credential row
  * goes through {@code identity-access-service}'s {@code api} package.
+ *
+ * <p>Wave 3 (Student registration expansion) adds the nullable guardian/
+ * school/grade/stream/mobile columns (V44) and {@code registrationStatus}
+ * (V45) - see those migrations' own header comments for why the profile
+ * fields stay nullable (tenant-configurable required-ness, enforced at the
+ * API layer, not the DB level).
  */
 @Entity
 @Table(name = "student_profile")
@@ -31,13 +39,47 @@ public class StudentProfile extends Auditable implements TenantOwned {
 	@Column(name = "name", nullable = false)
 	private String name;
 
+	@Column(name = "guardian_name")
+	private String guardianName;
+
+	@Column(name = "guardian_phone")
+	private String guardianPhone;
+
+	@Column(name = "school")
+	private String school;
+
+	@Column(name = "grade")
+	private String grade;
+
+	@Column(name = "stream")
+	private String stream;
+
+	@Column(name = "mobile")
+	private String mobile;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "registration_status", nullable = false)
+	private StudentRegistrationStatus registrationStatus;
+
 	protected StudentProfile() {
 	}
 
 	public StudentProfile(UUID tenantId, UUID userId, String name) {
+		this(tenantId, userId, name, StudentRegistrationStatus.ADMIN_CREATED, null, null, null, null, null, null);
+	}
+
+	public StudentProfile(UUID tenantId, UUID userId, String name, StudentRegistrationStatus registrationStatus,
+			String guardianName, String guardianPhone, String school, String grade, String stream, String mobile) {
 		this.tenantId = tenantId;
 		this.userId = userId;
 		this.name = name;
+		this.registrationStatus = registrationStatus;
+		this.guardianName = guardianName;
+		this.guardianPhone = guardianPhone;
+		this.school = school;
+		this.grade = grade;
+		this.stream = stream;
+		this.mobile = mobile;
 	}
 
 	@Override
@@ -56,6 +98,34 @@ public class StudentProfile extends Auditable implements TenantOwned {
 
 	public String getName() {
 		return name;
+	}
+
+	public String getGuardianName() {
+		return guardianName;
+	}
+
+	public String getGuardianPhone() {
+		return guardianPhone;
+	}
+
+	public String getSchool() {
+		return school;
+	}
+
+	public String getGrade() {
+		return grade;
+	}
+
+	public String getStream() {
+		return stream;
+	}
+
+	public String getMobile() {
+		return mobile;
+	}
+
+	public StudentRegistrationStatus getRegistrationStatus() {
+		return registrationStatus;
 	}
 
 	/**

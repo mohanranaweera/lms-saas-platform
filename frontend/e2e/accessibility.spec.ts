@@ -4,6 +4,7 @@ import {
   apiSuccess,
   fakeJwt,
   mockJson,
+  mockStudentRegistrationPolicy,
   refreshResponseBody,
 } from "./fixtures/auth-mocks";
 
@@ -26,6 +27,7 @@ test.describe("accessible form labels", () => {
   });
 
   test("register form fields are associated with visible labels", async ({ page }) => {
+    await mockStudentRegistrationPolicy(page);
     await page.goto("/register");
     await expect(page.getByLabel("Full name")).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();

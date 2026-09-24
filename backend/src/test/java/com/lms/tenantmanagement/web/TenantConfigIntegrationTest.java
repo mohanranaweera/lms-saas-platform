@@ -13,6 +13,7 @@ import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import com.lms.tenantmanagement.web.dto.ConfigPropertyResponse;
 import com.lms.tenantmanagement.web.dto.PublicBrandingResponse;
+import com.lms.tenantmanagement.web.dto.PublicStudentRegistrationPolicyResponse;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Tag;
@@ -38,6 +39,9 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 	private static final String TENANT_CONFIG_PATH = "/api/v1/tenant-config";
 
 	private static final String PUBLIC_BRANDING_PATH = "/api/v1/public/tenant-config/branding";
+
+	private static final String PUBLIC_STUDENT_REGISTRATION_POLICY_PATH =
+			"/api/v1/public/tenant-config/student-registration-policy";
 
 	// ------------------------------------------------------------------
 	// Mandatory cross-tenant tests.
@@ -242,6 +246,64 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	// ------------------------------------------------------------------
+	// Public student registration policy.
+	// ------------------------------------------------------------------
+
+	@Test
+	void publicStudentRegistrationPolicyReturnsEachTenantsOwnConfiguredValues() {
+		Tenant tenantA = seedActiveTenant(uniqueSubdomain("cfg-public-srp-a"));
+		Tenant tenantB = seedActiveTenant(uniqueSubdomain("cfg-public-srp-b"));
+		seedTenantUser(tenantA.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		seedTenantUser(tenantB.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String hostA = hostFor(tenantA.getSubdomain());
+		String hostB = hostFor(tenantB.getSubdomain());
+		String tokenA = loginAndGetToken(hostA, "admin@example.test");
+		String tokenB = loginAndGetToken(hostB, "admin@example.test");
+		putDomainOrFail(hostA, tokenA, "STUDENT",
+				Map.of("public_registration_enabled", false, "approval_required", true, "otp_required", true,
+						"require_guardian_info", true, "require_school", true, "require_grade", true,
+						"require_stream", true, "require_mobile", true));
+		putDomainOrFail(hostB, tokenB, "STUDENT", Map.of("public_registration_enabled", true));
+
+		HttpResult<PublicStudentRegistrationPolicyResponse> policyA = getPublicStudentRegistrationPolicy(hostA);
+		HttpResult<PublicStudentRegistrationPolicyResponse> policyB = getPublicStudentRegistrationPolicy(hostB);
+
+		assertThat(policyA.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(policyA.getBody().data()).isEqualTo(new PublicStudentRegistrationPolicyResponse(false, true, true,
+				true, true, true, true, true));
+		assertThat(policyB.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(policyB.getBody().data().publicRegistrationEnabled()).isTrue();
+		assertThat(policyB.getBody().data().approvalRequired()).isFalse();
+	}
+
+	@Test
+	void publicStudentRegistrationPolicyReturnsDocumentedDefaultsForATenantWithNothingSet() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-public-srp-default"));
+		String host = hostFor(tenant.getSubdomain());
+
+		HttpResult<PublicStudentRegistrationPolicyResponse> policy = getPublicStudentRegistrationPolicy(host);
+
+		assertThat(policy.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(policy.getBody().data()).isEqualTo(
+				new PublicStudentRegistrationPolicyResponse(true, false, false, false, false, false, false, false));
+	}
+
+	@Test
+	void publicStudentRegistrationPolicyResponseNeverLeaksPropertiesBeyondTheFixedEightFields() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-public-srp-shape"));
+		String host = hostFor(tenant.getSubdomain());
+
+		MvcResult raw = perform(authenticated(get(PUBLIC_STUDENT_REGISTRATION_POLICY_PATH), host, null));
+		Map<String, Object> body = objectMapper.readValue(rawContent(raw), Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> data = (Map<String, Object>) body.get("data");
+
+		assertThat(data.keySet()).containsExactlyInAnyOrder("publicRegistrationEnabled", "approvalRequired",
+				"otpRequired", "requireGuardianInfo", "requireSchool", "requireGrade", "requireStream",
+				"requireMobile");
+	}
+
+	// ------------------------------------------------------------------
 	// Shared helpers.
 	// ------------------------------------------------------------------
 
@@ -313,6 +375,21 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 		if (json != null && !json.isBlank()) {
 			JavaType type = objectMapper.getTypeFactory().constructParametricType(ApiResponse.class,
 					PublicBrandingResponse.class);
+			body = objectMapper.readValue(json, type);
+		}
+		return new HttpResult<>(status, body, new HttpHeaders());
+	}
+
+	private HttpResult<PublicStudentRegistrationPolicyResponse> getPublicStudentRegistrationPolicy(String host) {
+		MockHttpServletRequestBuilder builder = get(PUBLIC_STUDENT_REGISTRATION_POLICY_PATH);
+		MvcResult raw = perform(authenticated(builder, host, null));
+		MockHttpServletResponse response = raw.getResponse();
+		HttpStatus status = HttpStatus.valueOf(response.getStatus());
+		String json = rawContent(raw);
+		ApiResponse<PublicStudentRegistrationPolicyResponse> body = null;
+		if (json != null && !json.isBlank()) {
+			JavaType type = objectMapper.getTypeFactory().constructParametricType(ApiResponse.class,
+					PublicStudentRegistrationPolicyResponse.class);
 			body = objectMapper.readValue(json, type);
 		}
 		return new HttpResult<>(status, body, new HttpHeaders());

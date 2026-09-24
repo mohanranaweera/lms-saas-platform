@@ -100,6 +100,19 @@ public class AttendanceController {
 		return ResponseEntity.ok(ApiResponse.success(toPageResponse(page)));
 	}
 
+	/** Wave 3 staff-facing, studentId-scoped attendance report - see {@link AttendanceReportService#getReportForStudent}. */
+	@GetMapping("/students/{id}/report")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<PageResponse<AttendanceRecordResponse>>> attendanceReportForStudent(
+			@PathVariable UUID id,
+			@PageableDefault(size = 20, sort = "markedAt", direction = Sort.Direction.DESC) Pageable pageable,
+			@RequestParam(required = false) UUID courseId, @RequestParam(required = false) Instant from,
+			@RequestParam(required = false) Instant to) {
+		PageResponse<AttendanceRecordView> page = attendanceReportService.getReportForStudent(id,
+				new AttendanceReportFilter(courseId, from, to), pageable);
+		return ResponseEntity.ok(ApiResponse.success(toPageResponse(page)));
+	}
+
 	private static AttendanceRosterResponse toResponse(AttendanceRosterView view) {
 		List<AttendanceRosterEntryResponse> roster = view.roster()
 			.stream()

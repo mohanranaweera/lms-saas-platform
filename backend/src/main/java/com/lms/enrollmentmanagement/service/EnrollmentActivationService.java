@@ -1,5 +1,9 @@
 package com.lms.enrollmentmanagement.service;
 
+import com.lms.auditlogmanagement.api.AuditLogApi;
+import com.lms.auditlogmanagement.api.AuditLogEntry;
+import com.lms.common.error.ConflictException;
+import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseAccessWindow;
 import com.lms.coursemanagement.api.CourseLookupApi;
@@ -8,11 +12,20 @@ import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
 import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
+import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.paymentmanagement.api.SlipStatusApi;
+import com.lms.usermanagement.api.StudentLookupApi;
+import com.lms.usermanagement.api.StudentSummary;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +51,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class EnrollmentActivationService implements EnrollmentActivationApi {
 
+	private static final Logger log = LoggerFactory.getLogger(EnrollmentActivationService.class);
+
 	private final EnrollmentRepository enrollmentRepository;
 
 	private final PaymentStatusApi paymentStatusApi;
@@ -52,9 +67,16 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 
 	private final EnrollmentAccessApi enrollmentAccessApi;
 
+	private final AuditLogApi auditLogApi;
+
+	private final PermissionCheckService permissionCheckService;
+
+	private final StudentLookupApi studentLookupApi;
+
 	public EnrollmentActivationService(EnrollmentRepository enrollmentRepository, PaymentStatusApi paymentStatusApi,
 			SlipStatusApi slipStatusApi, CourseLookupApi courseLookupApi, TenantContext tenantContext,
-			ReactivationTransactionService reactivationTransactionService, EnrollmentAccessApi enrollmentAccessApi) {
+			ReactivationTransactionService reactivationTransactionService, EnrollmentAccessApi enrollmentAccessApi,
+			AuditLogApi auditLogApi, PermissionCheckService permissionCheckService, StudentLookupApi studentLookupApi) {
 		this.enrollmentRepository = enrollmentRepository;
 		this.paymentStatusApi = paymentStatusApi;
 		this.slipStatusApi = slipStatusApi;
@@ -62,6 +84,9 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 		this.tenantContext = tenantContext;
 		this.reactivationTransactionService = reactivationTransactionService;
 		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.auditLogApi = auditLogApi;
+		this.permissionCheckService = permissionCheckService;
+		this.studentLookupApi = studentLookupApi;
 	}
 
 	@Override
@@ -188,6 +213,133 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 		else {
 			reactivateFromApprovedSlip(slipId, orderId, studentId, courseId);
 		}
+	}
+
+	/**
+	 * @see EnrollmentActivationApi#fromApprovedManualEvidence(UUID, UUID, UUID, UUID)
+	 */
+	@Override
+	@Transactional
+	public void fromApprovedManualEvidence(UUID paymentId, UUID orderId, UUID studentId, UUID courseId) {
+		activateOrReactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId);
+	}
+
+	/**
+	 * Wave 3 (Student actions - staff "revoke enrollment", change-controlled
+	 * per {@code .claude/rules/payments.md} §7, approved per ADR-016 - see
+	 * {@code docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md}) -
+	 * a new, narrow call site into {@link Enrollment#revoke(UUID, String)},
+	 * which itself calls the existing {@link Enrollment#supersede()}
+	 * mutation with no replacement row. No new {@code EnrollmentStatus}
+	 * value, no ledger/payment write. Reactivation afterward reuses the
+	 * existing {@code reactivation_request} flow unchanged (a revoked
+	 * enrollment's access state resolves to {@code EXPIRED}-shaped/no-longer
+	 * -current, the same way a naturally expired one does, so {@code
+	 * OrderService}'s existing reactivation gate already covers it with no
+	 * further code change here).
+	 *
+	 * <p>Declared on {@link EnrollmentActivationApi} (see that interface's
+	 * javadoc for why) even though its only real caller is this same
+	 * module's own {@code EnrollmentController} - kept on the stable
+	 * interface type so this codebase's existing {@code @MockitoBean
+	 * EnrollmentActivationApi} test-override pattern keeps working.
+	 * @throws NotFoundException if {@code enrollmentId} does not resolve to
+	 * a CURRENT enrollment row in the caller's own resolved tenant (a
+	 * cross-tenant or already-superseded id is indistinguishable from "does
+	 * not exist" here, mirroring every other owner/tenant-scoped lookup in
+	 * this codebase).
+	 * @throws ConflictException if {@code reason} is blank.
+	 */
+	@Override
+	@Transactional
+	public void revoke(UUID enrollmentId, String reason) {
+		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
+		if (reason == null || reason.isBlank()) {
+			throw new ConflictException("A reason is required to revoke an enrollment");
+		}
+		// TenantAwareRepository scopes findById to the resolved tenant
+		// context already - a cross-tenant enrollmentId is structurally
+		// invisible here, surfacing as 404, never a cross-tenant mutation.
+		Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+			.orElseThrow(() -> new NotFoundException("Enrollment not found"));
+		if (enrollment.getSupersededAt() != null) {
+			// The row genuinely exists in this tenant but is no longer
+			// current (already revoked, or superseded by a reactivation) -
+			// 409, not 404, since the id itself resolved fine; this is the
+			// "unauthorized state transition: revoking an already-revoked
+			// enrollment" case named explicitly in the wave-03 test plan.
+			throw new ConflictException("This enrollment is not currently active and cannot be revoked");
+		}
+
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		enrollment.revoke(actorId, reason);
+		try {
+			enrollmentRepository.save(enrollment);
+		}
+		catch (org.springframework.dao.OptimisticLockingFailureException ex) {
+			// Wave 3 fix-pass (security/architecture review) - two
+			// near-simultaneous revoke calls for the same row both passed the
+			// supersededAt == null read-check above; V48's @Version column
+			// (see Enrollment's own javadoc) lets Hibernate detect the race
+			// on the losing transaction's UPDATE (zero rows affected) rather
+			// than silently letting the later-committing revoke's
+			// revoked_by/revoke_reason overwrite the earlier one's
+			// attribution. Surfaced as a clean 409, never a 500 - the
+			// caller's retry will correctly observe the already-revoked
+			// state via the supersededAt != null branch above.
+			throw new ConflictException("This enrollment was concurrently modified by another request - please retry");
+		}
+
+		auditLogApi.record(new AuditLogEntry(actorId, "enrollment.revoked", "enrollment", enrollmentId, reason, null));
+		// Second audit row, same transaction, same action - targets the
+		// student's own profile (rather than the enrollment row above) so this
+		// revocation is discoverable via StudentService#listActivity /
+		// GET /students/{id}/activity, per Wave 3 fix-pass (security review,
+		// "enroll/revoke audit entries invisible on the student's own Activity
+		// tab"). The enrollment-targeted row above is untouched - both are
+		// kept, each serving its own traceability purpose; audit rows are
+		// append-only, so this is an additional fact recorded, not a
+		// correction of the first.
+		//
+		// enrollment.getStudentId() is the opaque cross-domain studentId
+		// (tenant_user.id, per StudentLookupApi's own javadoc) - NOT the
+		// student_profile id that GET /students/{id}/activity's {id} path
+		// segment and StudentService#listActivity's targetId actually filter
+		// by. Resolve the real student_profile id via StudentLookupApi
+		// (batch-shaped, mirrors CourseRosterService's own established use of
+		// getStudentSummariesByUserId) before writing this second row.
+		resolveStudentProfileId(enrollment.getStudentId()).ifPresentOrElse(
+				studentProfileId -> auditLogApi.record(new AuditLogEntry(actorId, "enrollment.revoked",
+						"student_profile", studentProfileId, reason,
+						java.util.Map.of("enrollmentId", enrollmentId.toString()))),
+				() -> log.atWarn()
+					.setMessage("enrollment.revoked_student_profile_audit_row_skipped")
+					.addKeyValue("actor", actorId)
+					.addKeyValue("tenantId", tenantContext.getTenantId())
+					.addKeyValue("enrollmentId", enrollmentId)
+					.addKeyValue("studentId", enrollment.getStudentId())
+					.addKeyValue("reason", "studentId did not resolve to a student_profile row in this tenant")
+					.log());
+	}
+
+	/**
+	 * Resolves a {@code tenant_user.id} (the opaque cross-domain {@code
+	 * studentId} this class's own {@link Enrollment} rows are keyed by) to its
+	 * owning {@code student_profile.id}, scoped to the current tenant, via
+	 * {@link StudentLookupApi#getStudentSummariesByUserId} (batch-shaped;
+	 * called here with a single-element list, mirroring {@code
+	 * CourseRosterService}'s established use of the same method). Returns
+	 * empty if the id does not resolve to a real, current-tenant {@code
+	 * student_profile} row - structurally near-unreachable (this method is
+	 * only ever called with a studentId this same transaction just proved
+	 * belongs to a real, current-tenant {@code Enrollment} row), but handled
+	 * defensively rather than assumed, same discipline as {@code
+	 * ManualEnrollmentService#grantEnrollment}'s own "log, don't roll back a
+	 * real state change" handling for its structurally-near-unreachable case.
+	 */
+	private java.util.Optional<UUID> resolveStudentProfileId(UUID studentId) {
+		List<StudentSummary> summaries = studentLookupApi.getStudentSummariesByUserId(List.of(studentId));
+		return summaries.stream().findFirst().map(StudentSummary::studentProfileId);
 	}
 
 	/**

@@ -127,3 +127,52 @@ export async function mockJson(page: Page, urlGlob: string, status: number, body
     await fulfillJson(route, status, body);
   });
 }
+
+/**
+ * Mirrors `StudentRegistrationPolicy`
+ * (`lib/api/student-registration.ts`) — every field optional here so a
+ * caller only overrides the flags its scenario cares about.
+ */
+export interface StudentRegistrationPolicyOverrides {
+  publicRegistrationEnabled?: boolean;
+  approvalRequired?: boolean;
+  otpRequired?: boolean;
+  requireGuardianInfo?: boolean;
+  requireSchool?: boolean;
+  requireGrade?: boolean;
+  requireStream?: boolean;
+  requireMobile?: boolean;
+}
+
+export const DEFAULT_STUDENT_REGISTRATION_POLICY: Required<StudentRegistrationPolicyOverrides> = {
+  publicRegistrationEnabled: true,
+  approvalRequired: false,
+  otpRequired: false,
+  requireGuardianInfo: false,
+  requireSchool: false,
+  requireGrade: false,
+  requireStream: false,
+  requireMobile: false,
+};
+
+/**
+ * Mocks `GET /v1/public/tenant-config/student-registration-policy` with a
+ * fully-permissive default (registration open, nothing required, no
+ * approval/OTP), overridable per scenario. `app/(auth)/register/page.tsx`
+ * fetches this on mount before rendering any field/step, so every test in
+ * this environment that visits `/register` needs this mocked — used both by
+ * `student-registration.spec.ts` (its own policy-permutation coverage) and
+ * by any other spec that merely needs the register page to render (e.g.
+ * `route-groups.spec.ts`, `accessibility.spec.ts`).
+ */
+export async function mockStudentRegistrationPolicy(
+  page: Page,
+  overrides: StudentRegistrationPolicyOverrides = {}
+): Promise<void> {
+  await mockJson(
+    page,
+    "**/v1/public/tenant-config/student-registration-policy",
+    200,
+    apiSuccess({ ...DEFAULT_STUDENT_REGISTRATION_POLICY, ...overrides })
+  );
+}

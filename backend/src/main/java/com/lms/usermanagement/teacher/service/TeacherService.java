@@ -1,5 +1,9 @@
 package com.lms.usermanagement.teacher.service;
 
+import com.lms.auditlogmanagement.api.AuditActivityEntry;
+import com.lms.auditlogmanagement.api.AuditLogApi;
+import com.lms.auditlogmanagement.api.AuditLogEntry;
+import com.lms.common.api.PageResponse;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
@@ -74,12 +78,15 @@ public class TeacherService {
 
 	private final PermissionCheckService permissionCheckService;
 
+	private final AuditLogApi auditLogApi;
+
 	public TeacherService(UserProvisioningApi userProvisioningApi, TeacherProfileRepository teacherProfileRepository,
-			TenantContext tenantContext, PermissionCheckService permissionCheckService) {
+			TenantContext tenantContext, PermissionCheckService permissionCheckService, AuditLogApi auditLogApi) {
 		this.userProvisioningApi = userProvisioningApi;
 		this.teacherProfileRepository = teacherProfileRepository;
 		this.tenantContext = tenantContext;
 		this.permissionCheckService = permissionCheckService;
+		this.auditLogApi = auditLogApi;
 	}
 
 	/**
@@ -114,6 +121,9 @@ public class TeacherService {
 		TeacherProfile profile = new TeacherProfile(tenantContext.getTenantId(), provisioned.userId(), name);
 		profile = teacherProfileRepository.save(profile);
 
+		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "teacher.created",
+				"teacher_profile", profile.getId()));
+
 		// A freshly-suspended tenant_user's AccountStatus is SUSPENDED (see
 		// UserProvisioningApi#suspendTenantUser) - uppercase, matching the
 		// same AccountStatus#name() convention TenantUserSummary#status()
@@ -145,6 +155,8 @@ public class TeacherService {
 		userProvisioningApi.activateTenantUser(profile.getUserId());
 
 		profile = teacherProfileRepository.save(profile);
+		auditLogApi.record(
+				AuditLogEntry.of(approverId, "teacher.approved", "teacher_profile", profile.getId()));
 		return requireTeacherAccount(profile);
 	}
 
@@ -171,6 +183,68 @@ public class TeacherService {
 		}
 
 		profile = teacherProfileRepository.save(profile);
+		auditLogApi.record(
+				AuditLogEntry.of(reviewerId, "teacher.rejected", "teacher_profile", profile.getId()));
+		return requireTeacherAccount(profile);
+	}
+
+	/**
+	 * Transitions an {@code APPROVED} teacher to {@code SUSPENDED} (Wave 3,
+	 * master instruction §11): {@code teacher_profile.approval_status ->
+	 * SUSPENDED}, {@code suspended_by}/{@code suspended_at} recorded, and the
+	 * corresponding {@code tenant_user} row suspended (blocks login) via the
+	 * same {@link UserProvisioningApi#suspendTenantUser} method Teacher
+	 * Management's create path already uses - never a bespoke suspension
+	 * mechanism. Same gate as approve/reject: {@code TEACHERS}/{@code
+	 * CREATE_EDIT} plus the narrower Tenant-Admin-only check (approved plan
+	 * §2/§21-item-1, carried forward per the Wave 3 plan's explicit judgment
+	 * call).
+	 */
+	public TeacherAccount suspendTeacher(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		requireTenantAdmin();
+
+		TeacherProfile profile = loadProfile(id);
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		try {
+			profile.suspend(actorId, Instant.now());
+		}
+		catch (IllegalStateException ex) {
+			throw new InvalidApprovalStateException(profile.getApprovalStatus().name());
+		}
+
+		userProvisioningApi.suspendTenantUser(profile.getUserId());
+
+		profile = teacherProfileRepository.save(profile);
+		auditLogApi.record(
+				AuditLogEntry.of(actorId, "teacher.suspended", "teacher_profile", profile.getId()));
+		return requireTeacherAccount(profile);
+	}
+
+	/**
+	 * Transitions a {@code SUSPENDED} teacher back to {@code APPROVED} (Wave
+	 * 3) - the only legal reverse of {@link #suspendTeacher}. Re-activates
+	 * the corresponding {@code tenant_user} row (restores login), same gate
+	 * as {@link #suspendTeacher}.
+	 */
+	public TeacherAccount reactivateTeacher(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		requireTenantAdmin();
+
+		TeacherProfile profile = loadProfile(id);
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		try {
+			profile.reactivate(actorId, Instant.now());
+		}
+		catch (IllegalStateException ex) {
+			throw new InvalidApprovalStateException(profile.getApprovalStatus().name());
+		}
+
+		userProvisioningApi.activateTenantUser(profile.getUserId());
+
+		profile = teacherProfileRepository.save(profile);
+		auditLogApi.record(
+				AuditLogEntry.of(actorId, "teacher.reactivated", "teacher_profile", profile.getId()));
 		return requireTeacherAccount(profile);
 	}
 
@@ -235,6 +309,22 @@ public class TeacherService {
 		if (!TENANT_ADMIN_ROLE.equals(role)) {
 			throw new AccessDeniedException("Only a Tenant Admin may approve or reject a teacher account");
 		}
+	}
+
+	/**
+	 * Wave 3 - the per-teacher Activity tab, mirroring {@code
+	 * StudentService#listActivity} exactly (real audit-log writes this wave
+	 * adds throughout; {@code AUDIT_LOG}/{@code VIEW}, plus the {@code
+	 * TENANT_ADMIN}/{@code READ_ONLY_AUDITOR} allowlist gate, both enforced
+	 * inside {@link AuditLogApi#findForTarget} itself; existence verified here
+	 * FIRST so a cross-tenant/nonexistent id is 404, never 200-with-empty-page).
+	 */
+	@Transactional(readOnly = true)
+	public PageResponse<AuditActivityEntry> listActivity(UUID id, org.springframework.data.domain.Pageable pageable) {
+		if (!teacherProfileRepository.existsById(id)) {
+			throw new NotFoundException("Teacher account not found");
+		}
+		return PageResponse.from(auditLogApi.findForTarget("teacher_profile", id, pageable));
 	}
 
 	private Map<UUID, TenantUserSummary> summariesByUserId(List<TeacherProfile> profiles) {

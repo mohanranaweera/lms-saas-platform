@@ -1,21 +1,35 @@
 package com.lms.auditlogmanagement.service;
 
+import com.lms.auditlogmanagement.api.AuditActivityEntry;
 import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.auditlogmanagement.domain.AuditLog;
 import com.lms.auditlogmanagement.repository.AuditLogRepository;
+import com.lms.auditlogmanagement.repository.AuditLogSpecifications;
+import com.lms.auditlogmanagement.support.AuditViewerAccessGuard;
 import com.lms.common.tenant.TenantContext;
 import com.lms.common.tenant.TenantContextHolder;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
+import com.lms.identityaccessservice.api.PermissionCheckService;
+import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -41,13 +55,20 @@ public class AuditLogService implements AuditLogApi {
 
 	private final UserProvisioningApi userProvisioningApi;
 
+	private final PermissionCheckService permissionCheckService;
+
+	/** Same defensive cap as {@code AuditLogQueryService#MAX_PAGE_SIZE}. */
+	private static final int MAX_PAGE_SIZE = 100;
+
 	public AuditLogService(AuditLogRepository auditLogRepository, TenantContext tenantContext,
-			ObjectMapper objectMapper, EntityManager entityManager, UserProvisioningApi userProvisioningApi) {
+			ObjectMapper objectMapper, EntityManager entityManager, UserProvisioningApi userProvisioningApi,
+			PermissionCheckService permissionCheckService) {
 		this.auditLogRepository = auditLogRepository;
 		this.tenantContext = tenantContext;
 		this.objectMapper = objectMapper;
 		this.entityManager = entityManager;
 		this.userProvisioningApi = userProvisioningApi;
+		this.permissionCheckService = permissionCheckService;
 	}
 
 	/**
@@ -167,6 +188,47 @@ public class AuditLogService implements AuditLogApi {
 		AuditLog auditLog = new AuditLog(tenantId, entry.actorId(), entry.action(), entry.targetEntity(),
 				entry.targetId(), entry.reason(), serializeMetadata(entry.metadata()), Instant.now());
 		entityManager.persist(auditLog);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Page<AuditActivityEntry> findForTarget(String targetEntity, UUID targetId, Pageable pageable) {
+		// 1. Coarse, existing gate - unchanged mechanism.
+		permissionCheckService.requirePermission(DomainArea.AUDIT_LOG, PermissionAction.VIEW);
+		// 2. Narrower, MVP-specific gate - same allowlist AuditLogQueryService#search
+		// applies to the general Audit Log Viewer, via the shared AuditViewerAccessGuard
+		// (see that class's javadoc). Without this, any staff sub-role holding only the
+		// coarse AUDIT_LOG/VIEW grant (FINANCE_STAFF, COURSE_COORDINATOR, STUDENT_SUPPORT,
+		// CONTENT_MANAGER, EXAM_MANAGER, ATTENDANCE_OPERATOR) could read a student/
+		// teacher's full audit trail through this second, unguarded read path -
+		// reintroducing exactly the over-exposure the allowlist exists to prevent.
+		AuditViewerAccessGuard.requireViewerRole();
+		Pageable safePageable = (pageable.getPageSize() <= MAX_PAGE_SIZE) ? pageable
+				: PageRequest.of(pageable.getPageNumber(), MAX_PAGE_SIZE, pageable.getSort());
+		Specification<AuditLog> spec = AuditLogSpecifications.withTargetEntity(targetEntity)
+			.and(AuditLogSpecifications.withTargetId(targetId));
+		Page<AuditLog> page = auditLogRepository.findAll(spec, safePageable);
+		List<UUID> actorIds = page.getContent().stream().map(AuditLog::getActorId).distinct().toList();
+		Map<UUID, String> actorDisplayNames = userProvisioningApi.findTenantUserSummaries(actorIds)
+			.stream()
+			.collect(Collectors.toMap(TenantUserSummary::userId, TenantUserSummary::email));
+		return page.map(auditLog -> new AuditActivityEntry(auditLog.getId(), auditLog.getActorId(),
+				actorDisplayNames.get(auditLog.getActorId()), auditLog.getAction(), auditLog.getTargetEntity(),
+				auditLog.getTargetId(), auditLog.getReason(), deserializeMetadata(auditLog.getMetadata()),
+				auditLog.getOccurredAt()));
+	}
+
+	private Map<String, Object> deserializeMetadata(String metadata) {
+		if (metadata == null) {
+			return null;
+		}
+		try {
+			return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
+			});
+		}
+		catch (JacksonException e) {
+			throw new IllegalStateException("Failed to deserialize audit log metadata", e);
+		}
 	}
 
 	private String serializeMetadata(Map<String, Object> metadata) {

@@ -98,11 +98,72 @@ export interface ReactivationQueueParams {
   sort?: string;
 }
 
+/** Mirrors `EnrollmentHistoryEntryResponse` — one row of the Wave 3 staff-facing `GET /v1/students/{id}/enrollments` read. */
+export interface EnrollmentHistoryEntryResponse {
+  enrollmentId: string;
+  courseId: string;
+  current: boolean;
+  activatedAt: string | null;
+  accessExpiresAt: string | null;
+  supersededAt: string | null;
+  revokedAt: string | null;
+  revokeReason: string | null;
+  reactivatedFromEnrollmentId: string | null;
+}
+
+/** Mirrors `RevokeEnrollmentRequest` — `reason` is mandatory, non-blank (ADR-016 decision 2). */
+export interface RevokeEnrollmentInput {
+  reason: string;
+}
+
 export const enrollmentKeys = {
   all: ["enrollments"] as const,
   my: () => [...enrollmentKeys.all, "my"] as const,
   myCourses: () => [...enrollmentKeys.all, "my", "courses"] as const,
 };
+
+/**
+ * `GET /v1/students/{id}/enrollments` (Wave 3, staff-facing, studentId-scoped
+ * — lives in `enrollment-management`, not duplicated into `user-management`,
+ * per the wave-03 plan §4). Plain array, no pagination — matches the
+ * backend's `StudentEnrollmentController`. Query key intentionally matches
+ * the shape `lib/api/students.ts#useEnrollStudent`'s `onSuccess` invalidates
+ * (`["students", id, "enrollments"]`).
+ */
+export function useStudentEnrollments(studentId: string) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: ["students", studentId, "enrollments"],
+    queryFn: () =>
+      authorizedFetch<EnrollmentHistoryEntryResponse[]>(
+        "tenant",
+        `/v1/students/${studentId}/enrollments`
+      ),
+    enabled: studentId.length > 0,
+  });
+}
+
+/**
+ * `POST /v1/enrollments/{id}/revoke` (Wave 3, ADR-016 decision 2 — reuses the
+ * existing `supersede()` mutation, no new `EnrollmentStatus`, no ledger/
+ * payment write). `reason` is mandatory. On success, invalidates the owning
+ * student's enrollment history — `studentId` is supplied by the caller since
+ * this endpoint's own path only carries `enrollmentId`, not `studentId`.
+ */
+export function useRevokeEnrollment(studentId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ enrollmentId, reason }: { enrollmentId: string; reason: string }) =>
+      authorizedFetch<null>("tenant", `/v1/enrollments/${enrollmentId}/revoke`, {
+        method: "POST",
+        body: JSON.stringify({ reason } satisfies RevokeEnrollmentInput),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students", studentId, "enrollments"] });
+    },
+  });
+}
 
 export const reactivationRequestKeys = {
   all: ["reactivation-requests"] as const,

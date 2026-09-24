@@ -676,7 +676,10 @@ test.describe("student detail/edit", () => {
     });
 
     await expect(page.getByText(ADA.email)).toBeVisible();
-    await expect(page.getByText("Active", { exact: true })).toBeVisible();
+    // Wave 3's tabbed rebuild renders the status badge twice (the page
+    // header, plus the Profile tab's own read-only "Status" row) — assert at
+    // least one is visible rather than requiring a single match.
+    await expect(page.getByText("Active", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("STUDENT", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Name")).toHaveValue("Ada Lovelace");
   });

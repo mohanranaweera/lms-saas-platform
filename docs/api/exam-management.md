@@ -84,6 +84,7 @@ IDOR on an attempt/result is always `404`, never `403` (an anti-enumeration conv
 - `POST /api/v1/exams/attempts/{attemptId}/submit` — idempotent submit; `409` on a second submit (never re-scored). MCQ auto-marking runs exactly once, here.
 - **`GET /api/v1/exams/attempts/my`** *(added post-review)* — the calling student's own attempt history, most recent first, including attempts for `CLOSED` exams (which `/my/upcoming` never returns). `hasRole('STUDENT')`, owner-only. Replaces the frontend's earlier `localStorage`-based "remembered attempt" convenience as the primary way to rediscover a past attempt.
 - **`GET /api/v1/exams/attempts/{attemptId}/answers`** *(added post-review, second pass)* — the calling student's own saved answers for one attempt (`[{ questionId, response }]`), owner-only (`404` for another student's attempt, same convention as every other attempt endpoint). `hasRole('STUDENT')`. Closes a real bug: without this read, resuming an `IN_PROGRESS` attempt after a refresh/reconnect rendered every question blank in the frontend client, risking a blank re-save overwriting a previously-saved answer with `null`. The frontend take page fetches this once an attempt is available and seeds its local answer state from it.
+- **`GET /api/v1/exams/students/{id}/attempts`** *(added Wave 3, "Student and Teacher operational profiles")* — staff-facing, studentId-scoped attempt-history read behind Student Detail's Exams tab, paginated (`PageResponse<ExamAttemptResponse>`, default `sort=startedAt,DESC`). `{id}` is the `StudentProfile`'s own resource id, resolved internally via `user-management.api.StudentLookupApi` — **not** the owner-only `hasRole('STUDENT')` shape every other attempt endpoint in this section uses. Auth: `@PreAuthorize("isAuthenticated()")` at the controller, `DomainArea.EXAMS`/`PermissionAction.VIEW` enforced inside `ExamAttemptService#listAttemptsForStudent`. `404` if `{id}` doesn't resolve to a student in the caller's own tenant; `403` if the caller lacks `EXAMS`/`VIEW`. Lives here (the owning domain of `exam_attempt`), not duplicated into `user-management`, per `wave-03-plan.md` §4.
 
 ### Marking queue
 
@@ -122,3 +123,7 @@ IDOR on an attempt/result is always `404`, never `403` (an anti-enumeration conv
   caps added to `body`/`optionText`/`response`; `409` corrected to `400` for the zero-`isCorrect`-
   options validation error (question bank); an index was added to `exam_answer(tenant_id, question_id)`
   in `V26` (still uncommitted/unshared at the time, so amended directly rather than via a new migration).
+- Wave 3 ("Student and Teacher operational profiles"): `GET /exams/students/{id}/attempts` added —
+  the staff-facing counterpart to `GET /exams/attempts/my`, behind Student Detail's Exams tab. No
+  schema change; a within-module additive read, same pattern as the post-review-pass additions
+  above.

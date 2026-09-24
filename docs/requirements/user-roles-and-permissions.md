@@ -34,7 +34,7 @@ Related: `docs/architecture/authentication-authorization.md`, `.claude/rules/sec
 | Read-only Auditor | Single tenant, read-only across operational areas | `app/(tenant-admin)/` | No |
 | Teacher | Single tenant, scoped to assigned courses | `app/(teacher)/` | No — created/approved by Tenant Admin |
 | Teacher Assistant | Single tenant, subset of Teacher scope — see §3 (PROVISIONAL) | `app/(teacher)/` | No |
-| Student | Single tenant, scoped to own enrollments/records | `app/(student)/` | Yes — via tenant storefront (see `docs/ui-ux/user-journeys.md` open question on whether this is public or invite-only) |
+| Student | Single tenant, scoped to own enrollments/records | `app/(student)/` | Yes — via tenant storefront, resolved (Wave 3): per-tenant configurable via `ConfigDomain.STUDENT.public_registration_enabled` (default `true`), not a fixed public-vs-invite-only choice; see `docs/api/user-management.md`'s "Public student self-registration" section and Open questions item 4 below |
 | Anonymous / Public | No tenant scope beyond the resolved storefront tenant | `app/(public)/` | N/A |
 
 All roles authenticate through the same `identity-access-service` login path — role is a
@@ -134,8 +134,17 @@ indicator for the duration (`.claude/rules/ui-ux.md` §1).
 3. Whether Course Coordinator's course-approval authority (`A` in §2) requires a second
    approver for high-value/published courses, or is single-approver — not specified
    anywhere in current material.
-4. Whether tenant self-registration (§1, Student row) is public or invite-only — same
-   open question already tracked in `docs/ui-ux/user-journeys.md`.
+4. ~~Whether tenant self-registration (§1, Student row) is public or invite-only~~ —
+   **resolved (Wave 3, PAR-03-01):** neither, unconditionally — it is a per-tenant
+   configuration choice (`ConfigDomain.STUDENT.public_registration_enabled`, default
+   `true`), with `approval_required` as an orthogonal second toggle (a tenant can be
+   "open registration, staff must still activate" as well as "closed" or "fully open").
+   See `docs/api/user-management.md`'s "Public student self-registration" section for the
+   full contract. (The cross-referenced `docs/ui-ux/user-journeys.md` open question
+   labeled "Journey 4, step 1" is a separate, still-open question about *tenant*
+   (institute) self-registration, not student self-registration — that cross-reference
+   was itself mislabeled pre-Wave-3 and is left for a future documentation pass, since
+   Journey 4 is tenant onboarding, already shipped per `klass-parity-matrix.md` PAR-01-01.)
 
 ## Related
 

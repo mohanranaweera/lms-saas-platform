@@ -164,7 +164,7 @@ default_currency) are a conservative starter set, since no spec document enumera
 |---|---|---|
 | 1 | Tenant Admin nav + tenant configuration framework | PAR-XC-01, PAR-XC-02, PAR-02-01/02/03, PAR-14-01–04, PAR-26-04 (toggle only) |
 | 2 | Course/Class expansion + billing model foundation — **STATUS: DONE, with caveats (see §8)** | PAR-05-02/03/04/06/07/08, PAR-XC-03, PAR-26-01/02/03, PAR-07-04 (course/teacher filter) |
-| 3 | Student and Teacher operational profiles | PAR-03-02/03/04/05/06, PAR-04-03/04 |
+| 3 | Student and Teacher operational profiles — **STATUS: DONE (see §10)** | PAR-03-01/02/03/04/05/06, PAR-04-03/04 |
 | 4 | ClassSession and Zoom/meeting integration | PAR-19-01–05, PAR-10-01 (interaction only), PAR-10-03 |
 | 5 | Materials, video and playback policies | PAR-06-03/04/05, PAR-17-01–04, PAR-20-01–05, PAR-27-01/02 |
 | 6 | Billing periods and Student Payment parity | PAR-09-04/05, PAR-18-02/03/04, PAR-XC-04 |
@@ -245,3 +245,75 @@ application or execute Playwright/JUnit suites to empirically confirm behavior (
 code/route/migration inspection); or resolve any of the unresolved business decisions in §5 —
 all of those remain for the human reviewer and product owner, per master instruction's closing
 instruction to STOP and wait for review before Wave 1 begins.
+
+## 10. Recommended Wave 3 scope — STATUS: DONE (see `klass-parity-matrix.md` for row-level detail)
+
+Per master instruction §39 and §7's cross-reference table above, Wave 3 is "Student and Teacher
+operational profiles." It shipped as the Student/Teacher operational-profile module (backend and
+frontend implemented, reviewed by architecture, security/tenant-isolation, and payment-ledger
+reviewers across two fix passes; two change-controlled decisions — staff-granted enrollment and
+staff-initiated revocation — were surfaced to and approved by the product owner before the
+corresponding service/entity code was written, formally recorded in
+`docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md`). The concrete Wave 3 backlog,
+against the items `implementation-roadmap.md` §7 assigned to it:
+
+1. **PAR-03-01 (student self-registration)** — **done, and corrects a stale Wave 0 `MATCHES`.**
+   The Wave 0 pass recorded `MATCHES` against a disabled placeholder shell with no backend at
+   all; this wave replaced it with a real, tenant-configurable public registration workflow
+   (`StudentRegistrationController`, `PublicStudentRegistrationPolicyController`, `ConfigDomain
+   .STUDENT`'s eight registration-policy properties, email-only OTP).
+2. **PAR-03-02 (manual single-student creation)** — **reverified, no code change needed.** Already
+   correct before this wave; `mustChangePassword` is still hardcoded server-side.
+3. **PAR-03-03 (bulk CSV import)** — **done.** Continue-on-error, per-row result, staff-gated.
+4. **PAR-03-04 (Student Detail composition)** — **done for the available parts.** Profile/
+   Enrollments/Payments/Attendance/Exams/Activity tabs are real; Devices and Notification-history
+   tabs remain explicitly deferred (Wave 10/11 — the owning domains don't exist yet).
+5. **PAR-03-05 (Student actions)** — **done for the available parts.** Edit/activate/deactivate/
+   enroll/revoke/reset-password are all real, audit-logged actions; device reset (Wave 10) and
+   generic access-extension beyond the existing reactivation-request flow (Wave 6) remain
+   explicitly deferred.
+6. **PAR-03-06 (Teacher course roster)** — **done.** A real, backend-filtered
+   `GET /api/v1/courses/{courseId}/roster`, plus a Teacher-facing route and a mirrored Tenant
+   Admin roster tab.
+7. **PAR-04-03 (Teacher Detail composition)** — **done for the available parts.** Profile/
+   Assigned Courses/Roster/Attendance/Exams/Activity tabs are real; Sessions (Wave 4) and
+   Financial summary (Wave 7) tabs remain explicitly deferred — no nav item/tab exists for either,
+   per master instruction §34's "don't add a tab for a workflow that isn't implemented."
+8. **PAR-04-04 (Teacher SUSPENDED lifecycle)** — **done.** A genuine 4th `ApprovalStatus` value,
+   `suspend`/`reactivate` endpoints gated identically to approve/reject (carrying forward existing
+   precedent rather than resolving `rbac-impact-analysis.md` §4's separate open question about a
+   distinct `A`-level Teacher-approval permission — an explicit judgment call, not silently
+   decided).
+
+**Two decisions surfaced and resolved mid-wave, via a formal product-owner approval and ADR (not
+silently decided by implementation), both change-controlled under `.claude/rules/payments.md` §7**
+because `Enrollment` rows are structurally locked to a small, enumerable set of approved write
+call sites: (1) staff "enroll student in course" — a new, explicit 5th `EnrollmentActivationApi`
+call site (`fromApprovedManualEvidence`) that creates a real `Order`+`Payment(CONFIRMED,
+gatewayReference="STAFF_GRANTED-"+paymentId)`+ledger entry, never a bypass of the payment/ledger
+trail; (2) staff "revoke enrollment" — a new, narrow `EnrollmentActivationApi#revoke` call site
+reusing the existing `Enrollment#supersede()` mutation, no new `EnrollmentStatus` value, no
+ledger/payment write. Both are documented in full in
+`docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md`, including the alternatives
+considered and rejected.
+
+**A second, post-ship fix pass (security/payment-ledger/architecture review) found and closed three
+further gaps before sign-off, without changing either ADR-016 decision's scope:** (a) the enroll
+endpoint originally lived in `user-management` and called outward into `payment-management`,
+closing a `payment-management → enrollment-management → user-management → payment-management`
+cycle — moved to `payment-management`'s own `ManualEnrollmentController`/`StudentEnrollmentService`,
+which resolves the path's `student_profile` id via `user-management`'s `StudentLookupApi` (an
+already-approved `api`-only dependency direction) instead of the reverse; (b) `enroll`/`revoke`
+originally wrote only a payment-/enrollment-targeted audit row, invisible on the student's own
+Activity tab — both now additionally write a second audit row targeting the student's own
+`student_profile` id, in the same transaction; (c) two near-simultaneous `revoke` calls for the
+same enrollment could race past the `supersededAt == null` check — closed with an optimistic-lock
+`@Version` column on `enrollment` (V48), surfaced as a clean `409`, never a `500`.
+
+See `docs/api/user-management.md`, `docs/api/payment-management.md`,
+`docs/api/enrollment-management.md`, `docs/api/ledger-settlement-management.md`,
+`docs/api/attendance-management.md`, `docs/api/exam-management.md`,
+`docs/api/tenant-configuration-management.md`, and `docs/api/audit-log-management.md` for the full
+new/changed API contracts, and `docs/parity/waves/wave-03-plan.md` for the reconstructed module
+plan (written before implementation began, unlike several earlier waves' retroactive contract
+docs).

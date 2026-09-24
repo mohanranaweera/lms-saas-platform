@@ -1,6 +1,8 @@
 package com.lms.auditlogmanagement.api;
 
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * The only contract other domains may depend on for durable audit logging
@@ -52,5 +54,41 @@ public interface AuditLogApi {
 	 * interface's own class-level javadoc contract.
 	 */
 	void recordForTenant(UUID tenantId, AuditLogEntry entry);
+
+	/**
+	 * Cross-module, tenant-scoped read of every audit row for one target
+	 * entity/id, most recent first - added for Wave 3's per-student/
+	 * per-teacher Activity tab ({@code StudentController}/{@code
+	 * TeacherController}, {@code user-management}). Resolves {@code
+	 * tenant_id} implicitly from the already-resolved {@link
+	 * com.lms.common.tenant.TenantContext} (via {@code AuditLogRepository}'s
+	 * structural tenant filter), same as every other tenant-scoped read in
+	 * this codebase - never a caller-supplied tenant id. Independently
+	 * requires {@code AUDIT_LOG}/{@code VIEW} (the true, single enforcement
+	 * point, inside the implementation - a caller holding only its own
+	 * domain's VIEW grant, e.g. {@code STUDENTS}/{@code VIEW}, is not by
+	 * itself sufficient to read audit history).
+	 * @param targetEntity the {@code audit_log.target_entity} value to filter
+	 * by (e.g. {@code "student_profile"}, {@code "teacher_profile"}) - never
+	 * null/blank.
+	 * @param targetId the {@code audit_log.target_id} value to filter by -
+	 * never null. The caller is responsible for having already verified this
+	 * id resolves to a real row in its own tenant (e.g. via {@code
+	 * StudentService#getStudent}) before calling this method, so a
+	 * cross-tenant/nonexistent id is rejected as 404 by the caller before
+	 * this method is ever reached, never surfaced here as a 200-with-empty
+	 * -page.
+	 *
+	 * <p>Independently requires the caller's live role to be {@code
+	 * TENANT_ADMIN} or {@code READ_ONLY_AUDITOR} (the same narrow allowlist
+	 * {@code AuditLogQueryService#search} applies to the general Audit Log
+	 * Viewer, enforced here via the shared {@code
+	 * com.lms.auditlogmanagement.support.AuditViewerAccessGuard}) - holding
+	 * only the coarse {@code AUDIT_LOG}/{@code VIEW} grant (e.g. {@code
+	 * FINANCE_STAFF}, {@code COURSE_COORDINATOR}, {@code STUDENT_SUPPORT}) is
+	 * not by itself sufficient to reach a {@code 200} here, for the same
+	 * over-exposure reasons documented on that allowlist.
+	 */
+	Page<AuditActivityEntry> findForTarget(String targetEntity, UUID targetId, Pageable pageable);
 
 }

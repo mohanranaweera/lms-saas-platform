@@ -28,13 +28,23 @@ labels) defined in `frontend/CLAUDE.md` and detailed in `.claude/rules/ui-ux.md`
 
 A separate route group from the public storefront, per `.claude/rules/frontend.md`'s
 "group by role/audience" convention — auth pages need a focused form shell without
-storefront/marketing chrome. As shipped in the Application Foundation module, these are
-disabled placeholder screens ("Not yet implemented — pending identity-access-service");
-real submit behavior lands with that module.
+storefront/marketing chrome. As shipped in the Application Foundation module, all three
+screens below were disabled placeholder screens ("Not yet implemented — pending
+identity-access-service"). **Wave 3 shipped real submit behavior for Student
+Registration** (below); Tenant Login's and Forgot Password's current status are outside
+Wave 3's scope and not reverified by this pass — do not assume either is still a
+placeholder purely because this note predates Wave 3.
 
 - Public > Auth > Tenant Login — tenant-branded login, resolved by domain/subdomain
-- Public > Auth > Student Registration — new student sign-up
-- Public > Auth > Forgot Password — password reset request flow
+- Public > Auth > Student Registration — new student sign-up. **Shipped (Wave 3,
+  PAR-03-01)**: `app/(auth)/register/page.tsx` — the previously disabled shell is now a
+  real, tenant-driven form. Fetches `GET /api/v1/public/tenant-config/student-registration-policy`
+  before rendering any field, so an anonymous visitor never sees a field, OTP step, or
+  closed-registration message that doesn't match this tenant's actual policy (see
+  `docs/api/user-management.md`'s "Public student self-registration" section for the full
+  backend contract).
+- Public > Auth > Forgot Password — password reset request flow. Unaffected by Wave 3;
+  status not reverified by this pass.
 
 ## Student Portal (`app/(student)/`)
 
@@ -83,7 +93,10 @@ real submit behavior lands with that module.
 - Teacher > Courses > Materials Manager — upload/organize PDFs, images, videos, recordings; drag-and-drop ordering; visibility/expiry/limits/watermark settings
 - Teacher > Courses > Landing Page & SEO — course landing page builder, SEO fields
 - Teacher > Courses > Course Reviews — view/respond to reviews
-- Teacher > Roster > Course Roster — students enrolled in an assigned course
+- Teacher > Roster > Course Roster — students enrolled in an assigned course. **Shipped
+  (Wave 3, PAR-03-06)**: `app/(teacher)/teacher/courses/[courseId]/roster/page.tsx`,
+  backed by the new `GET /api/v1/courses/{courseId}/roster` (backend-verified own-course
+  ownership, never client-side filtering).
 - Teacher > Live Classes > Schedule Live Class — create Zoom session
 - Teacher > Live Classes > Recordings — manage/attach recordings to lessons
 - Teacher > Attendance > Mark Attendance — manual attendance marking per session. **Shipped
@@ -115,10 +128,13 @@ real submit behavior lands with that module.
   (`docs/requirements/open-decisions.md` §19). Alerts named in the original backlog entry are
   also not shipped — no alerting domain exists yet.
 - Tenant Admin > Students > Student List — search/filter/manage students
-- Tenant Admin > Students > Student Detail — profile, enrollment/payment/attendance/exam/device/communication history, timeline
-- Tenant Admin > Students > Bulk Import — CSV/bulk student creation
-- Tenant Admin > Teachers > Teacher List — teacher management
-- Tenant Admin > Teachers > Teacher Detail — profile, approval, assigned courses, commission settings
+- Tenant Admin > Students > Student Detail — profile, enrollment/payment/attendance/exam/device/communication history, timeline. **Partially shipped (Wave 3)**: `app/(tenant-admin)/tenant-admin/students/[studentId]/page.tsx` is now a tabbed page — Profile / Enrollments / Payments / Attendance / Exams / Activity, each backed by a real, studentId-scoped staff read (see `docs/api/user-management.md`) — plus Activate/Deactivate, Enroll, Revoke, and Reset Password actions (`enroll-student-sheet.tsx`, `revoke-enrollment-dialog.tsx`, `reset-password-dialog.tsx`, `student-status-toggle.tsx`). Device and communication/notification history tabs remain genuinely absent (Wave 10/11 — see `klass-parity-matrix.md` PAR-03-04).
+- Tenant Admin > Students > Bulk Import — CSV/bulk student creation. **Shipped (Wave 3,
+  PAR-03-03)**: `app/(tenant-admin)/tenant-admin/students/bulk-import/page.tsx` — CSV
+  upload + per-row result table.
+- Tenant Admin > Teachers > Teacher List — teacher management. Status badge/filter now
+  includes `SUSPENDED` (Wave 3).
+- Tenant Admin > Teachers > Teacher Detail — profile, approval, assigned courses, commission settings. **Partially shipped (Wave 3)**: `app/(tenant-admin)/tenant-admin/teachers/[teacherId]/page.tsx` is now a tabbed page — Profile / Assigned Courses / Roster / Attendance / Exams / Activity — plus a Suspend/Reactivate action (`teacher-suspend-dialog.tsx`, same Tenant-Admin-only gate as Approve/Reject). "Commission settings" named in this row's original entry is **not** shipped — no teacher-scoped commission/settlement data exists yet (Wave 7); Sessions and Financial-summary tabs are likewise deliberately absent (Wave 4/7 — see `klass-parity-matrix.md` PAR-04-03).
 - Tenant Admin > Staff > Staff List — staff accounts, status
 - Tenant Admin > Staff > Staff Detail / Role Editor — role-based permission assignment
 - Tenant Admin > Staff > Activity Log — staff activity log

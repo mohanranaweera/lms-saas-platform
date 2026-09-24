@@ -432,3 +432,60 @@ test.describe("teacher detail — 404 handling", () => {
     await expect(page).toHaveURL(/\/tenant-admin\/teachers$/);
   });
 });
+
+test.describe("teacher list — shared DataTable component", () => {
+  test("the desktop table has an accessible caption and a mobile card view renders the same rows", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const teachers = [
+      makeTeacher({ id: "teacher-dt-1", name: "Priyanka Silva", approvalStatus: "APPROVED" }),
+    ];
+    await mockTeacherList(page, teachers);
+
+    await page.goto("/tenant-admin/teachers");
+
+    // Migrated onto the shared `components/ui/data-table.tsx` component
+    // (`.claude/rules/frontend.md`'s shared-table-component rule) — that
+    // component always renders a visually-hidden `<caption>`, which the
+    // previous hand-rolled `<table>` here never had.
+    const table = page.getByRole("table", { name: "Teachers" });
+    await expect(table).toBeVisible();
+    await expect(table.getByText("Priyanka Silva")).toBeVisible();
+
+    // Below `md`, the same `DataTable` renders a card list instead —
+    // asserting both confirms the migration kept the responsive behavior
+    // the hand-rolled markup had (`.claude/rules/ui-ux.md` §5).
+    await page.setViewportSize({ width: 375, height: 800 });
+    await expect(page.getByRole("list", { name: "Teachers" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "Teachers" }).getByText("Priyanka Silva")).toBeVisible();
+  });
+
+  test("suspending a teacher from the list shows a distinguishable success notice", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const approved = makeTeacher({ id: "teacher-notice-1", name: "Buddhika Rajapaksa", approvalStatus: "APPROVED" });
+
+    let suspended = false;
+    await page.route("**/v1/teachers", async (route) => {
+      const current = suspended ? { ...approved, approvalStatus: "SUSPENDED" as const } : approved;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([current])) });
+    });
+    await page.route(`**/v1/teachers/${approved.id}/suspend`, async (route) => {
+      suspended = true;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(apiSuccess({ ...approved, approvalStatus: "SUSPENDED" })),
+      });
+    });
+
+    await page.goto("/tenant-admin/teachers");
+    await page.getByRole("button", { name: `Suspend teacher ${approved.name}` }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Suspend", exact: true }).click();
+
+    // This app has no toast library — the confirmation is a brief,
+    // `role="status" aria-live="polite"` page-level notice, distinct from
+    // (and in addition to) the badge that updates in place.
+    await expect(page.getByText(`${approved.name} was suspended.`)).toBeVisible();
+  });
+});

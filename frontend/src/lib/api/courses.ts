@@ -224,14 +224,21 @@ function buildCourseListQuery(params?: CourseListParams): string {
  * server-side for a Teacher caller). Defaults to a single `size=100` page
  * (see `buildCourseListQuery`) since both current callers still filter/search
  * client-side over the fetched page rather than driving real pagination UI.
+ *
+ * `options.enabled` (default `true`) — first needed by the Wave 3 "Enroll
+ * student" sheet (`app/(tenant-admin)/tenant-admin/students/[studentId]/enroll-student-sheet.tsx`),
+ * which is always mounted (controlled `open` prop, matching this codebase's
+ * existing always-mounted-sheet convention) but must not fetch the course
+ * list until actually opened.
  */
-export function useCourses(params?: CourseListParams) {
+export function useCourses(params?: CourseListParams, options?: { enabled?: boolean }) {
   const { authorizedFetch } = useAuth();
   const queryString = buildCourseListQuery(params);
   return useQuery({
     queryKey: courseKeys.list(params),
     queryFn: () =>
       authorizedFetch<PageResponse<CourseResponse>>("tenant", `/v1/courses${queryString}`),
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -573,6 +580,36 @@ export function useUpdateCourseLesson(courseId: string, moduleId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Roster
+// ---------------------------------------------------------------------------
+
+/** Mirrors `CourseRosterEntryResponse` — one row of `GET /v1/courses/{courseId}/roster`'s response body. */
+export interface CourseRosterEntryResponse {
+  studentId: string;
+  userId: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * `GET /v1/courses/{courseId}/roster` (Wave 3, PAR-03-06/PAR-04-03) — a real,
+ * backend-filtered course roster. Teacher: own-course-only (server-verified
+ * ownership, same pattern `AttendanceAccessGuard` already uses — a Teacher
+ * requesting another teacher's course id gets a real 404/403, never a
+ * client-filtered subset of a wider fetch). Staff: `STUDENTS`/`VIEW` or
+ * `COURSES`/`VIEW`. Plain array, no pagination.
+ */
+export function useCourseRoster(courseId: string) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: [...courseKeys.detail(courseId), "roster"],
+    queryFn: () =>
+      authorizedFetch<CourseRosterEntryResponse[]>("tenant", `/v1/courses/${courseId}/roster`),
+    enabled: courseId.length > 0,
   });
 }
 

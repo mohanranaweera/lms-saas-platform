@@ -17,6 +17,16 @@ module's two new `reactivateFromConfirmedPayment`/`reactivateFromApprovedSlip` m
 are internal, cross-module `api`-package calls (`payment-management` → `enrollment-management`),
 never REST endpoints of their own.
 
+**Wave 3** ("Student and Teacher operational profiles") added three REST endpoints to this
+module: staff-initiated enrollment revocation, a studentId-scoped enrollment-history read for
+Student Detail's Enrollments tab, and a course roster read shared by the Teacher and Tenant Admin
+portals. All three are documented in their own sections below. Revocation is change-controlled
+per `.claude/rules/payments.md` §7 and approved via
+`docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md` — see that ADR for the full
+decision record (it also covers the staff "enroll student" action, which lives in
+`payment-management`'s own contract file, not here, since `payment-management` owns the
+`Order`/`Payment` rows that action creates).
+
 ## Response envelope
 
 Every endpoint returns `com.lms.common.api.ApiResponse<T>` — see
@@ -244,6 +254,98 @@ write.
 blank/missing, or the request's status isn't `SUBMITTED`. **`403`** for any caller without
 `ACCESS_EXPIRY`/`APPROVE`.
 
+### `POST /api/v1/enrollments/{id}/revoke` (Wave 3, ADR-016)
+
+Staff-initiated enrollment revocation ("Student actions" — Student Detail's Revoke
+action). Controller-level `@PreAuthorize("isAuthenticated()")` is a coarse gate only — the
+real check, `STUDENTS`/`CREATE_EDIT`, is enforced inside
+`EnrollmentActivationService#revoke` itself (defense in depth, matching this codebase's
+established pattern of re-verifying inside the service rather than trusting the
+controller annotation alone).
+
+**Request body** (`RevokeEnrollmentRequest`): `{ "reason": "..." }` — mandatory,
+non-blank, max 1000 chars. A revoke with no recorded reason is rejected outright, never
+silently defaulted.
+
+Loads the **current** (`supersededAt IS NULL`) row for `{id}`, scoped to the caller's own
+tenant (`TenantAwareRepository` — a cross-tenant `{id}` is structurally invisible, `404`,
+never a cross-tenant mutation). Calls `Enrollment#revoke(actorId, reason)`, which itself
+calls nothing but the entity's own pre-existing `supersede()` mutation (the only legal
+in-place mutation this append-mostly aggregate ever allowed) plus records
+`revoked_at`/`revoked_by`/`revoke_reason` (new nullable columns,
+`V47__add_enrollment_staff_granted_evidence.sql`) — **never** touches the immutable
+activation columns (`activating_payment_id`/`activating_slip_id`/`activated_at`), writes
+no ledger entry, and mutates no payment row. **No new `EnrollmentStatus` value is
+introduced** — access currency (now including "revoked") is still computed live via
+`isCurrentlyActive`/lineage-and-`supersededAt` inspection, exactly as before. Reactivation
+after a revoke needs no new code path — a revoked enrollment's access state resolves the
+same way a naturally expired one does, so the existing reactivation-request flow (above,
+ADR-013) already covers it.
+
+Writes **two** `AuditLogApi.record(...)` entries in the same transaction: one targeting
+`enrollment`/`{id}` (`action: "enrollment.revoked"`, preserving the pre-existing
+traceability shape), and a second — added in a Wave 3 fix-pass after review found the
+first row alone left this action invisible on the student's own Activity tab — targeting
+`student_profile`/`<the enrollment's own student's profile id>` with the same action and
+reason, so the revocation is discoverable via `GET /students/{id}/activity`.
+
+**Success — `200`** (`ApiResponse<Void>`). **`404`** — `{id}` doesn't resolve to a CURRENT
+enrollment in the caller's own tenant (cross-tenant, already-superseded, or nonexistent —
+indistinguishable). **`409 CONFLICT`** — the row exists but is already superseded/revoked
+("This enrollment is not currently active and cannot be revoked"), or a concurrent
+revoke of the same row raced past the read-check (caught by a new `@Version`
+optimistic-lock column on `enrollment`, added in a Wave 3 fix-pass — surfaced as a clean
+`409`, never a `500`). **`400`** — `reason` blank/missing. **`403`** — caller lacks
+`STUDENTS`/`CREATE_EDIT`.
+
+### `GET /api/v1/students/{id}/enrollments` (Wave 3)
+
+Staff-facing, studentId-scoped enrollment-history read behind Student Detail's
+Enrollments tab — lives here (the owning domain of `enrollment`), not duplicated into
+`user-management`. `{id}` is the `StudentProfile`'s own resource id (matching every other
+`/api/v1/students/{id}/...` URL in this codebase) — resolved internally to the opaque
+cross-domain `studentId` via `StudentLookupApi`, never a client-supplied `tenant_user` id.
+Requires `STUDENTS`/`VIEW`.
+
+**Success — `200`** (`ApiResponse<EnrollmentHistoryEntryResponse[]>`), not paginated —
+one row per lineage entry (current **and** superseded), oldest-lineage-first is not
+guaranteed, `current` distinguishes the live row:
+
+```jsonc
+[
+  {
+    "enrollmentId": "...", "courseId": "...", "current": true,
+    "activatedAt": "2026-08-01T00:00:00Z", "accessExpiresAt": null,
+    "supersededAt": null, "revokedAt": null, "revokeReason": null,
+    "reactivatedFromEnrollmentId": null
+  }
+]
+```
+
+**`404`** — `{id}` doesn't resolve to a student in the caller's own tenant. **`403`** —
+caller lacks `STUDENTS`/`VIEW`.
+
+### `GET /api/v1/courses/{courseId}/roster` (Wave 3, PAR-03-06/PAR-04-03)
+
+A real, backend-filtered course roster — Teacher-own-course-only, or staff holding
+`STUDENTS`/`VIEW` or `COURSES`/`VIEW`. Backend ownership check (`CourseLookupApi
+#getTeacherId`, never a client claim) mirrors `AttendanceAccessGuard`'s established
+Teacher-ownership-or-staff-matrix pattern exactly. Reuses the same
+`EnrollmentAccessApi#listCurrentlyEnrolledStudentIds(courseId)` the session-scoped
+attendance roster already calls, composed with `user-management`'s `StudentLookupApi`
+student summaries — never a cross-domain repository join.
+
+**Success — `200`** (`ApiResponse<CourseRosterEntryResponse[]>`):
+
+```jsonc
+[ { "studentId": "<uuid>", "userId": "<uuid>", "name": "Jane Student", "email": "jane@example.com" } ]
+```
+
+`studentId` here is `student_profile.id`; `userId` is the underlying `tenant_user` id.
+**`404`** — `courseId` doesn't resolve to a course in the caller's own tenant. **`403`** —
+a same-tenant Teacher not owning the course, or a staff caller with neither
+`STUDENTS`/`VIEW` nor `COURSES`/`VIEW`.
+
 ## `ReactivationRequestResponse` shape
 
 Returned by every reactivation-request endpoint above except the plain access-state/enrollment
@@ -299,3 +401,15 @@ interface:
   roster read. Purely additive — no existing method on this interface changed signature; see
   `docs/api/attendance-management.md`'s own "Cross-module contract" section for the consumer
   side.
+
+**New in Wave 3 — this module now also depends on `user-management.api.StudentLookupApi`**
+(the reverse of every prior cross-module direction recorded above, but an already-approved
+`api`-only dependency, not a new architectural exception): `getStudentSummariesByUserId`/
+`resolveUserId` resolve the opaque cross-domain `studentId` (`tenant_user.id`) this
+module's own `Enrollment`/roster reads are keyed by to/from the `student_profile.id` that
+`GET /students/{id}/enrollments`'s URL, `GET /courses/{courseId}/roster`'s response rows,
+and `POST /enrollments/{id}/revoke`'s second audit-log row all need.
+`enrollment-management` imports only `user-management`'s `api` package
+(`StudentLookupApi`, `StudentSummary`) — never a `user-management` repository or entity.
+See `docs/architecture/modular-monolith.md`'s Wave 3 worked example for the full
+cross-module edge picture introduced this wave.

@@ -1,5 +1,9 @@
 package com.lms.usermanagement.student.service;
 
+import com.lms.auditlogmanagement.api.AuditActivityEntry;
+import com.lms.auditlogmanagement.api.AuditLogApi;
+import com.lms.auditlogmanagement.api.AuditLogEntry;
+import com.lms.common.api.PageResponse;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
@@ -20,6 +24,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,12 +72,15 @@ public class StudentService {
 
 	private final PermissionCheckService permissionCheckService;
 
+	private final AuditLogApi auditLogApi;
+
 	public StudentService(UserProvisioningApi userProvisioningApi, StudentProfileRepository studentProfileRepository,
-			TenantContext tenantContext, PermissionCheckService permissionCheckService) {
+			TenantContext tenantContext, PermissionCheckService permissionCheckService, AuditLogApi auditLogApi) {
 		this.userProvisioningApi = userProvisioningApi;
 		this.studentProfileRepository = studentProfileRepository;
 		this.tenantContext = tenantContext;
 		this.permissionCheckService = permissionCheckService;
+		this.auditLogApi = auditLogApi;
 	}
 
 	/**
@@ -102,10 +111,8 @@ public class StudentService {
 		StudentProfile profile = new StudentProfile(tenantContext.getTenantId(), provisioned.userId(), name);
 		profile = studentProfileRepository.save(profile);
 
-		// Lightweight trace/audit hook only, pending the not-yet-built
-		// audit-log-management module (plan §16 - whether student CRUD
-		// requires a formal audit-log entry is an open decision, not resolved
-		// here). This log line does not itself satisfy that open requirement.
+		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.created",
+				"student_profile", profile.getId()));
 		log.info("Student profile {} created in tenant {} by admin user {}", profile.getId(),
 				tenantContext.getTenantId(), AuthenticatedPrincipalHolder.get().userId());
 
@@ -158,12 +165,79 @@ public class StudentService {
 			throw new NotFoundException("Student account not found");
 		}
 
-		// Lightweight trace/audit hook only, pending the not-yet-built
-		// audit-log-management module (plan §16) - see createStudent's
-		// identical comment above.
+		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.updated",
+				"student_profile", profile.getId()));
 		log.info("Student profile {} updated in tenant {} by admin user {}", profile.getId(),
 				tenantContext.getTenantId(), AuthenticatedPrincipalHolder.get().userId());
 
+		return account;
+	}
+
+	/**
+	 * Wave 3 (Student actions) - thin wrapper over {@link
+	 * UserProvisioningApi#activateTenantUser}, now audit-logged.
+	 */
+	public StudentAccount activateStudent(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
+		StudentProfile profile = studentProfileRepository.findById(id)
+			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		userProvisioningApi.activateTenantUser(profile.getUserId());
+		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.activated",
+				"student_profile", profile.getId()));
+		return requireStudentAccount(profile);
+	}
+
+	/** Wave 3 (Student actions) - thin wrapper over {@link UserProvisioningApi#suspendTenantUser}, now audit-logged. */
+	public StudentAccount deactivateStudent(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
+		StudentProfile profile = studentProfileRepository.findById(id)
+			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		userProvisioningApi.suspendTenantUser(profile.getUserId());
+		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.deactivated",
+				"student_profile", profile.getId()));
+		return requireStudentAccount(profile);
+	}
+
+	/**
+	 * Wave 3 (Student actions) - generates and returns a one-time temporary
+	 * password. Never logged/persisted beyond this single return value; the
+	 * audit entry records that a reset occurred, never the password value
+	 * itself, per {@code .claude/rules/security.md}.
+	 */
+	public String resetStudentPassword(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
+		StudentProfile profile = studentProfileRepository.findById(id)
+			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		String temporaryPassword = userProvisioningApi.resetPassword(profile.getUserId());
+		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.password_reset",
+				"student_profile", profile.getId()));
+		return temporaryPassword;
+	}
+
+	/**
+	 * Wave 3 (Student actions) - the per-student Activity tab, backed by the
+	 * real audit-log writes this wave adds throughout. {@code AUDIT_LOG}/
+	 * {@code VIEW}, plus the {@code TENANT_ADMIN}/{@code READ_ONLY_AUDITOR}
+	 * allowlist gate, are both enforced inside {@link AuditLogApi#findForTarget}
+	 * itself - existence of {@code id} in the caller's own tenant is verified
+	 * here FIRST, so a cross-tenant/nonexistent id is 404, never
+	 * 200-with-empty-page.
+	 */
+	@Transactional(readOnly = true)
+	public PageResponse<AuditActivityEntry> listActivity(UUID id, Pageable pageable) {
+		if (!studentProfileRepository.existsById(id)) {
+			throw new NotFoundException("Student account not found");
+		}
+		Page<AuditActivityEntry> page = auditLogApi.findForTarget("student_profile", id, pageable);
+		return PageResponse.from(page);
+	}
+
+	private StudentAccount requireStudentAccount(StudentProfile profile) {
+		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
+		StudentAccount account = toStudentAccount(profile, summariesByUserId);
+		if (account == null) {
+			throw new NotFoundException("Student account not found");
+		}
 		return account;
 	}
 

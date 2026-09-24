@@ -13,8 +13,13 @@ import com.lms.auditlogmanagement.repository.AuditLogRepository;
 import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.tenant.TenantContext;
 import com.lms.common.tenant.TenantContextHolder;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import jakarta.persistence.EntityManager;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -26,7 +31,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -70,6 +80,9 @@ class AuditLogServiceTest {
 	@Mock
 	private UserProvisioningApi userProvisioningApi;
 
+	@Mock
+	private com.lms.identityaccessservice.api.PermissionCheckService permissionCheckService;
+
 	private AuditLogService service;
 
 	@BeforeEach
@@ -77,7 +90,15 @@ class AuditLogServiceTest {
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		when(userProvisioningApi.actorExists(any())).thenReturn(true);
 		service = new AuditLogService(auditLogRepository, tenantContext, new ObjectMapper(), entityManager,
-				userProvisioningApi);
+				userProvisioningApi, permissionCheckService);
+	}
+
+	@AfterEach
+	void clearPrincipalHolder() {
+		// findForTarget's AuditViewerAccessGuard reads the static
+		// AuthenticatedPrincipalHolder - clear it so no test here leaks a
+		// role into another test on a shared JVM thread.
+		AuthenticatedPrincipalHolder.clear();
 	}
 
 	@AfterEach
@@ -258,6 +279,58 @@ class AuditLogServiceTest {
 			.isInstanceOf(UnknownAuditActorException.class);
 
 		verifyNoInteractions(entityManager);
+	}
+
+	// ------------------------------------------------------------------
+	// findForTarget - Wave 3 fix-pass (security review, Bug 1): the narrower
+	// TENANT_ADMIN/READ_ONLY_AUDITOR allowlist, shared with
+	// AuditLogQueryService#search via AuditViewerAccessGuard.
+	// ------------------------------------------------------------------
+
+	@Test
+	void findForTargetWithARoleHoldingOnlyTheCoarseGrantIsDeniedByTheNarrowerAllowlist() {
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(ACTOR_ID, TENANT_ID, "STUDENT_SUPPORT", UUID.randomUUID()));
+		UUID targetId = UUID.randomUUID();
+		Pageable pageable = PageRequest.of(0, 20);
+
+		assertThatThrownBy(() -> service.findForTarget("student_profile", targetId, pageable))
+			.isInstanceOf(AccessDeniedException.class);
+
+		verify(permissionCheckService).requirePermission(DomainArea.AUDIT_LOG, PermissionAction.VIEW);
+		verifyNoInteractions(auditLogRepository);
+	}
+
+	@Test
+	void findForTargetWithTenantAdminRoleSucceeds() {
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(ACTOR_ID, TENANT_ID, "TENANT_ADMIN", UUID.randomUUID()));
+		UUID targetId = UUID.randomUUID();
+		Pageable pageable = PageRequest.of(0, 20);
+		Page<AuditLog> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+		when(auditLogRepository.findAll(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<AuditLog>>any(),
+				org.mockito.ArgumentMatchers.eq(pageable))).thenReturn(emptyPage);
+		when(userProvisioningApi.findTenantUserSummaries(List.of())).thenReturn(List.of());
+
+		Page<com.lms.auditlogmanagement.api.AuditActivityEntry> result = service.findForTarget("student_profile",
+				targetId, pageable);
+
+		assertThat(result.getContent()).isEmpty();
+	}
+
+	@Test
+	void findForTargetWithReadOnlyAuditorRoleSucceeds() {
+		AuthenticatedPrincipalHolder
+			.set(new AuthenticatedPrincipal(ACTOR_ID, TENANT_ID, "READ_ONLY_AUDITOR", UUID.randomUUID()));
+		UUID targetId = UUID.randomUUID();
+		Pageable pageable = PageRequest.of(0, 20);
+		Page<AuditLog> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+		when(auditLogRepository.findAll(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<AuditLog>>any(),
+				org.mockito.ArgumentMatchers.eq(pageable))).thenReturn(emptyPage);
+		when(userProvisioningApi.findTenantUserSummaries(List.of())).thenReturn(List.of());
+
+		Page<com.lms.auditlogmanagement.api.AuditActivityEntry> result = service.findForTarget("teacher_profile",
+				targetId, pageable);
+
+		assertThat(result.getContent()).isEmpty();
 	}
 
 	/** A bean whose getter always throws, so Jackson fails to serialize it. */

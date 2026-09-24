@@ -55,7 +55,43 @@ public class ConfigPropertyRegistry {
 		}
 		registry.put(ConfigDomain.GENERAL, generalProperties());
 		registry.put(ConfigDomain.BRANDING, brandingProperties());
+		registry.put(ConfigDomain.STUDENT, studentProperties());
 		return Map.copyOf(registry);
+	}
+
+	/**
+	 * Wave 3 (master instruction §10, Student registration configuration).
+	 * {@code public_registration_enabled} defaults {@code true} (the public
+	 * self-registration endpoint is reachable out of the box); every other
+	 * property defaults {@code false} - a tenant must explicitly opt into
+	 * approval/OTP/per-field requirements, matching this registry's existing
+	 * "safe, unsurprising default" convention. All eight are plain booleans,
+	 * validated only for type (mirrors how a boolean-typed property is
+	 * validated nowhere else yet in this registry, so this is the first
+	 * simple {@code instanceof Boolean} validator here).
+	 */
+	private static List<ConfigPropertyDefinition> studentProperties() {
+		return List.of(
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "public_registration_enabled",
+						ConfigValueType.BOOLEAN, Boolean.TRUE, ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "approval_required", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "otp_required", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_guardian_info", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_school", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_grade", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_stream", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_mobile", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	private static boolean isBoolean(Object value, Map<String, Object> batch) {
+		return value instanceof Boolean;
 	}
 
 	private static List<ConfigPropertyDefinition> generalProperties() {

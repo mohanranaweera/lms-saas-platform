@@ -5,6 +5,7 @@ import {
   apiSuccess,
   fakeJwt,
   mockJson,
+  mockStudentRegistrationPolicy,
   refreshResponseBody,
 } from "./fixtures/auth-mocks";
 
@@ -60,10 +61,19 @@ test.describe("auth route group", () => {
     await expect(page.getByText("Your session has expired")).toBeVisible();
   });
 
-  test("register page renders a disabled placeholder form", async ({ page }) => {
+  test("register page renders a real, enabled student self-registration form", async ({
+    page,
+  }) => {
+    // Wave 3 (PAR-03-01) replaced the disabled placeholder with a real form —
+    // see `student-registration.spec.ts` for its full submit/error/policy
+    // coverage; this route-group smoke test only confirms the fields are
+    // genuinely interactive (not the disabled-fieldset shell this route used
+    // to render).
+    await mockStudentRegistrationPolicy(page);
     await page.goto("/register");
-    await expect(page.getByText("Not yet implemented", { exact: false })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Create account" })).toBeDisabled();
+    await expect(page.getByLabel("Full name")).toBeEnabled();
+    await expect(page.getByLabel("Email")).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Create account" })).toBeEnabled();
   });
 
   test("forgot-password page renders a disabled placeholder form", async ({ page }) => {

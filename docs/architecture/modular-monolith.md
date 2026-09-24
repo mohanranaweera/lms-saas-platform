@@ -355,6 +355,74 @@ student-only, so this is a documented, deferred limitation, not a bug. See
 `backend/src/main/resources/db/migration/V37__add_course_pricing_model_and_archive.sql` through
 `V42__allow_zero_amount_ledger_entry_for_free_course_confirmations.sql` for the schema itself.
 
+**Worked example (`user-management`/`payment-management`/`enrollment-management`,
+Wave 3 — Student and Teacher operational profiles):** the first wave in this codebase to
+introduce a genuinely new *direction* of cross-module dependency on top of the
+established ones, plus a new, narrowly-scoped 5th write call site on an already-locked
+aggregate (`Enrollment`) — both reviewed and approved (the latter via
+`docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md`, since it is
+change-controlled under `.claude/rules/payments.md` §7).
+
+- **New edge: `enrollment-management` → `user-management.api.StudentLookupApi`.** Every
+  prior cross-module edge in this document points *toward* `user-management` from a
+  business domain resolving "which student"; Wave 3 is the first time `enrollment-management`
+  itself needs the reverse translation (`tenant_user.id` ⇄ `student_profile.id`) for three
+  new reads/writes: `GET /students/{id}/enrollments`'s URL, `GET
+  /courses/{courseId}/roster`'s response rows (composed with `EnrollmentAccessApi
+  #listCurrentlyEnrolledStudentIds`, never a repository join), and `POST
+  /enrollments/{id}/revoke`'s second audit-log row. `ledger-settlement-management` and
+  `attendance-management`/`exam-management` gained the identical, narrow dependency for
+  the same reason (`GET /students/{id}/ledger`, `GET /attendance/students/{id}/report`,
+  `GET /exams/students/{id}/attempts`). Every one of these still imports only
+  `user-management`'s `api` package (`StudentLookupApi`, `StudentSummary`) — never a
+  repository or entity — so this is a new *edge*, not a new *kind* of coupling.
+- **New edge: `payment-management` → `enrollment-management` → `user-management`, closed
+  into a triangle then un-closed.** The staff "enroll student" action (`POST
+  /students/{id}/enroll`) originally shipped on `user-management`'s own
+  `StudentController`, calling outward into `payment-management`'s
+  `ManualEnrollmentApi#grantEnrollment` — which itself calls into `enrollment-management`
+  (`EnrollmentActivationApi#fromApprovedManualEvidence`), which (new, per the point above)
+  calls back into `user-management`'s `StudentLookupApi`. That shape is a real
+  `payment-management → enrollment-management → user-management → payment-management`
+  cycle, found and flagged during Wave 3's own post-ship architecture review — cycles
+  between domains are prohibited by §4 above regardless of whether every individual edge
+  is otherwise `api`-only. Fixed by moving the endpoint itself to `payment-management`
+  (`com.lms.paymentmanagement.order.web.ManualEnrollmentController`/
+  `StudentEnrollmentService`), which resolves the path's `student_profile` id via
+  `StudentLookupApi` directly rather than having `user-management` resolve it and
+  delegate outward — the public REST contract (path, request/response shape) is
+  unchanged; only the owning module moved. See `docs/api/payment-management.md`'s "Staff-
+  granted manual enrollment" section for the full endpoint contract.
+- **`Enrollment`'s locked call-site set gained a 5th and 6th entry, both narrow and
+  explicit, not a generic override.** `EnrollmentActivationApi.fromApprovedManualEvidence`
+  (staff-granted enrollment — internally delegates to the same
+  `activateOrReactivateFromConfirmedPayment` mechanics every confirmed-payment path
+  already uses, so it cannot skip the independent `PaymentStatusApi` re-verification every
+  other evidence type gets) and `EnrollmentActivationApi.revoke` (reuses the existing
+  `Enrollment#supersede()` mutation, no new `EnrollmentStatus` value, no ledger/payment
+  write) are both declared on the stable `api`-package interface — `revoke`'s only real
+  caller is this same module's own `EnrollmentController`, kept on the interface purely so
+  the codebase's existing `@MockitoBean EnrollmentActivationApi` test-override pattern
+  keeps working, not as an invitation for a cross-module caller to use it directly. See
+  `docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md` for the full decision
+  record and `docs/api/enrollment-management.md`/`docs/api/payment-management.md` for the
+  REST contracts these two call sites back.
+- **`tenant-management`'s public-config pattern is reused, not re-invented, a second
+  time.** `PublicStudentRegistrationPolicyController` (`GET /api/v1/public/tenant-config/
+  student-registration-policy`) is modeled directly on Wave 1's `PublicBrandingController`
+  — same unauthenticated/`permitAll()` shape, same subdomain-only tenant resolution via
+  the existing `TenantResolutionFilter`, same "display/form-shape information, not a
+  privileged settings read" rationale for bypassing the domain-level `BRANDING_SETTINGS`
+  permission gate. No new tenant-resolution mechanism was introduced.
+- **Schema, additive only:** `V43` (teacher `SUSPENDED` status + suspend/reactivate
+  evidence columns), `V44`/`V45` (student registration profile fields +
+  `registration_status`), `V46` (`student_registration_otp`, new table, `tenant_id`-leading
+  index), `V47` (`payment.staff_grant_reason` + `enrollment.revoked_at`/`revoked_by`/
+  `revoke_reason`), `V48` (`enrollment.version`, an optimistic-lock column added in the
+  post-ship fix pass to close a `revoke()` double-call race — see
+  `docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md`). No edit to an
+  already-applied migration.
+
 ## 5. When an ADR is required
 
 Raise an ADR **before**, not after, doing any of the following (in addition to the

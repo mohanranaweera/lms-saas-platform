@@ -24,8 +24,9 @@ property in an existing domain is a new registry entry, no migration required).
 `ConfigDomain` has all 17 values from master instruction §7: `GENERAL, BRANDING,
 ACADEMIC, STUDENT, TEACHER, COURSE, PAYMENT, FINANCE, ATTENDANCE, EXAM, CONTENT, VIDEO,
 NOTIFICATION, SECURITY, DEVICE, DOMAIN, INTEGRATION`. As of Wave 1, only `GENERAL` and
-`BRANDING` have registered properties — every other domain resolves to an empty
-property list (`200` with `[]`, never `404`) until a later wave populates it.
+`BRANDING` had registered properties. **Wave 3 populates `STUDENT`** (below) — every
+other domain still resolves to an empty property list (`200` with `[]`, never `404`)
+until a later wave populates it.
 
 ### GENERAL properties
 
@@ -52,6 +53,30 @@ never returned in a `GET`/`PUT` response body, and never written into audit meta
 is implemented now so a later wave's `INTEGRATION` credentials can use it, per master
 instruction §7's "sensitive integration credentials must never be returned to the
 frontend after persistence."
+
+### STUDENT properties (Wave 3, master instruction §10 — registration configuration)
+
+All eight are plain `BOOLEAN`s, validated only for type (`instanceof Boolean`) — the
+first simple boolean-typed property registered in this framework (every `GENERAL`/
+`BRANDING` property above is `STRING`-typed).
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `public_registration_enabled` | BOOLEAN | `true` | Whether `POST /api/v1/students/register` is reachable at all for this tenant — `false` makes it `404 NOT_FOUND` ("Student self-registration is not available"), the cross-tenant-404-style convention. |
+| `approval_required` | BOOLEAN | `false` | A self-registered account starts `tenant_user.status = SUSPENDED` (cannot log in) until staff activates it, when `true`. |
+| `otp_required` | BOOLEAN | `false` | Email-only OTP verification (`POST .../register/otp/send`/`.../otp/verify`) required before registering, when `true`. SMS/WhatsApp OTP remains **BLOCKED** — provider selection pending, per `implementation-roadmap.md` §5 — a tenant enabling this with a phone-based expectation in mind needs product-owner communication that only email delivers today. |
+| `require_guardian_info` | BOOLEAN | `false` | `guardianName` AND `guardianPhone` both required on registration when `true`. |
+| `require_school` | BOOLEAN | `false` | `school` required on registration when `true`. |
+| `require_grade` | BOOLEAN | `false` | `grade` required on registration when `true`. |
+| `require_stream` | BOOLEAN | `false` | `stream` required on registration when `true`. |
+| `require_mobile` | BOOLEAN | `false` | `mobile` required on registration when `true`. |
+
+`public_registration_enabled` is the only property defaulting `true` — the public
+self-registration endpoint is reachable out of the box; every other property defaults
+`false`, so a tenant must explicitly opt into approval/OTP/per-field requirements,
+matching this registry's existing "safe, unsurprising default" convention. See
+`docs/api/user-management.md`'s "Public student self-registration" section for the full
+registration-endpoint contract these properties gate.
 
 ## Auth requirements and authorization model
 
@@ -109,3 +134,36 @@ visitors and for authenticated students/teachers who hold no `BRANDING_SETTINGS`
 
 No public/portal screen consumes this endpoint yet (no shared theming pipeline exists
 in this codebase to apply it) — see `docs/parity/klass-parity-matrix.md` PAR-14-04.
+
+### `GET /api/v1/public/tenant-config/student-registration-policy` (Wave 3)
+
+**Unauthenticated**, second deliberate exception, modeled directly on `GET
+/api/v1/public/tenant-config/branding` above — same tenant-resolution mechanism (request
+subdomain via `TenantResolutionFilter`, never a client-supplied tenant id/query param),
+same rationale (the public, unauthenticated student self-registration page must know,
+before a prospective student fills out anything, whether registration is open and which
+fields/steps to render — display/form-shape information, not a privileged settings read,
+so it deliberately bypasses `TenantConfigController`'s domain-level permission gate).
+
+Returns only the eight `STUDENT`-domain registration-relevant properties above — never
+the full generic `tenant-config` property-list mechanism:
+
+```jsonc
+{
+  "success": true,
+  "data": {
+    "publicRegistrationEnabled": true,
+    "approvalRequired": false,
+    "otpRequired": false,
+    "requireGuardianInfo": false,
+    "requireSchool": false,
+    "requireGrade": false,
+    "requireStream": false,
+    "requireMobile": false
+  }
+}
+```
+
+Consumed by `(auth)/register`'s frontend form before rendering any field — see
+`docs/api/user-management.md`'s "Public student self-registration" section for how the
+registration endpoints themselves use these same eight properties server-side.

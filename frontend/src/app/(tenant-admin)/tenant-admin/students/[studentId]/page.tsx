@@ -1,42 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageStudents } from "@/lib/auth/permissions";
-import { useStudent, useUpdateStudent, type StudentResponse } from "@/lib/api/students";
-import { studentUpdateSchema, type StudentUpdateFormValues } from "@/lib/validation/students";
-import { isApiClientError } from "@/lib/api/error";
+import { useStudent, type StudentResponse } from "@/lib/api/students";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
+import { LoadingState } from "@/components/states/loading-state";
 import { StudentStatusBadge } from "@/components/students/student-status-badge";
+import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ErrorState } from "@/components/states/error-state";
+import { StudentStatusToggle } from "./student-status-toggle";
+import { EnrollStudentSheet } from "./enroll-student-sheet";
+import { ResetPasswordDialog } from "./reset-password-dialog";
+import { ProfileTab } from "./profile-tab";
+import { EnrollmentsTab } from "./enrollments-tab";
+import { PaymentsTab } from "./payments-tab";
+import { AttendanceTab } from "./attendance-tab";
+import { ExamsTab } from "./exams-tab";
+import { StudentActivityTab } from "./activity-tab";
+
+const VALID_TABS = ["profile", "enrollments", "payments", "attendance", "exams", "activity"] as const;
+type TabValue = (typeof VALID_TABS)[number];
+
+function isTabValue(value: string | null): value is TabValue {
+  return VALID_TABS.includes(value as TabValue);
+}
 
 /**
- * Student Detail/Edit (MVP-006, Tenant Admin). `email`/`roleCode`/`status`
- * are read-only (the backend's `PATCH /v1/students/{id}` only ever accepts
- * `name`, per `StudentUpdateRequest`) — only `name` renders as an editable
- * field.
+ * Student Detail (Wave 3 tabbed rebuild, PAR-03-04/PAR-03-05) — Profile /
+ * Enrollments / Payments / Attendance / Exams / Activity, each backed by its
+ * own owning domain's client (never a student-specific duplicate — see
+ * `lib/api/enrollments.ts`/`lib/api/ledger.ts`/`lib/api/attendance.ts`/
+ * `lib/api/exams.ts`/`lib/api/audit-log.ts`). Device reset and generic
+ * notification history are explicitly out of scope this wave (Wave 10/11) —
+ * no tab/placeholder for either exists here, per
+ * `docs/parity/KLASS-PARITY-MASTER-INSTRUCTION.md` §34's "no placeholder-only
+ * pages" rule.
  *
- * A 404 for both a nonexistent id and a cross-tenant id is already uniform
- * on the backend ("Student account not found") and rendered as-is via
- * `QueryStateBoundary`'s generic `ErrorState` — no special-casing here that
- * could distinguish the two.
+ * The active tab lives in the URL's `?tab=` query param (deep-linkable,
+ * survives a refresh), mirroring `tenant-admin/audit-log/page.tsx`'s
+ * established URL-as-source-of-truth convention.
  */
-export default function StudentDetailPage() {
+function StudentDetailPageContent() {
   const params = useParams<{ studentId: string }>();
   const studentId = params.studentId;
   const { session } = useAuth();
   const canManage = canManageStudents(session?.role ?? null);
 
   const studentQuery = useStudent(studentId);
-  const updateMutation = useUpdateStudent(studentId);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: TabValue = isTabValue(tabParam) ? tabParam : "profile";
+
+  const [enrollOpen, setEnrollOpen] = useState(false);
+
+  function handleTabChange(next: string) {
+    const search = new URLSearchParams(searchParams);
+    if (next === "profile") {
+      search.delete("tab");
+    } else {
+      search.set("tab", next);
+    }
+    const qs = search.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,153 +90,108 @@ export default function StudentDetailPage() {
         loginPath="/login"
       >
         {(student) => (
-          <StudentDetailForm student={student} canManage={canManage} updateMutation={updateMutation} />
+          <StudentDetailBody
+            student={student}
+            canManage={canManage}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            enrollOpen={enrollOpen}
+            onEnrollOpenChange={setEnrollOpen}
+          />
         )}
       </QueryStateBoundary>
     </div>
   );
 }
 
-function StudentDetailForm({
+function StudentDetailBody({
   student,
   canManage,
-  updateMutation,
+  activeTab,
+  onTabChange,
+  enrollOpen,
+  onEnrollOpenChange,
 }: {
   student: StudentResponse;
   canManage: boolean;
-  updateMutation: ReturnType<typeof useUpdateStudent>;
+  activeTab: TabValue;
+  onTabChange: (value: string) => void;
+  enrollOpen: boolean;
+  onEnrollOpenChange: (open: boolean) => void;
 }) {
-  const [pageError, setPageError] = useState<{ message: string; code?: string } | null>(null);
-  const [saved, setSaved] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    setError,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm<StudentUpdateFormValues>({
-    resolver: zodResolver(studentUpdateSchema),
-    defaultValues: { name: student.name },
-  });
-
-  // Keep the form's baseline in sync if the underlying record changes (e.g.
-  // navigating between two students without a full page reload).
+  // Distinguishable success feedback for the consequential Activate/
+  // Deactivate/Enroll/Revoke actions (there is no toast library in this app
+  // — `components/ui/live-region.tsx`'s doc comment — so this mirrors
+  // `students/page.tsx#createdNotice`'s established brief, auto-clearing,
+  // `role="status" aria-live="polite"` page-level notice pattern rather than
+  // inventing a new one). "Revoke" (per enrollment row) is announced from
+  // `EnrollmentsTab` itself, closer to the row it affects.
+  const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
-    reset({ name: student.name });
-  }, [student.id, student.name, reset]);
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timeout);
+  }, [notice]);
 
-  const onSubmit = handleSubmit(async (values) => {
-    setPageError(null);
-    setSaved(false);
-    try {
-      await updateMutation.mutateAsync(values);
-      setSaved(true);
-    } catch (error) {
-      if (isApiClientError(error)) {
-        if (error.fieldErrors.length > 0) {
-          const unmapped = error.fieldErrors.filter((fieldError) => fieldError.field !== "name");
-          for (const fieldError of error.fieldErrors) {
-            if (fieldError.field === "name") {
-              setError("name", { type: "server", message: fieldError.message });
-            }
-          }
-          // `name` is the only editable field this form renders — a field
-          // error for anything else would otherwise be silently dropped,
-          // leaving no visible feedback at all. Mirrors
-          // create-student-sheet.tsx's unmapped-field handling.
-          if (unmapped.length > 0) {
-            setPageError({
-              message: "Some information couldn't be validated.",
-              code: error.code,
-            });
-          }
-          return;
-        }
-        // A stale UI could still let a PATCH through even when the form is
-        // hidden client-side — a real 403 must still be handled gracefully,
-        // announced via role="alert", not crash the page.
-        setPageError({ message: error.message, code: error.code });
-        return;
-      }
-      setPageError({ message: "An unexpected error occurred. Please try again." });
-    }
-  });
+  const items: TabItem[] = [
+    { value: "profile", label: "Profile", content: <ProfileTab student={student} canManage={canManage} /> },
+    {
+      value: "enrollments",
+      label: "Enrollments",
+      content: <EnrollmentsTab studentId={student.id} canManage={canManage} />,
+    },
+    { value: "payments", label: "Payments", content: <PaymentsTab studentId={student.id} /> },
+    { value: "attendance", label: "Attendance", content: <AttendanceTab studentId={student.id} /> },
+    { value: "exams", label: "Exams", content: <ExamsTab studentId={student.id} /> },
+    { value: "activity", label: "Activity", content: <StudentActivityTab studentId={student.id} /> },
+  ];
 
   return (
-    <div className="flex max-w-xl flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-foreground">{student.name}</h1>
-        <StudentStatusBadge status={student.status} />
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold text-foreground">{student.name}</h1>
+          <StudentStatusBadge status={student.status} />
+        </div>
+        {canManage ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <StudentStatusToggle student={student} onSuccess={setNotice} />
+            <Button type="button" variant="outline" onClick={() => onEnrollOpenChange(true)}>
+              <UserPlus aria-hidden="true" />
+              Enroll
+            </Button>
+            <ResetPasswordDialog student={student} />
+          </div>
+        ) : null}
       </div>
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
-        <dt className="font-medium text-muted-foreground">Email</dt>
-        <dd className="text-foreground">{student.email}</dd>
-        <dt className="font-medium text-muted-foreground">Role</dt>
-        <dd className="text-foreground">{student.roleCode}</dd>
-      </dl>
+      <div role="status" aria-live="polite">
+        {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+      </div>
 
-      {pageError ? (
-        <ErrorState
-          message={pageError.message}
-          code={pageError.code}
-          // A failed *submission*, not a failed load — retry means
-          // resubmitting the form's current (still-populated) values, not
-          // just dismissing the banner. See create-student-sheet.tsx's
-          // identical reasoning.
-          onRetry={() => {
-            setPageError(null);
-            void onSubmit();
-          }}
-        />
-      ) : null}
+      <Tabs
+        items={items}
+        value={activeTab}
+        onValueChange={onTabChange}
+        aria-label="Student detail sections"
+      />
 
       {canManage ? (
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={onSubmit}
-          aria-busy={updateMutation.isPending}
-          noValidate
-        >
-          <span role="status" aria-live="polite" className="sr-only">
-            {updateMutation.isPending ? "Saving…" : saved ? "Saved." : ""}
-          </span>
-          <fieldset disabled={updateMutation.isPending} className="flex flex-col gap-4">
-            <legend className="sr-only">Edit student</legend>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="student-detail-name">Name</Label>
-              <Input
-                id="student-detail-name"
-                type="text"
-                autoComplete="name"
-                aria-invalid={errors.name ? true : undefined}
-                aria-describedby={errors.name ? "student-detail-name-error" : undefined}
-                {...register("name")}
-              />
-              {errors.name ? (
-                <p id="student-detail-name-error" role="alert" className="text-xs text-destructive">
-                  {errors.name.message}
-                </p>
-              ) : null}
-            </div>
-          </fieldset>
-          <div className="flex items-center gap-3">
-            <Button type="submit" disabled={updateMutation.isPending || !isDirty}>
-              {updateMutation.isPending ? "Saving…" : "Save changes"}
-            </Button>
-            {saved && !isDirty ? (
-              <span role="status" className="text-sm text-muted-foreground">
-                Saved.
-              </span>
-            ) : null}
-          </div>
-        </form>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          You don&apos;t have permission to edit this student&apos;s details.
-        </p>
-      )}
+        <EnrollStudentSheet
+          student={student}
+          open={enrollOpen}
+          onOpenChange={onEnrollOpenChange}
+          onEnrolled={() => setNotice(`${student.name} was enrolled.`)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+export default function StudentDetailPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Loading student…" />}>
+      <StudentDetailPageContent />
+    </Suspense>
   );
 }

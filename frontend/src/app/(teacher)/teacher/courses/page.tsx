@@ -185,6 +185,12 @@ export default function TeacherCoursesPage() {
                       >
                         Modules
                       </Link>
+                      <Link
+                        href={`/teacher/courses/${course.id}/roster`}
+                        className={buttonVariants({ variant: "outline", size: "sm" })}
+                      >
+                        Roster
+                      </Link>
                     </>
                   )}
                 />

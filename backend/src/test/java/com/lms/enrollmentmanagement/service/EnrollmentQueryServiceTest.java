@@ -12,6 +12,8 @@ import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.PermissionCheckService;
+import com.lms.usermanagement.api.StudentLookupApi;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -55,11 +57,18 @@ class EnrollmentQueryServiceTest {
 	@Mock
 	private CourseLookupApi courseLookupApi;
 
+	@Mock
+	private StudentLookupApi studentLookupApi;
+
+	@Mock
+	private PermissionCheckService permissionCheckService;
+
 	private EnrollmentQueryService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new EnrollmentQueryService(enrollmentRepository, enrollmentExpiryService, courseLookupApi);
+		service = new EnrollmentQueryService(enrollmentRepository, enrollmentExpiryService, courseLookupApi,
+				studentLookupApi, permissionCheckService);
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(STUDENT_ID, TENANT_ID, "STUDENT", UUID.randomUUID()));
 	}
 

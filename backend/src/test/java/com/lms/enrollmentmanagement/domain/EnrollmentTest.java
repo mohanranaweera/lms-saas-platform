@@ -148,6 +148,37 @@ class EnrollmentTest {
 			.hasMessageContaining("Exactly one of activatingPaymentId/activatingSlipId must be set");
 	}
 
+	// ------------------------------------------------------------------
+	// revoke (Wave 3, Student actions - staff "revoke enrollment").
+	// ------------------------------------------------------------------
+
+	@Test
+	void revokeSupersedesTheRowAndRecordsRevokeEvidence() {
+		Enrollment enrollment = Enrollment.fromConfirmedPayment(TENANT_ID, STUDENT_ID, COURSE_ID, PAYMENT_ID, null);
+		UUID revokedBy = UUID.randomUUID();
+
+		enrollment.revoke(revokedBy, "no longer eligible");
+
+		assertThat(enrollment.getSupersededAt()).isNotNull();
+		assertThat(enrollment.getRevokedAt()).isNotNull();
+		assertThat(enrollment.getRevokedBy()).isEqualTo(revokedBy);
+		assertThat(enrollment.getRevokeReason()).isEqualTo("no longer eligible");
+		// The immutable activation evidence must never change as a side
+		// effect of revoke().
+		assertThat(enrollment.getActivatingPaymentId()).isEqualTo(PAYMENT_ID);
+		assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.ACTIVE);
+	}
+
+	@Test
+	void revokingAnAlreadySupersededRowThrows() {
+		Enrollment enrollment = Enrollment.fromConfirmedPayment(TENANT_ID, STUDENT_ID, COURSE_ID, PAYMENT_ID, null);
+		enrollment.supersede();
+
+		assertThatThrownBy(() -> enrollment.revoke(UUID.randomUUID(), "reason"))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("already superseded");
+	}
+
 	private static Enrollment invokePrivateConstructor(UUID paymentId, UUID slipId, UUID reactivatedFromEnrollmentId)
 			throws Exception {
 		Constructor<Enrollment> constructor = Enrollment.class.getDeclaredConstructor(UUID.class, UUID.class,

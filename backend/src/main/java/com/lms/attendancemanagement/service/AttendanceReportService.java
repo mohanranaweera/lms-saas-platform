@@ -16,6 +16,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
+import com.lms.usermanagement.api.StudentLookupApi;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,15 +62,46 @@ public class AttendanceReportService {
 
 	private final TenantContext tenantContext;
 
+	private final StudentLookupApi studentLookupApi;
+
 	public AttendanceReportService(CourseLookupApi courseLookupApi, EnrollmentAccessApi enrollmentAccessApi,
 			AttendanceAccessGuard attendanceAccessGuard, AttendanceRecordRepository attendanceRecordRepository,
-			PermissionCheckService permissionCheckService, TenantContext tenantContext) {
+			PermissionCheckService permissionCheckService, TenantContext tenantContext,
+			StudentLookupApi studentLookupApi) {
 		this.courseLookupApi = courseLookupApi;
 		this.enrollmentAccessApi = enrollmentAccessApi;
 		this.attendanceAccessGuard = attendanceAccessGuard;
 		this.attendanceRecordRepository = attendanceRecordRepository;
 		this.permissionCheckService = permissionCheckService;
 		this.tenantContext = tenantContext;
+		this.studentLookupApi = studentLookupApi;
+	}
+
+	/**
+	 * Wave 3 staff-facing read: {@code GET
+	 * /api/v1/attendance/students/{studentProfileId}/report}. {@code
+	 * studentProfileId} is resolved via {@link StudentLookupApi#resolveUserId}
+	 * FIRST - an id that does not resolve in the caller's own tenant is 404,
+	 * never 200-with-empty-page. Gated {@code ATTENDANCE}/{@code VIEW} - this
+	 * is a staff-only read (unlike {@link #getReport}, it has no Teacher
+	 * -own-course branch), since a specific student's full cross-course
+	 * attendance history is a broader disclosure than any one Teacher's own
+	 * course roster.
+	 */
+	@Transactional(readOnly = true)
+	public PageResponse<AttendanceRecordView> getReportForStudent(UUID studentProfileId,
+			AttendanceReportFilter filter, Pageable pageable) {
+		permissionCheckService.requirePermission(DomainArea.ATTENDANCE, PermissionAction.VIEW);
+		validateDateRange(filter);
+		UUID studentId = studentLookupApi.resolveUserId(studentProfileId)
+			.orElseThrow(() -> new NotFoundException("Student not found"));
+		Pageable safePageable = clampPageSize(pageable);
+
+		Specification<AttendanceRecord> spec = AttendanceSpecifications.withStudentId(studentId)
+			.and(AttendanceSpecifications.withCourseId(filter.courseId()))
+			.and(AttendanceSpecifications.markedBetween(filter.from(), filter.to()));
+		Page<AttendanceRecord> page = attendanceRecordRepository.findAll(spec, safePageable);
+		return PageResponse.from(page.map(AttendanceReportService::toView));
 	}
 
 	/**

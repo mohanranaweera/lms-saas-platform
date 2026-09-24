@@ -137,7 +137,17 @@ class ReactivationLifecycleIntegrationTest extends EnrollmentManagementTestSuppo
 		Map<String, Object> afterExcludingSupersededAt = new HashMap<>(originalRowAfterReactivation);
 		beforeExcludingSupersededAt.remove("superseded_at");
 		afterExcludingSupersededAt.remove("superseded_at");
+		// Wave 3 fix-pass (security/architecture review, "no concurrency guard
+		// on revoke") added an optimistic-lock `version` column (V48) to this
+		// table - `supersede()`'s UPDATE is a real, legitimate row mutation, so
+		// `version` incrementing by exactly one is expected, correct behavior,
+		// not a regression of this test's "every OTHER column is unchanged"
+		// claim (which is still true for every column that isn't itself the
+		// mechanism proving the mutation happened safely).
+		Object versionBefore = beforeExcludingSupersededAt.remove("version");
+		Object versionAfter = afterExcludingSupersededAt.remove("version");
 		assertThat(afterExcludingSupersededAt).isEqualTo(beforeExcludingSupersededAt);
+		assertThat(((Number) versionAfter).longValue()).isEqualTo(((Number) versionBefore).longValue() + 1);
 
 		UUID stillOriginalActivatingPaymentId = jdbcTemplate.queryForObject(
 				"SELECT activating_payment_id FROM enrollment WHERE id = ?", UUID.class, fixture.enrollmentId());

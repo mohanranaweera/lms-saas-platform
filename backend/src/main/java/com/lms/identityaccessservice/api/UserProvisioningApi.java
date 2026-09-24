@@ -128,4 +128,21 @@ public interface UserProvisioningApi {
 	 */
 	boolean actorExists(UUID actorId);
 
+	/**
+	 * Generates a new random temporary password, hashes and persists it
+	 * against the given {@code tenant_user} row (also forcing {@code
+	 * must_change_password = true}), and returns the RAW temporary password
+	 * exactly once - the caller (Student/Teacher Management's staff-facing
+	 * "reset password" action) is responsible for returning it in the single
+	 * HTTP response and never logging/persisting it anywhere else, per
+	 * {@code .claude/rules/security.md}. Added for Wave 3 (Student actions) -
+	 * this interface's first password-mutation method, an explicit, reviewed
+	 * extension consistent with the class javadoc's "extend this interface
+	 * when a real, concrete need arises" policy.
+	 * @throws com.lms.common.error.NotFoundException if {@code userId} does
+	 * not resolve to a {@code tenant_user} row in the caller's own resolved
+	 * tenant
+	 */
+	String resetPassword(UUID userId);
+
 }

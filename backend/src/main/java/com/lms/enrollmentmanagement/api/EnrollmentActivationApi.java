@@ -165,4 +165,60 @@ public interface EnrollmentActivationApi {
 	 */
 	void activateOrReactivateFromApprovedSlip(UUID slipId, UUID orderId, UUID studentId, UUID courseId);
 
+	/**
+	 * The 5th approved write call site (Wave 3, Student actions - staff
+	 * "enroll student in course", change-controlled per {@code
+	 * .claude/rules/payments.md} §7, approved per {@code
+	 * docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md}). NOT a bypass
+	 * of the payment/ledger trail - a new, explicit, narrow entry point for a
+	 * new *kind* of manual evidence: a real {@code Order} + {@code
+	 * Payment(CONFIRMED)} that {@code payment-management}'s {@code
+	 * ManualEnrollmentApi} already created (same shape as an approved slip -
+	 * a genuine {@code CONFIRMED} payment row, just one whose evidence is a
+	 * staff decision + mandatory reason rather than a gateway webhook or a
+	 * reviewed slip). Internally delegates to the SAME underlying
+	 * activate-or-reactivate mechanics {@link
+	 * #activateOrReactivateFromConfirmedPayment} already uses (same {@code
+	 * PaymentStatusApi} re-verification, same {@code Enrollment} factories) -
+	 * this method exists as its own named, explicit call site so the
+	 * "staff-granted" activation path stays structurally distinct and
+	 * auditable from the gateway/slip-confirmation paths, per the approved
+	 * design decision, never so a caller can skip the independent {@code
+	 * PaymentStatusApi} re-verification every other evidence type here
+	 * already gets.
+	 * @param orderId the id of the order that owns the confirming {@code
+	 * paymentId} (both created by {@code ManualEnrollmentApi} in the same
+	 * transaction as this call).
+	 * @throws IllegalStateException if {@code paymentId} is not a confirmed
+	 * payment in the current tenant context.
+	 */
+	void fromApprovedManualEvidence(UUID paymentId, UUID orderId, UUID studentId, UUID courseId);
+
+	/**
+	 * Wave 3 (Student actions - staff "revoke enrollment", change-controlled
+	 * per {@code .claude/rules/payments.md} §7, approved per ADR-016 - see
+	 * {@code docs/adr/ADR-016-staff-granted-enrollment-and-revocation.md}) -
+	 * calls the existing {@code Enrollment#supersede()} mutation (via {@code
+	 * Enrollment#revoke}) with no replacement row, audit-logged with a
+	 * mandatory reason. No new {@code EnrollmentStatus} value, no ledger/
+	 * payment write.
+	 *
+	 * <p>Declared here (not left as a bare method on {@code
+	 * EnrollmentActivationService} only) purely so {@code EnrollmentController}
+	 * (its one and only real caller, same module) can depend on this stable
+	 * interface type rather than the concrete implementation class - keeps
+	 * this codebase's existing {@code @MockitoBean EnrollmentActivationApi}
+	 * test-override pattern (used by {@code
+	 * PaymentConfirmationRollbackIntegrationTest}/{@code
+	 * SlipApprovalRollbackIntegrationTest}) working unmodified. This is NOT
+	 * an invitation for a cross-module caller to use it - {@code
+	 * EnrollmentController} remains the only sanctioned call site.
+	 * @throws com.lms.common.error.NotFoundException if {@code enrollmentId}
+	 * does not resolve to a CURRENT enrollment row in the caller's own
+	 * resolved tenant.
+	 * @throws com.lms.common.error.ConflictException if {@code reason} is
+	 * blank, or the enrollment is not currently active.
+	 */
+	void revoke(UUID enrollmentId, String reason);
+
 }

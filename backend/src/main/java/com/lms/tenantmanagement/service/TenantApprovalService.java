@@ -27,8 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
  * (plan §9.4/§15 item 1/§15 item 2) - read via {@code
  * AuthenticatedPrincipalHolder} rather than importing {@code
  * identityaccessservice.service.TokenService} (a foreign {@code service}
- * package), mirroring {@code AuditLogQueryService.VIEWER_ALLOWED_ROLES}'s
- * exact cross-module-import-avoidance technique.
+ * package), mirroring {@code
+ * com.lms.auditlogmanagement.support.AuditViewerAccessGuard}'s exact
+ * cross-module-import-avoidance technique.
  */
 @Service
 @Transactional

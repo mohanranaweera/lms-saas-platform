@@ -64,12 +64,15 @@ class TeacherServiceTest {
 	@Mock
 	private PermissionCheckService permissionCheckService;
 
+	@Mock
+	private com.lms.auditlogmanagement.api.AuditLogApi auditLogApi;
+
 	private TeacherService teacherService;
 
 	@BeforeEach
 	void setUp() {
 		teacherService = new TeacherService(userProvisioningApi, teacherProfileRepository, tenantContext,
-				permissionCheckService);
+				permissionCheckService, auditLogApi);
 	}
 
 	@AfterEach
@@ -83,6 +86,7 @@ class TeacherServiceTest {
 
 	@Test
 	void createTeacherAlwaysProvisionsAsTeacherAndImmediatelySuspendsTheNewAccount() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
 		UUID provisionedUserId = UUID.randomUUID();
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		when(userProvisioningApi.existsByEmail("teacher@example.test")).thenReturn(false);
@@ -447,6 +451,104 @@ class TeacherServiceTest {
 
 	private static AuthenticatedPrincipal principal(String role) {
 		return new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, role, UUID.randomUUID());
+	}
+
+	// ------------------------------------------------------------------
+	// Wave 3 (master instruction §11) - suspend/reactivate, same
+	// Tenant-Admin-only narrowing as approve/reject.
+	// ------------------------------------------------------------------
+
+	@Test
+	void tenantAdminSucceedsOnSuspendOfAnApprovedTeacherAndSuspendsTheTenantUser() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		UUID teacherId = UUID.randomUUID();
+		UUID userId = UUID.randomUUID();
+		TeacherProfile profile = new TeacherProfile(TENANT_ID, userId, "Approved Teacher");
+		setId(profile, teacherId);
+		profile.approve(UUID.randomUUID(), Instant.now());
+		when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(profile));
+		when(teacherProfileRepository.save(any(TeacherProfile.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(userProvisioningApi.findTenantUserSummaries(List.of(userId)))
+			.thenReturn(List.of(new TenantUserSummary(userId, "teacher@example.test", "TEACHER", "SUSPENDED")));
+
+		TeacherAccount account = teacherService.suspendTeacher(teacherId);
+
+		assertThat(account.approvalStatus()).isEqualTo("SUSPENDED");
+		verify(userProvisioningApi).suspendTenantUser(userId);
+		verify(auditLogApi).record(any());
+	}
+
+	@Test
+	void suspendingAPendingTeacherThrowsInvalidApprovalStateAndNeverTouchesUserProvisioning() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		UUID teacherId = UUID.randomUUID();
+		TeacherProfile profile = new TeacherProfile(TENANT_ID, UUID.randomUUID(), "Pending Teacher");
+		setId(profile, teacherId);
+		when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(profile));
+
+		assertThatThrownBy(() -> teacherService.suspendTeacher(teacherId))
+			.isInstanceOf(InvalidApprovalStateException.class);
+
+		verify(userProvisioningApi, never()).suspendTenantUser(any());
+		verify(teacherProfileRepository, never()).save(any());
+	}
+
+	@Test
+	void courseCoordinatorIsDeniedOnSuspendDespiteHoldingCreateEdit() {
+		AuthenticatedPrincipalHolder.set(principal("COURSE_COORDINATOR"));
+		UUID teacherId = UUID.randomUUID();
+
+		assertThatThrownBy(() -> teacherService.suspendTeacher(teacherId)).isInstanceOf(AccessDeniedException.class);
+
+		verify(teacherProfileRepository, never()).findById(any());
+		verifyNoInteractions(userProvisioningApi);
+	}
+
+	@Test
+	void tenantAdminSucceedsOnReactivateOfASuspendedTeacherAndReactivatesTheTenantUser() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		UUID teacherId = UUID.randomUUID();
+		UUID userId = UUID.randomUUID();
+		TeacherProfile profile = new TeacherProfile(TENANT_ID, userId, "Suspended Teacher");
+		setId(profile, teacherId);
+		profile.approve(UUID.randomUUID(), Instant.now());
+		profile.suspend(UUID.randomUUID(), Instant.now());
+		when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(profile));
+		when(teacherProfileRepository.save(any(TeacherProfile.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(userProvisioningApi.findTenantUserSummaries(List.of(userId)))
+			.thenReturn(List.of(new TenantUserSummary(userId, "teacher@example.test", "TEACHER", "ACTIVE")));
+
+		TeacherAccount account = teacherService.reactivateTeacher(teacherId);
+
+		assertThat(account.approvalStatus()).isEqualTo("APPROVED");
+		verify(userProvisioningApi).activateTenantUser(userId);
+		verify(auditLogApi).record(any());
+	}
+
+	@Test
+	void reactivatingAnApprovedTeacherThrowsInvalidApprovalState() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		UUID teacherId = UUID.randomUUID();
+		TeacherProfile profile = new TeacherProfile(TENANT_ID, UUID.randomUUID(), "Approved Teacher");
+		setId(profile, teacherId);
+		profile.approve(UUID.randomUUID(), Instant.now());
+		when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(profile));
+
+		assertThatThrownBy(() -> teacherService.reactivateTeacher(teacherId))
+			.isInstanceOf(InvalidApprovalStateException.class);
+
+		verify(userProvisioningApi, never()).activateTenantUser(any());
+	}
+
+	@Test
+	void listActivityOfANonexistentTeacherIdThrowsNotFoundWithoutCallingAuditLogApi() {
+		UUID teacherId = UUID.randomUUID();
+		when(teacherProfileRepository.existsById(teacherId)).thenReturn(false);
+
+		assertThatThrownBy(() -> teacherService.listActivity(teacherId, org.springframework.data.domain.PageRequest.of(0, 20)))
+			.isInstanceOf(NotFoundException.class);
+
+		verifyNoInteractions(auditLogApi);
 	}
 
 	/**

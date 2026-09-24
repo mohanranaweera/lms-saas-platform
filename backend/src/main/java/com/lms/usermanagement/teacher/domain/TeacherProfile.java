@@ -47,6 +47,18 @@ public class TeacherProfile extends Auditable implements TenantOwned {
 	@Column(name = "approved_at")
 	private Instant approvedAt;
 
+	@Column(name = "suspended_by")
+	private UUID suspendedBy;
+
+	@Column(name = "suspended_at")
+	private Instant suspendedAt;
+
+	@Column(name = "reactivated_by")
+	private UUID reactivatedBy;
+
+	@Column(name = "reactivated_at")
+	private Instant reactivatedAt;
+
 	protected TeacherProfile() {
 	}
 
@@ -89,6 +101,22 @@ public class TeacherProfile extends Auditable implements TenantOwned {
 		return approvedAt;
 	}
 
+	public UUID getSuspendedBy() {
+		return suspendedBy;
+	}
+
+	public Instant getSuspendedAt() {
+		return suspendedAt;
+	}
+
+	public UUID getReactivatedBy() {
+		return reactivatedBy;
+	}
+
+	public Instant getReactivatedAt() {
+		return reactivatedAt;
+	}
+
 	/**
 	 * Transitions {@code PENDING -> APPROVED}, recording the deciding Tenant
 	 * Admin's {@code tenant_user.id} and the decision time. Keeps the
@@ -129,6 +157,41 @@ public class TeacherProfile extends Auditable implements TenantOwned {
 					"Cannot transition a teacher approval that is not currently PENDING (current status: "
 							+ this.approvalStatus + ")");
 		}
+	}
+
+	/**
+	 * Transitions {@code APPROVED -> SUSPENDED} (Wave 3) - a second,
+	 * independent lifecycle pair from {@link #approve}/{@link #reject},
+	 * never reachable from {@code PENDING}/{@code REJECTED}.
+	 * @throws IllegalStateException if {@code approvalStatus} is not
+	 * currently {@code APPROVED}.
+	 */
+	public void suspend(UUID actorId, Instant when) {
+		if (this.approvalStatus != ApprovalStatus.APPROVED) {
+			throw new IllegalStateException(
+					"Cannot suspend a teacher that is not currently APPROVED (current status: " + this.approvalStatus
+							+ ")");
+		}
+		this.approvalStatus = ApprovalStatus.SUSPENDED;
+		this.suspendedBy = actorId;
+		this.suspendedAt = when;
+	}
+
+	/**
+	 * Transitions {@code SUSPENDED -> APPROVED} (Wave 3) - the only legal
+	 * reverse of {@link #suspend}.
+	 * @throws IllegalStateException if {@code approvalStatus} is not
+	 * currently {@code SUSPENDED}.
+	 */
+	public void reactivate(UUID actorId, Instant when) {
+		if (this.approvalStatus != ApprovalStatus.SUSPENDED) {
+			throw new IllegalStateException(
+					"Cannot reactivate a teacher that is not currently SUSPENDED (current status: "
+							+ this.approvalStatus + ")");
+		}
+		this.approvalStatus = ApprovalStatus.APPROVED;
+		this.reactivatedBy = actorId;
+		this.reactivatedAt = when;
 	}
 
 }

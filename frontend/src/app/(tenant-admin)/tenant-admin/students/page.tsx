@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageStudents } from "@/lib/auth/permissions";
 import { useStudents, type StudentResponse } from "@/lib/api/students";
@@ -100,15 +100,21 @@ export default function StudentListPage() {
           </p>
         </div>
         {canManage ? (
-          <Button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={sheetOpen}
-            onClick={() => setSheetOpen(true)}
-          >
-            <Plus aria-hidden="true" />
-            Add student
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button render={<Link href="/tenant-admin/students/bulk-import" />} variant="outline">
+              <Upload aria-hidden="true" />
+              Bulk import
+            </Button>
+            <Button
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={sheetOpen}
+              onClick={() => setSheetOpen(true)}
+            >
+              <Plus aria-hidden="true" />
+              Add student
+            </Button>
+          </div>
         ) : null}
       </div>
 

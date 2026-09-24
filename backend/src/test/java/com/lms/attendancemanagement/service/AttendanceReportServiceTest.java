@@ -89,12 +89,15 @@ class AttendanceReportServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private com.lms.usermanagement.api.StudentLookupApi studentLookupApi;
+
 	private AttendanceReportService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new AttendanceReportService(courseLookupApi, enrollmentAccessApi, attendanceAccessGuard,
-				attendanceRecordRepository, permissionCheckService, tenantContext);
+				attendanceRecordRepository, permissionCheckService, tenantContext, studentLookupApi);
 	}
 
 	@AfterEach
