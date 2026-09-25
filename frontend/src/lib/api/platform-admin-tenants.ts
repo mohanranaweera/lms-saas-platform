@@ -11,21 +11,31 @@ import type { PageResponse } from "./courses";
  */
 
 /**
- * Mirrors the backend's `tenant.status` CHECK-constrained enum
- * (`pending_approval | trial | active | suspended | cancelled | rejected`), see
- * `backend/src/main/resources/db/migration/V2__create_tenant_table.sql`.
+ * Mirrors the backend's `com.lms.tenantmanagement.api.TenantStatus` Java enum
+ * as Jackson serializes it on the wire (`Enum#name()`, e.g. `"ACTIVE"`) —
+ * confirmed by `PlatformAdminTenantControllerIntegrationTest` deserializing
+ * `TenantSummaryResponse`/`TenantDetailResponse.status()` as the enum itself
+ * and filtering via `?status=PENDING_APPROVAL`. This is deliberately NOT the
+ * lowercase `tenant.status` CHECK-constraint column value
+ * (`pending_approval | trial | ...`, see
+ * `backend/src/main/resources/db/migration/V2__create_tenant_table.sql`) —
+ * that lowercase form is a separate, persistence-only mapping
+ * (`TenantStatusConverter`) that never reaches this JSON boundary for these
+ * two response types. (`TenantRegistrationResponse.status` is a different,
+ * unrelated endpoint that does intentionally serialize the lowercase form —
+ * don't conflate the two.)
  * Canonical definition lives here (the API layer) rather than in
  * `status-badge.tsx` (a feature component under `app/`) — `lib/` must not
  * depend on `app/`, only the reverse; `status-badge.tsx` imports and
  * re-exports this type instead.
  */
 export type TenantStatus =
-  | "pending_approval"
-  | "trial"
-  | "active"
-  | "suspended"
-  | "cancelled"
-  | "rejected";
+  | "PENDING_APPROVAL"
+  | "TRIAL"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "CANCELLED"
+  | "REJECTED";
 
 /** Mirrors `TenantSummaryResponse`. */
 export interface TenantSummaryResponse {

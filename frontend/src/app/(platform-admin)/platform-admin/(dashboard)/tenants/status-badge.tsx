@@ -12,12 +12,12 @@ import type { TenantStatus } from "@/lib/api/platform-admin-tenants";
 export type { TenantStatus };
 
 export const TENANT_STATUS_LABELS: Record<TenantStatus, string> = {
-  pending_approval: "Pending approval",
-  trial: "Trial",
-  active: "Active",
-  suspended: "Suspended",
-  cancelled: "Cancelled",
-  rejected: "Rejected",
+  PENDING_APPROVAL: "Pending approval",
+  TRIAL: "Trial",
+  ACTIVE: "Active",
+  SUSPENDED: "Suspended",
+  CANCELLED: "Cancelled",
+  REJECTED: "Rejected",
 };
 
 /**
@@ -30,12 +30,12 @@ export const TENANT_STATUS_LABELS: Record<TenantStatus, string> = {
  * neutral treatment with a distinct icon until that's resolved upstream.
  */
 const STATUS_STYLES: Record<TenantStatus, { icon: typeof Clock; className: string }> = {
-  pending_approval: { icon: Clock, className: "text-muted-foreground" },
-  trial: { icon: FlaskConical, className: "text-muted-foreground" },
-  active: { icon: CheckCircle2, className: "text-foreground" },
-  suspended: { icon: Ban, className: "text-destructive" },
-  cancelled: { icon: XCircle, className: "text-destructive" },
-  rejected: { icon: XOctagon, className: "text-destructive" },
+  PENDING_APPROVAL: { icon: Clock, className: "text-muted-foreground" },
+  TRIAL: { icon: FlaskConical, className: "text-muted-foreground" },
+  ACTIVE: { icon: CheckCircle2, className: "text-foreground" },
+  SUSPENDED: { icon: Ban, className: "text-destructive" },
+  CANCELLED: { icon: XCircle, className: "text-destructive" },
+  REJECTED: { icon: XOctagon, className: "text-destructive" },
 };
 
 export function StatusBadge({ status }: { status: TenantStatus }) {

@@ -31,7 +31,7 @@ function tenantSummary(overrides: Partial<Record<string, unknown>> = {}) {
     id: "11111111-1111-1111-1111-111111111111",
     name: "Example Institute A",
     subdomain: "example-institute-a",
-    status: "pending_approval",
+    status: "PENDING_APPROVAL",
     requestedPlan: "STARTER",
     createdAt: nowIso(),
     ...overrides,
@@ -43,7 +43,7 @@ function tenantDetail(overrides: Partial<Record<string, unknown>> = {}) {
     id: "11111111-1111-1111-1111-111111111111",
     name: "Example Institute A",
     subdomain: "example-institute-a",
-    status: "pending_approval",
+    status: "PENDING_APPROVAL",
     requestedPlan: "STARTER",
     contactName: "Jane Doe",
     contactEmail: "jane@example.test",
@@ -68,7 +68,7 @@ test.describe("Platform Admin Tenant List — table content", () => {
       200,
       apiPageSuccess([
         tenantSummary({ id: "id-1", name: "Example Institute A" }),
-        tenantSummary({ id: "id-2", name: "Example Academy", status: "active" }),
+        tenantSummary({ id: "id-2", name: "Example Academy", status: "ACTIVE" }),
       ])
     );
 
@@ -149,7 +149,7 @@ test.describe("Platform Admin Tenant List — approve/reject flow", () => {
       page,
       "**/v1/platform-admin/tenants*",
       200,
-      apiPageSuccess([tenantSummary({ id: "id-1", name: "Example Institute A", status: "pending_approval" })])
+      apiPageSuccess([tenantSummary({ id: "id-1", name: "Example Institute A", status: "PENDING_APPROVAL" })])
     );
 
     let approveCalled = false;
@@ -158,7 +158,7 @@ test.describe("Platform Admin Tenant List — approve/reject flow", () => {
       await fulfillJson(
         route,
         200,
-        apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "active" }))
+        apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "ACTIVE" }))
       );
     });
 
@@ -174,7 +174,7 @@ test.describe("Platform Admin Tenant List — approve/reject flow", () => {
       page,
       "**/v1/platform-admin/tenants*",
       200,
-      apiPageSuccess([tenantSummary({ id: "id-1", name: "Example Institute A", status: "active" })])
+      apiPageSuccess([tenantSummary({ id: "id-1", name: "Example Institute A", status: "ACTIVE" })])
     );
 
     await dialog.getByRole("button", { name: "Approve" }).click();
@@ -194,7 +194,7 @@ test.describe("Platform Admin Tenant List — approve/reject flow", () => {
       page,
       "**/v1/platform-admin/tenants/id-1",
       200,
-      apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "pending_approval" }))
+      apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "PENDING_APPROVAL" }))
     );
 
     let rejectCalled = false;
@@ -203,7 +203,7 @@ test.describe("Platform Admin Tenant List — approve/reject flow", () => {
       await fulfillJson(
         route,
         200,
-        apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "rejected" }))
+        apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "REJECTED" }))
       );
     });
 
@@ -219,7 +219,7 @@ test.describe("Platform Admin Tenant List — approve/reject flow", () => {
       page,
       "**/v1/platform-admin/tenants/id-1",
       200,
-      apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "rejected" }))
+      apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "REJECTED" }))
     );
 
     await dialog.getByRole("button", { name: "Reject" }).click();
@@ -238,7 +238,7 @@ test.describe("Platform Admin Tenant List — approve/reject flow", () => {
       page,
       "**/v1/platform-admin/tenants*",
       200,
-      apiPageSuccess([tenantSummary({ id: "id-1", name: "Example Institute A", status: "pending_approval" })])
+      apiPageSuccess([tenantSummary({ id: "id-1", name: "Example Institute A", status: "PENDING_APPROVAL" })])
     );
     await mockJson(
       page,
@@ -358,7 +358,7 @@ test.describe("Platform Admin Tenant List — confirmation dialog keyboard opera
       await fulfillJson(
         route,
         200,
-        apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "active" }))
+        apiSuccess(tenantDetail({ id: "id-1", name: "Example Institute A", status: "ACTIVE" }))
       );
     });
 
@@ -471,7 +471,7 @@ test.describe("Platform Admin Tenant List — empty states", () => {
     // from the initial (unfiltered) load, so this mock is guaranteed to be
     // hit fresh rather than served from the 30s `staleTime` cache.
     await mockJson(page, "**/v1/platform-admin/tenants*", 200, apiPageSuccess([]));
-    await page.getByLabel("Status").selectOption("cancelled");
+    await page.getByLabel("Status").selectOption("CANCELLED");
 
     const filteredEmpty = page.getByRole("status").filter({ hasText: "No tenants with this status" });
     await expect(filteredEmpty).toBeVisible();

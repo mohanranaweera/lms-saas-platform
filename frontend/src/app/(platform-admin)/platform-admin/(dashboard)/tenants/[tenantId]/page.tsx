@@ -50,7 +50,7 @@ export default function PlatformAdminTenantDetailPage() {
               title={tenant.name}
               description={`Registered subdomain: ${tenant.subdomain}`}
               actions={
-                tenant.status === "pending_approval" ? (
+                tenant.status === "PENDING_APPROVAL" ? (
                   <>
                     <ApproveTenantDialog tenant={{ id: tenant.id, name: tenant.name }} />
                     <RejectTenantDialog tenant={{ id: tenant.id, name: tenant.name }} />

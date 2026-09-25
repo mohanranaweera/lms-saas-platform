@@ -32,12 +32,12 @@ const PAGE_SIZE = 20;
 
 const STATUS_FILTER_OPTIONS: Array<{ value: "all" | TenantStatus; label: string }> = [
   { value: "all", label: "All statuses" },
-  { value: "pending_approval", label: TENANT_STATUS_LABELS.pending_approval },
-  { value: "trial", label: TENANT_STATUS_LABELS.trial },
-  { value: "active", label: TENANT_STATUS_LABELS.active },
-  { value: "suspended", label: TENANT_STATUS_LABELS.suspended },
-  { value: "cancelled", label: TENANT_STATUS_LABELS.cancelled },
-  { value: "rejected", label: TENANT_STATUS_LABELS.rejected },
+  { value: "PENDING_APPROVAL", label: TENANT_STATUS_LABELS.PENDING_APPROVAL },
+  { value: "TRIAL", label: TENANT_STATUS_LABELS.TRIAL },
+  { value: "ACTIVE", label: TENANT_STATUS_LABELS.ACTIVE },
+  { value: "SUSPENDED", label: TENANT_STATUS_LABELS.SUSPENDED },
+  { value: "CANCELLED", label: TENANT_STATUS_LABELS.CANCELLED },
+  { value: "REJECTED", label: TENANT_STATUS_LABELS.REJECTED },
 ];
 
 const columns: DataTableColumn<TenantSummaryResponse>[] = [
@@ -81,7 +81,7 @@ const columns: DataTableColumn<TenantSummaryResponse>[] = [
     key: "actions",
     header: "Actions",
     cell: (row) =>
-      row.status === "pending_approval" ? (
+      row.status === "PENDING_APPROVAL" ? (
         <div className="flex flex-wrap gap-2">
           <ApproveTenantDialog tenant={{ id: row.id, name: row.name }} />
           <RejectTenantDialog tenant={{ id: row.id, name: row.name }} />
@@ -200,7 +200,7 @@ export default function PlatformAdminTenantsPage() {
                   )}
                   cardHeadingAdornment={(row) => <StatusBadge status={row.status} />}
                   cardFooter={(row) =>
-                    row.status === "pending_approval" ? (
+                    row.status === "PENDING_APPROVAL" ? (
                       <div className="flex flex-wrap gap-2 pt-1">
                         <ApproveTenantDialog tenant={{ id: row.id, name: row.name }} />
                         <RejectTenantDialog tenant={{ id: row.id, name: row.name }} />
