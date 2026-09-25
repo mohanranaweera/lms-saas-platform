@@ -9,20 +9,31 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
 import { LiveRegion } from "@/components/ui/live-region";
+import { PaymentFilterControls } from "@/components/payments/payment-filter-controls";
+import {
+  PAYMENT_METHOD_LABEL,
+  PaymentOperationalStateBadge,
+} from "@/components/payments/status-badges";
 import { usePlatformAdminTenantDetail } from "@/lib/api/platform-admin-tenants";
 import { StatusBadge } from "../../tenants/status-badge";
 import {
   usePlatformPaymentsTenantDrillDown,
   type PlatformLedgerEntryResponse,
 } from "@/lib/api/platform-admin-payments";
+import type { PaymentMethod, PaymentOperationalState } from "@/lib/api/ledger";
 import { formatDateTime, formatMoney, shortId } from "@/lib/format";
 
 /**
- * Tenant Payment Drill-down (PADASH-2). First real consumer of both
- * `Breadcrumbs` and `PageHeader`'s `showTenantContext` banner. Fetches BOTH
- * the tenant detail (for the banner/breadcrumb name+status — needed even
- * when the ledger drill-down itself returns zero rows) AND the ledger
- * drill-down (for the table) as two independent queries.
+ * Tenant Payment Drill-down (PADASH-2, extended Wave 6 §4/§5). First real
+ * consumer of both `Breadcrumbs` and `PageHeader`'s `showTenantContext`
+ * banner. Fetches BOTH the tenant detail (for the banner/breadcrumb
+ * name+status — needed even when the ledger drill-down itself returns zero
+ * rows) AND the ledger drill-down (for the table) as two independent
+ * queries. Wave 6 adds the same `status`/`method` filters and
+ * `courseTitle`/`operationalState`/`method`/`reference` columns as the
+ * platform-wide dashboard — tenant isolation is unaffected: the drill-down
+ * still only ever queries this one tenant's rows, filters just narrow
+ * further within that already-tenant-scoped result.
  *
  * If the tenant-detail query itself 404s, that is the primary error to
  * surface (the tenant doesn't exist) — its own `QueryStateBoundary` renders
@@ -47,6 +58,27 @@ const columns: DataTableColumn<PlatformLedgerEntryResponse>[] = [
     header: "Entry type",
     cell: (row) => (row.entryType === "PAYMENT_CONFIRMED" ? "Payment confirmed" : "Refund"),
     hideOnCard: true,
+  },
+  {
+    key: "course",
+    header: "Course",
+    cell: (row) => row.courseTitle ?? "—",
+  },
+  {
+    key: "status",
+    header: "Status",
+    cell: (row) =>
+      row.operationalState ? <PaymentOperationalStateBadge state={row.operationalState} /> : "—",
+  },
+  {
+    key: "method",
+    header: "Method",
+    cell: (row) => (row.method ? PAYMENT_METHOD_LABEL[row.method] : "—"),
+  },
+  {
+    key: "reference",
+    header: "Reference",
+    cell: (row) => row.reference ?? "—",
   },
   {
     key: "amount",
@@ -82,14 +114,38 @@ export default function PlatformAdminTenantPaymentsDrillDownPage() {
   const params = useParams<{ tenantId: string }>();
   const tenantId = params.tenantId;
   const [page, setPage] = useState(0);
+  const [status, setStatus] = useState<PaymentOperationalState | undefined>(undefined);
+  const [method, setMethod] = useState<PaymentMethod | undefined>(undefined);
 
   const tenantQuery = usePlatformAdminTenantDetail(tenantId);
-  const ledgerQuery = usePlatformPaymentsTenantDrillDown(tenantId, { page, size: PAGE_SIZE });
+  const ledgerQuery = usePlatformPaymentsTenantDrillDown(tenantId, {
+    page,
+    size: PAGE_SIZE,
+    status,
+    method,
+  });
   // Background refetch (page-turn) only — `keepPreviousData` (see
   // `usePlatformPaymentsTenantDrillDown`) keeps `ledgerQuery.status ===
   // "success"` with stale content during this, so it must be surfaced
   // separately, mirroring `audit-log/page.tsx`'s exact pattern.
   const isRefetching = ledgerQuery.isFetching && ledgerQuery.data !== undefined;
+  const filtersActive = Boolean(status || method);
+
+  function handleStatusChange(next: PaymentOperationalState | undefined) {
+    setStatus(next);
+    setPage(0);
+  }
+
+  function handleMethodChange(next: PaymentMethod | undefined) {
+    setMethod(next);
+    setPage(0);
+  }
+
+  function resetFilters() {
+    setStatus(undefined);
+    setMethod(undefined);
+    setPage(0);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -118,12 +174,21 @@ export default function PlatformAdminTenantPaymentsDrillDownPage() {
               }}
             />
 
+            <PaymentFilterControls
+              idPrefix="platform-admin-tenant-payments"
+              status={status}
+              method={method}
+              onStatusChange={handleStatusChange}
+              onMethodChange={handleMethodChange}
+              disabled={ledgerQuery.isFetching}
+            />
+
             <QueryStateBoundary
               query={ledgerQuery}
               loginPath="/platform-admin/login"
               permissionDenied={{ dashboardHref: "/platform-admin/dashboard" }}
               genericErrorMessage="Something went wrong loading this tenant's payments. Please try again."
-              isEmpty={(data) => data.content.length === 0 && page === 0}
+              isEmpty={(data) => data.content.length === 0 && page === 0 && !filtersActive}
               emptyState={{
                 title: "No payments recorded for this tenant yet",
                 description: `${tenant.name} has no confirmed payments or refunds yet.`,
@@ -132,12 +197,20 @@ export default function PlatformAdminTenantPaymentsDrillDownPage() {
               {(data) =>
                 data.content.length === 0 ? (
                   <EmptyState
-                    title="No more results"
-                    description="There are no payments on this page. Go back to an earlier page."
-                    action={{
-                      label: "Go to previous page",
-                      onClick: () => setPage((p) => Math.max(0, p - 1)),
-                    }}
+                    title={filtersActive ? "No payments match your filters" : "No more results"}
+                    description={
+                      filtersActive
+                        ? "Try a different status/method filter, or clear your filters."
+                        : "There are no payments on this page. Go back to an earlier page."
+                    }
+                    action={
+                      filtersActive
+                        ? { label: "Reset filters", onClick: resetFilters }
+                        : {
+                            label: "Go to previous page",
+                            onClick: () => setPage((p) => Math.max(0, p - 1)),
+                          }
+                    }
                   />
                 ) : (
                   <div className="flex flex-col gap-4" aria-busy={isRefetching}>

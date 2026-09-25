@@ -7,6 +7,7 @@ import com.lms.paymentmanagement.order.service.OrderView;
 import com.lms.paymentmanagement.order.web.dto.OrderCreateRequest;
 import com.lms.paymentmanagement.order.web.dto.OrderPaymentStatusResponse;
 import com.lms.paymentmanagement.order.web.dto.OrderResponse;
+import com.lms.paymentmanagement.order.web.dto.PaymentInitiationRequest;
 import com.lms.paymentmanagement.order.web.dto.PaymentInitiationResponse;
 import com.lms.paymentmanagement.payment.service.PaymentInitiationService;
 import com.lms.paymentmanagement.payment.service.PaymentInitiationView;
@@ -68,8 +69,14 @@ public class OrderController {
 	@PostMapping
 	@PreAuthorize("hasRole('STUDENT')")
 	public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody OrderCreateRequest request) {
-		OrderView view = orderService.createOrder(request.courseId(), request.customAmount());
-		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(view)));
+		OrderView view = orderService.createOrder(request.courseId(), request.customAmount(),
+				request.idempotencyKey());
+		// Wave 6 §3.3/§4: an idempotency-key replay returns the pre-existing
+		// order unchanged - 200, not 201, per plan §4's explicit contract
+		// ("returns it unchanged (200, not 201) instead of creating a
+		// duplicate").
+		HttpStatus status = view.idempotentReplay() ? HttpStatus.OK : HttpStatus.CREATED;
+		return ResponseEntity.status(status).body(ApiResponse.success(toResponse(view)));
 	}
 
 	@GetMapping("/{id}")
@@ -97,8 +104,10 @@ public class OrderController {
 	 */
 	@PostMapping("/{id}/payments")
 	@PreAuthorize("hasRole('STUDENT')")
-	public ResponseEntity<ApiResponse<PaymentInitiationResponse>> initiatePayment(@PathVariable UUID id) {
-		PaymentInitiationView view = paymentInitiationService.initiatePayment(id);
+	public ResponseEntity<ApiResponse<PaymentInitiationResponse>> initiatePayment(@PathVariable UUID id,
+			@RequestBody(required = false) PaymentInitiationRequest request) {
+		UUID idempotencyKey = (request != null) ? request.idempotencyKey() : null;
+		PaymentInitiationView view = paymentInitiationService.initiatePayment(id, idempotencyKey);
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse.success(new PaymentInitiationResponse(view.paymentId(), view.orderId(), view.status(),
 					view.gatewayReference(), view.redirectTarget())));

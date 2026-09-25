@@ -6,6 +6,14 @@ yet and are out of this module's scope; nothing in `ledger_entry`'s schema or th
 scaffolds them. Written retroactively alongside `docs/api/payment-management.md` — see
 that file's header note for why.
 
+**Wave 6 update** (`docs/parity/waves/wave-06-plan.md`): every ledger-derived read below
+is extended with `courseId`/`courseTitle`/`billingPeriodId`/`operationalState`/`method`/
+`reference`; `GET /api/v1/ledger/dashboard` and its Platform-Admin equivalent gain
+optional `status`/`method` filters; two new endpoints, `GET /api/v1/ledger/outstanding`
+and `GET /api/v1/ledger/courses/{courseId}/summary`, were added. See "Wave 6: extended
+fields", "Wave 6: `PaymentOperationalState`/`PaymentMethod`", and "Wave 6: new query
+endpoints" below.
+
 ## Response envelope
 
 `com.lms.common.api.ApiResponse<T>` — see `docs/api/identity-access-service.md`.
@@ -77,7 +85,16 @@ is always one student's own, naturally bounded history):
                                           // adding a third requires an ADR per .claude/rules/payments.md §4
     "amount": 49.99,               // positive for PAYMENT_CONFIRMED, negative for REFUND (sign convention)
     "reversesEntryId": null,       // set only on a REFUND entry, pointing at the original PAYMENT_CONFIRMED entry
-    "createdAt": "2026-08-23T10:16:31Z"
+    "createdAt": "2026-08-23T10:16:31Z",
+    // --- Wave 6 additions (see "Wave 6: extended fields" below) ---
+    "courseId": "...",
+    "courseTitle": "Intro to Algebra",
+    "billingPeriodId": "...",      // nullable — the CourseBillingPeriod this order's amount was
+                                     // snapshotted from at order-creation time (Wave 2, V38-V40);
+                                     // simply propagated through, never re-resolved
+    "operationalState": "PAID",     // PaymentOperationalState — see below
+    "method": "MANUAL_SLIP",        // PaymentMethod — see below
+    "reference": "REF-12345"        // gateway reference, or the slip's referenceNumber for MANUAL_SLIP
   }
 ]
 ```
@@ -106,6 +123,134 @@ caller lacks `PAYMENTS_SLIPS`/`VIEW`.
 only their own tenant's entries — no cross-tenant aggregate view exists here; that is a
 separate, later Platform-Admin-authorized surface per the plan's §6 scope note).
 **`403`** for a caller without `PAYMENTS_SLIPS`/`VIEW`.
+
+**Wave 6**: two optional query params, `status` (`PaymentOperationalState`) and `method`
+(`PaymentMethod`) — both `@RequestParam(required = false)`, mirroring
+`SlipReviewController#getReviewQueue`'s existing `status` param pattern. Omitting either
+(or both) returns every entry, unfiltered — identical to this endpoint's pre-Wave-6
+behavior. Both may be supplied together (AND-combined). To keep filter-then-paginate
+correct, the tenant-scoped implementation (`LedgerQueryService#getDashboard`) re-reads
+the tenant's full unpaged entry list on the filtered branch — an accepted, documented
+cost/correctness tradeoff at current expected tenant data volumes (`wave-06-plan.md` §10
+judgment call 3); the unfiltered branch's cost/pagination is unchanged.
+
+### `GET /api/v1/ledger/outstanding` (Wave 6)
+
+Tenant Admin / Finance Staff / Student Support / Read-only Auditor, `PAYMENTS_SLIPS`/
+`VIEW`-gated (same grant as `/dashboard` above), tenant-scoped only. Returns orders with
+no `PAID`/`REFUNDED` `PaymentOperationalState` — i.e. `UNPAID`, `PENDING`,
+`UNDER_REVIEW`, or `REJECTED` with no later successful attempt — paginated (standard
+Spring `Pageable`: `page`, `size`, default `size=20`).
+
+**Success — `200`** (`ApiResponse<PageResponse<OutstandingOrderResponse>>`):
+
+```jsonc
+{
+  "orderId": "...",
+  "studentId": "...",
+  "courseId": "...",
+  "courseTitle": "Intro to Algebra",
+  "amount": 49.99,
+  "currency": "USD",
+  "operationalState": "PENDING"   // never PAID or REFUNDED, by construction of this query
+}
+```
+
+**`403`** for a caller without `PAYMENTS_SLIPS`/`VIEW` (proven for STUDENT/TEACHER
+callers by a Wave 6 security-review test).
+
+### `GET /api/v1/ledger/courses/{courseId}/summary` (Wave 6)
+
+Same authorization as `/outstanding` above. Aggregate counts/amounts by
+`PaymentOperationalState` for one course, tenant-scoped: a `courseId` belonging to
+another tenant (or a nonexistent one) resolves to an empty/all-zero summary, never
+another tenant's real numbers — never `404`, per this module's established
+anti-enumeration convention for aggregate reads.
+
+**Success — `200`** (`ApiResponse<CoursePaymentSummaryResponse>`):
+
+```jsonc
+{
+  "courseId": "...",
+  "courseTitle": "Intro to Algebra",
+  "totalOrders": 42,
+  "byState": [
+    { "state": "PAID", "count": 30, "totalAmount": 1499.70 },
+    { "state": "PENDING", "count": 5, "totalAmount": 249.95 },
+    { "state": "UNDER_REVIEW", "count": 2, "totalAmount": 99.98 },
+    { "state": "REJECTED", "count": 1, "totalAmount": 49.99 },
+    { "state": "REFUNDED", "count": 4, "totalAmount": 199.96 }
+  ]
+}
+```
+
+**Note**: the `REFUNDED` bucket's `totalAmount` sums each order's original snapshotted
+amount, not a net-of-refund figure — a deliberate, documented "order value by current
+state" semantic (financial-integrity review finding, `wave-06-plan.md` §15), not a
+sign/double-count bug.
+
+**`403`** for a caller without `PAYMENTS_SLIPS`/`VIEW` (proven for STUDENT/TEACHER
+callers by a Wave 6 security-review test).
+
+## Wave 6: `PaymentOperationalState`/`PaymentMethod`
+
+`com.lms.ledgersettlementmanagement.api.PaymentOperationalState` — a computed,
+**never-persisted** read-model projection (`PaymentOperationalStateResolver`/
+`PaymentOperationalStateService`), derived per-order from `Payment`/`PaymentSlip`/
+`PaymentRefund`/ledger state via narrow `payment-management` `api` reads
+(`PaymentStatusApi#findOrderPaymentDetails`, `SlipStatusApi#findOrderSlipDetails`), never
+a cross-domain repository reach-through. Recomputed on every read — not cached or
+materialized (an accepted tradeoff at current data volumes; see `wave-06-plan.md` §10
+judgment call 3).
+
+Values: `UNPAID` (no payment attempt or slip ever made) · `PENDING` (a gateway payment
+attempt is `PENDING`, no open slip) · `UNDER_REVIEW` (a slip is `SUBMITTED` or
+`UNDER_REVIEW`) · `PAID` (a `PAYMENT_CONFIRMED` ledger entry exists and any refund is
+less than the confirmed amount) · `REJECTED` (the most recent attempt was rejected, no
+attempt ever succeeded) · `REFUNDED` (total refunded amount ≥ the confirmed amount).
+
+`com.lms.ledgersettlementmanagement.api.PaymentMethod` — `GATEWAY | MANUAL_SLIP | FREE |
+STAFF_GRANTED`, derived from the confirmed payment's own `gateway_reference` string-
+prefix convention (`"FREE-"`, `"STAFF_GRANTED-"`, `"SLIP-"` — the last one new this wave,
+see `docs/api/payment-management.md`'s slip-approval section — else `GATEWAY`), computed
+in one place (`LedgerViewEnrichmentService`), never a new persisted column. Kept in sync
+manually if a future wave adds a fifth confirmation path (`wave-06-plan.md` §10 judgment
+call 2).
+
+## Wave 6: extended fields
+
+`LedgerHistoryEntryResponse`/`PlatformLedgerEntryResponse` are both extended with
+`courseId`, `courseTitle` (resolved via `CourseLookupApi`), `billingPeriodId` (already
+captured on `StudentOrder` since Wave 2, simply propagated through — never re-resolved
+against today's course price), `operationalState`, `method`, and `reference` (gateway
+reference, or the slip's `referenceNumber` for `MANUAL_SLIP`). Resolution is batched per
+page (never N+1) by `LedgerViewEnrichmentService`. All six fields are additive/nullable
+on the wire — no existing consumer breaks.
+
+## Wave 6: manual-slip-approval ledger-gap fix
+
+Tracing `SlipReviewService#approve` before this wave: it transitioned `PaymentSlip` to
+`APPROVED` and activated enrollment atomically, but never created/confirmed a `Payment`
+row or called `LedgerEntryApi#recordPaymentConfirmed` — the one confirmation path in this
+codebase that didn't follow the pattern the other three (gateway webhook, FREE checkout,
+staff-granted enrollment) all establish. Practical effect: a manually-approved slip
+payment was correctly enrolled but invisible on every ledger-derived view in this file
+(`GET /ledger/history`, `/dashboard`, `/outstanding`, `/courses/{id}/summary`, and the
+Platform Admin equivalents), violating `.claude/rules/payments.md` §2's "if a screen
+shows 'paid' but no corresponding ledger entry exists, that is a bug."
+
+Fixed: `SlipReviewService#approve` now creates+confirms a `Payment`
+(`gatewayReference = "SLIP-" + paymentId`) and writes a `PAYMENT_CONFIRMED` ledger entry
+in the same transaction as the slip-status write and enrollment activation — a forced
+ledger-write failure rolls back the whole approval transition (tested,
+`SlipApprovalLedgerFailureRollbackIntegrationTest`). The idempotent-replay path (`approve()`
+on an already-`APPROVED` slip) adds zero rows (tested,
+`SlipApprovalPaymentLedgerIntegrationTest`).
+
+**No historical backfill**: slips approved before this wave are not retroactively given
+synthetic `Payment`/`ledger_entry` rows — a deliberate, flagged judgment call
+(`wave-06-plan.md` §9/§10 item 1): synthesizing a historical confirmation timestamp was
+judged worse than a known, documented display gap for pre-Wave-6 manual-slip payments.
 
 ## `entry_type` enum — change-controlled
 
@@ -156,9 +301,39 @@ Response: `ApiResponse<PageResponse<PlatformLedgerEntryResponse>>`.
   "entryType": "PAYMENT_CONFIRMED", // PAYMENT_CONFIRMED | REFUND — same change-controlled enum as above
   "amount": 49.99,
   "reversesEntryId": "uuid | null",
-  "createdAt": "instant"
+  "createdAt": "instant",
+  // --- Wave 6 additions — same fields/semantics as LedgerHistoryEntryResponse, see
+  // "Wave 6: extended fields" above ---
+  "courseId": "uuid | null",
+  "courseTitle": "string | null",
+  "billingPeriodId": "uuid | null",
+  "operationalState": "PAID",
+  "method": "GATEWAY",
+  "reference": "string | null"
 }
 ```
+
+**Wave 6**: both endpoints below accept the same optional `status`
+(`PaymentOperationalState`) and `method` (`PaymentMethod`) query params as the
+tenant-scoped `/dashboard` above. Unlike the tenant-scoped implementation, the
+platform-wide filter is applied **within the existing DB-paginated page only** (never an
+unpaged full-table read, given platform-wide row counts) — a filtered platform-admin page
+may therefore return fewer than `pageSize` rows even when more matches exist on a later
+page. This is a deliberate, documented, narrower/more cost-conscious tradeoff than the
+tenant-scoped dashboard's filter-then-paginate-the-full-list approach, flagged in
+`wave-06-plan.md` §13 deviation 3 for product-owner awareness. Per-row enrichment
+(`courseId`/`courseTitle`/`operationalState`/etc.) is resolved per tenant-group, with
+`TenantContextHolder` explicitly set to that group's own trusted, DB-sourced tenant id
+around each group's lookup and cleared in a `finally` block — mirroring
+`PaymentConfirmationService`'s established webhook set-in-try/clear-in-finally technique
+— never a client-supplied tenant id, and never leaking one tenant-group's context into
+another's.
+
+A Wave 6 financial-integrity review found and fixed a pagination-count bug on the
+filtered branch of both endpoints below: `totalElements`/`totalPages` were computed from
+the *unfiltered* DB count rather than the actual filtered result set. Fixed to compute
+both from the filtered set, on both the platform-wide dashboard and the tenant
+drill-down.
 
 `tenantName` is `null` only if `tenantId` no longer resolves to a real `tenant` row.
 No code path in this codebase hard-deletes a `tenant` row today, so this is currently

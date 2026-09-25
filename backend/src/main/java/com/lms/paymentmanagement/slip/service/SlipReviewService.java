@@ -15,8 +15,11 @@ import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
+import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
+import com.lms.paymentmanagement.payment.domain.Payment;
+import com.lms.paymentmanagement.payment.repository.PaymentRepository;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipFlag;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipStatus;
@@ -67,6 +70,12 @@ import org.springframework.transaction.annotation.Transactional;
  * state change; (3) the locked load/state-machine check, which also
  * re-confirms already-{@code APPROVED} as a no-op (a safety net for the
  * narrow race window between checks (1) and (3)).
+ *
+ * <p>Past the state-machine check, {@link #approve} also creates and
+ * confirms a {@code Payment} row for the slip's order and writes the
+ * corresponding {@code PAYMENT_CONFIRMED} ledger entry - see the inline
+ * comment at that call site (Wave 6 §3.1 fix) for why, and why it must never
+ * run on either idempotent-replay branch above.
  */
 @Service
 public class SlipReviewService {
@@ -97,12 +106,16 @@ public class SlipReviewService {
 
 	private final TenantContext tenantContext;
 
+	private final PaymentRepository paymentRepository;
+
+	private final LedgerEntryApi ledgerEntryApi;
+
 	public SlipReviewService(PaymentSlipRepository paymentSlipRepository,
 			PaymentSlipFlagRepository paymentSlipFlagRepository, StudentOrderRepository studentOrderRepository,
 			ObjectStorageApi slipStorageApi, PaymentDomainAccessGuard accessGuard,
 			EnrollmentActivationApi enrollmentActivationApi, AuditLogApi auditLogApi,
 			PermissionCheckService permissionCheckService, UserProvisioningApi userProvisioningApi,
-			TenantContext tenantContext) {
+			TenantContext tenantContext, PaymentRepository paymentRepository, LedgerEntryApi ledgerEntryApi) {
 		this.paymentSlipRepository = paymentSlipRepository;
 		this.paymentSlipFlagRepository = paymentSlipFlagRepository;
 		this.studentOrderRepository = studentOrderRepository;
@@ -113,6 +126,8 @@ public class SlipReviewService {
 		this.permissionCheckService = permissionCheckService;
 		this.userProvisioningApi = userProvisioningApi;
 		this.tenantContext = tenantContext;
+		this.paymentRepository = paymentRepository;
+		this.ledgerEntryApi = ledgerEntryApi;
 	}
 
 	/**
@@ -211,6 +226,35 @@ public class SlipReviewService {
 
 		StudentOrder order = studentOrderRepository.findById(slip.getOrderId())
 			.orElseThrow(() -> new NotFoundException("Order not found for this payment slip"));
+
+		// Phase B / Wave 6 §3.1 fix: this is the fourth confirmation path
+		// (alongside PaymentConfirmationService#confirmByGatewayReference,
+		// OrderService#activateFreeCheckout, and
+		// ManualEnrollmentService#grantEnrollment) and must follow the exact
+		// same create-Payment -> assign a unique synthesized gateway
+		// reference -> confirm() -> save -> LedgerEntryApi#recordPaymentConfirmed
+		// sequence, in the SAME transaction as the enrollment-activation call
+		// below, so a failure anywhere (including the ledger write) rolls
+		// back this slip's own APPROVED transition too. Per
+		// .claude/rules/payments.md §2, a "paid"/enrolled state with no
+		// ledger row is a data-integrity bug - this was previously the one
+		// remaining confirmation path that never got this treatment (see
+		// docs/parity/waves/wave-06-plan.md §1.2). Uses "SLIP-" + paymentId
+		// (not slipId) as the gatewayReference prefix, mirroring "FREE-" +
+		// paymentId and "STAFF_GRANTED-" + paymentId's own established
+		// convention of keying the synthesized reference off the NEW
+		// payment row's own id, not the id of the row that authorized it -
+		// this also keeps the reference trivially unique across repeated
+		// approvals of different slips and lets the Wave 6 §4 "method"
+		// projection derive MANUAL_SLIP from the same prefix convention as
+		// the other three paths.
+		Payment payment = new Payment(order.getTenantId(), order.getId(), order.getAmount(), order.getCurrency());
+		payment = paymentRepository.save(payment);
+		payment.assignGatewayReference("SLIP-" + payment.getId());
+		payment.confirm(Instant.now());
+		payment = paymentRepository.save(payment);
+		ledgerEntryApi.recordPaymentConfirmed(order.getId(), payment.getId(), payment.getAmount());
+
 		// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
 		// activateOrReactivateFromApprovedSlip owns the
 		// resolve-access-state-and-branch decision that used to be

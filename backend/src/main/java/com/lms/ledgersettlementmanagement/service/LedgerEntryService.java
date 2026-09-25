@@ -65,6 +65,12 @@ public class LedgerEntryService implements LedgerEntryApi {
 		return ledgerEntryRepository.findAllForDashboard(pageable).map(LedgerEntryService::toView);
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<LedgerHistoryEntryView> findAllDashboardEntries() {
+		return ledgerEntryRepository.findAllForDashboardUnpaged().stream().map(LedgerEntryService::toView).toList();
+	}
+
 	private static LedgerHistoryEntryView toView(LedgerEntry entry) {
 		return new LedgerHistoryEntryView(entry.getId(), entry.getOrderId(), entry.getPaymentId(),
 				entry.getEntryType(), entry.getAmount(), entry.getReversesEntryId(), entry.getCreatedAt());

@@ -135,6 +135,45 @@ public interface PaymentRepository extends TenantAwareRepository<Payment, UUID> 
 		return findAllByOrderIdOrderByCreatedAtDesc(orderId).stream().findFirst();
 	}
 
+	/**
+	 * Wave 6 (§3.2/§4) batched read backing {@code PaymentStatusApiImpl
+	 * #findOrderPaymentDetails} - every payment attempt (any status) across
+	 * ALL of {@code orderIds}, tenant-scoped via the inherited {@code
+	 * findAll(Specification)}, mirroring {@code
+	 * LedgerEntryRepository#findAllByOrderIdIn}'s exact shape.
+	 */
+	/**
+	 * Wave 6 (§3.3/§4) idempotency-replay lookup - tenant-scoped via the
+	 * inherited {@code findOne(Specification)}, mirroring {@code
+	 * PaymentRefundRepository#findByOriginalPaymentIdAndIdempotencyKey}'s
+	 * exact shape for the sibling payment-initiation replay path.
+	 */
+	default Optional<Payment> findByOrderIdAndIdempotencyKey(UUID orderId, UUID idempotencyKey) {
+		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("orderId"), orderId),
+				cb.equal(root.get("idempotencyKey"), idempotencyKey)));
+	}
+
+	/**
+	 * Wave 6 (§3.3/§4) idempotency race guard - mirrors {@code
+	 * StudentOrderRepository#acquireIdempotencyLock}'s exact mechanism/
+	 * rationale (see that method's javadoc) for the sibling payment
+	 * -initiation replay path: a transaction-scoped Postgres advisory lock,
+	 * acquired BEFORE {@code PaymentWriteService#createPendingPayment}'s
+	 * idempotency-replay check, serializing two concurrent "Pay Now" clicks
+	 * for the same {@code (tenantId, orderId, idempotencyKey)} so the loser
+	 * observes the winner's already-committed row instead of racing the
+	 * insert.
+	 */
+	@Query(value = "SELECT pg_advisory_xact_lock(hashtextextended(:lockKey, 0))", nativeQuery = true)
+	void acquireIdempotencyLock(@Param("lockKey") String lockKey);
+
+	default List<Payment> findAllByOrderIdIn(List<UUID> orderIds) {
+		if (orderIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("orderId").in(orderIds));
+	}
+
 	@Override
 	default void deleteById(UUID id) {
 		throw new UnsupportedOperationException("payment is append-only - no row may ever be deleted");

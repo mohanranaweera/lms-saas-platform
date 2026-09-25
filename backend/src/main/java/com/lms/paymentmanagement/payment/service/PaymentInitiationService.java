@@ -39,11 +39,33 @@ public class PaymentInitiationService {
 	}
 
 	public PaymentInitiationView initiatePayment(UUID orderId) {
+		return initiatePayment(orderId, null);
+	}
+
+	/**
+	 * @param idempotencyKey optional client-supplied dedup key (V52) - see
+	 * {@link PaymentWriteService#createPendingPayment(UUID, UUID)}'s
+	 * javadoc. When {@link PaymentWriteService.PendingPaymentResult
+	 * #replayed()} comes back {@code true}, this method returns the
+	 * pre-existing payment's current view WITHOUT calling {@link
+	 * PaymentGatewayApi#initiatePayment}/{@code assignGatewayReference} a
+	 * second time - a repeated "Pay Now" click must not re-initiate a second
+	 * gateway attempt for a payment that is already {@code PENDING} (or
+	 * further along) against the same order/key.
+	 */
+	public PaymentInitiationView initiatePayment(UUID orderId, UUID idempotencyKey) {
 		// Read-only, tenant/owner-checked, its own short transaction.
 		StudentOrder order = orderService.loadOrderOwnedByCurrentStudent(orderId);
 
-		// Transaction 1: persist PENDING, commit.
-		Payment pending = paymentWriteService.createPendingPayment(order.getId());
+		// Transaction 1: persist PENDING (or replay an existing row), commit.
+		PaymentWriteService.PendingPaymentResult pendingResult = paymentWriteService.createPendingPayment(
+				order.getId(), idempotencyKey);
+		if (pendingResult.replayed()) {
+			Payment existing = pendingResult.payment();
+			return new PaymentInitiationView(existing.getId(), order.getId(), existing.getStatus(),
+					existing.getGatewayReference(), null);
+		}
+		Payment pending = pendingResult.payment();
 
 		// No open transaction here - the (fake, but architecturally-treated
 		// -as-external) gateway call.

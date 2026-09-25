@@ -21,7 +21,8 @@ class PlatformLedgerEntryResponseTest {
 	void constructionWithANullTenantIdThrowsIllegalArgumentException() {
 		assertThatThrownBy(() -> new PlatformLedgerEntryResponse(UUID.randomUUID(), null, "Acme Institute",
 				UUID.randomUUID(), UUID.randomUUID(), LedgerEntryType.PAYMENT_CONFIRMED, new BigDecimal("10.00"), null,
-				Instant.now())).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("tenantId");
+				Instant.now(), null, null, null, null, null, null)).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("tenantId");
 	}
 
 }

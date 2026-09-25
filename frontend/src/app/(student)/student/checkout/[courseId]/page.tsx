@@ -48,6 +48,17 @@ import {
  * only a backend-confirmed payment or an approved manual slip can do that.
  * `mode` tracks which action is in flight so clicking one button never
  * visually spins the other, and both are disabled while either is pending.
+ *
+ * Wave 6 §3.3/§4/§5: every order-creation and payment-initiation call sends
+ * a client-generated `idempotencyKey` (UUID), so a double-click or a
+ * network-retry of the *same* submit action replays the original request
+ * server-side instead of creating a second order/payment. Both keys are
+ * created once via `useState`'s lazy initializer (stable across re-renders
+ * for the lifetime of this page mount, i.e. one "checkout session" per plan
+ * §5) and regenerated only when a genuinely new attempt starts (`handle*`'s
+ * `finally`-less catch path does NOT regenerate the key — a retry after a
+ * failure must reuse it; only the reset of the whole in-flight `mode` lets
+ * the same key be resent unchanged on the next click).
  */
 export default function CheckoutPage() {
   const params = useParams<{ courseId: string }>();
@@ -59,15 +70,24 @@ export default function CheckoutPage() {
   const initiatePayment = useInitiatePayment();
   const [flowError, setFlowError] = useState<string | null>(null);
   const [mode, setMode] = useState<"gateway" | "slip" | null>(null);
+  const [orderIdempotencyKey] = useState<string>(() => crypto.randomUUID());
+  const [paymentIdempotencyKey] = useState<string>(() => crypto.randomUUID());
 
   const isSubmitting = mode !== null;
 
   async function handleEnroll() {
+    if (isSubmitting) return;
     setFlowError(null);
     setMode("gateway");
     try {
-      const order = await createOrder.mutateAsync({ courseId });
-      await initiatePayment.mutateAsync(order.id);
+      const order = await createOrder.mutateAsync({
+        courseId,
+        idempotencyKey: orderIdempotencyKey,
+      });
+      await initiatePayment.mutateAsync({
+        orderId: order.id,
+        idempotencyKey: paymentIdempotencyKey,
+      });
       router.push(`/student/payments/awaiting-confirmation/${order.id}`);
     } catch (error) {
       setFlowError(
@@ -78,10 +98,14 @@ export default function CheckoutPage() {
   }
 
   async function handlePayBySlip() {
+    if (isSubmitting) return;
     setFlowError(null);
     setMode("slip");
     try {
-      const order = await createOrder.mutateAsync({ courseId });
+      const order = await createOrder.mutateAsync({
+        courseId,
+        idempotencyKey: orderIdempotencyKey,
+      });
       router.push(`/student/payments/slip-upload/${order.id}`);
     } catch (error) {
       setFlowError(

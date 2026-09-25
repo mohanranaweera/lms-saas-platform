@@ -26,6 +26,7 @@ import com.lms.paymentmanagement.payment.repository.PaymentRepository;
 import com.lms.paymentmanagement.support.PaymentDomainAccessGuard;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,7 +185,51 @@ public class OrderService {
 	 * value supplied for a non-{@code CUSTOM} course is rejected outright.
 	 */
 	public OrderView createOrder(UUID courseId, BigDecimal customAmount) {
+		return createOrder(courseId, customAmount, null);
+	}
+
+	/**
+	 * @param idempotencyKey optional client-supplied dedup key (V52). When
+	 * present and an order already exists for {@code (tenantId, studentId,
+	 * idempotencyKey)}, this is treated as a replay of that same checkout
+	 * submission - the existing order's view is returned unchanged ({@link
+	 * OrderView#idempotentReplay()} {@code true}), with NONE of this
+	 * method's other side effects (reactivation linking, FREE-checkout
+	 * auto-activation, event publishing) re-run a second time. {@code null}
+	 * behaves exactly as {@link #createOrder(UUID, BigDecimal)} always has.
+	 *
+	 * <p>The genuinely-concurrent-duplicate-request race (two checkout
+	 * submissions with the same key, both reaching the pre-check replay
+	 * above at the same instant) is closed via {@link
+	 * StudentOrderRepository#acquireIdempotencyLock} - a transaction-scoped
+	 * Postgres advisory lock acquired BEFORE the replay check, serializing
+	 * the two callers so the loser's own replay check runs only after the
+	 * winner's insert has already committed (and the lock released),
+	 * meaning the loser observes and returns the winner's row as a replay
+	 * too - never a duplicate order, and never a raw unique-constraint
+	 * exception leaking to the caller. See that method's javadoc for why
+	 * this - not a bare {@code catch(DataIntegrityViolationException)}
+	 * around the insert - is this codebase's correct mechanism for a FRESH
+	 * insert with no pre-existing row to lock.
+	 */
+	public OrderView createOrder(UUID courseId, BigDecimal customAmount, UUID idempotencyKey) {
 		AuthenticatedPrincipal principal = requireStudent();
+
+		if (idempotencyKey != null) {
+			// See StudentOrderRepository#acquireIdempotencyLock's javadoc for
+			// why this advisory lock - not a bare catch(DataIntegrityViolationException)
+			// - is this codebase's correct mechanism for serializing a race
+			// on a FRESH insert with no pre-existing row to lock. Blocks
+			// until any other in-flight request for this exact key commits
+			// or rolls back; auto-released at this transaction's end.
+			studentOrderRepository.acquireIdempotencyLock(
+					tenantContext.getTenantId() + ":" + principal.userId() + ":" + idempotencyKey);
+			Optional<StudentOrder> existing = studentOrderRepository.findByStudentIdAndIdempotencyKey(
+					principal.userId(), idempotencyKey);
+			if (existing.isPresent()) {
+				return toView(existing.get(), true);
+			}
+		}
 		// Existence (in the caller's own tenant) is checked FIRST and
 		// separately from "is it published" - CourseLookupApi's reads
 		// resolve for any tenant-owned course regardless of status, so a
@@ -234,7 +279,16 @@ public class OrderService {
 		}
 
 		StudentOrder order = new StudentOrder(tenantContext.getTenantId(), principal.userId(), courseId, amount,
-				checkout.currency(), checkout.billingPeriodId());
+				checkout.currency(), checkout.billingPeriodId(), idempotencyKey);
+		// The acquireIdempotencyLock() call above (when idempotencyKey !=
+		// null) is what actually makes this insert race-safe - see its
+		// javadoc. This catch is a defense-in-depth backstop only (mirrors
+		// ReactivationTransactionService's identical documented stance): a
+		// genuine constraint violation here means the lock above was
+		// somehow bypassed, in which case Postgres has already aborted this
+		// whole transaction and a plain catch cannot "un-abort" it - this
+		// re-throws rather than pretending to recover from a state it
+		// structurally cannot recover from mid-transaction.
 		order = studentOrderRepository.save(order);
 
 		if (checkout.requiresManualQuote()) {
@@ -280,7 +334,7 @@ public class OrderService {
 			activateFreeCheckout(order, principal.userId(), courseId);
 		}
 
-		return toView(order);
+		return toView(order, false);
 	}
 
 	/**
@@ -444,9 +498,13 @@ public class OrderService {
 	}
 
 	private static OrderView toView(StudentOrder order) {
+		return toView(order, false);
+	}
+
+	private static OrderView toView(StudentOrder order, boolean idempotentReplay) {
 		return new OrderView(order.getId(), order.getStudentId(), order.getCourseId(), order.getAmount(),
 				order.getCurrency(), order.getBillingPeriodId(), order.getStatus(), order.getCreatedAt(),
-				order.getUpdatedAt());
+				order.getUpdatedAt(), idempotentReplay);
 	}
 
 }

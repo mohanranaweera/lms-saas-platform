@@ -34,8 +34,7 @@ public class StudentLedgerController {
 	public ResponseEntity<ApiResponse<List<LedgerHistoryEntryResponse>>> getLedgerForStudent(@PathVariable UUID id) {
 		List<LedgerHistoryEntryResponse> responses = ledgerQueryService.getHistoryForStudentProfile(id)
 			.stream()
-			.map(view -> new LedgerHistoryEntryResponse(view.id(), view.orderId(), view.paymentId(),
-					view.entryType(), view.amount(), view.reversesEntryId(), view.createdAt()))
+			.map(LedgerHistoryEntryResponse::from)
 			.toList();
 		return ResponseEntity.ok(ApiResponse.success(responses));
 	}

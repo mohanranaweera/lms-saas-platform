@@ -76,7 +76,8 @@ Create an order for a course. `hasRole('STUDENT')`.
 
 ```jsonc
 {
-  "courseId": "3fae2b1e-..."  // required, must resolve to a PUBLIC course in the caller's own tenant
+  "courseId": "3fae2b1e-...",  // required, must resolve to a PUBLIC course in the caller's own tenant
+  "idempotencyKey": "b1e0..."  // optional, Wave 6 — see "Idempotency (Wave 6)" below
 }
 ```
 
@@ -85,9 +86,10 @@ not merely ignored if sent, structurally absent. `@JsonIgnoreProperties(ignoreUn
 true)` silently drops any extra client-supplied field.
 
 **Success — `201`** (`ApiResponse<OrderResponse>`, see shape below — `amount`/`currency`
-snapshotted server-side from `course.price` at this instant). **`409 CONFLICT`** if the
-course isn't `PUBLIC`. **`404 NOT_FOUND`** if `courseId` doesn't resolve within the
-caller's own tenant.
+snapshotted server-side from `course.price` at this instant). A repeat call with the same
+`idempotencyKey` returns **`200`** (not `201`) with the pre-existing order unchanged —
+see "Idempotency (Wave 6)" below. **`409 CONFLICT`** if the course isn't `PUBLIC`.
+**`404 NOT_FOUND`** if `courseId` doesn't resolve within the caller's own tenant.
 
 **Reactivation gate — two more `409 CONFLICT` variants (MVP-012/ADR-013 §9), added on top of
 the "course isn't `PUBLIC`" case above.** Before creating the order, `OrderService` resolves the
@@ -170,6 +172,15 @@ shape (a short transaction persists a `PENDING` payment row; the gateway call ha
 *outside* any open transaction; a second short transaction persists the returned
 reference).
 
+**Request body** (`PaymentInitiationRequest`, Wave 6 — optional at the controller level;
+omitting the body entirely behaves identically to this wave's predecessor):
+
+```jsonc
+{
+  "idempotencyKey": "b1e0..."  // optional, Wave 6 — see "Idempotency (Wave 6)" below
+}
+```
+
 **Success — `201`** (`ApiResponse<PaymentInitiationResponse>`):
 
 ```jsonc
@@ -183,6 +194,15 @@ reference).
                                           // paid based on it — see the awaiting-confirmation screen
 }
 ```
+
+A repeat call with the same `idempotencyKey` for the same order replays the existing
+`PENDING`/`CONFIRMED` payment row's view instead of creating a second `Payment` — see
+"Idempotency (Wave 6)" below. **Known limitation, flagged not fixed this wave**: the
+replay branch never re-invokes the gateway, so `redirectTarget` is `null` on replay. Not
+currently exploitable — the checkout page never consumes `redirectTarget` directly (it
+polls `GET /orders/{id}/payment-status` instead) — but recorded here as a tracked
+follow-up for whenever a future flow starts relying on `redirectTarget` directly
+(`wave-06-plan.md` §15).
 
 ### `GET /api/v1/payments/{id}`
 
@@ -261,6 +281,41 @@ never by `payment.status`. This resolves the "does `REFUNDED` on an already-term
 payment row violate immutability" question the plan's own draft flagged as open (§21
 item 8): the answer is that `REFUNDED` is unreachable by design, so the question doesn't
 arise.
+
+## Idempotency (Wave 6)
+
+`POST /api/v1/orders` and `POST /api/v1/orders/{id}/payments` each accept an optional,
+client-generated `idempotencyKey` (UUID). It is **never** trusted as an identity or
+authorization signal — purely a dedup key. Ownership/tenant checks (the order belongs to
+the calling student, in the calling tenant) run **before** any idempotency lookup on both
+endpoints — proven by a dedicated Wave 6 security-review test: a second student reusing
+the first student's exact key on `createOrder` gets their own independent order (never a
+replay of the first student's), and a second student — or a student in another tenant —
+replaying the owning student's real `orderId` + key on `initiatePayment` is rejected
+(`403`/`404` respectively) before any replay logic runs.
+
+Uniqueness scope mirrors `PaymentRefund.idempotencyKey`'s existing per-parent-row
+scoping, never a bare global-unique key: `student_order (tenant_id, student_id,
+idempotency_key)` and `payment (tenant_id, order_id, idempotency_key)`, both partial
+unique indexes (`WHERE idempotency_key IS NOT NULL`) added by
+`V52__add_idempotency_key_to_order_and_payment.sql`. Both columns are nullable/additive —
+an existing caller that never supplies a key keeps pre-Wave-6 behavior exactly.
+
+**Concurrency mechanism — a new idiom for this codebase.** The plan's originally
+suggested "mirror `RefundService`'s catch-and-requery idiom" was tried first and failed
+under a genuine Testcontainers concurrent-race test: Postgres aborts the *entire* ambient
+transaction on a unique-constraint violation, so a plain
+`catch(DataIntegrityViolationException)` cannot "un-abort" it and continue to a replay
+read in the same transaction — `RefundService`'s idiom only works because it operates
+against an *existing, lockable* parent row, whereas a fresh `createOrder`/
+`createPendingPayment` call has no pre-existing row to lock. Fixed instead with a
+**transaction-scoped Postgres advisory lock** (`pg_advisory_xact_lock`, keyed
+`tenantId:studentId-or-orderId:idempotencyKey`) acquired *before* the replay check —
+`StudentOrderRepository#acquireIdempotencyLock` / `PaymentRepository#acquireIdempotencyLock`
+(documented in both repositories' javadoc). Proven under a genuine `CyclicBarrier`
+concurrent-race Testcontainers test in both `OrderCreationIdempotencyIntegrationTest` and
+`PaymentInitiationIdempotencyIntegrationTest`: exactly one concurrent caller's row wins,
+the other observes/replays it, no unique-constraint exception ever leaks to a caller.
 
 ## Manual Payment Slip endpoints (MVP-011, `com.lms.paymentmanagement.slip`)
 
@@ -373,6 +428,24 @@ Staff `PAYMENTS_SLIPS`/`APPROVE` only. Body (optional): `{ "overrideReason": "..
 the slip-status write — and, when overriding, so does the audit-log write
 (`AuditLogApi.record`, `com.lms.auditlogmanagement`) — all three or none.
 
+**Ledger-gap fix (Wave 6).** Before this wave, this endpoint transitioned the slip and
+activated enrollment atomically but never created/confirmed a `Payment` row or wrote a
+`PAYMENT_CONFIRMED` ledger entry — the one confirmation path in this codebase that didn't
+follow the pattern the other three (gateway webhook, FREE checkout, staff-granted
+enrollment) all establish, violating `.claude/rules/payments.md` §2 ("if a screen shows
+'paid' but no corresponding ledger entry exists, that is a bug"). A manually-approved
+slip payment was correctly enrolled but invisible on every ledger-derived Payment History
+/ Payment Dashboard view (`docs/api/ledger-settlement-management.md`). **Fixed**: this
+call now additionally creates+confirms a `Payment` row
+(`gatewayReference = "SLIP-" + paymentId`) and writes the `PAYMENT_CONFIRMED` ledger
+entry, in the **same** transaction as the slip-status write and enrollment activation — a
+forced ledger-write failure rolls back the whole approval transition (tested). The
+response shape (`PaymentSlipResponse`) is unchanged — the new `Payment`/`LedgerEntry`
+rows are an internal side effect, visible only through the ledger-derived endpoints. **No
+historical backfill**: slips approved before this wave keep their pre-existing
+enrollment/access untouched, but are not retroactively given synthetic `Payment`/
+`ledger_entry` rows (a deliberate, flagged judgment call — `wave-06-plan.md` §9/§10).
+
 **Success — `200`** (`ApiResponse<PaymentSlipResponse>`). **`409 CONFLICT`** if the
 slip carries unresolved flags and no/blank `overrideReason` was supplied — rejected
 before any row lock, state change, or audit write. **`409`** if the slip isn't
@@ -380,8 +453,9 @@ before any row lock, state change, or audit write. **`409`** if the slip isn't
 on an already-`APPROVED` slip is always a no-op `200` with the existing view, regardless
 of whether `overrideReason` is resupplied (flags are append-only and never cleared, so a
 slip originally approved via override permanently carries flag rows — a bare retry must
-still succeed, not re-throw the reasonless-override `409`). **`403`** for any caller
-without `APPROVE` (including the slip's own student, or a `VIEW`-only staff role).
+still succeed, not re-throw the reasonless-override `409`); this also creates zero
+additional `Payment`/ledger rows (tested). **`403`** for any caller without `APPROVE`
+(including the slip's own student, or a `VIEW`-only staff role).
 
 ### `POST /api/v1/payment-slips/{slipId}/reject`
 

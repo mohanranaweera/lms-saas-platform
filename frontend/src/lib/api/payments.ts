@@ -26,14 +26,24 @@ export interface OrderResponse {
   courseId: string;
   amount: number;
   currency: string;
+  /** `null` for `ONE_TIME`/`FREE`/`CUSTOM` pricing — only `MONTHLY`/`SESSION` orders resolve a billing period (Wave 6). */
+  billingPeriodId: string | null;
   status: OrderStatus;
   createdAt: string;
   updatedAt: string;
 }
 
-/** Mirrors `OrderCreateRequest` — deliberately only `courseId`, no price/tenantId field exists. */
+/**
+ * Mirrors `OrderCreateRequest` — deliberately only `courseId`/`idempotencyKey`,
+ * no price/tenantId field exists. `idempotencyKey` (Wave 6 §3.3/§4) is an
+ * OPTIONAL, client-generated UUID — never trusted as an identity/
+ * authorization signal, purely a dedup key scoped server-side to `(tenantId,
+ * studentId, idempotencyKey)`. Omitting it behaves exactly as before this
+ * wave (no regression for a caller that never supplies one).
+ */
 export interface OrderCreateRequest {
   courseId: string;
+  idempotencyKey?: string;
 }
 
 /**
@@ -158,23 +168,33 @@ export function useOrderPaymentStatus(orderId: string) {
   });
 }
 
+/** Input to `useInitiatePayment` — `idempotencyKey` mirrors `OrderCreateRequest`'s (Wave 6 §3.3/§4): optional, client-generated, dedup-only. */
+export interface InitiatePaymentInput {
+  orderId: string;
+  idempotencyKey?: string;
+}
+
 /**
  * `POST /api/v1/orders/{id}/payments` — Student role, owning student only.
- * Initiates a gateway payment attempt. Takes `orderId` as the mutate
- * variable (not a hook param) since the order doesn't exist yet when the
- * checkout screen first renders — mirrors `teachers.ts`'s
- * `useApproveTeacher` shape.
+ * Initiates a gateway payment attempt. Takes `{ orderId, idempotencyKey }` as
+ * the mutate variable (not a hook param) since the order doesn't exist yet
+ * when the checkout screen first renders — mirrors `teachers.ts`'s
+ * `useApproveTeacher` shape, extended for Wave 6's optional idempotency key
+ * (mirrors `RefundDialog`'s "stable key per submit attempt, resent on retry"
+ * pattern — the caller is responsible for generating/holding the key, this
+ * hook only ever forwards whatever it's given).
  */
 export function useInitiatePayment() {
   const { authorizedFetch } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (orderId: string) =>
+    mutationFn: ({ orderId, idempotencyKey }: InitiatePaymentInput) =>
       authorizedFetch<PaymentInitiationResponse>("tenant", `/v1/orders/${orderId}/payments`, {
         method: "POST",
+        body: JSON.stringify({ idempotencyKey }),
       }),
-    onSuccess: (_data, orderId) => {
-      queryClient.invalidateQueries({ queryKey: paymentKeys.orderPaymentStatus(orderId) });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: paymentKeys.orderPaymentStatus(variables.orderId) });
     },
   });
 }

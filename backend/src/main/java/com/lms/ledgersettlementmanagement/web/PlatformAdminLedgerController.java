@@ -2,6 +2,8 @@ package com.lms.ledgersettlementmanagement.web;
 
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
+import com.lms.ledgersettlementmanagement.api.PaymentMethod;
+import com.lms.ledgersettlementmanagement.api.PaymentOperationalState;
 import com.lms.ledgersettlementmanagement.service.PlatformAdminLedgerQueryService;
 import com.lms.ledgersettlementmanagement.web.dto.PlatformLedgerEntryResponse;
 import java.util.UUID;
@@ -14,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -33,19 +36,26 @@ public class PlatformAdminLedgerController {
 		this.platformAdminLedgerQueryService = platformAdminLedgerQueryService;
 	}
 
+	/** @param status/@param method optional Wave 6 §4 filters - see {@code LedgerController#getDashboard}'s javadoc. */
 	@GetMapping("/dashboard")
 	public ResponseEntity<ApiResponse<PageResponse<PlatformLedgerEntryResponse>>> getDashboard(
-			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-		Page<PlatformLedgerEntryResponse> page = platformAdminLedgerQueryService.getPlatformDashboard(pageable);
+			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+			@RequestParam(required = false) PaymentOperationalState status,
+			@RequestParam(required = false) PaymentMethod method) {
+		Page<PlatformLedgerEntryResponse> page = platformAdminLedgerQueryService.getPlatformDashboard(pageable,
+				status, method);
 		return ResponseEntity.ok(ApiResponse.success(PageResponse.from(page)));
 	}
 
+	/** @param status/@param method optional Wave 6 §4 filters - see {@code LedgerController#getDashboard}'s javadoc. */
 	@GetMapping("/tenants/{tenantId}")
 	public ResponseEntity<ApiResponse<PageResponse<PlatformLedgerEntryResponse>>> getTenantDrillDown(
 			@PathVariable UUID tenantId,
-			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+			@RequestParam(required = false) PaymentOperationalState status,
+			@RequestParam(required = false) PaymentMethod method) {
 		Page<PlatformLedgerEntryResponse> page = platformAdminLedgerQueryService.getTenantDrillDown(tenantId,
-				pageable);
+				pageable, status, method);
 		return ResponseEntity.ok(ApiResponse.success(PageResponse.from(page)));
 	}
 

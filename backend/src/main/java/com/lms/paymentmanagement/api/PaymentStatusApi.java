@@ -39,4 +39,41 @@ public interface PaymentStatusApi {
 	 */
 	List<UUID> findOrderIdsForStudent(UUID studentId);
 
+	/**
+	 * Wave 6 (§3.2/§4) batched read - one {@link OrderPaymentDetail} per id in
+	 * {@code orderIds} that resolves to a real order in the current tenant
+	 * context (a nonexistent/cross-tenant id is simply absent from the
+	 * result, mirroring {@link
+	 * com.lms.coursemanagement.api.CourseLookupApi#getCourseSummaries}'s
+	 * established "absent, never an error" contract). Backs {@code
+	 * ledger-settlement-management}'s {@code PaymentOperationalState}
+	 * projection and the extended ledger views' {@code courseId}/{@code
+	 * billingPeriodId}/{@code method}/{@code reference} fields.
+	 */
+	List<OrderPaymentDetail> findOrderPaymentDetails(List<UUID> orderIds);
+
+	/**
+	 * Wave 6 (§4) - every order id in the current tenant context, used by
+	 * {@code ledger-settlement-management}'s {@code GET /api/v1/ledger/
+	 * outstanding} to resolve which orders have a non-{@code PAID}/{@code
+	 * REFUNDED} {@code PaymentOperationalState}. Acceptable at current data
+	 * volumes per plan §10 judgment call 3 - a materialized read model is
+	 * the correct future direction if tenant/order volume grows enough to
+	 * matter, not a premature optimization here.
+	 */
+	List<UUID> findAllOrderIdsForCurrentTenant();
+
+	/**
+	 * Wave 6 (§4) - every order id for {@code courseId} within the current
+	 * tenant context, used by {@code GET /api/v1/ledger/courses/{courseId}/
+	 * summary}. A {@code courseId} that does not resolve to a course with
+	 * any orders in the caller's own tenant (nonexistent, cross-tenant, or
+	 * simply never ordered) returns an empty list - never distinguishable
+	 * from each other, mirroring {@link
+	 * com.lms.coursemanagement.api.CourseLookupApi}'s established
+	 * "not-found vs. cross-tenant non-distinction" contract (anti
+	 * -enumeration).
+	 */
+	List<UUID> findOrderIdsForCourse(UUID courseId);
+
 }

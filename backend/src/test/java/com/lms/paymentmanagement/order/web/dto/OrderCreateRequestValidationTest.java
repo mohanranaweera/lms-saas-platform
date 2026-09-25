@@ -59,10 +59,13 @@ class OrderCreateRequestValidationTest {
 	void theRecordHasNoPriceTenantIdOrStudentIdComponentAtAll() {
 		// customAmount (Wave 2) is the one deliberate exception to "server
 		// resolves every value" - see this record's own javadoc.
+		// idempotencyKey (Wave 6 §3.3/§4) is a purely-client-generated dedup
+		// key, never trusted as an identity/authorization signal - see this
+		// record's own javadoc.
 		RecordComponent[] components = OrderCreateRequest.class.getRecordComponents();
 
 		assertThat(components).extracting(RecordComponent::getName)
-			.containsExactly("courseId", "customAmount")
+			.containsExactly("courseId", "customAmount", "idempotencyKey")
 			.doesNotContain("price", "amount", "tenantId", "studentId", "status");
 	}
 

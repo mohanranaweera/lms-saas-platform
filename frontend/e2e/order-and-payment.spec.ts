@@ -120,6 +120,144 @@ test.describe("checkout — no editable price field", () => {
   });
 });
 
+test.describe("checkout — idempotency (Wave 6 §3.3/§4/§5)", () => {
+  test("Enroll sends a non-empty idempotencyKey on both order creation and payment initiation", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    await mockJson(page, `**/api/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
+
+    const order = {
+      id: "order-idem-1",
+      studentId: "student-1",
+      courseId: COURSE.id,
+      amount: COURSE.price,
+      currency: "USD",
+      billingPeriodId: null,
+      status: "PLACED",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    let orderRequestKey: string | undefined;
+    await page.route("**/api/v1/orders", async (route) => {
+      const body = route.request().postDataJSON() as { idempotencyKey?: string };
+      orderRequestKey = body.idempotencyKey;
+      await fulfillJson(route, 201, apiSuccess(order));
+    });
+    let paymentRequestKey: string | undefined;
+    await page.route(`**/api/v1/orders/${order.id}/payments`, async (route) => {
+      const body = route.request().postDataJSON() as { idempotencyKey?: string };
+      paymentRequestKey = body.idempotencyKey;
+      await fulfillJson(
+        route,
+        201,
+        apiSuccess({
+          paymentId: "payment-idem-1",
+          orderId: order.id,
+          status: "PENDING",
+          gatewayReference: "gw-ref-idem-1",
+          redirectTarget: "https://example-gateway.test/pay/gw-ref-idem-1",
+        })
+      );
+    });
+    await mockJson(
+      page,
+      `**/api/v1/orders/${order.id}/payment-status`,
+      200,
+      apiSuccess({ hasPaymentAttempt: true, paymentId: "payment-idem-1", status: "PENDING", confirmedAt: null })
+    );
+    await mockJson(page, `**/api/v1/orders/${order.id}`, 200, apiSuccess(order));
+
+    await page.goto(`/student/checkout/${COURSE.id}`);
+    await page.getByRole("button", { name: "Enroll" }).click();
+
+    await expect(page).toHaveURL(`/student/payments/awaiting-confirmation/${order.id}`);
+    expect(orderRequestKey).toBeTruthy();
+    expect(paymentRequestKey).toBeTruthy();
+    // Two structurally distinct submit actions (order creation vs. payment
+    // initiation) get their own key — never the same value reused across
+    // different request shapes.
+    expect(orderRequestKey).not.toBe(paymentRequestKey);
+  });
+
+  test("a double-click on Enroll cannot submit a second request — the button disables synchronously on the first click", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    await mockJson(page, `**/api/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
+
+    let orderRequestCount = 0;
+    const orderRequestKeys: string[] = [];
+    let releaseOrder: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseOrder = resolve;
+    });
+    const order = {
+      id: "order-double-click",
+      studentId: "student-1",
+      courseId: COURSE.id,
+      amount: COURSE.price,
+      currency: "USD",
+      billingPeriodId: null,
+      status: "PLACED",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await page.route("**/api/v1/orders", async (route) => {
+      orderRequestCount += 1;
+      const body = route.request().postDataJSON() as { idempotencyKey?: string };
+      if (body.idempotencyKey) orderRequestKeys.push(body.idempotencyKey);
+      await gate;
+      await fulfillJson(route, 201, apiSuccess(order));
+    });
+    await mockJson(
+      page,
+      `**/api/v1/orders/${order.id}/payments`,
+      201,
+      apiSuccess({
+        paymentId: "payment-double-click",
+        orderId: order.id,
+        status: "PENDING",
+        gatewayReference: "gw-ref-double-click",
+        redirectTarget: "https://example-gateway.test/pay/gw-ref-double-click",
+      })
+    );
+    await mockJson(
+      page,
+      `**/api/v1/orders/${order.id}/payment-status`,
+      200,
+      apiSuccess({ hasPaymentAttempt: true, paymentId: "payment-double-click", status: "PENDING", confirmedAt: null })
+    );
+    await mockJson(page, `**/api/v1/orders/${order.id}`, 200, apiSuccess(order));
+
+    await page.goto(`/student/checkout/${COURSE.id}`);
+    // Matches the button under both its labels (`Enroll` before submit,
+    // `Starting checkout…` while in flight) — the same underlying <button>
+    // element throughout, never a re-query by a name that stops matching
+    // once the label changes.
+    const enrollButton = page.getByRole("button", { name: /^(Enroll|Starting checkout…)$/ });
+
+    await enrollButton.click();
+    // The button is disabled (and its label changes) synchronously as part
+    // of the same click's state update — a genuine second user click can no
+    // longer reach the handler at all while the first request is in flight.
+    await expect(enrollButton).toHaveText("Starting checkout…");
+    await expect(enrollButton).toBeDisabled();
+    // A raw dispatched click on the now-disabled native <button> is a no-op
+    // in every real browser (disabled elements never fire click), so this
+    // proves the UI-level protection rather than merely asserting a visual
+    // "disabled" attribute.
+    await enrollButton.dispatchEvent("click");
+
+    releaseOrder?.();
+    await expect(page).toHaveURL(`/student/payments/awaiting-confirmation/${order.id}`);
+
+    expect(orderRequestCount).toBe(1);
+    expect(orderRequestKeys).toHaveLength(1);
+    expect(orderRequestKeys[0]).toBeTruthy();
+  });
+});
+
 test.describe("checkout — pricing-model-aware rendering (course-management gap fix)", () => {
   test("a FREE course shows \"Free\" and keeps the Enroll/Pay-by-bank-transfer actions enabled", async ({
     page,
@@ -600,6 +738,108 @@ test.describe("payment history — entry-type badge is distinct for PAYMENT_CONF
   });
 });
 
+test.describe("payment history — Wave 6 extended fields, including the previously-broken manual-slip case", () => {
+  test("renders course title, status, method, and reference for gateway, manual-slip, free, and staff-granted payments", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "STUDENT");
+    const baseEntry = {
+      entryType: "PAYMENT_CONFIRMED" as const,
+      reversesEntryId: null,
+      createdAt: new Date().toISOString(),
+    };
+    await mockJson(
+      page,
+      "**/api/v1/ledger/history",
+      200,
+      apiSuccess([
+        {
+          ...baseEntry,
+          id: "ledger-gateway",
+          orderId: "order-gateway",
+          paymentId: "payment-gateway",
+          amount: 49.99,
+          courseId: "course-gateway",
+          courseTitle: "Intro to Biology",
+          billingPeriodId: null,
+          operationalState: "PAID",
+          method: "GATEWAY",
+          reference: "gw-ref-1",
+        },
+        {
+          ...baseEntry,
+          id: "ledger-manual-slip",
+          orderId: "order-manual-slip",
+          paymentId: "payment-manual-slip",
+          amount: 79.0,
+          courseId: "course-manual-slip",
+          courseTitle: "Advanced Chemistry",
+          // Wave 6 §1.2/§3.1 fix under test: a manually-approved slip payment
+          // now resolves a real Payment/ledger row and is visible here, where
+          // it was previously silently missing entirely.
+          billingPeriodId: null,
+          operationalState: "PAID",
+          method: "MANUAL_SLIP",
+          reference: "SLIP-REF-42",
+        },
+        {
+          ...baseEntry,
+          id: "ledger-free",
+          orderId: "order-free",
+          paymentId: "payment-free",
+          amount: 0,
+          courseId: "course-free",
+          courseTitle: "Free Intro Workshop",
+          billingPeriodId: null,
+          operationalState: "PAID",
+          method: "FREE",
+          reference: "FREE-payment-free",
+        },
+        {
+          ...baseEntry,
+          id: "ledger-staff-granted",
+          orderId: "order-staff-granted",
+          paymentId: "payment-staff-granted",
+          amount: 120.5,
+          courseId: "course-staff-granted",
+          courseTitle: "Monthly Coaching",
+          billingPeriodId: "period-1",
+          operationalState: "PAID",
+          method: "STAFF_GRANTED",
+          reference: "STAFF_GRANTED-payment-staff-granted",
+        },
+      ])
+    );
+
+    await page.goto("/student/payments/history");
+
+    await expect(page.getByText("Intro to Biology")).toBeVisible();
+    await expect(page.getByText("Advanced Chemistry")).toBeVisible();
+    await expect(page.getByText("Free Intro Workshop")).toBeVisible();
+    await expect(page.getByText("Monthly Coaching")).toBeVisible();
+
+    await expect(page.getByText("Gateway", { exact: true })).toBeVisible();
+    await expect(page.getByText("Manual bank transfer", { exact: true })).toBeVisible();
+    await expect(page.getByText("Free enrollment", { exact: true })).toBeVisible();
+    await expect(page.getByText("Staff granted", { exact: true })).toBeVisible();
+
+    await expect(page.getByText("gw-ref-1")).toBeVisible();
+    await expect(page.getByText("SLIP-REF-42")).toBeVisible();
+
+    // Only the STAFF_GRANTED entry (the only one given a `billingPeriodId`
+    // fixture value here) renders a billing period row — this is a per-entry
+    // field, not a blanket page-level label.
+    await expect(page.getByText("Billing period")).toBeVisible();
+
+    // Every row renders a Paid status badge — icon + text, not color alone.
+    const paidBadges = page.getByText("Paid", { exact: true });
+    await expect(paidBadges).toHaveCount(4);
+    for (let i = 0; i < 4; i += 1) {
+      await expect(paidBadges.nth(i).locator("svg")).toHaveCount(1);
+    }
+  });
+});
+
 test.describe("payment dashboard — a role without PAYMENTS_SLIPS/VIEW is denied server-side, not just hidden client-side", () => {
   test("a STUDENT session sees PermissionDeniedState on a real 403, not a blank or crashed dashboard", async ({
     page,
@@ -739,6 +979,183 @@ test.describe("payment dashboard — filtered-empty state is distinct from the z
     // Distinct from the zero-data copy — never reused for this different situation.
     await expect(page.getByText("No payments yet")).toHaveCount(0);
     await expect(page.getByRole("table")).toHaveCount(0);
+  });
+});
+
+test.describe("payment dashboard — Wave 6 status/method filters produce the correct subset", () => {
+  test("selecting a status filter sends the status query param and renders only the matching rows", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+
+    const requestedStatuses: Array<string | null> = [];
+    await page.route("**/api/v1/ledger/dashboard*", async (route) => {
+      const url = new URL(route.request().url());
+      const status = url.searchParams.get("status");
+      requestedStatuses.push(status);
+      if (status === "PAID") {
+        await fulfillJson(route, 200, apiPageSuccess([CONFIRMED_LEDGER_ENTRY]));
+      } else if (status === "REJECTED") {
+        await fulfillJson(route, 200, apiPageSuccess([]));
+      } else {
+        await fulfillJson(
+          route,
+          200,
+          apiPageSuccess([
+            CONFIRMED_LEDGER_ENTRY,
+            {
+              ...CONFIRMED_LEDGER_ENTRY,
+              id: "ledger-other",
+              orderId: "order-other",
+              entryType: "REFUND",
+            },
+          ])
+        );
+      }
+    });
+
+    await page.goto("/tenant-admin/payments/dashboard");
+    await expect(page.getByRole("table")).toBeVisible();
+
+    await page.getByLabel("Status").click();
+    await page.getByRole("option", { name: "Paid", exact: true }).click();
+
+    await expect.poll(() => requestedStatuses.at(-1)).toBe("PAID");
+    await expect(page.getByRole("table").getByText(CONFIRMED_LEDGER_ENTRY.orderId)).toBeVisible();
+    await expect(page.getByRole("table").getByText("order-other")).toHaveCount(0);
+
+    await page.getByLabel("Status").click();
+    await page.getByRole("option", { name: "Rejected" }).click();
+
+    await expect(page.getByText("No payments match your filters")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset filters" })).toBeVisible();
+  });
+});
+
+test.describe("payment dashboard — Wave 6 Outstanding tab lists only non-paid orders", () => {
+  test("switching to the Outstanding tab fetches and renders /v1/ledger/outstanding, not the dashboard endpoint", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([CONFIRMED_LEDGER_ENTRY]));
+    await mockJson(
+      page,
+      "**/api/v1/ledger/outstanding*",
+      200,
+      apiPageSuccess([
+        {
+          orderId: "order-outstanding-1",
+          studentId: "student-1",
+          courseId: "course-1",
+          courseTitle: "Intro to Biology",
+          amount: 49.99,
+          currency: "USD",
+          operationalState: "PENDING",
+        },
+        {
+          orderId: "order-outstanding-2",
+          studentId: "student-2",
+          courseId: "course-2",
+          courseTitle: "Advanced Chemistry",
+          amount: 79.0,
+          currency: "USD",
+          operationalState: "UNDER_REVIEW",
+        },
+      ])
+    );
+
+    await page.goto("/tenant-admin/payments/dashboard");
+    await page.getByRole("tab", { name: "Outstanding" }).click();
+
+    await expect(page).toHaveURL(/[?&]tab=outstanding/);
+    const table = page.getByRole("table");
+    await expect(table.getByText("Intro to Biology")).toBeVisible();
+    await expect(table.getByText("Advanced Chemistry")).toBeVisible();
+    // Every row on this tab is, by construction of the endpoint, a
+    // non-`PAID`/non-`REFUNDED` order — asserted via the two statuses this
+    // fixture actually uses.
+    await expect(table.getByText("Pending", { exact: true })).toBeVisible();
+    await expect(table.getByText("Under review", { exact: true })).toBeVisible();
+    await expect(table.getByText("Paid", { exact: true })).toHaveCount(0);
+  });
+
+  test("a zero-data result shows the contextual 'no outstanding payments' empty state", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/api/v1/ledger/outstanding*", 200, apiPageSuccess([]));
+
+    await page.goto("/tenant-admin/payments/dashboard?tab=outstanding");
+
+    await expect(page.getByText("No outstanding payments")).toBeVisible();
+    await expect(
+      page.getByText("Every order in your tenant currently has a paid or refunded status.")
+    ).toBeVisible();
+  });
+});
+
+test.describe("payment dashboard — Wave 6 Course Summary tab matches the backend's aggregate", () => {
+  test("selecting a course fetches its summary and renders per-state counts/totals", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
+    await mockJson(
+      page,
+      "**/api/v1/courses*",
+      200,
+      apiPageSuccess([
+        {
+          id: "course-summary-1",
+          teacherId: "teacher-1",
+          name: "Intro to Biology",
+          slug: "intro-to-biology",
+          category: "Science",
+          subject: "Biology",
+          stream: null,
+          grade: "Grade 9",
+          academicYear: "2026",
+          description: "A beginner-friendly introduction to biology.",
+          price: 49.99,
+          accessDurationDays: 180,
+          enrollmentRule: null,
+          status: "PUBLIC",
+          pricingModel: "ONE_TIME",
+          resolvedAmount: 49.99,
+          currency: "USD",
+          requiresManualQuote: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ])
+    );
+    await mockJson(
+      page,
+      "**/api/v1/ledger/courses/course-summary-1/summary",
+      200,
+      apiSuccess({
+        courseId: "course-summary-1",
+        courseTitle: "Intro to Biology",
+        totalOrders: 5,
+        byState: [
+          { state: "PAID", count: 3, totalAmount: 149.97 },
+          { state: "PENDING", count: 1, totalAmount: 49.99 },
+          { state: "REJECTED", count: 1, totalAmount: 49.99 },
+        ],
+      })
+    );
+
+    await page.goto("/tenant-admin/payments/dashboard?tab=course-summary");
+
+    await expect(page.getByText("Select a course", { exact: true })).toBeVisible();
+
+    const courseSelect = page.getByLabel("Course", { exact: true });
+    await expect(courseSelect).toBeEnabled();
+    await courseSelect.click();
+    await page.getByRole("option", { name: "Intro to Biology" }).click();
+
+    await expect(page.getByRole("heading", { name: "Intro to Biology" })).toBeVisible();
+    await expect(page.getByText("5 total orders")).toBeVisible();
+    await expect(page.getByText("3 orders", { exact: false })).toBeVisible();
+    await expect(page.getByText("149.97", { exact: false })).toBeVisible();
+    await expect(page.getByText("1 order", { exact: false }).first()).toBeVisible();
   });
 });
 

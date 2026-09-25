@@ -55,4 +55,12 @@ public interface LedgerEntryApi {
 	 */
 	Page<LedgerHistoryEntryView> findDashboard(Pageable pageable);
 
+	/**
+	 * Wave 6 (§4) - every ledger entry in the caller's own tenant, UNPAGED.
+	 * See {@code LedgerEntryRepository#findAllForDashboardUnpaged}'s javadoc
+	 * for why this exists alongside {@link #findDashboard(Pageable)} rather
+	 * than replacing it.
+	 */
+	List<LedgerHistoryEntryView> findAllDashboardEntries();
+
 }

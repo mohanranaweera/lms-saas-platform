@@ -44,7 +44,16 @@ function tenantDetail(overrides: Partial<Record<string, unknown>> = {}) {
     id: "tenant-1",
     name: "Example Institute A",
     subdomain: "example-institute-a",
-    status: "active",
+    // Pre-existing test-fixture bug found while extending this spec for Wave
+    // 6: `TenantStatus`/`StatusBadge` (`lib/api/platform-admin-tenants.ts`,
+    // `tenants/status-badge.tsx`) only ever accept the uppercase enum values
+    // (`ACTIVE`, not `active`) — the lowercase value here made every
+    // drill-down test that reaches `<StatusBadge>` crash into the
+    // route-level error boundary, independent of and pre-dating any Wave 6
+    // change (reproduced against unmodified `HEAD`). Fixed here since it's a
+    // one-line test-data casing fix directly blocking this file's own
+    // coverage, not a product-code change.
+    status: "ACTIVE",
     requestedPlan: "STARTER",
     contactName: "Jane Doe",
     contactEmail: "jane@example.test",
@@ -136,7 +145,9 @@ test.describe("Platform Admin Payments Dashboard", () => {
     await expect(status).toHaveCount(0);
   });
 
-  test("has exactly one empty state — this endpoint takes no filter params", async ({ page }) => {
+  test("zero-data empty state (no filters applied) shows the contextual copy, no reset-filters action", async ({
+    page,
+  }) => {
     await mockPlatformAdminSession(page);
     await mockJson(page, "**/v1/platform-admin/payments/dashboard*", 200, apiPageSuccess([]));
 
@@ -144,10 +155,61 @@ test.describe("Platform Admin Payments Dashboard", () => {
 
     const emptyState = page.getByRole("status").filter({ hasText: "No payments recorded platform-wide yet" });
     await expect(emptyState).toBeVisible();
-    // No filters exist on this screen, so a second "no results match your
-    // filter" variant would misrepresent a condition that can never occur.
-    await expect(page.getByLabel("Status")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /reset filters|clear filters/i })).toHaveCount(0);
+    // Wave 6 §4: status/method filter controls now exist on this screen —
+    // but with no filter applied, this is still the genuine zero-data case,
+    // so no "reset filters" action is offered.
+    await expect(page.getByLabel("Status")).toBeVisible();
+    await expect(page.getByLabel("Method")).toBeVisible();
+    await expect(page.getByRole("button", { name: /reset filters/i })).toHaveCount(0);
+  });
+
+  test("Wave 6 — status/method filters send the corresponding query params and a filtered-empty result gets its own distinct copy", async ({
+    page,
+  }) => {
+    await mockPlatformAdminSession(page);
+
+    const requestedParams: string[] = [];
+    await page.route("**/v1/platform-admin/payments/dashboard*", async (route) => {
+      const url = new URL(route.request().url());
+      const status = url.searchParams.get("status");
+      requestedParams.push(`${status}|${url.searchParams.get("method")}`);
+      // Unfiltered and status=PAID both return a row (so the table stays
+      // visible for the initial load and the first filter change); only
+      // status=REJECTED comes back empty, to exercise the filtered-empty
+      // branch distinctly from the true zero-data empty state.
+      if (status === "REJECTED") {
+        await fulfillJson(route, 200, apiPageSuccess([]));
+      } else {
+        await fulfillJson(route, 200, apiPageSuccess([ledgerEntry({ id: "e-paid" })]));
+      }
+    });
+
+    await page.goto("/platform-admin/payments");
+    await expect(page.getByRole("table")).toBeVisible();
+
+    await page.getByLabel("Status").click();
+    await page.getByRole("option", { name: "Paid", exact: true }).click();
+
+    await expect
+      .poll(() => requestedParams.at(-1))
+      .toBe("PAID|null");
+    await expect(page.getByRole("table")).toBeVisible();
+
+    await page.getByLabel("Status").click();
+    await page.getByRole("option", { name: "Rejected" }).click();
+
+    await expect(page.getByText("No payments match your filters")).toBeVisible();
+    await expect(page.getByText("No payments recorded platform-wide yet")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Reset filters" })).toBeVisible();
+
+    // The empty state's own "Reset filters" action returns to the
+    // unfiltered view — mirrors `slip-review`'s established filter-reset
+    // assertion (table reappearing), rather than asserting a guaranteed
+    // fresh network call (React Query may legitimately resolve an
+    // identical, already-cached query key without a new request).
+    await page.getByRole("button", { name: "Reset filters" }).click();
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(page.getByText("No payments match your filters")).toHaveCount(0);
   });
 
   test("below md, the dashboard renders as a card list, not the desktop table", async ({ page }) => {
@@ -253,6 +315,59 @@ test.describe("Platform Admin Tenant Payments Drill-down", () => {
     await expect(page.getByRole("table")).toBeVisible();
 
     await expectNoMutationControls(page);
+  });
+
+  test("Wave 6 — the drill-down's own status/method filters stay scoped to this one tenant", async ({
+    page,
+  }) => {
+    await mockPlatformAdminSession(page);
+    await mockJson(
+      page,
+      "**/v1/platform-admin/tenants/tenant-1",
+      200,
+      apiSuccess(tenantDetail({ name: "Example Institute A" }))
+    );
+
+    const requestedParams: string[] = [];
+    await page.route("**/v1/platform-admin/payments/tenants/tenant-1*", async (route) => {
+      const url = new URL(route.request().url());
+      const status = url.searchParams.get("status");
+      requestedParams.push(`${status}|${url.searchParams.get("method")}`);
+      if (status === "REJECTED") {
+        await fulfillJson(route, 200, apiPageSuccess([]));
+      } else {
+        await fulfillJson(
+          route,
+          200,
+          apiPageSuccess([
+            ledgerEntry({
+              id: "e-1",
+              courseTitle: "Intro to Biology",
+              operationalState: "PAID",
+              method: "MANUAL_SLIP",
+              reference: "REF-123",
+            }),
+          ])
+        );
+      }
+    });
+
+    await page.goto("/platform-admin/payments/tenant-1");
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(page.getByRole("table").getByText("Intro to Biology")).toBeVisible();
+    await expect(page.getByRole("table").getByText("Manual bank transfer")).toBeVisible();
+    await expect(page.getByRole("table").getByText("REF-123")).toBeVisible();
+
+    await page.getByLabel("Status").click();
+    await page.getByRole("option", { name: "Rejected" }).click();
+
+    await expect(page.getByText("No payments match your filters")).toBeVisible();
+    // Every request this filter interaction issued — unfiltered and
+    // filtered alike — only ever hit this one tenant's drill-down route
+    // (the `page.route` glob itself is scoped to `tenants/tenant-1`), and
+    // the filtered request did carry the REJECTED status param.
+    expect(requestedParams).toContain("REJECTED|null");
+    await expect(page).toHaveURL(/\/platform-admin\/payments\/tenant-1/);
   });
 
   test("an unknown tenant id shows an error state instead of crashing or rendering an empty table as if the tenant existed", async ({

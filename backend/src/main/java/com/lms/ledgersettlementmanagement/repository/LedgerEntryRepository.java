@@ -19,8 +19,10 @@ import org.springframework.data.repository.query.Param;
  * JpaRepository} is overridden below to fail loudly - PAY-3's own
  * acceptance criterion ("no repository method exposes delete/deleteById").
  *
- * <p>{@link #findAllAcrossTenantsForPlatformReport} and {@link
- * #findByTenantIdAcrossTenantsForPlatformReport} are the two deliberate
+ * <p>{@link #findAllAcrossTenantsForPlatformReport}, {@link
+ * #findAllAcrossTenantsForPlatformReportUnpaged}, {@link
+ * #findByTenantIdAcrossTenantsForPlatformReport}, and {@link
+ * #findByTenantIdAcrossTenantsForPlatformReportUnpaged} are the deliberate
  * exceptions to this repository's tenant scoping, per ADR-006's {@code
  * findAllAcrossTenants...} naming convention (mirroring {@code
  * PaymentRepository#findByGatewayReferenceAcrossTenants}'s exact rationale):
@@ -64,6 +66,24 @@ public interface LedgerEntryRepository extends TenantAwareRepository<LedgerEntry
 	Page<LedgerEntry> findAllAcrossTenantsForPlatformReport(Pageable pageable);
 
 	/**
+	 * Platform-wide, unfiltered-by-tenant ledger read, UNPAGED - the
+	 * platform-report sibling of {@link #findAllForDashboardUnpaged()}. Used
+	 * only when {@code PlatformAdminLedgerQueryService#getPlatformDashboard}'s
+	 * {@code status}/{@code method} filters are supplied: those two fields
+	 * are computed/cross-module-derived (never a {@code ledger_entry} column),
+	 * so - exactly as {@link #findAllForDashboardUnpaged()}'s javadoc
+	 * explains for the tenant-scoped dashboard - they cannot be pushed down
+	 * into this query's {@code WHERE} clause. The caller enriches+filters
+	 * this full result set in application code, then paginates the FILTERED
+	 * list itself, so {@code totalElements}/{@code totalPages} always
+	 * reflect the actual filtered result set rather than the unfiltered DB
+	 * count. Acceptable at current data volumes per plan §10 judgment call
+	 * 3, same as the tenant-scoped equivalent.
+	 */
+	@Query("SELECT le FROM LedgerEntry le ORDER BY le.createdAt DESC")
+	List<LedgerEntry> findAllAcrossTenantsForPlatformReportUnpaged();
+
+	/**
 	 * Single-tenant drill-down ledger read for {@code
 	 * PlatformAdminLedgerQueryService#getTenantDrillDown} - {@code tenantId}
 	 * is always non-null here (the caller validates it names a real tenant,
@@ -80,6 +100,16 @@ public interface LedgerEntryRepository extends TenantAwareRepository<LedgerEntry
 	 */
 	@Query("SELECT le FROM LedgerEntry le WHERE le.tenantId = :tenantId ORDER BY le.createdAt DESC")
 	Page<LedgerEntry> findByTenantIdAcrossTenantsForPlatformReport(@Param("tenantId") UUID tenantId, Pageable pageable);
+
+	/**
+	 * Single-tenant drill-down ledger read, UNPAGED - the drill-down sibling
+	 * of {@link #findAllAcrossTenantsForPlatformReportUnpaged()}, used for
+	 * the same {@code status}/{@code method}-filtered reason on {@code
+	 * PlatformAdminLedgerQueryService#getTenantDrillDown}. See that method's
+	 * javadoc.
+	 */
+	@Query("SELECT le FROM LedgerEntry le WHERE le.tenantId = :tenantId ORDER BY le.createdAt DESC")
+	List<LedgerEntry> findByTenantIdAcrossTenantsForPlatformReportUnpaged(@Param("tenantId") UUID tenantId);
 
 	/**
 	 * Locates the {@code PAYMENT_CONFIRMED} entry for a payment, to reverse
@@ -103,6 +133,22 @@ public interface LedgerEntryRepository extends TenantAwareRepository<LedgerEntry
 	/** Tenant-admin Payment Dashboard read pattern - every entry in the caller's own tenant, paginated. */
 	default Page<LedgerEntry> findAllForDashboard(Pageable pageable) {
 		return findAll((root, query, cb) -> cb.conjunction(), pageable);
+	}
+
+	/**
+	 * Wave 6 (§4) - every entry in the caller's own tenant, UNPAGED, sorted
+	 * newest-first. Used only when {@code GET /api/v1/ledger/dashboard}'s
+	 * {@code status}/{@code method} filters are supplied: those two fields
+	 * are computed/cross-module-derived (never a {@code ledger_entry}
+	 * column), so they cannot be pushed down into this query's {@code
+	 * WHERE} clause - the caller enriches+filters this full result set in
+	 * application code, then paginates the FILTERED list itself, so a
+	 * filtered page is never silently short/wrong (a DB-level paginate
+	 * -then-filter would return partial-looking pages). Acceptable at
+	 * current data volumes per plan §10 judgment call 3.
+	 */
+	default List<LedgerEntry> findAllForDashboardUnpaged() {
+		return findAll((root, query, cb) -> cb.conjunction(), Sort.by(Sort.Direction.DESC, "createdAt"));
 	}
 
 	@Override

@@ -65,15 +65,32 @@ public class StudentOrder extends Auditable implements TenantOwned {
 	@Column(name = "billing_period_id", updatable = false)
 	private UUID billingPeriodId;
 
+	/**
+	 * Wave 6 (§3.3/§4) optional, client-generated dedup key (V52) - mirrors
+	 * {@code PaymentRefund.idempotencyKey}'s (V20) exact shape/rationale. A
+	 * repeated {@code OrderService#createOrder} checkout submission for the
+	 * same student carrying the same {@code (tenantId, studentId,
+	 * idempotencyKey)} replays this row instead of creating a second order.
+	 * {@code null} for every caller that does not supply one - existing
+	 * behavior is unchanged in that case.
+	 */
+	@Column(name = "idempotency_key", updatable = false)
+	private UUID idempotencyKey;
+
 	protected StudentOrder() {
 	}
 
 	public StudentOrder(UUID tenantId, UUID studentId, UUID courseId, BigDecimal amount, String currency) {
-		this(tenantId, studentId, courseId, amount, currency, null);
+		this(tenantId, studentId, courseId, amount, currency, null, null);
 	}
 
 	public StudentOrder(UUID tenantId, UUID studentId, UUID courseId, BigDecimal amount, String currency,
 			UUID billingPeriodId) {
+		this(tenantId, studentId, courseId, amount, currency, billingPeriodId, null);
+	}
+
+	public StudentOrder(UUID tenantId, UUID studentId, UUID courseId, BigDecimal amount, String currency,
+			UUID billingPeriodId, UUID idempotencyKey) {
 		this.tenantId = tenantId;
 		this.studentId = studentId;
 		this.courseId = courseId;
@@ -81,6 +98,7 @@ public class StudentOrder extends Auditable implements TenantOwned {
 		this.currency = currency;
 		this.billingPeriodId = billingPeriodId;
 		this.status = OrderStatus.PLACED;
+		this.idempotencyKey = idempotencyKey;
 	}
 
 	@Override
@@ -115,6 +133,10 @@ public class StudentOrder extends Auditable implements TenantOwned {
 
 	public UUID getBillingPeriodId() {
 		return billingPeriodId;
+	}
+
+	public UUID getIdempotencyKey() {
+		return idempotencyKey;
 	}
 
 	/**

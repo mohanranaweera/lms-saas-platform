@@ -65,6 +65,19 @@ class SlipApprovalRollbackIntegrationTest extends SlipTestSupport {
 				slip.id());
 		assertThat(auditCount).isEqualTo(0L);
 
+		// Wave 6 §3.1: the Payment/ledger write now happens BEFORE the
+		// enrollment-activation call this test forces to throw - confirm the
+		// whole transaction (including that earlier write) rolled back too.
+		Long paymentCount = jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM payment WHERE tenant_id = ? AND order_id = ?", Long.class,
+				fixture.tenant().getId(), fixture.order().id());
+		assertThat(paymentCount).isEqualTo(0L);
+
+		Long ledgerCount = jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM ledger_entry WHERE tenant_id = ? AND order_id = ?", Long.class,
+				fixture.tenant().getId(), fixture.order().id());
+		assertThat(ledgerCount).isEqualTo(0L);
+
 		// Also confirm via the repository/entity layer, not just raw SQL.
 		var reloaded = withTenant(fixture.tenant().getId(),
 				() -> paymentSlipRepositoryForAssertions.findById(slip.id()));

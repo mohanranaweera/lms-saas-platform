@@ -61,11 +61,15 @@ class PlatformAdminLedgerQueryServiceTest {
 	@Mock
 	private TenantLookupApi tenantLookupApi;
 
+	@Mock
+	private LedgerViewEnrichmentService ledgerViewEnrichmentService;
+
 	private PlatformAdminLedgerQueryService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new PlatformAdminLedgerQueryService(ledgerEntryRepository, tenantLookupApi);
+		service = new PlatformAdminLedgerQueryService(ledgerEntryRepository, tenantLookupApi,
+				ledgerViewEnrichmentService);
 		AuthenticatedPrincipalHolder
 			.set(new AuthenticatedPrincipal(UUID.randomUUID(), null, "PLATFORM_ADMIN", UUID.randomUUID()));
 	}

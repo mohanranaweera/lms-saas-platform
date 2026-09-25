@@ -71,6 +71,19 @@ public class Payment extends BaseEntity implements TenantOwned {
 	@Column(name = "staff_grant_reason")
 	private String staffGrantReason;
 
+	/**
+	 * Wave 6 (§3.3/§4) optional, client-generated dedup key (V52) - mirrors
+	 * {@code PaymentRefund.idempotencyKey}'s (V20) exact shape/rationale. A
+	 * repeated {@code PaymentInitiationService#initiatePayment} call for the
+	 * same order carrying the same {@code (tenantId, orderId,
+	 * idempotencyKey)} replays this row instead of creating a second {@code
+	 * PENDING} payment - see {@code PaymentWriteService#createPendingPayment}.
+	 * {@code null} for every caller that does not supply one - existing
+	 * behavior is unchanged in that case.
+	 */
+	@Column(name = "idempotency_key", updatable = false)
+	private UUID idempotencyKey;
+
 	@CreatedDate
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -83,11 +96,16 @@ public class Payment extends BaseEntity implements TenantOwned {
 	}
 
 	public Payment(UUID tenantId, UUID orderId, BigDecimal amount, String currency) {
+		this(tenantId, orderId, amount, currency, null);
+	}
+
+	public Payment(UUID tenantId, UUID orderId, BigDecimal amount, String currency, UUID idempotencyKey) {
 		this.tenantId = tenantId;
 		this.orderId = orderId;
 		this.amount = amount;
 		this.currency = currency;
 		this.status = PaymentStatus.PENDING;
+		this.idempotencyKey = idempotencyKey;
 	}
 
 	@Override
@@ -126,6 +144,10 @@ public class Payment extends BaseEntity implements TenantOwned {
 
 	public String getStaffGrantReason() {
 		return staffGrantReason;
+	}
+
+	public UUID getIdempotencyKey() {
+		return idempotencyKey;
 	}
 
 	public Instant getCreatedAt() {

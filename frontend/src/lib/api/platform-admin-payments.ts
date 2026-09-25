@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { PageResponse } from "./courses";
-import type { LedgerEntryType } from "./ledger";
+import type { LedgerEntryType, PaymentMethod, PaymentOperationalState } from "./ledger";
 
 /**
  * Typed client + React Query hooks for `ledger-settlement-management`'s
@@ -18,7 +18,12 @@ import type { LedgerEntryType } from "./ledger";
  * payment/refund endpoints.
  */
 
-/** Mirrors `PlatformLedgerEntryResponse`. */
+/**
+ * Mirrors `PlatformLedgerEntryResponse`. Wave 6 §4 extends this with the same
+ * `courseId`/`courseTitle`/`billingPeriodId`/`operationalState`/`method`/
+ * `reference` fields as `LedgerHistoryEntryResponse` (`lib/api/ledger.ts`),
+ * resolved per-tenant the same way — never a cross-tenant read path.
+ */
 export interface PlatformLedgerEntryResponse {
   id: string;
   tenantId: string;
@@ -30,11 +35,21 @@ export interface PlatformLedgerEntryResponse {
   amount: number;
   reversesEntryId: string | null;
   createdAt: string;
+  courseId: string | null;
+  courseTitle: string | null;
+  billingPeriodId: string | null;
+  operationalState: PaymentOperationalState | null;
+  method: PaymentMethod | null;
+  reference: string | null;
 }
 
 export interface PlatformPaymentsParams {
   page?: number;
   size?: number;
+  /** Wave 6 §4 — optional `PaymentOperationalState` filter; omitted returns every entry. */
+  status?: PaymentOperationalState;
+  /** Wave 6 §4 — optional `PaymentMethod` filter; combinable with `status` (AND). */
+  method?: PaymentMethod;
 }
 
 export const platformAdminPaymentsKeys = {
@@ -49,12 +64,19 @@ function buildPaymentsQuery(params?: PlatformPaymentsParams): string {
   const search = new URLSearchParams();
   search.set("page", String(params?.page ?? 0));
   search.set("size", String(params?.size ?? 20));
+  if (params?.status) search.set("status", params.status);
+  if (params?.method) search.set("method", params.method);
   return `?${search.toString()}`;
 }
 
 /**
  * `GET /api/v1/platform-admin/payments/dashboard` — cross-tenant, paginated,
- * default sort `createdAt,desc`. No filter params exist on this endpoint.
+ * default sort `createdAt,desc`. Wave 6 §4 adds optional `status`/`method`
+ * filters (same contract as `useLedgerDashboard`'s). Per the backend's own
+ * documented tradeoff, this platform-wide filter applies only within the
+ * already-paginated page (not a full unpaged re-read like the tenant-scoped
+ * dashboard) — a filtered page may return fewer than `size` rows even when
+ * more matches exist on a later page.
  */
 export function usePlatformPaymentsDashboard(params?: PlatformPaymentsParams) {
   const { authorizedFetch } = useAuth();

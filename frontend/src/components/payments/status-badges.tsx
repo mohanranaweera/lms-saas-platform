@@ -1,8 +1,8 @@
-import { AlertTriangle, CheckCircle2, Clock, RotateCcw, XCircle } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, Clock, RotateCcw, Search, XCircle } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
 import type { OrderStatus, PaymentStatus } from "@/lib/api/payments";
-import type { LedgerEntryType } from "@/lib/api/ledger";
+import type { LedgerEntryType, PaymentMethod, PaymentOperationalState } from "@/lib/api/ledger";
 import type { PaymentSlipStatus, SlipFlagType } from "@/lib/api/payment-slips";
 
 /**
@@ -127,3 +127,47 @@ export function SlipFlagBadge({ flagType }: { flagType: SlipFlagType }) {
     </Badge>
   );
 }
+
+/**
+ * Wave 6 §4/§5 — `PaymentOperationalState` badge, a genuinely distinct state
+ * machine from `PaymentStatusBadge`/`SlipStatusBadge` above (it's a computed
+ * projection across order/payment/slip/refund, never a raw column value), so
+ * it gets its own `Record`/meta table rather than reusing either — matching
+ * this file's established "one state machine, one badge component" pattern.
+ * Icon + text + color, never color alone, per `.claude/rules/ui-ux.md` §4.
+ */
+const PAYMENT_OPERATIONAL_STATE_META: Record<
+  PaymentOperationalState,
+  { label: string; icon: typeof Clock; variant: BadgeVariant }
+> = {
+  UNPAID: { label: "Unpaid", icon: Ban, variant: "outline" },
+  PENDING: { label: "Pending", icon: Clock, variant: "outline" },
+  UNDER_REVIEW: { label: "Under review", icon: Search, variant: "secondary" },
+  PAID: { label: "Paid", icon: CheckCircle2, variant: "default" },
+  REJECTED: { label: "Rejected", icon: XCircle, variant: "destructive" },
+  REFUNDED: { label: "Refunded", icon: RotateCcw, variant: "secondary" },
+};
+
+export function PaymentOperationalStateBadge({ state }: { state: PaymentOperationalState }) {
+  const meta = PAYMENT_OPERATIONAL_STATE_META[state];
+  const Icon = meta.icon;
+  return (
+    <Badge variant={meta.variant}>
+      <Icon className="size-3.5" aria-hidden="true" />
+      {meta.label}
+    </Badge>
+  );
+}
+
+/**
+ * Wave 6 §4/§10 judgment call 2 — `PaymentMethod` display label. A plain
+ * label, not a colored badge: method is informational (how payment was
+ * made), never itself a state that needs color-coded urgency the way
+ * `PaymentOperationalStateBadge` does.
+ */
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  GATEWAY: "Gateway",
+  MANUAL_SLIP: "Manual bank transfer",
+  FREE: "Free enrollment",
+  STAFF_GRANTED: "Staff granted",
+};

@@ -23,10 +23,24 @@ import java.util.UUID;
  * DomainArea.COURSES}/{@code CREATE_EDIT}-equivalent permission; a
  * student-role caller's value here is always rejected outright (400), never
  * silently ignored - see {@code OrderService#createOrder}'s javadoc.
+ *
+ * <p>{@code idempotencyKey} (Wave 6 §3.3/§4) is an OPTIONAL, client-generated
+ * UUID - never trusted as an identity/authorization signal, purely a dedup
+ * key scoped to {@code (tenantId, studentId, idempotencyKey)} - see {@code
+ * OrderService#createOrder(UUID, BigDecimal, UUID)}'s javadoc. {@code null}
+ * (the field omitted entirely) behaves exactly as this wave's predecessor
+ * always has - no regression for a caller that never supplies one.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record OrderCreateRequest(@NotNull UUID courseId,
 
-		@DecimalMin(value = "0.0", inclusive = true) @Digits(integer = 10, fraction = 2) BigDecimal customAmount) {
+		@DecimalMin(value = "0.0", inclusive = true) @Digits(integer = 10, fraction = 2) BigDecimal customAmount,
+
+		UUID idempotencyKey) {
+
+	/** Pre-Wave-6 two-arg shape, preserved for existing callers - equivalent to no idempotency key supplied. */
+	public OrderCreateRequest(UUID courseId, BigDecimal customAmount) {
+		this(courseId, customAmount, null);
+	}
 
 }

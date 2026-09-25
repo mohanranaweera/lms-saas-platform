@@ -43,8 +43,14 @@ public abstract class PaymentManagementTestSupport extends CourseManagementTestS
 	}
 
 	protected HttpResult<OrderResponse> createOrder(String host, String token, UUID courseId, BigDecimal customAmount) {
+		return createOrder(host, token, courseId, customAmount, null);
+	}
+
+	/** Wave 6 §3.3/§4 idempotency-key-carrying overload. */
+	protected HttpResult<OrderResponse> createOrder(String host, String token, UUID courseId,
+			BigDecimal customAmount, UUID idempotencyKey) {
 		MockHttpServletRequestBuilder builder = post("/api/v1/orders").contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(new OrderCreateRequest(courseId, customAmount)));
+			.content(objectMapper.writeValueAsString(new OrderCreateRequest(courseId, customAmount, idempotencyKey)));
 		return parseSingle(perform(authenticated(builder, host, token)), OrderResponse.class);
 	}
 
@@ -84,7 +90,16 @@ public abstract class PaymentManagementTestSupport extends CourseManagementTestS
 	}
 
 	protected HttpResult<PaymentInitiationResponse> initiatePayment(String host, String token, UUID orderId) {
-		MockHttpServletRequestBuilder builder = post("/api/v1/orders/{id}/payments", orderId);
+		return initiatePayment(host, token, orderId, null);
+	}
+
+	/** Wave 6 §3.3/§4 idempotency-key-carrying overload. */
+	protected HttpResult<PaymentInitiationResponse> initiatePayment(String host, String token, UUID orderId,
+			UUID idempotencyKey) {
+		MockHttpServletRequestBuilder builder = post("/api/v1/orders/{id}/payments", orderId)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(new com.lms.paymentmanagement.order.web.dto.PaymentInitiationRequest(
+					idempotencyKey)));
 		return parseSingle(perform(authenticated(builder, host, token)), PaymentInitiationResponse.class);
 	}
 

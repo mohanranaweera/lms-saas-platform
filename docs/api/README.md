@@ -48,3 +48,14 @@ Domain contract files, in the order they landed:
 - `video-access-management.md` — Wave 5 (PAR-17-01, PAR-20-01–04), new domain's first
   contract file: video upload, playback-policy upsert, and entitlement-checked
   playback-session issuance/heartbeat/end.
+- `payment-management.md` — updated in Wave 6 (PAR-07-01/03/09, PAR-08-05) for the
+  optional `idempotencyKey` on order creation/payment initiation, the new
+  transaction-scoped-advisory-lock idempotency mechanism, and the manual-slip-approval
+  ledger-gap fix (`SlipReviewService#approve` now creates+confirms a `Payment` and
+  writes the ledger entry it previously omitted).
+- `ledger-settlement-management.md` — updated in Wave 6 (PAR-07-03/04/06/07/08) for the
+  extended `courseId`/`courseTitle`/`billingPeriodId`/`operationalState`/`method`/
+  `reference` fields on every ledger-derived view, the new `status`/`method` dashboard
+  filters, the new `PaymentOperationalState`/`PaymentMethod` computed projections, and
+  the new `GET /api/v1/ledger/outstanding`/`GET /api/v1/ledger/courses/{courseId}/summary`
+  endpoints.

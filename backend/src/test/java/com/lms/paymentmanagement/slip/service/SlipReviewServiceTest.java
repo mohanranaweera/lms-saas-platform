@@ -3,6 +3,7 @@ package com.lms.paymentmanagement.slip.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,8 +21,12 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
+import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
+import com.lms.paymentmanagement.payment.domain.Payment;
+import com.lms.paymentmanagement.payment.domain.PaymentStatus;
+import com.lms.paymentmanagement.payment.repository.PaymentRepository;
 import com.lms.paymentmanagement.slip.domain.FlagType;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipFlag;
@@ -89,13 +94,19 @@ class SlipReviewServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private PaymentRepository paymentRepository;
+
+	@Mock
+	private LedgerEntryApi ledgerEntryApi;
+
 	private SlipReviewService slipReviewService;
 
 	@BeforeEach
 	void setUp() {
 		slipReviewService = new SlipReviewService(paymentSlipRepository, paymentSlipFlagRepository,
 				studentOrderRepository, slipStorageApi, accessGuard, enrollmentActivationApi, auditLogApi,
-				permissionCheckService, userProvisioningApi, tenantContext);
+				permissionCheckService, userProvisioningApi, tenantContext, paymentRepository, ledgerEntryApi);
 	}
 
 	@AfterEach
@@ -158,6 +169,7 @@ class SlipReviewServiceTest {
 		when(paymentSlipRepository.findByIdAndTenantIdForUpdate(slipId, TENANT_ID)).thenReturn(Optional.of(slip));
 		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenAnswer(inv -> inv.getArgument(0));
 		when(studentOrderRepository.findById(slip.getOrderId())).thenReturn(Optional.of(orderFixture(slip)));
+		when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "FINANCE_STAFF",
 				UUID.randomUUID()));
 
@@ -166,6 +178,43 @@ class SlipReviewServiceTest {
 		assertThat(view.status().name()).isEqualTo("APPROVED");
 		verify(enrollmentActivationApi).activateOrReactivateFromApprovedSlip(any(), any(), any(), any());
 		verify(auditLogApi).record(any());
+		verify(paymentRepository, org.mockito.Mockito.times(2)).save(any(Payment.class));
+		verify(ledgerEntryApi).recordPaymentConfirmed(eq(slip.getOrderId()), any(), any());
+	}
+
+	/**
+	 * Wave 6 §3.1 fix: approving a slip must create exactly one {@code
+	 * Payment} row (saved twice: once on creation as {@code PENDING}, once
+	 * again after {@code assignGatewayReference}/{@code confirm} - mirrors
+	 * {@code ManualEnrollmentService#grantEnrollment}'s identical two-save
+	 * shape), with a {@code "SLIP-"}-prefixed synthesized gateway reference,
+	 * and exactly one {@code PAYMENT_CONFIRMED} ledger entry - in the same
+	 * transaction as the slip's own APPROVED transition.
+	 */
+	@Test
+	void approveCreatesAConfirmedPaymentAndRecordsExactlyOneLedgerEntry() {
+		UUID slipId = UUID.randomUUID();
+		when(paymentSlipFlagRepository.findAllBySlipId(slipId)).thenReturn(List.of());
+		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
+		PaymentSlip slip = underReviewSlip();
+		when(paymentSlipRepository.findByIdAndTenantIdForUpdate(slipId, TENANT_ID)).thenReturn(Optional.of(slip));
+		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenAnswer(inv -> inv.getArgument(0));
+		StudentOrder order = orderFixture(slip);
+		when(studentOrderRepository.findById(slip.getOrderId())).thenReturn(Optional.of(order));
+		when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "FINANCE_STAFF",
+				UUID.randomUUID()));
+
+		slipReviewService.approve(slipId, null);
+
+		org.mockito.ArgumentCaptor<Payment> paymentCaptor = org.mockito.ArgumentCaptor.forClass(Payment.class);
+		verify(paymentRepository, org.mockito.Mockito.times(2)).save(paymentCaptor.capture());
+		Payment savedPayment = paymentCaptor.getValue();
+		assertThat(savedPayment.getStatus()).isEqualTo(PaymentStatus.CONFIRMED);
+		assertThat(savedPayment.getGatewayReference()).startsWith("SLIP-");
+		assertThat(savedPayment.getOrderId()).isEqualTo(order.getId());
+		verify(ledgerEntryApi).recordPaymentConfirmed(eq(order.getId()), eq(savedPayment.getId()),
+				eq(savedPayment.getAmount()));
 	}
 
 	// ------------------------------------------------------------------
@@ -191,6 +240,7 @@ class SlipReviewServiceTest {
 		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenAnswer(inv -> inv.getArgument(0));
 		StudentOrder order = orderFixture(slip);
 		when(studentOrderRepository.findById(slip.getOrderId())).thenReturn(Optional.of(order));
+		when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 		doThrow(new IllegalStateException("no APPROVED reactivation request linked to order " + order.getId()))
 			.when(enrollmentActivationApi)
 			.activateOrReactivateFromApprovedSlip(any(), any(), any(), any());
@@ -203,6 +253,12 @@ class SlipReviewServiceTest {
 		verify(enrollmentActivationApi).activateOrReactivateFromApprovedSlip(slip.getId(), order.getId(),
 				slip.getStudentId(), order.getCourseId());
 		verify(auditLogApi).record(any());
+		// The Payment/ledger write must still happen even when the
+		// subsequent reactivation attempt is refused - it is created and
+		// confirmed BEFORE the enrollment-activation call, per the ordering
+		// documented at that call site.
+		verify(paymentRepository, org.mockito.Mockito.times(2)).save(any(Payment.class));
+		verify(ledgerEntryApi).recordPaymentConfirmed(eq(order.getId()), any(), any());
 	}
 
 	@Test
@@ -226,6 +282,9 @@ class SlipReviewServiceTest {
 		// (a harmless read), it just never re-triggers activation/audit.
 		verifyNoInteractions(enrollmentActivationApi, auditLogApi);
 		verify(paymentSlipRepository, never()).save(any());
+		// Wave 6 §3.1: a repeat approve() against an already-APPROVED slip
+		// must NOT create a second Payment/ledger row.
+		verifyNoInteractions(paymentRepository, ledgerEntryApi);
 	}
 
 	/**
@@ -255,6 +314,10 @@ class SlipReviewServiceTest {
 		verifyNoInteractions(enrollmentActivationApi, auditLogApi);
 		verify(paymentSlipRepository, never()).findByIdAndTenantIdForUpdate(any(), any());
 		verify(paymentSlipRepository, never()).save(any());
+		// Wave 6 §3.1: a repeat approve() against an already-APPROVED slip
+		// (even one with surviving flags) must NOT create a second
+		// Payment/ledger row.
+		verifyNoInteractions(paymentRepository, ledgerEntryApi);
 	}
 
 	@Test

@@ -141,6 +141,20 @@ public interface PaymentSlipRepository extends TenantAwareRepository<PaymentSlip
 	@Query("SELECT s.status FROM PaymentSlip s WHERE s.id = :id AND s.tenantId = :tenantId")
 	Optional<PaymentSlipStatus> findStatusByIdAndTenantId(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
 
+	/**
+	 * Wave 6 (§3.2/§4) batched read backing {@code SlipStatusApiImpl
+	 * #findOrderSlipDetails} - every slip (any status) across ALL of
+	 * {@code orderIds}, tenant-scoped via the inherited {@code
+	 * findAll(Specification)}, mirroring {@code
+	 * PaymentRepository#findAllByOrderIdIn}'s exact shape.
+	 */
+	default List<PaymentSlip> findAllByOrderIdIn(List<UUID> orderIds) {
+		if (orderIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("orderId").in(orderIds));
+	}
+
 	@Override
 	default void deleteById(UUID id) {
 		throw new UnsupportedOperationException("payment_slip is financial history - no row may ever be deleted");

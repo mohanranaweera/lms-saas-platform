@@ -1,5 +1,6 @@
 package com.lms.paymentmanagement.api;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -25,5 +26,16 @@ public interface SlipStatusApi {
 	 * nonexistent, non-terminal, rejected, or cross-tenant id.
 	 */
 	boolean isApprovedForCurrentTenant(UUID slipId);
+
+	/**
+	 * Wave 6 (§3.2/§4) batched read - one {@link OrderSlipDetail} per id in
+	 * {@code orderIds} that has at least one slip in the current tenant
+	 * context; an order with no slip at all is simply absent from the
+	 * result (mirrors {@link PaymentStatusApi#findOrderPaymentDetails}'s
+	 * exact "absent, never an error" contract). Backs {@code
+	 * ledger-settlement-management}'s {@code PaymentOperationalState}
+	 * projection.
+	 */
+	List<OrderSlipDetail> findOrderSlipDetails(List<UUID> orderIds);
 
 }
