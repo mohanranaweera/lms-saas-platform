@@ -15,6 +15,7 @@ import {
   CoursePricingNotice,
   isCourseCheckoutAvailable,
 } from "@/components/courses/course-price-display";
+import { randomUuid } from "@/lib/uuid";
 
 /**
  * Checkout entry point (PAY-1/PAY-2). Shows the course's server-computed
@@ -70,8 +71,8 @@ export default function CheckoutPage() {
   const initiatePayment = useInitiatePayment();
   const [flowError, setFlowError] = useState<string | null>(null);
   const [mode, setMode] = useState<"gateway" | "slip" | null>(null);
-  const [orderIdempotencyKey] = useState<string>(() => crypto.randomUUID());
-  const [paymentIdempotencyKey] = useState<string>(() => crypto.randomUUID());
+  const [orderIdempotencyKey] = useState<string>(() => randomUuid());
+  const [paymentIdempotencyKey] = useState<string>(() => randomUuid());
 
   const isSubmitting = mode !== null;
 

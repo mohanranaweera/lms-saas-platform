@@ -27,6 +27,7 @@ import {
   REFUND_AMOUNT_HELPER_TEXT,
   type RefundFormValues,
 } from "@/lib/validation/refund";
+import { randomUuid } from "@/lib/uuid";
 
 /**
  * Refund confirmation, following
@@ -61,7 +62,7 @@ export function RefundDialog({ entry }: { entry: LedgerHistoryEntryResponse }) {
   // replays the original refund server-side instead of creating a second
   // one — regenerated on each fresh open (see `onOpenChange` below), never
   // reused across two genuinely separate refund attempts.
-  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => crypto.randomUUID());
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => randomUuid());
   const mutation = useCreateRefund(paymentId ?? "");
 
   const {
@@ -125,7 +126,7 @@ export function RefundDialog({ entry }: { entry: LedgerHistoryEntryResponse }) {
         setOpen(nextOpen);
         if (nextOpen) {
           // Fresh open — a new logical refund attempt, so a fresh dedup key.
-          setIdempotencyKey(crypto.randomUUID());
+          setIdempotencyKey(randomUuid());
         } else {
           mutation.reset();
           setPageError(null);

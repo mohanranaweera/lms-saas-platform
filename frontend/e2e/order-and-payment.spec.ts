@@ -121,6 +121,36 @@ test.describe("checkout — no editable price field", () => {
 });
 
 test.describe("checkout — idempotency (Wave 6 §3.3/§4/§5)", () => {
+  /**
+   * Regression: tenant portals are served per-subdomain over plain HTTP in
+   * local dev (`http://demo.lms.test`), which is not a secure context, so
+   * `crypto.randomUUID` is undefined there and the checkout page used to
+   * crash on mount. This suite runs on `localhost` (a secure context), so the
+   * API is removed before any page script runs to reproduce that condition.
+   */
+  test("checkout still renders and sends a v4 idempotencyKey when crypto.randomUUID is unavailable", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true });
+    });
+    await mockTenantSession(page, "STUDENT");
+    await mockJson(page, `**/api/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
+    let orderRequestKey: string | undefined;
+    await page.route("**/api/v1/orders", async (route) => {
+      orderRequestKey = (route.request().postDataJSON() as { idempotencyKey?: string }).idempotencyKey;
+      await fulfillJson(route, 500, apiError("INTERNAL_ERROR", "stop here"));
+    });
+
+    await page.goto(`/student/checkout/${COURSE.id}`);
+    await expect(page.getByRole("heading", { name: COURSE.name })).toBeVisible();
+    await page.getByRole("button", { name: "Enroll" }).click();
+
+    await expect.poll(() => orderRequestKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    );
+  });
+
   test("Enroll sends a non-empty idempotencyKey on both order creation and payment initiation", async ({
     page,
   }) => {
