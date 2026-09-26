@@ -84,6 +84,17 @@ export default function StudentMyCoursesPage() {
   }
 
   function renderReactivateAction(row: EnrollmentSummaryResponse, courseLabel: string) {
+    if (row.state === "ACTIVE") {
+      return (
+        <Link
+          href={`/student/courses/${row.courseId}`}
+          aria-label={`Open course ${courseLabel}`}
+          className="text-sm font-medium text-foreground hover:underline"
+        >
+          Open course
+        </Link>
+      );
+    }
     if (row.state !== "EXPIRED") return null;
     if (reactivationRequestsQuery.isError) {
       return (

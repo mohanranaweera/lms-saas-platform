@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,14 @@ export default function StudentLessonMaterialsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <nav aria-label="Breadcrumb">
+        <Link
+          href={`/student/courses/${courseId}`}
+          className="text-sm text-muted-foreground hover:underline"
+        >
+          ← Back to course
+        </Link>
+      </nav>
       <div>
         <h1 className="text-xl font-semibold text-foreground">Lesson materials</h1>
         <p className="text-sm text-muted-foreground">

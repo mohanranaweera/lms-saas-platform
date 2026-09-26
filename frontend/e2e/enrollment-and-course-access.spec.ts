@@ -414,14 +414,14 @@ test.describe("student — My Courses (card grid, MVP-013 SDASH-2)", () => {
     await expect.poll(columnCount).toBe(3);
   });
 
-  test("keyboard Tab traversal reaches each reachable card CTA across multiple cards, in DOM order, skipping a card with no CTA", async ({
+  test("keyboard Tab traversal reaches each card CTA across multiple cards, in DOM order", async ({
     page,
   }) => {
     // The existing keyboard tests in this file directly `.focus()` a single,
     // already-known CTA — that proves the CTA itself is focusable, but not
     // that a keyboard-only user can actually *reach* it by tabbing through
     // the grid. This test performs a real `Tab` traversal across three
-    // cards (one Reactivate CTA, one ACTIVE card with no CTA at all, one
+    // cards (one Reactivate CTA, one ACTIVE card's "Open course" CTA, one
     // "already requested" CTA), proving Tab order flows correctly through
     // the card grid rather than getting stuck or skipping unpredictably.
     await mockTenantSession(page, "STUDENT");
@@ -462,14 +462,17 @@ test.describe("student — My Courses (card grid, MVP-013 SDASH-2)", () => {
     await firstCta.focus();
     await expect(firstCta).toBeFocused();
 
-    // enrollmentB's card renders a plain, non-interactive "—" placeholder
-    // (an ACTIVE row has no CTA per `renderReactivateAction`) — a single Tab
-    // press from card A's CTA must land on card C's CTA, not get stuck.
+    // enrollmentB is ACTIVE, so its card's "Open course" link is the next
+    // Tab stop, then card C's CTA — Tab order follows the grid's DOM order.
     await page.keyboard.press("Tab");
-    const secondCta = grid.getByRole("link", {
+    await expect(
+      grid.getByRole("link", { name: `Open course Course #${enrollmentB.courseId.slice(0, 8)}` })
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    const thirdCta = grid.getByRole("link", {
       name: `Reactivation already requested for Course #${enrollmentC.courseId.slice(0, 8)}`,
     });
-    await expect(secondCta).toBeFocused();
+    await expect(thirdCta).toBeFocused();
   });
 });
 
