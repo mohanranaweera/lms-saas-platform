@@ -67,3 +67,12 @@ app:
       # 256-bit key length so local startup never silently falls back to a
       # weak key.
       secret: ${JWT_SECRET:dev-only-placeholder-secret-change-me-before-any-real-deployment-32bytes+}
+
+video-playback:
+  token:
+    # Same clearly-fake, dev-only placeholder pattern as app.security.jwt
+    # above, but a DISTINCT value (PlaybackTokenService must never share the
+    # login-token secret). Without it, local video playback always 503s.
+    # Non-local environments keep application.yml's empty, fail-closed
+    # default and must set VIDEO_PLAYBACK_TOKEN_SECRET via a real env var.
+    secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:dev-only-video-playback-placeholder-change-me-32bytes+}
