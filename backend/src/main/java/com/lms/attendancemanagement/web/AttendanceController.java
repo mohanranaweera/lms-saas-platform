@@ -1,5 +1,7 @@
 package com.lms.attendancemanagement.web;
 
+import com.lms.attendancemanagement.service.AttendanceClassSessionRosterView;
+import com.lms.attendancemanagement.service.AttendanceClassSessionService;
 import com.lms.attendancemanagement.service.AttendanceMarkCommand;
 import com.lms.attendancemanagement.service.AttendanceMarkOutcome;
 import com.lms.attendancemanagement.service.AttendanceMarkingService;
@@ -8,10 +10,14 @@ import com.lms.attendancemanagement.service.AttendanceReportFilter;
 import com.lms.attendancemanagement.service.AttendanceReportService;
 import com.lms.attendancemanagement.service.AttendanceRosterEntryView;
 import com.lms.attendancemanagement.service.AttendanceRosterView;
+import com.lms.attendancemanagement.service.AttendanceSummaryService;
+import com.lms.attendancemanagement.service.AttendanceSummaryView;
 import com.lms.attendancemanagement.web.dto.AttendanceMarkResultResponse;
 import com.lms.attendancemanagement.web.dto.AttendanceRecordResponse;
 import com.lms.attendancemanagement.web.dto.AttendanceRosterEntryResponse;
 import com.lms.attendancemanagement.web.dto.AttendanceRosterResponse;
+import com.lms.attendancemanagement.web.dto.AttendanceSummaryRowResponse;
+import com.lms.attendancemanagement.web.dto.ClassSessionRosterResponse;
 import com.lms.attendancemanagement.web.dto.MarkAttendanceRequest;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
@@ -33,14 +39,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The four endpoints named in plan §10. Stays thin - delegates entirely to
- * {@link AttendanceMarkingService}/{@link AttendanceReportService}, which
- * perform the real staff-matrix-or-Teacher-ownership authorization check per
- * method (via {@code AttendanceAccessGuard}, mirroring {@code
+ * Attendance endpoints. Stays thin - delegates entirely to the services,
+ * which perform the real staff-matrix-or-Teacher-ownership authorization
+ * check per method (via {@code AttendanceAccessGuard}, mirroring {@code
  * CourseController}'s established discipline). {@code
  * @PreAuthorize("isAuthenticated()")} here is therefore only a coarse gate,
- * except {@code /my}, which is owner-only by construction ({@code
+ * except the {@code /my} reads, which are owner-only by construction ({@code
  * hasRole('STUDENT')}, no id param).
+ *
+ * <p>Wave 8: {@code /class-sessions/{classSessionId}/...} is the primary
+ * marking workflow ({@code ClassSession -> AttendanceSheet ->
+ * AttendanceRecord}). The lesson-scoped {@code /sessions/{sessionId}/...}
+ * endpoints are <b>deprecated</b> but unchanged in contract (approved API
+ * contract; wave-08-plan.md §10.2).
  */
 @RestController
 @RequestMapping("/api/v1/attendance")
@@ -50,12 +61,66 @@ public class AttendanceController {
 
 	private final AttendanceReportService attendanceReportService;
 
+	private final AttendanceClassSessionService attendanceClassSessionService;
+
+	private final AttendanceSummaryService attendanceSummaryService;
+
 	public AttendanceController(AttendanceMarkingService attendanceMarkingService,
-			AttendanceReportService attendanceReportService) {
+			AttendanceReportService attendanceReportService,
+			AttendanceClassSessionService attendanceClassSessionService,
+			AttendanceSummaryService attendanceSummaryService) {
 		this.attendanceMarkingService = attendanceMarkingService;
 		this.attendanceReportService = attendanceReportService;
+		this.attendanceClassSessionService = attendanceClassSessionService;
+		this.attendanceSummaryService = attendanceSummaryService;
 	}
 
+	// ------------------------------------------------------------------
+	// Wave 8 - class-session attendance (primary workflow).
+	// ------------------------------------------------------------------
+
+	@GetMapping("/class-sessions/{classSessionId}/roster")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<ClassSessionRosterResponse>> getClassSessionRoster(
+			@PathVariable UUID classSessionId) {
+		AttendanceClassSessionRosterView view = attendanceClassSessionService.getRoster(classSessionId);
+		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
+	}
+
+	@PostMapping("/class-sessions/{classSessionId}/records")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<List<AttendanceMarkResultResponse>>> markClassSessionAttendance(
+			@PathVariable UUID classSessionId, @Valid @RequestBody MarkAttendanceRequest request) {
+		List<AttendanceMarkOutcome> outcomes = attendanceClassSessionService.markAttendance(classSessionId,
+				toCommands(request));
+		return ResponseEntity.ok(ApiResponse.success(outcomes.stream().map(AttendanceController::toResultResponse).toList()));
+	}
+
+	/** Per-student attendance percentages for one course (Teacher-owner or staff {@code ATTENDANCE}/{@code VIEW}). */
+	@GetMapping("/summary")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<List<AttendanceSummaryRowResponse>>> courseSummary(
+			@RequestParam UUID courseId, @RequestParam(required = false) Instant from,
+			@RequestParam(required = false) Instant to) {
+		List<AttendanceSummaryView> rows = attendanceSummaryService.getCourseSummary(courseId, from, to);
+		return ResponseEntity.ok(ApiResponse.success(rows.stream().map(AttendanceController::toResponse).toList()));
+	}
+
+	/** The calling Student's own per-course attendance percentages. */
+	@GetMapping("/my/summary")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<List<AttendanceSummaryRowResponse>>> mySummary(
+			@RequestParam(required = false) Instant from, @RequestParam(required = false) Instant to) {
+		List<AttendanceSummaryView> rows = attendanceSummaryService.getMySummary(from, to);
+		return ResponseEntity.ok(ApiResponse.success(rows.stream().map(AttendanceController::toResponse).toList()));
+	}
+
+	// ------------------------------------------------------------------
+	// Legacy lesson-scoped marking (deprecated since Wave 8).
+	// ------------------------------------------------------------------
+
+	/** @deprecated since Wave 8 - use {@code /class-sessions/{classSessionId}/roster}. */
+	@Deprecated
 	@GetMapping("/sessions/{sessionId}/roster")
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResponse<AttendanceRosterResponse>> getSessionRoster(@PathVariable UUID sessionId) {
@@ -63,29 +128,28 @@ public class AttendanceController {
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
 	}
 
+	/** @deprecated since Wave 8 - use {@code /class-sessions/{classSessionId}/records}. */
+	@Deprecated
 	@PostMapping("/sessions/{sessionId}/records")
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResponse<List<AttendanceMarkResultResponse>>> markAttendance(
 			@PathVariable UUID sessionId, @Valid @RequestBody MarkAttendanceRequest request) {
-		List<AttendanceMarkCommand> commands = request.marks()
-			.stream()
-			.map(entry -> new AttendanceMarkCommand(entry.studentId(), entry.status()))
-			.toList();
-		List<AttendanceMarkOutcome> outcomes = attendanceMarkingService.markAttendance(sessionId, commands);
-		List<AttendanceMarkResultResponse> response = outcomes.stream()
-			.map(AttendanceController::toResultResponse)
-			.toList();
-		return ResponseEntity.ok(ApiResponse.success(response));
+		List<AttendanceMarkOutcome> outcomes = attendanceMarkingService.markAttendance(sessionId, toCommands(request));
+		return ResponseEntity.ok(ApiResponse.success(outcomes.stream().map(AttendanceController::toResultResponse).toList()));
 	}
+
+	// ------------------------------------------------------------------
+	// Reports.
+	// ------------------------------------------------------------------
 
 	@GetMapping("/my")
 	@PreAuthorize("hasRole('STUDENT')")
 	public ResponseEntity<ApiResponse<PageResponse<AttendanceRecordResponse>>> myAttendance(
 			@PageableDefault(size = 20, sort = "markedAt", direction = Sort.Direction.DESC) Pageable pageable,
 			@RequestParam(required = false) UUID courseId, @RequestParam(required = false) Instant from,
-			@RequestParam(required = false) Instant to) {
+			@RequestParam(required = false) Instant to, @RequestParam(required = false) UUID classSessionId) {
 		PageResponse<AttendanceRecordView> page = attendanceReportService
-			.getMyHistory(new AttendanceReportFilter(courseId, from, to), pageable);
+			.getMyHistory(new AttendanceReportFilter(courseId, from, to, null, classSessionId), pageable);
 		return ResponseEntity.ok(ApiResponse.success(toPageResponse(page)));
 	}
 
@@ -94,9 +158,9 @@ public class AttendanceController {
 	public ResponseEntity<ApiResponse<PageResponse<AttendanceRecordResponse>>> attendanceReports(
 			@PageableDefault(size = 20, sort = "markedAt", direction = Sort.Direction.DESC) Pageable pageable,
 			@RequestParam(required = false) UUID courseId, @RequestParam(required = false) Instant from,
-			@RequestParam(required = false) Instant to) {
+			@RequestParam(required = false) Instant to, @RequestParam(required = false) UUID classSessionId) {
 		PageResponse<AttendanceRecordView> page = attendanceReportService
-			.getReport(new AttendanceReportFilter(courseId, from, to), pageable);
+			.getReport(new AttendanceReportFilter(courseId, from, to, null, classSessionId), pageable);
 		return ResponseEntity.ok(ApiResponse.success(toPageResponse(page)));
 	}
 
@@ -107,10 +171,37 @@ public class AttendanceController {
 			@PathVariable UUID id,
 			@PageableDefault(size = 20, sort = "markedAt", direction = Sort.Direction.DESC) Pageable pageable,
 			@RequestParam(required = false) UUID courseId, @RequestParam(required = false) Instant from,
-			@RequestParam(required = false) Instant to) {
+			@RequestParam(required = false) Instant to, @RequestParam(required = false) UUID classSessionId) {
 		PageResponse<AttendanceRecordView> page = attendanceReportService.getReportForStudent(id,
-				new AttendanceReportFilter(courseId, from, to), pageable);
+				new AttendanceReportFilter(courseId, from, to, null, classSessionId), pageable);
 		return ResponseEntity.ok(ApiResponse.success(toPageResponse(page)));
+	}
+
+	// ------------------------------------------------------------------
+	// Mapping.
+	// ------------------------------------------------------------------
+
+	private static List<AttendanceMarkCommand> toCommands(MarkAttendanceRequest request) {
+		return request.marks()
+			.stream()
+			.map(entry -> new AttendanceMarkCommand(entry.studentId(), entry.status()))
+			.toList();
+	}
+
+	private static ClassSessionRosterResponse toResponse(AttendanceClassSessionRosterView view) {
+		List<ClassSessionRosterResponse.Entry> roster = view.roster()
+			.stream()
+			.map(entry -> new ClassSessionRosterResponse.Entry(entry.studentId(), entry.studentName(), entry.status(),
+					entry.currentlyEnrolled()))
+			.toList();
+		return new ClassSessionRosterResponse(view.sheetId(), view.classSessionId(), view.courseId(), view.title(),
+				view.scheduledStart(), view.scheduledEnd(), view.sessionStatus(), view.markingOpen(),
+				view.markingClosedReason(), roster);
+	}
+
+	private static AttendanceSummaryRowResponse toResponse(AttendanceSummaryView view) {
+		return new AttendanceSummaryRowResponse(view.studentId(), view.studentName(), view.courseId(),
+				view.courseName(), view.present(), view.late(), view.absent(), view.total(), view.attendanceRate());
 	}
 
 	private static AttendanceRosterResponse toResponse(AttendanceRosterView view) {
@@ -137,7 +228,8 @@ public class AttendanceController {
 
 	private static AttendanceRecordResponse toResponse(AttendanceRecordView view) {
 		return new AttendanceRecordResponse(view.id(), view.courseId(), view.sessionId(), view.studentId(),
-				view.status(), view.markedBy(), view.markedAt(), view.createdAt(), view.updatedAt());
+				view.status(), view.markedBy(), view.markedAt(), view.createdAt(), view.updatedAt(), view.sheetId(),
+				view.source(), view.classSessionId(), view.classSessionTitle());
 	}
 
 }

@@ -9,6 +9,8 @@ import { LiveRegion } from "@/components/ui/live-region";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { AttendanceFilterForm } from "@/components/attendance/attendance-filter-form";
 import { AttendanceStatusChip } from "@/components/attendance/attendance-status-chip";
+import { AttendanceSummaryTable } from "@/components/attendance/attendance-summary-table";
+import { formatAttendanceSession } from "@/components/attendance/attendance-session-label";
 import { useCourses } from "@/lib/api/courses";
 import {
   useAttendanceReports,
@@ -21,7 +23,7 @@ const PAGE_SIZE = 20;
 
 const columns: DataTableColumn<AttendanceRecordResponse>[] = [
   { key: "course", header: "Course", cell: (row) => shortId(row.courseId, "Course") },
-  { key: "session", header: "Session", cell: (row) => shortId(row.sessionId, "Session") },
+  { key: "session", header: "Session", cell: (row) => formatAttendanceSession(row) },
   { key: "student", header: "Student", cell: (row) => shortId(row.studentId, "Student") },
   {
     key: "status",
@@ -134,6 +136,18 @@ export default function TenantAdminAttendanceReportsPage() {
         onClear={handleClear}
         disabled={query.isFetching}
       />
+
+      {params.courseId ? (
+        <AttendanceSummaryTable
+          courseId={params.courseId}
+          params={{ from: params.from, to: params.to }}
+          dashboardHref="/tenant-admin/dashboard"
+        />
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Select a course in the filter to see each student&apos;s attendance summary.
+        </p>
+      )}
 
       {query.status === "pending" ? (
         <>

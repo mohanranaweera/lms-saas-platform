@@ -61,6 +61,15 @@ recurring-session limitation as a side effect of introducing `ClassSession` — 
 own, separately-scoped decision if it proves necessary later (as the attendance spec itself
 already anticipates).
 
+**Wave 8 resolution (V56).** Neither path was taken verbatim. Attendance moved to `ClassSession`
+through a new parent table, `attendance_sheet` (`ClassSession → AttendanceSheet →
+AttendanceRecord`): a `CLASS_SESSION` sheet per class session for all new attendance, and a
+`LEGACY_LESSON` sheet per lesson that already carried attendance, backfilled with deterministic
+ids. Every existing `attendance_record` row gained a `sheet_id`; `session_id` kept its FK and
+meaning (legacy lesson id, now nullable). No `class_session` rows were fabricated (Path B's core
+risk), and the recurring-session ambiguity is fixed for all new attendance. See
+`docs/parity/waves/wave-08-plan.md` §1.2/§3.
+
 ### Pricing model expansion on `course` (affects Wave 2)
 
 Master instruction §8 requires `FREE / ONE_TIME / MONTHLY / SESSION / CUSTOM` pricing models and

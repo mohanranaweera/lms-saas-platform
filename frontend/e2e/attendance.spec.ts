@@ -20,17 +20,42 @@ import {
  *
  * No real backend runs in this environment (see `fixtures/auth-mocks.ts`'s
  * module doc) — every scenario mocks `/v1/**` responses shaped like the
- * documented `ApiResponse<T>` envelope. Session-equivalent scope at this MVP
- * is `course_lesson.id` (no `class_session` table) — mocks below reuse the
- * course -> module -> lesson cascade endpoints already established by
- * `course-modules.spec.ts`.
+ * documented `ApiResponse<T>` envelope. Wave 8: attendance is taken per
+ * `ClassSession` (Course -> Class session cascade via `/v1/class-sessions`,
+ * roster/records via `/v1/attendance/class-sessions/{id}/...`); `SESSION_ID`
+ * below is therefore a class-session id.
  */
 
 const COURSE_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-const MODULE_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 const SESSION_ID = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 const STUDENT_1 = "11111111-1111-1111-1111-111111111111";
 const STUDENT_2 = "22222222-2222-2222-2222-222222222222";
+
+/**
+ * Wave 8 summary reads (`/v1/attendance/summary`, `/v1/attendance/my/summary`)
+ * default to an empty list so every screen renders without an unmocked
+ * request; tests that exercise the summaries register their own (later, so
+ * higher-priority) route.
+ */
+test.beforeEach(async ({ page }) => {
+  await mockJson(page, "**/v1/attendance/summary*", 200, apiSuccess([]));
+  await mockJson(page, "**/v1/attendance/my/summary*", 200, apiSuccess([]));
+});
+
+function summaryRowBody(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    studentId: STUDENT_1,
+    studentName: "Ada Lovelace",
+    courseId: COURSE_ID,
+    courseName: "Intro to Biology",
+    present: 2,
+    late: 1,
+    absent: 1,
+    total: 4,
+    attendanceRate: 75.0,
+    ...overrides,
+  };
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -57,25 +82,47 @@ function courseResponseBody() {
   };
 }
 
-function moduleResponseBody() {
+const SESSION_TITLE = "Week 1: Cells";
+/** `MarkAttendancePanel` labels options "<title> — <date> (<status>)"; the date is locale-formatted, so match on the title. */
+const SESSION_OPTION = /^Week 1: Cells/;
+
+function classSessionBody(overrides: Partial<Record<string, unknown>> = {}) {
   return {
-    id: MODULE_ID,
+    id: SESSION_ID,
     courseId: COURSE_ID,
-    title: "Module 1",
-    sequence: 1,
+    teacherId: "teacher-1",
+    lessonId: null,
+    title: SESSION_TITLE,
+    description: null,
+    scheduledStart: "2026-09-20T09:00:00.000Z",
+    scheduledEnd: "2026-09-20T10:00:00.000Z",
+    status: "COMPLETED",
+    meetingProvider: "ZOOM",
+    providerStatus: "PROVISIONED",
+    providerFailureReason: null,
     createdAt: nowIso(),
     updatedAt: nowIso(),
+    ...overrides,
   };
 }
 
-function lessonResponseBody() {
+/** Mirrors `ClassSessionRosterResponse`; entries default to named, currently-enrolled students. */
+function rosterBody(
+  entries: Array<{ studentId: string; status: string | null; studentName?: string | null; currentlyEnrolled?: boolean }>,
+  overrides: Partial<Record<string, unknown>> = {}
+) {
   return {
-    id: SESSION_ID,
-    moduleId: MODULE_ID,
-    title: "Lesson 1: Cells",
-    sequence: 1,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
+    sheetId: null,
+    classSessionId: SESSION_ID,
+    courseId: COURSE_ID,
+    title: SESSION_TITLE,
+    scheduledStart: "2026-09-20T09:00:00.000Z",
+    scheduledEnd: "2026-09-20T10:00:00.000Z",
+    sessionStatus: "COMPLETED",
+    markingOpen: true,
+    markingClosedReason: null,
+    roster: entries.map((entry) => ({ studentName: null, currentlyEnrolled: true, ...entry })),
+    ...overrides,
   };
 }
 
@@ -83,7 +130,11 @@ function attendanceRecordBody(overrides: Partial<Record<string, unknown>> = {}) 
   return {
     id: `record-${Math.random().toString(36).slice(2)}`,
     courseId: COURSE_ID,
-    sessionId: SESSION_ID,
+    sessionId: null,
+    sheetId: "sheet-1",
+    source: "CLASS_SESSION",
+    classSessionId: SESSION_ID,
+    classSessionTitle: SESSION_TITLE,
     studentId: STUDENT_1,
     status: "PRESENT",
     markedBy: "teacher-1",
@@ -100,19 +151,13 @@ async function mockTenantSession(page: Page, role: string): Promise<void> {
   await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
 }
 
-/** Mocks the course -> module -> lesson cascade `MarkAttendancePanel` (and the reports pages' course filter) reads. */
-async function mockCourseCascade(page: Page): Promise<void> {
+/** Mocks the Course -> Class session cascade `MarkAttendancePanel` (and the reports pages' course filter) reads. */
+async function mockCourseCascade(page: Page, sessionOverrides: Partial<Record<string, unknown>> = {}): Promise<void> {
   await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([courseResponseBody()]));
-  await mockJson(page, `**/v1/courses/${COURSE_ID}/modules`, 200, apiSuccess([moduleResponseBody()]));
-  await mockJson(
-    page,
-    `**/v1/courses/${COURSE_ID}/modules/${MODULE_ID}/lessons`,
-    200,
-    apiSuccess([lessonResponseBody()])
-  );
+  await mockJson(page, "**/v1/class-sessions*", 200, apiSuccess([classSessionBody(sessionOverrides)]));
 }
 
-async function selectOption(page: Page, labelName: string, optionName: string): Promise<void> {
+async function selectOption(page: Page, labelName: string, optionName: string | RegExp): Promise<void> {
   await page.getByLabel(labelName, { exact: true }).click();
   await page.getByRole("option", { name: optionName }).click();
 }
@@ -130,7 +175,7 @@ async function pageHasNoHorizontalOverflow(page: Page): Promise<boolean> {
 }
 
 test.describe("Teacher Mark Attendance (screen #1)", () => {
-  test("cascade select course -> module -> session, mark roster, submit with a partial batch failure surfaced per row, reload and verify the persisted status", async ({
+  test("cascade select course -> class session, mark roster, submit with a partial batch failure surfaced per row, reload and verify the persisted status", async ({
     page,
   }) => {
     await mockTenantSession(page, "TEACHER");
@@ -144,21 +189,17 @@ test.describe("Teacher Mark Attendance (screen #1)", () => {
       [STUDENT_1]: null,
       [STUDENT_2]: null,
     };
-    await page.route(`**/v1/attendance/sessions/${SESSION_ID}/roster`, async (route) => {
+    await page.route(`**/v1/attendance/class-sessions/${SESSION_ID}/roster`, async (route) => {
       await fulfillJson(
         route,
         200,
-        apiSuccess({
-          courseId: COURSE_ID,
-          sessionId: SESSION_ID,
-          roster: [
+        apiSuccess(rosterBody([
             { studentId: STUDENT_1, status: rosterStatuses[STUDENT_1] },
             { studentId: STUDENT_2, status: rosterStatuses[STUDENT_2] },
-          ],
-        })
+          ]))
       );
     });
-    await page.route(`**/v1/attendance/sessions/${SESSION_ID}/records`, async (route) => {
+    await page.route(`**/v1/attendance/class-sessions/${SESSION_ID}/records`, async (route) => {
       const body = route.request().postDataJSON() as {
         marks: Array<{ studentId: string; status: string }>;
       };
@@ -180,10 +221,9 @@ test.describe("Teacher Mark Attendance (screen #1)", () => {
     await page.goto("/teacher/attendance/mark");
 
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
-    await expect(page.getByRole("heading", { name: "Roster" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: SESSION_TITLE })).toBeVisible();
 
     const student1Label = `Student #${STUDENT_1.slice(0, 8)}`;
     const student2Label = `Student #${STUDENT_2.slice(0, 8)}`;
@@ -213,10 +253,9 @@ test.describe("Teacher Mark Attendance (screen #1)", () => {
     // already showing Present, not "Not marked".
     await page.reload();
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
-    await expect(page.getByRole("heading", { name: "Roster" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: SESSION_TITLE })).toBeVisible();
     await expect(page.getByRole("radio", { name: `Present — ${student1Label}` })).toHaveAttribute(
       "aria-checked",
       "true"
@@ -232,28 +271,109 @@ test.describe("Teacher Mark Attendance (screen #1)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       200,
-      apiSuccess({ courseId: COURSE_ID, sessionId: SESSION_ID, roster: [] })
+      apiSuccess(rosterBody([]))
     );
 
     await page.goto("/teacher/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
     await expect(page.getByText("No students enrolled")).toBeVisible();
   });
 
-  test("empty state when the selected course has no modules yet", async ({ page }) => {
+  test("empty state when the selected course has no class sessions yet", async ({ page }) => {
     await mockTenantSession(page, "TEACHER");
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([courseResponseBody()]));
-    await mockJson(page, `**/v1/courses/${COURSE_ID}/modules`, 200, apiSuccess([]));
+    await mockJson(page, "**/v1/class-sessions*", 200, apiSuccess([]));
 
     await page.goto("/teacher/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
 
-    await expect(page.getByText("No lessons exist for this course yet")).toBeVisible();
+    await expect(page.getByText("No class sessions scheduled for this course")).toBeVisible();
+  });
+
+  test("a cancelled session shows why marking is closed and offers no editable controls or save button", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TEACHER");
+    await mockCourseCascade(page, { status: "CANCELLED" });
+    await mockJson(
+      page,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
+      200,
+      apiSuccess(
+        rosterBody([{ studentId: STUDENT_1, status: "PRESENT", studentName: "Ada Lovelace" }], {
+          sessionStatus: "CANCELLED",
+          markingOpen: false,
+          markingClosedReason: "Attendance cannot be recorded for a cancelled class session.",
+        })
+      )
+    );
+
+    await page.goto("/teacher/attendance/mark");
+    await selectOption(page, "Course", "Intro to Biology");
+    await selectOption(page, "Class session", SESSION_OPTION);
+
+    await expect(page.getByText("Attendance cannot be recorded for a cancelled class session.")).toBeVisible();
+    await expect(page.getByText("Ada Lovelace")).toBeVisible();
+    await expect(page.getByRole("radio", { name: /Ada Lovelace/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Save attendance/ })).toHaveCount(0);
+  });
+
+  test("a previously marked student who is no longer enrolled stays visible as a read-only row", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER");
+    await mockCourseCascade(page);
+    await mockJson(
+      page,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
+      200,
+      apiSuccess(
+        rosterBody([
+          { studentId: STUDENT_1, status: null, studentName: "Ada Lovelace" },
+          { studentId: STUDENT_2, status: "LATE", studentName: "Alan Turing", currentlyEnrolled: false },
+        ])
+      )
+    );
+
+    await page.goto("/teacher/attendance/mark");
+    await selectOption(page, "Course", "Intro to Biology");
+    await selectOption(page, "Class session", SESSION_OPTION);
+
+    await expect(page.getByRole("radio", { name: "Present — Ada Lovelace" })).toBeVisible();
+    await expect(page.getByText("No longer enrolled")).toBeVisible();
+    await expect(page.getByRole("radio", { name: /Alan Turing/ })).toHaveCount(0);
+  });
+
+  test("a 409 from the records mutation (session not started) is surfaced as an error, nothing marked as saved", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TEACHER");
+    await mockCourseCascade(page);
+    await mockJson(
+      page,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
+      200,
+      apiSuccess(rosterBody([{ studentId: STUDENT_1, status: null, studentName: "Ada Lovelace" }]))
+    );
+    await mockJson(
+      page,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/records`,
+      409,
+      apiError("CONFLICT", "Attendance can be recorded once the class session has started.")
+    );
+
+    await page.goto("/teacher/attendance/mark");
+    await selectOption(page, "Course", "Intro to Biology");
+    await selectOption(page, "Class session", SESSION_OPTION);
+    await page.getByRole("radio", { name: "Present — Ada Lovelace" }).click();
+    await page.getByRole("button", { name: /^Save attendance/ }).click();
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Attendance can be recorded once the class session has started." })
+    ).toBeVisible();
+    await expect(page.getByText(/attendance record(s)? saved/)).toHaveCount(0);
   });
 
   test("permission-denied state on a real 403 from the courses read", async ({ page }) => {
@@ -282,15 +402,14 @@ test.describe("Teacher Mark Attendance (screen #1)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       403,
       apiError("FORBIDDEN", "You do not have permission to view this roster.")
     );
 
     await page.goto("/teacher/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
     const denied = page.getByRole("alert").filter({ hasText: "You don't have permission" });
     await expect(denied).toBeVisible();
@@ -314,15 +433,14 @@ test.describe("Teacher Mark Attendance (screen #1)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       404,
       apiError("NOT_FOUND", "Session not found.")
     );
 
     await page.goto("/teacher/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
     // `classifyQueryError`'s documented invariant: only a real 403 renders
     // `PermissionDeniedState`. A 404 (the anti-enumeration response a
@@ -344,21 +462,16 @@ test.describe("Staff Mark Attendance (screen #5)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       200,
-      apiSuccess({
-        courseId: COURSE_ID,
-        sessionId: SESSION_ID,
-        roster: [{ studentId: STUDENT_1, status: null }],
-      })
+      apiSuccess(rosterBody([{ studentId: STUDENT_1, status: null }]))
     );
 
     await page.goto("/tenant-admin/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
-    await expect(page.getByRole("heading", { name: "Roster" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: SESSION_TITLE })).toBeVisible();
   });
 
   test("a Read-only Auditor hitting this route directly gets a real backend 403, not a hidden UI", async ({
@@ -385,15 +498,14 @@ test.describe("Staff Mark Attendance (screen #5)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       403,
       apiError("FORBIDDEN", "You do not have permission to view this roster.")
     );
 
     await page.goto("/tenant-admin/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
     const denied = page.getByRole("alert").filter({ hasText: "You don't have permission" });
     await expect(denied).toBeVisible();
@@ -406,15 +518,14 @@ test.describe("Staff Mark Attendance (screen #5)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       404,
       apiError("NOT_FOUND", "Session not found.")
     );
 
     await page.goto("/tenant-admin/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
     // `classifyQueryError`'s documented invariant: only a real 403 renders
     // `PermissionDeniedState`. A 404 (the anti-enumeration response a
@@ -434,25 +545,20 @@ test.describe("Staff Mark Attendance (screen #5)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       200,
-      apiSuccess({
-        courseId: COURSE_ID,
-        sessionId: SESSION_ID,
-        roster: [{ studentId: STUDENT_1, status: null }],
-      })
+      apiSuccess(rosterBody([{ studentId: STUDENT_1, status: null }]))
     );
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/records`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/records`,
       403,
       apiError("FORBIDDEN", "You do not have permission to mark attendance.")
     );
 
     await page.goto("/tenant-admin/attendance/mark");
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
     const student1Label = `Student #${STUDENT_1.slice(0, 8)}`;
     await page.getByRole("radio", { name: `Present — ${student1Label}` }).click();
@@ -466,6 +572,31 @@ test.describe("Staff Mark Attendance (screen #5)", () => {
 });
 
 test.describe("Teacher Attendance Reports (screen #2)", () => {
+  test("applying a course filter shows the per-student attendance summary with the server-computed rate", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TEACHER");
+    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([courseResponseBody()]));
+    await mockJson(page, "**/v1/attendance/reports*", 200, apiPageSuccess([attendanceRecordBody()]));
+    const summaryQueries: string[] = [];
+    await page.route("**/v1/attendance/summary*", async (route) => {
+      summaryQueries.push(new URL(route.request().url()).search);
+      await fulfillJson(route, 200, apiSuccess([summaryRowBody()]));
+    });
+
+    await page.goto("/teacher/attendance/reports");
+    await expect(page.getByText(SESSION_TITLE).first()).toBeVisible();
+    await expect(page.getByText("Select one of your courses in the filter")).toBeVisible();
+
+    await selectOption(page, "Course", "Intro to Biology");
+    await page.getByRole("button", { name: "Apply filters" }).click();
+
+    const summary = page.getByRole("region", { name: "Attendance summary" });
+    await expect(summary.getByText("Ada Lovelace").first()).toBeVisible();
+    await expect(summary.getByText("75.0%").first()).toBeVisible();
+    expect(summaryQueries.some((q) => q.includes(`courseId=${COURSE_ID}`))).toBe(true);
+  });
+
   test("loading, populated rows, then applying a filter narrows the request", async ({ page }) => {
     await mockTenantSession(page, "TEACHER");
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([courseResponseBody()]));
@@ -560,6 +691,35 @@ test.describe("Teacher Attendance Reports (screen #2)", () => {
 });
 
 test.describe("Student My Attendance (screen #3)", () => {
+  test("shows own per-course attendance rate cards and labels records by class session", async ({ page }) => {
+    await mockTenantSession(page, "STUDENT");
+    await mockJson(page, "**/v1/enrollments/my/courses", 200, apiSuccess([courseResponseBody()]));
+    await mockJson(page, "**/v1/attendance/my/summary*", 200, apiSuccess([summaryRowBody()]));
+    await mockJson(
+      page,
+      "**/v1/attendance/my*",
+      200,
+      apiPageSuccess([
+        attendanceRecordBody({ status: "PRESENT" }),
+        attendanceRecordBody({
+          status: "ABSENT",
+          source: "LEGACY_LESSON",
+          sessionId: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+          classSessionId: null,
+          classSessionTitle: null,
+        }),
+      ])
+    );
+
+    await page.goto("/student/attendance");
+
+    const summary = page.getByRole("region", { name: "Attendance by course" });
+    await expect(summary.getByText("75.0%")).toBeVisible();
+    await expect(summary.getByText("2 present · 1 late · 1 absent (4 marked)")).toBeVisible();
+    await expect(page.getByText(new RegExp(`^${SESSION_TITLE} · Marked`))).toBeVisible();
+    await expect(page.getByText(/Lesson #dddddddd \(legacy\) · Marked/)).toBeVisible();
+  });
+
   test("renders own attendance history and degrades gracefully when the course-summary lookup fails", async ({
     page,
   }) => {
@@ -843,22 +1003,17 @@ test.describe("Teacher Mark Attendance — narrow viewport (375x667)", () => {
     await mockCourseCascade(page);
     await mockJson(
       page,
-      `**/v1/attendance/sessions/${SESSION_ID}/roster`,
+      `**/v1/attendance/class-sessions/${SESSION_ID}/roster`,
       200,
-      apiSuccess({
-        courseId: COURSE_ID,
-        sessionId: SESSION_ID,
-        roster: [{ studentId: STUDENT_1, status: null }],
-      })
+      apiSuccess(rosterBody([{ studentId: STUDENT_1, status: null }]))
     );
 
     await page.goto("/teacher/attendance/mark");
 
     await selectOption(page, "Course", "Intro to Biology");
-    await selectOption(page, "Module", "Module 1");
-    await selectOption(page, "Session", "Lesson 1: Cells");
+    await selectOption(page, "Class session", SESSION_OPTION);
 
-    await expect(page.getByRole("heading", { name: "Roster" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: SESSION_TITLE })).toBeVisible();
 
     const student1Label = `Student #${STUDENT_1.slice(0, 8)}`;
     const presentRadio = page.getByRole("radio", { name: `Present — ${student1Label}` });

@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/states/empty-state";
 import { LiveRegion } from "@/components/ui/live-region";
 import { AttendanceFilterForm } from "@/components/attendance/attendance-filter-form";
 import { AttendanceStatusChip } from "@/components/attendance/attendance-status-chip";
+import { AttendanceSummaryTable } from "@/components/attendance/attendance-summary-table";
+import { formatAttendanceSession } from "@/components/attendance/attendance-session-label";
 import { useCourses } from "@/lib/api/courses";
 import { useAttendanceReports, type AttendanceListParams } from "@/lib/api/attendance";
 import { formatDateTime, shortId } from "@/lib/format";
@@ -74,6 +76,18 @@ export default function TeacherAttendanceReportsPage() {
         disabled={query.isFetching}
       />
 
+      {params.courseId ? (
+        <AttendanceSummaryTable
+          courseId={params.courseId}
+          params={{ from: params.from, to: params.to }}
+          dashboardHref="/teacher/dashboard"
+        />
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Select one of your courses in the filter to see each student&apos;s attendance summary.
+        </p>
+      )}
+
       <QueryStateBoundary
         query={query}
         loadingLabel="Loading attendance records…"
@@ -114,7 +128,7 @@ export default function TeacherAttendanceReportsPage() {
                         {shortId(record.courseId, "Course")}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {shortId(record.sessionId, "Session")} · {shortId(record.studentId, "Student")}
+                        {formatAttendanceSession(record)} · {shortId(record.studentId, "Student")}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         Marked {formatDateTime(record.markedAt)}

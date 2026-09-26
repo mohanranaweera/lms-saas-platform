@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -13,6 +14,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lms.attendancemanagement.domain.AttendanceRecord;
+import com.lms.attendancemanagement.domain.AttendanceSheet;
+import com.lms.attendancemanagement.domain.AttendanceSheetSource;
 import com.lms.attendancemanagement.domain.AttendanceStatus;
 import com.lms.attendancemanagement.repository.AttendanceRecordRepository;
 import com.lms.attendancemanagement.support.AttendanceAccessGuard;
@@ -80,6 +83,11 @@ class AttendanceMarkingServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private AttendanceSheetService attendanceSheetService;
+
+	private static final UUID SHEET_ID = UUID.randomUUID();
+
 	private AttendanceMarkingService service;
 
 	private static final LessonOwnership OWNERSHIP = new LessonOwnership(SESSION_ID, MODULE_ID, COURSE_ID,
@@ -87,9 +95,15 @@ class AttendanceMarkingServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		AttendanceAccessGuard guard = new AttendanceAccessGuard(permissionCheckService);
+		AttendanceAccessGuard guard = new AttendanceAccessGuard(permissionCheckService, courseLookupApi);
 		service = new AttendanceMarkingService(courseLookupApi, enrollmentAccessApi, guard,
-				attendanceRecordRepository, tenantContext);
+				attendanceRecordRepository, attendanceSheetService, tenantContext);
+		AttendanceSheet legacySheet = mock(AttendanceSheet.class);
+		lenient().when(legacySheet.getId()).thenReturn(SHEET_ID);
+		lenient().when(legacySheet.getCourseId()).thenReturn(COURSE_ID);
+		lenient().when(legacySheet.getSource()).thenReturn(AttendanceSheetSource.LEGACY_LESSON);
+		lenient().when(attendanceSheetService.ensureLegacySheet(eq(COURSE_ID), eq(SESSION_ID), any(UUID.class),
+				any(Instant.class))).thenReturn(legacySheet);
 		when(courseLookupApi.resolveLessonOwnership(SESSION_ID)).thenReturn(Optional.of(OWNERSHIP));
 	}
 
@@ -109,7 +123,7 @@ class AttendanceMarkingServiceTest {
 	// CONFLICT clause, covered at the Testcontainers level instead). What
 	// IS still worth proving here is that a second markAttendance call for
 	// the same (session, student) goes through the exact same
-	// upsertRecord(...) call, carrying the NEW status through - i.e. a
+	// upsertLegacyRecord(...) call, carrying the NEW status through - i.e. a
 	// re-mark is not silently dropped or routed through a different method.
 	// ------------------------------------------------------------------
 
@@ -131,7 +145,8 @@ class AttendanceMarkingServiceTest {
 		assertThat(first.get(0).success()).isTrue();
 		assertThat(second.get(0).success()).isTrue();
 		ArgumentCaptor<String> statusCaptor = ArgumentCaptor.forClass(String.class);
-		verify(attendanceRecordRepository, times(2)).upsertRecord(any(UUID.class), eq(TENANT_ID), eq(COURSE_ID),
+		verify(attendanceRecordRepository, times(2)).upsertLegacyRecord(any(UUID.class), eq(TENANT_ID), eq(SHEET_ID),
+				eq(COURSE_ID),
 				eq(SESSION_ID), eq(STUDENT_ID), statusCaptor.capture(), any(UUID.class), any(Instant.class),
 				any(Instant.class));
 		assertThat(statusCaptor.getAllValues()).containsExactly("PRESENT", "ABSENT");
@@ -159,7 +174,8 @@ class AttendanceMarkingServiceTest {
 		ArgumentCaptor<Instant> markedAtCaptor = ArgumentCaptor.forClass(Instant.class);
 		// AttendanceMarkCommand carries no markedBy/markedAt field at all - the
 		// only possible source is AuthenticatedPrincipalHolder/the server clock.
-		verify(attendanceRecordRepository).upsertRecord(any(UUID.class), eq(TENANT_ID), eq(COURSE_ID), eq(SESSION_ID),
+		verify(attendanceRecordRepository).upsertLegacyRecord(any(UUID.class), eq(TENANT_ID), eq(SHEET_ID),
+				eq(COURSE_ID), eq(SESSION_ID),
 				eq(STUDENT_ID), eq("PRESENT"), markedByCaptor.capture(), markedAtCaptor.capture(), any(Instant.class));
 		assertThat(markedByCaptor.getValue()).isEqualTo(TEACHER_ID);
 		assertThat(markedAtCaptor.getValue()).isBetween(before, after);
@@ -178,10 +194,14 @@ class AttendanceMarkingServiceTest {
 
 		ArgumentCaptor<UUID> courseIdCaptor = ArgumentCaptor.forClass(UUID.class);
 		ArgumentCaptor<UUID> sessionIdCaptor = ArgumentCaptor.forClass(UUID.class);
-		verify(attendanceRecordRepository).upsertRecord(any(UUID.class), eq(TENANT_ID), courseIdCaptor.capture(),
+		verify(attendanceRecordRepository).upsertLegacyRecord(any(UUID.class), eq(TENANT_ID), eq(SHEET_ID),
+				courseIdCaptor.capture(),
 				sessionIdCaptor.capture(), eq(STUDENT_ID), eq("LATE"), any(UUID.class), any(Instant.class),
 				any(Instant.class));
 		assertThat(courseIdCaptor.getValue()).isEqualTo(OWNERSHIP.courseId());
+		// The legacy sheet itself is also keyed by the server-derived course.
+		verify(attendanceSheetService).ensureLegacySheet(eq(OWNERSHIP.courseId()), eq(SESSION_ID), any(UUID.class),
+				any(Instant.class));
 		assertThat(sessionIdCaptor.getValue()).isEqualTo(SESSION_ID);
 	}
 
@@ -296,15 +316,15 @@ class AttendanceMarkingServiceTest {
 		assertThat(rejectedRow.reason()).isNotBlank();
 
 		// Exactly one atomic upsert call - for the valid row only.
-		verify(attendanceRecordRepository, times(1)).upsertRecord(any(UUID.class), any(UUID.class), any(UUID.class),
-				any(UUID.class), any(UUID.class), any(String.class), any(UUID.class), any(Instant.class),
-				any(Instant.class));
+		verify(attendanceRecordRepository, times(1)).upsertLegacyRecord(any(UUID.class), any(UUID.class),
+				any(UUID.class), any(UUID.class), any(UUID.class), any(UUID.class), any(String.class), any(UUID.class),
+				any(Instant.class), any(Instant.class));
 	}
 
 	// ------------------------------------------------------------------
 	// Test helper: a mocked post-write AttendanceRecord state, standing in
 	// for what a fresh findBySessionIdAndStudentId read would return after
-	// the atomic upsertRecord(...) write (which itself returns void, so
+	// the atomic upsertLegacyRecord(...) write (which itself returns void, so
 	// there is no entity to build a response view from at the mock level).
 	// ------------------------------------------------------------------
 

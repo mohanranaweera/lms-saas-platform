@@ -18,13 +18,22 @@ import java.util.UUID;
  * AttendanceReportService#getReportForStudent} before this record is
  * constructed), never a client-supplied query parameter on the generic
  * {@code /reports} endpoint.
+ * @param classSessionId Wave 8 addition - narrows to the attendance sheet of
+ * one class session. Only ever NARROWS a result set: it is resolved through
+ * the tenant-scoped sheet repository and AND-combined with every other
+ * restriction (tenant, Teacher-own-course, Student-own-rows), so a foreign
+ * or unknown id yields an empty page, never another scope's rows.
  */
-public record AttendanceReportFilter(UUID courseId, Instant from, Instant to, UUID studentId) {
+public record AttendanceReportFilter(UUID courseId, Instant from, Instant to, UUID studentId, UUID classSessionId) {
 
-	public static final AttendanceReportFilter EMPTY = new AttendanceReportFilter(null, null, null, null);
+	public static final AttendanceReportFilter EMPTY = new AttendanceReportFilter(null, null, null, null, null);
 
 	public AttendanceReportFilter(UUID courseId, Instant from, Instant to) {
-		this(courseId, from, to, null);
+		this(courseId, from, to, null, null);
+	}
+
+	public AttendanceReportFilter(UUID courseId, Instant from, Instant to, UUID studentId) {
+		this(courseId, from, to, studentId, null);
 	}
 
 }

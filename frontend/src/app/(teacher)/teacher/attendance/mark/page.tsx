@@ -13,7 +13,7 @@ export default function TeacherMarkAttendancePage() {
       <div>
         <h1 className="text-xl font-semibold text-foreground">Mark Attendance</h1>
         <p className="text-sm text-muted-foreground">
-          Select a course, module, and session to record attendance for your students.
+          Select a course and one of its class sessions to record attendance for your students.
         </p>
       </div>
       <MarkAttendancePanel dashboardHref="/teacher/dashboard" />

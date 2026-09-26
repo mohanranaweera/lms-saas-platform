@@ -7,12 +7,13 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useStudentAttendanceReport } from "@/lib/api/attendance";
 import type { AttendanceRecordResponse } from "@/lib/api/attendance";
 import { formatDateTime, shortId } from "@/lib/format";
+import { formatAttendanceSession } from "@/components/attendance/attendance-session-label";
 
 const PAGE_SIZE = 10;
 
 const columns: DataTableColumn<AttendanceRecordResponse>[] = [
   { key: "course", header: "Course", cell: (row) => shortId(row.courseId) },
-  { key: "session", header: "Session", cell: (row) => shortId(row.sessionId, "Session") },
+  { key: "session", header: "Session", cell: (row) => formatAttendanceSession(row) },
   { key: "status", header: "Status", cell: (row) => row.status },
   { key: "markedAt", header: "Marked at", cell: (row) => formatDateTime(row.markedAt) },
 ];

@@ -10,14 +10,21 @@ import type { PageResponse } from "./courses";
  * `useAuth().authorizedFetch("tenant", ...)`, a query-keys factory object,
  * `onSuccess` cache invalidation on mutations).
  *
- * Session-equivalent scope at this MVP is `course_lesson.id` — there is no
- * separate `class_session` table (see the plan's boxed note in §7). Callers
- * resolve a `sessionId` via the existing course→module→lesson cascade
- * (`useCourseModules`/`useCourseLessons` in `lib/api/courses.ts`) and label
- * the lesson selector "Session" in the UI.
+ * Wave 8: attendance is taken against a `ClassSession`
+ * (`ClassSession -> AttendanceSheet -> AttendanceRecord`) via
+ * `useClassSessionRoster`/`useMarkClassSessionAttendance`. The MVP-016
+ * lesson-scoped hooks (`useSessionRoster`/`useMarkAttendance`) remain only
+ * for the deprecated `/attendance/sessions/{lessonId}/...` endpoints and are
+ * no longer used by any screen. On a record, `sessionId` is the LEGACY
+ * lesson id (null for class-session records) — render a record's session via
+ * `formatAttendanceSession` (`components/attendance/attendance-session-label.ts`),
+ * never `shortId(record.sessionId)`.
  */
 
 export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE";
+
+/** Mirrors `AttendanceSheetSource` — which kind of sheet a record belongs to (Wave 8). */
+export type AttendanceSheetSource = "CLASS_SESSION" | "LEGACY_LESSON";
 
 /** Mirrors `AttendanceRosterEntryResponse` — `status` is `null` when the student has not yet been marked for this session. */
 export interface AttendanceRosterEntryResponse {
@@ -43,17 +50,75 @@ export interface MarkAttendanceRequestBody {
   marks: AttendanceMarkEntryRequest[];
 }
 
-/** Mirrors `AttendanceRecordResponse` field-for-field. */
+/**
+ * Mirrors `AttendanceRecordResponse` field-for-field. `sessionId` is the
+ * LEGACY lesson id — `null` for a class-session record; `classSessionId`/
+ * `classSessionTitle` are `null` for a legacy record.
+ */
 export interface AttendanceRecordResponse {
   id: string;
   courseId: string;
-  sessionId: string;
+  sessionId: string | null;
   studentId: string;
   status: AttendanceStatus;
   markedBy: string;
   markedAt: string;
   createdAt: string;
   updatedAt: string;
+  sheetId: string;
+  source: AttendanceSheetSource | null;
+  classSessionId: string | null;
+  classSessionTitle: string | null;
+}
+
+/** Mirrors `ClassSessionRosterResponse.Entry` (Wave 8). `currentlyEnrolled: false` rows are read-only history. */
+export interface ClassSessionRosterEntry {
+  studentId: string;
+  studentName: string | null;
+  status: AttendanceStatus | null;
+  currentlyEnrolled: boolean;
+}
+
+/**
+ * Mirrors `ClassSessionRosterResponse` — `GET
+ * /v1/attendance/class-sessions/{classSessionId}/roster`. `markingOpen`
+ * mirrors the backend lifecycle gate for display only; the mark endpoint
+ * re-enforces it (409) regardless of what the UI shows.
+ */
+export interface ClassSessionRosterResponse {
+  sheetId: string | null;
+  classSessionId: string;
+  courseId: string;
+  title: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  sessionStatus: "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED";
+  markingOpen: boolean;
+  markingClosedReason: string | null;
+  roster: ClassSessionRosterEntry[];
+}
+
+/**
+ * Mirrors `AttendanceSummaryRowResponse` — one row of `GET
+ * /v1/attendance/summary` (per student) or `GET /v1/attendance/my/summary`
+ * (per course). `attendanceRate` is a server-computed 0–100 percentage of
+ * `(present + late) / total` — display it, never recompute it.
+ */
+export interface AttendanceSummaryRow {
+  studentId: string;
+  studentName: string | null;
+  courseId: string;
+  courseName: string | null;
+  present: number;
+  late: number;
+  absent: number;
+  total: number;
+  attendanceRate: number;
+}
+
+export interface AttendanceSummaryParams {
+  from?: string;
+  to?: string;
 }
 
 /**
@@ -83,6 +148,8 @@ export interface AttendanceMarkResultResponse {
  */
 export interface AttendanceListParams {
   courseId?: string;
+  /** Wave 8 — narrows to one class session's sheet. */
+  classSessionId?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -93,6 +160,13 @@ export interface AttendanceListParams {
 export const attendanceKeys = {
   all: ["attendance"] as const,
   roster: (sessionId: string) => [...attendanceKeys.all, "roster", sessionId] as const,
+  classSessionRoster: (classSessionId: string) =>
+    [...attendanceKeys.all, "class-session-roster", classSessionId] as const,
+  summaryAll: () => [...attendanceKeys.all, "summary"] as const,
+  courseSummary: (courseId: string, params?: AttendanceSummaryParams) =>
+    [...attendanceKeys.summaryAll(), "course", courseId, params ?? {}] as const,
+  mySummary: (params?: AttendanceSummaryParams) =>
+    [...attendanceKeys.summaryAll(), "my", params ?? {}] as const,
   myAll: () => [...attendanceKeys.all, "my"] as const,
   my: (params?: AttendanceListParams) => [...attendanceKeys.myAll(), params ?? {}] as const,
   reportsAll: () => [...attendanceKeys.all, "reports"] as const,
@@ -106,6 +180,7 @@ export const attendanceKeys = {
 function buildAttendanceListQuery(params?: AttendanceListParams): string {
   const search = new URLSearchParams();
   if (params?.courseId) search.set("courseId", params.courseId);
+  if (params?.classSessionId) search.set("classSessionId", params.classSessionId);
   if (params?.from) search.set("from", params.from);
   if (params?.to) search.set("to", params.to);
   search.set("page", String(params?.page ?? 0));
@@ -115,7 +190,96 @@ function buildAttendanceListQuery(params?: AttendanceListParams): string {
   return qs ? `?${qs}` : "";
 }
 
+function buildSummaryQuery(params?: AttendanceSummaryParams, courseId?: string): string {
+  const search = new URLSearchParams();
+  if (courseId) search.set("courseId", courseId);
+  if (params?.from) search.set("from", params.from);
+  if (params?.to) search.set("to", params.to);
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+}
+
 /**
+ * `GET /v1/attendance/class-sessions/{classSessionId}/roster` (Wave 8) —
+ * Teacher of the session's course or staff `ATTENDANCE`/`VIEW`. A Student
+ * gets `403`, a cross-tenant id `404`; both surface through
+ * `QueryStateBoundary`. Never creates a sheet server-side.
+ */
+export function useClassSessionRoster(classSessionId: string) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: attendanceKeys.classSessionRoster(classSessionId),
+    queryFn: () =>
+      authorizedFetch<ClassSessionRosterResponse>(
+        "tenant",
+        `/v1/attendance/class-sessions/${classSessionId}/roster`
+      ),
+    enabled: classSessionId.length > 0,
+  });
+}
+
+/**
+ * `POST /v1/attendance/class-sessions/{classSessionId}/records` (Wave 8) —
+ * same batch-partial contract as `useMarkAttendance` (inspect every row's
+ * `success`), plus a whole-request `409` when the session is cancelled or has
+ * not started yet. Only send rows the user actually changed.
+ */
+export function useMarkClassSessionAttendance(classSessionId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: MarkAttendanceRequestBody) =>
+      authorizedFetch<AttendanceMarkResultResponse[]>(
+        "tenant",
+        `/v1/attendance/class-sessions/${classSessionId}/records`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.classSessionRoster(classSessionId) });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.myAll() });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.reportsAll() });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.summaryAll() });
+    },
+  });
+}
+
+/**
+ * `GET /v1/attendance/summary?courseId=` (Wave 8) — per-student counts and
+ * rate for one course; Teacher of that course or staff `ATTENDANCE`/`VIEW`.
+ */
+export function useCourseAttendanceSummary(
+  courseId: string,
+  params?: AttendanceSummaryParams,
+  options?: { enabled?: boolean }
+) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: attendanceKeys.courseSummary(courseId, params),
+    queryFn: () =>
+      authorizedFetch<AttendanceSummaryRow[]>(
+        "tenant",
+        `/v1/attendance/summary${buildSummaryQuery(params, courseId)}`
+      ),
+    enabled: courseId.length > 0 && (options?.enabled ?? true),
+  });
+}
+
+/** `GET /v1/attendance/my/summary` (Wave 8) — the calling Student's own per-course counts and rate. */
+export function useMyAttendanceSummary(params?: AttendanceSummaryParams) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: attendanceKeys.mySummary(params),
+    queryFn: () =>
+      authorizedFetch<AttendanceSummaryRow[]>(
+        "tenant",
+        `/v1/attendance/my/summary${buildSummaryQuery(params)}`
+      ),
+  });
+}
+
+/**
+ * @deprecated Wave 8 — lesson-scoped (legacy) roster; use `useClassSessionRoster`.
+ *
  * `GET /api/v1/attendance/sessions/{sessionId}/roster` — Teacher-ownership-
  * or-staff `ATTENDANCE`/`VIEW`. `404` for a cross-tenant or Teacher-not-
  * owning `sessionId`, surfaced via `QueryStateBoundary`'s generic error path
@@ -136,6 +300,8 @@ export function useSessionRoster(sessionId: string) {
 }
 
 /**
+ * @deprecated Wave 8 — lesson-scoped (legacy) marking; use `useMarkClassSessionAttendance`.
+ *
  * `POST /api/v1/attendance/sessions/{sessionId}/records` — Teacher-
  * ownership-or-staff `ATTENDANCE`/`CREATE_EDIT`. Only include rows the
  * caller actually set in `marks` — a row not sent is left untouched

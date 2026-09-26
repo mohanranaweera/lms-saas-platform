@@ -33,6 +33,14 @@ import java.util.UUID;
  * boxed note, product-owner confirmed). There is no separate change-history
  * row; the prior {@code status}/{@code markedBy}/{@code markedAt} are
  * overwritten, not preserved (plan §21).
+ *
+ * <p><b>Wave 8 (V56).</b> Every row now belongs to exactly one {@link
+ * AttendanceSheet} ({@code sheetId}, NOT NULL, course-consistent composite
+ * FK). New attendance is taken against a {@code class_session} via a
+ * {@link AttendanceSheetSource#CLASS_SESSION} sheet ({@code sessionId} is
+ * then {@code null}); pre-Wave-8 rows keep their lesson id in {@code
+ * sessionId} and belong to a {@link AttendanceSheetSource#LEGACY_LESSON}
+ * sheet backfilled by V56.
  */
 @Entity
 @Table(name = "attendance_record")
@@ -44,7 +52,20 @@ public class AttendanceRecord extends Auditable implements TenantOwned {
 	@Column(name = "course_id", nullable = false, updatable = false)
 	private UUID courseId;
 
-	@Column(name = "session_id", nullable = false, updatable = false)
+	/**
+	 * Wave 8 (V56): the owning {@link AttendanceSheet} - always set, for both
+	 * CLASS_SESSION and LEGACY_LESSON rows.
+	 */
+	@Column(name = "sheet_id", nullable = false, updatable = false)
+	private UUID sheetId;
+
+	/**
+	 * The LEGACY lesson id ({@code course_lesson.id}) - V25's lesson-as-session
+	 * column, kept under its original name. Non-null only for rows on a
+	 * {@link AttendanceSheetSource#LEGACY_LESSON} sheet; {@code null} for
+	 * every class-session-sourced row (V56 made the column nullable).
+	 */
+	@Column(name = "session_id", updatable = false)
 	private UUID sessionId;
 
 	@Column(name = "student_id", nullable = false, updatable = false)
@@ -70,9 +91,10 @@ public class AttendanceRecord extends Auditable implements TenantOwned {
 	 * by the caller ({@code AttendanceMarkingService}); this constructor
 	 * trusts its argument, it does not itself re-derive or validate it.
 	 */
-	public AttendanceRecord(UUID tenantId, UUID courseId, UUID sessionId, UUID studentId, AttendanceStatus status,
-			UUID markedBy, Instant markedAt) {
+	public AttendanceRecord(UUID tenantId, UUID sheetId, UUID courseId, UUID sessionId, UUID studentId,
+			AttendanceStatus status, UUID markedBy, Instant markedAt) {
 		this.tenantId = tenantId;
+		this.sheetId = sheetId;
 		this.courseId = courseId;
 		this.sessionId = sessionId;
 		this.studentId = studentId;
@@ -95,6 +117,11 @@ public class AttendanceRecord extends Auditable implements TenantOwned {
 		return courseId;
 	}
 
+	public UUID getSheetId() {
+		return sheetId;
+	}
+
+	/** Legacy lesson id - {@code null} for a class-session-sourced row. See the field javadoc. */
 	public UUID getSessionId() {
 		return sessionId;
 	}

@@ -31,6 +31,14 @@ public final class AttendanceSpecifications {
 		return (root, query, cb) -> cb.equal(root.get("studentId"), studentId);
 	}
 
+	/** Wave 8: narrows to one attendance sheet (the resolved sheet of a {@code classSessionId} filter). */
+	public static Specification<AttendanceRecord> withSheetId(UUID sheetId) {
+		if (sheetId == null) {
+			return Specification.unrestricted();
+		}
+		return (root, query, cb) -> cb.equal(root.get("sheetId"), sheetId);
+	}
+
 	public static Specification<AttendanceRecord> withCourseId(UUID courseId) {
 		if (courseId == null) {
 			return Specification.unrestricted();

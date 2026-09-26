@@ -178,7 +178,7 @@ default_currency) are a conservative starter set, since no spec document enumera
 | 5 | Materials, video and playback policies — **STATUS: DONE, with two explicit judgment calls (see `docs/parity/waves/wave-05-plan.md` §10)** | PAR-06-02 (fix — corrects a stale Wave 0 `MATCHES`), PAR-06-03/05 (done), PAR-06-04 (verified, not built), PAR-06-05/PAR-27-01 (done), PAR-17-01 (done), PAR-20-01–04 (done), PAR-20-05 (dev/test done, production vendor still BLOCKED), PAR-27-03 (resolved as a documented judgment call, product sign-off recommended) |
 | 6 | Billing periods and Student Payment parity | PAR-09-04/05, PAR-18-02/03/04, PAR-XC-04 |
 | 7 | Finance, expenses and settlement foundation — **STATUS: DONE, with explicit judgment calls and deferrals (see `docs/parity/waves/wave-07-plan.md` §10/§11)** | PAR-23-02/03/05, PAR-24-03/04 (done); PAR-23-01/04, PAR-24-02 (partial — accounts, export, platform commission settlement deferred) |
-| 8 | Attendance parity using ClassSession | PAR-10-04 |
+| 8 | Attendance parity using ClassSession — **STATUS: DONE, with explicit judgment calls and deferrals (see `docs/parity/waves/wave-08-plan.md` §10/§11)** | PAR-10-01/02 (done); PAR-10-03, PAR-10-04 (deferred — blocked on Zoom participant data / unspecified alert rules) |
 | 9 | Exam parity expansion | PAR-11-05 |
 | 10 | Device/access policy management | PAR-16-01–05 |
 | 11 | Notifications, communications and integrations | PAR-12-03/04, PAR-21-01–03, PAR-22-01–03 |

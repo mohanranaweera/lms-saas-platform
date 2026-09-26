@@ -19,7 +19,7 @@ export default function TenantAdminMarkAttendancePage() {
       <div>
         <h1 className="text-xl font-semibold text-foreground">Mark Attendance</h1>
         <p className="text-sm text-muted-foreground">
-          Select a course, module, and session to record attendance across your tenant.
+          Select a course and one of its class sessions to record attendance across your tenant.
         </p>
       </div>
       <MarkAttendancePanel dashboardHref="/tenant-admin/dashboard" />

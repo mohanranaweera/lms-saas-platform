@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/states/empty-state";
 import { LiveRegion } from "@/components/ui/live-region";
 import { AttendanceFilterForm } from "@/components/attendance/attendance-filter-form";
 import { AttendanceStatusChip } from "@/components/attendance/attendance-status-chip";
+import { MyAttendanceSummary } from "@/components/attendance/my-attendance-summary";
+import { formatAttendanceSession } from "@/components/attendance/attendance-session-label";
 import { useMyEnrolledCourseSummaries } from "@/lib/api/enrollments";
 import { useMyAttendance, type AttendanceListParams } from "@/lib/api/attendance";
 import { formatDateTime, shortId } from "@/lib/format";
@@ -34,6 +36,10 @@ export default function StudentAttendancePage() {
   const courseOptions = useMemo(
     () => (courseSummariesQuery.data ?? []).map((course) => ({ id: course.id, label: course.name })),
     [courseSummariesQuery.data]
+  );
+  const courseNames = useMemo(
+    () => new Map(courseOptions.map((option) => [option.id, option.label])),
+    [courseOptions]
   );
 
   const filtersActive = Boolean(params.courseId || params.from || params.to);
@@ -70,6 +76,8 @@ export default function StudentAttendancePage() {
         onClear={handleClear}
         disabled={query.isFetching}
       />
+
+      <MyAttendanceSummary params={{ from: params.from, to: params.to }} />
 
       <QueryStateBoundary
         query={query}
@@ -108,10 +116,10 @@ export default function StudentAttendancePage() {
                   >
                     <div className="flex flex-col gap-1">
                       <span className="text-sm font-medium text-foreground">
-                        {shortId(record.courseId, "Course")}
+                        {courseNames.get(record.courseId) ?? shortId(record.courseId, "Course")}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {shortId(record.sessionId, "Session")} · Marked {formatDateTime(record.markedAt)}
+                        {formatAttendanceSession(record)} · Marked {formatDateTime(record.markedAt)}
                       </span>
                     </div>
                     <AttendanceStatusChip status={record.status} />

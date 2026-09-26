@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -13,69 +14,81 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LiveRegion } from "@/components/ui/live-region";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { AttendanceSegmentedControl } from "@/components/attendance/attendance-status-chip";
-import { useCourses, useCourseLessons, useCourseModules } from "@/lib/api/courses";
 import {
-  useMarkAttendance,
-  useSessionRoster,
+  AttendanceSegmentedControl,
+  AttendanceStatusChip,
+} from "@/components/attendance/attendance-status-chip";
+import {
+  CLASS_SESSION_STATUS_LABELS,
+  ClassSessionStatusBadge,
+} from "@/components/live-classes/class-session-status-badge";
+import { useCourses } from "@/lib/api/courses";
+import { useClassSessions, type ClassSessionResponse } from "@/lib/api/class-sessions";
+import {
+  useClassSessionRoster,
+  useMarkClassSessionAttendance,
   type AttendanceMarkResultResponse,
   type AttendanceStatus,
 } from "@/lib/api/attendance";
 import { isApiClientError } from "@/lib/api/error";
-import { shortId } from "@/lib/format";
+import { formatDateTime, shortId } from "@/lib/format";
+
+function sessionOptionLabel(session: ClassSessionResponse): string {
+  return `${session.title} — ${formatDateTime(session.scheduledStart)} (${CLASS_SESSION_STATUS_LABELS[session.status]})`;
+}
 
 /**
- * Shared Mark Attendance UI for both the Teacher (#1,
- * `app/(teacher)/teacher/attendance/mark/page.tsx`) and Staff (#5,
- * `app/(tenant-admin)/tenant-admin/attendance/mark/page.tsx`) screens — the
- * two differ only in role/route/nav, never in data source: both use the
- * exact same `useCourses()` hook (already server-filtered to the caller's
- * own courses for a Teacher, tenant-wide for staff — never fetch-then-
- * filter client-side, per `.claude/rules/ui-ux.md` §1), so one component
- * covers both per the plan's §11 note that screen #5 is "the same Mark
- * Attendance UI as #1 but with a tenant-wide course selector".
+ * Shared Mark Attendance UI for the Teacher
+ * (`app/(teacher)/teacher/attendance/mark/page.tsx`) and Staff
+ * (`app/(tenant-admin)/tenant-admin/attendance/mark/page.tsx`) screens. Wave
+ * 8 workflow (master instruction §22): select Course → select Class Session
+ * → load authorized roster → mark → save.
  *
- * Session-equivalent = `course_lesson.id` (no `class_session` table at this
- * MVP) — the lesson selector below is deliberately labeled "Session". Course
- * -> Module -> Session is a real cascade (there is no flat "all lessons for
- * a course" endpoint): each level is only fetched once its parent is chosen.
+ * Both lists come from the backend already role-scoped — `useCourses()`
+ * (Teacher: own courses; staff: tenant-wide) and `useClassSessions({courseId})`
+ * — never fetched unfiltered and filtered here (`.claude/rules/ui-ux.md` §1).
+ *
+ * The roster read reports `markingOpen` (the backend session-lifecycle
+ * gate). When it is closed (cancelled / not started yet) the controls are
+ * disabled and the reason is shown, but that is display only — the mark
+ * endpoint re-enforces the gate (409), which this panel surfaces as an error.
+ * Students who were marked earlier but are no longer enrolled stay visible
+ * (historical marks are never hidden) as read-only rows.
  */
 export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }) {
   const coursesQuery = useCourses();
   const [courseId, setCourseId] = useState("");
-  const [moduleId, setModuleId] = useState("");
-  const [sessionId, setSessionId] = useState("");
+  const [classSessionId, setClassSessionId] = useState("");
   const [overrides, setOverrides] = useState<Record<string, AttendanceStatus>>({});
   const [results, setResults] = useState<AttendanceMarkResultResponse[] | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const modulesQuery = useCourseModules(courseId);
-  const lessonsQuery = useCourseLessons(courseId, moduleId, { enabled: moduleId.length > 0 });
-  const rosterQuery = useSessionRoster(sessionId);
-  const markMutation = useMarkAttendance(sessionId);
+  const sessionsQuery = useClassSessions({ courseId }, { enabled: courseId.length > 0 });
+  const rosterQuery = useClassSessionRoster(classSessionId);
+  const markMutation = useMarkClassSessionAttendance(classSessionId);
+
+  // Most recent first — the class a teacher is most likely recording is today's/the latest one.
+  const sortedSessions = useMemo(
+    () =>
+      [...(sessionsQuery.data ?? [])].sort((a, b) => b.scheduledStart.localeCompare(a.scheduledStart)),
+    [sessionsQuery.data]
+  );
+
+  function resetMarks() {
+    setOverrides({});
+    setResults(null);
+    setSubmitError(null);
+  }
 
   function handleCourseChange(value: string) {
     setCourseId(value);
-    setModuleId("");
-    setSessionId("");
-    setOverrides({});
-    setResults(null);
-    setSubmitError(null);
-  }
-
-  function handleModuleChange(value: string) {
-    setModuleId(value);
-    setSessionId("");
-    setOverrides({});
-    setResults(null);
-    setSubmitError(null);
+    setClassSessionId("");
+    resetMarks();
   }
 
   function handleSessionChange(value: string) {
-    setSessionId(value);
-    setOverrides({});
-    setResults(null);
-    setSubmitError(null);
+    setClassSessionId(value);
+    resetMarks();
   }
 
   function handleMarkChange(studentId: string, status: AttendanceStatus) {
@@ -85,21 +98,14 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
   async function handleSubmit() {
     const marks = Object.entries(overrides).map(([studentId, status]) => ({ studentId, status }));
     if (marks.length === 0) return;
-    // Capture the session this submit is actually for — if the user
-    // navigates to a different session while `mutateAsync` below is still
-    // resolving (e.g. selects are re-enabled before this awaits settles),
-    // the response is stale for whatever session is now selected and must
-    // be discarded rather than painted onto the new session's roster.
-    const submittedSessionId = sessionId;
+    // Discard a response that arrives after the user switched to another session.
+    const submittedSessionId = classSessionId;
     setSubmitError(null);
     try {
       const outcomes = await markMutation.mutateAsync({ marks });
-      if (submittedSessionId !== sessionId) return;
+      if (submittedSessionId !== classSessionId) return;
       setResults(outcomes);
-      // Clear only the succeeded rows' overrides — the roster refetch (via
-      // `useMarkAttendance`'s cache invalidation) will reflect their saved
-      // status. A failed row's attempted selection stays in `overrides` so
-      // the user still sees what they tried alongside the failure reason.
+      // Keep only failed rows' attempted selections so the user sees what failed and why.
       setOverrides((prev) => {
         const next = { ...prev };
         for (const outcome of outcomes) {
@@ -108,10 +114,8 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
         return next;
       });
     } catch (error) {
-      if (submittedSessionId !== sessionId) return;
-      setSubmitError(
-        isApiClientError(error) ? error.message : "Something went wrong. Please try again."
-      );
+      if (submittedSessionId !== classSessionId) return;
+      setSubmitError(isApiClientError(error) ? error.message : "Something went wrong. Please try again.");
     }
   }
 
@@ -122,14 +126,8 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
   );
   const pendingChangeCount = Object.keys(overrides).length;
 
-  // A pure "N saved, 0 failed" outcome (and the pending/no-results states)
-  // is announced through this single polite region — nothing is
-  // interrupting, so there's no competing-announcement risk. The moment ANY
-  // row fails, this stays silent and `failureAnnouncement` below takes over
-  // instead: firing N per-row `role="alert"`s plus this polite summary at
-  // the same moment is a known "announcement storm" that drops/overlaps
-  // announcements for screen-reader users, so failures get exactly ONE
-  // assertive region rather than N+1 competing ones.
+  // One polite region for pure success, ONE assertive region enumerating every
+  // failure — never N per-row alerts competing with a summary (announcement storm).
   const saveAnnouncement = markMutation.isPending
     ? "Saving attendance…"
     : results === null || failureCount > 0
@@ -137,20 +135,6 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
       : successCount > 0
         ? `${successCount} attendance record${successCount === 1 ? "" : "s"} saved.`
         : "";
-
-  // Consolidated assertive failure summary — enumerates every failed row
-  // using the same `shortId`-derived label the roster row below renders, so
-  // a screen reader user gets one interrupting announcement naming every
-  // failure instead of one per row. The roster rows' own inline failure text
-  // stays visual-only (no `role="alert"` there) so it doesn't also fire.
-  const failureAnnouncement =
-    !markMutation.isPending && results !== null && failureCount > 0
-      ? `${successCount} of ${results.length} saved. Failed: ${Array.from(failuresByStudentId.values())
-          .map(
-            (outcome) => `${shortId(outcome.studentId, "Student")} (${outcome.reason ?? "Unknown error."})`
-          )
-          .join(", ")}.`
-      : "";
 
   return (
     <div className="flex flex-col gap-6">
@@ -195,93 +179,41 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
 
             {courseId ? (
               <QueryStateBoundary
-                query={modulesQuery}
-                loadingLabel="Loading modules…"
+                query={sessionsQuery}
+                loadingLabel="Loading class sessions…"
                 loginPath="/login"
                 permissionDenied={{ dashboardHref }}
-                isEmpty={(modules) => modules.length === 0}
-                // Same title as the lessons-cascade empty state below
-                // ("no lessons exist for this course yet" is equally true
-                // whether the course has no modules at all, or a module
-                // with no lessons) — this is the plan's own literal
-                // required copy for this case, not an accidental
-                // duplicate; the description still distinguishes the two.
+                isEmpty={(sessions) => sessions.length === 0}
                 emptyState={{
-                  title: "No lessons exist for this course yet",
+                  title: "No class sessions scheduled for this course",
                   description:
-                    "Add modules and lessons to this course before you can take attendance.",
+                    "Attendance is recorded per class session. Schedule a session under Live Classes first, then return here to take attendance.",
                 }}
               >
-                {(modules) => (
-                  <div className="flex flex-col gap-1.5 sm:max-w-sm">
-                    <Label htmlFor="mark-attendance-module">Module</Label>
+                {() => (
+                  <div className="flex flex-col gap-1.5 sm:max-w-md">
+                    <Label htmlFor="mark-attendance-session">Class session</Label>
                     <Select
-                      value={moduleId}
-                      onValueChange={(value) => handleModuleChange(value ?? "")}
+                      value={classSessionId}
+                      onValueChange={(value) => handleSessionChange(value ?? "")}
                       disabled={markMutation.isPending}
                     >
-                      <SelectTrigger id="mark-attendance-module" className="w-full">
-                        <SelectValue placeholder="Select a module">
-                          {(selected: string | null) =>
-                            selected
-                              ? modules.find((module) => module.id === selected)?.title ?? selected
-                              : "Select a module"
-                          }
+                      <SelectTrigger id="mark-attendance-session" className="w-full">
+                        <SelectValue placeholder="Select a class session">
+                          {(selected: string | null) => {
+                            const match = sortedSessions.find((session) => session.id === selected);
+                            return match ? sessionOptionLabel(match) : "Select a class session";
+                          }}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {modules.map((module) => (
-                          <SelectItem key={module.id} value={module.id}>
-                            {module.title}
+                        {sortedSessions.map((session) => (
+                          <SelectItem key={session.id} value={session.id}>
+                            {sessionOptionLabel(session)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-
-                    {moduleId ? (
-                      <div className="mt-4 flex flex-col gap-1.5">
-                        <QueryStateBoundary
-                          query={lessonsQuery}
-                          loadingLabel="Loading sessions…"
-                          loginPath="/login"
-                          permissionDenied={{ dashboardHref }}
-                          isEmpty={(lessons) => lessons.length === 0}
-                          emptyState={{
-                            title: "No lessons exist for this course yet",
-                            description:
-                              "This module has no lessons yet — choose a different module, or add lessons to this one before taking attendance.",
-                          }}
-                        >
-                          {(lessons) => (
-                            <>
-                              <Label htmlFor="mark-attendance-session">Session</Label>
-                              <Select
-                                value={sessionId}
-                                onValueChange={(value) => handleSessionChange(value ?? "")}
-                                disabled={markMutation.isPending}
-                              >
-                                <SelectTrigger id="mark-attendance-session" className="w-full">
-                                  <SelectValue placeholder="Select a session">
-                                    {(selected: string | null) =>
-                                      selected
-                                        ? lessons.find((lesson) => lesson.id === selected)?.title ?? selected
-                                        : "Select a session"
-                                    }
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {lessons.map((lesson) => (
-                                    <SelectItem key={lesson.id} value={lesson.id}>
-                                      {lesson.title}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </>
-                          )}
-                        </QueryStateBoundary>
-                      </div>
-                    ) : null}
                   </div>
                 )}
               </QueryStateBoundary>
@@ -290,7 +222,7 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
         )}
       </QueryStateBoundary>
 
-      {sessionId ? (
+      {classSessionId ? (
         <QueryStateBoundary
           query={rosterQuery}
           loadingLabel="Loading roster…"
@@ -305,7 +237,23 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
         >
           {(roster) => (
             <div className="flex flex-col gap-4">
-              <h2 className="text-base font-medium text-foreground">Roster</h2>
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-base font-medium text-foreground">{roster.title}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(roster.scheduledStart)} – {formatDateTime(roster.scheduledEnd)}
+                  </p>
+                </div>
+                <ClassSessionStatusBadge status={roster.sessionStatus} />
+              </div>
+
+              {!roster.markingOpen ? (
+                <Alert>
+                  <AlertDescription>
+                    {roster.markingClosedReason ?? "Attendance cannot be recorded for this class session."}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
 
               {submitError ? (
                 <Alert variant="destructive">
@@ -314,31 +262,50 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
               ) : null}
 
               <LiveRegion message={saveAnnouncement} />
-              <LiveRegion message={failureAnnouncement} assertive />
+              <LiveRegion
+                message={
+                  !markMutation.isPending && results !== null && failureCount > 0
+                    ? `${successCount} of ${results.length} saved. Failed: ${Array.from(failuresByStudentId.values())
+                        .map((outcome) => {
+                          const entry = roster.roster.find((row) => row.studentId === outcome.studentId);
+                          const label = entry?.studentName ?? shortId(outcome.studentId, "Student");
+                          return `${label} (${outcome.reason ?? "Unknown error."})`;
+                        })
+                        .join(", ")}.`
+                    : ""
+                }
+                assertive
+              />
 
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2" aria-label="Roster">
                 {roster.roster.map((entry) => {
-                  const label = shortId(entry.studentId, "Student");
+                  const label = entry.studentName ?? shortId(entry.studentId, "Student");
                   const currentValue = overrides[entry.studentId] ?? entry.status;
                   const failure = failuresByStudentId.get(entry.studentId);
+                  const editable = roster.markingOpen && entry.currentlyEnrolled;
                   return (
                     <li
                       key={entry.studentId}
-                      className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                     >
-                      <span className="font-medium text-foreground">{label}</span>
-                      <AttendanceSegmentedControl
-                        studentLabel={label}
-                        value={currentValue}
-                        onChange={(status) => handleMarkChange(entry.studentId, status)}
-                        disabled={markMutation.isPending}
-                      />
+                      <span className="flex items-center gap-2 font-medium text-foreground">
+                        {label}
+                        {!entry.currentlyEnrolled ? (
+                          <Badge variant="outline">No longer enrolled</Badge>
+                        ) : null}
+                      </span>
+                      {editable ? (
+                        <AttendanceSegmentedControl
+                          studentLabel={label}
+                          value={currentValue}
+                          onChange={(status) => handleMarkChange(entry.studentId, status)}
+                          disabled={markMutation.isPending}
+                        />
+                      ) : (
+                        <AttendanceStatusChip status={entry.status} />
+                      )}
                       {failure ? (
-                        // Visual-only: the consolidated `failureAnnouncement`
-                        // region above already covers this for screen
-                        // readers (see its comment) — no `role="alert"`/
-                        // `aria-live` here, so this doesn't also fire its own
-                        // competing assertive announcement per row.
+                        // Visual only — the single assertive region above announces failures.
                         <p className="text-xs text-destructive sm:basis-full">
                           Could not save {label}: {failure.reason ?? "Unknown error."}
                         </p>
@@ -348,17 +315,19 @@ export function MarkAttendancePanel({ dashboardHref }: { dashboardHref: string }
                 })}
               </ul>
 
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                disabled={markMutation.isPending || pendingChangeCount === 0}
-                aria-busy={markMutation.isPending}
-                className="self-start"
-              >
-                {markMutation.isPending
-                  ? "Saving…"
-                  : `Save attendance${pendingChangeCount > 0 ? ` (${pendingChangeCount})` : ""}`}
-              </Button>
+              {roster.markingOpen ? (
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={markMutation.isPending || pendingChangeCount === 0}
+                  aria-busy={markMutation.isPending}
+                  className="self-start"
+                >
+                  {markMutation.isPending
+                    ? "Saving…"
+                    : `Save attendance${pendingChangeCount > 0 ? ` (${pendingChangeCount})` : ""}`}
+                </Button>
+              ) : null}
             </div>
           )}
         </QueryStateBoundary>

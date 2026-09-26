@@ -10,6 +10,16 @@ but the finalized doc was never produced until a post-ship review found the gap.
 reflects the actual shipped backend (`AttendanceController`), not the plan's pre-implementation
 draft — the one deviation from that draft is called out explicitly below.
 
+> **Wave 8 update (ClassSession-scoped attendance).** Attendance is now taken against a
+> `class_session` — `ClassSession → AttendanceSheet → AttendanceRecord` (V56,
+> `docs/parity/waves/wave-08-plan.md`). The primary endpoints are
+> `GET/POST /api/v1/attendance/class-sessions/{classSessionId}/roster|records` plus the new
+> `GET /summary` and `GET /my/summary` reads (see "Wave 8 endpoints" below). The MVP-016
+> lesson-scoped `/sessions/{sessionId}/...` endpoints are **deprecated but fully functional**
+> (approved API contract — removal needs product-owner sign-off); rows they write now attach to
+> the lesson's `LEGACY_LESSON` sheet. Every pre-Wave-8 row was attached to a `LEGACY_LESSON`
+> sheet by V56's backfill — none was orphaned, changed or reinterpreted as a class session.
+
 ## Response envelope
 
 Every endpoint returns `com.lms.common.api.ApiResponse<T>` — see
@@ -59,7 +69,86 @@ with `AttendanceReportService.getMyHistory` independently re-deriving `principal
 (defense-in-depth, not relying on `@PreAuthorize` alone), mirroring
 `EnrollmentQueryService`'s owner-only pattern.
 
-## Endpoints
+## Wave 8 endpoints (ClassSession-scoped — primary)
+
+Authorization for the class-session endpoints runs in two halves so a caller who could never
+access a session learns nothing about whether it exists:
+
+1. **Before the id is resolved** (`AttendanceAccessGuard.requireClassSessionPreLookup`): a
+   `STUDENT` gets `403` (for a real and a nonexistent id alike); a non-Teacher staff caller must
+   hold `ATTENDANCE`/`VIEW` (roster, summary) or `ATTENDANCE`/`CREATE_EDIT` (mark) — `403`
+   otherwise (Teacher Assistant has no grant → `403`).
+2. **After the tenant-scoped lookup** (`ClassSessionLookupApi.findSession` — cross-tenant/unknown
+   → `404`): a `TEACHER` must be the **current** teacher of the session's course
+   (`CourseLookupApi.getTeacherId`, so a course reassigned after scheduling moves access with it)
+   — `403` otherwise.
+
+### `GET /api/v1/attendance/class-sessions/{classSessionId}/roster`
+
+```jsonc
+{
+  "sheetId": null,                 // null until the first successful mark (a read never creates a sheet)
+  "classSessionId": "...", "courseId": "...", "title": "Week 3 — Cells",
+  "scheduledStart": "2026-09-20T09:00:00Z", "scheduledEnd": "2026-09-20T10:00:00Z",
+  "sessionStatus": "COMPLETED",    // SCHEDULED | LIVE | COMPLETED | CANCELLED
+  "markingOpen": true,             // lifecycle gate, display only — POST re-enforces it
+  "markingClosedReason": null,
+  "roster": [
+    { "studentId": "...", "studentName": "Ada Lovelace", "status": "PRESENT", "currentlyEnrolled": true },
+    { "studentId": "...", "studentName": null, "status": "LATE", "currentlyEnrolled": false }
+  ]
+}
+```
+
+Roster = every currently-enrolled student, then any student already marked on this session who is
+no longer enrolled (`currentlyEnrolled: false`) — historical marks never disappear. `studentName`
+is `null` when the student has no profile.
+
+### `POST /api/v1/attendance/class-sessions/{classSessionId}/records`
+
+Same request body (`marks`, 1–500 rows, `PRESENT`/`ABSENT`/`LATE`) and same per-row batch-partial
+response (`AttendanceMarkResultResponse[]`) as the legacy endpoint below. Differences:
+
+- **Session-lifecycle gate — `409`** for the whole request, before any row is touched: the session
+  is `CANCELLED`, or `SCHEDULED` with `scheduledStart` still in the future. `LIVE`/`COMPLETED`, and
+  `SCHEDULED` once the start has passed, are open.
+- The session's `attendance_sheet` is created lazily (race-safe) on the first **valid** row — an
+  all-rejected batch creates nothing.
+- Duplicate gate: `uq_attendance_record_tenant_sheet_student` — a re-mark (or a duplicate
+  `studentId` within one batch) updates the single row in place (last value wins).
+- `courseId` is never accepted; it is the session's own. V56's composite FKs make "record course =
+  sheet course = session course" a database invariant.
+
+### `GET /api/v1/attendance/summary?courseId=&from=&to=`
+
+Per-student attendance percentages for one course (`courseId` required). Teacher of that course or
+staff `ATTENDANCE`/`VIEW`; Student `403`; course outside the caller's tenant `404`. Aggregated in
+SQL (never loads all rows). Includes legacy lesson-scoped records, so history is not lost.
+
+```jsonc
+[{ "studentId": "...", "studentName": "Ada Lovelace", "courseId": "...", "courseName": "Biology",
+   "present": 2, "late": 1, "absent": 1, "total": 4, "attendanceRate": 75.0 }]
+```
+
+`attendanceRate` = `(present + late) / total × 100`, one decimal place — LATE counts as attended
+(wave-08-plan.md judgment call §10.4). Raw counts are always returned.
+
+### `GET /api/v1/attendance/my/summary?from=&to=`
+
+`hasRole('STUDENT')`, owner-only. Same row shape, one row per course (`studentName` is `null`).
+
+### `classSessionId` filter on the report reads
+
+`GET /my`, `GET /reports` and `GET /students/{id}/report` accept an optional `classSessionId`. It is
+resolved through the tenant-scoped sheet repository and only ever **narrows** the result (AND-ed
+with tenant, Teacher-own-course and Student-own-row restrictions) — a foreign or unknown id yields
+an empty page.
+
+## Endpoints (MVP-016 — lesson-scoped, **deprecated since Wave 8**)
+
+These remain functional for API compatibility; no screen uses them any more. `sessionId` here is a
+`course_lesson.id`. Rows written through them attach to that lesson's single `LEGACY_LESSON`
+sheet.
 
 ### `GET /api/v1/attendance/sessions/{sessionId}/roster`
 
@@ -179,15 +268,23 @@ endpoint:
 {
   "id": "...",
   "courseId": "...",
-  "sessionId": "...",     // == course_lesson.id — no separate class_session table at this MVP
+  "sessionId": null,      // LEGACY lesson id (course_lesson.id) — null for a class-session record
   "studentId": "...",
   "status": "PRESENT",    // PRESENT | ABSENT | LATE
   "markedBy": "...",      // always the marking actor's own tenant_user id, never client-supplied
   "markedAt": "2026-01-15T09:32:00Z",
   "createdAt": "2026-01-15T09:32:00Z",
-  "updatedAt": "2026-01-15T09:32:00Z"
+  "updatedAt": "2026-01-15T09:32:00Z",
+  "sheetId": "...",                 // Wave 8 — always set
+  "source": "CLASS_SESSION",        // Wave 8 — CLASS_SESSION | LEGACY_LESSON
+  "classSessionId": "...",          // Wave 8 — null for a LEGACY_LESSON record
+  "classSessionTitle": "Week 3"     // Wave 8 — resolved at read time; null for a LEGACY_LESSON record
 }
 ```
+
+The four Wave 8 fields are additive; `sessionId` keeps its original meaning but is now nullable.
+Clients must label a record's session from `classSessionTitle`/`classSessionId` first and treat a
+non-null `sessionId` as a legacy lesson.
 
 ## Cross-module contract (not REST — recorded here since no other file documents it)
 
@@ -211,6 +308,13 @@ their owning domain's `api` interface — never a foreign repository/entity impo
   `GET .../roster`. Tenant-scoped exactly like every other method on this interface — no overload
   accepts a caller-supplied tenant id.
 
-Both interfaces resolve tenant identity exclusively from the trusted request context — mirroring
+- `ClassSessionLookupApi.findSession(UUID)` / `getSessionSummaries(Collection<UUID>)` — **new in
+  Wave 8**, owned by `live-class-management` (`ClassSessionLookupService`). Tenant-scoped,
+  read-only, no authorization of its own; returns a `ClassSessionSummary` projection (never the
+  `ClassSession` entity) so attendance never imports `liveclassmanagement.domain`/`repository`.
+- `StudentLookupApi.getStudentSummariesByUserId` and `CourseLookupApi.getCourseSummaries` — existing
+  batched reads, now also used for roster/summary display names.
+
+All of these interfaces resolve tenant identity exclusively from the trusted request context — mirroring
 `PaymentStatusApi`/`SlipStatusApi`'s existing discipline documented in
 `docs/api/enrollment-management.md`.

@@ -619,6 +619,27 @@ must append here, per this log's established §15-§19 convention.
   the undisclosed addition, not because it was itself a process gap.
   Source: plan §9/§20.
 
+### 20a. Wave 8 (Attendance parity using ClassSession) — updates to §20
+
+- **Recurring-session ambiguity — resolved for new attendance.** Attendance is now taken per
+  `class_session` via `attendance_sheet` (V56). Pre-Wave-8 lesson-scoped rows keep their
+  original (ambiguous) semantics under `LEGACY_LESSON` sheets — they are preserved, not
+  reinterpreted. Source: `docs/parity/waves/wave-08-plan.md` §1.2.
+- **Open — deprecated lesson endpoints.** `/attendance/sessions/{lessonId}/roster|records` stay
+  functional (approved API contract). Removing them, or freezing legacy writes, needs
+  product-owner sign-off. Source: wave-08-plan.md §10.2.
+- **Open — judgment calls needing sign-off:** the session-lifecycle marking gate (SCHEDULED is
+  markable once started; CANCELLED/future is 409; no finalize/lock step), and
+  `attendanceRate = (present + late) / total` (LATE counts as attended). Source: wave-08-plan.md
+  §10.3/§10.4.
+- **Historical-roster accuracy gap — narrowed, still open.** A class-session roster now keeps
+  already-marked students who have since left (read-only). A student who was enrolled at the
+  time but never marked, and has since left, still cannot be marked retroactively
+  (`listCurrentlyEnrolledStudentIds` is live, not as-of-date).
+- **Zoom-sync consumer (PAR-10-03) and absent-student alerts (PAR-10-04) — deferred.** The first
+  is blocked on a provider participant-report adapter plus the unresolved participant-name
+  reconciliation rule. The second's trigger and recipient rules are unspecified.
+
 ## 21. Exams (MVP-017) — carried-forward decisions
 
 - **Marking-queue "assigned courses" scoping applies only to Teacher, not to Exam

@@ -49,33 +49,42 @@ class AttendanceRecordRepositoryTenantGuardTest {
 	}
 
 	@Test
-	void upsertRecordRejectsTenantIdThatDoesNotMatchContext() {
+	void upsertMethodsRejectTenantIdThatDoesNotMatchContext() {
 		TenantContextHolder.set(UUID.randomUUID());
 		UUID suppliedTenantId = UUID.randomUUID();
 
-		assertThatThrownBy(() -> repository.upsertRecord(UUID.randomUUID(), suppliedTenantId, UUID.randomUUID(),
-				UUID.randomUUID(), UUID.randomUUID(), "PRESENT", UUID.randomUUID(), Instant.now(), Instant.now()))
+		assertThatThrownBy(() -> repository.upsertLegacyRecord(UUID.randomUUID(), suppliedTenantId,
+				UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "PRESENT",
+				UUID.randomUUID(), Instant.now(), Instant.now()))
+			.isInstanceOf(CrossTenantPersistenceException.class);
+		assertThatThrownBy(() -> repository.upsertClassSessionRecord(UUID.randomUUID(), suppliedTenantId,
+				UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "PRESENT", UUID.randomUUID(),
+				Instant.now(), Instant.now()))
 			.isInstanceOf(CrossTenantPersistenceException.class);
 
-		verify(repository, never()).upsertRecordUnchecked(any(), any(), any(), any(), any(), any(), any(), any(),
-				any());
+		verify(repository, never()).upsertLegacyRecordUnchecked(any(), any(), any(), any(), any(), any(), any(),
+				any(), any(), any());
+		verify(repository, never()).upsertClassSessionRecordUnchecked(any(), any(), any(), any(), any(), any(),
+				any(), any(), any());
 	}
 
 	@Test
-	void upsertRecordDelegatesWhenTenantIdMatchesContext() {
+	void upsertLegacyRecordDelegatesWhenTenantIdMatchesContext() {
 		UUID tenantId = UUID.randomUUID();
 		TenantContextHolder.set(tenantId);
 		UUID id = UUID.randomUUID();
+		UUID sheetId = UUID.randomUUID();
 		UUID courseId = UUID.randomUUID();
 		UUID sessionId = UUID.randomUUID();
 		UUID studentId = UUID.randomUUID();
 		UUID markedBy = UUID.randomUUID();
 		Instant now = Instant.now();
 
-		repository.upsertRecord(id, tenantId, courseId, sessionId, studentId, "PRESENT", markedBy, now, now);
+		repository.upsertLegacyRecord(id, tenantId, sheetId, courseId, sessionId, studentId, "PRESENT", markedBy,
+				now, now);
 
-		verify(repository).upsertRecordUnchecked(eq(id), eq(tenantId), eq(courseId), eq(sessionId), eq(studentId),
-				eq("PRESENT"), eq(markedBy), eq(now), eq(now));
+		verify(repository).upsertLegacyRecordUnchecked(eq(id), eq(tenantId), eq(sheetId), eq(courseId),
+				eq(sessionId), eq(studentId), eq("PRESENT"), eq(markedBy), eq(now), eq(now));
 	}
 
 	@Test

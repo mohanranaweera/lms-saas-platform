@@ -1,9 +1,7 @@
 package com.lms.attendancemanagement.repository;
 
 import com.lms.attendancemanagement.domain.AttendanceRecord;
-import com.lms.common.persistence.CrossTenantPersistenceException;
 import com.lms.common.persistence.TenantAwareRepository;
-import com.lms.common.tenant.TenantContextHolder;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -27,57 +25,65 @@ import org.springframework.data.repository.query.Param;
  * with the tenant predicate. Every caller of such a method MUST pass {@code
  * TenantContext#getTenantId()}, never a client-supplied value.
  *
- * <p>Both explicit-{@code tenantId} methods are additionally guarded with a
+ * <p>Every explicit-{@code tenantId} method is additionally guarded with a
  * defense-in-depth check (post-ship review): the public {@code default}
- * method asserts the passed {@code tenantId} equals {@link
- * TenantContextHolder}'s own resolved value - throwing {@link
- * CrossTenantPersistenceException}, the exact idiom {@code
- * TenantAwareRepositoryImpl#assertOwnedByCurrentTenant} already uses for this
- * class of check - before delegating to the real {@code @Query} method. This
- * is a safety net only; every current caller already passes {@code
- * TenantContext#getTenantId()}, so it changes no currently-correct caller's
- * behavior.
+ * method asserts the passed {@code tenantId} equals the resolved tenant
+ * context ({@link AttendanceTenantAssertions}) before delegating to the real
+ * {@code @Query} method. This is a safety net only; every current caller
+ * already passes {@code TenantContext#getTenantId()}.
+ *
+ * <p><b>Wave 8 (V56).</b> Every row belongs to an {@code attendance_sheet}.
+ * {@link #upsertLegacyRecord} backs the deprecated lesson-scoped endpoints
+ * (writes {@code session_id} = lesson id); {@link #upsertClassSessionRecord}
+ * backs the class-session workflow ({@code session_id} stays {@code NULL}).
+ * Both conflict on {@code uq_attendance_record_tenant_sheet_student} - a
+ * LEGACY_LESSON sheet is 1:1 with its lesson, so for legacy rows that
+ * constraint coincides exactly with V25's {@code
+ * uq_attendance_record_tenant_session_student}.
+ *
+ * <p>Both upserts are {@code @Modifying(clearAutomatically = true)}: a native
+ * write bypasses the persistence context, so without clearing it a follow-up
+ * {@code findBySheetIdAndStudentId} for a row already loaded earlier in the
+ * same transaction (e.g. the same student twice in one batch) would return
+ * the stale managed instance instead of the just-written status.
  */
 public interface AttendanceRecordRepository extends TenantAwareRepository<AttendanceRecord, UUID> {
 
 	/**
-	 * The (tenant, session, student) lookup key: {@code
+	 * The legacy (tenant, lesson, student) lookup key: {@code
 	 * uq_attendance_record_tenant_session_student} (V25) guarantees at most
-	 * one row per (tenant, session, student). Also backs {@link
-	 * #findAllBySessionId} and {@code AttendanceMarkingService}'s post-{@link
-	 * #upsertRecord} read - the atomic native upsert itself no longer needs
-	 * this finder to decide insert vs. update (that branching now happens
-	 * entirely inside the {@code ON CONFLICT} clause), but the caller still
-	 * needs the full persisted row back to build its response DTO.
+	 * one row per (tenant, lesson, student). Only ever matches legacy rows -
+	 * class-session rows have a {@code NULL} {@code session_id}.
 	 */
 	default Optional<AttendanceRecord> findBySessionIdAndStudentId(UUID sessionId, UUID studentId) {
 		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("sessionId"), sessionId),
 				cb.equal(root.get("studentId"), studentId)));
 	}
 
-	/** Existing marks for one session - backs the Mark Attendance roster read (plan §9/§10). */
+	/** Existing marks for one legacy lesson - backs the deprecated lesson roster read. */
 	default List<AttendanceRecord> findAllBySessionId(UUID sessionId) {
 		return findAll((root, query, cb) -> cb.equal(root.get("sessionId"), sessionId));
+	}
+
+	/** At most one row per (tenant, sheet, student) - {@code uq_attendance_record_tenant_sheet_student} (V56). */
+	default Optional<AttendanceRecord> findBySheetIdAndStudentId(UUID sheetId, UUID studentId) {
+		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("sheetId"), sheetId),
+				cb.equal(root.get("studentId"), studentId)));
+	}
+
+	/** Existing marks for one sheet - backs the class-session roster read. */
+	default List<AttendanceRecord> findAllBySheetId(UUID sheetId) {
+		return findAll((root, query, cb) -> cb.equal(root.get("sheetId"), sheetId));
 	}
 
 	/**
 	 * The distinct set of {@code course_id}s that have at least one
 	 * attendance record in the caller's own tenant - used by {@code
 	 * AttendanceReportService} to derive a Teacher caller's own-course
-	 * restriction (intersected against {@code CourseLookupApi#getTeacherId}
-	 * per id, since no bulk "courses owned by teacher X" read exists on
-	 * {@code CourseLookupApi} - plan §9). A scalar projection, never an
-	 * entity load, so it stays cheap even for a tenant with a large
-	 * attendance history. Explicit {@code tenantId} param per this
-	 * interface's own javadoc - the caller must always pass {@code
-	 * TenantContext#getTenantId()}, never a client-supplied value.
-	 *
-	 * <p>Guarded by {@link #assertTenantIdMatchesContext(UUID)} - see this
-	 * interface's class-level javadoc - before delegating to {@link
-	 * #findDistinctCourseIdsByTenantIdUnchecked}, the actual {@code @Query}.
+	 * restriction. A scalar projection, never an entity load.
 	 */
 	default List<UUID> findDistinctCourseIdsByTenantId(UUID tenantId) {
-		assertTenantIdMatchesContext(tenantId);
+		AttendanceTenantAssertions.assertTenantIdMatchesContext(tenantId, "attendance_record");
 		return findDistinctCourseIdsByTenantIdUnchecked(tenantId);
 	}
 
@@ -85,62 +91,34 @@ public interface AttendanceRecordRepository extends TenantAwareRepository<Attend
 	List<UUID> findDistinctCourseIdsByTenantIdUnchecked(@Param("tenantId") UUID tenantId);
 
 	/**
-	 * Atomic DB-level upsert backing {@code AttendanceMarkingService}'s
-	 * mark/re-mark flow - replaces a racy {@code findBySessionIdAndStudentId}
-	 * -&gt;-insert-or-update sequence (a genuine TOCTOU: two concurrent
-	 * first-time marks of the same (tenant, session, student) could both see
-	 * "no existing row" and both attempt an INSERT, one of which would then
-	 * violate {@code uq_attendance_record_tenant_session_student} (V25) and
-	 * surface as an unhandled {@code DataIntegrityViolationException}) with a
-	 * single native {@code INSERT ... ON CONFLICT (tenant_id, session_id,
-	 * student_id) DO UPDATE}, making "at most one row per (tenant, session,
-	 * student), re-mark is an in-place update" atomic at the DB level rather
-	 * than a service-layer-only invariant, per {@code
-	 * .claude/rules/backend.md}'s preference for schema/DB-enforced
-	 * invariants on high-integrity write paths.
+	 * Atomic DB-level upsert for the deprecated lesson-scoped marking flow -
+	 * a single native {@code INSERT ... ON CONFLICT DO UPDATE}, so two
+	 * concurrent first-time marks of the same (tenant, sheet, student) can
+	 * never both INSERT (the original TOCTOU fix, unchanged in spirit).
 	 *
-	 * <p>{@code id} is a freshly generated (application-side, {@code
-	 * UuidV7Generator}) id used ONLY on the insert branch - on conflict, the
-	 * existing row's {@code id}/{@code created_at}/{@code created_by} are
-	 * left untouched (the {@code DO UPDATE} clause never references them,
-	 * only {@code status}/{@code marked_by}/{@code marked_at}/{@code
-	 * updated_at}/{@code updated_by} are overwritten from {@code EXCLUDED},
-	 * mirroring {@link AttendanceRecord#remark}'s exact field set).
-	 *
-	 * <p>A native query bypasses the JPA persistence context and Hibernate's
-	 * {@code Auditable} auditing listener entirely, so {@code created_by}/
-	 * {@code updated_by} are set explicitly here (both {@code = markedBy} on
-	 * first insert; only {@code updated_by} changes on a re-mark, via {@code
-	 * EXCLUDED.updated_by}). {@code now} is bound to the same value as {@code
-	 * markedAt} by every caller, so {@code created_at}/{@code updated_at} on
-	 * first insert and {@code updated_at} on re-mark all agree with {@code
-	 * marked_at}.
-	 *
-	 * <p>{@code tenantId} is passed explicitly and MUST always be {@code
-	 * TenantContext#getTenantId()} - never a client-supplied value - per this
-	 * interface's own javadoc; this native query is NOT automatically
-	 * tenant-filtered by {@code TenantAwareRepositoryImpl} the way inherited
-	 * finders are.
-	 *
-	 * <p>Guarded by {@link #assertTenantIdMatchesContext(UUID)} - see this
-	 * interface's class-level javadoc - before delegating to {@link
-	 * #upsertRecordUnchecked}, the actual native {@code @Query}.
+	 * <p>{@code id} is used ONLY on the insert branch - on conflict, the
+	 * existing row's {@code id}/{@code created_at}/{@code created_by} are left
+	 * untouched; only {@code status}/{@code marked_by}/{@code marked_at}/
+	 * {@code updated_at}/{@code updated_by} are overwritten, mirroring {@link
+	 * AttendanceRecord#remark}. A native query bypasses Hibernate's auditing
+	 * listener, so {@code created_by}/{@code updated_by} are set explicitly.
 	 */
-	default void upsertRecord(UUID id, UUID tenantId, UUID courseId, UUID sessionId, UUID studentId, String status,
-			UUID markedBy, Instant markedAt, Instant now) {
-		assertTenantIdMatchesContext(tenantId);
-		upsertRecordUnchecked(id, tenantId, courseId, sessionId, studentId, status, markedBy, markedAt, now);
+	default void upsertLegacyRecord(UUID id, UUID tenantId, UUID sheetId, UUID courseId, UUID lessonId,
+			UUID studentId, String status, UUID markedBy, Instant markedAt, Instant now) {
+		AttendanceTenantAssertions.assertTenantIdMatchesContext(tenantId, "attendance_record");
+		upsertLegacyRecordUnchecked(id, tenantId, sheetId, courseId, lessonId, studentId, status, markedBy, markedAt,
+				now);
 	}
 
-	@Modifying
+	@Modifying(clearAutomatically = true)
 	@Query(value = """
 			INSERT INTO attendance_record
-			    (id, tenant_id, course_id, session_id, student_id, status, marked_by,
+			    (id, tenant_id, sheet_id, course_id, session_id, student_id, status, marked_by,
 			     marked_at, created_at, updated_at, created_by, updated_by)
 			VALUES
-			    (:id, :tenantId, :courseId, :sessionId, :studentId, :status, :markedBy,
+			    (:id, :tenantId, :sheetId, :courseId, :lessonId, :studentId, :status, :markedBy,
 			     :markedAt, :now, :now, :markedBy, :markedBy)
-			ON CONFLICT (tenant_id, session_id, student_id)
+			ON CONFLICT (tenant_id, sheet_id, student_id)
 			DO UPDATE SET
 			    status = EXCLUDED.status,
 			    marked_by = EXCLUDED.marked_by,
@@ -148,30 +126,43 @@ public interface AttendanceRecordRepository extends TenantAwareRepository<Attend
 			    updated_at = EXCLUDED.updated_at,
 			    updated_by = EXCLUDED.updated_by
 			""", nativeQuery = true)
-	void upsertRecordUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId,
-			@Param("courseId") UUID courseId, @Param("sessionId") UUID sessionId,
+	void upsertLegacyRecordUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId,
+			@Param("sheetId") UUID sheetId, @Param("courseId") UUID courseId, @Param("lessonId") UUID lessonId,
 			@Param("studentId") UUID studentId, @Param("status") String status, @Param("markedBy") UUID markedBy,
 			@Param("markedAt") Instant markedAt, @Param("now") Instant now);
 
 	/**
-	 * Defense-in-depth guard (post-ship review) shared by {@link
-	 * #upsertRecord} and {@link #findDistinctCourseIdsByTenantId}: both take
-	 * {@code tenantId} as an explicit parameter (see class-level javadoc)
-	 * rather than relying on {@code TenantAwareRepositoryImpl}'s structural
-	 * {@code Specification} filtering, so - unlike every other tenant-scoped
-	 * query in this codebase - there is no compiler/framework safety net if a
-	 * future caller passes the wrong value. This asserts the passed {@code
-	 * tenantId} agrees with {@link TenantContextHolder}'s own resolved value,
-	 * throwing before the query executes on any mismatch. Both current call
-	 * sites already pass {@code TenantContext#getTenantId()}, so this changes
-	 * no currently-correct caller's behavior.
+	 * Same atomic upsert shape as {@link #upsertLegacyRecord}, for a
+	 * CLASS_SESSION sheet - {@code session_id} (the legacy lesson column) is
+	 * deliberately omitted and therefore {@code NULL}. {@code courseId} MUST
+	 * be the sheet's own course (V56's composite FK {@code (tenant_id,
+	 * sheet_id, course_id)} rejects anything else at the DB level).
 	 */
-	private static void assertTenantIdMatchesContext(UUID tenantId) {
-		UUID currentTenantId = new TenantContextHolder().getTenantId();
-		if (!currentTenantId.equals(tenantId)) {
-			throw new CrossTenantPersistenceException(
-					"Attempted to query attendance_record using a tenantId that does not match the current tenant context");
-		}
+	default void upsertClassSessionRecord(UUID id, UUID tenantId, UUID sheetId, UUID courseId, UUID studentId,
+			String status, UUID markedBy, Instant markedAt, Instant now) {
+		AttendanceTenantAssertions.assertTenantIdMatchesContext(tenantId, "attendance_record");
+		upsertClassSessionRecordUnchecked(id, tenantId, sheetId, courseId, studentId, status, markedBy, markedAt, now);
 	}
+
+	@Modifying(clearAutomatically = true)
+	@Query(value = """
+			INSERT INTO attendance_record
+			    (id, tenant_id, sheet_id, course_id, student_id, status, marked_by,
+			     marked_at, created_at, updated_at, created_by, updated_by)
+			VALUES
+			    (:id, :tenantId, :sheetId, :courseId, :studentId, :status, :markedBy,
+			     :markedAt, :now, :now, :markedBy, :markedBy)
+			ON CONFLICT (tenant_id, sheet_id, student_id)
+			DO UPDATE SET
+			    status = EXCLUDED.status,
+			    marked_by = EXCLUDED.marked_by,
+			    marked_at = EXCLUDED.marked_at,
+			    updated_at = EXCLUDED.updated_at,
+			    updated_by = EXCLUDED.updated_by
+			""", nativeQuery = true)
+	void upsertClassSessionRecordUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId,
+			@Param("sheetId") UUID sheetId, @Param("courseId") UUID courseId, @Param("studentId") UUID studentId,
+			@Param("status") String status, @Param("markedBy") UUID markedBy, @Param("markedAt") Instant markedAt,
+			@Param("now") Instant now);
 
 }

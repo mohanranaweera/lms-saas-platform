@@ -19,10 +19,12 @@ import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.usermanagement.api.StudentLookupApi;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -64,10 +66,15 @@ public class AttendanceReportService {
 
 	private final StudentLookupApi studentLookupApi;
 
+	private final AttendanceSheetService attendanceSheetService;
+
+	private final AttendanceRecordViewAssembler attendanceRecordViewAssembler;
+
 	public AttendanceReportService(CourseLookupApi courseLookupApi, EnrollmentAccessApi enrollmentAccessApi,
 			AttendanceAccessGuard attendanceAccessGuard, AttendanceRecordRepository attendanceRecordRepository,
 			PermissionCheckService permissionCheckService, TenantContext tenantContext,
-			StudentLookupApi studentLookupApi) {
+			StudentLookupApi studentLookupApi, AttendanceSheetService attendanceSheetService,
+			AttendanceRecordViewAssembler attendanceRecordViewAssembler) {
 		this.courseLookupApi = courseLookupApi;
 		this.enrollmentAccessApi = enrollmentAccessApi;
 		this.attendanceAccessGuard = attendanceAccessGuard;
@@ -75,6 +82,8 @@ public class AttendanceReportService {
 		this.permissionCheckService = permissionCheckService;
 		this.tenantContext = tenantContext;
 		this.studentLookupApi = studentLookupApi;
+		this.attendanceSheetService = attendanceSheetService;
+		this.attendanceRecordViewAssembler = attendanceRecordViewAssembler;
 	}
 
 	/**
@@ -96,12 +105,16 @@ public class AttendanceReportService {
 		UUID studentId = studentLookupApi.resolveUserId(studentProfileId)
 			.orElseThrow(() -> new NotFoundException("Student not found"));
 		Pageable safePageable = clampPageSize(pageable);
+		Optional<Specification<AttendanceRecord>> sheetFilter = resolveSheetFilter(filter);
+		if (sheetFilter.isEmpty()) {
+			return PageResponse.from(Page.empty(safePageable));
+		}
 
 		Specification<AttendanceRecord> spec = AttendanceSpecifications.withStudentId(studentId)
 			.and(AttendanceSpecifications.withCourseId(filter.courseId()))
-			.and(AttendanceSpecifications.markedBetween(filter.from(), filter.to()));
-		Page<AttendanceRecord> page = attendanceRecordRepository.findAll(spec, safePageable);
-		return PageResponse.from(page.map(AttendanceReportService::toView));
+			.and(AttendanceSpecifications.markedBetween(filter.from(), filter.to()))
+			.and(sheetFilter.get());
+		return toPage(attendanceRecordRepository.findAll(spec, safePageable));
 	}
 
 	/**
@@ -139,13 +152,17 @@ public class AttendanceReportService {
 		AuthenticatedPrincipal principal = requireStudent();
 		validateDateRange(filter);
 		Pageable safePageable = clampPageSize(pageable);
+		Optional<Specification<AttendanceRecord>> sheetFilter = resolveSheetFilter(filter);
+		if (sheetFilter.isEmpty()) {
+			return PageResponse.from(Page.empty(safePageable));
+		}
 
 		Specification<AttendanceRecord> spec = AttendanceSpecifications.withStudentId(principal.userId())
 			.and(AttendanceSpecifications.withCourseId(filter.courseId()))
-			.and(AttendanceSpecifications.markedBetween(filter.from(), filter.to()));
+			.and(AttendanceSpecifications.markedBetween(filter.from(), filter.to()))
+			.and(sheetFilter.get());
 
-		Page<AttendanceRecord> page = attendanceRecordRepository.findAll(spec, safePageable);
-		return PageResponse.from(page.map(AttendanceReportService::toView));
+		return toPage(attendanceRecordRepository.findAll(spec, safePageable));
 	}
 
 	/**
@@ -206,8 +223,30 @@ public class AttendanceReportService {
 			spec = spec.and(AttendanceSpecifications.withCourseId(filter.courseId()));
 		}
 
-		Page<AttendanceRecord> page = attendanceRecordRepository.findAll(spec, safePageable);
-		return PageResponse.from(page.map(AttendanceReportService::toView));
+		Optional<Specification<AttendanceRecord>> sheetFilter = resolveSheetFilter(filter);
+		if (sheetFilter.isEmpty()) {
+			return PageResponse.from(Page.empty(safePageable));
+		}
+		return toPage(attendanceRecordRepository.findAll(spec.and(sheetFilter.get()), safePageable));
+	}
+
+	/**
+	 * Wave 8 {@code classSessionId} filter: resolves the session's sheet via
+	 * the tenant-scoped sheet repository. {@link Optional#empty()} means "no
+	 * sheet for that session in this tenant" - the caller returns an empty
+	 * page (never widens, never reveals whether a foreign id exists).
+	 */
+	private Optional<Specification<AttendanceRecord>> resolveSheetFilter(AttendanceReportFilter filter) {
+		if (filter.classSessionId() == null) {
+			return Optional.of(Specification.unrestricted());
+		}
+		return attendanceSheetService.findByClassSessionId(filter.classSessionId())
+			.map(sheet -> AttendanceSpecifications.withSheetId(sheet.getId()));
+	}
+
+	private PageResponse<AttendanceRecordView> toPage(Page<AttendanceRecord> page) {
+		List<AttendanceRecordView> views = attendanceRecordViewAssembler.toViews(page.getContent());
+		return PageResponse.from(new PageImpl<>(views, page.getPageable(), page.getTotalElements()));
 	}
 
 	private Set<UUID> resolveOwnedCourseIdsWithHistory(UUID teacherId) {
@@ -242,10 +281,5 @@ public class AttendanceReportService {
 		return PageRequest.of(pageable.getPageNumber(), MAX_PAGE_SIZE, pageable.getSort());
 	}
 
-	private static AttendanceRecordView toView(AttendanceRecord record) {
-		return new AttendanceRecordView(record.getId(), record.getCourseId(), record.getSessionId(),
-				record.getStudentId(), record.getStatus(), record.getMarkedBy(), record.getMarkedAt(),
-				record.getCreatedAt(), record.getUpdatedAt());
-	}
 
 }
