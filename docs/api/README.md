@@ -59,3 +59,9 @@ Domain contract files, in the order they landed:
   filters, the new `PaymentOperationalState`/`PaymentMethod` computed projections, and
   the new `GET /api/v1/ledger/outstanding`/`GET /api/v1/ledger/courses/{courseId}/summary`
   endpoints.
+- `finance-expense-management.md` — Wave 7 (PAR-23-01/02/04/05), new domain's first contract
+  file: expense categories, append-only expenses with receipt upload/void, and ledger-derived
+  finance reports (summary, course/teacher revenue, monthly periods).
+- `ledger-settlement-management.md` — updated in Wave 7 (PAR-23-03, PAR-24-02/03/04) for the
+  teacher settlement foundation (share rates, calculated statements, adjustments, mark-paid,
+  payee list) and the new `LedgerRevenueApi` read contract.

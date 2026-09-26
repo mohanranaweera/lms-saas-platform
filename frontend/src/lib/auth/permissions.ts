@@ -339,3 +339,23 @@ export function canManageLiveClassesStaff(role: string | null): boolean {
 export function isTeacherRole(role: string | null): boolean {
   return role === "TEACHER" || role === "TEACHER_ASSISTANT";
 }
+
+/**
+ * Roles holding `FINANCE_EXPENSES`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (Tenant Admin, Finance Staff, Read-only Auditor) — gates the Wave 7
+ * Finance nav entries (expenses, categories, reports, teacher payouts). Every
+ * `/api/v1/finance/**` endpoint independently re-enforces this server-side.
+ */
+export function canViewFinance(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF" || role === "READ_ONLY_AUDITOR";
+}
+
+/**
+ * Roles holding `FINANCE_EXPENSES`/`CREATE_EDIT` (and `DELETE`, which the
+ * backend narrows to "void") — Tenant Admin and Finance Staff. Read-only
+ * Auditor must never see record/void/calculate/mark-paid/adjust actions; a
+ * direct request still gets a real backend 403 regardless.
+ */
+export function canManageFinance(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
+}

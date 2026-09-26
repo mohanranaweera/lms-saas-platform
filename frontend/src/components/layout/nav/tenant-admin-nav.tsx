@@ -8,6 +8,7 @@ import {
   canViewAttendanceReports,
   canViewAuditLog,
   canViewExamsStaff,
+  canViewFinance,
   canViewInstituteConfig,
   canViewLiveClassesStaff,
   canViewPaymentDashboard,
@@ -92,6 +93,17 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
       label: "Reactivation Approvals",
       href: "/tenant-admin/access-expiry/reactivation-approvals",
     });
+  }
+  // Wave 7 — FINANCE_EXPENSES/VIEW (Tenant Admin, Finance Staff, Read-only
+  // Auditor). UX only; every /api/v1/finance/** endpoint re-enforces it.
+  if (canViewFinance(role)) {
+    financeItems.push(
+      { label: "Finance Summary", href: "/tenant-admin/finance" },
+      { label: "Expenses", href: "/tenant-admin/finance/expenses" },
+      { label: "Expense Categories", href: "/tenant-admin/finance/categories" },
+      { label: "Finance Reports", href: "/tenant-admin/finance/reports" },
+      { label: "Teacher Payouts", href: "/tenant-admin/finance/teacher-payouts" }
+    );
   }
 
   const administrationItems: NavItem[] = [];

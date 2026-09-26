@@ -1,9 +1,10 @@
 # ledger-settlement-management — API Contract
 
-Covers the Payment History / Payment Dashboard read endpoints (MVP-010 / Phase 1 only —
-`com.lms.ledgersettlementmanagement`). Settlement-run endpoints (Phase 2) do not exist
-yet and are out of this module's scope; nothing in `ledger_entry`'s schema or this API
-scaffolds them. Written retroactively alongside `docs/api/payment-management.md` — see
+Covers the Payment History / Payment Dashboard read endpoints (MVP-010 / Phase 1 —
+`com.lms.ledgersettlementmanagement`) and, since Wave 7, the **teacher settlement
+foundation** (see "Wave 7: teacher settlement foundation" at the end). Platform → tenant
+settlement (commission %, gateway fees) and split payments still do not exist; nothing in
+`ledger_entry`'s schema was changed for settlement. Written retroactively alongside `docs/api/payment-management.md` — see
 that file's header note for why.
 
 **Wave 6 update** (`docs/parity/waves/wave-06-plan.md`): every ledger-derived read below
@@ -370,3 +371,57 @@ screens) — purely additive, no table/column change. `tenant_id` is a trailing 
 be read directly from the index, while staying compatible with every currently-supported
 PostgreSQL version. See `docs/architecture/database-architecture.md` for the fuller
 rationale.
+
+
+## Wave 7: teacher settlement foundation
+
+`docs/parity/waves/wave-07-plan.md` §2/§3/§10 (PAR-23-03, PAR-24-02/03/04). Tables V55:
+`teacher_revenue_share_rate`, `teacher_settlement`, `teacher_settlement_item`.
+
+**Scope boundary (change-controlled payment ledger rules):** settlement **reads** ledger entries
+and **never writes, updates or deletes** a `ledger_entry` — no new `LedgerEntryType`. Marking a
+statement `PAID` is record-keeping only (no money moves). No commission/gateway-fee/split logic.
+
+**Authorization:** `FINANCE_EXPENSES` — `VIEW` for reads, `CREATE_EDIT` for every write (tenant
+Finance triggers teacher settlement — judgment call 2). Teachers/Students/other staff: 403
+(including their own statement). Cross-tenant ids: 404.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/finance/teachers` | `[{userId, name, email}]` — payee picker; `userId` is the `tenant_user` id `course.teacher_id` stores (Finance roles have no `TEACHERS` grant, so `/api/v1/teachers` is unavailable to them) |
+| GET | `/api/v1/finance/teacher-share-rates?teacherId` | rate history, newest first |
+| POST | `/api/v1/finance/teacher-share-rates` `{teacherId, sharePercent 0–100 (2 dp), effectiveFrom}` | 201; append-only; duplicate effective date for the teacher → 409; audited `teacher_share_rate.created` |
+| POST | `/api/v1/finance/teacher-settlements` `{teacherId, periodStart, periodEnd}` | 201 `SettlementDetail`; see rules below; audited `teacher_settlement.calculated` |
+| GET | `/api/v1/finance/teacher-settlements?teacherId&status&kind&page&size` | `PageResponse<SettlementView>` |
+| GET | `/api/v1/finance/teacher-settlements/{id}` | `SettlementDetail {settlement, courses[{courseId, courseTitle, gross, refunds, net, entryCount}], adjustments[]}` |
+| POST | `/api/v1/finance/teacher-settlements/{id}/mark-paid` `{payoutReference?}` | `CALCULATED → PAID`, one-way, row-locked; second call 409; audited `teacher_settlement.marked_paid` |
+| POST | `/api/v1/finance/teacher-settlements/{id}/adjustments` `{amount ≠ 0 (signed, 2 dp), reason}` | 201; new `ADJUSTMENT` row referencing the original REGULAR statement (adjusting an adjustment → 409); original never mutated; audited `teacher_settlement.adjusted` with `totalBefore`/`totalAfter` |
+
+**Calculation rules:**
+- Period is inclusive dates in the tenant timezone; `periodStart <= periodEnd`, `periodEnd` must be
+  **before today** (closed period), span < 366 days — else 400.
+- A revenue-share rate must be effective on `periodStart` (else 400), and no other rate may start
+  inside the period (else 400 — settle each rate's dates separately).
+- Source entries: every `ledger_entry` recorded in the period for a course whose **current**
+  teacher is the payee, excluding zero-amount entries and entries already included in any
+  statement. None left → 409.
+- `gross` = Σ positive, `refund` = Σ |negative|, `net = gross − refund`,
+  `share = net × percent / 100` rounded HALF_UP to cents (may be negative when refunds exceed
+  income). `sharePercent` and `rateId` are snapshotted; figures are never recomputed.
+- `effectiveShareAmount` = `shareAmount` + Σ adjustments.
+
+**Schema-enforced idempotency (payments.md §5):** partial unique
+`(tenant_id, teacher_id, period_start, period_end) WHERE kind='REGULAR'` (re-run → 409, zero new
+rows) and unique `(tenant_id, ledger_entry_id)` on items (a ledger entry is settled at most
+once, even across overlapping periods or concurrent runs). All three repositories extend
+`AppendOnlyTenantAwareRepository` (every delete method throws).
+
+**`LedgerRevenueApi`** (`ledgersettlementmanagement.api`): `findRevenueEntries(from, to)` →
+`LedgerRevenueEntry(entryId, orderId, refund, amount, createdAt, courseId)`, tenant-scoped,
+batched order→course resolution. The read contract `finance-expense-management` uses for
+ledger-derived income — no other module touches `LedgerEntryRepository`.
+
+Tests: `TeacherSettlementIntegrationTest` (exact figures, re-run/overlap idempotency, refund in
+a later period, rate snapshotting, open-period/no-rate/non-teacher rejection, adjustments,
+one-way mark-paid incl. a concurrent race, permissions, cross-tenant, DB constraints, no ledger
+writes), `TeacherSettlementShareCalculationTest`.

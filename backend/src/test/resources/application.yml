@@ -100,3 +100,9 @@ app:
       # entry once the payment-management slip sub-module's beans are on the
       # classpath.
       max-file-size-bytes: 26214400
+  finance:
+    expense:
+      # Mirrors src/main/resources/application.yml (Wave 7) - same
+      # classpath-shadowing reason as the entries above; ExpenseService's
+      # @Value binding has no Java-side default.
+      max-attachment-size-bytes: 10485760

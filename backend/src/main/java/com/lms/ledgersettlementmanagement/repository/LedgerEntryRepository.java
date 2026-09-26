@@ -3,6 +3,7 @@ package com.lms.ledgersettlementmanagement.repository;
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntry;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntryType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -149,6 +150,19 @@ public interface LedgerEntryRepository extends TenantAwareRepository<LedgerEntry
 	 */
 	default List<LedgerEntry> findAllForDashboardUnpaged() {
 		return findAll((root, query, cb) -> cb.conjunction(), Sort.by(Sort.Direction.DESC, "createdAt"));
+	}
+
+	/**
+	 * Wave 7 (§4) - every entry in the caller's own tenant whose {@code
+	 * createdAt} falls in {@code [fromInclusive, toExclusive)}, oldest first.
+	 * Specification-based (never a bare {@code @Query}), so the ADR-006
+	 * tenant predicate is applied structurally by {@code
+	 * TenantAwareRepositoryImpl}. Backs finance reporting and teacher
+	 * settlement calculation - both strictly ledger-derived.
+	 */
+	default List<LedgerEntry> findAllCreatedBetween(Instant fromInclusive, Instant toExclusive) {
+		return findAll((root, query, cb) -> cb.and(cb.greaterThanOrEqualTo(root.get("createdAt"), fromInclusive),
+				cb.lessThan(root.get("createdAt"), toExclusive)), Sort.by(Sort.Direction.ASC, "createdAt"));
 	}
 
 	@Override

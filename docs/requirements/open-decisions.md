@@ -36,6 +36,7 @@ date and a pointer to the decision record (an ADR, if the item touches a change-
   Affects: [19-zoom-live-classes.md](specifications/19-zoom-live-classes.md).
 - **Settlement-run triggering**: exact split of who can trigger a run (Platform Admin only vs. tenant-level Finance Staff/Institute Owner) is not fully specified.
   Affects: [24-settlements.md](specifications/24-settlements.md).
+  **Wave 7 interim (not a resolution — sign-off requested):** *teacher* settlement statements are triggered by tenant Finance (`FINANCE_EXPENSES`/`CREATE_EDIT`); platform→tenant settlement is not built, so who triggers *that* remains fully open. See `docs/parity/waves/wave-07-plan.md` §10.2.
 - **Expense approval**: the matrix gives Finance Staff/Institute Owner plain `V/C/E/D` on Finance & Expenses with no distinct `A` (approve) column, unlike Payments/Courses/Exams — a gap if the recommended expense-approval workflow is built.
   Affects: [23-finance-and-expenses.md](specifications/23-finance-and-expenses.md).
 - **Teacher approval** — **RESOLVED 2026-08-13.** No explicit `A` (approve) column exists for
@@ -97,6 +98,7 @@ date and a pointer to the decision record (an ADR, if the item touches a change-
   Affects: [21-sms.md](specifications/21-sms.md), [22-whatsapp.md](specifications/22-whatsapp.md).
 - **Expense record deletion**: the permission matrix grants Finance Staff/Institute Owner literal `D` (hard delete) on Finance & Expenses, which is in tension with `non-functional-requirements.md` §9's "financial history... is never deleted" principle and the append-only pattern used elsewhere in the payment/ledger cluster. Whether this is an intentional exception or an inconsistency to fix is unresolved — **flagging, not resolving unilaterally.**
   Affects: [23-finance-and-expenses.md](specifications/23-finance-and-expenses.md).
+  **Wave 7 interim (not a resolution — sign-off requested):** expenses were built append-only — no hard delete, no edit; the `D` grant gates a one-way, reason-required, audited *void*. Reversible to a softer policy later without data loss; the reverse would not be. See `docs/parity/waves/wave-07-plan.md` §10.1.
 - **Course review moderation actions**: whether approve/reject requires an audit entry is unresolved.
   Affects: [26-course-reviews.md](specifications/26-course-reviews.md).
 - **Audit-log retention/purge policy**: no policy exists beyond "retained indefinitely by default; a future retention/purge policy is a separate approved process."

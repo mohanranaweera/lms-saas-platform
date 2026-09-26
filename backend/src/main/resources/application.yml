@@ -167,6 +167,13 @@ app:
       # upload paths are differently scoped and nothing ties their limits
       # together as a matter of ratified business decision.
       max-file-size-bytes: 26214400
+  finance:
+    expense:
+      # Wave 7 working default for expense receipt uploads (PDF/PNG/JPEG) -
+      # not specified anywhere in the requirements corpus, same
+      # not-ratified status as app.payment.slip.max-file-size-bytes; 10 MB is
+      # this implementation's own default, flagged in wave-07-plan.md.
+      max-attachment-size-bytes: 10485760
   video-access:
     asset:
       # Wave 5 working default, mirroring app.content.material/app.payment.slip's
