@@ -2,6 +2,8 @@ package com.lms.coursemanagement.course.service;
 
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -29,16 +31,30 @@ import org.springframework.stereotype.Component;
  * invisible (404 via {@code NotFoundException}) before ownership is even
  * evaluated here - this guard only ever sees a course that already belongs
  * to the caller's own resolved tenant.
+ *
+ * <p><b>Enrolled-Student read access:</b> a Student may VIEW a {@code
+ * PUBLIC} or {@code PRIVATE} course (and, through the same check, its
+ * modules/lessons) while {@link EnrollmentAccessApi#resolveAccessState}
+ * reports their enrollment {@link EnrollmentAccessStateType#ACTIVE} - i.e.
+ * inside the paid access window. A {@code DRAFT} course stays hidden even
+ * from enrolled Students, and an expired/superseded/missing enrollment falls
+ * through to the matrix check below, which denies. This only reads existing
+ * enrollment state; it is not an enrollment-activation path.
  */
 @Component
 public class CourseAccessGuard {
 
 	private static final String TEACHER_ROLE = "TEACHER";
 
+	private static final String STUDENT_ROLE = "STUDENT";
+
 	private final PermissionCheckService permissionCheckService;
 
-	public CourseAccessGuard(PermissionCheckService permissionCheckService) {
+	private final EnrollmentAccessApi enrollmentAccessApi;
+
+	public CourseAccessGuard(PermissionCheckService permissionCheckService, EnrollmentAccessApi enrollmentAccessApi) {
 		this.permissionCheckService = permissionCheckService;
+		this.enrollmentAccessApi = enrollmentAccessApi;
 	}
 
 	public void requireCourseAccess(Course course, PermissionAction action) {
@@ -67,6 +83,12 @@ public class CourseAccessGuard {
 			// matrix check below, which correctly denies Student/every role
 			// with no explicit grant.
 			return;
+		}
+		if (action == PermissionAction.VIEW && STUDENT_ROLE.equals(principal.role())
+				&& course.getStatus() != CourseStatus.DRAFT && enrollmentAccessApi
+					.resolveAccessState(principal.userId(), course.getId())
+					.state() == EnrollmentAccessStateType.ACTIVE) {
+			return; // enrolled Student inside the paid access window - see class javadoc
 		}
 		permissionCheckService.requirePermission(DomainArea.COURSES, action);
 	}

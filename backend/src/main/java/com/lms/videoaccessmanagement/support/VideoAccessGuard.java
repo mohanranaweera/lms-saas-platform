@@ -78,7 +78,7 @@ public class VideoAccessGuard {
 		}
 
 		if (STUDENT_ROLE.equals(principal.role())) {
-			if (action != PermissionAction.VIEW || !ownership.coursePublished()) {
+			if (action != PermissionAction.VIEW || !ownership.courseOpenToEnrolledStudents()) {
 				throw new NotFoundException("Video not found");
 			}
 			EnrollmentAccessState state = enrollmentAccessApi.resolveAccessState(principal.userId(),

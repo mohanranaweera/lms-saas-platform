@@ -49,7 +49,7 @@ class MaterialLookupApiImpl implements MaterialLookupApi {
 		}
 		Optional<LessonOwnership> ownershipOpt = courseLookupApi.resolveLessonOwnership(material.getLessonId());
 		return ownershipOpt.map(ownership -> new MaterialVideoOwnership(material.getId(), ownership.courseId(),
-				ownership.teacherId(), ownership.coursePublished()));
+				ownership.teacherId(), ownership.courseOpenToEnrolledStudents()));
 	}
 
 }

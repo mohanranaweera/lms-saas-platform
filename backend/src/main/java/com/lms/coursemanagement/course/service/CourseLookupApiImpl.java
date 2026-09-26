@@ -135,7 +135,7 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 			.flatMap(lesson -> courseModuleRepository.findById(lesson.getModuleId())
 				.flatMap(module -> courseRepository.findById(module.getCourseId())
 					.map(course -> new LessonOwnership(lesson.getId(), module.getId(), course.getId(),
-							course.getTeacherId(), course.getStatus() == CourseStatus.PUBLIC))));
+							course.getTeacherId(), course.getStatus() != CourseStatus.DRAFT))));
 	}
 
 }

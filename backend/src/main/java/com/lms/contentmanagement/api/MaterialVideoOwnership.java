@@ -14,8 +14,9 @@ import java.util.UUID;
  * @param materialId the {@code material} row that references this video asset.
  * @param courseId the course the owning material's lesson belongs to.
  * @param teacherId the course's assigned teacher id.
- * @param coursePublished whether the course is currently {@code PUBLIC}.
+ * @param courseOpenToEnrolledStudents whether the course is currently
+ * {@code PUBLIC} or {@code PRIVATE} (not {@code DRAFT}).
  */
-public record MaterialVideoOwnership(UUID materialId, UUID courseId, UUID teacherId, boolean coursePublished) {
+public record MaterialVideoOwnership(UUID materialId, UUID courseId, UUID teacherId, boolean courseOpenToEnrolledStudents) {
 
 }
