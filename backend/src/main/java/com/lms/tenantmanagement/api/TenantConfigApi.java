@@ -1,5 +1,6 @@
 package com.lms.tenantmanagement.api;
 
+import com.lms.common.money.PlatformCurrency;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,5 +38,22 @@ public interface TenantConfigApi {
 	Optional<Object> resolveValue(UUID tenantId, ConfigDomain domain, String key);
 
 	Map<String, Object> resolveDomain(UUID tenantId, ConfigDomain domain);
+
+	/**
+	 * The tenant's configured {@code GENERAL.default_currency} (Tenant Admin
+	 * -> Settings -> General), falling back to {@link
+	 * PlatformCurrency#DEFAULT_CURRENCY} only when the tenant has not set one.
+	 * The single source for every amount that has no currency column of its
+	 * own (FREE/ONE_TIME checkout, expenses, finance reports, settlements).
+	 * Callers snapshot the result onto the row they create, so changing the
+	 * setting never rewrites existing orders/payments/settlements.
+	 */
+	default String resolveDefaultCurrency(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "default_currency")
+			.filter(String.class::isInstance)
+			.map(String.class::cast)
+			.filter(value -> !value.isBlank())
+			.orElse(PlatformCurrency.DEFAULT_CURRENCY);
+	}
 
 }

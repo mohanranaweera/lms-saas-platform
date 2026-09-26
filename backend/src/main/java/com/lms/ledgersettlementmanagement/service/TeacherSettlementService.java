@@ -6,7 +6,6 @@ import com.lms.common.api.FieldError;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
-import com.lms.common.money.PlatformCurrency;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CourseSummary;
@@ -228,7 +227,8 @@ public class TeacherSettlementService {
 
 		TeacherSettlement settlement = settlementRepository.saveAndFlush(TeacherSettlement.regular(
 				tenantContext.getTenantId(), teacherId, periodStart, periodEnd, gross, refunds,
-				rate.getSharePercent(), rate.getId(), shareAmount, PlatformCurrency.DEFAULT_CURRENCY, actorId,
+				rate.getSharePercent(), rate.getId(), shareAmount,
+				tenantConfigApi.resolveDefaultCurrency(tenantContext.getTenantId()), actorId,
 				Instant.now()));
 		itemRepository.saveAllAndFlush(entries.stream()
 			.map(entry -> new TeacherSettlementItem(tenantContext.getTenantId(), settlement.getId(), entry.entryId(),

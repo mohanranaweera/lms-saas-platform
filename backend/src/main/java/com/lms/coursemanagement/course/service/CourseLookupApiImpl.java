@@ -16,7 +16,7 @@ import com.lms.coursemanagement.course.repository.CourseBillingPeriodRepository;
 import com.lms.coursemanagement.course.repository.CourseLessonRepository;
 import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
-import com.lms.common.money.PlatformCurrency;
+import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -49,15 +49,18 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 
 	private final CourseBillingPeriodRepository courseBillingPeriodRepository;
 
+	private final TenantConfigApi tenantConfigApi;
+
 	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
 			CourseLessonRepository courseLessonRepository,
 			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
-			CourseBillingPeriodRepository courseBillingPeriodRepository) {
+			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi) {
 		this.courseRepository = courseRepository;
 		this.courseModuleRepository = courseModuleRepository;
 		this.courseLessonRepository = courseLessonRepository;
 		this.courseBillingConfigurationRepository = courseBillingConfigurationRepository;
 		this.courseBillingPeriodRepository = courseBillingPeriodRepository;
+		this.tenantConfigApi = tenantConfigApi;
 	}
 
 	@Override
@@ -105,9 +108,11 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 		boolean freePricing = pricingModel == CoursePricingModel.FREE;
 		return switch (pricingModel) {
 			case FREE ->
-				new CheckoutAmount(BigDecimal.ZERO, PlatformCurrency.DEFAULT_CURRENCY, null, false, freePricing);
+				new CheckoutAmount(BigDecimal.ZERO, tenantConfigApi.resolveDefaultCurrency(course.getTenantId()), null,
+						false, freePricing);
 			case ONE_TIME ->
-				new CheckoutAmount(course.getPrice(), PlatformCurrency.DEFAULT_CURRENCY, null, false, freePricing);
+				new CheckoutAmount(course.getPrice(), tenantConfigApi.resolveDefaultCurrency(course.getTenantId()),
+						null, false, freePricing);
 			case MONTHLY, SESSION -> {
 				CourseBillingConfiguration configuration = requireBillingConfiguration(course);
 				CourseBillingPeriod period = courseBillingPeriodRepository

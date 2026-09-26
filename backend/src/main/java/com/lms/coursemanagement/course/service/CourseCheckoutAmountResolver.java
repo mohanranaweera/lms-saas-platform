@@ -7,7 +7,7 @@ import com.lms.coursemanagement.course.domain.CourseBillingPeriod;
 import com.lms.coursemanagement.course.domain.CoursePricingModel;
 import com.lms.coursemanagement.course.repository.CourseBillingConfigurationRepository;
 import com.lms.coursemanagement.course.repository.CourseBillingPeriodRepository;
-import com.lms.common.money.PlatformCurrency;
+import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,10 +53,13 @@ class CourseCheckoutAmountResolver {
 
 	private final CourseBillingPeriodRepository courseBillingPeriodRepository;
 
+	private final TenantConfigApi tenantConfigApi;
+
 	CourseCheckoutAmountResolver(CourseBillingConfigurationRepository courseBillingConfigurationRepository,
-			CourseBillingPeriodRepository courseBillingPeriodRepository) {
+			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi) {
 		this.courseBillingConfigurationRepository = courseBillingConfigurationRepository;
 		this.courseBillingPeriodRepository = courseBillingPeriodRepository;
+		this.tenantConfigApi = tenantConfigApi;
 	}
 
 	Map<UUID, CheckoutAmount> resolveBatch(Collection<Course> courses) {
@@ -65,10 +68,10 @@ class CourseCheckoutAmountResolver {
 		for (Course course : courses) {
 			CoursePricingModel pricingModel = course.getPricingModel();
 			switch (pricingModel) {
-				case FREE -> resolved.put(course.getId(),
-						new CheckoutAmount(BigDecimal.ZERO, PlatformCurrency.DEFAULT_CURRENCY, null, false, true));
+				case FREE -> resolved.put(course.getId(), new CheckoutAmount(BigDecimal.ZERO,
+						tenantConfigApi.resolveDefaultCurrency(course.getTenantId()), null, false, true));
 				case ONE_TIME -> resolved.put(course.getId(), new CheckoutAmount(course.getPrice(),
-						PlatformCurrency.DEFAULT_CURRENCY, null, false, false));
+						tenantConfigApi.resolveDefaultCurrency(course.getTenantId()), null, false, false));
 				case MONTHLY, SESSION, CUSTOM -> needsBillingLookup.add(course);
 			}
 		}

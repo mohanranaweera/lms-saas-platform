@@ -1,6 +1,5 @@
 package com.lms.financeexpensemanagement.service;
 
-import com.lms.common.money.PlatformCurrency;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.financeexpensemanagement.domain.Expense;
@@ -86,7 +85,7 @@ public class FinanceReportService {
 		IncomeSummary income = incomeOf(ledgerEntries(range));
 		ExpenseSummary expenses = expenseSummaryOf(expenseRepository.findActiveDatedBetween(range.from(),
 				range.to()));
-		return new FinanceSummary(range.from(), range.to(), range.zone().getId(), PlatformCurrency.DEFAULT_CURRENCY,
+		return new FinanceSummary(range.from(), range.to(), range.zone().getId(), periodResolver.tenantCurrency(),
 				income, expenses, income.net().subtract(expenses.total()));
 	}
 
@@ -94,7 +93,7 @@ public class FinanceReportService {
 		permissionCheckService.requirePermission(DomainArea.FINANCE_EXPENSES, PermissionAction.VIEW);
 		DateRange range = periodResolver.resolve(from, to);
 		List<CourseRevenueRow> rows = courseRows(ledgerEntries(range));
-		return new CourseRevenueReport(range.from(), range.to(), PlatformCurrency.DEFAULT_CURRENCY, rows,
+		return new CourseRevenueReport(range.from(), range.to(), periodResolver.tenantCurrency(), rows,
 				incomeOfRows(rows));
 	}
 
@@ -121,7 +120,7 @@ public class FinanceReportService {
 			return new TeacherRevenueRow(entry.getKey(), emails.get(entry.getKey()), courses.size(), gross, refunds,
 					gross.subtract(refunds), payments, refundCount);
 		}).sorted(Comparator.comparing(TeacherRevenueRow::net).reversed()).toList();
-		return new TeacherRevenueReport(range.from(), range.to(), PlatformCurrency.DEFAULT_CURRENCY, rows,
+		return new TeacherRevenueReport(range.from(), range.to(), periodResolver.tenantCurrency(), rows,
 				incomeOfRows(courseRows));
 	}
 
@@ -150,7 +149,7 @@ public class FinanceReportService {
 					expenseTotal, income.net().subtract(expenseTotal)));
 			month = month.plusMonths(1);
 		}
-		return new PeriodReport(range.from(), range.to(), range.zone().getId(), PlatformCurrency.DEFAULT_CURRENCY,
+		return new PeriodReport(range.from(), range.to(), range.zone().getId(), periodResolver.tenantCurrency(),
 				rows);
 	}
 

@@ -28,6 +28,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.lms.tenantmanagement.api.TenantConfigApi;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -64,12 +66,15 @@ class CoursePublicServiceTest {
 	@Mock
 	private CourseBillingPeriodRepository billingPeriodRepository;
 
+	@Mock(answer = Answers.CALLS_REAL_METHODS)
+	private TenantConfigApi tenantConfigApi;
+
 	private CoursePublicService coursePublicService;
 
 	@BeforeEach
 	void setUp() {
 		CourseCheckoutAmountResolver resolver = new CourseCheckoutAmountResolver(billingConfigurationRepository,
-				billingPeriodRepository);
+				billingPeriodRepository, tenantConfigApi);
 		coursePublicService = new CoursePublicService(courseRepository, resolver);
 	}
 
