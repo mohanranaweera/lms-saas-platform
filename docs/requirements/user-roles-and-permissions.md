@@ -66,6 +66,7 @@ results), `—` = no access. This is a starting matrix for IA/navigation purpose
 | Branding & settings | V/C/E | — | — | — | — | — | — | V |
 | Support tickets | V/C/E/D | — | — | V/C/E | — | — | — | V |
 | Live classes | V/C/E/D/A | — | V/C/E/A | — | — | — | — | — |
+| Payment gateway (PAY-GW-01) | V/C/E | V | — | — | — | — | — | V |
 
 Live classes (Wave 4, PAR-19-03): who may schedule/manage a `class_session` at the
 staff-matrix level — Teacher/Teacher Assistant ownership access is separate, scoped to

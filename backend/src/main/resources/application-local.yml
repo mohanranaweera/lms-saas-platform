@@ -76,3 +76,18 @@ video-playback:
     # Non-local environments keep application.yml's empty, fail-closed
     # default and must set VIDEO_PLAYBACK_TOKEN_SECRET via a real env var.
     secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:dev-only-video-playback-placeholder-change-me-32bytes+}
+
+payment:
+  gateway:
+    # Local only: keep the pre-PAY-GW-01 fake gateway when a tenant has no
+    # PayHere account configured.
+    fake-fallback-enabled: true
+  credentials:
+    # Clearly-fake, dev-only key (Base64 of "dev-only-payment-cred-key-32byte").
+    encryption-key: ${PAYMENT_CREDENTIALS_ENCRYPTION_KEY:ZGV2LW9ubHktcGF5bWVudC1jcmVkLWtleS0zMmJ5dGU=}
+  payhere:
+    # PayHere cannot call localhost - set PAYHERE_NOTIFY_URL to a public
+    # tunnel (e.g. ngrok) URL ending in /api/v1/integrations/webhooks/payhere
+    # to test with PayHere sandbox credentials.
+    notify-url: ${PAYHERE_NOTIFY_URL:}
+    return-url-template: ${PAYHERE_RETURN_URL_TEMPLATE:http://{subdomain}.lms.test:3000}

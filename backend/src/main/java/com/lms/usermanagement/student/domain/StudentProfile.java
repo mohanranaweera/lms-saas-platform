@@ -57,6 +57,13 @@ public class StudentProfile extends Auditable implements TenantOwned {
 	@Column(name = "mobile")
 	private String mobile;
 
+	/** The student's own billing address (V58) - required for online (PayHere) payment. */
+	@Column(name = "address_line")
+	private String addressLine;
+
+	@Column(name = "city")
+	private String city;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "registration_status", nullable = false)
 	private StudentRegistrationStatus registrationStatus;
@@ -137,6 +144,20 @@ public class StudentProfile extends Auditable implements TenantOwned {
 	 */
 	public void rename(String name) {
 		this.name = name;
+	}
+
+	public String getAddressLine() {
+		return addressLine;
+	}
+
+	public String getCity() {
+		return city;
+	}
+
+	/** Self-service billing address edit (PAY-GW-01 follow-up). */
+	public void updateBillingAddress(String addressLine, String city) {
+		this.addressLine = addressLine;
+		this.city = city;
 	}
 
 }

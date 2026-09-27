@@ -64,6 +64,13 @@ public enum DomainArea {
 	 * {@link #COURSES}'s identical Teacher-ownership carve-out) - a grant
 	 * here only ever applies to a staff sub-role.
 	 */
-	LIVE_CLASSES
+	LIVE_CLASSES,
+
+	/**
+	 * PAY-GW-01 / ADR-017: the tenant's own online payment gateway account
+	 * (PayHere merchant credentials). CREATE_EDIT is Tenant Admin only;
+	 * merchant secrets are never readable by any role.
+	 */
+	PAYMENT_GATEWAY
 
 }

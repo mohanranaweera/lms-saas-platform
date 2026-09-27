@@ -1,0 +1,63 @@
+- generic [ref=f1e1]:
+  - button "Open Next.js Dev Tools" [ref=f1e11] [cursor=pointer]
+  - alert [ref=f1e15]
+  - generic [ref=f1e16]:
+    - complementary [ref=f1e17]:
+      - generic [ref=f1e18]: Student Portal
+      - navigation "Primary" [ref=f1e19]:
+        - list [ref=f1e20]:
+          - listitem [ref=f1e21]:
+            - link "Dashboard" [ref=f1e22] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f1e23]:
+            - link "My Courses" [ref=f1e24] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f1e25]:
+            - link "Live Classes" [ref=f1e26] [cursor=pointer]:
+              - /url: /student/live-classes
+          - listitem [ref=f1e27]:
+            - link "My Attendance" [ref=f1e28] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f1e29]:
+            - link "Exams" [ref=f1e30] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f1e31]:
+            - link "Payments" [ref=f1e32] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f1e33]:
+            - link "Reactivation" [ref=f1e34] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f1e35]:
+            - link "Notifications" [ref=f1e36] [cursor=pointer]:
+              - /url: /student/notifications
+          - listitem [ref=f1e37]:
+            - link "Profile" [ref=f1e38] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f1e39]:
+      - banner [ref=f1e40]:
+        - button "Sign out" [ref=f1e42]
+      - main [ref=f1e43]:
+        - generic [ref=f1e44]:
+          - navigation "Breadcrumb" [ref=f1e45]:
+            - link "← Back to course" [ref=f1e46] [cursor=pointer]:
+              - /url: /student/courses/01a0a8c1-c4fd-755c-8fc5-c993482707a4
+          - generic [ref=f1e47]:
+            - heading "Lesson materials" [level=1] [ref=f1e48]
+            - paragraph [ref=f1e49]: Files your teacher has shared for this lesson.
+          - list [ref=f1e50]:
+            - listitem [ref=f1e51]:
+              - generic [ref=f1e54]:
+                - paragraph [ref=f1e55]: Test
+                - generic [ref=f1e56]: Note
+              - paragraph [ref=f1e57]: Test Note
+            - listitem [ref=f1e58]:
+              - generic [ref=f1e60]:
+                - generic [ref=f1e61]:
+                  - paragraph [ref=f1e62]: Video FIle
+                  - generic [ref=f1e63]: Video
+                - paragraph [ref=f1e64]: ·
+              - generic [ref=f1e65]:
+                - button "Open video" [expanded] [active] [ref=f1e66]
+                - alert [ref=f1e71]:
+                  - paragraph [ref=f1e74]: Couldn't load this video. Please try again.
+                  - button "Try again" [ref=f1e75]

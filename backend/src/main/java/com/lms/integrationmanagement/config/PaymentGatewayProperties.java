@@ -22,6 +22,23 @@ public class PaymentGatewayProperties {
 
 	private String webhookSecret = "";
 
+	/**
+	 * PAY-GW-01: when no tenant gateway account is ACTIVE, fall back to the
+	 * in-process fake gateway instead of refusing online payment. {@code
+	 * false} by default (online "Enroll" is refused with a clear message);
+	 * only the local/test profiles enable it, so pre-PAY-GW-01 flows and tests
+	 * keep working.
+	 */
+	private boolean fakeFallbackEnabled = false;
+
+	public boolean isFakeFallbackEnabled() {
+		return fakeFallbackEnabled;
+	}
+
+	public void setFakeFallbackEnabled(boolean fakeFallbackEnabled) {
+		this.fakeFallbackEnabled = fakeFallbackEnabled;
+	}
+
 	public String getWebhookSecret() {
 		return webhookSecret;
 	}

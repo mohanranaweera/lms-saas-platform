@@ -669,10 +669,22 @@ test.describe("student — approved reactivation can complete a new checkout", (
     );
     await mockJson(page, `**/api/v1/orders/${order.id}`, 200, apiSuccess(order));
 
+    await mockJson(
+      page,
+      "**/v1/checkout/payment-options",
+      200,
+      apiSuccess({ bankSlip: true, onlinePayment: { provider: "PAYHERE", mode: "SANDBOX" } })
+    );
+    await mockJson(
+      page,
+      "**/v1/students/me/billing-address",
+      200,
+      apiSuccess({ addressLine: "No. 1, Galle Road", city: "Colombo" })
+    );
     await grid.getByRole("link", { name: /Proceed to checkout/ }).click();
     await expect(page).toHaveURL(`/student/checkout/${COURSE.id}`);
 
-    await page.getByRole("button", { name: "Enroll" }).click();
+    await page.getByRole("button", { name: "Pay online (PayHere)" }).click();
     await expect(page).toHaveURL(`/student/payments/awaiting-confirmation/${order.id}`);
   });
 

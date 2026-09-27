@@ -32,6 +32,21 @@ import {
 async function mockTenantSession(page: Page, role: string): Promise<void> {
   const token = fakeJwt({ role });
   await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+  // PAY-GW-01 default for this suite: the institute has an active PayHere
+  // account and the student has a billing address, so paid checkout offers
+  // "Pay online (PayHere)". Tests override these routes for other cases.
+  await mockJson(
+    page,
+    "**/v1/checkout/payment-options",
+    200,
+    apiSuccess({ bankSlip: true, onlinePayment: { provider: "PAYHERE", mode: "SANDBOX" } })
+  );
+  await mockJson(
+    page,
+    "**/v1/students/me/billing-address",
+    200,
+    apiSuccess({ addressLine: "No. 1, Galle Road", city: "Colombo" })
+  );
 }
 
 const COURSE = {
@@ -73,7 +88,7 @@ test.describe("checkout — no editable price field", () => {
     // not just "no input named price" — the price is never bound to a form
     // field at all.
     await expect(page.locator("input")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Enroll" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Pay online (PayHere)" })).toBeEnabled();
   });
 
   test("enrolling creates an order, initiates payment, and redirects to awaiting-confirmation — never redirects to a gateway URL directly", async ({
@@ -114,7 +129,7 @@ test.describe("checkout — no editable price field", () => {
     await mockJson(page, `**/api/v1/orders/${order.id}`, 200, apiSuccess(order));
 
     await page.goto(`/student/checkout/${COURSE.id}`);
-    await page.getByRole("button", { name: "Enroll" }).click();
+    await page.getByRole("button", { name: "Pay online (PayHere)" }).click();
 
     await expect(page).toHaveURL(`/student/payments/awaiting-confirmation/${order.id}`);
   });
@@ -144,7 +159,7 @@ test.describe("checkout — idempotency (Wave 6 §3.3/§4/§5)", () => {
 
     await page.goto(`/student/checkout/${COURSE.id}`);
     await expect(page.getByRole("heading", { name: COURSE.name })).toBeVisible();
-    await page.getByRole("button", { name: "Enroll" }).click();
+    await page.getByRole("button", { name: "Pay online (PayHere)" }).click();
 
     await expect.poll(() => orderRequestKey).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
@@ -199,7 +214,7 @@ test.describe("checkout — idempotency (Wave 6 §3.3/§4/§5)", () => {
     await mockJson(page, `**/api/v1/orders/${order.id}`, 200, apiSuccess(order));
 
     await page.goto(`/student/checkout/${COURSE.id}`);
-    await page.getByRole("button", { name: "Enroll" }).click();
+    await page.getByRole("button", { name: "Pay online (PayHere)" }).click();
 
     await expect(page).toHaveURL(`/student/payments/awaiting-confirmation/${order.id}`);
     expect(orderRequestKey).toBeTruthy();
@@ -261,11 +276,13 @@ test.describe("checkout — idempotency (Wave 6 §3.3/§4/§5)", () => {
     await mockJson(page, `**/api/v1/orders/${order.id}`, 200, apiSuccess(order));
 
     await page.goto(`/student/checkout/${COURSE.id}`);
-    // Matches the button under both its labels (`Enroll` before submit,
-    // `Starting checkout…` while in flight) — the same underlying <button>
-    // element throughout, never a re-query by a name that stops matching
-    // once the label changes.
-    const enrollButton = page.getByRole("button", { name: /^(Enroll|Starting checkout…)$/ });
+    // Matches the button under both its labels (`Pay online (PayHere)` before
+    // submit, `Starting checkout…` while in flight) — the same underlying
+    // <button> element throughout, never a re-query by a name that stops
+    // matching once the label changes.
+    const enrollButton = page.getByRole("button", {
+      name: /^(Pay online \(PayHere\)|Starting checkout…)$/,
+    });
 
     await enrollButton.click();
     // The button is disabled (and its label changes) synchronously as part
@@ -306,6 +323,7 @@ test.describe("checkout — pricing-model-aware rendering (course-management gap
     await page.goto(`/student/checkout/${freeCourse.id}`);
 
     await expect(page.getByText("Free", { exact: true })).toBeVisible();
+    // A FREE course keeps the single "Enroll" action (no online payment).
     await expect(page.getByRole("button", { name: "Enroll" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toBeEnabled();
   });
@@ -330,7 +348,7 @@ test.describe("checkout — pricing-model-aware rendering (course-management gap
     await expect(
       page.getByText("Pricing for this course hasn't been configured yet", { exact: false })
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Enroll" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Pay online (PayHere)" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toBeDisabled();
   });
 
@@ -356,7 +374,7 @@ test.describe("checkout — pricing-model-aware rendering (course-management gap
     ).toBeVisible();
     // The actual bug fix under test: no checkout form/buttons for a
     // manual-quote course, since order creation would always 409.
-    await expect(page.getByRole("button", { name: "Enroll" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pay online (PayHere)" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toHaveCount(0);
     await expect(page.locator("input")).toHaveCount(0);
   });

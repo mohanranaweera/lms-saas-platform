@@ -299,6 +299,20 @@ export function canManageInstituteConfig(role: string | null): boolean {
 }
 
 /**
+ * Roles holding `PAYMENT_GATEWAY`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (PAY-GW-01): Tenant Admin, Finance Staff, Read-only Auditor. UX only
+ * - the backend re-checks every request.
+ */
+export function canViewPaymentGateway(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF" || role === "READ_ONLY_AUDITOR";
+}
+
+/** `PAYMENT_GATEWAY`/`CREATE_EDIT` - Tenant Admin only (PAY-GW-01). UX only. */
+export function canManagePaymentGateway(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
  * Roles holding `LIVE_CLASSES`/`VIEW` per `PermissionCheckServiceImpl`'s
  * matrix (Wave 4) — Tenant Admin (full grant) and Course Coordinator
  * (`V/C/E/A`, no `DELETE`). No other staff sub-role holds any `LIVE_CLASSES`

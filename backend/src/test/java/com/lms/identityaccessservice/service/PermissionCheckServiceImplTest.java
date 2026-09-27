@@ -286,7 +286,9 @@ class PermissionCheckServiceImplTest {
 									PermissionAction.DELETE),
 							// Wave 4 (PAR-19-03) - "Live classes" row.
 							cell(DomainArea.LIVE_CLASSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-									PermissionAction.DELETE, PermissionAction.APPROVE))),
+									PermissionAction.DELETE, PermissionAction.APPROVE),
+							// PAY-GW-01 - "Payment gateway" row.
+							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
@@ -296,7 +298,8 @@ class PermissionCheckServiceImplTest {
 							// "V (approve if finance-adjacent)" -> base V only.
 							cell(DomainArea.ACCESS_EXPIRY, PermissionAction.VIEW),
 							// "V (own-area actions)" -> base V only.
-							cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW))),
+							cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW),
+							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW))),
 			Map.entry(Role.COURSE_COORDINATOR,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW),
 							cell(DomainArea.TEACHERS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
@@ -341,6 +344,7 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.REVIEWS_MODERATION, PermissionAction.VIEW),
 							cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW),
 							cell(DomainArea.BRANDING_SETTINGS, PermissionAction.VIEW),
-							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW))));
+							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW),
+							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW))));
 
 }

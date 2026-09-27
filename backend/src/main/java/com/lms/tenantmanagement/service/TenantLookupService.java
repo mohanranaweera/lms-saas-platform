@@ -37,6 +37,11 @@ public class TenantLookupService implements TenantLookupApi {
 	}
 
 	@Override
+	public Optional<String> findSubdomain(UUID tenantId) {
+		return tenantRepository.findById(tenantId).map(Tenant::getSubdomain);
+	}
+
+	@Override
 	public List<TenantSummary> resolveTenantSummaries(Set<UUID> tenantIds) {
 		if (tenantIds == null || tenantIds.isEmpty()) {
 			return List.of();

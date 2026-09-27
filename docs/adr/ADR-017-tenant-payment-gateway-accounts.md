@@ -85,14 +85,23 @@ carve-out** accepted in ADR-011.
    terminal state); `0` is ignored (stays pending). The frontend return page still only
    polls backend status.
    **Chargeback (`-3`, verified signature, payment already CONFIRMED)** — owner decision 2:
-   in one transaction, (a) insert a `payment_refund` row (source `CHARGEBACK`, system
-   actor, full amount) which writes the existing **`REFUND`** ledger entry with
-   `reverses_entry_id` = the payment's `PAYMENT_CONFIRMED` entry — no new ledger entry
-   type, the confirmed Payment row itself is never updated; (b) revoke the enrollment that
-   payment activated through the existing ADR-016 `EnrollmentActivationApi#revoke`
-   (reason `PAYHERE_CHARGEBACK`), only if that enrollment is still the current one; (c)
-   write an audit entry. A repeated chargeback notification is a no-op. A chargeback for a
-   payment that is not CONFIRMED is rejected and security-logged.
+   in one transaction, (a) insert a `payment_refund` row (source `CHARGEBACK`, the
+   remaining unrefunded amount, PayHere's `payment_id` as `external_reference`) which
+   writes the existing **`REFUND`** ledger entry reversing the payment's
+   `PAYMENT_CONFIRMED` entry — no new ledger entry type, the confirmed Payment row itself
+   is never updated; (b) revoke the enrollment that payment activated via a new narrow
+   `EnrollmentActivationApi#revokeActivatedByPayment` (reason `PAYHERE_CHARGEBACK`), only
+   if that enrollment is still the current one; (c) write a structured security log
+   entry. A repeated chargeback notification is a no-op. A chargeback for a payment that
+   is not CONFIRMED is rejected and security-logged.
+
+   **Implementation note (2026-09-27):** no `audit_log` row is written for the chargeback
+   itself. `audit_log.actor_id` must resolve to a real `tenant_user`/`platform_admin_user`
+   (service guard + V33 trigger), and a gateway notification has no such actor. This
+   follows the existing precedent for verified webhook payment confirmations (security log
+   only); the durable trail is the CHARGEBACK refund row, the REFUND ledger entry and the
+   enrollment's `revoked_at`/`revoke_reason`. Recording system actors in `audit_log`
+   would need its own approved change to the audit-integrity trigger.
 6. **Ledger meaning**: a new nullable `payment.collected_by` (`PLATFORM`/`TENANT`) records
    whose account received the money. Owner decision 1: the platform takes no commission
    on `TENANT`-collected payments, so platform settlement/commission logic must exclude

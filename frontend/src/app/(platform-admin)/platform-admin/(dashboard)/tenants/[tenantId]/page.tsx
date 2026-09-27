@@ -10,6 +10,7 @@ import { RejectTenantDialog } from "@/components/platform-admin/reject-tenant-di
 import { usePlatformAdminTenantDetail } from "@/lib/api/platform-admin-tenants";
 import { StatusBadge } from "../status-badge";
 import { formatDateTime } from "@/lib/format";
+import { OnlinePaymentsCard } from "./online-payments-card";
 
 /**
  * Tenant Approval Detail (PADASH-1). `GET
@@ -121,6 +122,8 @@ export default function PlatformAdminTenantDetailPage() {
                 </div>
               </dl>
             </div>
+
+            <OnlinePaymentsCard tenantId={tenant.id} tenantName={tenant.name} />
           </>
         )}
       </QueryStateBoundary>

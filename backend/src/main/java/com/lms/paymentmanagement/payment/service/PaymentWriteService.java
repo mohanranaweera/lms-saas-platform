@@ -98,6 +98,15 @@ public class PaymentWriteService {
 	}
 
 	@Transactional
+	public void assignGatewayRouting(UUID paymentId, String gatewayReference, UUID gatewayAccountId,
+			String collectedBy) {
+		Payment payment = paymentRepository.findById(paymentId)
+			.orElseThrow(() -> new NotFoundException("Payment not found"));
+		payment.assignGatewayRouting(gatewayReference, gatewayAccountId, collectedBy);
+		paymentRepository.save(payment);
+	}
+
+	@Transactional
 	public void assignGatewayReference(UUID paymentId, String gatewayReference) {
 		Payment payment = paymentRepository.findById(paymentId)
 			.orElseThrow(() -> new NotFoundException("Payment not found"));

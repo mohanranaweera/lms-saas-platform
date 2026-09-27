@@ -23,6 +23,7 @@ import com.lms.usermanagement.api.StudentSummary;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -250,6 +251,38 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 	 * this codebase).
 	 * @throws ConflictException if {@code reason} is blank.
 	 */
+	@Override
+	@Transactional
+	public boolean revokeActivatedByPayment(UUID paymentId, String reason) {
+		Enrollment enrollment = enrollmentRepository
+			.findOne((root, query, cb) -> cb.and(cb.equal(root.get("activatingPaymentId"), paymentId),
+					cb.isNull(root.get("supersededAt"))))
+			.orElse(null);
+		if (enrollment == null) {
+			log.atInfo()
+				.setMessage("enrollment.chargeback_revoke_skipped")
+				.addKeyValue("paymentId", paymentId)
+				.addKeyValue("reason", "no current enrollment activated by this payment")
+				.log();
+			return false;
+		}
+		// System-initiated: revoked_by (FK to tenant_user) stays null and no
+		// audit_log row is written - audit_log requires a real user actor (V33
+		// trigger). Same precedent as verified webhook payment confirmations:
+		// a structured security log, with revoked_at/revoke_reason on the
+		// enrollment row itself as the durable record.
+		enrollment.revoke(null, reason);
+		enrollmentRepository.save(enrollment);
+		log.atWarn()
+			.setMessage("enrollment.revoked_by_chargeback")
+			.addKeyValue("actor", "SYSTEM:payment-gateway-webhook")
+			.addKeyValue("enrollmentId", enrollment.getId())
+			.addKeyValue("paymentId", paymentId)
+			.addKeyValue("reason", reason)
+			.log();
+		return true;
+	}
+
 	@Override
 	@Transactional
 	public void revoke(UUID enrollmentId, String reason) {

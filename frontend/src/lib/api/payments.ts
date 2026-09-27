@@ -64,7 +64,14 @@ export interface PaymentInitiationResponse {
   orderId: string;
   status: "PENDING";
   gatewayReference: string;
-  redirectTarget: string;
+  redirectTarget: string | null;
+  /**
+   * PAY-GW-01: set for a form-POST gateway (PayHere). The fields are already
+   * signed by the backend; the frontend submits them unchanged and never
+   * computes a hash or amount itself. Both `null` otherwise.
+   */
+  formAction: string | null;
+  formFields: Record<string, string> | null;
 }
 
 /** Mirrors `PaymentResponse`. */

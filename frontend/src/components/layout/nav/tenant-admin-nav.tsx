@@ -10,6 +10,7 @@ import {
   canViewExamsStaff,
   canViewFinance,
   canViewInstituteConfig,
+  canViewPaymentGateway,
   canViewLiveClassesStaff,
   canViewPaymentDashboard,
   canViewStaff,
@@ -123,6 +124,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
       { label: "General", href: "/tenant-admin/settings/general" },
       { label: "Branding", href: "/tenant-admin/settings/branding" }
     );
+  }
+  if (canViewPaymentGateway(role)) {
+    instituteConfigItems.push({ label: "Online Payments", href: "/tenant-admin/settings/payments" });
   }
 
   return (

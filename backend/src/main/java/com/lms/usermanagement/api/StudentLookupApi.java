@@ -41,4 +41,11 @@ public interface StudentLookupApi {
 	 */
 	List<StudentSummary> getStudentSummariesByUserId(Collection<UUID> userIds);
 
+	/**
+	 * Name/email/mobile for one student user in the current tenant - the payer
+	 * details a hosted-checkout gateway needs (PAY-GW-01). Empty when the user
+	 * has no student profile in this tenant.
+	 */
+	Optional<StudentContact> findContact(UUID userId);
+
 }

@@ -46,4 +46,11 @@ public interface TenantLookupApi {
 	 */
 	List<TenantSummary> resolveTenantSummaries(Set<UUID> tenantIds);
 
+	/**
+	 * The tenant's storefront subdomain, for building links back to that
+	 * tenant's own site (e.g. PAY-GW-01's PayHere return/cancel URLs) from a
+	 * trusted tenant id - never from request input.
+	 */
+	Optional<String> findSubdomain(UUID tenantId);
+
 }

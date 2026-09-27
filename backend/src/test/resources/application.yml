@@ -51,6 +51,15 @@ payment:
     # instead. Individual tests needing a different value override it via
     # @TestPropertySource.
     webhook-secret: "test-only-webhook-secret-not-for-production-use"
+    # Pre-PAY-GW-01 tests pay through the fake gateway when no tenant
+    # gateway account exists.
+    fake-fallback-enabled: true
+  credentials:
+    # Test-only key (Base64 of "test-only-payment-cred-key-32byt").
+    encryption-key: "dGVzdC1vbmx5LXBheW1lbnQtY3JlZC1rZXktMzJieXQ="
+  payhere:
+    notify-url: "https://notify.example.test/api/v1/integrations/webhooks/payhere"
+    return-url-template: "https://{subdomain}.example.test"
 
 live-class:
   provider:

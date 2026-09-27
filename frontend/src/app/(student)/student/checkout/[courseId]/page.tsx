@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,6 +17,9 @@ import {
   isCourseCheckoutAvailable,
 } from "@/components/courses/course-price-display";
 import { randomUuid } from "@/lib/uuid";
+import { useCheckoutPaymentOptions } from "@/lib/api/payment-gateway";
+import { hasBillingAddress, useOwnBillingAddress } from "@/lib/api/students";
+import { isAllowedGatewayAction, submitGatewayForm } from "@/lib/payments/submit-gateway-form";
 
 /**
  * Checkout entry point (PAY-1/PAY-2). Shows the course's server-computed
@@ -50,6 +54,18 @@ import { randomUuid } from "@/lib/uuid";
  * `mode` tracks which action is in flight so clicking one button never
  * visually spins the other, and both are disabled while either is pending.
  *
+ * PAY-GW-01 (ADR-017): for a paid course the online button ("Pay online")
+ * is only offered when `GET /api/v1/checkout/payment-options` reports the
+ * institute's own PayHere account as active, and only enabled once the
+ * student has a billing address (PayHere requires it; the backend re-checks
+ * and refuses before creating any payment). When initiation returns
+ * `formAction`/`formFields`, the backend-signed fields are posted to PayHere
+ * unchanged (`submitGatewayForm`, PayHere origins only); PayHere later
+ * returns the student to awaiting-confirmation, which still only trusts the
+ * polled backend status. A FREE course keeps the single "Enroll" action.
+ * Both helper reads degrade safely: if either fails, the online button is
+ * simply not offered and bank transfer remains.
+ *
  * Wave 6 §3.3/§4/§5: every order-creation and payment-initiation call sends
  * a client-generated `idempotencyKey` (UUID), so a double-click or a
  * network-retry of the *same* submit action replays the original request
@@ -67,6 +83,10 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const courseQuery = useCourse(courseId);
+  const paymentOptionsQuery = useCheckoutPaymentOptions();
+  const onlinePaymentAvailable = paymentOptionsQuery.data?.onlinePayment != null;
+  const billingAddressQuery = useOwnBillingAddress({ enabled: onlinePaymentAvailable });
+  const billingAddressReady = hasBillingAddress(billingAddressQuery.data);
   const createOrder = useCreateOrder();
   const initiatePayment = useInitiatePayment();
   const [flowError, setFlowError] = useState<string | null>(null);
@@ -85,10 +105,23 @@ export default function CheckoutPage() {
         courseId,
         idempotencyKey: orderIdempotencyKey,
       });
-      await initiatePayment.mutateAsync({
+      const initiation = await initiatePayment.mutateAsync({
         orderId: order.id,
         idempotencyKey: paymentIdempotencyKey,
       });
+      if (initiation.formAction && initiation.formFields) {
+        if (!isAllowedGatewayAction(initiation.formAction)) {
+          // Never post the student's details anywhere but PayHere.
+          setFlowError(
+            "We couldn't open the secure payment page. Please try again or pay by bank transfer."
+          );
+          setMode(null);
+          return;
+        }
+        // Leaves the app for PayHere; `mode` stays set so nothing re-submits.
+        submitGatewayForm(initiation.formAction, initiation.formFields);
+        return;
+      }
       router.push(`/student/payments/awaiting-confirmation/${order.id}`);
     } catch (error) {
       setFlowError(
@@ -133,6 +166,9 @@ export default function CheckoutPage() {
       >
         {(course) => {
           const checkoutAvailable = isCourseCheckoutAvailable(course) && course.status === "PUBLIC";
+          const isFree = course.pricingModel === "FREE";
+          const showOnlineButton = isFree || onlinePaymentAvailable;
+          const needsAddress = !isFree && onlinePaymentAvailable && !billingAddressReady;
 
           return (
             <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
@@ -190,14 +226,38 @@ export default function CheckoutPage() {
                   />
 
                   <div className="flex flex-col gap-2">
-                    <Button
-                      type="button"
-                      onClick={handleEnroll}
-                      disabled={isSubmitting || !checkoutAvailable}
-                      aria-busy={mode === "gateway"}
-                    >
-                      {mode === "gateway" ? "Starting checkout…" : "Enroll"}
-                    </Button>
+                    {needsAddress && billingAddressQuery.isSuccess ? (
+                      <Alert role="status">
+                        <AlertCircle aria-hidden="true" />
+                        <AlertDescription>
+                          Online payment needs your billing address.{" "}
+                          <Link href="/student/profile" className="font-medium underline">
+                            Add your address in My Profile
+                          </Link>
+                          , then come back to pay online.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    {showOnlineButton ? (
+                      <Button
+                        type="button"
+                        onClick={handleEnroll}
+                        disabled={isSubmitting || !checkoutAvailable || needsAddress}
+                        aria-busy={mode === "gateway"}
+                      >
+                        {mode === "gateway"
+                          ? "Starting checkout…"
+                          : isFree
+                            ? "Enroll"
+                            : "Pay online (PayHere)"}
+                      </Button>
+                    ) : paymentOptionsQuery.isPending ? null : (
+                      <p className="text-sm text-muted-foreground">
+                        Online payment isn&apos;t available at your institute yet — pay by bank
+                        transfer below.
+                      </p>
+                    )}
 
                     <Button
                       type="button"

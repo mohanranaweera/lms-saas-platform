@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorState } from "@/components/states/error-state";
 import type { StudentResponse } from "@/lib/api/students";
+import { BillingAddressForm } from "./billing-address-form";
 
 /**
  * My Profile (MVP-006, Student self-service). Reads/writes
@@ -41,6 +42,8 @@ export default function StudentProfilePage() {
       >
         {(profile) => <ProfileForm profile={profile} />}
       </QueryStateBoundary>
+
+      <BillingAddressForm />
     </div>
   );
 }

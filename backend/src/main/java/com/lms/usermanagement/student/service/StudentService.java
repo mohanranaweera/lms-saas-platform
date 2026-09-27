@@ -291,6 +291,32 @@ public class StudentService {
 		return account;
 	}
 
+	/** The caller's own billing address (PAY-GW-01 follow-up); both fields may be null. */
+	public StudentBillingAddress getOwnBillingAddress() {
+		StudentProfile profile = ownProfile();
+		return new StudentBillingAddress(profile.getAddressLine(), profile.getCity());
+	}
+
+	/**
+	 * Self-service billing address edit - same self-resolved, no-id design as
+	 * {@link #updateOwnProfile(String)}. Needed for online (PayHere) payment.
+	 */
+	@Transactional
+	public StudentBillingAddress updateOwnBillingAddress(String addressLine, String city) {
+		StudentProfile profile = ownProfile();
+		profile.updateBillingAddress(addressLine.trim(), city.trim());
+		studentProfileRepository.save(profile);
+		log.info("Student profile {} billing address updated in tenant {} by self-service user {}", profile.getId(),
+				tenantContext.getTenantId(), profile.getUserId());
+		return new StudentBillingAddress(profile.getAddressLine(), profile.getCity());
+	}
+
+	private StudentProfile ownProfile() {
+		UUID userId = AuthenticatedPrincipalHolder.get().userId();
+		return studentProfileRepository.findOne((root, query, cb) -> cb.equal(root.get("userId"), userId))
+			.orElseThrow(() -> new NotFoundException("Student account not found"));
+	}
+
 	private Map<UUID, TenantUserSummary> summariesByUserId(List<StudentProfile> profiles) {
 		List<UUID> userIds = profiles.stream().map(StudentProfile::getUserId).toList();
 		return userProvisioningApi.findTenantUserSummaries(userIds)

@@ -13,6 +13,10 @@ import com.lms.usermanagement.student.web.dto.StudentCreateRequest;
 import com.lms.usermanagement.student.web.dto.StudentResponse;
 import com.lms.usermanagement.student.web.dto.StudentUpdateRequest;
 import com.lms.usermanagement.student.web.dto.TemporaryPasswordResponse;
+import com.lms.usermanagement.student.service.StudentBillingAddress;
+import com.lms.usermanagement.student.web.dto.StudentBillingAddressRequest;
+import com.lms.usermanagement.student.web.dto.StudentBillingAddressResponse;
+import org.springframework.web.bind.annotation.PutMapping;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -150,6 +154,24 @@ public class StudentController {
 			@Valid @RequestBody StudentUpdateRequest request) {
 		StudentAccount account = studentService.updateOwnProfile(request.name());
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	@GetMapping("/me/billing-address")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<StudentBillingAddressResponse>> getOwnBillingAddress() {
+		StudentBillingAddress address = studentService.getOwnBillingAddress();
+		return ResponseEntity
+			.ok(ApiResponse.success(new StudentBillingAddressResponse(address.addressLine(), address.city())));
+	}
+
+	@PutMapping("/me/billing-address")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<StudentBillingAddressResponse>> updateOwnBillingAddress(
+			@Valid @RequestBody StudentBillingAddressRequest request) {
+		StudentBillingAddress address = studentService.updateOwnBillingAddress(request.addressLine(),
+				request.city());
+		return ResponseEntity
+			.ok(ApiResponse.success(new StudentBillingAddressResponse(address.addressLine(), address.city())));
 	}
 
 	private static StudentResponse toResponse(StudentAccount account) {

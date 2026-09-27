@@ -79,6 +79,19 @@ payment:
     # than silently accepting webhooks signed with a well-known placeholder,
     # unlike JWT_SECRET's dev-only-placeholder pattern above.
     webhook-secret: ${PAYMENT_GATEWAY_WEBHOOK_SECRET:}
+    # PAY-GW-01: never fall back to the fake gateway outside local/test -
+    # without a tenant gateway account, online payment is refused cleanly.
+    fake-fallback-enabled: false
+  # PAY-GW-01 / ADR-017: AES-256 key (Base64 of 32 bytes) encrypting tenant
+  # gateway merchant secrets at rest. Empty = fail closed (503) - must be set
+  # via a real env var wherever tenant gateway accounts are used.
+  credentials:
+    encryption-key: ${PAYMENT_CREDENTIALS_ENCRYPTION_KEY:}
+  payhere:
+    # Publicly reachable URL of POST /api/v1/integrations/webhooks/payhere.
+    notify-url: ${PAYHERE_NOTIFY_URL:}
+    # Tenant storefront origin; {subdomain} comes from the tenant record.
+    return-url-template: ${PAYHERE_RETURN_URL_TEMPLATE:}
 
 live-class:
   provider:

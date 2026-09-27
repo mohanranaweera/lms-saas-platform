@@ -58,9 +58,10 @@ Notification (notify_url)
      `payment_refund` row (`source = CHARGEBACK`, full amount, PayHere `payment_id` as
      `external_reference`) and its existing `REFUND` ledger entry reversing the
      `PAYMENT_CONFIRMED` entry; the enrollment that payment activated is revoked via
-     `EnrollmentActivationApi#revoke` (reason `PAYHERE_CHARGEBACK`) if still current; audit
-     entry written. The student loses course access immediately. The CONFIRMED Payment row
-     is not modified.
+     `EnrollmentActivationApi#revokeActivatedByPayment` (reason `PAYHERE_CHARGEBACK`) if
+     still current; a security log entry is written (no audit_log row - see ADR-017
+     implementation note). The student loses course access immediately. The CONFIRMED
+     Payment row is not modified.
 14b. A repeated `-3` for the same payment is a no-op (unique external reference). A `-3` for
      a payment that is not CONFIRMED is rejected and security-logged.
 14c. Payment history shows the chargeback as a refund line; the admin dashboard shows it
@@ -106,9 +107,9 @@ New Flyway migration `V57__create_tenant_payment_gateway_account.sql` (additive 
   `formAction` + `formFields` (existing `redirectTarget` kept for compatibility).
 - `PaymentConfirmationService`: new `confirmPayHereNotification` path reusing the existing
   confirm/fail logic; records `collected_by = TENANT`, `gateway_account_id`.
-- `ChargebackService` (payment-management): system-actor refund (`source = CHARGEBACK`) via
-  the existing refund/ledger path + `EnrollmentActivationApi#revoke` + audit, one
-  transaction.
+- `ChargebackService` (payment-management): system refund (`source = CHARGEBACK`) via the
+  existing refund/ledger path + `EnrollmentActivationApi#revokeActivatedByPayment` +
+  security log, one transaction.
 - Settlement/commission: any platform-level settlement or commission computation must skip
   `collected_by = TENANT` payments (owner decision 1: no platform commission). Teacher
   revenue-share settlements inside a tenant are unchanged.
@@ -126,9 +127,10 @@ New Flyway migration `V57__create_tenant_payment_gateway_account.sql` (additive 
 | `GET /api/v1/payment-gateway-accounts` | Tenant Admin, Finance Staff | — | `[{id, provider, mode, merchantIdMasked, status, secretConfigured, updatedAt}]` |
 | `PUT /api/v1/payment-gateway-accounts/payhere` | Tenant Admin | `{merchantId, merchantSecret?, mode}` | 200 account view; 400 field errors; 503 if encryption key unset |
 | `POST /api/v1/payment-gateway-accounts/{id}/disable` | Tenant Admin, Platform Admin (own route) | `{reason}` | 200 |
-| `GET /api/v1/courses/{id}/checkout-options` | Student | — | `{bankSlip: true, onlinePayment: {provider, mode} \| null}` |
+| `GET /api/v1/checkout/payment-options` (implemented; tenant-wide, not per course) | Any signed-in tenant user | — | `{bankSlip: true, onlinePayment: {provider, mode} \| null}` |
 | `POST /api/v1/orders/{id}/payments` (existing) | Student | unchanged | adds `formAction`, `formFields{...}` when provider is PAYHERE |
 | `POST /api/v1/integrations/webhooks/payhere` | PayHere | form-encoded notify params | 200 on processed/duplicate; 400 on rejected |
+| `GET` / `PUT /api/v1/students/me/billing-address` (V58) | Student (own only) | `{addressLine, city}` (both required on PUT) | `{addressLine, city}`; PayHere checkout returns 400 `billingAddress` until both are set, before any payment row is created |
 
 Errors use the existing `ApiResponse` error envelope.
 

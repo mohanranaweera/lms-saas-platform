@@ -155,7 +155,10 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// Wave 4 (PAR-19-03) - full grant, mirrors this role's pattern
 			// elsewhere in the matrix.
 			.grant(DomainArea.LIVE_CLASSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-					PermissionAction.DELETE, PermissionAction.APPROVE)));
+					PermissionAction.DELETE, PermissionAction.APPROVE)
+			// PAY-GW-01 / ADR-017 - only the Tenant Admin may configure the
+			// tenant's own merchant account.
+			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
 			.grant(DomainArea.COURSES, PermissionAction.VIEW)
@@ -168,7 +171,9 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// granularity.
 			.grant(DomainArea.ACCESS_EXPIRY, PermissionAction.VIEW)
 			// "V (own-area actions)"
-			.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)));
+			.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
+			// PAY-GW-01 - status only (enabled/mode), never the secret.
+			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)));
 
 		matrix.put(Role.COURSE_COORDINATOR,
 				roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
@@ -232,7 +237,8 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 					// "V (full)"
 					.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
 					.grant(DomainArea.BRANDING_SETTINGS, PermissionAction.VIEW)
-					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW)));
+					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW)
+					.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)));
 
 		return Map.copyOf(matrix);
 	}

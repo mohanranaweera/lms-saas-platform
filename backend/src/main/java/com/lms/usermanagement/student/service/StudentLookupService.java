@@ -2,6 +2,7 @@ package com.lms.usermanagement.student.service;
 
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
+import com.lms.usermanagement.api.StudentContact;
 import com.lms.usermanagement.api.StudentLookupApi;
 import com.lms.usermanagement.api.StudentSummary;
 import com.lms.usermanagement.student.domain.StudentProfile;
@@ -46,6 +47,20 @@ public class StudentLookupService implements StudentLookupApi {
 		// cross-tenant studentProfileId is structurally invisible here,
 		// resolving to empty, never a cross-tenant id leak.
 		return studentProfileRepository.findById(studentProfileId).map(StudentProfile::getUserId);
+	}
+
+	@Override
+	public Optional<StudentContact> findContact(UUID userId) {
+		return studentProfileRepository.findOne((root, query, cb) -> cb.equal(root.get("userId"), userId))
+			.map(profile -> {
+				String email = userProvisioningApi.findTenantUserSummaries(List.of(userId))
+					.stream()
+					.findFirst()
+					.map(TenantUserSummary::email)
+					.orElse(null);
+				return new StudentContact(userId, profile.getName(), email, profile.getMobile(),
+						profile.getAddressLine(), profile.getCity());
+			});
 	}
 
 	@Override
