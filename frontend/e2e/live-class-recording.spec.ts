@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { apiSuccess, mockJson } from "./fixtures/auth-mocks";
 import {
+  COURSE_ID,
   getOpenedUrls,
   makeClassSession,
   mockClassSessionsApi,
+  mockStudentCoursePage,
   mockTenantSession,
   stubWindowOpen,
   TEACHER_ID,
@@ -45,19 +46,14 @@ test.describe("Live class recording affordance", () => {
     await expect(page.getByRole("button", { name: "Watch recording" })).toHaveCount(0);
   });
 
-  test("Student Past tab: Watch recording opens a fresh playbackUrl for a COMPLETED session", async ({ page }) => {
+  test("Student course page Past tab: Watch recording opens a fresh playbackUrl for a COMPLETED session", async ({ page }) => {
     await mockTenantSession(page, "STUDENT", "student-1");
-    await mockJson(
-      page,
-      "**/v1/enrollments/my/courses",
-      200,
-      apiSuccess([{ id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "Intro to Biology", slug: "intro-to-biology", category: "Science" }])
-    );
+    await mockStudentCoursePage(page);
     const session = makeClassSession({ id: "session-1", status: "COMPLETED" });
     await mockClassSessionsApi(page, { initialSessions: [session] });
     await stubWindowOpen(page);
 
-    await page.goto("/student/live-classes");
+    await page.goto(`/student/courses/${COURSE_ID}`);
     await page.getByRole("tab", { name: "Past" }).click();
     await page.getByRole("button", { name: "Watch recording" }).click();
 

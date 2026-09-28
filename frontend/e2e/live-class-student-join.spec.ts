@@ -1,16 +1,17 @@
 import { test, expect } from "@playwright/test";
-import { apiSuccess } from "./fixtures/auth-mocks";
-import { mockJson } from "./fixtures/auth-mocks";
 import {
+  COURSE_ID,
   getOpenedUrls,
   makeClassSession,
   mockClassSessionsApi,
+  mockStudentCoursePage,
   mockTenantSession,
   stubWindowOpen,
 } from "./fixtures/class-session-mocks";
 
 /**
- * Wave 4 (PAR-19-04) Student "Live Classes" join flow. `GET
+ * Wave 4 (PAR-19-04) Student live classes join flow, shown inside the course
+ * content page (`student/courses/[courseId]`). `GET
  * /v1/class-sessions` is already entitlement-filtered server-side to only
  * this Student's own currently-ACTIVE enrollments — a not-enrolled/expired
  * student never receives a session it shouldn't in the first place (proven
@@ -20,26 +21,17 @@ import {
  * `providerStatus === "PROVISIONED"`.
  */
 
-async function mockStudentCourses(page: import("@playwright/test").Page): Promise<void> {
-  await mockJson(
-    page,
-    "**/v1/enrollments/my/courses",
-    200,
-    apiSuccess([{ id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "Intro to Biology", slug: "intro-to-biology", category: "Science" }])
-  );
-}
-
 test.describe("Student Live Classes — join", () => {
   test("a LIVE, PROVISIONED session is joinable — clicking Join opens a fresh joinUrl in a new tab", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT", "student-1");
-    await mockStudentCourses(page);
+    await mockStudentCoursePage(page);
     const session = makeClassSession({ id: "session-1", status: "LIVE", providerStatus: "PROVISIONED" });
     await mockClassSessionsApi(page, { initialSessions: [session] });
     await stubWindowOpen(page);
 
-    await page.goto("/student/live-classes");
+    await page.goto(`/student/courses/${COURSE_ID}`);
 
     const joinButton = page.getByRole("button", { name: "Join" });
     await expect(joinButton).toBeEnabled();
@@ -56,11 +48,11 @@ test.describe("Student Live Classes — join", () => {
     page,
   }) => {
     await mockTenantSession(page, "STUDENT", "student-1");
-    await mockStudentCourses(page);
+    await mockStudentCoursePage(page);
     const session = makeClassSession({ id: "session-1", status: "SCHEDULED" });
     await mockClassSessionsApi(page, { initialSessions: [session] });
 
-    await page.goto("/student/live-classes");
+    await page.goto(`/student/courses/${COURSE_ID}`);
 
     const joinButton = page.getByRole("button", { name: "Join" });
     await expect(joinButton).toBeDisabled();
@@ -77,7 +69,7 @@ test.describe("Student Live Classes — join", () => {
     page,
   }) => {
     await mockTenantSession(page, "STUDENT", "student-1");
-    await mockStudentCourses(page);
+    await mockStudentCoursePage(page);
     // Server-side entitlement filtering already excludes any session this
     // student isn't actively enrolled for (or whose access has expired) —
     // simulated here simply as an empty list, since that is exactly what the
@@ -85,7 +77,7 @@ test.describe("Student Live Classes — join", () => {
     // exist for other students/tenants.
     await mockClassSessionsApi(page, { initialSessions: [] });
 
-    await page.goto("/student/live-classes");
+    await page.goto(`/student/courses/${COURSE_ID}`);
 
     await expect(page.getByText("No upcoming live classes")).toBeVisible();
     await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
@@ -96,12 +88,12 @@ test.describe("Student Live Classes — join", () => {
 
   test("a COMPLETED session moves to the Past tab and a CANCELLED session shows no action", async ({ page }) => {
     await mockTenantSession(page, "STUDENT", "student-1");
-    await mockStudentCourses(page);
+    await mockStudentCoursePage(page);
     const completed = makeClassSession({ id: "session-done", title: "Past Class", status: "COMPLETED" });
     const cancelled = makeClassSession({ id: "session-cancelled", title: "Cancelled Class", status: "CANCELLED" });
     await mockClassSessionsApi(page, { initialSessions: [completed, cancelled] });
 
-    await page.goto("/student/live-classes");
+    await page.goto(`/student/courses/${COURSE_ID}`);
     await expect(page.getByText("No upcoming live classes")).toBeVisible();
 
     await page.getByRole("tab", { name: "Past" }).click();

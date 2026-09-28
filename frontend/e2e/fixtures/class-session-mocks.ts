@@ -122,6 +122,24 @@ export function courseResponseBody(overrides: Partial<Record<string, unknown>> =
 }
 
 /**
+ * Mocks everything the Student course content page (`student/courses/[courseId]`)
+ * needs besides class sessions — an ACTIVE enrollment in `courseId`, the course
+ * itself, and no modules — since Students see live classes only inside that page.
+ */
+export async function mockStudentCoursePage(page: Page, courseId = COURSE_ID): Promise<void> {
+  await mockJson(
+    page,
+    "**/v1/enrollments/my",
+    200,
+    apiSuccess([
+      { enrollmentId: "enrollment-1", courseId, state: "ACTIVE", accessExpiresAt: null, canRequestReactivation: false },
+    ])
+  );
+  await mockJson(page, `**/v1/courses/${courseId}`, 200, apiSuccess(courseResponseBody({ id: courseId })));
+  await mockJson(page, `**/v1/courses/${courseId}/modules`, 200, apiSuccess([]));
+}
+
+/**
  * Registers the single stateful class-sessions route (see module doc) over
  * `initialSessions` (mutated in place — a later assertion in the same test
  * can inspect `store` directly). Also mocks the `GET /v1/courses*` list (a

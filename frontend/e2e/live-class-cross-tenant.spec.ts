@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { apiError, apiPageSuccess, apiSuccess, fulfillJson, mockJson } from "./fixtures/auth-mocks";
-import { courseResponseBody, mockTenantSession, TEACHER_ID } from "./fixtures/class-session-mocks";
+import {
+  COURSE_ID,
+  courseResponseBody,
+  mockStudentCoursePage,
+  mockTenantSession,
+  TEACHER_ID,
+} from "./fixtures/class-session-mocks";
 
 /**
  * Wave 4 cross-tenant negative coverage: a Tenant A caller addressing a
@@ -57,7 +63,7 @@ test.describe("Cross-tenant class session access", () => {
     page,
   }) => {
     await mockTenantSession(page, "STUDENT", "student-1");
-    await mockJson(page, "**/v1/enrollments/my/courses", 200, apiSuccess([]));
+    await mockStudentCoursePage(page);
     // The backend's own entitlement filter on `GET /v1/class-sessions` is
     // what actually prevents this — simulated here as an empty list, exactly
     // what a Student with no ACTIVE enrollment in the foreign session's
@@ -65,7 +71,7 @@ test.describe("Cross-tenant class session access", () => {
     // exist server-side.
     await mockJson(page, "**/v1/class-sessions*", 200, apiSuccess([]));
 
-    await page.goto("/student/live-classes");
+    await page.goto(`/student/courses/${COURSE_ID}`);
 
     await expect(page.getByText("No upcoming live classes")).toBeVisible();
     // Scoped to `main` — Next.js's own always-present route-announcer div

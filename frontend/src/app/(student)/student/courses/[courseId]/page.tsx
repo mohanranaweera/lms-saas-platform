@@ -16,11 +16,13 @@ import {
   useCourseModules,
   type CourseModuleResponse,
 } from "@/lib/api/courses";
+import { CourseLiveClasses } from "./course-live-classes";
 
 /**
  * Student "Course Content" — `student/courses/[courseId]`. The entry point
  * from "My courses" into a course's modules → lessons → the existing lesson
- * materials page.
+ * materials page, plus the course's live classes (`CourseLiveClasses`; there
+ * is no separate Student live classes page).
  *
  * Access follows the Student's current enrollment ("active term" = the paid
  * access window): the page first reads `GET /api/v1/enrollments/my` and only
@@ -154,22 +156,29 @@ function ActiveCourseContent({
         ) : null}
       </header>
 
-      {modules.length === 0 ? (
-        <EmptyState
-          title="No content yet"
-          description="Your teacher hasn't added any modules to this course yet. Check back later."
-        />
-      ) : (
-        <ol aria-label="Course modules" className="flex flex-col gap-3">
-          {modules.map((module, index) => (
-            <li key={module.id}>
-              <Accordion title={module.title} defaultOpen={index === 0}>
-                <ModuleLessons courseId={courseId} module={module} />
-              </Accordion>
-            </li>
-          ))}
-        </ol>
-      )}
+      <CourseLiveClasses courseId={courseId} />
+
+      <section className="flex flex-col gap-3" aria-labelledby="course-lesson-materials-heading">
+        <h2 id="course-lesson-materials-heading" className="text-base font-semibold text-foreground">
+          Lesson materials
+        </h2>
+        {modules.length === 0 ? (
+          <EmptyState
+            title="No content yet"
+            description="Your teacher hasn't added any modules to this course yet. Check back later."
+          />
+        ) : (
+          <ol aria-label="Course modules" className="flex flex-col gap-3">
+            {modules.map((module, index) => (
+              <li key={module.id}>
+                <Accordion title={module.title} defaultOpen={index === 0}>
+                  <ModuleLessons courseId={courseId} module={module} />
+                </Accordion>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </div>
   );
 }
