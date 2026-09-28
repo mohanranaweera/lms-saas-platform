@@ -6,7 +6,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import com.lms.tenantmanagement.api.StudentProfileField;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -63,6 +65,65 @@ public class StudentProfile extends Auditable implements TenantOwned {
 
 	@Column(name = "city")
 	private String city;
+
+	// STU-PROF-01 (V59): remaining tenant-configurable catalogue fields. All
+	// nullable; required-ness is per tenant, enforced in StudentProfileFieldsService.
+	@Column(name = "date_of_birth")
+	private LocalDate dateOfBirth;
+
+	@Column(name = "fixed_phone")
+	private String fixedPhone;
+
+	@Column(name = "whatsapp_number")
+	private String whatsappNumber;
+
+	@Column(name = "telegram_number")
+	private String telegramNumber;
+
+	@Column(name = "tute_delivery_phone_1")
+	private String tuteDeliveryPhone1;
+
+	@Column(name = "tute_delivery_phone_2")
+	private String tuteDeliveryPhone2;
+
+	@Column(name = "address_line_2")
+	private String addressLine2;
+
+	@Column(name = "postal_code")
+	private String postalCode;
+
+	@Column(name = "country_code")
+	private String countryCode;
+
+	@Column(name = "nic_number")
+	private String nicNumber;
+
+	@Column(name = "passport_number")
+	private String passportNumber;
+
+	@Column(name = "driving_license_number")
+	private String drivingLicenseNumber;
+
+	@Column(name = "has_siblings")
+	private Boolean hasSiblings;
+
+	@Column(name = "profession")
+	private String profession;
+
+	@Column(name = "special_talent")
+	private String specialTalent;
+
+	@Column(name = "university")
+	private String university;
+
+	@Column(name = "learning_medium")
+	private String learningMedium;
+
+	@Column(name = "al_year")
+	private Short alYear;
+
+	@Column(name = "referral_code")
+	private String referralCode;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "registration_status", nullable = false)
@@ -158,6 +219,87 @@ public class StudentProfile extends Auditable implements TenantOwned {
 	public void updateBillingAddress(String addressLine, String city) {
 		this.addressLine = addressLine;
 		this.city = city;
+	}
+
+	/**
+	 * STU-PROF-01: the stored value of a tenant-configurable catalogue field,
+	 * or {@code null} when unset. {@link StudentProfileField#GUARDIAN} returns
+	 * a {@link GuardianDetails} (null only when both parts are unset). Locked
+	 * fields (email, full name) are not handled here - they have their own
+	 * endpoints.
+	 */
+	public Object readField(StudentProfileField field) {
+		return switch (field) {
+			case BIRTHDAY -> dateOfBirth;
+			case PROFESSION -> profession;
+			case SPECIAL_TALENT -> specialTalent;
+			case MOBILE -> mobile;
+			case FIXED_TELEPHONE -> fixedPhone;
+			case WHATSAPP_NUMBER -> whatsappNumber;
+			case TELEGRAM_NUMBER -> telegramNumber;
+			case TUTE_DELIVERY_PHONE_1 -> tuteDeliveryPhone1;
+			case TUTE_DELIVERY_PHONE_2 -> tuteDeliveryPhone2;
+			case ADDRESS_LINE_1 -> addressLine;
+			case ADDRESS_LINE_2 -> addressLine2;
+			case CITY -> city;
+			case POSTAL_CODE -> postalCode;
+			case COUNTRY -> countryCode;
+			case NIC_NUMBER -> nicNumber;
+			case PASSPORT_NUMBER -> passportNumber;
+			case DRIVING_LICENSE_NUMBER -> drivingLicenseNumber;
+			case SCHOOL -> school;
+			case GRADE -> grade;
+			case AL_STREAM -> stream;
+			case AL_YEAR -> alYear;
+			case UNIVERSITY -> university;
+			case LEARNING_MEDIUM -> learningMedium;
+			case GUARDIAN -> (guardianName == null && guardianPhone == null) ? null
+					: new GuardianDetails(guardianName, guardianPhone);
+			case HAS_SIBLINGS -> hasSiblings;
+			case REFERRAL_CODE -> referralCode;
+			case EMAIL, FULL_NAME -> throw new IllegalArgumentException(field + " is not a profile-details field");
+		};
+	}
+
+	/**
+	 * STU-PROF-01: stores an already-validated value (see {@code
+	 * StudentProfileFieldValueParser}) for a catalogue field; {@code null}
+	 * clears it. Never touches {@code tenantId}/{@code userId}.
+	 */
+	public void writeField(StudentProfileField field, Object value) {
+		switch (field) {
+			case BIRTHDAY -> dateOfBirth = (LocalDate) value;
+			case PROFESSION -> profession = (String) value;
+			case SPECIAL_TALENT -> specialTalent = (String) value;
+			case MOBILE -> mobile = (String) value;
+			case FIXED_TELEPHONE -> fixedPhone = (String) value;
+			case WHATSAPP_NUMBER -> whatsappNumber = (String) value;
+			case TELEGRAM_NUMBER -> telegramNumber = (String) value;
+			case TUTE_DELIVERY_PHONE_1 -> tuteDeliveryPhone1 = (String) value;
+			case TUTE_DELIVERY_PHONE_2 -> tuteDeliveryPhone2 = (String) value;
+			case ADDRESS_LINE_1 -> addressLine = (String) value;
+			case ADDRESS_LINE_2 -> addressLine2 = (String) value;
+			case CITY -> city = (String) value;
+			case POSTAL_CODE -> postalCode = (String) value;
+			case COUNTRY -> countryCode = (String) value;
+			case NIC_NUMBER -> nicNumber = (String) value;
+			case PASSPORT_NUMBER -> passportNumber = (String) value;
+			case DRIVING_LICENSE_NUMBER -> drivingLicenseNumber = (String) value;
+			case SCHOOL -> school = (String) value;
+			case GRADE -> grade = (String) value;
+			case AL_STREAM -> stream = (String) value;
+			case AL_YEAR -> alYear = (Short) value;
+			case UNIVERSITY -> university = (String) value;
+			case LEARNING_MEDIUM -> learningMedium = (String) value;
+			case GUARDIAN -> {
+				GuardianDetails guardian = (GuardianDetails) value;
+				guardianName = (guardian == null) ? null : guardian.name();
+				guardianPhone = (guardian == null) ? null : guardian.phone();
+			}
+			case HAS_SIBLINGS -> hasSiblings = (Boolean) value;
+			case REFERRAL_CODE -> referralCode = (String) value;
+			case EMAIL, FULL_NAME -> throw new IllegalArgumentException(field + " is not a profile-details field");
+		}
 	}
 
 }

@@ -13,6 +13,7 @@ import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import com.lms.tenantmanagement.web.dto.ConfigPropertyResponse;
 import com.lms.tenantmanagement.web.dto.PublicBrandingResponse;
+import com.lms.tenantmanagement.web.dto.PublicRegistrationFieldResponse;
 import com.lms.tenantmanagement.web.dto.PublicStudentRegistrationPolicyResponse;
 import java.util.List;
 import java.util.Map;
@@ -269,8 +270,14 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 		HttpResult<PublicStudentRegistrationPolicyResponse> policyB = getPublicStudentRegistrationPolicy(hostB);
 
 		assertThat(policyA.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(policyA.getBody().data()).isEqualTo(new PublicStudentRegistrationPolicyResponse(false, true, true,
-				true, true, true, true, true));
+		PublicStudentRegistrationPolicyResponse dataA = policyA.getBody().data();
+		assertThat(dataA).isEqualTo(new PublicStudentRegistrationPolicyResponse(false, true, true, true, true, true,
+				true, true, dataA.registrationFields()));
+		// STU-PROF-01: the legacy require_* flags still drive the default field
+		// settings, so every legacy registration field is reported required.
+		assertThat(dataA.registrationFields()).extracting(PublicRegistrationFieldResponse::key)
+			.containsExactly("MOBILE", "SCHOOL", "GRADE", "AL_STREAM", "GUARDIAN");
+		assertThat(dataA.registrationFields()).allMatch(PublicRegistrationFieldResponse::required);
 		assertThat(policyB.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(policyB.getBody().data().publicRegistrationEnabled()).isTrue();
 		assertThat(policyB.getBody().data().approvalRequired()).isFalse();
@@ -284,8 +291,12 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 		HttpResult<PublicStudentRegistrationPolicyResponse> policy = getPublicStudentRegistrationPolicy(host);
 
 		assertThat(policy.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(policy.getBody().data()).isEqualTo(
-				new PublicStudentRegistrationPolicyResponse(true, false, false, false, false, false, false, false));
+		PublicStudentRegistrationPolicyResponse data = policy.getBody().data();
+		assertThat(data).isEqualTo(new PublicStudentRegistrationPolicyResponse(true, false, false, false, false, false,
+				false, false, data.registrationFields()));
+		assertThat(data.registrationFields()).extracting(PublicRegistrationFieldResponse::key)
+			.containsExactly("MOBILE", "SCHOOL", "GRADE", "AL_STREAM", "GUARDIAN");
+		assertThat(data.registrationFields()).noneMatch(PublicRegistrationFieldResponse::required);
 	}
 
 	@Test
@@ -300,7 +311,7 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 
 		assertThat(data.keySet()).containsExactlyInAnyOrder("publicRegistrationEnabled", "approvalRequired",
 				"otpRequired", "requireGuardianInfo", "requireSchool", "requireGrade", "requireStream",
-				"requireMobile");
+				"requireMobile", "registrationFields");
 	}
 
 	// ------------------------------------------------------------------

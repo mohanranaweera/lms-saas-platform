@@ -194,6 +194,63 @@ Self-service edit of the caller's own profile. Student role only, same no-`{id}`
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | `name` blank or over max length |
 
+### `GET /api/v1/students/me/profile` / `PUT /api/v1/students/me/profile` (STU-PROF-01)
+
+The caller's own tenant-configured "Additional details". Student role only
+(`hasRole('STUDENT')`), no `{id}` — resolved from the authenticated principal like
+`GET .../me`. Which fields exist, which are required, and which are asked at registration
+is the tenant's configuration (`docs/api/tenant-configuration-management.md` → "Student
+profile field settings"); only **enabled, non-locked** fields are returned or accepted.
+Email and full name are not part of this resource (`GET/PATCH .../me`).
+
+**Response — `200`** (`ApiResponse<StudentProfileFieldsResponse>`, both verbs):
+
+```jsonc
+{
+  "fields": [
+    { "key": "BIRTHDAY", "label": "Birthday", "group": "PERSONAL", "type": "DATE",
+      "maxLength": 10, "sensitive": false, "required": true, "value": "2008-04-01" },
+    { "key": "GUARDIAN", "label": "Guardian", "group": "FAMILY", "type": "GUARDIAN",
+      "maxLength": 255, "sensitive": false, "required": false,
+      "value": { "name": "…", "phone": "…" } }
+  ],
+  "missingRequiredFields": ["NIC_NUMBER"]
+}
+```
+
+`value` by `type`: `TEXT`/`PHONE` string, `DATE` ISO `yyyy-MM-dd` string, `YEAR` number,
+`BOOLEAN` boolean, `COUNTRY` ISO-3166 alpha-2 string, `GUARDIAN` `{name, phone}`; `null`
+when unset. `missingRequiredFields` never blocks anything else (enrollment, payment) — the
+frontend shows a "Complete your profile" banner.
+
+**`PUT` request** (`StudentProfileFieldsUpdateRequest`): `{ "values": { "<KEY>": value, … } }`.
+Keys left out stay unchanged; `null` (or blank text) clears a field. Server-side per-type
+validation (text length, phone `^\+?[0-9 ()-]{6,20}$`, past date after 1900, year
+1990–2100, known country code), and every **required** field must be filled in the
+resulting profile.
+
+| Status | `error.code` | Condition |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `fieldErrors[].field = "values.<KEY>"` (`values.GUARDIAN.name`/`.phone` for the guardian parts): invalid value, unknown/disabled/locked key, or a required field left empty |
+| `403` | `FORBIDDEN` | Caller does not hold `Role.STUDENT` |
+
+`ADDRESS_LINE_1`/`CITY` are the same columns as `GET/PUT .../me/billing-address`
+(PAY-GW-01); either endpoint updates both views. Values of fields the tenant later disables
+are kept (hidden), never deleted.
+
+### `GET /api/v1/students/{id}/profile-fields` / `PUT /api/v1/students/{id}/profile-fields` (STU-PROF-01)
+
+Staff view/correction of one student's tenant-configured fields. `GET`: `STUDENTS`/`VIEW`;
+`PUT`: `STUDENTS`/`CREATE_EDIT` (both re-checked in the service). Same response and request
+shapes as `.../me/profile`, with one difference: **required-ness is not enforced** for staff
+saves (admin-created and imported students may be incomplete). Another tenant's student id
+is `404 NOT_FOUND` (tenant-scoped lookup). On `GET`, `sensitive` values (NIC, passport and
+driving-licence numbers) are returned in full only to callers who also hold
+`STUDENTS`/`CREATE_EDIT` (Tenant Admin, Student Support); view-only staff receive them masked
+to the last four characters (`"•••• 5678"`). A staff `PUT` that changes anything writes
+`student.profile_fields_updated` to the audit log with the changed field **keys** only —
+never values.
+
 ### `POST /api/v1/students/bulk-import` (Wave 3, PAR-03-03)
 
 Multipart CSV import. Tenant Admin or Student Support only (`STUDENTS`/`CREATE_EDIT`).
@@ -330,19 +387,23 @@ Request body (`StudentRegistrationRequest`):
 ```jsonc
 {
   "name": "Jane Student", "email": "jane@example.com", "password": "correct horse",
-  "guardianName": null, "guardianPhone": null, "school": null, "grade": null,
-  "stream": null, "mobile": null   // all six optional at the DTO level — required-ness
-                                     // is resolved server-side against the calling
-                                     // tenant's ConfigDomain.STUDENT policy, never a
-                                     // client claim
+  "profileFields": {                 // STU-PROF-01, optional: the fields the tenant asks
+    "MOBILE": "+94 77 123 4567",     // at registration (the policy's registrationFields),
+    "BIRTHDAY": "2008-04-01"         // same value shapes as GET /students/me/profile
+  }
+  // Legacy, still accepted: "guardianName", "guardianPhone", "school", "grade",
+  // "stream", "mobile" — mapped onto GUARDIAN/SCHOOL/GRADE/AL_STREAM/MOBILE when
+  // profileFields does not name that key itself.
 }
 ```
 
 Gated by the calling tenant's registration policy: `404 NOT_FOUND` ("Student
 self-registration is not available") if `public_registration_enabled = false` (the
 cross-tenant-404-style convention — availability is never revealed via a distinguishable
-status code). `400 VALIDATION_ERROR` (with per-field `fieldErrors`) if a
-tenant-required field is missing. `409 CONFLICT` ("Email verification is required before
+status code). `400 VALIDATION_ERROR` (with per-field `fieldErrors`,
+`field = "profileFields.<KEY>"`) if a field asked at registration is invalid, or is
+required and missing — resolved server-side against the tenant's student profile field
+settings, never a client claim. Values for fields not asked at registration are ignored. `409 CONFLICT` ("Email verification is required before
 registering") if `otp_required = true` and no recently-verified OTP exists for this
 email. `409 CONFLICT` ("An account with this email already exists") on a duplicate email.
 

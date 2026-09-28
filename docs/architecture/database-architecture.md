@@ -408,10 +408,14 @@ MVP-006), and `teacher_profile` (V18, MVP-007) all follow every rule in §1/§2 
 (composite tenant-scoped index, `UNIQUE(tenant_id, ...)`, composite FK preventing
 cross-tenant linkage — see each migration file's own header comment for the concrete
 reasoning), but none has been backfilled into the catalog format §7 introduces.
-`student_profile`'s column set is additionally still provisional pending the
-guardian/school/grade/stream field-list decision (`docs/requirements/open-decisions.md`
-§15) — its current, real, up-to-date column contract lives in
-`docs/api/user-management.md` and the migration file itself, not here. If/when these three
+`student_profile`'s field list was settled by STU-PROF-01 (V59): a fixed, code-defined
+catalogue of optional profile columns (birthday, phones, address, identity numbers,
+education, guardian, …), all nullable, whose per-tenant enabled/required/asked-at-
+registration settings live in the tenant-owned `student_profile_field_setting` table
+(`tenant_id NOT NULL` FK, `UNIQUE (tenant_id, field_key)` as its tenant-leading index,
+CHECKs that `required`/`collect_at_registration` imply `enabled`). Required-ness is enforced
+in the API layer, never by a global NOT NULL. The column contract lives in
+`docs/api/user-management.md` and the migration files, not here. If/when these three
 tables are backfilled into the §7-style catalog, do it together, not one at a time.
 
 ## 7. course-management tables (MVP-008)

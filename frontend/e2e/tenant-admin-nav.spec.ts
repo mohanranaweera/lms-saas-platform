@@ -235,6 +235,7 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
         ["Roles & Permissions", entry.staff],
         ["General", entry.instituteConfig],
         ["Branding", entry.instituteConfig],
+        ["Student Fields", entry.instituteConfig],
       ];
       for (const [label, visible] of gatedItems) {
         const link = page.getByRole("link", { name: label });

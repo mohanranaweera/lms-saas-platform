@@ -69,6 +69,12 @@ public class ConfigPropertyRegistry {
 	 * validated only for type (mirrors how a boolean-typed property is
 	 * validated nowhere else yet in this registry, so this is the first
 	 * simple {@code instanceof Boolean} validator here).
+	 *
+	 * <p><b>Deprecated (STU-PROF-01):</b> the five {@code require_*} flags are
+	 * superseded by the per-field {@code student_profile_field_setting} rows
+	 * ({@code StudentProfileFieldConfigService}). They are only read as the
+	 * default required-ness for a tenant that has never saved its student
+	 * profile field settings; kept registered so existing values stay valid.
 	 */
 	private static List<ConfigPropertyDefinition> studentProperties() {
 		return List.of(

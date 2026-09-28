@@ -1053,7 +1053,9 @@ during this planning pass) leave it.
    STU-1's own backlog entry proposes a concrete-looking schema sketch — this is a placeholder, not a
    ratified list, and the tension between the explicit "not itemized" note and the concrete-looking sketch
    should be resolved explicitly, not silently treated as final. Source: `open-decisions.md`, spec's own Open
-   Decisions.
+   Decisions. **Resolved (2026-09-28) by STU-PROF-01** (`docs/plans/STU-PROF-01 Configurable Student
+   Profile Fields.md`): a platform-defined field catalogue, with each tenant choosing which fields are
+   enabled, required and asked at registration.
 4. **The backlog's literal STU-1 database-impact line lists `status` as a `student_profile` column; this
    plan recommends against it** (reuse `tenant_user.status` instead, matching the `staff_profile`/STAFF-1
    precedent) but flags this as a reasoned deviation requiring explicit confirmation, not a silent override.

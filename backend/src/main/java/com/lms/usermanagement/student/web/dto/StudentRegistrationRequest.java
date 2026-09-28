@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.Map;
 
 /**
  * Public student self-registration request body ({@code POST
@@ -14,6 +15,12 @@ import jakarta.validation.constraints.Size;
  * {@code ConfigDomain.STUDENT} configuration (never a client claim), so a
  * missing-but-tenant-required field is rejected by {@code
  * StudentRegistrationService}, not by Bean Validation here.
+ *
+ * <p>STU-PROF-01 adds {@code profileFields} (additive, optional): catalogue
+ * field key to value for the fields the tenant asks at registration (see the
+ * public registration policy's {@code registrationFields}). The six legacy
+ * top-level properties are still accepted and mapped onto their catalogue
+ * keys when {@code profileFields} does not name that key itself.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record StudentRegistrationRequest(
@@ -34,6 +41,8 @@ public record StudentRegistrationRequest(
 
 		@Size(max = 50) String stream,
 
-		@Size(max = 50) String mobile) {
+		@Size(max = 50) String mobile,
+
+		@Size(max = 100) Map<String, Object> profileFields) {
 
 }

@@ -670,7 +670,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("New Student", uniqueEmail("disabled-reg"), "password123", null, null,
-						null, null, null, null),
+						null, null, null, null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
@@ -687,7 +687,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("New Student", email, "password123", null, null, null, null, null,
-						null),
+						null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -712,7 +712,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("New Student", uniqueEmail("required-reg"), "password123", null, null,
-						null, null, null, null),
+						null, null, null, null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -747,7 +747,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> registerResult = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("Otp Student", email, "password123", null, null, null, null, null,
-						null),
+						null, null),
 				StudentRegistrationResponse.class);
 		assertThat(registerResult.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 	}
@@ -762,7 +762,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("No Otp Student", uniqueEmail("no-otp-reg"), "password123", null,
-						null, null, null, null, null),
+						null, null, null, null, null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);

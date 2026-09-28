@@ -122,7 +122,8 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   if (canViewInstituteConfig(role)) {
     instituteConfigItems.push(
       { label: "General", href: "/tenant-admin/settings/general" },
-      { label: "Branding", href: "/tenant-admin/settings/branding" }
+      { label: "Branding", href: "/tenant-admin/settings/branding" },
+      { label: "Student Fields", href: "/tenant-admin/settings/student-fields" }
     );
   }
   if (canViewPaymentGateway(role)) {
