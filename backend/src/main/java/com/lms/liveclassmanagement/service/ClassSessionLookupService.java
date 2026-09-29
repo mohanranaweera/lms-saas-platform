@@ -4,6 +4,7 @@ import com.lms.liveclassmanagement.api.ClassSessionLookupApi;
 import com.lms.liveclassmanagement.api.ClassSessionSummary;
 import com.lms.liveclassmanagement.domain.ClassSession;
 import com.lms.liveclassmanagement.repository.ClassSessionRepository;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +53,12 @@ public class ClassSessionLookupService implements ClassSessionLookupApi {
 		return new ClassSessionSummary(session.getId(), session.getCourseId(), session.getTeacherId(),
 				session.getLessonId(), session.getTitle(), session.getScheduledStart(), session.getScheduledEnd(),
 				session.getStatus().name());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public long countUpcomingSessionsHostedBy(UUID providerConnectionId) {
+		return classSessionRepository.countUpcomingHostedBy(providerConnectionId, Instant.now());
 	}
 
 }

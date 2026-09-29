@@ -65,3 +65,10 @@ Domain contract files, in the order they landed:
 - `ledger-settlement-management.md` — updated in Wave 7 (PAR-23-03, PAR-24-02/03/04) for the
   teacher settlement foundation (share rates, calculated statements, adjustments, mark-paid,
   payee list) and the new `LedgerRevenueApi` read contract.
+- `integrations.md` — MEDIA-INT-01 (ADR-018), new contract file for `integration-management`'s
+  media & meeting provider connections: teacher Zoom/YouTube/Vimeo OAuth connect + confirm,
+  Tenant Admin DynTube/Bunny.net accounts, teacher-provider switches, video host, the public OAuth
+  callback and the real Zoom webhook.
+- `live-class-management.md` — updated for MEDIA-INT-01: host checks and new `PROVIDER_*` 409s on
+  scheduling, "Recreate meeting" via `retry-provisioning`, host start / registrant join links,
+  Zoom recordings deferred, `hostConnectionStatus`.

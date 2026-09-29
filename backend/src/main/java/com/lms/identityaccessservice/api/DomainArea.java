@@ -71,6 +71,15 @@ public enum DomainArea {
 	 * (PayHere merchant credentials). CREATE_EDIT is Tenant Admin only;
 	 * merchant secrets are never readable by any role.
 	 */
-	PAYMENT_GATEWAY
+	PAYMENT_GATEWAY,
+
+	/**
+	 * MEDIA-INT-01 / ADR-018: the tenant's media & meeting provider settings
+	 * (DynTube/Bunny accounts, which teacher providers are allowed, oversight
+	 * of teachers' Zoom/YouTube/Vimeo connections). CREATE_EDIT is Tenant
+	 * Admin only. Teachers manage their OWN connections without this grant
+	 * (ownership-checked); no role can ever read a token or API key.
+	 */
+	INTEGRATIONS
 
 }

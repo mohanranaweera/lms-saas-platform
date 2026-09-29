@@ -97,7 +97,9 @@ placeholder purely because this note predates Wave 3.
   (Wave 3, PAR-03-06)**: `app/(teacher)/teacher/courses/[courseId]/roster/page.tsx`,
   backed by the new `GET /api/v1/courses/{courseId}/roster` (backend-verified own-course
   ownership, never client-side filtering).
-- Teacher > Live Classes > Schedule Live Class — create Zoom session
+- Teacher > Live Classes > Schedule Live Class — create Zoom session. **MEDIA-INT-01:** hosted
+  on the teacher's own Zoom account; the form warns up front when Zoom isn't connected/licensed,
+  and the session page offers "Recreate meeting" when the host account was disconnected.
 - Teacher > Live Classes > Recordings — manage/attach recordings to lessons
 - Teacher > Attendance > Mark Attendance — manual attendance marking per session. **Shipped
   (MVP-016)**: `app/(teacher)/teacher/attendance/mark/page.tsx`.
@@ -118,6 +120,10 @@ placeholder purely because this note predates Wave 3.
   pre-existing entry that was merely updated.
 - Teacher > Support > My Tickets — teacher support tickets
 - Teacher > Profile > Profile & Availability — teacher profile, availability, payout profile
+- Teacher > Settings > Integrations — **shipped (MEDIA-INT-01)**: connect/reconnect/test/
+  disconnect the teacher's own Zoom, YouTube and Vimeo accounts
+  (`app/(teacher)/teacher/settings/integrations`); a reconnect banner shows on every teacher page
+  when an account needs reconnecting.
 
 ## Tenant Admin Portal (`app/(tenant-admin)/`)
 
@@ -141,7 +147,8 @@ placeholder purely because this note predates Wave 3.
 - Tenant Admin > Courses > Course List — all tenant courses, status, category
 - Tenant Admin > Courses > Course Detail / Approval — oversight of teacher-authored courses
 - Tenant Admin > Materials > Materials Oversight — folder structure, bulk upload management
-- Tenant Admin > Live Classes > Zoom Accounts — tenant Zoom account integration, multiple accounts
+- Tenant Admin > Live Classes > Zoom Accounts — superseded by ADR-018: Zoom accounts are per
+  teacher; the Tenant Admin sees and can disconnect them under Integrations (below).
 - Tenant Admin > Live Classes > Live Class Oversight — scheduled/past sessions across teachers
 - Tenant Admin > Attendance > Attendance Reports — student/course/teacher-level reports.
   **Shipped (MVP-016)**: `app/(tenant-admin)/tenant-admin/attendance/reports/page.tsx` (Tenant
@@ -167,7 +174,12 @@ placeholder purely because this note predates Wave 3.
 - Tenant Admin > Communications > Templates — email/SMS/WhatsApp template editor
 - Tenant Admin > Communications > Bulk Messaging — segment messaging composer
 - Tenant Admin > Communications > Delivery Logs — sent/failed message log
-- Tenant Admin > Integrations > Integration Settings — Zoom/SMS/WhatsApp/email/payment gateway/storage config
+- Tenant Admin > Integrations > Integration Settings — Zoom/SMS/WhatsApp/email/payment gateway/storage config.
+  **Media part shipped (MEDIA-INT-01)** as Institute Configuration > Integrations
+  (`app/(tenant-admin)/tenant-admin/settings/integrations`): teacher-provider switches, DynTube and
+  Bunny.net accounts, active video host, teachers' connections (disconnect with reason).
+- Public > Integration Error — neutral page for an expired/used OAuth connection link
+  (`app/(public)/integration-error`), MEDIA-INT-01.
 - Tenant Admin > Integrations > Webhook & Health Logs — integration health checks
 - Tenant Admin > Devices > Device Policy — tenant/course-level device limit overrides
 - Tenant Admin > Devices > Device Reset & History — reset device, view login activity, suspicious login flags

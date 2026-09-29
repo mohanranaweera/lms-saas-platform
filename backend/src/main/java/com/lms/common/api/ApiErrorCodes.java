@@ -86,6 +86,21 @@ public final class ApiErrorCodes {
 	 */
 	public static final String PLAYBACK_TOKEN_INVALID = "PLAYBACK_TOKEN_INVALID";
 
+	/** MEDIA-INT-01 - the tenant admin has switched this teacher-level provider off. */
+	public static final String PROVIDER_DISABLED_BY_TENANT = "PROVIDER_DISABLED_BY_TENANT";
+
+	/** MEDIA-INT-01 - the required provider connection is missing or not ACTIVE. */
+	public static final String PROVIDER_NOT_CONNECTED = "PROVIDER_NOT_CONNECTED";
+
+	/** MEDIA-INT-01 - the connected Zoom account is Basic (free); a licensed account is required. */
+	public static final String PROVIDER_LICENSE_REQUIRED = "PROVIDER_LICENSE_REQUIRED";
+
+	/** MEDIA-INT-01 - the connection needs to be reconnected (token revoked/expired or scope missing). */
+	public static final String PROVIDER_RECONNECT_REQUIRED = "PROVIDER_RECONNECT_REQUIRED";
+
+	/** MEDIA-INT-01 - the provider rejected the supplied API credentials. */
+	public static final String PROVIDER_CREDENTIALS_INVALID = "PROVIDER_CREDENTIALS_INVALID";
+
 	private ApiErrorCodes() {
 	}
 

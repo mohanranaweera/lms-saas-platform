@@ -236,9 +236,12 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
         ["General", entry.instituteConfig],
         ["Branding", entry.instituteConfig],
         ["Student Fields", entry.instituteConfig],
+        // MEDIA-INT-01 - INTEGRATIONS/VIEW: Tenant Admin and Read-only Auditor only.
+        ["Integrations", entry.role === "TENANT_ADMIN" || entry.role === "READ_ONLY_AUDITOR"],
       ];
       for (const [label, visible] of gatedItems) {
-        const link = page.getByRole("link", { name: label });
+        // exact: "Payments" must not also match PAY-GW-01's "Online Payments".
+        const link = page.getByRole("link", { name: label, exact: true });
         if (visible) {
           await expect(link).toBeVisible();
         } else {

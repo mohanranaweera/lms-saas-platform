@@ -1,5 +1,10 @@
 # Zoom (Live Class Integration)
 
+> **Implementation status (2026-09-29):** MEDIA-INT-01 / ADR-018 - Zoom accounts are **per
+> teacher** (OAuth), not a tenant account; live classes run on the teacher's own licensed Zoom
+> account with a personal join link per student. Recordings for real Zoom sessions are deferred
+> to MEDIA-INT-04. See `docs/api/integrations.md` and `docs/api/live-class-management.md`.
+
 **Domain:** `live-class-management` (Module 9), consuming `integration-management`'s Zoom API interface · **Portal(s):** Teacher, Student, Tenant Admin
 
 ## 1. Business purpose

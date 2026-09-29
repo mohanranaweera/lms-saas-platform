@@ -69,6 +69,10 @@ logging:
   structured:
     format:
       console: logstash
+    # MEDIA-INT-01 security review S7: mask tokens/API keys/Bearer credentials
+    # in every JSON log line (a safety net - nothing should log them).
+    json:
+      customizer: com.lms.common.logging.SecretMaskingJsonMembersCustomizer
 
 payment:
   gateway:
@@ -100,6 +104,33 @@ live-class:
     # payment.gateway.webhook-secret above. LIVE_CLASS_PROVIDER_WEBHOOK_SECRET
     # must be set via a real env var in every non-local environment.
     webhook-secret: ${LIVE_CLASS_PROVIDER_WEBHOOK_SECRET:}
+    # MEDIA-INT-01: never fall back to the fake provider outside local/test -
+    # without the Zoom OAuth app configured, live classes are unavailable.
+    fake-fallback-enabled: false
+
+# MEDIA-INT-01 / ADR-018 - media & meeting provider integrations. Every value
+# is empty by default: the affected provider shows as "unavailable" and
+# connecting fails closed. Never commit real values.
+integrations:
+  media:
+    # AES-256 key (Base64 of 32 bytes) encrypting provider tokens/API keys.
+    encryption-key: ${MEDIA_CREDENTIALS_ENCRYPTION_KEY:}
+    # Public origin serving /api/v1/integrations/oauth/{provider}/callback -
+    # the redirect URI registered with every provider's OAuth app.
+    callback-base-url: ${MEDIA_OAUTH_CALLBACK_BASE_URL:}
+    # Tenant site origin; {subdomain} comes from the tenant record.
+    tenant-url-template: ${MEDIA_TENANT_URL_TEMPLATE:}
+    platform-error-url: ${MEDIA_OAUTH_ERROR_URL:}
+    zoom-webhook-secret-token: ${ZOOM_WEBHOOK_SECRET_TOKEN:}
+    zoom:
+      client-id: ${ZOOM_OAUTH_CLIENT_ID:}
+      client-secret: ${ZOOM_OAUTH_CLIENT_SECRET:}
+    google:
+      client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+      client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:}
+    vimeo:
+      client-id: ${VIMEO_OAUTH_CLIENT_ID:}
+      client-secret: ${VIMEO_OAUTH_CLIENT_SECRET:}
 
 object-storage:
   # Wave 5 (S3ObjectStorageApi / UnavailableObjectStorageApi conditional

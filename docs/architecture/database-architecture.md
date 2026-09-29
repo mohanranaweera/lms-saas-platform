@@ -382,6 +382,13 @@ Data-model conventions that follow from this list:
   email, payment gateway, object storage config) exclusively; other domains do not
   create their own tables for third-party credentials — they call `integration-
   management`'s `api` interfaces.
+  - MEDIA-INT-01 (V60): `media_provider_connection` (teacher Zoom/YouTube/Vimeo and tenant
+    DynTube/Bunny accounts; `tenant_id` NOT NULL, owner composite-FK'd to `tenant_user`,
+    provider/scope CHECK, one live row per teacher+provider / tenant+provider via partial
+    unique indexes, encrypted credentials wiped on disconnect, rows never deleted) and
+    `tenant_media_integration_settings` (one row per tenant). `class_session.provider_connection_id`
+    is composite-FK'd into `media_provider_connection (tenant_id, id)`. The only non-tenant-leading
+    index is the Zoom-deauthorization lookup `(provider, external_account_id)` (ADR-018 §5).
 - **Audit, notification, and reporting tables are event-consumers' own tables,** not
   shared tables written directly by the domains that trigger them — e.g. a price change
   in `course-management` publishes a domain event; `audit-log-management` persists its

@@ -17,6 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ErrorState } from "@/components/states/error-state";
+import {
+  ProviderErrorAlert,
+  ZoomReadinessNotice,
+  isProviderErrorCode,
+} from "@/components/live-classes/zoom-host-notice";
 import { LiveRegion } from "@/components/ui/live-region";
 import { useCourses, useCourseLessons, useCourseModules } from "@/lib/api/courses";
 import { useCreateClassSession } from "@/lib/api/class-sessions";
@@ -167,7 +172,11 @@ export function ClassSessionCreateForm() {
         </Link>
       </div>
 
-      {pageError ? (
+      <ZoomReadinessNotice />
+
+      {pageError && pageError.code && isProviderErrorCode(pageError.code) ? (
+        <ProviderErrorAlert code={pageError.code} message={pageError.message} />
+      ) : pageError ? (
         <ErrorState
           message={pageError.message}
           code={pageError.code}

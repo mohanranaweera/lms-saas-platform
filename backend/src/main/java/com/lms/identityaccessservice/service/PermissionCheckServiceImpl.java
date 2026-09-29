@@ -158,7 +158,10 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 					PermissionAction.DELETE, PermissionAction.APPROVE)
 			// PAY-GW-01 / ADR-017 - only the Tenant Admin may configure the
 			// tenant's own merchant account.
-			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)));
+			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+			// MEDIA-INT-01 / ADR-018 - only the Tenant Admin configures the
+			// tenant's media/meeting provider integrations.
+			.grant(DomainArea.INTEGRATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
 			.grant(DomainArea.COURSES, PermissionAction.VIEW)
@@ -238,7 +241,8 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 					.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
 					.grant(DomainArea.BRANDING_SETTINGS, PermissionAction.VIEW)
 					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW)
-					.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)));
+					.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)
+					.grant(DomainArea.INTEGRATIONS, PermissionAction.VIEW)));
 
 		return Map.copyOf(matrix);
 	}

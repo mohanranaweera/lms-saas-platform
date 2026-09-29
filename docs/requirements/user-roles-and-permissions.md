@@ -67,6 +67,7 @@ results), `—` = no access. This is a starting matrix for IA/navigation purpose
 | Support tickets | V/C/E/D | — | — | V/C/E | — | — | — | V |
 | Live classes | V/C/E/D/A | — | V/C/E/A | — | — | — | — | — |
 | Payment gateway (PAY-GW-01) | V/C/E | V | — | — | — | — | — | V |
+| Integrations (MEDIA-INT-01) | V/C/E | — | — | — | — | — | — | V |
 
 Live classes (Wave 4, PAR-19-03): who may schedule/manage a `class_session` at the
 staff-matrix level — Teacher/Teacher Assistant ownership access is separate, scoped to
@@ -75,6 +76,13 @@ their own assigned courses, enforced by `liveclassmanagement.support.LiveClassAc
 for Read-only Auditor beyond the base "no mutating permission" guarantee below — unlike
 every other domain area, this role gets no `V` entry either (`—`), since Wave 4 introduced
 no separate Tenant-Admin-oversight-only view requirement for this role.
+
+Integrations (MEDIA-INT-01, ADR-018): the tenant's media & meeting provider settings —
+DynTube/Bunny.net accounts, which teacher providers (Zoom/YouTube/Vimeo) teachers may
+connect, and oversight/disconnect of teachers' connections. Teachers manage their **own**
+Zoom/YouTube/Vimeo connections without this grant (ownership-checked in
+`integrationmanagement.service.MediaConnectionService`), the same carve-out shape as Live
+classes. No role can ever read a stored token or API key.
 
 Read-only Auditor: server-side, **no mutating endpoint may succeed for this role,
 regardless of what a stale client UI exposes** (`authentication-authorization.md` §9).

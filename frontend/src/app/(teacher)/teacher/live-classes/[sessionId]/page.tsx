@@ -10,6 +10,7 @@ import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { ClassSessionStatusBadge } from "@/components/live-classes/class-session-status-badge";
 import { ProviderStatusBadge } from "@/components/live-classes/provider-status-badge";
+import { ProviderErrorAlert, isProviderErrorCode } from "@/components/live-classes/zoom-host-notice";
 import {
   useCancelClassSession,
   useClassSession,
@@ -23,10 +24,41 @@ import {
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime } from "@/lib/format";
 
+function hostConnectionLost(session: ClassSessionResponse): boolean {
+  return (
+    session.providerStatus === "PROVISIONED" &&
+    (session.hostConnectionStatus === "DISCONNECTED" || session.hostConnectionStatus === "NEEDS_RECONNECT") &&
+    (session.status === "SCHEDULED" || session.status === "LIVE")
+  );
+}
+
+/**
+ * MEDIA-INT-01: the Zoom account hosting this meeting is disconnected, so
+ * students can't join. Reconnecting the same account restores it; otherwise
+ * "Recreate meeting" creates a new meeting on the teacher's current account.
+ */
+function HostConnectionAlert({ session }: { session: ClassSessionResponse }) {
+  if (!hostConnectionLost(session)) return null;
+  return (
+    <Alert variant="destructive">
+      <AlertDescription>
+        The Zoom account hosting this class is{" "}
+        {session.hostConnectionStatus === "NEEDS_RECONNECT" ? "no longer authorised" : "disconnected"}, so students
+        can&apos;t join.{" "}
+        <Link href="/teacher/settings/integrations" className="font-medium underline">
+          Reconnect Zoom
+        </Link>
+        , then choose Recreate meeting if the class still can&apos;t be joined.
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 function RetryProvisioningAction({ session }: { session: ClassSessionResponse }) {
   const mutation = useRetryClassSessionProvisioning(session.id);
-  const [error, setError] = useState<string | null>(null);
-  if (session.providerStatus !== "FAILED" && session.providerStatus !== "PENDING") return null;
+  const [error, setError] = useState<{ message: string; code?: string } | null>(null);
+  const recreate = hostConnectionLost(session);
+  if (session.providerStatus !== "FAILED" && session.providerStatus !== "PENDING" && !recreate) return null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -40,16 +72,22 @@ function RetryProvisioningAction({ session }: { session: ClassSessionResponse })
           try {
             await mutation.mutateAsync();
           } catch (err) {
-            setError(isApiClientError(err) ? err.message : "Could not retry provisioning. Please try again.");
+            setError(
+              isApiClientError(err)
+                ? { message: err.message, code: err.code }
+                : { message: "Could not retry provisioning. Please try again." }
+            );
           }
         }}
       >
         <RotateCcw aria-hidden="true" />
-        {mutation.isPending ? "Retrying…" : "Retry provisioning"}
+        {mutation.isPending ? (recreate ? "Recreating…" : "Retrying…") : recreate ? "Recreate meeting" : "Retry provisioning"}
       </Button>
-      {error ? (
+      {error && error.code && isProviderErrorCode(error.code) ? (
+        <ProviderErrorAlert code={error.code} message={error.message} />
+      ) : error ? (
         <p role="alert" className="text-xs text-destructive">
-          {error}
+          {error.message}
         </p>
       ) : null}
     </div>
@@ -242,6 +280,8 @@ function LiveClassDetailContent() {
                 </Alert>
               ) : null}
             </div>
+
+            <HostConnectionAlert session={session} />
 
             <div className="flex flex-wrap items-start gap-3">
               {session.status === "SCHEDULED" ? (

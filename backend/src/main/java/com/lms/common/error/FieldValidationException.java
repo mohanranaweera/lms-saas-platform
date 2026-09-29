@@ -26,7 +26,16 @@ public class FieldValidationException extends ApplicationException {
 	private final List<FieldError> fieldErrors;
 
 	public FieldValidationException(String message, List<FieldError> fieldErrors) {
-		super(HttpStatus.BAD_REQUEST, ApiErrorCodes.VALIDATION_ERROR, message);
+		this(ApiErrorCodes.VALIDATION_ERROR, message, fieldErrors);
+	}
+
+	/**
+	 * A 400 with field errors but a more specific machine-readable code (e.g.
+	 * {@code PROVIDER_CREDENTIALS_INVALID}), so a client can tell "the
+	 * provider rejected these keys" apart from plain input validation.
+	 */
+	public FieldValidationException(String errorCode, String message, List<FieldError> fieldErrors) {
+		super(HttpStatus.BAD_REQUEST, errorCode, message);
 		if (fieldErrors == null || fieldErrors.isEmpty()) {
 			throw new IllegalArgumentException("fieldErrors must not be null/empty");
 		}

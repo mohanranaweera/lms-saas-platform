@@ -44,6 +44,8 @@ export interface ClassSessionRecord {
   providerFailureReason: string | null;
   createdAt: string;
   updatedAt: string;
+  /** MEDIA-INT-01 - null for fake-provider sessions and Student callers. */
+  hostConnectionStatus: "ACTIVE" | "NEEDS_RECONNECT" | "DISCONNECTED" | null;
 }
 
 function nowIso(): string {
@@ -90,6 +92,7 @@ export function makeClassSession(overrides: Partial<ClassSessionRecord> & { id: 
     providerFailureReason: null,
     createdAt: nowIso(),
     updatedAt: nowIso(),
+    hostConnectionStatus: null,
     ...overrides,
   };
 }

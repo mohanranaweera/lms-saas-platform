@@ -169,12 +169,15 @@ Affects: [21-sms.md](specifications/21-sms.md), [22-whatsapp.md](specifications/
   Source: `docs/architecture/deployment-architecture.md` §6.
 - **Zoom link-sharing prevention mechanism**: the requirement exists (FR-LCM-2) but the concrete enforcement mechanism is not specified.
   Affects: [19-zoom-live-classes.md](specifications/19-zoom-live-classes.md).
+  **Resolved (ADR-018 §4, 2026-09-28):** every student gets a personal Zoom registrant join link after the platform's entitlement check; the host start link is fetched fresh and never stored. Requires a licensed teacher Zoom account.
 - **Whether Zoom join-link protection follows the same signed-URL/short-lived-token rule as video**: `.claude/rules/security.md`'s "Video & Session Protection" section only names video explicitly.
   Affects: [19-zoom-live-classes.md](specifications/19-zoom-live-classes.md).
+  **Resolved (ADR-018 §4):** no platform token layer for Zoom; protection is the per-student registrant link minted only after entitlement checks, plus the teacher's own Zoom meeting settings.
 - **WhatsApp template-approval state machine and opt-in/consent handling**: not addressed in any source document.
   Affects: [22-whatsapp.md](specifications/22-whatsapp.md).
 - **Whether YouTube/Vimeo-attached content is subject to the same view-limit/expiry/watermark/device-restriction controls as platform-hosted secure video, or exempt.** A raw YouTube/Vimeo embed URL is inherently more guessable/shareable than a signed platform token, and no document resolves the seam.
   Affects: [27-youtube-vimeo-integrations.md](specifications/27-youtube-vimeo-integrations.md).
+  **Resolved (ADR-018 §6):** exempt - only unlisted/private videos, domain-restricted embeds where supported, weaker protection stated in the UI; paid protected content uses the tenant video host (DynTube/Bunny.net).
 - **Monthly-closing lock semantics** for Finance & Expenses (mutation-after-close behavior).
   Affects: [23-finance-and-expenses.md](specifications/23-finance-and-expenses.md).
 - **Zoom-sync participant-name reconciliation rule**: no rule specified for when Zoom-sync attendance data doesn't match an enrolled student's standardized name.

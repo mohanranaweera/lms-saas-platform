@@ -111,7 +111,7 @@ class ClassSessionTest {
 	void markProvisionedSetsProvisionedAndClearsFailureReason() {
 		ClassSession session = newScheduledSession();
 		session.markProvisioningFailed("boom");
-		session.markProvisioned("FAKE-ZOOM-abc");
+		session.markProvisioned("FAKE-ZOOM-abc", null);
 		assertThat(session.getProviderStatus()).isEqualTo(ClassSessionProviderStatus.PROVISIONED);
 		assertThat(session.getProviderReference()).isEqualTo("FAKE-ZOOM-abc");
 		assertThat(session.getProviderFailureReason()).isNull();
@@ -131,7 +131,7 @@ class ClassSessionTest {
 		assertThat(session.isRetryable()).isTrue(); // PENDING
 		session.markProvisioningFailed("boom");
 		assertThat(session.isRetryable()).isTrue(); // FAILED
-		session.markProvisioned("FAKE-ZOOM-abc");
+		session.markProvisioned("FAKE-ZOOM-abc", null);
 		assertThat(session.isRetryable()).isFalse(); // PROVISIONED
 	}
 

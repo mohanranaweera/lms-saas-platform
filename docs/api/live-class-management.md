@@ -162,7 +162,8 @@ Same short-lived, never-cached, never-reused contract as `joinUrl`.
   "providerStatus": "PENDING",      // PENDING | PROVISIONED | FAILED
   "providerFailureReason": null,
   "createdAt": "2026-10-01T08:00:00Z",
-  "updatedAt": "2026-10-01T08:00:00Z"
+  "updatedAt": "2026-10-01T08:00:00Z",
+  "hostConnectionStatus": null      // MEDIA-INT-01: ACTIVE | NEEDS_RECONNECT | DISCONNECTED | null
 }
 ```
 
@@ -203,9 +204,10 @@ third-party webhook carries no session/JWT.
   join/view entitlement truth.
 - `integrationmanagement.api.LiveClassProviderApi` — **new**, this wave's meeting-provider
   abstraction (`createMeeting`/`getJoinUrl`/`getRecordingPlaybackUrl`/`cancelMeeting`/
-  `verifySignature`). Implemented by `FakeZoomLiveClassProviderAdapter` — deterministic, no real
-  Zoom SDK/credentials (none exist in this environment; a real adapter is a future, explicitly
-  deferred addition, see the plan's §11).
+  `verifySignature`). Since MEDIA-INT-01 the injected bean is `LiveClassProviderRouter`: real Zoom
+  meetings on the teacher's own account (`ZoomLiveClassProviderAdapter`) when the platform Zoom
+  OAuth app is configured; `FakeZoomLiveClassProviderAdapter` only in local/test with
+  `live-class.provider.fake-fallback-enabled`. Signatures changed in MEDIA-INT-01 - see below.
 - `liveclassmanagement.api.ClassSessionAttendanceSyncedEvent` — **new**, published (not yet
   consumed) by the webhook path for the future `attendance-management` listener (`PAR-10-03`,
   Wave 8).
@@ -213,3 +215,43 @@ third-party webhook carries no session/JWT.
 All resolve tenant identity exclusively from the trusted request context (or, for the webhook
 path, from the platform's own `provider_reference` lookup) — mirroring every other cross-module
 `api` interface's established discipline in this codebase.
+
+## MEDIA-INT-01 changes (2026-09-29)
+
+Live classes are hosted on the **session teacher's own Zoom account** (ADR-018). Full contract of
+the connection endpoints and the real Zoom webhook: `docs/api/integrations.md`. Changes here are
+additive - no field removed or renamed.
+
+- **`POST /class-sessions`** - checked before anything is persisted (local lookups only):
+  `409 PROVIDER_DISABLED_BY_TENANT` (Zoom switched off for the institute),
+  `409 PROVIDER_NOT_CONNECTED` (the course teacher has no ACTIVE Zoom connection),
+  `409 PROVIDER_RECONNECT_REQUIRED`, `409 PROVIDER_LICENSE_REQUIRED` (Basic/free Zoom account -
+  personal registrant links need a licensed host). Staff scheduling for a course still hosts on
+  the course teacher's account. A Zoom API failure after persisting keeps the old behaviour
+  (`providerStatus = FAILED`, retryable). Without a configured Zoom app, `503` unless the
+  local/test fake fallback is on.
+- **`POST /class-sessions/{id}/retry-provisioning`** - also **recreates** the meeting on the
+  teacher's current Zoom connection when a `PROVISIONED`, not-finished session's host connection
+  is no longer ACTIVE ("Recreate meeting"); the same pre-check 409s apply.
+- **`POST /class-sessions/{id}/join`** - response shape unchanged. The course-owning teacher gets a
+  freshly fetched Zoom **host start URL**; students and staff are registered (idempotently, with
+  their platform name and email, Zoom emails off) and get a **personal registrant join URL**.
+  `409 PROVIDER_NOT_CONNECTED` when the host connection is gone. `expiresAt` is now + 2 h
+  (advisory). The endpoint is no longer transactional (the Zoom call must not run inside a DB
+  transaction).
+- **`GET /class-sessions/{id}/recording`** - `404` for sessions hosted on a real Zoom connection
+  (Zoom cloud-recording links are not short-lived per-viewer URLs); recording delivery is
+  MEDIA-INT-04.
+- **Cancel** - the Zoom meeting is deleted best-effort **after** the cancel commits.
+- **`ClassSessionResponse.hostConnectionStatus`** - see the shape above; `null` for
+  fake-provider sessions and for Student callers.
+- **Webhooks** - the real Zoom webhook is `POST /api/v1/integrations/webhooks/zoom`
+  (`integrations.md`); the generic `.../live-class` webhook above remains for the fake provider
+  only.
+- **Java contract** - `LiveClassProviderApi` gained `checkHostReady(hostTeacherUserId)`;
+  `createMeeting(tenantId, sessionId, hostTeacherUserId, title, start, end)` returns
+  `MeetingCreationResult(providerReference, connectionId)`; `getJoinUrl(connectionId,
+  providerReference, MeetingParticipant)`; `cancelMeeting(connectionId, providerReference)`.
+  `ClassSessionLookupApi` gained `countUpcomingSessionsHostedBy(connectionId)`.
+- **Schema** - `class_session.provider_connection_id` (V60), composite FK into
+  `media_provider_connection (tenant_id, id)`.

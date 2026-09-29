@@ -67,6 +67,18 @@ live-class:
     # src/main/resources/application.yml's own comment for why the main
     # default is empty instead.
     webhook-secret: "test-only-live-class-webhook-secret-not-for-production-use"
+    # MEDIA-INT-01: existing live-class tests run against the fake provider
+    # (no Zoom OAuth app is configured in tests unless a test sets one).
+    fake-fallback-enabled: true
+
+integrations:
+  media:
+    # Test-only key (Base64 of "test-only-media-cred-key-32bytes").
+    encryption-key: "dGVzdC1vbmx5LW1lZGlhLWNyZWQta2V5LTMyYnl0ZXM="
+    callback-base-url: "https://app.example.test"
+    tenant-url-template: "https://{subdomain}.example.test"
+    platform-error-url: "https://app.example.test/integration-error"
+    zoom-webhook-secret-token: "test-only-zoom-webhook-secret-token"
 
 video-playback:
   token:

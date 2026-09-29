@@ -313,6 +313,20 @@ export function canManagePaymentGateway(role: string | null): boolean {
 }
 
 /**
+ * Roles holding `INTEGRATIONS`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (MEDIA-INT-01): Tenant Admin, Read-only Auditor. UX only - the
+ * backend re-checks every request.
+ */
+export function canViewIntegrations(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "READ_ONLY_AUDITOR";
+}
+
+/** `INTEGRATIONS`/`CREATE_EDIT` - Tenant Admin only (MEDIA-INT-01). UX only. */
+export function canManageIntegrations(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
  * Roles holding `LIVE_CLASSES`/`VIEW` per `PermissionCheckServiceImpl`'s
  * matrix (Wave 4) — Tenant Admin (full grant) and Course Coordinator
  * (`V/C/E/A`, no `DELETE`). No other staff sub-role holds any `LIVE_CLASSES`

@@ -11,6 +11,7 @@ import {
   canViewFinance,
   canViewInstituteConfig,
   canViewPaymentGateway,
+  canViewIntegrations,
   canViewLiveClassesStaff,
   canViewPaymentDashboard,
   canViewStaff,
@@ -128,6 +129,10 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (canViewPaymentGateway(role)) {
     instituteConfigItems.push({ label: "Online Payments", href: "/tenant-admin/settings/payments" });
+  }
+  // MEDIA-INT-01 - INTEGRATIONS/VIEW (Tenant Admin, Read-only Auditor).
+  if (canViewIntegrations(role)) {
+    instituteConfigItems.push({ label: "Integrations", href: "/tenant-admin/settings/integrations" });
   }
 
   return (

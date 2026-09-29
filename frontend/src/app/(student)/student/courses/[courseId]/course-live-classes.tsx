@@ -34,7 +34,9 @@ function StudentJoinAction({ session }: { session: ClassSessionResponse }) {
         size="sm"
         disabled={!canJoin || mutation.isPending}
         aria-busy={mutation.isPending}
-        aria-describedby={!canJoin ? `student-live-class-${session.id}-join-reason` : undefined}
+        aria-describedby={
+          !canJoin ? `student-live-class-${session.id}-join-reason` : `student-live-class-${session.id}-join-privacy`
+        }
         onClick={async () => {
           setError(null);
           try {
@@ -47,6 +49,11 @@ function StudentJoinAction({ session }: { session: ClassSessionResponse }) {
       >
         {mutation.isPending ? "Joining…" : "Join"}
       </Button>
+      {canJoin ? (
+        <span id={`student-live-class-${session.id}-join-privacy`} className="text-xs text-muted-foreground">
+          Joining shares your name and email with this class&apos;s Zoom meeting.
+        </span>
+      ) : null}
       {!canJoin && disabledReason ? (
         <span id={`student-live-class-${session.id}-join-reason`} className="text-xs text-muted-foreground">
           {disabledReason}

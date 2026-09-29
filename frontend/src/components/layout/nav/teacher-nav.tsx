@@ -10,6 +10,7 @@ export function TeacherNav({ onNavigate }: { onNavigate?: () => void }) {
     { label: "Attendance Reports", href: "/teacher/attendance/reports" },
     { label: "Exams", href: "/teacher/exams/questions" },
     { label: "Notifications", href: "/teacher/notifications", badge: <NotificationsNavBadge /> },
+    { label: "Settings", href: "/teacher/settings" },
     { label: "Profile" },
   ];
 

@@ -160,7 +160,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(FieldValidationException.class)
 	public ResponseEntity<ApiResponse<Void>> handleFieldValidation(FieldValidationException ex) {
 		return ResponseEntity.badRequest()
-			.body(ApiResponse.error(ApiError.validation(ex.getMessage(), ex.getFieldErrors())));
+			.body(ApiResponse.error(new ApiError(ex.getErrorCode(), ex.getMessage(), ex.getFieldErrors())));
 	}
 
 	/**

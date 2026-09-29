@@ -53,14 +53,17 @@ public class ClassSessionSchedulingService {
 
 	private final LiveClassProviderApi liveClassProviderApi;
 
+	private final ClassSessionViewAssembler viewAssembler;
+
 	public ClassSessionSchedulingService(LiveClassAccessGuard accessGuard, CourseLookupApi courseLookupApi,
 			ClassSessionWriteService writeService, ClassSessionRepository classSessionRepository,
-			LiveClassProviderApi liveClassProviderApi) {
+			LiveClassProviderApi liveClassProviderApi, ClassSessionViewAssembler viewAssembler) {
 		this.accessGuard = accessGuard;
 		this.courseLookupApi = courseLookupApi;
 		this.writeService = writeService;
 		this.classSessionRepository = classSessionRepository;
 		this.liveClassProviderApi = liveClassProviderApi;
+		this.viewAssembler = viewAssembler;
 	}
 
 	public ClassSessionView scheduleSession(NewSessionCommand command) {
@@ -69,32 +72,44 @@ public class ClassSessionSchedulingService {
 			.orElseThrow(() -> new NotFoundException("Course not found"));
 		requireValidWindow(command.scheduledStart(), command.scheduledEnd());
 		UUID lessonId = requireValidLesson(command.courseId(), command.lessonId());
+		// MEDIA-INT-01: local checks only (Zoom enabled, teacher connected and
+		// licensed) - a teacher who cannot host gets a 409 and no session row.
+		liveClassProviderApi.checkHostReady(teacherId);
 
 		ClassSession pending = writeService.createPendingSession(command.courseId(), teacherId, lessonId,
 				command.title(), command.description(), command.scheduledStart(), command.scheduledEnd());
 
-		return ClassSessionView.from(provisionOrMarkFailed(pending.getTenantId(), pending.getId(), pending.getTitle(),
-				pending.getScheduledStart(), pending.getScheduledEnd()));
+		return viewAssembler.toView(provisionOrMarkFailed(pending.getTenantId(), pending.getId(), teacherId,
+				pending.getTitle(), pending.getScheduledStart(), pending.getScheduledEnd()));
 	}
 
-	/** Idempotent no-op if already {@code PROVISIONED} - re-attempts otherwise. */
+	/**
+	 * Re-attempts provisioning when {@code PENDING}/{@code FAILED}, and
+	 * (MEDIA-INT-01) recreates the meeting on the teacher's current Zoom
+	 * connection when a {@code PROVISIONED} session's host connection is no
+	 * longer ACTIVE ("Recreate meeting"). Otherwise an idempotent no-op.
+	 */
 	public ClassSessionView retryProvisioning(UUID sessionId) {
 		ClassSession session = classSessionRepository.findById(sessionId)
 			.orElseThrow(() -> new NotFoundException("Class session not found"));
 		accessGuard.requireManagementAccess(session.getCourseId(), PermissionAction.CREATE_EDIT);
-		if (!session.isRetryable()) {
-			return ClassSessionView.from(session);
+		boolean recreate = !session.isRetryable() && !session.isFinished()
+				&& viewAssembler.hostConnectionLost(session);
+		if (!session.isRetryable() && !recreate) {
+			return viewAssembler.toView(session);
 		}
-		return ClassSessionView.from(provisionOrMarkFailed(session.getTenantId(), session.getId(), session.getTitle(),
-				session.getScheduledStart(), session.getScheduledEnd()));
+		UUID teacherId = courseLookupApi.getTeacherId(session.getCourseId()).orElse(session.getTeacherId());
+		liveClassProviderApi.checkHostReady(teacherId);
+		return viewAssembler.toView(provisionOrMarkFailed(session.getTenantId(), session.getId(), teacherId,
+				session.getTitle(), session.getScheduledStart(), session.getScheduledEnd()));
 	}
 
-	private ClassSession provisionOrMarkFailed(UUID tenantId, UUID sessionId, String title, Instant scheduledStart,
-			Instant scheduledEnd) {
+	private ClassSession provisionOrMarkFailed(UUID tenantId, UUID sessionId, UUID hostTeacherUserId, String title,
+			Instant scheduledStart, Instant scheduledEnd) {
 		try {
-			MeetingCreationResult creation = liveClassProviderApi.createMeeting(tenantId, sessionId, title,
-					scheduledStart, scheduledEnd);
-			return writeService.markProvisioned(sessionId, creation.providerReference());
+			MeetingCreationResult creation = liveClassProviderApi.createMeeting(tenantId, sessionId,
+					hostTeacherUserId, title, scheduledStart, scheduledEnd);
+			return writeService.markProvisioned(sessionId, creation.providerReference(), creation.connectionId());
 		}
 		catch (RuntimeException ex) {
 			log.atWarn()

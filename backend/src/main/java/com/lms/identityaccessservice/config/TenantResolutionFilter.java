@@ -75,7 +75,11 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 				// javadoc for the full explanation). Tenant identity for this
 				// path is resolved from the platform's own Payment row the
 				// gateway's reference maps to, never from a Host header.
-				|| path.startsWith("/api/v1/integrations/webhooks/");
+				|| path.startsWith("/api/v1/integrations/webhooks/")
+				// MEDIA-INT-01: the OAuth callback is served from the platform's
+				// callback host, not a tenant subdomain; its tenant comes from
+				// the single-use OAuth state (OAuthConnectFlowService).
+				|| path.startsWith("/api/v1/integrations/oauth/");
 	}
 
 	@Override

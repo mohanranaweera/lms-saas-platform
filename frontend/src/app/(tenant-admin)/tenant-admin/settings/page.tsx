@@ -49,6 +49,17 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/tenant-admin/settings/integrations" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Integrations</CardTitle>
+              <CardDescription>
+                Teachers&apos; Zoom, YouTube and Vimeo accounts, and your institute&apos;s DynTube and Bunny.net
+                video hosting.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         <Link href="/tenant-admin/settings/student-fields" className="block">
           <Card className="h-full transition-colors hover:bg-muted/40">
             <CardHeader>

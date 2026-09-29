@@ -182,6 +182,12 @@ public class SecurityFilterChainConfig {
 				// per .claude/rules/security.md and
 				// .claude/rules/payments.md's webhook-verification rules.
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/integrations/webhooks/**").permitAll();
+				// MEDIA-INT-01 / ADR-018 §3: the single OAuth redirect URI the
+				// Zoom/Google/Vimeo apps send the teacher's browser back to. It
+				// carries no session/JWT; OAuthConnectFlowService trusts only
+				// the single-use Redis state, never the request, to decide the
+				// tenant and teacher.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/integrations/oauth/*/callback").permitAll();
 				authorize.anyRequest().authenticated();
 			})
 			.addFilterBefore(tenantResolutionFilter, UsernamePasswordAuthenticationFilter.class)

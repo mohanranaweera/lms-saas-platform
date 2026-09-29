@@ -1,5 +1,9 @@
 # YouTube and Vimeo Integrations
 
+> **Implementation status (2026-09-29):** ADR-018 - each teacher connects their **own** YouTube
+> and Vimeo accounts via OAuth (MEDIA-INT-01, shipped). Picking/uploading videos is MEDIA-INT-02;
+> the security-posture open question is resolved in ADR-018 §6.
+
 **Domain:** `content-management`, consuming `integration-management`'s YouTube/Vimeo API interfaces · **Portal(s):** Teacher, Student
 
 ## 1. Business purpose
