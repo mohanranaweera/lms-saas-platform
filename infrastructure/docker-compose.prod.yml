@@ -1,0 +1,162 @@
+# Production / staging stack - ADR-019 (secrets) template.
+#
+# PLACEHOLDERS ONLY. No real value belongs in this file or in git. Secrets live
+# as root-only files on the host (default /etc/lms/secrets, override with
+# LMS_SECRETS_HOST_DIR) and are mounted read-only at /run/secrets/<NAME>; the
+# backend reads them through the `prod` profile's configtree import
+# (backend/src/main/resources/application-prod.yml). Setup, generation, backup
+# and rotation: docs/operations/production-secrets-runbook.md. Every secret
+# name: infrastructure/prod-secrets.reference.
+#
+# NOT YET DEPLOYABLE as-is: backend/frontend Dockerfiles (BACKEND_IMAGE /
+# FRONTEND_IMAGE) and the Nginx reverse proxy/TLS config do not exist yet -
+# separate tasks (deployment-architecture.md). App ports are bound to
+# 127.0.0.1 so only a proxy on the same host can reach them.
+#
+# Never run a production deployment without explicit human approval
+# (root CLAUDE.md).
+#
+# Usage (after the secrets exist on the host):
+#   docker compose -f infrastructure/docker-compose.prod.yml --env-file /etc/lms/prod.env up -d
+# where /etc/lms/prod.env holds only NON-secret settings (image tags, domain, DB name).
+name: lms-saas-production
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE to the backend image tag}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Plain, non-secret configuration (ADR-019 Decision 3).
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-lms}
+      DB_USERNAME: ${POSTGRES_USER:-lms_app}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      MEDIA_OAUTH_CALLBACK_BASE_URL: https://api.${PLATFORM_DOMAIN:?set PLATFORM_DOMAIN}
+      MEDIA_TENANT_URL_TEMPLATE: https://{subdomain}.${PLATFORM_DOMAIN}
+      MEDIA_OAUTH_ERROR_URL: https://${PLATFORM_DOMAIN}/integration-error
+      ZOOM_OAUTH_CLIENT_ID: ${ZOOM_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      VIMEO_OAUTH_CLIENT_ID: ${VIMEO_OAUTH_CLIENT_ID:-}
+      OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT:-}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:-}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
+      PAYHERE_NOTIFY_URL: https://api.${PLATFORM_DOMAIN}/api/v1/integrations/webhooks/payhere
+      PAYHERE_RETURN_URL_TEMPLATE: https://{subdomain}.${PLATFORM_DOMAIN}
+    # Secrets (ADR-019 Decision 3) - each mounted at /run/secrets/<NAME>.
+    secrets:
+      - DB_PASSWORD
+      - REDIS_PASSWORD
+      - JWT_SECRET
+      - VIDEO_PLAYBACK_TOKEN_SECRET
+      - MEDIA_CREDENTIALS_ENCRYPTION_KEY
+      - PAYMENT_CREDENTIALS_ENCRYPTION_KEY
+      - PAYMENT_GATEWAY_WEBHOOK_SECRET
+      - LIVE_CLASS_PROVIDER_WEBHOOK_SECRET
+      - ZOOM_WEBHOOK_SECRET_TOKEN
+      - ZOOM_OAUTH_CLIENT_SECRET
+      - GOOGLE_OAUTH_CLIENT_SECRET
+      - VIMEO_OAUTH_CLIENT_SECRET
+      - OBJECT_STORAGE_SECRET_KEY
+      - MAIL_PASSWORD
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [app, data]
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?set FRONTEND_IMAGE to the frontend image tag}
+    restart: unless-stopped
+    depends_on: [backend]
+    # No secrets: the frontend never holds a backend secret (ADR-019). Note that
+    # NEXT_PUBLIC_* values are baked in at image BUILD time, not read here.
+    environment:
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks: [app]
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lms}
+      POSTGRES_USER: ${POSTGRES_USER:-lms_app}
+      # The official image reads the password from the mounted secret file.
+      POSTGRES_PASSWORD_FILE: /run/secrets/DB_PASSWORD
+    secrets:
+      - DB_PASSWORD
+    volumes:
+      - lms_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms_app} -d ${POSTGRES_DB:-lms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # No published port: reachable only from the backend on the internal network.
+    networks: [data]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Redis auth is required outside dev (unlike docker-compose.dev.yml). The
+    # password is read from the secret file at start-up, never from an env var.
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$(cat /run/secrets/REDIS_PASSWORD)\""]
+    secrets:
+      - REDIS_PASSWORD
+    volumes:
+      - lms_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/REDIS_PASSWORD)\" --no-auth-warning ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [data]
+
+networks:
+  app: {}
+  # Database and Redis live on an internal network with no route out.
+  data:
+    internal: true
+
+volumes:
+  lms_postgres_data: {}
+  lms_redis_data: {}
+
+# One file per secret on the host (root-owned, directory 700, files 600).
+secrets:
+  DB_PASSWORD:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/DB_PASSWORD
+  REDIS_PASSWORD:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/REDIS_PASSWORD
+  JWT_SECRET:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/JWT_SECRET
+  VIDEO_PLAYBACK_TOKEN_SECRET:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/VIDEO_PLAYBACK_TOKEN_SECRET
+  MEDIA_CREDENTIALS_ENCRYPTION_KEY:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/MEDIA_CREDENTIALS_ENCRYPTION_KEY
+  PAYMENT_CREDENTIALS_ENCRYPTION_KEY:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/PAYMENT_CREDENTIALS_ENCRYPTION_KEY
+  PAYMENT_GATEWAY_WEBHOOK_SECRET:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/PAYMENT_GATEWAY_WEBHOOK_SECRET
+  LIVE_CLASS_PROVIDER_WEBHOOK_SECRET:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/LIVE_CLASS_PROVIDER_WEBHOOK_SECRET
+  ZOOM_WEBHOOK_SECRET_TOKEN:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/ZOOM_WEBHOOK_SECRET_TOKEN
+  ZOOM_OAUTH_CLIENT_SECRET:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/ZOOM_OAUTH_CLIENT_SECRET
+  GOOGLE_OAUTH_CLIENT_SECRET:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/GOOGLE_OAUTH_CLIENT_SECRET
+  VIMEO_OAUTH_CLIENT_SECRET:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/VIMEO_OAUTH_CLIENT_SECRET
+  OBJECT_STORAGE_SECRET_KEY:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/OBJECT_STORAGE_SECRET_KEY
+  MAIL_PASSWORD:
+    file: ${LMS_SECRETS_HOST_DIR:-/etc/lms/secrets}/MAIL_PASSWORD

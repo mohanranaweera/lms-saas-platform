@@ -215,3 +215,34 @@ The frontend container is granted no backend secrets.
 - ADR-008 (video content protection; `VIDEO_PLAYBACK_TOKEN_SECRET`)
 - ADR-017 (tenant payment gateway accounts; `PAYMENT_CREDENTIALS_ENCRYPTION_KEY`)
 - ADR-018 (media provider connections; `MEDIA_CREDENTIALS_ENCRYPTION_KEY`, OAuth app secrets)
+
+## Implementation notes (2026-09-30)
+
+Follow-ups 1-4 are built on branch `feat/adr-019-production-secrets`. Nothing was deployed.
+
+- **`application-prod.yml`** - `spring.config.import=optional:configtree:${LMS_SECRETS_DIR:/run/secrets}/`
+  (`LMS_SECRETS_DIR` exists only so tests can use a temporary folder); database, Redis (now with
+  `REDIS_PASSWORD`) and `JWT_SECRET` bound with **no secret defaults**; actuator limited to
+  health/info.
+- **`ProductionSecretsStartupValidator`** (`com.lms.common.config`) - registered in
+  `LmsBackendApplication` before `JwtSecretStartupValidator`, so it runs before the web port opens.
+  Under `prod` it refuses to start when `DB_PASSWORD`, `JWT_SECRET`,
+  `MEDIA_CREDENTIALS_ENCRYPTION_KEY` or `PAYMENT_CREDENTIALS_ENCRYPTION_KEY` is missing, equals a
+  committed dev value or looks like one (`dev-only`, `change_this`, `placeholder`, … - including
+  Base64-encoded), or (for the two keys) isn't Base64 for 32 bytes. It also refuses `prod` +
+  `local` together, reports every problem at once, and never includes a value in the message.
+- **"Confirm while implementing" (Decision 2) - confirmed** by `ProdProfileConfigTreeTest` against
+  the real `application-prod.yml` on Spring Boot 4.1.0: secret files resolve the existing
+  `${NAME:}` placeholders in both `application-prod.yml` and `application.yml`; a trailing newline
+  in a file is removed; with no file the property stays empty (no `local` fallback leaks in).
+- **`infrastructure/docker-compose.prod.yml`** - backend, frontend, Postgres
+  (`POSTGRES_PASSWORD_FILE`) and Redis (`requirepass` read from its secret file); each service gets
+  only its own secrets; the frontend gets none; Postgres/Redis on an internal network with no
+  published ports; app ports bound to `127.0.0.1`. Validated with `docker compose config`. **Not
+  deployable yet**: backend/frontend Dockerfiles and the Nginx/TLS configuration are separate tasks.
+- **`infrastructure/prod-secrets.reference`** - every secret name, how to generate it, what breaks
+  without it. No values.
+- **`docs/operations/production-secrets-runbook.md`** - first-time setup, encryption-key backup,
+  rotation per secret, applying changes, troubleshooting.
+- Still open: a re-encryption tool for rotating the two encryption keys, and Alternative 2 when the
+  hosting provider is chosen.
