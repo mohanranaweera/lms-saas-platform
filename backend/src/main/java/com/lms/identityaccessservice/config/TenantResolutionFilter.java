@@ -18,7 +18,8 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Resolves tenant identity exactly once, from the request's {@code Host}
- * header subdomain, and populates {@link TenantContextHolder} - the ONLY
+ * header - a platform subdomain or, per ADR-021, a verified custom domain
+ * ({@link TenantLookupApi#resolveByHost}) - and populates {@link TenantContextHolder} - the ONLY
  * production code path allowed to call {@code set(...)} (plan §9/§14). Runs
  * before any credential check, per AUTH-1's explicit acceptance criterion:
  * an unresolved OR suspended/cancelled tenant is rejected here, before the
@@ -85,9 +86,9 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
-		String subdomain = extractSubdomain(request);
-		Optional<TenantResolution> tenant = (subdomain == null || subdomain.isBlank()) ? Optional.empty()
-				: tenantLookupApi.resolveBySubdomain(subdomain).filter(TenantResolutionFilter::isLoginEligible);
+		// TEN-DOM-01 / ADR-021: a platform subdomain or a verified custom domain.
+		Optional<TenantResolution> tenant = tenantLookupApi.resolveByHost(requestHost(request))
+			.filter(TenantResolutionFilter::isLoginEligible);
 
 		if (tenant.isEmpty()) {
 			FilterApiResponseWriter.write(response, objectMapper, HttpStatus.FORBIDDEN, ApiErrorCodes.TENANT_UNAVAILABLE,
@@ -108,20 +109,18 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 		return resolution.status() == TenantStatus.TRIAL || resolution.status() == TenantStatus.ACTIVE;
 	}
 
-	private String extractSubdomain(HttpServletRequest request) {
-		String host = request.getHeader(HttpHeaders.HOST);
-		if (host == null || host.isBlank()) {
-			host = request.getServerName();
-		}
-		if (host == null) {
-			return null;
-		}
-		String hostWithoutPort = host.split(":")[0];
-		int firstDot = hostWithoutPort.indexOf('.');
-		if (firstDot <= 0) {
-			return null;
-		}
-		return hostWithoutPort.substring(0, firstDot);
+	/**
+	 * The host the browser addressed; parsing belongs to {@link TenantLookupApi#resolveByHost}.
+	 * {@code getServerName()} is the Host header's host unless Tomcat's RemoteIpValve
+	 * ({@code server.forward-headers-strategy: native}) replaced it with {@code
+	 * X-Forwarded-Host} - which it does only for requests from a trusted internal
+	 * proxy (the Next dev server's /api rewrite, Nginx). TEN-DOM-01: API calls go to
+	 * /api on each site's own address, so the proxy's view of the host is the one
+	 * that names the tenant.
+	 */
+	private static String requestHost(HttpServletRequest request) {
+		String host = request.getServerName();
+		return (host == null || host.isBlank()) ? request.getHeader(HttpHeaders.HOST) : host;
 	}
 
 }

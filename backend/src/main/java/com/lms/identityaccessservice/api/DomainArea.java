@@ -80,6 +80,13 @@ public enum DomainArea {
 	 * Admin only. Teachers manage their OWN connections without this grant
 	 * (ownership-checked); no role can ever read a token or API key.
 	 */
-	INTEGRATIONS
+	INTEGRATIONS,
+
+	/**
+	 * TEN-DOM-01 / ADR-021: the tenant's custom domains (add, verify, primary,
+	 * remove). CREATE_EDIT is Tenant Admin only; the Platform Admin switch and
+	 * suspension are Platform Admin endpoints, outside this matrix.
+	 */
+	CUSTOM_DOMAINS
 
 }

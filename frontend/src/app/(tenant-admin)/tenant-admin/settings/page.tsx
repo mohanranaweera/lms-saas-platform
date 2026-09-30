@@ -60,6 +60,16 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/tenant-admin/settings/domains" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Custom domain</CardTitle>
+              <CardDescription>
+                Serve your site on your own address, such as learn.yourinstitute.lk.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         <Link href="/tenant-admin/settings/student-fields" className="block">
           <Card className="h-full transition-colors hover:bg-muted/40">
             <CardHeader>

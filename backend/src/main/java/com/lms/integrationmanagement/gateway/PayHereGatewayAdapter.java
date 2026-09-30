@@ -59,9 +59,9 @@ public class PayHereGatewayAdapter {
 		if (!StringUtils.hasText(properties.getNotifyUrl()) || !StringUtils.hasText(properties.getReturnUrlTemplate())) {
 			throw new ServiceUnavailableException(NOT_AVAILABLE);
 		}
-		String subdomain = tenantLookupApi.findSubdomain(request.tenantId())
-			.orElseThrow(() -> new ServiceUnavailableException(NOT_AVAILABLE));
-		String storefront = stripTrailingSlash(properties.getReturnUrlTemplate().replace("{subdomain}", subdomain));
+		// TEN-DOM-01: the tenant's primary custom domain when it has one.
+		String storefront = stripTrailingSlash(tenantLookupApi.tenantOrigin(request.tenantId(), properties.getReturnUrlTemplate())
+			.orElseThrow(() -> new ServiceUnavailableException(NOT_AVAILABLE)));
 		GatewayPayer payer = validatedPayer(request);
 		String secret = credentialCipher.decrypt(account.getMerchantSecretCiphertext());
 

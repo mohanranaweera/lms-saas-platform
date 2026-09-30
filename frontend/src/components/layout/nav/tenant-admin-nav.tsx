@@ -11,6 +11,7 @@ import {
   canViewFinance,
   canViewInstituteConfig,
   canViewPaymentGateway,
+  canViewCustomDomains,
   canViewIntegrations,
   canViewLiveClassesStaff,
   canViewPaymentDashboard,
@@ -133,6 +134,10 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   // MEDIA-INT-01 - INTEGRATIONS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewIntegrations(role)) {
     instituteConfigItems.push({ label: "Integrations", href: "/tenant-admin/settings/integrations" });
+  }
+  // TEN-DOM-01 - CUSTOM_DOMAINS/VIEW (Tenant Admin, Read-only Auditor).
+  if (canViewCustomDomains(role)) {
+    instituteConfigItems.push({ label: "Custom Domain", href: "/tenant-admin/settings/domains" });
   }
 
   return (

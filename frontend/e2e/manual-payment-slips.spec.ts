@@ -1376,12 +1376,13 @@ test.describe("tenant admin — View slip file", () => {
     await page.getByRole("button", { name: "View slip file" }).click();
     await expect.poll(() => downloadCallCount).toBe(2);
 
-    const openedUrls = await page.evaluate(
-      () => (window as unknown as { __openedUrls: unknown[] }).__openedUrls
-    );
-    expect(openedUrls).toEqual([
-      [`https://storage.example.test/signed/${slip.id}?token=attempt-1`, "_blank", "noopener,noreferrer"],
-      [`https://storage.example.test/signed/${slip.id}?token=attempt-2`, "_blank", "noopener,noreferrer"],
-    ]);
+    // Polled: `window.open` runs in the page just after the mocked response
+    // resolves, which can land after the call-count poll above settles.
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __openedUrls: unknown[] }).__openedUrls))
+      .toEqual([
+        [`https://storage.example.test/signed/${slip.id}?token=attempt-1`, "_blank", "noopener,noreferrer"],
+        [`https://storage.example.test/signed/${slip.id}?token=attempt-2`, "_blank", "noopener,noreferrer"],
+      ]);
   });
 });

@@ -36,6 +36,11 @@ spring:
 
 server:
   port: ${BACKEND_PORT:8080}
+  # TEN-DOM-01: the frontend calls /api on each site's own address and the Next
+  # dev server proxies it here, passing the site's host in X-Forwarded-Host.
+  # Tomcat trusts that header only from its internal-proxy ranges (loopback,
+  # private), same as prod behind Nginx.
+  forward-headers-strategy: native
 
 management:
   endpoints:
@@ -61,6 +66,12 @@ object-storage:
 app:
   public:
     tenant-url-template: ${TENANT_URL_TEMPLATE:http://{subdomain}.lms.test:3000}
+  # TEN-DOM-01: local custom domains. accept-all skips DNS, so any hostname
+  # you map in the hosts file (e.g. learn.abc.test -> 127.0.0.1) verifies.
+  custom-domains:
+    platform-domain: ${PLATFORM_DOMAIN:lms.test}
+    cname-target: ${CUSTOM_DOMAIN_CNAME_TARGET:tenants.lms.test}
+    verification-mode: accept-all
   security:
     jwt:
       # Never a real secret in this file - JWT_SECRET must be set via a real

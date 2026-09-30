@@ -189,15 +189,16 @@ public class NotificationDispatchService {
 
 	/**
 	 * Issues the one-time token NOW (ADR-020: never stored raw) and builds the
-	 * link on the tenant's own subdomain. Fails closed when the tenant URL
+	 * link on the tenant's own site (primary custom domain or subdomain). Fails closed when the tenant URL
 	 * template isn't configured.
 	 */
 	private Map<String, Object> credentialVariables(NotificationOutbox row, PasswordTokenPurpose purpose) {
 		if (tenantUrlTemplate == null || tenantUrlTemplate.isBlank()) {
 			throw new IllegalStateException("app.public.tenant-url-template (TENANT_URL_TEMPLATE) is not configured");
 		}
-		String subdomain = tenantLookupApi.findSubdomain(row.getTenantId())
-			.orElseThrow(() -> new IllegalStateException("Tenant has no subdomain"));
+		// TEN-DOM-01: the tenant's primary custom domain when it has one.
+		String origin = tenantLookupApi.tenantOrigin(row.getTenantId(), tenantUrlTemplate)
+			.orElseThrow(() -> new IllegalStateException("Tenant not found"));
 		String tenantName = tenantLookupApi.resolveTenantSummaries(Set.of(row.getTenantId()))
 			.stream()
 			.findFirst()
@@ -208,7 +209,7 @@ public class NotificationDispatchService {
 		Map<String, Object> variables = new LinkedHashMap<>();
 		// Fragment, not query: browsers never send "#..." to any server, so the token
 		// can't end up in proxy or web-server access logs (security review M-2).
-		variables.put("link", tenantUrlTemplate.replace("{subdomain}", subdomain) + path + "#token="
+		variables.put("link", stripTrailingSlash(origin) + path + "#token="
 				+ URLEncoder.encode(issued.rawToken(), StandardCharsets.UTF_8));
 		variables.put("tenantName", tenantName);
 		variables.put("expiresIn", (purpose == PasswordTokenPurpose.ACCOUNT_SETUP) ? "72 hours" : "60 minutes");
@@ -240,6 +241,10 @@ public class NotificationDispatchService {
 			return "SMTP send failed (" + e.getClass().getSimpleName() + ")";
 		}
 		return e.getMessage();
+	}
+
+	private static String stripTrailingSlash(String value) {
+		return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
 	}
 
 }

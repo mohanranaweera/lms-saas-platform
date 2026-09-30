@@ -174,6 +174,12 @@ placeholder purely because this note predates Wave 3.
 - Tenant Admin > Communications > Templates — email/SMS/WhatsApp template editor
 - Tenant Admin > Communications > Bulk Messaging — segment messaging composer
 - Tenant Admin > Communications > Delivery Logs — sent/failed message log
+- Tenant Admin > Institute Configuration > Custom Domain. **Shipped (TEN-DOM-01)**:
+  `app/(tenant-admin)/tenant-admin/settings/domains`. Add a domain; each domain card shows its
+  status (Waiting for DNS / Active / DNS records missing / Suspended), the CNAME and TXT records
+  with copy buttons, and Verify / Check again, Make primary and Remove (confirmed). There are
+  explanations when the platform hasn't switched the feature on or a domain is suspended.
+  Read-only Auditor: view only. In the nav as "Custom Domain", and on the settings index.
 - Tenant Admin > Integrations > Integration Settings — Zoom/SMS/WhatsApp/email/payment gateway/storage config.
   **Media part shipped (MEDIA-INT-01)** as Institute Configuration > Integrations
   (`app/(tenant-admin)/tenant-admin/settings/integrations`): teacher-provider switches, DynTube and
@@ -216,6 +222,9 @@ placeholder purely because this note predates Wave 3.
   `.../tenants/[tenantId]/page.tsx` — profile/plan/contact summary + Approve/Reject only.
   Suspend/cancel/reactivate and any usage data are explicitly out of scope (module plan §6/§21
   item 1) — do not assume this screen's status control is complete.
+  **TEN-DOM-01:** the Tenant Detail screen also has a **Custom domains** card
+  (`.../tenants/[tenantId]/custom-domains-card.tsx`). It switches the feature on or off for the
+  named institute (switching off is confirmed) and suspends a domain with a required reason.
 - Platform Admin > Plans > Plan & Feature Flag Editor — plan limits, feature toggles. Not
   shipped.
 - Platform Admin > Payments > Cross-Tenant Payment Dashboard — platform-wide payment oversight.

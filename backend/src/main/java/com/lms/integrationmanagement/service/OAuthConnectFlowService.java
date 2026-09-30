@@ -249,9 +249,9 @@ public class OAuthConnectFlowService {
 	}
 
 	private Optional<String> tenantReturnBase(UUID tenantId) {
-		return tenantLookupApi.findSubdomain(tenantId)
-			.map(subdomain -> stripTrailingSlash(properties.getTenantUrlTemplate().replace("{subdomain}", subdomain))
-					+ RETURN_PATH);
+		// TEN-DOM-01: the tenant's primary custom domain when it has one.
+		return tenantLookupApi.tenantOrigin(tenantId, properties.getTenantUrlTemplate())
+			.map(origin -> stripTrailingSlash(origin) + RETURN_PATH);
 	}
 
 	private static URI returnUri(String base, String key, String value, String provider) {

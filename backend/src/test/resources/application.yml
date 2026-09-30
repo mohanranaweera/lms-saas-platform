@@ -92,6 +92,11 @@ video-playback:
 app:
   public:
     tenant-url-template: "http://{subdomain}.lms.test"
+  # TEN-DOM-01: tests use real verification against a stubbed DnsRecordLookup.
+  custom-domains:
+    platform-domain: "lms.test"
+    cname-target: "tenants.lms.test"
+    verification-mode: dns
   mail:
     from-address: "no-reply@example.com"
   video-access:

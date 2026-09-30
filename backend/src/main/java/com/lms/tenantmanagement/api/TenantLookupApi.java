@@ -53,4 +53,23 @@ public interface TenantLookupApi {
 	 */
 	Optional<String> findSubdomain(UUID tenantId);
 
+	/**
+	 * TEN-DOM-01 / ADR-021 decision 3: the tenant a request's {@code Host}
+	 * header addresses. A one-label subdomain of the platform domain resolves
+	 * by subdomain (as {@link #resolveBySubdomain}); any other host resolves
+	 * only as an ACTIVE custom domain of a tenant with custom domains enabled.
+	 * Anything else is empty - never a fallback tenant. Like {@link
+	 * #resolveBySubdomain}, applies no tenant-status filtering.
+	 */
+	Optional<TenantResolution> resolveByHost(String hostHeader);
+
+	/**
+	 * TEN-DOM-01 / ADR-021 decision 4: the tenant's site origin for links
+	 * (emails, payment return, OAuth return), from a trusted tenant id. With an
+	 * ACTIVE primary custom domain, {@code urlTemplate}'s host is replaced by
+	 * it (scheme, port and path kept); otherwise {@code {subdomain}} is filled
+	 * in. Empty when the template is blank or the tenant doesn't exist.
+	 */
+	Optional<String> tenantOrigin(UUID tenantId, String urlTemplate);
+
 }

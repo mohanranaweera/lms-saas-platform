@@ -112,10 +112,21 @@ ADR when a decision is needed:
 - **CI/CD pipeline tooling** -- no specific CI/CD system is selected. The release
   process described in section 5 is conceptual; the actual pipeline implementation is
   unspecified.
-- **Domain/DNS provider and certificate management approach** -- needed for both the
-  platform's own domain and tenant custom-domain support (source requirements, module
-  2, "Custom domain"), but no provider or automation approach (e.g. how TLS certs are
-  provisioned per tenant custom domain) is decided here.
+- **Domain/DNS provider and certificate management approach** -- **partly decided by ADR-021
+  (accepted 2026-09-30):** tenant custom domains are verified by DNS (CNAME to
+  `CUSTOM_DOMAIN_CNAME_TARGET` plus a TXT code) and resolved by the backend from the request host.
+  Phase 1 is built. **Still open (ADR-021 phase 2):** automatic TLS for custom domains. The
+  recommended option is Caddy on-demand TLS with an internal "is this domain allowed" check, with
+  Cloudflare for SaaS and a cloud load balancer as alternatives, confirmed once the hosting
+  provider is chosen. Until then a custom domain needs a certificate provisioned by hand.
+  What the edge must do for tenant sites (platform subdomains and custom domains alike):
+  - accept any host (a catch-all `server_name`) and pass it on (`Host $host` or
+    `X-Forwarded-Host $host`);
+  - route `/api/` to the backend (`127.0.0.1:8080`) and everything else to the frontend;
+  - set `PLATFORM_DOMAIN` and `CUSTOM_DOMAIN_CNAME_TARGET` on the backend (Compose already passes
+    both).
+
+  Build the frontend with `NEXT_PUBLIC_API_BASE_URL=/api`, the default.
 - **Managed vs. self-hosted PostgreSQL/Redis in staging/production** -- this document
   shows them as Compose services for topology purposes; whether production actually
   runs them as managed cloud services (with Docker Compose used only for

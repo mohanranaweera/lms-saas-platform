@@ -63,6 +63,29 @@ layer, and never re-derived downstream.
    (resolved from subdomain/custom domain by the same foundational layer, not
    independently by `content-management` or the frontend).
 
+### 1a. Which tenant a request addresses: subdomain or custom domain (ADR-021)
+
+Before any credential check, `TenantResolutionFilter` (identity-access-service) asks
+`TenantLookupApi.resolveByHost` (tenant-management) which tenant the request's host belongs to:
+
+- `<subdomain>.<PLATFORM_DOMAIN>`, one label only, resolves by subdomain.
+- Any other host resolves only when it is an **ACTIVE** row in `tenant_custom_domain` (ownership
+  proven by `CNAME` to the platform target plus `TXT _lms-verify.<host>` holding the domain's
+  code), and the tenant has `custom_domains_enabled`.
+- Everything else is refused (`403 TENANT_UNAVAILABLE`). A host is never matched by its first
+  label unless it is on the platform domain, so `<subdomain>.attacker.example` never reaches
+  that tenant.
+
+This host lookup is the one deliberate cross-tenant read on this path
+(`findResolvableByHostnameAcrossTenants`, the ADR-011 pattern). Its input is the host, never
+a client-supplied tenant id. Results are cached in Redis (hostname → tenant id, plus "no such
+domain" for 60 s) and evicted after commit on every status change; the tenant row is always
+read fresh. The authenticated token's `tenant_id` must still match the resolved tenant, so a
+token from tenant A is refused on tenant B's custom domain.
+
+The browser calls `/api` on the site's own address and a trusted proxy passes that address in
+`X-Forwarded-Host` (see `docs/api/identity-access-service.md`, "Tenant resolution").
+
 ## 2. Structural tenant-filtering mechanism
 
 This is the same mechanism recommended in `docs/architecture/database-architecture.md`

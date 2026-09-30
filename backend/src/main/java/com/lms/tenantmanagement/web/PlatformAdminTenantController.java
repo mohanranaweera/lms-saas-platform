@@ -103,7 +103,7 @@ public class PlatformAdminTenantController {
 		return new TenantDetailResponse(tenant.getId(), tenant.getName(), tenant.getSubdomain(), tenant.getStatus(),
 				tenant.getRequestedPlan(), tenant.getContactName(), tenant.getContactEmail(),
 				tenant.getContactPhone(), tenant.getCreatedAt(),
-				toFirstAdmin(tenantApprovalService.firstAdmin(tenant.getId())));
+				toFirstAdmin(tenantApprovalService.firstAdmin(tenant.getId())), tenant.isCustomDomainsEnabled());
 	}
 
 	private static FirstAdminResponse toFirstAdmin(FirstAdminView view) {

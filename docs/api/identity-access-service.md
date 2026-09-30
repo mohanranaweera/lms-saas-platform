@@ -181,36 +181,36 @@ not try to parse a distinction between these two codes into different UX.
 | `INVALID_REFRESH_TOKEN` | 401 | Refresh cookie missing/invalid/expired/already-rotated |
 | `SESSION_REVOKED` | 401 | Valid JWT, invalid session (revoked/expired/tenant-mismatch/account-inactive) |
 
-## Tenant resolution caveat (environment-level, not an endpoint detail)
+## Tenant resolution (TEN-DOM-01 / ADR-021)
 
-`TenantResolutionFilter` extracts the tenant subdomain from the **Host header** of the
-incoming request itself (`hostWithoutPort.substring(0, firstDot)`; if there's no `.` in
-the host, resolution fails with `TENANT_UNAVAILABLE`). This means:
+`TenantResolutionFilter` resolves the tenant from the host the browser addressed
+(`request.getServerName()`), through `TenantLookupApi.resolveByHost`:
 
-- Every tenant-scoped request (`/api/v1/auth/**`) must be made to a host that actually
-  has a tenant subdomain label, e.g. `tenant1.lms.local`, not a bare `localhost` or a
-  generic `api.` host — a bare `localhost:8080` has no dot before the port and will
-  always fail tenant resolution.
-- The frontend's `NEXT_PUBLIC_API_BASE_URL` (currently `http://localhost:8080/api` per
-  `.env.example`) does not satisfy this for the tenant-scoped endpoints as configured.
-  Local dev needs either a `/etc/hosts` (or Windows `hosts` file) entry mapping a
-  subdomain like `demo.lms.local` to `127.0.0.1`, with the frontend calling that host
-  instead, or an Nginx layer that forwards a subdomain-carrying request through unchanged.
-  This is an infrastructure/devops decision outside this contract's scope — flagging it
-  here because it blocks a real (non-mocked) end-to-end login test locally until resolved.
-- Platform Admin endpoints have no such requirement — they never resolve a tenant.
+- `<subdomain>.<PLATFORM_DOMAIN>` (exactly one label) resolves by subdomain;
+- any other host resolves only as an `ACTIVE` custom domain of a tenant with custom domains
+  switched on;
+- anything else (unknown host, a bare `localhost`, a multi-label platform subdomain) is
+  `403 TENANT_UNAVAILABLE`, never a fallback tenant.
 
-## CORS caveat (environment-level)
+With `PLATFORM_DOMAIN` empty, the old behaviour applies (the first label of any host is the
+subdomain) and custom domains never resolve.
 
-No CORS configuration exists anywhere in the backend (`SecurityFilterChainConfig` calls
-`.csrf(...).disable()` but never configures `.cors(...)`, and no `WebMvcConfigurer`
-bean adds CORS mappings). A browser running the Next.js frontend on a different
-origin/port than the backend cannot make a credentialed (cookie-carrying) request to
-these endpoints — the preflight will fail. This must be resolved on the backend/infra
-side (an explicit CORS configuration scoped to the frontend's known origin(s), with
-`allowCredentials(true)`) before real browser-based login can work end-to-end outside
-same-origin deployment (e.g. behind the same Nginx host). Not something the frontend can
-work around from its side.
+**Same-origin API.** The frontend calls `/api` on the site's own address
+(`NEXT_PUBLIC_API_BASE_URL`, default `/api`). A proxy forwards it here: the Next dev server's
+rewrite (`BACKEND_ORIGIN`, default `http://localhost:8080`) locally, Nginx in production. The
+proxy passes the site's address in `X-Forwarded-Host`. With
+`server.forward-headers-strategy: native` (local and prod profiles), Tomcat trusts that header
+only from its internal-proxy ranges (loopback and private networks) and reports it as the server
+name; from anyone else the Host header is used as is.
+
+Locally, map each tenant host to `127.0.0.1` in the hosts file (`demo.lms.test`,
+`abc.lms.test`, or a custom domain such as `learn.abc.test`) and browse to `http://<host>:3000`.
+
+## CORS
+
+Browser calls are same-origin, so production configures no CORS. The local profile still allows
+`http://localhost:3000` and `http://*.lms.test:3000`, for a frontend that sets an absolute
+`NEXT_PUBLIC_API_BASE_URL`.
 
 ## Process gap
 

@@ -168,6 +168,16 @@ app:
   # those emails fail closed (not sent). Non-secret (ADR-019 Decision 3).
   public:
     tenant-url-template: ${TENANT_URL_TEMPLATE:}
+  # TEN-DOM-01 / ADR-021 - tenant custom domains. Non-secret (ADR-019
+  # Decision 3). Empty platform-domain = legacy subdomain parsing and no
+  # custom-domain resolution; empty cname-target = custom domains unavailable.
+  custom-domains:
+    platform-domain: ${PLATFORM_DOMAIN:}
+    cname-target: ${CUSTOM_DOMAIN_CNAME_TARGET:}
+    # dns | accept-all (accept-all: local profile only, refused under prod).
+    verification-mode: dns
+    max-per-tenant: 3
+    recheck-cron: "0 17 3 * * *"
   security:
     # Argon2id parameters (AUTH-3), OWASP-baseline defaults - see
     # Argon2PasswordEncoderConfig/Argon2Properties. Never hardcode these

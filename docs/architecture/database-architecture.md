@@ -403,6 +403,15 @@ Data-model conventions that follow from this list:
   - `password_token`: one-time account-setup / reset tokens. `tenant_id` NOT NULL; composite FK `(tenant_id, user_id)` -> `tenant_user`; only the SHA-256 is stored (`CHAR(64)`, unique); `used_at` / `invalidated_at` are mutually exclusive; index `(tenant_id, user_id, purpose, created_at)`; never deleted.
   - `tenant_user.status` gains `invited`, and there's a new column `password_changed_at`.
   - `notification_outbox.event_type` gains `ACCOUNT_SETUP_INVITE` and `PASSWORD_RESET`.
+- **tenant-management TEN-DOM-01 (V63, ADR-021):**
+  - `tenant.custom_domains_enabled BOOLEAN NOT NULL DEFAULT false`: the Platform Admin switch.
+  - `tenant_custom_domain`: `tenant_id` NOT NULL FK; `hostname` lower case (CHECK); status
+    `PENDING_VERIFICATION | ACTIVE | DNS_BROKEN | SUSPENDED | REMOVED` (CHECK); `ACTIVE` needs
+    `verified_at`; `is_primary` only while `ACTIVE`/`DNS_BROKEN`; `SUSPENDED` needs
+    `suspended_reason`.
+  - Partial unique indexes: `hostname` among non-`REMOVED` rows (**platform-wide on purpose**, as
+    a hostname can serve only one tenant), and one primary per tenant. Index `(tenant_id, status)`.
+  - Never deleted: removal is status `REMOVED`, which frees the hostname.
 - **Audit, notification, and reporting tables are event-consumers' own tables,** not
   shared tables written directly by the domains that trigger them — e.g. a price change
   in `course-management` publishes a domain event; `audit-log-management` persists its

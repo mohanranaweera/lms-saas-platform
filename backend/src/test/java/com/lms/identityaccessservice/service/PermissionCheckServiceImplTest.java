@@ -290,7 +290,8 @@ class PermissionCheckServiceImplTest {
 							// PAY-GW-01 - "Payment gateway" row.
 							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
 							// MEDIA-INT-01 - "Integrations" row.
-							cell(DomainArea.INTEGRATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
+							cell(DomainArea.INTEGRATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
+							cell(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
@@ -348,6 +349,7 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.BRANDING_SETTINGS, PermissionAction.VIEW),
 							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW),
-							cell(DomainArea.INTEGRATIONS, PermissionAction.VIEW))));
+							cell(DomainArea.INTEGRATIONS, PermissionAction.VIEW),
+							cell(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW))));
 
 }

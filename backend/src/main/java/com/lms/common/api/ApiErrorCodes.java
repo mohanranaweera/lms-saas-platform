@@ -110,6 +110,15 @@ public final class ApiErrorCodes {
 	/** Too many attempts in a time window - try again later. */
 	public static final String TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS";
 
+	/** TEN-DOM-01: custom domains are switched off for this tenant (a Platform Admin enables them). */
+	public static final String CUSTOM_DOMAINS_DISABLED = "CUSTOM_DOMAINS_DISABLED";
+
+	/** TEN-DOM-01: the hostname is already claimed (by this or another tenant). */
+	public static final String CUSTOM_DOMAIN_TAKEN = "CUSTOM_DOMAIN_TAKEN";
+
+	/** TEN-DOM-01: the tenant already holds the maximum number of custom domains. */
+	public static final String CUSTOM_DOMAIN_LIMIT_REACHED = "CUSTOM_DOMAIN_LIMIT_REACHED";
+
 	private ApiErrorCodes() {
 	}
 

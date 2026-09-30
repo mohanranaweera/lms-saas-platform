@@ -12,6 +12,7 @@ import { usePlatformAdminTenantDetail } from "@/lib/api/platform-admin-tenants";
 import { StatusBadge } from "../status-badge";
 import { formatDateTime } from "@/lib/format";
 import { OnlinePaymentsCard } from "./online-payments-card";
+import { CustomDomainsCard } from "./custom-domains-card";
 
 /**
  * Tenant Approval Detail (PADASH-1). `GET
@@ -134,6 +135,8 @@ export default function PlatformAdminTenantDetailPage() {
             ) : null}
 
             <OnlinePaymentsCard tenantId={tenant.id} tenantName={tenant.name} />
+
+            <CustomDomainsCard tenantId={tenant.id} tenantName={tenant.name} />
           </>
         )}
       </QueryStateBoundary>
