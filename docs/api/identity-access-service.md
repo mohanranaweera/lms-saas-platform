@@ -220,3 +220,22 @@ begins on an endpoint. That did not happen for this module — the backend was
 implemented and merged first. This file was produced after the fact, by reading the
 shipped backend source, to unblock frontend implementation. Flagging so future modules
 don't repeat the skip.
+
+## AUTH-PWD-01 — Account setup, forgot password, change password (ADR-020)
+
+Added 2026-09-30. Tenant host only; the tenant comes from the subdomain. No body carries a tenant or user id.
+
+| Endpoint | Auth | Body | Responses |
+|---|---|---|---|
+| `POST /api/v1/auth/password-tokens/verify` | public, 20 per 10 min per IP | `{ token }` | `200 { purpose: ACCOUNT_SETUP\|PASSWORD_RESET, emailMasked, expiresAt }`; `400 TOKEN_INVALID`; `429 TOO_MANY_REQUESTS` |
+| `POST /api/v1/auth/password-tokens/complete` | public, same limit | `{ token, newPassword }` | `204`; `400 VALIDATION_ERROR` (`newPassword`: 8-128 characters, not the email); `400 TOKEN_INVALID`; `429` |
+| `POST /api/v1/auth/password-reset/request` | public | `{ email }` | always `202 { message }` |
+| `POST /api/v1/auth/password` | signed-in tenant user | `{ currentPassword, newPassword }` | `200 { accessToken, expiresInSeconds }`; `400 VALIDATION_ERROR` (`currentPassword` "is incorrect"; `newPassword` rules, also "must be different from your current password"); `429` after 5 wrong attempts in 15 min |
+
+- **`TOKEN_INVALID`** is the single answer for an unknown, expired, used, superseded or other-tenant link, or for an account in the wrong state.
+- **Links** carry the token in the URL fragment (`#token=`), never the query string.
+- **Tokens:** 256 random bits; the database stores only their SHA-256. Single use. Account setup lasts 72 h, reset 60 min. Issuing a new token supersedes the unused ones.
+- **Sessions:** completing a link revokes **all** the user's sessions; there's no automatic sign-in. Change password revokes all sessions **except** the current one.
+- **Forgot password:** answers the same whether or not the email has an account, and is rate-limited to 5 per IP and 3 per email per hour. `active` accounts get a reset email; `invited` accounts get a new setup email; `suspended` and unknown accounts get nothing.
+- **`403 PASSWORD_CHANGE_REQUIRED`:** while the account's `must_change_password` is true, every authenticated request except `POST /auth/password`, `/auth/logout`, `/auth/refresh` and `/api/v1/public/**` is refused. This is read from the account row on each request, not from a token claim, so ADR-007's token payload is unchanged.
+- **Login:** an `invited` account's login fails exactly like a wrong password (`401 INVALID_CREDENTIALS`).

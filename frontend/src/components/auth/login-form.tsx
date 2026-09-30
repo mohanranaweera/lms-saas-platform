@@ -68,6 +68,12 @@ export function LoginForm({
   const mutation = useMutation<LoginResult, unknown, LoginFormValues>({
     mutationFn: (values) => login(kind, values),
     onSuccess: (result) => {
+      // AUTH-PWD-01: a temporary password must be replaced first (the backend
+      // refuses everything else with 403 PASSWORD_CHANGE_REQUIRED anyway).
+      if (kind === "tenant" && result.mustChangePassword) {
+        router.push("/change-password");
+        return;
+      }
       const target = resolveDashboardPath(result.role);
       if (target) {
         router.push(target);
@@ -180,6 +186,11 @@ export function LoginForm({
               <p id="login-password-error" className="text-xs text-destructive">
                 {errors.password.message}
               </p>
+            ) : null}
+            {kind === "tenant" ? (
+              <Link href="/forgot-password" className="self-end text-xs font-medium text-muted-foreground hover:text-foreground hover:underline">
+                Forgot password?
+              </Link>
             ) : null}
           </div>
 

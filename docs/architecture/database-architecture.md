@@ -399,6 +399,10 @@ Data-model conventions that follow from this list:
     failed attempt stays as history and a retry inserts a new row. New BUNNY connection rows
     store `settings_json = {"keyType":"ACCOUNT"}`; V60's comment about library id / CDN
     hostname describes legacy rows only.
+- **identity-access-service AUTH-PWD-01 (V62, ADR-020):**
+  - `password_token`: one-time account-setup / reset tokens. `tenant_id` NOT NULL; composite FK `(tenant_id, user_id)` -> `tenant_user`; only the SHA-256 is stored (`CHAR(64)`, unique); `used_at` / `invalidated_at` are mutually exclusive; index `(tenant_id, user_id, purpose, created_at)`; never deleted.
+  - `tenant_user.status` gains `invited`, and there's a new column `password_changed_at`.
+  - `notification_outbox.event_type` gains `ACCOUNT_SETUP_INVITE` and `PASSWORD_RESET`.
 - **Audit, notification, and reporting tables are event-consumers' own tables,** not
   shared tables written directly by the domains that trigger them — e.g. a price change
   in `course-management` publishes a domain event; `audit-log-management` persists its

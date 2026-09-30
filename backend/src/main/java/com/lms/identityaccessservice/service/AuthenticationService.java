@@ -72,6 +72,10 @@ public class AuthenticationService {
 			throw new InvalidCredentialsException();
 		}
 		TenantUser user = userOpt.get();
+		if (user.getStatus() == AccountStatus.INVITED) {
+			// ADR-020: indistinguishable from a wrong password (no account-state disclosure).
+			throw new InvalidCredentialsException();
+		}
 		if (user.getStatus() == AccountStatus.SUSPENDED) {
 			throw new UserSuspendedException();
 		}

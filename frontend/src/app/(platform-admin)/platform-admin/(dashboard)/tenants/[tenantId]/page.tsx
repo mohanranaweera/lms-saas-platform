@@ -6,6 +6,7 @@ import { ArrowLeft, CreditCard, ScrollText } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { ApproveTenantDialog } from "@/components/platform-admin/approve-tenant-dialog";
+import { TenantAdminPanel } from "@/components/platform-admin/tenant-admin-panel";
 import { RejectTenantDialog } from "@/components/platform-admin/reject-tenant-dialog";
 import { usePlatformAdminTenantDetail } from "@/lib/api/platform-admin-tenants";
 import { StatusBadge } from "../status-badge";
@@ -122,6 +123,15 @@ export default function PlatformAdminTenantDetailPage() {
                 </div>
               </dl>
             </div>
+
+            {tenant.firstAdmin ? (
+            <TenantAdminPanel
+              tenantId={tenant.id}
+              tenantName={tenant.name}
+              firstAdmin={tenant.firstAdmin}
+              canInvite={tenant.status === "TRIAL" || tenant.status === "ACTIVE"}
+            />
+            ) : null}
 
             <OnlinePaymentsCard tenantId={tenant.id} tenantName={tenant.name} />
           </>

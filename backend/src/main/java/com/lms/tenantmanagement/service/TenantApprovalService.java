@@ -1,5 +1,7 @@
 package com.lms.tenantmanagement.service;
 
+import com.lms.identityaccessservice.api.TenantAdminInvitationApi.FirstAdminView;
+import com.lms.identityaccessservice.api.TenantAdminInvitationApi;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
@@ -41,11 +43,36 @@ public class TenantApprovalService {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private final TenantAdminInvitationApi tenantAdminInvitationApi;
+
 	public TenantApprovalService(TenantRepository tenantRepository, TenantStatusService tenantStatusService,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher, TenantAdminInvitationApi tenantAdminInvitationApi) {
 		this.tenantRepository = tenantRepository;
 		this.tenantStatusService = tenantStatusService;
 		this.eventPublisher = eventPublisher;
+		this.tenantAdminInvitationApi = tenantAdminInvitationApi;
+	}
+
+	/** AUTH-PWD-01: the tenant's first Tenant Admin (status only - no email in clear). */
+	@Transactional(readOnly = true)
+	public FirstAdminView firstAdmin(UUID tenantId) {
+		requirePlatformAdmin();
+		return tenantAdminInvitationApi.firstAdmin(tenantId);
+	}
+
+	/**
+	 * AUTH-PWD-01: invite the first Tenant Admin (none yet), resend the
+	 * invitation, or correct its email (still invited). Only for a
+	 * {@code trial}/{@code active} tenant.
+	 */
+	public FirstAdminView inviteAdmin(UUID tenantId, String email) {
+		requirePlatformAdmin();
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		Tenant tenant = tenantRepository.findById(tenantId).orElseThrow(() -> new NotFoundException("Tenant not found"));
+		if (tenant.getStatus() != TenantStatus.TRIAL && tenant.getStatus() != TenantStatus.ACTIVE) {
+			throw new ConflictException("Only a trial or active tenant can have its admin invited");
+		}
+		return tenantAdminInvitationApi.inviteOrResend(tenantId, email, tenant.getContactEmail(), actorId);
 	}
 
 	@Transactional(readOnly = true)
@@ -87,6 +114,13 @@ public class TenantApprovalService {
 		TenantStatus nextStatus = tenantStatusService.nextStatus(previousStatus, transition);
 		tenant.applyStatusTransition(nextStatus);
 		tenant = tenantRepository.save(tenant);
+
+		// AUTH-PWD-01 / ADR-020: an approved tenant gets its first Tenant Admin
+		// (invited, from the registration contact) in this same transaction -
+		// if that fails, the approval rolls back.
+		if (transition == TenantTransition.APPROVE) {
+			tenantAdminInvitationApi.inviteFirstAdmin(tenant.getId(), tenant.getContactEmail(), actorId);
+		}
 
 		eventPublisher.publishEvent(
 				new TenantStatusChangedEvent(tenant.getId(), actorId, previousStatus, nextStatus, Instant.now()));

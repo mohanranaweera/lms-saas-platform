@@ -90,7 +90,11 @@ class NotificationDispatchServiceTenantContextSymmetryTest {
 	void setUp() {
 		service = new NotificationDispatchService(notificationTemplateRepository, userProvisioningApi,
 				messagingProviderApi, notificationTemplateRenderer, objectMapper, notificationDispatchClaimService,
-				notificationDispatchFinalizeService);
+				notificationDispatchFinalizeService,
+				// AUTH-PWD-01 collaborators - unused on this payment-email path.
+				org.mockito.Mockito.mock(com.lms.identityaccessservice.api.PasswordTokenIssuingApi.class),
+				org.mockito.Mockito.mock(com.lms.tenantmanagement.api.TenantLookupApi.class),
+				org.mockito.Mockito.mock(NotificationTemplateSeedingService.class), "http://{subdomain}.lms.test");
 
 		NotificationOutbox row = new NotificationOutbox(TENANT_ID, NotificationEventType.PAYMENT_CONFIRMED,
 				RECIPIENT_USER_ID, "{\"amount\":\"10.00\"}", java.time.Instant.now());

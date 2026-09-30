@@ -255,3 +255,9 @@ placeholder purely because this note predates Wave 3.
   or both is not resolved by source requirements — flagging for product decision.
 - Mobile app screens (module 5/phase 3, "Mobile apps") are out of scope for this
   web IA and screen map; a separate mobile IA would be needed if pursued.
+
+- **AUTH-PWD-01 (ADR-020), tenant host:**
+  - `/account-setup` (invited account sets its first password) and `/reset-password`: one-time link; the token is removed from the URL; no-referrer.
+  - `/forgot-password`: always the same confirmation.
+  - `/change-password`: signed-in users; also where a temporary-password login or any `403 PASSWORD_CHANGE_REQUIRED` lands. Linked from every tenant portal header.
+- **Platform Admin > Tenants > tenant:** a "Tenant Admin" panel showing the invitation status (No admin yet / Invitation pending / Active / Suspended), with resend, change email and invite.

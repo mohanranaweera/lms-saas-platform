@@ -51,6 +51,7 @@ services:
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
       PAYHERE_NOTIFY_URL: https://api.${PLATFORM_DOMAIN}/api/v1/integrations/webhooks/payhere
       PAYHERE_RETURN_URL_TEMPLATE: https://{subdomain}.${PLATFORM_DOMAIN}
+      TENANT_URL_TEMPLATE: https://{subdomain}.${PLATFORM_DOMAIN}
     # Secrets (ADR-019 Decision 3) - each mounted at /run/secrets/<NAME>.
     secrets:
       - DB_PASSWORD

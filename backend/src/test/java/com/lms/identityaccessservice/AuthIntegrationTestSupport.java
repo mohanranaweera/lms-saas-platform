@@ -126,6 +126,17 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 		return seedTenantUser(tenantId, email, RAW_PASSWORD, Role.STUDENT);
 	}
 
+	/**
+	 * AUTH-PWD-01: accounts created through the staff/student/teacher APIs start
+	 * with must_change_password = true, and such an account may do nothing but
+	 * change its password. Business-flow tests act as already-onboarded users,
+	 * so they clear the flag first; the forced change itself is covered by
+	 * AccountSetupAndPasswordIntegrationTest.
+	 */
+	protected void markOnboarded(String email) {
+		jdbcTemplate.update("UPDATE tenant_user SET must_change_password = false WHERE email = ?", email);
+	}
+
 	protected void suspendTenantUser(UUID tenantUserId) {
 		jdbcTemplate.update("UPDATE tenant_user SET status = 'suspended' WHERE id = ?", tenantUserId);
 	}

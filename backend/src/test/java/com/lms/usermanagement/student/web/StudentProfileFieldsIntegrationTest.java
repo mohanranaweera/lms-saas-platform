@@ -399,6 +399,7 @@ class StudentProfileFieldsIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	private String token(String host, String email) {
+		markOnboarded(email);
 		HttpResult<LoginResponse> login = login(host, email, RAW_PASSWORD);
 		assertThat(login.getStatusCode()).as("login " + email).isEqualTo(HttpStatus.OK);
 		return login.getBody().data().accessToken();

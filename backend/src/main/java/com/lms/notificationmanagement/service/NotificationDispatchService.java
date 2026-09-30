@@ -1,5 +1,15 @@
 package com.lms.notificationmanagement.service;
 
+import com.lms.identityaccessservice.api.PasswordTokenIssuingApi;
+import com.lms.identityaccessservice.api.PasswordTokenIssuingApi.IssuedPasswordToken;
+import com.lms.identityaccessservice.api.PasswordTokenPurpose;
+import com.lms.notificationmanagement.domain.NotificationEventType;
+import com.lms.tenantmanagement.api.TenantLookupApi;
+import com.lms.tenantmanagement.api.TenantSummary;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import org.springframework.beans.factory.annotation.Value;
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
@@ -80,11 +90,23 @@ public class NotificationDispatchService {
 
 	private final NotificationDispatchFinalizeService notificationDispatchFinalizeService;
 
+	private final PasswordTokenIssuingApi passwordTokenIssuingApi;
+
+	private final TenantLookupApi tenantLookupApi;
+
+	private final NotificationTemplateSeedingService templateSeedingService;
+
+	/** AUTH-PWD-01: tenant site origin for account-setup / reset links, {subdomain} from the tenant record. */
+	private final String tenantUrlTemplate;
+
 	public NotificationDispatchService(NotificationTemplateRepository notificationTemplateRepository,
 			UserProvisioningApi userProvisioningApi, MessagingProviderApi messagingProviderApi,
 			NotificationTemplateRenderer notificationTemplateRenderer, ObjectMapper objectMapper,
 			NotificationDispatchClaimService notificationDispatchClaimService,
-			NotificationDispatchFinalizeService notificationDispatchFinalizeService) {
+			NotificationDispatchFinalizeService notificationDispatchFinalizeService,
+			PasswordTokenIssuingApi passwordTokenIssuingApi, TenantLookupApi tenantLookupApi,
+			NotificationTemplateSeedingService templateSeedingService,
+			@Value("${app.public.tenant-url-template:}") String tenantUrlTemplate) {
 		this.notificationTemplateRepository = notificationTemplateRepository;
 		this.userProvisioningApi = userProvisioningApi;
 		this.messagingProviderApi = messagingProviderApi;
@@ -92,6 +114,10 @@ public class NotificationDispatchService {
 		this.objectMapper = objectMapper;
 		this.notificationDispatchClaimService = notificationDispatchClaimService;
 		this.notificationDispatchFinalizeService = notificationDispatchFinalizeService;
+		this.passwordTokenIssuingApi = passwordTokenIssuingApi;
+		this.tenantLookupApi = tenantLookupApi;
+		this.templateSeedingService = templateSeedingService;
+		this.tenantUrlTemplate = tenantUrlTemplate;
 	}
 
 	public void dispatchOne(UUID outboxId) {
@@ -113,6 +139,11 @@ public class NotificationDispatchService {
 			}
 			String recipientEmail = recipients.get(0).email();
 
+			PasswordTokenPurpose credentialPurpose = credentialPurpose(row.getEventType());
+			if (credentialPurpose != null) {
+				templateSeedingService.seedCredentialTemplates(row.getTenantId());
+			}
+
 			NotificationTemplate template = notificationTemplateRepository.findByTemplateKey(row.getEventType().name())
 				.orElseThrow(() -> new TemplateNotFoundException(
 						"No notification_template found for templateKey " + row.getEventType().name()));
@@ -121,12 +152,23 @@ public class NotificationDispatchService {
 					new TypeReference<Map<String, Object>>() {
 					});
 
+			if (credentialPurpose != null) {
+				payloadMap.putAll(credentialVariables(row, credentialPurpose));
+			}
+
 			RenderedNotification rendered = notificationTemplateRenderer.render(template, payloadMap);
 
 			messagingProviderApi.sendEmail(recipientEmail, rendered.subject(), rendered.body());
 
+			// AUTH-PWD-01: the in-app copy of a credential email never contains the
+			// link - the raw token must exist only in the email itself.
+			String inAppBody = (credentialPurpose == null) ? rendered.body()
+					: "We've emailed you a link to "
+							+ (credentialPurpose == PasswordTokenPurpose.ACCOUNT_SETUP ? "set up your account"
+									: "reset your password")
+							+ ". For your security the link isn't shown here.";
 			notificationDispatchFinalizeService.markSent(row.getId(), row.getTenantId(), row.getRecipientUserId(),
-					rendered.subject(), rendered.body());
+					rendered.subject(), inAppBody);
 		}
 		catch (RuntimeException e) {
 			logDispatchFailure(row, e);
@@ -135,6 +177,42 @@ public class NotificationDispatchService {
 		finally {
 			TenantContextHolder.clear();
 		}
+	}
+
+	private static PasswordTokenPurpose credentialPurpose(NotificationEventType type) {
+		return switch (type) {
+			case ACCOUNT_SETUP_INVITE -> PasswordTokenPurpose.ACCOUNT_SETUP;
+			case PASSWORD_RESET -> PasswordTokenPurpose.PASSWORD_RESET;
+			default -> null;
+		};
+	}
+
+	/**
+	 * Issues the one-time token NOW (ADR-020: never stored raw) and builds the
+	 * link on the tenant's own subdomain. Fails closed when the tenant URL
+	 * template isn't configured.
+	 */
+	private Map<String, Object> credentialVariables(NotificationOutbox row, PasswordTokenPurpose purpose) {
+		if (tenantUrlTemplate == null || tenantUrlTemplate.isBlank()) {
+			throw new IllegalStateException("app.public.tenant-url-template (TENANT_URL_TEMPLATE) is not configured");
+		}
+		String subdomain = tenantLookupApi.findSubdomain(row.getTenantId())
+			.orElseThrow(() -> new IllegalStateException("Tenant has no subdomain"));
+		String tenantName = tenantLookupApi.resolveTenantSummaries(Set.of(row.getTenantId()))
+			.stream()
+			.findFirst()
+			.map(TenantSummary::name)
+			.orElse("your institute");
+		IssuedPasswordToken issued = passwordTokenIssuingApi.issueForEmail(row.getRecipientUserId(), purpose);
+		String path = (purpose == PasswordTokenPurpose.ACCOUNT_SETUP) ? "/account-setup" : "/reset-password";
+		Map<String, Object> variables = new LinkedHashMap<>();
+		// Fragment, not query: browsers never send "#..." to any server, so the token
+		// can't end up in proxy or web-server access logs (security review M-2).
+		variables.put("link", tenantUrlTemplate.replace("{subdomain}", subdomain) + path + "#token="
+				+ URLEncoder.encode(issued.rawToken(), StandardCharsets.UTF_8));
+		variables.put("tenantName", tenantName);
+		variables.put("expiresIn", (purpose == PasswordTokenPurpose.ACCOUNT_SETUP) ? "72 hours" : "60 minutes");
+		return variables;
 	}
 
 	private void logDispatchFailure(NotificationOutbox row, RuntimeException e) {

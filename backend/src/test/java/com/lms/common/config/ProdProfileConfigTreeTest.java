@@ -87,6 +87,8 @@ class ProdProfileConfigTreeTest {
 			assertThat(env.getProperty("payment.credentials.encryption-key")).isEqualTo(PAYMENT_KEY);
 			assertThat(env.getProperty("integrations.media.zoom.client-secret")).isEqualTo("synthetic-zoom-secret");
 
+			// Behind the proxy the client IP comes from X-Forwarded-For (AUTH-PWD-01 review M-1).
+			assertThat(env.getProperty("server.forward-headers-strategy")).isEqualTo("native");
 			// ...and the startup guard accepts the resolved values.
 			assertThatCode(() -> new ProductionSecretsStartupValidator().initialize(context))
 				.doesNotThrowAnyException();

@@ -163,6 +163,11 @@ video-playback:
     secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:}
 
 app:
+  # AUTH-PWD-01 / ADR-020: tenant site origin used in account-setup and
+  # password-reset emails; {subdomain} comes from the tenant record. Empty =
+  # those emails fail closed (not sent). Non-secret (ADR-019 Decision 3).
+  public:
+    tenant-url-template: ${TENANT_URL_TEMPLATE:}
   security:
     # Argon2id parameters (AUTH-3), OWASP-baseline defaults - see
     # Argon2PasswordEncoderConfig/Argon2Properties. Never hardcode these

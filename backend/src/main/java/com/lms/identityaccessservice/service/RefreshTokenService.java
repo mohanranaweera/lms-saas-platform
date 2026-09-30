@@ -65,7 +65,7 @@ public class RefreshTokenService {
 		}
 		TenantUser user = tenantUserRepository.findById(session.getUserId())
 			.orElseThrow(InvalidRefreshTokenException::new);
-		if (user.getStatus() == AccountStatus.SUSPENDED) {
+		if (user.getStatus() != AccountStatus.ACTIVE) {
 			throw new InvalidRefreshTokenException();
 		}
 		String newRawToken = tokenService.generateOpaqueRefreshToken();
@@ -85,6 +85,24 @@ public class RefreshTokenService {
 		session.revoke(Instant.now());
 		deviceSessionRepository.save(session);
 		cacheService.evict(sessionId);
+	}
+
+	/**
+	 * AUTH-PWD-01: revokes every active session of a tenant user - after a
+	 * password is set through a link ({@code keepSessionId} null) or changed
+	 * while signed in (the current session is kept).
+	 */
+	@Transactional
+	public void revokeAllTenantSessions(UUID userId, UUID keepSessionId) {
+		Instant now = Instant.now();
+		for (DeviceSession session : deviceSessionRepository.findActiveForUser(userId)) {
+			if (session.getId().equals(keepSessionId)) {
+				continue;
+			}
+			session.revoke(now);
+			deviceSessionRepository.save(session);
+			cacheService.evict(session.getId());
+		}
 	}
 
 	@Transactional

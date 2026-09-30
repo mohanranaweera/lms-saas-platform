@@ -150,3 +150,16 @@ status and gets the `409` above, never a lost update.
 
 These remain open items — see `docs/requirements/open-decisions.md` and
 `docs/plans/MVP-004 Tenant Management.md`'s status note.
+
+## AUTH-PWD-01 — First Tenant Admin (ADR-020)
+
+- **`POST /{id}/approve`** now also creates the tenant's first Tenant Admin, in the same transaction, from `contactEmail`, with status `invited`. It queues an account-setup email. If this fails, the approval rolls back.
+- **`GET /{id}`** (and the approve and reject responses) add:
+  `firstAdmin: { status: NONE|INVITED|ACTIVE|SUSPENDED, emailMasked, invitedAt, inviteExpiresAt }`.
+  The email is masked; the other fields are null when status is `NONE`.
+- **`POST /{id}/admin-invitation`**, body `{ email? }` → `202 firstAdmin`. What it does depends on the admin's status:
+  - `NONE`: invites `email`, or the contact email if none is given.
+  - `INVITED`: resends. A different `email` corrects it, and old links stop working at once.
+  - `ACTIVE` or `SUSPENDED`: `409`.
+
+  Other responses: `409` if the tenant isn't trial/active or the email is taken; `429` within one minute of the last send; `404` for an unknown tenant. Every action is audit-logged against the tenant.

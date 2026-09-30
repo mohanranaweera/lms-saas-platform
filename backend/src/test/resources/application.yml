@@ -90,6 +90,8 @@ video-playback:
     secret: "test-only-video-playback-token-secret-not-for-production-use-32bytes+"
 
 app:
+  public:
+    tenant-url-template: "http://{subdomain}.lms.test"
   mail:
     from-address: "no-reply@example.com"
   video-access:

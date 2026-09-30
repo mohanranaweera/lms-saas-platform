@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -44,6 +45,10 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 
 	@Column(name = "totp_secret")
 	private String totpSecret;
+
+	/** When the owner last set/changed the password (AUTH-PWD-01); null for older accounts. */
+	@Column(name = "password_changed_at")
+	private Instant passwordChangedAt;
 
 	protected TenantUser() {
 	}
@@ -100,6 +105,44 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 
 	public String getTotpSecret() {
 		return totpSecret;
+	}
+
+	public Instant getPasswordChangedAt() {
+		return passwordChangedAt;
+	}
+
+	/**
+	 * AUTH-PWD-01 / ADR-020: an invited account (e.g. a tenant's first Tenant
+	 * Admin). {@code unusablePasswordHash} is the hash of a random value nobody
+	 * knows, so the account cannot log in until it completes account setup.
+	 */
+	public static TenantUser invited(UUID tenantId, String email, String unusablePasswordHash, Role role) {
+		TenantUser user = new TenantUser(tenantId, email, unusablePasswordHash, role, false);
+		user.status = AccountStatus.INVITED;
+		return user;
+	}
+
+	/** Corrects the email of a still-invited account (a Platform Admin fixing a typo). */
+	public void correctInvitedEmail(String newEmail) {
+		if (status != AccountStatus.INVITED) {
+			throw new IllegalStateException("Only an invited account's email can be corrected");
+		}
+		this.email = newEmail;
+	}
+
+	/**
+	 * Sets a password chosen by the account owner - through an account-setup or
+	 * reset link, or change password. Clears {@code must_change_password}; an
+	 * {@link AccountStatus#INVITED} account becomes {@link AccountStatus#ACTIVE}.
+	 * A suspended account stays suspended.
+	 */
+	public void setOwnPassword(String newPasswordHash, Instant now) {
+		this.passwordHash = newPasswordHash;
+		this.mustChangePassword = false;
+		this.passwordChangedAt = now;
+		if (status == AccountStatus.INVITED) {
+			this.status = AccountStatus.ACTIVE;
+		}
 	}
 
 	/**

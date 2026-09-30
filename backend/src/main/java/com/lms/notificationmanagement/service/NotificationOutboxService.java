@@ -1,5 +1,8 @@
 package com.lms.notificationmanagement.service;
 
+import org.springframework.scheduling.annotation.Async;
+import com.lms.identityaccessservice.api.PasswordEmailRequestedEvent;
+import com.lms.identityaccessservice.api.PasswordTokenPurpose;
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.notificationmanagement.domain.NotificationEventType;
 import com.lms.notificationmanagement.domain.NotificationOutbox;
@@ -86,6 +89,21 @@ public class NotificationOutboxService {
 		variables.put("reason", event.reason());
 		variables.put("paymentId", event.paymentId().toString());
 		insertOutboxRow(event.tenantId(), NotificationEventType.PAYMENT_REFUNDED, event.studentId(), variables);
+	}
+
+	/**
+	 * AUTH-PWD-01 / ADR-020: an account-setup or reset email. Async, so forgot
+	 * password answers in the same time whether or not an account exists
+	 * (security review L-1). The outbox row holds NO token (MVP-018's rule) - the dispatcher issues a fresh one at
+	 * send time.
+	 */
+	@Async
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void onPasswordEmailRequested(PasswordEmailRequestedEvent event) {
+		NotificationEventType type = (event.purpose() == PasswordTokenPurpose.ACCOUNT_SETUP)
+				? NotificationEventType.ACCOUNT_SETUP_INVITE : NotificationEventType.PASSWORD_RESET;
+		insertOutboxRow(event.tenantId(), type, event.userId(), new LinkedHashMap<>());
 	}
 
 	private void insertOutboxRow(java.util.UUID tenantId, NotificationEventType eventType,

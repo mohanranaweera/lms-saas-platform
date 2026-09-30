@@ -128,12 +128,23 @@ class AttendanceSheetMigrationIntegrationTest extends AttendanceManagementTestSu
 	}
 
 	private void copyReferenceRows(String schema, UUID tenantId) {
-		jdbcTemplate.update(String.format("INSERT INTO %s.tenant SELECT * FROM public.tenant WHERE id = ?", schema),
-				tenantId);
+		jdbcTemplate.update(String.format("INSERT INTO %s.tenant (%s) SELECT %s FROM public.tenant WHERE id = ?", schema,
+				columnsOf(schema, "tenant"), columnsOf(schema, "tenant")), tenantId);
 		for (String table : List.of("tenant_user", "course", "course_module", "course_lesson")) {
-			jdbcTemplate.update(String.format("INSERT INTO %s.%s SELECT * FROM public.%s WHERE tenant_id = ?", schema,
-					table, table), tenantId);
+			String columns = columnsOf(schema, table);
+			jdbcTemplate.update(String.format("INSERT INTO %s.%s (%s) SELECT %s FROM public.%s WHERE tenant_id = ?",
+					schema, table, columns, columns, table), tenantId);
 		}
+	}
+
+	/**
+	 * The columns the older-version schema actually has - later migrations add
+	 * columns (e.g. V62's tenant_user.password_changed_at), so SELECT * would no
+	 * longer line up.
+	 */
+	private String columnsOf(String schema, String table) {
+		return String.join(", ", jdbcTemplate.queryForList("SELECT column_name FROM information_schema.columns "
+				+ "WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position", String.class, schema, table));
 	}
 
 	private UUID insertLegacy(String schema, UUID tenantId, UUID courseId, UUID lessonId, UUID studentId,

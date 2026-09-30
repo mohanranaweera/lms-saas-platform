@@ -9,6 +9,14 @@ import java.util.UUID;
  * step 3) - never the {@code Tenant} JPA entity itself.
  */
 public record TenantDetailResponse(UUID id, String name, String subdomain, TenantStatus status, String requestedPlan,
-		String contactName, String contactEmail, String contactPhone, Instant createdAt) {
+		String contactName, String contactEmail, String contactPhone, Instant createdAt, FirstAdminResponse firstAdmin) {
+
+	/**
+	 * AUTH-PWD-01: the tenant's first Tenant Admin. {@code status}: NONE | INVITED |
+	 * ACTIVE | SUSPENDED; the other fields are null when NONE.
+	 */
+	public record FirstAdminResponse(String status, String emailMasked, Instant invitedAt, Instant inviteExpiresAt) {
+
+	}
 
 }

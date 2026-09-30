@@ -32,6 +32,11 @@ spring:
 
 server:
   port: ${BACKEND_PORT:8080}
+  # Behind Nginx: take the client IP from X-Forwarded-For, trusted only from
+  # Tomcat's default internal-proxy ranges (private/loopback). Without this every
+  # user shares the proxy's IP and the per-IP auth rate limits become
+  # platform-wide (AUTH-PWD-01 security review M-1).
+  forward-headers-strategy: native
 
 management:
   endpoints:

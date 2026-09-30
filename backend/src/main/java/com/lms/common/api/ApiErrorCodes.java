@@ -101,6 +101,15 @@ public final class ApiErrorCodes {
 	/** MEDIA-INT-01 - the provider rejected the supplied API credentials. */
 	public static final String PROVIDER_CREDENTIALS_INVALID = "PROVIDER_CREDENTIALS_INVALID";
 
+	/** AUTH-PWD-01: an account-setup / password-reset link is invalid, expired, used or from another tenant. */
+	public static final String TOKEN_INVALID = "TOKEN_INVALID";
+
+	/** AUTH-PWD-01: the account must change its password before doing anything else. */
+	public static final String PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED";
+
+	/** Too many attempts in a time window - try again later. */
+	public static final String TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS";
+
 	private ApiErrorCodes() {
 	}
 

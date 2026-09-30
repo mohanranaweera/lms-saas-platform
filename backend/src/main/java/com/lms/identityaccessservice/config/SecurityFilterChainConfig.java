@@ -167,6 +167,14 @@ public class SecurityFilterChainConfig {
 							"/api/v1/students/register/otp/send", "/api/v1/students/register/otp/verify")
 					.permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
+				// AUTH-PWD-01 / ADR-020: one-time account-setup / reset links and
+				// forgot password. Anonymous by nature; the tenant is still
+				// resolved from the host by TenantResolutionFilter, the link's
+				// own token authorises the change, and each is rate-limited.
+				authorize
+					.requestMatchers(HttpMethod.POST, "/api/v1/auth/password-tokens/verify",
+							"/api/v1/auth/password-tokens/complete", "/api/v1/auth/password-reset/request")
+					.permitAll();
 				authorize
 					.requestMatchers(HttpMethod.POST, "/api/v1/platform-admin/auth/login",
 							"/api/v1/platform-admin/auth/refresh")
@@ -220,7 +228,9 @@ public class SecurityFilterChainConfig {
 	 */
 	private CorsConfigurationSource localCorsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://demo.lms.test:3000"));
+		// Every local tenant subdomain (demo, academy, ...), not just demo - a newly
+		// registered tenant must work locally too (AUTH-PWD-01 invitation links).
+		configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "http://*.lms.test:3000"));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("Content-Type", "Authorization"));
 		configuration.setAllowCredentials(true);
