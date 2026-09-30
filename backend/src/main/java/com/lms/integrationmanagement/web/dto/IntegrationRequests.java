@@ -1,6 +1,7 @@
 package com.lms.integrationmanagement.web.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -9,6 +10,8 @@ import jakarta.validation.constraints.Size;
  * those come from the authenticated context. Secret fields are write-only.
  */
 public final class IntegrationRequests {
+
+	private static final String NO_LONGER_ACCEPTED = "is no longer accepted - Bunny.net needs only an account API key";
 
 	private IntegrationRequests() {
 	}
@@ -31,12 +34,19 @@ public final class IntegrationRequests {
 
 	}
 
-	public record BunnyAccountRequest(@Size(max = 512) String apiKey, @Size(max = 20) String libraryId,
-			@Size(max = 253) String cdnHostname, @Size(max = 512) String tokenAuthKey) {
+	/**
+	 * MEDIA-INT-01A: account API key only. The MEDIA-INT-01 fields are still
+	 * recognised so an outdated client gets a 400 naming them instead of
+	 * silently saving a partial setup.
+	 */
+	public record BunnyAccountRequest(@Size(max = 512) String apiKey,
+			@Null(message = NO_LONGER_ACCEPTED) String libraryId,
+			@Null(message = NO_LONGER_ACCEPTED) String cdnHostname,
+			@Null(message = NO_LONGER_ACCEPTED) String tokenAuthKey) {
 
 		@Override
 		public String toString() {
-			return "BunnyAccountRequest[libraryId=" + libraryId + ", cdnHostname=" + cdnHostname + ", keys=redacted]";
+			return "BunnyAccountRequest[keys=redacted]";
 		}
 
 	}

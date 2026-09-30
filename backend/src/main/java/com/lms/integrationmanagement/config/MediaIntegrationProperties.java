@@ -49,7 +49,7 @@ public class MediaIntegrationProperties {
 
 	private final ApiProvider dyntube = new ApiProvider("https://api.dyntube.com/v1");
 
-	private final ApiProvider bunny = new ApiProvider("https://video.bunnycdn.com");
+	private final BunnyProvider bunny = new BunnyProvider("https://video.bunnycdn.com", "https://api.bunny.net");
 
 	/** Zoom app "Secret Token" used to sign webhook deliveries. */
 	private String zoomWebhookSecretToken = "";
@@ -102,7 +102,7 @@ public class MediaIntegrationProperties {
 		return dyntube;
 	}
 
-	public ApiProvider getBunny() {
+	public BunnyProvider getBunny() {
 		return bunny;
 	}
 
@@ -199,6 +199,30 @@ public class MediaIntegrationProperties {
 
 		public void setApiBaseUrl(String apiBaseUrl) {
 			this.apiBaseUrl = apiBaseUrl;
+		}
+
+	}
+
+	/**
+	 * Bunny has two APIs (MEDIA-INT-01A): {@code api-base-url} is the Stream
+	 * API (per-library key, videos), {@code account-api-base-url} is the
+	 * account API (account key, video library management).
+	 */
+	public static class BunnyProvider extends ApiProvider {
+
+		private String accountApiBaseUrl;
+
+		BunnyProvider(String apiBaseUrl, String accountApiBaseUrl) {
+			super(apiBaseUrl);
+			this.accountApiBaseUrl = accountApiBaseUrl;
+		}
+
+		public String getAccountApiBaseUrl() {
+			return accountApiBaseUrl;
+		}
+
+		public void setAccountApiBaseUrl(String accountApiBaseUrl) {
+			this.accountApiBaseUrl = accountApiBaseUrl;
 		}
 
 	}

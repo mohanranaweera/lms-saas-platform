@@ -5,6 +5,10 @@ MEDIA-INT-01 / ADR-018. This is the source of truth for `implement-backend` and
 Updated after the security review (2026-09-29): the OAuth callback no longer saves a
 connection by itself - the signed-in teacher confirms it (S1, see "Confirm a finished
 connection"), and disconnecting wipes stored credentials (S2).
+Updated for **MEDIA-INT-01A** (2026-09-29, ADR-018 Amendment 1): Bunny.net is connected with an
+account API key only (`PUT /bunny` no longer takes a library id / CDN hostname / token-auth key),
+each teacher gets their own Bunny library (`/bunny/libraries`), and the teacher overview gains
+`bunnyConnected` / `bunnyLibrary`.
 
 ## Conventions
 
@@ -49,11 +53,11 @@ Other failures use the existing codes: `VALIDATION_ERROR` 400, `FORBIDDEN` 403, 
   "provider": "ZOOM",                    // ZOOM | YOUTUBE | VIMEO | DYNTUBE | BUNNY
   "scope": "TEACHER",                    // TEACHER | TENANT
   "status": "ACTIVE",                    // ACTIVE | NEEDS_RECONNECT | DISCONNECTED
-  "accountLabel": "jane@example.test",   // Zoom email / YouTube channel title / Vimeo name / "DynTube" / Bunny library name; nullable
+  "accountLabel": "jane@example.test",   // Zoom email / YouTube channel title / Vimeo name / "DynTube" / "Bunny.net account"; nullable
   "externalAccountIdMasked": "****a1b2", // last 4 only; nullable
   "accountType": "LICENSED",             // Zoom: BASIC | LICENSED; others: null
   "grantedScopes": ["meeting:write"],    // [] for API-key providers
-  "settings": { "libraryId": "12345", "cdnHostname": "vz-abc.b-cdn.net", "tokenAuthConfigured": true }, // BUNNY only; null otherwise
+  "settings": { "keyType": "ACCOUNT" },  // BUNNY only; null otherwise. A legacy (MEDIA-INT-01) row still shows { libraryId, cdnHostname, tokenAuthConfigured } and must be reconnected
   "secretConfigured": true,              // always true for a stored row; never the secret itself
   "connectedAt": "2026-09-28T10:00:00Z",
   "lastVerifiedAt": "2026-09-28T10:00:00Z", // nullable
@@ -96,9 +100,19 @@ only on connections where `owner_user_id = principal.userId`.
       "connection": null         // current non-DISCONNECTED ConnectionView, else the latest DISCONNECTED one (so "disconnected by admin: reason" can be shown), else null
     }
     // always exactly ZOOM, YOUTUBE, VIMEO in that order
-  ]
+  ],
+  "bunnyConnected": true,        // the institute has an ACTIVE Bunny.net account (MEDIA-INT-01A)
+  "bunnyLibrary": {              // the teacher's own latest Bunny library, else null. No ids or keys
+    "status": "ACTIVE",          // PROVISIONING | ACTIVE | FAILED | UNAVAILABLE
+    "libraryName": "Demo Institute - Jane Perera [a1b2c3d4e5f6]"
+  }
 }
 ```
+
+`UNAVAILABLE` means Bunny.net is not connected, or the current Bunny account key cannot see the
+library (e.g. the institute switched to a different Bunny account). The stored row is not
+changed. This read is not transactional: working out `UNAVAILABLE` may make one Bunny listing
+call.
 
 ### `POST /api/v1/teacher/integrations/{provider}/connect`
 
@@ -217,21 +231,74 @@ row with no new row.
 
 ### `PUT /api/v1/tenant-admin/integrations/bunny`
 
-Body:
+*Changed by MEDIA-INT-01A (ADR-018 Amendment 1).*
+
+Body: `{ "apiKey": "…" }` - a bunny.net **account** API key (a sub-user key limited to Stream is
+recommended). Same rules as DynTube: optional when an ACTIVE key is stored (blank keeps it),
+required otherwise, ≤512 characters.
+
+- The key is checked against Bunny's account API (`GET /videolibrary`) before anything is stored.
+- `200` → `ConnectionView` with `accountLabel: "Bunny.net account"` and
+  `settings: { "keyType": "ACCOUNT" }`.
+- `400 VALIDATION_ERROR` naming the field if the retired MEDIA-INT-01 fields `libraryId`,
+  `cdnHostname` or `tokenAuthKey` are sent with any non-null value ("is no longer accepted").
+- `400 PROVIDER_CREDENTIALS_INVALID`, fieldErrors `[{field:"apiKey"}]`, when Bunny rejects the
+  key - including a library-only Stream key ("use an account API key, not a video library key").
+- `503`: the encryption key is not configured or Bunny is unreachable.
+
+A connection saved under MEDIA-INT-01 (library key) is not migrated; its next test moves it to
+`NEEDS_RECONNECT`.
+
+### `GET /api/v1/tenant-admin/integrations/bunny/libraries`
+
+*MEDIA-INT-01A.* `VIEW` permission. `200` → `TeacherLibraryRow[]`, sorted by `teacherName` ASC:
 
 ```jsonc
-{ "apiKey": null, "libraryId": "12345", "cdnHostname": "vz-abc.b-cdn.net", "tokenAuthKey": null }
+[
+  {
+    "teacherUserId": "0192…",
+    "teacherName": "Jane Perera",
+    "library": {                            // the teacher's latest library row, else null
+      "id": "0192…",                        // our row id - never the Bunny library id
+      "status": "ACTIVE",                   // PROVISIONING | ACTIVE | FAILED | UNAVAILABLE
+      "libraryName": "Demo Institute - Jane Perera [a1b2c3d4e5f6]",
+      "createdAt": "2026-09-29T08:00:00Z",
+      "lastError": null                     // sanitised; "Not visible to the current Bunny.net account." for UNAVAILABLE
+    },
+    "canCreateLibrary": false               // Bunny connected + teacher approved & active + no library, a FAILED one, or a PROVISIONING one older than 5 minutes (interrupted)
+  }
+]
 ```
 
-- `apiKey`: same rules as DynTube.
-- `libraryId`: required, digits, 1–20.
-- `cdnHostname`: required. It must be a lowercase DNS hostname, ≤253 characters, with no scheme,
-  path or port. It is stored only for building playback URLs and is never fetched by the
-  backend.
-- `tokenAuthKey`: optional, write-only, ≤512 characters; blank keeps the stored value.
+- Lists every **approved, active** teacher, plus any teacher who already has a library (for
+  example one suspended since).
+- `UNAVAILABLE` is worked out on read, not stored: Bunny is not connected, or the library was
+  created under an earlier connection and the current key can't see it. That check makes at
+  most **one** Bunny listing call; a Bunny outage leaves statuses as stored.
+- No response contains a key or the Bunny numeric library id.
 
-Responses are the same as DynTube. On a failed test, `fieldErrors` may name `apiKey` or
-`libraryId`.
+### `POST /api/v1/tenant-admin/integrations/bunny/libraries/{teacherUserId}`
+
+*MEDIA-INT-01A.* `CREATE_EDIT` permission. No body. Creates the teacher's library in the
+institute's Bunny account, or adopts one left by an interrupted attempt (found by the tag in its
+name).
+
+- `201` → `BunnyLibraryView` (the `library` object above), created or adopted.
+- `200` → the teacher's existing ACTIVE library, unchanged (idempotent; Bunny is not called).
+- `404 NOT_FOUND`: not an approved, active teacher **of this tenant** (another tenant's user
+  id is a 404 and Bunny is never called).
+- `409 CONFLICT`: no ACTIVE Bunny connection; the library is already being set up (a
+  `PROVISIONING` row younger than 5 minutes); the stored key was rejected by Bunny (the
+  connection moves to `NEEDS_RECONNECT`); or the matching Bunny library is already assigned
+  to another teacher.
+- `503 SERVICE_UNAVAILABLE`: Bunny could not be reached; the attempt is kept as a `FAILED`
+  row and can be retried.
+
+Every create, adoption and failure writes an audit entry
+(`media_integration.bunny_library_created` / `media_integration.bunny_library_failed`).
+
+For other domains (MEDIA-INT-03), `integrationmanagement.api.BunnyLibraryApi.ensureTeacherLibrary(teacherUserId)`
+does the same; the caller must be that teacher, or hold `INTEGRATIONS` `CREATE_EDIT`.
 
 ### `POST /api/v1/tenant-admin/integrations/connections/{id}/test`
 

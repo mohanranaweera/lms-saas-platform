@@ -68,7 +68,8 @@ Domain contract files, in the order they landed:
 - `integrations.md` — MEDIA-INT-01 (ADR-018), new contract file for `integration-management`'s
   media & meeting provider connections: teacher Zoom/YouTube/Vimeo OAuth connect + confirm,
   Tenant Admin DynTube/Bunny.net accounts, teacher-provider switches, video host, the public OAuth
-  callback and the real Zoom webhook.
+  callback and the real Zoom webhook. MEDIA-INT-01A: Bunny.net by account API key only and
+  one Bunny library per teacher (`/tenant-admin/integrations/bunny/libraries`).
 - `live-class-management.md` — updated for MEDIA-INT-01: host checks and new `PROVIDER_*` 409s on
   scheduling, "Recreate meeting" via `retry-provisioning`, host start / registrant join links,
   Zoom recordings deferred, `hostConnectionStatus`.

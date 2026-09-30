@@ -13,22 +13,9 @@ export const dynTubeSchema = z.object({
 
 export type DynTubeFormValues = z.infer<typeof dynTubeSchema>;
 
+/** MEDIA-INT-01A: a bunny.net account API key only - libraries are created per teacher. */
 export const bunnySchema = z.object({
   apiKey: z.string().max(512, "API key must be 512 characters or fewer."),
-  libraryId: z
-    .string()
-    .trim()
-    .regex(/^\d{1,20}$/, "Library ID is the number shown in your Bunny Stream library settings."),
-  cdnHostname: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .max(253, "Hostname is too long.")
-    .regex(
-      /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/,
-      "Enter just the hostname, e.g. vz-abc123.b-cdn.net (no https:// or path)."
-    ),
-  tokenAuthKey: z.string().max(512, "Token authentication key must be 512 characters or fewer."),
 });
 
 export type BunnyFormValues = z.infer<typeof bunnySchema>;

@@ -10,6 +10,8 @@ import { classSessionKeys } from "@/lib/api/class-sessions";
  *   provider's OAuth consent page; the backend returns the consent URL and the
  *   browser is sent there with a full-page redirect.
  * - The Tenant Admin configures the tenant-wide DynTube / Bunny.net accounts.
+ *   Bunny.net is connected with one account API key; each teacher then gets
+ *   their own Bunny library inside that account (MEDIA-INT-01A).
  *
  * Tokens and API keys are write-only: no response ever contains one
  * (`secretConfigured` is the only signal). Every permission/ownership decision
@@ -32,8 +34,11 @@ export interface ConnectionView {
   /** Zoom only: "BASIC" | "LICENSED". */
   accountType: string | null;
   grantedScopes: string[];
-  /** Bunny only: `{ libraryId, cdnHostname, tokenAuthConfigured }`. */
-  settings: { libraryId?: string; cdnHostname?: string; tokenAuthConfigured?: boolean } | null;
+  /**
+   * Bunny only: `{ keyType: "ACCOUNT" }`. A connection saved before
+   * MEDIA-INT-01A still carries its old `libraryId` (library-only key).
+   */
+  settings: { keyType?: "ACCOUNT"; libraryId?: string; cdnHostname?: string; tokenAuthConfigured?: boolean } | null;
   secretConfigured: boolean;
   connectedAt: string;
   lastVerifiedAt: string | null;
@@ -61,6 +66,40 @@ export interface TeacherProviderView {
 
 export interface TeacherIntegrationsView {
   providers: TeacherProviderView[];
+  /** The institute has an ACTIVE Bunny.net account. */
+  bunnyConnected: boolean;
+  /** The teacher's own Bunny library, if one has been created. */
+  bunnyLibrary: TeacherBunnyLibraryView | null;
+}
+
+/** Stored states plus `UNAVAILABLE` (the current Bunny account can't reach it). */
+export type BunnyLibraryStatus = "PROVISIONING" | "ACTIVE" | "FAILED" | "UNAVAILABLE";
+
+/** The teacher's read-only card - no ids, no keys. */
+export interface TeacherBunnyLibraryView {
+  status: BunnyLibraryStatus;
+  libraryName: string;
+}
+
+/** A teacher's Bunny library for the Tenant Admin. Never carries a key or the Bunny library id. */
+export interface BunnyLibraryView {
+  id: string;
+  status: BunnyLibraryStatus;
+  libraryName: string;
+  createdAt: string;
+  lastError: string | null;
+}
+
+export interface TeacherLibraryRow {
+  teacherUserId: string;
+  teacherName: string;
+  /** Latest library, or null when none has been created yet. */
+  library: BunnyLibraryView | null;
+  /**
+   * Backend-decided: Bunny is connected, the teacher is approved and active,
+   * and has no library or only a failed one. The backend re-checks on create.
+   */
+  canCreateLibrary: boolean;
 }
 
 export interface ProviderToggleView {
@@ -88,11 +127,9 @@ export interface TenantIntegrationsView {
   teacherConnections: TeacherConnectionRow[];
 }
 
-export interface SaveBunnyInput {
-  apiKey?: string;
-  libraryId: string;
-  cdnHostname: string;
-  tokenAuthKey?: string;
+/** A Bunny connection saved with a library-only key (before MEDIA-INT-01A) - must be reconnected. */
+export function isLegacyBunnyConnection(connection: ConnectionView | null | undefined): boolean {
+  return Boolean(connection?.settings?.libraryId) && connection?.settings?.keyType !== "ACCOUNT";
 }
 
 /** Zoom needs a licensed account to host live classes with personal join links (ADR-018 §4). */
@@ -112,6 +149,8 @@ export const integrationKeys = {
   all: ["integrations"] as const,
   teacher: () => [...integrationKeys.all, "teacher"] as const,
   admin: () => [...integrationKeys.all, "admin"] as const,
+  /** Under `admin()`, so every admin mutation refreshes it too. */
+  bunnyLibraries: () => [...integrationKeys.admin(), "bunny-libraries"] as const,
 };
 
 function blankToNull(value: string | undefined): string | null {
@@ -245,18 +284,33 @@ export function useSaveDynTube() {
   ]);
 }
 
+/** MEDIA-INT-01A: the Bunny.net account API key is the only input. */
 export function useSaveBunny() {
-  return useAdminMutation<SaveBunnyInput, ConnectionView>((input) => [
+  return useAdminMutation<{ apiKey?: string }, ConnectionView>((input) => [
     "/v1/tenant-admin/integrations/bunny",
-    {
-      method: "PUT",
-      body: JSON.stringify({
-        apiKey: blankToNull(input.apiKey),
-        libraryId: input.libraryId.trim(),
-        cdnHostname: input.cdnHostname.trim().toLowerCase(),
-        tokenAuthKey: blankToNull(input.tokenAuthKey),
-      }),
-    },
+    { method: "PUT", body: JSON.stringify({ apiKey: blankToNull(input.apiKey) }) },
+  ]);
+}
+
+/** Every teacher of the institute with their latest Bunny library (or none). */
+export function useBunnyLibraries() {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: integrationKeys.bunnyLibraries(),
+    queryFn: () =>
+      authorizedFetch<TeacherLibraryRow[]>("tenant", "/v1/tenant-admin/integrations/bunny/libraries"),
+  });
+}
+
+/**
+ * Creates (or, after an interrupted attempt, adopts) the teacher's library in
+ * the institute's Bunny account. Idempotent on the backend: an existing
+ * library is returned unchanged.
+ */
+export function useCreateBunnyLibrary() {
+  return useAdminMutation<string, BunnyLibraryView>((teacherUserId) => [
+    `/v1/tenant-admin/integrations/bunny/libraries/${encodeURIComponent(teacherUserId)}`,
+    { method: "POST" },
   ]);
 }
 

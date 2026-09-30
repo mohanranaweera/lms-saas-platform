@@ -3,11 +3,13 @@ package com.lms.usermanagement.teacher.service;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.usermanagement.api.TeacherLookupApi;
+import com.lms.usermanagement.teacher.domain.ApprovalStatus;
 import com.lms.usermanagement.teacher.domain.TeacherProfile;
 import com.lms.usermanagement.teacher.repository.TeacherProfileRepository;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +35,26 @@ public class TeacherLookupService implements TeacherLookupApi {
 
 	@Override
 	public List<TeacherSummary> listTeachers() {
-		List<TeacherProfile> profiles = teacherProfileRepository.findAll();
+		return summaries(teacherProfileRepository.findAll(), summary -> true);
+	}
+
+	@Override
+	public List<TeacherSummary> listApprovedActiveTeachers() {
+		List<TeacherProfile> approved = teacherProfileRepository.findAll()
+			.stream()
+			.filter(profile -> profile.getApprovalStatus() == ApprovalStatus.APPROVED)
+			.toList();
+		return summaries(approved, summary -> "active".equalsIgnoreCase(summary.status()));
+	}
+
+	private List<TeacherSummary> summaries(List<TeacherProfile> profiles, Predicate<TenantUserSummary> userFilter) {
 		if (profiles.isEmpty()) {
 			return List.of();
 		}
 		Map<java.util.UUID, String> emails = userProvisioningApi
 			.findTenantUserSummaries(profiles.stream().map(TeacherProfile::getUserId).toList())
 			.stream()
+			.filter(userFilter)
 			.collect(Collectors.toMap(TenantUserSummary::userId, TenantUserSummary::email, (a, b) -> a));
 		return profiles.stream()
 			.filter(profile -> emails.containsKey(profile.getUserId()))

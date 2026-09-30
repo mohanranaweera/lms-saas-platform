@@ -78,7 +78,8 @@ every other domain area, this role gets no `V` entry either (`—`), since Wave 
 no separate Tenant-Admin-oversight-only view requirement for this role.
 
 Integrations (MEDIA-INT-01, ADR-018): the tenant's media & meeting provider settings —
-DynTube/Bunny.net accounts, which teacher providers (Zoom/YouTube/Vimeo) teachers may
+DynTube/Bunny.net accounts, each teacher's Bunny.net library (view with VIEW, create/retry
+with CREATE_EDIT - MEDIA-INT-01A), which teacher providers (Zoom/YouTube/Vimeo) teachers may
 connect, and oversight/disconnect of teachers' connections. Teachers manage their **own**
 Zoom/YouTube/Vimeo connections without this grant (ownership-checked in
 `integrationmanagement.service.MediaConnectionService`), the same carve-out shape as Live

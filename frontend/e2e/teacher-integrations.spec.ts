@@ -185,4 +185,59 @@ test.describe("Teacher integrations", () => {
 
     await expect(page.getByText("You don't have permission to view this.")).toBeVisible();
   });
+
+  test.describe("Your video library (MEDIA-INT-01A)", () => {
+    const LIBRARY_NAME = "Demo Institute - Jane Perera [a1b2c3d4e5f6]";
+
+    test("says when the institute hasn't connected Bunny.net", async ({ page }) => {
+      await mockTenantSession(page, "TEACHER", TEACHER_ID);
+      await mockTeacherIntegrations(page, teacherIntegrations());
+
+      await page.goto("/teacher/settings/integrations");
+
+      const card = page.getByRole("region", { name: "Your video library" });
+      await expect(card.getByText("Not set up", { exact: true })).toBeVisible();
+      await expect(card.getByText("Your institute hasn't connected Bunny.net yet.")).toBeVisible();
+    });
+
+    test("explains the library is created on the first upload", async ({ page }) => {
+      await mockTenantSession(page, "TEACHER", TEACHER_ID);
+      await mockTeacherIntegrations(page, teacherIntegrations({}, { bunnyConnected: true }));
+
+      await page.goto("/teacher/settings/integrations");
+
+      await expect(
+        page.getByRole("region", { name: "Your video library" }).getByText("created automatically when you first upload")
+      ).toBeVisible();
+    });
+
+    test("shows the teacher's own ready library, read-only", async ({ page }) => {
+      await mockTenantSession(page, "TEACHER", TEACHER_ID);
+      await mockTeacherIntegrations(
+        page,
+        teacherIntegrations({}, { bunnyConnected: true, bunnyLibrary: { status: "ACTIVE", libraryName: LIBRARY_NAME } })
+      );
+
+      await page.goto("/teacher/settings/integrations");
+
+      const card = page.getByRole("region", { name: "Your video library" });
+      await expect(card.getByText("Ready", { exact: true })).toBeVisible();
+      await expect(card.getByText(LIBRARY_NAME)).toBeVisible();
+      await expect(card.getByRole("button")).toHaveCount(0);
+    });
+
+    test("an unavailable library tells the teacher to contact the institute", async ({ page }) => {
+      await mockTenantSession(page, "TEACHER", TEACHER_ID);
+      await mockTeacherIntegrations(
+        page,
+        teacherIntegrations({}, { bunnyConnected: true, bunnyLibrary: { status: "UNAVAILABLE", libraryName: LIBRARY_NAME } })
+      );
+
+      await page.goto("/teacher/settings/integrations");
+
+      const card = page.getByRole("region", { name: "Your video library" });
+      await expect(card.getByText("Unavailable", { exact: true })).toBeVisible();
+      await expect(card.getByText("Contact your institute.", { exact: false })).toBeVisible();
+    });
+  });
 });

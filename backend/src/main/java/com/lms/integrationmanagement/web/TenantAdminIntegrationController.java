@@ -1,10 +1,14 @@
 package com.lms.integrationmanagement.web;
 
 import com.lms.common.api.ApiResponse;
+import com.lms.integrationmanagement.service.BunnyLibraryService;
+import com.lms.integrationmanagement.service.BunnyLibraryService.Creation;
 import com.lms.integrationmanagement.service.MediaConnectionService;
+import com.lms.integrationmanagement.service.MediaConnectionViews.BunnyLibraryView;
 import com.lms.integrationmanagement.service.MediaConnectionViews.ConnectionTestResult;
 import com.lms.integrationmanagement.service.MediaConnectionViews.ConnectionView;
 import com.lms.integrationmanagement.service.MediaConnectionViews.ImpactView;
+import com.lms.integrationmanagement.service.MediaConnectionViews.TeacherLibraryRow;
 import com.lms.integrationmanagement.service.MediaConnectionViews.TeacherProvidersView;
 import com.lms.integrationmanagement.service.MediaConnectionViews.TenantIntegrationsView;
 import com.lms.integrationmanagement.service.MediaConnectionViews.VideoHostView;
@@ -14,7 +18,9 @@ import com.lms.integrationmanagement.web.dto.IntegrationRequests.DynTubeAccountR
 import com.lms.integrationmanagement.web.dto.IntegrationRequests.TeacherProvidersRequest;
 import com.lms.integrationmanagement.web.dto.IntegrationRequests.VideoHostRequest;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,8 +43,11 @@ public class TenantAdminIntegrationController {
 
 	private final MediaConnectionService service;
 
-	public TenantAdminIntegrationController(MediaConnectionService service) {
+	private final BunnyLibraryService bunnyLibraryService;
+
+	public TenantAdminIntegrationController(MediaConnectionService service, BunnyLibraryService bunnyLibraryService) {
 		this.service = service;
+		this.bunnyLibraryService = bunnyLibraryService;
 	}
 
 	@GetMapping
@@ -60,8 +69,21 @@ public class TenantAdminIntegrationController {
 
 	@PutMapping("/bunny")
 	public ResponseEntity<ApiResponse<ConnectionView>> saveBunny(@Valid @RequestBody BunnyAccountRequest request) {
-		return ResponseEntity.ok(ApiResponse.success(service.saveBunny(request.apiKey(), request.libraryId(),
-				request.cdnHostname(), request.tokenAuthKey())));
+		return ResponseEntity.ok(ApiResponse.success(service.saveBunny(request.apiKey())));
+	}
+
+	/** MEDIA-INT-01A: every teacher with their latest Bunny library (or none). */
+	@GetMapping("/bunny/libraries")
+	public ResponseEntity<ApiResponse<List<TeacherLibraryRow>>> bunnyLibraries() {
+		return ResponseEntity.ok(ApiResponse.success(bunnyLibraryService.listForAdmin()));
+	}
+
+	/** Creates (or adopts) the teacher's library; 200 if it already existed. */
+	@PostMapping("/bunny/libraries/{teacherUserId}")
+	public ResponseEntity<ApiResponse<BunnyLibraryView>> createBunnyLibrary(@PathVariable UUID teacherUserId) {
+		Creation creation = bunnyLibraryService.createForTeacher(teacherUserId);
+		return ResponseEntity.status(creation.created() ? HttpStatus.CREATED : HttpStatus.OK)
+			.body(ApiResponse.success(creation.library()));
 	}
 
 	@PostMapping("/connections/{id}/test")

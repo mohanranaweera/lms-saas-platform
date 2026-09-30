@@ -6,10 +6,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A local stand-in for the Zoom, Google/YouTube, Vimeo, DynTube and Bunny
@@ -21,7 +26,16 @@ public final class FakeMediaProviderServer {
 
 	public static final String GOOD_DYNTUBE_KEY = "good-dyntube-key";
 
+	/** A MEDIA-INT-01 library-only Stream key: the account API rejects it (401). */
 	public static final String GOOD_BUNNY_KEY = "good-bunny-key";
+
+	/** MEDIA-INT-01A account-level keys - two separate fake Bunny accounts. */
+	public static final String GOOD_BUNNY_ACCOUNT_KEY = "good-bunny-account-key";
+
+	public static final String OTHER_BUNNY_ACCOUNT_KEY = "other-bunny-account-key";
+
+	/** Every fake library's own API key starts with this - it must never reach a response. */
+	public static final String BUNNY_LIBRARY_SECRET_PREFIX = "lib-secret-";
 
 	public static final String GOOD_BUNNY_LIBRARY = "12345";
 
@@ -44,6 +58,15 @@ public final class FakeMediaProviderServer {
 	private volatile String zoomUserId = "zoom-user-0001";
 
 	private volatile boolean rejectRefresh = false;
+
+	/** A fake Bunny library, owned by one account key. */
+	public record FakeBunnyLibrary(long id, String name, long pullZoneId, String ownerKey) {
+
+	}
+
+	private final Map<Long, FakeBunnyLibrary> bunnyLibraries = new ConcurrentHashMap<>();
+
+	private volatile boolean failBunnyCreate = false;
 
 	private FakeMediaProviderServer() {
 		try {
@@ -69,6 +92,24 @@ public final class FakeMediaProviderServer {
 		zoomUserType = 2;
 		zoomUserId = "zoom-user-" + counter.incrementAndGet();
 		rejectRefresh = false;
+		bunnyLibraries.clear();
+		failBunnyCreate = false;
+	}
+
+	public void setFailBunnyCreate(boolean fail) {
+		this.failBunnyCreate = fail;
+	}
+
+	/** Puts a library straight into a fake account (e.g. left over from an interrupted attempt). */
+	public FakeBunnyLibrary addBunnyLibrary(String ownerKey, String name) {
+		long id = 900_000L + counter.incrementAndGet();
+		FakeBunnyLibrary library = new FakeBunnyLibrary(id, name, 700_000L + id, ownerKey);
+		bunnyLibraries.put(id, library);
+		return library;
+	}
+
+	public List<FakeBunnyLibrary> bunnyLibraries() {
+		return List.copyOf(bunnyLibraries.values());
 	}
 
 	public void setZoomUserType(int type) {
@@ -157,6 +198,9 @@ public final class FakeMediaProviderServer {
 			boolean ok = ("Bearer " + GOOD_DYNTUBE_KEY).equals(authorization);
 			respond(exchange, ok ? 200 : 401, ok ? "[]" : "{\"message\":\"unauthorized\"}");
 		}
+		else if (path.equals("/videolibrary") || path.startsWith("/videolibrary/")) {
+			handleBunnyAccountApi(exchange, method, path, query, accessKey, body);
+		}
 		else if (method.equals("GET") && path.matches("/library/[^/]+/videos")) {
 			if (!GOOD_BUNNY_KEY.equals(accessKey)) {
 				respond(exchange, 401, "{\"Message\":\"unauthorized\"}");
@@ -171,6 +215,69 @@ public final class FakeMediaProviderServer {
 		else {
 			respond(exchange, 404, "{}");
 		}
+	}
+
+	/** bunny.net account API: list / get / create video libraries, per account key. */
+	private void handleBunnyAccountApi(HttpExchange exchange, String method, String path, String query,
+			String accessKey, String body) throws IOException {
+		if (!GOOD_BUNNY_ACCOUNT_KEY.equals(accessKey) && !OTHER_BUNNY_ACCOUNT_KEY.equals(accessKey)) {
+			respond(exchange, 401, "{\"Message\":\"unauthorized\"}");
+			return;
+		}
+		if (method.equals("GET") && path.equals("/videolibrary")) {
+			String search = queryParam(query, "search");
+			List<String> items = bunnyLibraries.values()
+				.stream()
+				.filter(library -> library.ownerKey().equals(accessKey))
+				.filter(library -> search == null || library.name().contains(search))
+				.map(FakeMediaProviderServer::bunnyJson)
+				.toList();
+			respond(exchange, 200, "{\"Items\":[" + String.join(",", items) + "],\"CurrentPage\":1,\"TotalItems\":"
+					+ items.size() + ",\"HasMoreItems\":false}");
+		}
+		else if (method.equals("POST") && path.equals("/videolibrary")) {
+			if (failBunnyCreate) {
+				respond(exchange, 500, "{\"Message\":\"internal error\"}");
+				return;
+			}
+			Matcher name = Pattern.compile("\"Name\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"").matcher(body);
+			if (!name.find()) {
+				respond(exchange, 400, "{\"Message\":\"Name is required\"}");
+				return;
+			}
+			respond(exchange, 201, bunnyJson(addBunnyLibrary(accessKey, name.group(1))));
+		}
+		else if (method.equals("GET") && path.matches("/videolibrary/\\d+")) {
+			FakeBunnyLibrary library = bunnyLibraries.get(Long.parseLong(path.substring("/videolibrary/".length())));
+			if (library == null || !library.ownerKey().equals(accessKey)) {
+				respond(exchange, 404, "{\"Message\":\"not found\"}");
+			}
+			else {
+				respond(exchange, 200, bunnyJson(library));
+			}
+		}
+		else {
+			respond(exchange, 404, "{}");
+		}
+	}
+
+	private static String bunnyJson(FakeBunnyLibrary library) {
+		return "{\"Id\":" + library.id() + ",\"Name\":\"" + library.name().replace("\"", "\\\"") + "\",\"PullZoneId\":"
+				+ library.pullZoneId() + ",\"ApiKey\":\"" + BUNNY_LIBRARY_SECRET_PREFIX + library.id()
+				+ "\",\"ReadOnlyApiKey\":\"" + BUNNY_LIBRARY_SECRET_PREFIX + "ro-" + library.id() + "\"}";
+	}
+
+	private static String queryParam(String rawQuery, String name) {
+		if (rawQuery == null) {
+			return null;
+		}
+		for (String pair : rawQuery.split("&")) {
+			int eq = pair.indexOf('=');
+			if (eq > 0 && pair.substring(0, eq).equals(name)) {
+				return URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
+			}
+		}
+		return null;
 	}
 
 	private static void respond(HttpExchange exchange, int status, String json) throws IOException {

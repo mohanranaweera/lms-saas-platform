@@ -56,10 +56,22 @@ export interface TeacherProviderMock {
   connection: ConnectionMock | null;
 }
 
+export type BunnyLibraryStatusMock = "PROVISIONING" | "ACTIVE" | "FAILED" | "UNAVAILABLE";
+
 export function teacherIntegrations(
-  overrides: Partial<Record<"ZOOM" | "YOUTUBE" | "VIMEO", Partial<TeacherProviderMock>>> = {}
-): { providers: TeacherProviderMock[] } {
+  overrides: Partial<Record<"ZOOM" | "YOUTUBE" | "VIMEO", Partial<TeacherProviderMock>>> = {},
+  bunny: {
+    bunnyConnected?: boolean;
+    bunnyLibrary?: { status: BunnyLibraryStatusMock; libraryName: string } | null;
+  } = {}
+): {
+  providers: TeacherProviderMock[];
+  bunnyConnected: boolean;
+  bunnyLibrary: { status: BunnyLibraryStatusMock; libraryName: string } | null;
+} {
   return {
+    bunnyConnected: bunny.bunnyConnected ?? false,
+    bunnyLibrary: bunny.bunnyLibrary ?? null,
     providers: (["ZOOM", "YOUTUBE", "VIMEO"] as const).map((provider) => ({
       provider,
       enabledByTenant: true,
@@ -90,4 +102,44 @@ export function tenantIntegrations(overrides: Record<string, unknown> = {}) {
     teacherConnections: [],
     ...overrides,
   };
+}
+
+// ---------------------------------------------------------------------------
+// MEDIA-INT-01A — teacher Bunny libraries
+// ---------------------------------------------------------------------------
+
+export interface BunnyLibraryMock {
+  id: string;
+  status: BunnyLibraryStatusMock;
+  libraryName: string;
+  createdAt: string;
+  lastError: string | null;
+}
+
+export function bunnyLibrary(overrides: Partial<BunnyLibraryMock> = {}): BunnyLibraryMock {
+  return {
+    id: "library-1",
+    status: "ACTIVE",
+    libraryName: "Demo Institute - Jane Perera [a1b2c3d4e5f6]",
+    createdAt: "2026-09-29T08:00:00Z",
+    lastError: null,
+    ...overrides,
+  };
+}
+
+/** `canCreateLibrary` defaults to what the backend returns for a connected account and an approved teacher. */
+export function teacherLibraryRow(
+  teacherUserId: string,
+  teacherName: string,
+  library: BunnyLibraryMock | null = null,
+  canCreateLibrary: boolean = library === null || library.status === "FAILED"
+) {
+  return { teacherUserId, teacherName, library, canCreateLibrary };
+}
+
+export async function mockBunnyLibraries(
+  page: Page,
+  rows: ReturnType<typeof teacherLibraryRow>[]
+): Promise<void> {
+  await mockJson(page, "**/v1/tenant-admin/integrations/bunny/libraries", 200, apiSuccess(rows));
 }

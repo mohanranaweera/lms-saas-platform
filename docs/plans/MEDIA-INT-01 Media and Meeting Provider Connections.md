@@ -548,3 +548,9 @@ changed. However, these architecture decisions need an ADR **accepted before imp
   `TenantAdminIntegrationsIntegrationTest`, `MediaProviderConnectionSchemaIntegrationTest`, plus unit
   tests (cipher, Zoom signatures, token lock, log masking); frontend - `teacher-integrations`,
   `tenant-admin-integrations`, `live-class-zoom-connection` specs.
+
+- **Bunny.net superseded by MEDIA-INT-01A (2026-09-29).** The Bunny connection now takes only an
+  account API key, and each teacher gets their own library - see
+  `docs/plans/MEDIA-INT-01A Bunny Account Key and Per-Teacher Libraries.md` and ADR-018
+  Amendment 1. The Bunny parts of acceptance criteria 18-19 and the `PUT /bunny` contract above
+  describe the original MEDIA-INT-01 design.

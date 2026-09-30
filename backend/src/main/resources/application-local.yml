@@ -91,3 +91,9 @@ payment:
     # to test with PayHere sandbox credentials.
     notify-url: ${PAYHERE_NOTIFY_URL:}
     return-url-template: ${PAYHERE_RETURN_URL_TEMPLATE:http://{subdomain}.lms.test:3000}
+
+integrations:
+  media:
+    # Clearly-fake, dev-only key (Base64 of "dev-only-media-cred-key-32bytes!").
+    # Without it every provider connect fails closed with 503 SERVICE_UNAVAILABLE.
+    encryption-key: ${MEDIA_CREDENTIALS_ENCRYPTION_KEY:ZGV2LW9ubHktbWVkaWEtY3JlZC1rZXktMzJieXRlcyE=}

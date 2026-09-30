@@ -178,6 +178,12 @@ placeholder purely because this note predates Wave 3.
   **Media part shipped (MEDIA-INT-01)** as Institute Configuration > Integrations
   (`app/(tenant-admin)/tenant-admin/settings/integrations`): teacher-provider switches, DynTube and
   Bunny.net accounts, active video host, teachers' connections (disconnect with reason).
+  MEDIA-INT-01A: the Bunny.net form takes only an account API key (a legacy library-key
+  connection shows a reconnect banner), and a **Teacher video libraries** table lists each
+  approved teacher's library status (Ready / Being set up / Setup failed / Unavailable / Not
+  set up) with **Create library now** / **Retry** for admins; card view on phones.
+- Teacher > Settings > Integrations - MEDIA-INT-01A adds a read-only **Your video library**
+  card (the teacher's own Bunny library status; no ids or keys).
 - Public > Integration Error — neutral page for an expired/used OAuth connection link
   (`app/(public)/integration-error`), MEDIA-INT-01.
 - Tenant Admin > Integrations > Webhook & Health Logs — integration health checks

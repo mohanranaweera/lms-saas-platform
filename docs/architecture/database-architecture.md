@@ -389,6 +389,16 @@ Data-model conventions that follow from this list:
     `tenant_media_integration_settings` (one row per tenant). `class_session.provider_connection_id`
     is composite-FK'd into `media_provider_connection (tenant_id, id)`. The only non-tenant-leading
     index is the Zoom-deauthorization lookup `(provider, external_account_id)` (ADR-018 §5).
+  - MEDIA-INT-01A (V61, ADR-018 Amendment 1): `bunny_teacher_library` - one Bunny Stream
+    library per teacher inside the tenant's Bunny account. `tenant_id` NOT NULL; composite FKs
+    `(tenant_id, teacher_user_id)` -> `tenant_user` and `(tenant_id, connection_id)` ->
+    `media_provider_connection`; status `PROVISIONING | ACTIVE | FAILED` (CHECK, ACTIVE needs
+    `bunny_library_id`); partial unique indexes: one live (PROVISIONING/ACTIVE) row per
+    teacher, and one ACTIVE row per Bunny library id, both per tenant; index
+    `(tenant_id, teacher_user_id, created_at)`. Holds no secret. Rows are never deleted - a
+    failed attempt stays as history and a retry inserts a new row. New BUNNY connection rows
+    store `settings_json = {"keyType":"ACCOUNT"}`; V60's comment about library id / CDN
+    hostname describes legacy rows only.
 - **Audit, notification, and reporting tables are event-consumers' own tables,** not
   shared tables written directly by the domains that trigger them — e.g. a price change
   in `course-management` publishes a domain event; `audit-log-management` persists its

@@ -48,6 +48,7 @@ public abstract class MediaIntegrationTestSupport extends LiveClassManagementTes
 		}
 		registry.add("integrations.media.dyntube.api-base-url", () -> base);
 		registry.add("integrations.media.bunny.api-base-url", () -> base);
+		registry.add("integrations.media.bunny.account-api-base-url", () -> base);
 	}
 
 	@BeforeEach
@@ -182,6 +183,32 @@ public abstract class MediaIntegrationTestSupport extends LiveClassManagementTes
 
 	protected MvcResult adminTest(String host, String token, UUID id) {
 		return perform(authenticated(post("/api/v1/tenant-admin/integrations/connections/{id}/test", id), host, token));
+	}
+
+	// ------------------------------------------------------------------
+	// Bunny teacher libraries (MEDIA-INT-01A)
+	// ------------------------------------------------------------------
+
+	protected MvcResult adminBunnyLibraries(String host, String token) {
+		return perform(authenticated(get("/api/v1/tenant-admin/integrations/bunny/libraries"), host, token));
+	}
+
+	protected MvcResult adminCreateBunnyLibrary(String host, String token, UUID teacherUserId) {
+		return perform(authenticated(post("/api/v1/tenant-admin/integrations/bunny/libraries/{id}", teacherUserId),
+				host, token));
+	}
+
+	/** {@code TeacherLookupApi} lists teachers from {@code teacher_profile}. */
+	protected void seedTeacherProfile(UUID tenantId, UUID userId, String name) {
+		jdbcTemplate.update("""
+				INSERT INTO teacher_profile (id, tenant_id, user_id, name, approval_status, created_at, updated_at)
+				VALUES (?, ?, ?, ?, 'APPROVED', now(), now())
+				""", UUID.randomUUID(), tenantId, userId, name);
+	}
+
+	protected int bunnyLibraryRowCount(UUID tenantId) {
+		return jdbcTemplate.queryForObject("SELECT count(*) FROM bunny_teacher_library WHERE tenant_id = ?",
+				Integer.class, tenantId);
 	}
 
 	// ------------------------------------------------------------------

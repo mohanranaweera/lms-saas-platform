@@ -8,6 +8,7 @@ import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime } from "@/lib/format";
 import {
   PROVIDER_LABELS,
+  isLegacyBunnyConnection,
   useAdminDisconnect,
   useAdminTestConnection,
   useSaveBunny,
@@ -139,15 +140,14 @@ function AccountSummary({ connection }: { connection: ConnectionView | null }) {
         <ConnectionStatusBadge state={connectionDisplayState(connection)} />
       </dd>
       <dt className="text-muted-foreground">API key</dt>
-      <dd className="text-foreground">{connection.secretConfigured ? "Saved (hidden)" : "Not set"}</dd>
-      {connection.settings?.libraryId ? (
-        <>
-          <dt className="text-muted-foreground">Library ID</dt>
-          <dd className="text-foreground">{connection.settings.libraryId}</dd>
-          <dt className="text-muted-foreground">CDN hostname</dt>
-          <dd className="break-all text-foreground">{connection.settings.cdnHostname}</dd>
-        </>
-      ) : null}
+      <dd className="text-foreground">
+        {/* A pre-MEDIA-INT-01A Bunny library key can't be kept (UX-5). */}
+        {isLegacyBunnyConnection(connection)
+          ? "Library key (must be replaced)"
+          : connection.secretConfigured
+            ? "Saved (hidden)"
+            : "Not set"}
+      </dd>
       <dt className="text-muted-foreground">Last checked</dt>
       <dd className="text-foreground">{connection.lastVerifiedAt ? formatDateTime(connection.lastVerifiedAt) : "—"}</dd>
       {connection.status === "DISCONNECTED" ? (
@@ -198,14 +198,17 @@ function SecretInput({
   label,
   stored,
   error,
+  hint,
   registration,
 }: {
   id: string;
   label: string;
   stored: boolean;
   error?: string;
+  hint?: string;
   registration: UseFormRegisterReturn;
 }) {
+  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ");
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
@@ -215,9 +218,14 @@ function SecretInput({
         autoComplete="new-password"
         placeholder={stored ? "Leave blank to keep the saved key" : undefined}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy || undefined}
         {...registration}
       />
+      {hint ? (
+        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
       {error ? (
         <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
           {error}
@@ -292,40 +300,35 @@ export function DynTubeSection({ connection, canManage }: { connection: Connecti
 export function BunnySection({ connection, canManage }: { connection: ConnectionView | null; canManage: boolean }) {
   const mutation = useSaveBunny();
   const live = connection?.status !== "DISCONNECTED" ? connection : null;
-  const stored = Boolean(live?.secretConfigured);
+  // A library-only key from before MEDIA-INT-01A can't be reused - a new key is required.
+  const legacy = isLegacyBunnyConnection(live);
+  const stored = Boolean(live?.secretConfigured) && !legacy;
   const [pageError, setPageError] = useState<{ message: string; code?: string } | null>(null);
   const [saved, setSaved] = useState(false);
   const { register, handleSubmit, setError, reset, formState: { errors } } = useForm<BunnyFormValues>({
     resolver: zodResolver(bunnySchema),
-    defaultValues: {
-      apiKey: "",
-      libraryId: live?.settings?.libraryId ?? "",
-      cdnHostname: live?.settings?.cdnHostname ?? "",
-      tokenAuthKey: "",
-    },
+    defaultValues: { apiKey: "" },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setPageError(null);
     setSaved(false);
     if (!stored && !values.apiKey.trim()) {
-      setError("apiKey", { type: "manual", message: "API key is required." });
+      setError("apiKey", { type: "manual", message: "Account API key is required." });
       return;
     }
     try {
       await mutation.mutateAsync(values);
       setSaved(true);
-      reset({ ...values, apiKey: "", tokenAuthKey: "" });
+      reset({ apiKey: "" });
     } catch (error) {
       if (isApiClientError(error)) {
-        let mapped = false;
-        for (const fieldError of error.fieldErrors) {
-          if (["apiKey", "libraryId", "cdnHostname", "tokenAuthKey"].includes(fieldError.field)) {
-            setError(fieldError.field as keyof BunnyFormValues, { type: "server", message: fieldError.message });
-            mapped = true;
-          }
+        const field = error.fieldErrors.find((fieldError) => fieldError.field === "apiKey");
+        if (field) {
+          setError("apiKey", { type: "server", message: field.message });
+        } else {
+          setPageError({ message: error.message, code: error.code });
         }
-        if (!mapped) setPageError({ message: error.message, code: error.code });
         return;
       }
       setPageError({ message: "An unexpected error occurred. Please try again." });
@@ -334,50 +337,37 @@ export function BunnySection({ connection, canManage }: { connection: Connection
 
   return (
     <section aria-labelledby="bunny-heading" className="flex flex-col gap-3 rounded-lg border border-border p-4">
-      <h3 id="bunny-heading" className="text-sm font-medium text-foreground">
-        Bunny.net Stream
-      </h3>
+      <div>
+        <h3 id="bunny-heading" className="text-sm font-medium text-foreground">
+          Bunny.net Stream
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Connect your institute&apos;s bunny.net account once. Each teacher then gets their own video library in it,
+          created automatically.
+        </p>
+      </div>
+      {legacy || live?.status === "NEEDS_RECONNECT" ? (
+        <Alert variant="destructive">
+          <AlertCircle aria-hidden="true" />
+          <AlertDescription>
+            {legacy
+              ? "This connection uses a single video library key. It must be replaced with a bunny.net account API key so each teacher can have their own library."
+              : "Bunny.net no longer accepts the saved key. It must be replaced with a bunny.net account API key."}{" "}
+            {canManage ? "Enter an account API key below to reconnect." : "Ask a Tenant Admin to reconnect Bunny.net."}
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <AccountSummary connection={connection} />
       {canManage ? (
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
           {pageError ? <ErrorState message={pageError.message} code={pageError.code} /> : null}
-          <SecretInput id="bunny-api-key" label="Stream API key" stored={stored} error={errors.apiKey?.message} registration={register("apiKey")} />
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="bunny-library-id">Video library ID</Label>
-            <Input
-              id="bunny-library-id"
-              inputMode="numeric"
-              aria-invalid={errors.libraryId ? true : undefined}
-              aria-describedby={errors.libraryId ? "bunny-library-id-error" : undefined}
-              {...register("libraryId")}
-            />
-            {errors.libraryId ? (
-              <p id="bunny-library-id-error" role="alert" className="text-sm text-destructive">
-                {errors.libraryId.message}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="bunny-cdn-hostname">CDN hostname</Label>
-            <Input
-              id="bunny-cdn-hostname"
-              placeholder="vz-abc123.b-cdn.net"
-              aria-invalid={errors.cdnHostname ? true : undefined}
-              aria-describedby={errors.cdnHostname ? "bunny-cdn-hostname-error" : undefined}
-              {...register("cdnHostname")}
-            />
-            {errors.cdnHostname ? (
-              <p id="bunny-cdn-hostname-error" role="alert" className="text-sm text-destructive">
-                {errors.cdnHostname.message}
-              </p>
-            ) : null}
-          </div>
           <SecretInput
-            id="bunny-token-auth-key"
-            label="Token authentication key (optional)"
-            stored={Boolean(live?.settings?.tokenAuthConfigured)}
-            error={errors.tokenAuthKey?.message}
-            registration={register("tokenAuthKey")}
+            id="bunny-api-key"
+            label="Account API key"
+            stored={stored}
+            error={errors.apiKey?.message}
+            hint="Use a bunny.net account API key, not a video library key. We recommend a sub-user key limited to Stream."
+            registration={register("apiKey")}
           />
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={mutation.isPending} aria-busy={mutation.isPending}>

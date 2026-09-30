@@ -20,6 +20,7 @@ import com.lms.integrationmanagement.domain.ConnectionScope;
 import com.lms.integrationmanagement.domain.MediaProviderConnection;
 import com.lms.integrationmanagement.domain.TenantMediaIntegrationSettings;
 import com.lms.integrationmanagement.domain.VideoHost;
+import com.lms.integrationmanagement.gateway.media.BunnyAccountClient;
 import com.lms.integrationmanagement.gateway.media.MediaProviderException;
 import com.lms.integrationmanagement.gateway.media.OAuthProviderClient;
 import com.lms.integrationmanagement.gateway.media.ProviderIdentity;
@@ -41,19 +42,16 @@ import com.lms.liveclassmanagement.api.ClassSessionLookupApi;
 import com.lms.usermanagement.api.TeacherLookupApi;
 import java.util.Comparator;
 import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Teacher self-service and Tenant Admin management of media provider
@@ -83,12 +81,10 @@ public class MediaConnectionService {
 
 	private static final int MAX_REASON_LENGTH = 500;
 
-	private static final Pattern LIBRARY_ID = Pattern.compile("^\\d{1,20}$");
-
-	private static final Pattern HOSTNAME = Pattern
-		.compile("^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$");
-
 	private static final String SETTINGS_TARGET = "tenant_media_integration_settings";
+
+	/** settings_json of a MEDIA-INT-01A Bunny connection (legacy rows keep their library settings). */
+	private static final String BUNNY_ACCOUNT_SETTINGS = "{\"keyType\":\"ACCOUNT\"}";
 
 	private final MediaProviderConnectionRepository repository;
 
@@ -106,6 +102,10 @@ public class MediaConnectionService {
 
 	private final TenantVideoHostClient videoHostClient;
 
+	private final BunnyAccountClient bunnyAccountClient;
+
+	private final BunnyLibraryService bunnyLibraryService;
+
 	private final Map<MediaProvider, OAuthProviderClient> oauthClients = new EnumMap<>(MediaProvider.class);
 
 	private final PermissionCheckService permissionCheckService;
@@ -118,15 +118,13 @@ public class MediaConnectionService {
 
 	private final ClassSessionLookupApi classSessionLookupApi;
 
-	private final ObjectMapper objectMapper;
-
 	public MediaConnectionService(MediaProviderConnectionRepository repository, MediaConnectionStore store,
 			MediaConnectionViews views, MediaCredentialsCodec codec, MediaTokenService tokenService,
 			OAuthConnectFlowService connectFlow, TenantMediaSettingsService settingsService,
-			TenantVideoHostClient videoHostClient, List<OAuthProviderClient> clients,
+			TenantVideoHostClient videoHostClient, BunnyAccountClient bunnyAccountClient,
+			BunnyLibraryService bunnyLibraryService, List<OAuthProviderClient> clients,
 			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi, TenantContext tenantContext,
-			TeacherLookupApi teacherLookupApi, ClassSessionLookupApi classSessionLookupApi,
-			ObjectMapper objectMapper) {
+			TeacherLookupApi teacherLookupApi, ClassSessionLookupApi classSessionLookupApi) {
 		this.repository = repository;
 		this.store = store;
 		this.views = views;
@@ -135,20 +133,21 @@ public class MediaConnectionService {
 		this.connectFlow = connectFlow;
 		this.settingsService = settingsService;
 		this.videoHostClient = videoHostClient;
+		this.bunnyAccountClient = bunnyAccountClient;
+		this.bunnyLibraryService = bunnyLibraryService;
 		clients.forEach(client -> oauthClients.put(client.provider(), client));
 		this.permissionCheckService = permissionCheckService;
 		this.auditLogApi = auditLogApi;
 		this.tenantContext = tenantContext;
 		this.teacherLookupApi = teacherLookupApi;
 		this.classSessionLookupApi = classSessionLookupApi;
-		this.objectMapper = objectMapper;
 	}
 
 	// ------------------------------------------------------------------
 	// Teacher - own connections
 	// ------------------------------------------------------------------
 
-	@Transactional(readOnly = true)
+	/** Not transactional: the Bunny library status may call Bunny (no transaction across provider calls). */
 	public TeacherIntegrationsView teacherOverview() {
 		UUID teacherUserId = IntegrationActors.requireTeacher();
 		TenantMediaIntegrationSettings settings = settingsService.current();
@@ -161,7 +160,8 @@ public class MediaConnectionService {
 							.findFirst()
 							.orElse(null)))))
 			.toList();
-		return new TeacherIntegrationsView(providers);
+		return new TeacherIntegrationsView(providers, bunnyLibraryService.isBunnyConnected(),
+				bunnyLibraryService.ownLibrary(teacherUserId));
 	}
 
 	public ConnectionTestResult testOwn(UUID connectionId) {
@@ -245,53 +245,43 @@ public class MediaConnectionService {
 				newKey));
 	}
 
-	public ConnectionView saveBunny(String apiKey, String libraryId, String cdnHostname, String tokenAuthKey) {
+	/**
+	 * MEDIA-INT-01A: the tenant's Bunny.net account, by account-level API key
+	 * only. Library id / CDN hostname are no longer input - each teacher's
+	 * library is created by {@link BunnyLibraryService}.
+	 */
+	public ConnectionView saveBunny(String apiKey) {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT);
 		requireCodec();
-		String library = (libraryId == null) ? "" : libraryId.trim();
-		String hostname = (cdnHostname == null) ? "" : cdnHostname.trim();
-		if (!LIBRARY_ID.matcher(library).matches()) {
-			throw invalid("libraryId", "must be 1-20 digits");
-		}
-		if (!HOSTNAME.matcher(hostname).matches()) {
-			throw invalid("cdnHostname", "must be a lowercase hostname such as vz-abc123.b-cdn.net");
-		}
 		boolean newKey = hasText(apiKey);
-		boolean newTokenKey = hasText(tokenAuthKey);
-		if ((newKey && apiKey.trim().length() > MAX_KEY_LENGTH)
-				|| (newTokenKey && tokenAuthKey.trim().length() > MAX_KEY_LENGTH)) {
-			throw invalid(newKey ? "apiKey" : "tokenAuthKey", "must be at most " + MAX_KEY_LENGTH + " characters");
+		if (newKey && apiKey.trim().length() > MAX_KEY_LENGTH) {
+			throw invalid("apiKey", "must be at most " + MAX_KEY_LENGTH + " characters");
 		}
 		MediaProviderConnection current = repository.findCurrentForTenant(MediaProvider.BUNNY).orElse(null);
 		if (!newKey && current == null) {
 			throw invalid("apiKey", "is required");
 		}
-		Map<String, Object> currentSettings = (current == null) ? Map.of()
-				: Objects.requireNonNullElse(views.toView(current).settings(), Map.of());
-		boolean unchanged = current != null && current.isActive() && !newKey && !newTokenKey
-				&& library.equals(currentSettings.get("libraryId"))
-				&& hostname.equals(currentSettings.get("cdnHostname"));
-		if (unchanged) {
+		if (!newKey && current.isActive()) {
 			return views.toView(current);
 		}
-		StoredCredentials existing = (current == null) ? null : codec.open(current);
-		String key = newKey ? apiKey.trim() : existing.apiKey();
-		String tokenKey = newTokenKey ? tokenAuthKey.trim() : ((existing == null) ? null : existing.tokenAuthKey());
+		String key = newKey ? apiKey.trim() : codec.open(current).apiKey();
 		ProviderIdentity identity;
 		try {
-			identity = videoHostClient.verifyBunny(key, library);
+			identity = bunnyAccountClient.verifyAccount(key);
 		}
 		catch (MediaProviderException ex) {
+			if (ex.getKind() == MediaProviderException.Kind.AUTH_REJECTED) {
+				throw new FieldValidationException(ApiErrorCodes.PROVIDER_CREDENTIALS_INVALID,
+						"Bunny.net rejected the API key",
+						List.of(new FieldError("apiKey",
+								"was rejected by Bunny.net - use an account API key, not a video library key")));
+			}
 			throw credentialFailure(ex, "Bunny.net", "apiKey");
 		}
-		Map<String, Object> settings = new LinkedHashMap<>();
-		settings.put("libraryId", library);
-		settings.put("cdnHostname", hostname);
-		settings.put("tokenAuthConfigured", tokenKey != null);
 		return views.toView(store.saveTenantConnection(tenantContext.getTenantId(), IntegrationActors.currentUserId(),
 				MediaProvider.BUNNY, identity,
-				codec.seal(StoredCredentials.apiKey(key, tokenKey), tenantCredentialContext(MediaProvider.BUNNY)),
-				objectMapper.writeValueAsString(settings), newKey || newTokenKey));
+				codec.seal(StoredCredentials.apiKey(key, null), tenantCredentialContext(MediaProvider.BUNNY)),
+				BUNNY_ACCOUNT_SETTINGS, newKey));
 	}
 
 	public ConnectionTestResult adminTest(UUID connectionId) {
@@ -399,9 +389,8 @@ public class MediaConnectionService {
 		if (connection.getProvider() == MediaProvider.DYNTUBE) {
 			return videoHostClient.verifyDynTube(credentials.apiKey());
 		}
-		Object libraryId = Objects.requireNonNullElse(views.toView(connection).settings(), Map.<String, Object>of())
-			.get("libraryId");
-		return videoHostClient.verifyBunny(credentials.apiKey(), String.valueOf(libraryId));
+		// A legacy (MEDIA-INT-01) library key is rejected by the account API -> NEEDS_RECONNECT.
+		return bunnyAccountClient.verifyAccount(credentials.apiKey());
 	}
 
 	private ImpactView impact(MediaProviderConnection connection) {
@@ -472,10 +461,7 @@ public class MediaConnectionService {
 			case AUTH_REJECTED -> new FieldValidationException(ApiErrorCodes.PROVIDER_CREDENTIALS_INVALID,
 					providerName + " rejected the credentials",
 					List.of(new FieldError(field, "was rejected by " + providerName)));
-			case NOT_FOUND -> new FieldValidationException(ApiErrorCodes.PROVIDER_CREDENTIALS_INVALID,
-					providerName + " could not find that library",
-					List.of(new FieldError("libraryId", "was not found at " + providerName)));
-			case REJECTED -> new FieldValidationException(ApiErrorCodes.PROVIDER_CREDENTIALS_INVALID,
+			case NOT_FOUND, REJECTED -> new FieldValidationException(ApiErrorCodes.PROVIDER_CREDENTIALS_INVALID,
 					providerName + " refused these settings",
 					List.of(new FieldError(field, "was refused by " + providerName)));
 			default -> new ServiceUnavailableException(providerName + " could not be reached. Try again later.");

@@ -184,7 +184,7 @@ The first concrete realisation of the credential-vault concept (section 5) for m
 | YouTube | per teacher | OAuth (platform Google client) | own videos / upload (02); live (04) |
 | Vimeo | per teacher | OAuth (platform Vimeo app) | own videos / upload (02); live (04) |
 | DynTube | per tenant | API key (Tenant Admin) | secure video hosting (03) |
-| Bunny.net Stream | per tenant | API key + library id (Tenant Admin) | secure video hosting (03) |
+| Bunny.net Stream | per tenant account, **one library per teacher** | account API key (Tenant Admin); libraries created by the platform (MEDIA-INT-01A) | secure video hosting (03) |
 
 - **Storage:** `media_provider_connection` (V60) - secrets only as one AES-256-GCM blob under
   `MEDIA_CREDENTIALS_ENCRYPTION_KEY` (separate from the payment key), bound to
@@ -201,6 +201,15 @@ The first concrete realisation of the credential-vault concept (section 5) for m
 - **Webhooks:** `/api/v1/integrations/webhooks/zoom` - Zoom signature + 5-minute timestamp
   window, URL-validation challenge, meeting events (idempotency ledger, tenant from our own
   `class_session`), `app_deauthorized` (the one cross-tenant lookup; disconnect-only).
+- **Bunny.net (MEDIA-INT-01A, ADR-018 Amendment 1):** two Bunny APIs are used. The **account
+  API** (`integrations.media.bunny.account-api-base-url`, default `https://api.bunny.net`,
+  tenant's account key) only lists and creates video libraries - one per teacher, recorded in
+  `bunny_teacher_library`. The **Stream API** (`api-base-url`, `https://video.bunnycdn.com`,
+  per-library key read from the account API when needed) is for videos in MEDIA-INT-03. No
+  per-library secret is stored. Creation commits a `PROVISIONING` row, calls Bunny with no
+  transaction open, then activates or fails the row; a retry adopts a library left by an
+  interrupted attempt (tag in its name) instead of duplicating it. Other domains call
+  `BunnyLibraryApi.ensureTeacherLibrary`.
 - **Privacy:** joining a Zoom class shares the student's name and email with the teacher's Zoom
   account; the privacy policy must disclose it.
 - **Logging:** tokens/keys are never logged; `SecretMaskingJsonMembersCustomizer` masks them in
@@ -209,7 +218,9 @@ The first concrete realisation of the credential-vault concept (section 5) for m
 ### Operating: registering the provider apps
 
 Configured through environment variables only (see `backend/.env.example`); every value is empty
-by default and the provider then shows as "Unavailable".
+by default and the provider then shows as "Unavailable". In staging/production the client
+**secrets** and the encryption key are Docker Compose secrets and the client IDs / URLs are plain
+`environment:` values (ADR-019); each environment registers its own provider apps.
 
 1. **Callback URL** - set `MEDIA_OAUTH_CALLBACK_BASE_URL` to the public origin serving the API.
    Register `{origin}/api/v1/integrations/oauth/{zoom|youtube|vimeo}/callback` as the redirect URI

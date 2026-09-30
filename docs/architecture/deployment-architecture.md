@@ -123,10 +123,12 @@ ADR when a decision is needed:
 - **Horizontal scaling automation** -- whether replica count is managed manually via
   Compose scale, or via an orchestrator with autoscaling, is not decided; Docker
   Compose alone does not provide autoscaling.
-- **Secrets management mechanism** for production credentials (distinct from the
-  application-level credential vault concept in `integration-architecture.md`, which
-  is about tenant/provider credentials -- this is about how the platform's own
-  deployment secrets, e.g. DB passwords, are supplied to containers).
+- ~~**Secrets management mechanism**~~ -- **decided by ADR-019 (accepted 2026-09-30):**
+  Docker Compose secrets mounted at `/run/secrets/<NAME>` and read by Spring Boot's
+  `configtree` import under a new `prod` profile that refuses to start on missing or
+  dev-only critical secrets. Non-secret configuration stays in Compose `environment:`.
+  (Distinct from the application-level credential vault in `integration-architecture.md`,
+  which covers tenant/provider credentials stored encrypted in the database.)
 
 Any of the above being decided in a way that changes "production deployment strategy"
 is a change-controlled area per root `CLAUDE.md` and requires an ADR.

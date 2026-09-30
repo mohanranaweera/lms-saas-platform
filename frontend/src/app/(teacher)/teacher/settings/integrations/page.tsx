@@ -11,6 +11,7 @@ import {
   useTeacherIntegrations,
   type TeacherMediaProvider,
 } from "@/lib/api/integrations";
+import { TeacherVideoLibraryCard } from "@/components/integrations/bunny-libraries-section";
 import { TeacherProviderCard } from "@/components/integrations/teacher-provider-card";
 import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
@@ -144,6 +145,7 @@ function TeacherIntegrationsContent() {
             {data.providers.map((provider) => (
               <TeacherProviderCard key={provider.provider} view={provider} />
             ))}
+            <TeacherVideoLibraryCard bunnyConnected={data.bunnyConnected} library={data.bunnyLibrary} />
           </div>
         )}
       </QueryStateBoundary>

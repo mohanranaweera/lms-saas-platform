@@ -39,7 +39,37 @@ public class MediaConnectionViews {
 
 	}
 
-	public record TeacherIntegrationsView(List<TeacherProviderView> providers) {
+	/**
+	 * @param bunnyConnected whether the tenant has an ACTIVE Bunny.net account
+	 * @param bunnyLibrary the teacher's own Bunny library, or {@code null} (MEDIA-INT-01A)
+	 */
+	public record TeacherIntegrationsView(List<TeacherProviderView> providers, boolean bunnyConnected,
+			TeacherBunnyLibraryView bunnyLibrary) {
+
+	}
+
+	/** The teacher's read-only library card - no ids, no keys (MEDIA-INT-01A). */
+	public record TeacherBunnyLibraryView(String status, String libraryName) {
+
+	}
+
+	/**
+	 * A teacher's Bunny library for the Tenant Admin (MEDIA-INT-01A). {@code
+	 * status}: PROVISIONING | ACTIVE | FAILED | UNAVAILABLE. The Bunny library
+	 * id and keys are never exposed.
+	 */
+	public record BunnyLibraryView(UUID id, String status, String libraryName, Instant createdAt,
+			String lastError) {
+
+	}
+
+	/**
+	 * @param library the teacher's latest library, or {@code null} if none
+	 * @param canCreateLibrary Bunny is connected, the teacher is approved and
+	 * active, and has no library or only a failed one (MEDIA-INT-01A review L-3)
+	 */
+	public record TeacherLibraryRow(UUID teacherUserId, String teacherName, BunnyLibraryView library,
+			boolean canCreateLibrary) {
 
 	}
 

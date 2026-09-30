@@ -158,8 +158,9 @@ Primary navigation:
 - **Communications** — templates (email/SMS/WhatsApp), bulk messaging, segment
   messaging, delivery logs (module 15)
 - **Integrations (MEDIA-INT-01, shipped under Institute Configuration)** — which services
-  teachers may connect, DynTube/Bunny.net video hosting, teachers' connections. Zoom is per
-  teacher (ADR-018), not a tenant account.
+  teachers may connect, DynTube/Bunny.net video hosting, each teacher's Bunny.net library
+  (MEDIA-INT-01A), teachers' connections. Zoom is per teacher (ADR-018), not a tenant
+  account.
 - **Integrations** — tenant-level Zoom/SMS/WhatsApp/email/payment gateway/storage
   settings, integration health, webhook logs (module 16)
 - **Devices** — device policy overrides, device reset, login activity, suspicious

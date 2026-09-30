@@ -1,17 +1,22 @@
 package com.lms.integrationmanagement.media;
 
 import static com.lms.integrationmanagement.media.FakeMediaProviderServer.GOOD_BUNNY_KEY;
-import static com.lms.integrationmanagement.media.FakeMediaProviderServer.GOOD_BUNNY_LIBRARY;
+import static com.lms.integrationmanagement.media.FakeMediaProviderServer.GOOD_BUNNY_ACCOUNT_KEY;
 import static com.lms.integrationmanagement.media.FakeMediaProviderServer.GOOD_DYNTUBE_KEY;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.domain.TenantUser;
+import com.lms.integrationmanagement.api.MediaProvider;
+import com.lms.integrationmanagement.service.MediaCredentialsCodec;
+import com.lms.integrationmanagement.service.MediaCredentialsCodec.CredentialContext;
+import com.lms.integrationmanagement.service.MediaCredentialsCodec.StoredCredentials;
 import com.lms.tenantmanagement.domain.Tenant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 
@@ -21,6 +26,15 @@ import tools.jackson.databind.JsonNode;
  * connections, permissions, and tenant isolation.
  */
 class TenantAdminIntegrationsIntegrationTest extends MediaIntegrationTestSupport {
+
+	@Autowired
+	private MediaCredentialsCodec codec;
+
+	/** A MEDIA-INT-01 library-only key, sealed exactly as the app stores it. */
+	private String sealLegacyBunnyKey(UUID tenantId) {
+		return codec.seal(StoredCredentials.apiKey(GOOD_BUNNY_KEY, null),
+				new CredentialContext(tenantId, MediaProvider.BUNNY, null));
+	}
 
 	private record AdminCtx(Tenant tenant, String host, String adminToken, TenantUser teacher, String teacherToken) {
 	}
@@ -32,14 +46,6 @@ class TenantAdminIntegrationsIntegrationTest extends MediaIntegrationTestSupport
 		String host = hostFor(tenant.getSubdomain());
 		return new AdminCtx(tenant, host, loginAndGetToken(host, "admin@example.test"), teacher,
 				loginAndGetToken(host, "teacher@example.test"));
-	}
-
-	private static Map<String, Object> bunny(String apiKey, String libraryId, String cdnHostname) {
-		Map<String, Object> body = new HashMap<>();
-		body.put("apiKey", apiKey);
-		body.put("libraryId", libraryId);
-		body.put("cdnHostname", cdnHostname);
-		return body;
 	}
 
 	@Test
@@ -80,36 +86,60 @@ class TenantAdminIntegrationsIntegrationTest extends MediaIntegrationTestSupport
 	}
 
 	@Test
-	void bunnyKeyLibraryAndHostnameAreAllValidated() {
+	void bunnyNeedsOnlyAnAccountApiKey() {
 		AdminCtx ctx = seedTenant("ta-bunny");
 
-		MvcResult badHost = adminPut(ctx.host(), ctx.adminToken(), "/bunny",
-				bunny(GOOD_BUNNY_KEY, GOOD_BUNNY_LIBRARY, "http://evil.example.test/x"));
-		assertThat(status(badHost)).isEqualTo(400);
-		assertThat(json(badHost).path("error").path("fieldErrors").path(0).path("field").asString())
-			.isEqualTo("cdnHostname");
-
-		MvcResult badLibrary = adminPut(ctx.host(), ctx.adminToken(), "/bunny",
-				bunny(GOOD_BUNNY_KEY, "99999", "vz-abc.b-cdn.net"));
-		assertThat(status(badLibrary)).isEqualTo(400);
-		assertThat(json(badLibrary).path("error").path("fieldErrors").path(0).path("field").asString())
+		// MEDIA-INT-01 fields are refused by name, not silently ignored.
+		Map<String, Object> legacy = new HashMap<>();
+		legacy.put("apiKey", GOOD_BUNNY_ACCOUNT_KEY);
+		legacy.put("libraryId", "12345");
+		MvcResult legacyFields = adminPut(ctx.host(), ctx.adminToken(), "/bunny", legacy);
+		assertThat(status(legacyFields)).isEqualTo(400);
+		assertThat(errorCode(legacyFields)).isEqualTo("VALIDATION_ERROR");
+		assertThat(json(legacyFields).path("error").path("fieldErrors").path(0).path("field").asString())
 			.isEqualTo("libraryId");
 
-		MvcResult badKey = adminPut(ctx.host(), ctx.adminToken(), "/bunny",
-				bunny("wrong-key", GOOD_BUNNY_LIBRARY, "vz-abc.b-cdn.net"));
-		assertThat(errorCode(badKey)).isEqualTo("PROVIDER_CREDENTIALS_INVALID");
+		assertThat(status(adminPut(ctx.host(), ctx.adminToken(), "/bunny", Map.of()))).isEqualTo(400);
+
+		// A library-only Stream key is not an account key.
+		MvcResult libraryKey = adminPut(ctx.host(), ctx.adminToken(), "/bunny", Map.of("apiKey", GOOD_BUNNY_KEY));
+		assertThat(status(libraryKey)).isEqualTo(400);
+		assertThat(errorCode(libraryKey)).isEqualTo("PROVIDER_CREDENTIALS_INVALID");
+		assertThat(json(libraryKey).path("error").path("fieldErrors").path(0).path("message").asString())
+			.contains("account API key");
 		assertThat(connectionCount(ctx.tenant().getId())).isZero();
 
-		MvcResult saved = adminPut(ctx.host(), ctx.adminToken(), "/bunny",
-				bunny(GOOD_BUNNY_KEY, GOOD_BUNNY_LIBRARY, "vz-abc.b-cdn.net"));
+		MvcResult saved = adminPut(ctx.host(), ctx.adminToken(), "/bunny", Map.of("apiKey", GOOD_BUNNY_ACCOUNT_KEY));
 		assertThat(status(saved)).isEqualTo(200);
-		JsonNode settings = json(saved).path("data").path("settings");
-		assertThat(settings.path("libraryId").asString()).isEqualTo(GOOD_BUNNY_LIBRARY);
-		assertThat(settings.path("cdnHostname").asString()).isEqualTo("vz-abc.b-cdn.net");
-		assertThat(settings.path("tokenAuthConfigured").asBoolean()).isFalse();
-		assertThat(rawContent(saved)).doesNotContain(GOOD_BUNNY_KEY);
-		// The CDN hostname is never used as a request target.
-		assertThat(PROVIDERS.requests()).noneMatch(r -> r.path().contains("b-cdn"));
+		JsonNode view = json(saved).path("data");
+		assertThat(view.path("status").asString()).isEqualTo("ACTIVE");
+		assertThat(view.path("accountLabel").asString()).isEqualTo("Bunny.net account");
+		assertThat(view.path("settings").path("keyType").asString()).isEqualTo("ACCOUNT");
+		assertThat(view.path("settings").has("libraryId")).isFalse();
+		assertThat(rawContent(saved)).doesNotContain(GOOD_BUNNY_ACCOUNT_KEY);
+		// Verified against the account API (the earlier call was the rejected library key).
+		assertThat(PROVIDERS.requests("GET", "/videolibrary")).last()
+			.matches(r -> GOOD_BUNNY_ACCOUNT_KEY.equals(r.accessKey()));
+
+		// A blank key keeps the stored key - no new row.
+		MvcResult unchanged = adminPut(ctx.host(), ctx.adminToken(), "/bunny", Map.of());
+		assertThat(json(unchanged).path("data").path("id").asString()).isEqualTo(view.path("id").asString());
+		assertThat(connectionCount(ctx.tenant().getId())).isEqualTo(1);
+	}
+
+	@Test
+	void aLegacyLibraryKeyConnectionNeedsReconnectOnItsNextTest() {
+		AdminCtx ctx = seedTenant("ta-bunny-legacy");
+		// Saved under MEDIA-INT-01 with a library key (the account API now rejects it).
+		UUID legacyId = UUID.fromString(json(adminPut(ctx.host(), ctx.adminToken(), "/bunny",
+				Map.of("apiKey", GOOD_BUNNY_ACCOUNT_KEY))).path("data").path("id").asString());
+		jdbcTemplate.update("UPDATE media_provider_connection SET credentials_ciphertext = ? WHERE id = ?",
+				sealLegacyBunnyKey(ctx.tenant().getId()), legacyId);
+
+		MvcResult tested = adminTest(ctx.host(), ctx.adminToken(), legacyId);
+		assertThat(status(tested)).isEqualTo(200);
+		assertThat(json(tested).path("data").path("ok").asBoolean()).isFalse();
+		assertThat(connectionStatus(legacyId)).isEqualTo("NEEDS_RECONNECT");
 	}
 
 	@Test
@@ -121,7 +151,7 @@ class TenantAdminIntegrationsIntegrationTest extends MediaIntegrationTestSupport
 		assertThat(errorCode(notConnected)).isEqualTo("PROVIDER_NOT_CONNECTED");
 
 		UUID bunnyId = UUID.fromString(json(adminPut(ctx.host(), ctx.adminToken(), "/bunny",
-				bunny(GOOD_BUNNY_KEY, GOOD_BUNNY_LIBRARY, "vz-abc.b-cdn.net"))).path("data").path("id").asString());
+				Map.of("apiKey", GOOD_BUNNY_ACCOUNT_KEY))).path("data").path("id").asString());
 		assertThat(status(adminPut(ctx.host(), ctx.adminToken(), "/video-host", Map.of("videoHost", "BUNNY"))))
 			.isEqualTo(200);
 		assertThat(json(adminOverview(ctx.host(), ctx.adminToken())).path("data").path("videoHost").asString())

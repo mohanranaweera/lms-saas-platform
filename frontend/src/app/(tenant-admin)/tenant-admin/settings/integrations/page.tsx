@@ -11,12 +11,14 @@ import {
   TeacherProvidersSection,
   VideoHostSection,
 } from "@/components/integrations/admin-integration-sections";
+import { BunnyLibrariesSection } from "@/components/integrations/bunny-libraries-section";
 
 /**
  * Tenant Admin → Institute configuration → Integrations (MEDIA-INT-01 /
  * ADR-018): which services teachers may connect with their own accounts, the
  * institute's single DynTube and Bunny.net accounts, the active video host,
- * and oversight of teachers' connections.
+ * each teacher's own Bunny.net library (MEDIA-INT-01A), and oversight of
+ * teachers' connections.
  *
  * API keys are write-only (never prefilled, never returned). Read-only roles
  * see status only; the backend enforces `INTEGRATIONS` on every call
@@ -67,6 +69,8 @@ export default function TenantIntegrationsPage() {
               <BunnySection key={data.bunny?.id ?? "none"} connection={data.bunny} canManage={canManage} />
               <VideoHostSection videoHost={data.videoHost} dyntube={data.dyntube} bunny={data.bunny} canManage={canManage} />
             </section>
+
+            <BunnyLibrariesSection canManage={canManage} bunnyConnected={data.bunny?.status === "ACTIVE"} />
 
             <TeacherConnectionsSection rows={data.teacherConnections} canManage={canManage} />
 
