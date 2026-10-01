@@ -128,6 +128,12 @@ public final class ApiErrorCodes {
 	/** Wave 10 - the tenant has not enabled student self-service device management. */
 	public static final String DEVICE_SELF_SERVICE_DISABLED = "DEVICE_SELF_SERVICE_DISABLED";
 
+	/** Wave 11 - a broadcast asked for SMS/WhatsApp but the tenant has no usable provider for it. */
+	public static final String CHANNEL_NOT_AVAILABLE = "CHANNEL_NOT_AVAILABLE";
+
+	/** Wave 11 - the requested messaging provider adapter is not enabled in this environment. */
+	public static final String MESSAGING_PROVIDER_NOT_AVAILABLE = "MESSAGING_PROVIDER_NOT_AVAILABLE";
+
 	private ApiErrorCodes() {
 	}
 

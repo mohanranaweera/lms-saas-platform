@@ -749,12 +749,19 @@ must append here, per this log's established §15-§19 convention.
 
 ## 22. Email Notifications (MVP-018) — carried-forward decisions
 
+- **RESOLVED 2026-10-01 (Wave 11, ADR-023 decision D2):** new `DomainArea.COMMUNICATIONS` —
+  Tenant Admin and Student Support send broadcasts and manage broadcast templates, Read-only
+  Auditor views; editing the system (`notification_template`) messages is Tenant Admin only;
+  teachers message only their own courses. The original entry follows for history.
 - **Which staff sub-role(s) may manage `notification_template` rows, or trigger sends manually —
   still unresolved, no default assumed.** Unspecified anywhere in the source requirements
   (`12-notifications.md` §11); this MVP ships no authoring endpoint/UI at all (see the
   template-origination item below), so the question of who would be authorized to use one remains
   open until a future module adds authoring.
   Source: plan §21 item 1 (issue's own explicit open decision).
+- **SUPERSEDED 2026-10-01 (Wave 11, ADR-023 decision D3):** bounded retry — 3 attempts, 1 min
+  then 5 min backoff, transport failures only; `attempt_count`/`next_attempt_at` added by V68.
+  The original entry follows for history.
 - **MVP-level failure handling for a failed email send is undefined by design — no retry/backoff
   was implemented, and none should be assumed.** A `FAILED` `notification_outbox` row is terminal;
   the issue itself explicitly instructed against silently implementing a retry mechanism. If a

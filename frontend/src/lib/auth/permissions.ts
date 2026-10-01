@@ -432,3 +432,26 @@ export function canViewAccessPolicy(role: string | null): boolean {
 export function canManageAccessPolicy(role: string | null): boolean {
   return role === "TENANT_ADMIN";
 }
+
+/**
+ * Wave 11 - `COMMUNICATIONS`/`VIEW` (broadcasts, templates, delivery logs):
+ * Tenant Admin, Student Support, Read-only Auditor. Teachers have their own
+ * ownership-scoped screens instead. UX only - the backend re-checks.
+ */
+export function canViewCommunications(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "STUDENT_SUPPORT" || role === "READ_ONLY_AUDITOR";
+}
+
+/** Wave 11 - `COMMUNICATIONS`/`CREATE_EDIT` (send broadcasts, manage broadcast templates). UX only. */
+export function canSendCommunications(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "STUDENT_SUPPORT";
+}
+
+/**
+ * Wave 11 - editing system (event) message templates and recording WhatsApp
+ * template approval: Tenant Admin only (the latter also needs
+ * `INTEGRATIONS`/`CREATE_EDIT`). UX only.
+ */
+export function canManageSystemMessaging(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}

@@ -239,8 +239,26 @@ by default and the provider then shows as "Unavailable". In staging/production t
 5. **Encryption key** - `MEDIA_CREDENTIALS_ENCRYPTION_KEY` = Base64 of 32 random bytes; changing
    it makes every stored connection unreadable (teachers must reconnect).
 
+## SMS / WhatsApp messaging providers (Wave 11, ADR-023)
+
+- **Contract.** `integrationmanagement.api.MessagingChannelApi` — `availability(channel)` and
+  `send(OutboundMessage)` for the *current* tenant (set by the caller from a trusted record,
+  never passed as an argument). Email keeps its own `MessagingProviderApi` (platform SMTP).
+- **Adapters.** One `gateway.messaging.MessagingProviderAdapter` per vendor; all vendor HTTP,
+  payloads and error mapping live there. Only `SandboxMessagingAdapter` ships (no network,
+  `app.messaging.sandbox-enabled`, local/test). Real vendors need their own ADR.
+- **Accounts.** `tenant_messaging_account` (V66): one ACTIVE row per tenant+channel,
+  replaced rows disabled (never deleted); credentials AES-256-GCM under the integrations key
+  (`MEDIA_CREDENTIALS_ENCRYPTION_KEY`, AAD `messaging:{tenant}:{channel}:{id}`), write-only.
+- **Failures.** Only `MessagingSendException` with a fixed code (`PROVIDER_TRANSIENT`
+  retryable, `PROVIDER_REJECTED`, `CHANNEL_NOT_AVAILABLE`); unmapped adapter exceptions are
+  treated as transient and never echoed.
+- **Caller.** `notification-management`'s delivery dispatcher, outside any transaction, with
+  the tenant context taken from the delivery row.
+
 ## Related
 
+- `docs/adr/ADR-023-communications-and-messaging-providers.md`
 - `docs/architecture/modular-monolith.md`
 - `docs/architecture/video-content-security.md`
 - `docs/architecture/payment-ledger.md`

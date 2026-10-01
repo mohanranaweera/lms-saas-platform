@@ -89,7 +89,7 @@ database. **If either is lost, that data can never be decrypted again**:
 
 | Key lost | Consequence |
 |---|---|
-| `MEDIA_CREDENTIALS_ENCRYPTION_KEY` | Every teacher's Zoom/YouTube/Vimeo connection and every tenant's DynTube/Bunny.net account must be reconnected |
+| `MEDIA_CREDENTIALS_ENCRYPTION_KEY` | Every teacher's Zoom/YouTube/Vimeo connection and every tenant's DynTube/Bunny.net account must be reconnected; since Wave 11 (ADR-023 J1) every tenant's SMS / WhatsApp provider credentials must also be re-entered |
 | `PAYMENT_CREDENTIALS_ENCRYPTION_KEY` | Every tenant's PayHere account must be entered again; online payments stop until then |
 
 So, for each environment:

@@ -98,6 +98,9 @@ app:
   security:
     device:
       plan-default-limit: 100
+  # Wave 11: SMS/WhatsApp tests run against the in-process sandbox adapter.
+  messaging:
+    sandbox-enabled: true
   public:
     tenant-url-template: "http://{subdomain}.lms.test"
   # TEN-DOM-01: tests use real verification against a stubbed DnsRecordLookup.

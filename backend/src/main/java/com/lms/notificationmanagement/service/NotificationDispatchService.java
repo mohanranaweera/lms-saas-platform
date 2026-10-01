@@ -172,7 +172,10 @@ public class NotificationDispatchService {
 		}
 		catch (RuntimeException e) {
 			logDispatchFailure(row, e);
-			notificationDispatchFinalizeService.markFailed(row.getId(), row.getTenantId());
+			// Wave 11 (decision D3): only an SMTP/transport failure is transient
+			// and retried; recipient/template/render errors would fail again.
+			notificationDispatchFinalizeService.markRetryOrFailed(row.getId(), row.getTenantId(),
+					e instanceof MailException);
 		}
 		finally {
 			TenantContextHolder.clear();

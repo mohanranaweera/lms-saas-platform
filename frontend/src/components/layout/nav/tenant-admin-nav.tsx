@@ -19,6 +19,7 @@ import {
   canViewTeachers,
   canViewAccessPolicy,
   canViewDevices,
+  canViewCommunications,
 } from "@/lib/auth/permissions";
 import { NavGroup, type NavItem } from "./nav-links";
 
@@ -42,10 +43,11 @@ import { NavGroup, type NavItem } from "./nav-links";
  *     nothing is built to configure there yet (Wave-1 explicit scope, not an
  *     oversight; see `lib/api/tenant-config.ts`'s own doc comment).
  *
- * "Communication" has no built destination yet (no notifications/email/SMS
- * admin screen exists anywhere in this codebase) — the group is omitted
- * entirely rather than rendered with placeholder "Soon" links, per this
- * module's explicit scope instruction.
+ * "Communication" (Wave 11) - broadcasts and message templates, gated on
+ * `COMMUNICATIONS`/`VIEW` (Tenant Admin, Student Support, Read-only
+ * Auditor). SMS / WhatsApp provider settings live under Institute
+ * Configuration ("Messaging", `INTEGRATIONS`/`VIEW`). The group is omitted
+ * entirely for roles without the grant.
  *
  * The two previous dead-end `{ label: "Profile" }` / `{ label: "Settings" }`
  * placeholder entries (no `href`, never wired to any real destination) are
@@ -111,6 +113,14 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
     );
   }
 
+  const communicationItems: NavItem[] = [];
+  if (canViewCommunications(role)) {
+    communicationItems.push(
+      { label: "Broadcasts", href: "/tenant-admin/communications" },
+      { label: "Message Templates", href: "/tenant-admin/communications/templates" }
+    );
+  }
+
   const administrationItems: NavItem[] = [];
   if (canViewStaff(role)) {
     administrationItems.push(
@@ -136,6 +146,8 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   // MEDIA-INT-01 - INTEGRATIONS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewIntegrations(role)) {
     instituteConfigItems.push({ label: "Integrations", href: "/tenant-admin/settings/integrations" });
+    // Wave 11 - SMS / WhatsApp provider accounts (same INTEGRATIONS grant).
+    instituteConfigItems.push({ label: "Messaging (SMS & WhatsApp)", href: "/tenant-admin/settings/messaging" });
   }
   // TEN-DOM-01 - CUSTOM_DOMAINS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewCustomDomains(role)) {
@@ -151,6 +163,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
       <NavGroup label="Dashboard" items={dashboardItems} onNavigate={onNavigate} />
       <NavGroup label="Academic" items={academicItems} onNavigate={onNavigate} />
       <NavGroup label="Finance" items={financeItems} onNavigate={onNavigate} />
+      {communicationItems.length > 0 ? (
+        <NavGroup label="Communication" items={communicationItems} onNavigate={onNavigate} />
+      ) : null}
       <NavGroup label="Administration" items={administrationItems} onNavigate={onNavigate} />
       <NavGroup label="Institute Configuration" items={instituteConfigItems} onNavigate={onNavigate} />
     </div>

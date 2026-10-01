@@ -68,6 +68,16 @@ results), `—` = no access. This is a starting matrix for IA/navigation purpose
 | Live classes | V/C/E/D/A | — | V/C/E/A | — | — | — | — | — |
 | Payment gateway (PAY-GW-01) | V/C/E | V | — | — | — | — | — | V |
 | Integrations (MEDIA-INT-01) | V/C/E | — | — | — | — | — | — | V |
+| Communications (Wave 11, ADR-023) | V/C/E | — | — | V/C/E | — | — | — | V |
+
+Communications (Wave 11, ADR-023, product-owner decision 2026-10-01): broadcasts,
+broadcast templates, delivery logs and the student Notifications tab. C/E = send
+broadcasts and create/edit/archive broadcast templates. Editing the system (payment /
+account) message templates and recording a template's WhatsApp approval are additionally
+Tenant Admin only (the latter also needs Integrations C/E). Teachers are not a matrix
+column: they may message only students of courses they own, in-app or by email, enforced
+by ownership in `notification-management` (same carve-out shape as Live classes). SMS /
+WhatsApp provider credentials stay under Integrations.
 
 Live classes (Wave 4, PAR-19-03): who may schedule/manage a `class_session` at the
 staff-matrix level — Teacher/Teacher Assistant ownership access is separate, scoped to

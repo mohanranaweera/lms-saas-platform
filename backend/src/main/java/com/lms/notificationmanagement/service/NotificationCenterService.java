@@ -61,6 +61,24 @@ public class NotificationCenterService {
 	}
 
 	/** Backs the Notification Center nav badge - self-scoped exactly like {@link #listMyNotifications}. */
+	/**
+	 * Wave 11: marks every one of the caller's own unread notifications read.
+	 * Self-scoped exactly like {@link #markRead}: the recipient filter is the
+	 * authenticated user's own id, on top of the structural tenant filter.
+	 * @return how many rows changed
+	 */
+	@Transactional
+	public int markAllRead() {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		Instant now = Instant.now();
+		java.util.List<InAppNotification> unread = inAppNotificationRepository
+			.findAll((root, query, cb) -> cb.and(cb.equal(root.get("recipientUserId"), principal.userId()),
+					cb.isNull(root.get("readAt"))));
+		unread.forEach(row -> row.markRead(now));
+		inAppNotificationRepository.saveAll(unread);
+		return unread.size();
+	}
+
 	@Transactional(readOnly = true)
 	public long getMyUnreadCount() {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();

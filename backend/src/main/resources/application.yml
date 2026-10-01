@@ -163,6 +163,11 @@ video-playback:
     secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:}
 
 app:
+  # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Never
+  # enabled outside local/test - with it off and no real vendor adapter, the
+  # SMS/WhatsApp channels are unavailable (fail closed).
+  messaging:
+    sandbox-enabled: false
   # AUTH-PWD-01 / ADR-020: tenant site origin used in account-setup and
   # password-reset emails; {subdomain} comes from the tenant record. Empty =
   # those emails fail closed (not sent). Non-secret (ADR-019 Decision 3).

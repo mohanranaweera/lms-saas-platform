@@ -192,6 +192,10 @@ public class StudentProfile extends Auditable implements TenantOwned {
 		return mobile;
 	}
 
+	public String getWhatsappNumber() {
+		return whatsappNumber;
+	}
+
 	public StudentRegistrationStatus getRegistrationStatus() {
 		return registrationStatus;
 	}

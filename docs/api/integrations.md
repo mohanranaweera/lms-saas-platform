@@ -328,6 +328,56 @@ Body: `{ "videoHost": "BUNNY" }` (`NONE | DYNTUBE | BUNNY`).
 - `400 VALIDATION_ERROR`.
 - `409 PROVIDER_NOT_CONNECTED` if the chosen provider has no ACTIVE connection.
 
+## Tenant Admin: SMS / WhatsApp messaging providers (Wave 11, ADR-023)
+
+`/api/v1/tenant-admin/integrations/messaging` — `INTEGRATIONS` VIEW (Tenant Admin,
+Read-only Auditor) / CREATE_EDIT (Tenant Admin). Tenant from the authenticated context.
+Credentials are **write-only**: encrypted (AES-256-GCM, integrations key, AAD
+`messaging:{tenant}:{channel}:{id}`), never returned, logged or audit-logged. Responses
+carry only `credentialHint` (`••••` + last 4 characters when the secret has ≥ 12, else
+`••••`).
+
+Only adapters enabled in the running environment can be configured. Wave 11 ships only
+`SANDBOX` (in-process, no network; `app.messaging.sandbox-enabled`, local/test only). In
+production no provider is available until a vendor ADR adds one, so both channels stay off.
+
+### `GET /api/v1/tenant-admin/integrations/messaging`
+
+```json
+{ "accounts": [
+    { "channel": "SMS", "configured": true, "id": "uuid", "provider": "SANDBOX",
+      "senderId": "ACADEMY", "credentialHint": "••••9876", "status": "ACTIVE",
+      "disabledAt": null, "updatedAt": "…", "operational": true },
+    { "channel": "WHATSAPP", "configured": false, "status": "NOT_CONFIGURED", … } ],
+  "availableProviders": [ { "provider": "SANDBOX", "channels": ["SMS","WHATSAPP"], "credentialKeys": ["apiKey"] } ] }
+```
+
+### `PUT /api/v1/tenant-admin/integrations/messaging/{SMS|WHATSAPP}`
+
+Body `{ "provider": "SANDBOX", "senderId": "ACADEMY", "credentials": { "apiKey": "…" } }`.
+Replaces the channel's account: the previous ACTIVE row is disabled (rows are never
+deleted — deliveries reference the account that sent them).
+
+- `200` → `MessagingAccountView`.
+- `400 MESSAGING_PROVIDER_NOT_AVAILABLE` — unknown provider or not enabled here.
+- `400 VALIDATION_ERROR` — sender id (1–40 of letters, digits, space, `+ . _ -`), missing,
+  oversize (> 512) or unexpected credential fields.
+- `503` if the encryption key is not configured (fail closed).
+
+### `POST …/messaging/{channel}/disable`
+
+`200` → view with `status: DISABLED`; `409` if not configured. Queued deliveries for that
+channel are then skipped (`CHANNEL_NOT_AVAILABLE`).
+
+### `POST …/messaging/{channel}/test`
+
+Body `{ "destination": "+94771234567" }` (7–15 digits). `200` →
+`{ channel, destination (masked), providerMessageId }`; `409` with the fixed error code when
+the provider refuses. Audit-logged with the masked destination.
+
+Audit actions: `messaging.account_configured` (channel, provider, sender id, credential
+*key names* only), `messaging.account_disabled`, `messaging.test_sent`.
+
 ## Zoom webhook (public): `POST /api/v1/integrations/webhooks/zoom`
 
 `permitAll`, with headers `x-zm-signature` and `x-zm-request-timestamp`.

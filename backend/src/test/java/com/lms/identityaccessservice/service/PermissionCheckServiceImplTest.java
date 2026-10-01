@@ -291,7 +291,9 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
 							// MEDIA-INT-01 - "Integrations" row.
 							cell(DomainArea.INTEGRATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
-							cell(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
+							cell(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
+							// Wave 11 (decision D2) - "Communications" row.
+							cell(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
@@ -320,7 +322,8 @@ class PermissionCheckServiceImplTest {
 							// "V (request only)" -> base V only.
 							cell(DomainArea.DEVICES, PermissionAction.VIEW),
 							cell(DomainArea.ACCESS_EXPIRY, PermissionAction.VIEW), cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW),
-							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
+							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
+							cell(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
 			Map.entry(Role.CONTENT_MANAGER,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.MATERIALS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
@@ -350,6 +353,7 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW),
 							cell(DomainArea.INTEGRATIONS, PermissionAction.VIEW),
-							cell(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW))));
+							cell(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW),
+							cell(DomainArea.COMMUNICATIONS, PermissionAction.VIEW))));
 
 }

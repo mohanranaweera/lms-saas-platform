@@ -9,6 +9,7 @@ import {
   canManageAccessPolicy,
   canManageDevices,
   canManageStudents,
+  canViewCommunications,
   canViewDevices,
 } from "@/lib/auth/permissions";
 import { useStudent, type StudentResponse } from "@/lib/api/students";
@@ -27,8 +28,18 @@ import { AttendanceTab } from "./attendance-tab";
 import { ExamsTab } from "./exams-tab";
 import { StudentActivityTab } from "./activity-tab";
 import { DevicesTab } from "./devices-tab";
+import { NotificationsTab } from "./notifications-tab";
 
-const VALID_TABS = ["profile", "enrollments", "payments", "attendance", "exams", "devices", "activity"] as const;
+const VALID_TABS = [
+  "profile",
+  "enrollments",
+  "payments",
+  "attendance",
+  "exams",
+  "devices",
+  "notifications",
+  "activity",
+] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 function isTabValue(value: string | null): value is TabValue {
@@ -60,6 +71,7 @@ function StudentDetailPageContent() {
   const access = {
     viewDevices: canViewDevices(role),
     manageDevices: canManageDevices(role),
+    viewCommunications: canViewCommunications(role),
     extendAccess: canManageAccessPolicy(role),
   };
 
@@ -129,7 +141,7 @@ function StudentDetailBody({
 }: {
   student: StudentResponse;
   canManage: boolean;
-  access: { viewDevices: boolean; manageDevices: boolean; extendAccess: boolean };
+  access: { viewDevices: boolean; manageDevices: boolean; extendAccess: boolean; viewCommunications: boolean };
   activeTab: TabValue;
   onTabChange: (value: string) => void;
   enrollOpen: boolean;
@@ -167,6 +179,10 @@ function StudentDetailBody({
             content: <DevicesTab studentId={student.id} canManage={access.manageDevices} />,
           },
         ]
+      : []),
+    // Wave 11 (PAR-03-04) - broadcast delivery history, COMMUNICATIONS/VIEW.
+    ...(access.viewCommunications
+      ? [{ value: "notifications", label: "Notifications", content: <NotificationsTab studentId={student.id} /> }]
       : []),
     { value: "activity", label: "Activity", content: <StudentActivityTab studentId={student.id} /> },
   ];

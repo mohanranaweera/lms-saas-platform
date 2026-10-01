@@ -389,6 +389,16 @@ Data-model conventions that follow from this list:
     `tenant_media_integration_settings` (one row per tenant). `class_session.provider_connection_id`
     is composite-FK'd into `media_provider_connection (tenant_id, id)`. The only non-tenant-leading
     index is the Zoom-deauthorization lookup `(provider, external_account_id)` (ADR-018 §5).
+  - Wave 11 (V66–V68, ADR-023): `tenant_messaging_account` (SMS/WhatsApp provider account,
+    encrypted credentials, one ACTIVE per tenant+channel, never deleted);
+    `communication_template` (archive-only, WhatsApp approval CHECKs); `broadcast`
+    (append-only via trigger, `UNIQUE (tenant_id, client_request_id)`);
+    `notification_delivery` (`UNIQUE (tenant_id, broadcast_id, recipient_user_id, channel)` as
+    the duplicate-send guard, lifecycle CHECK, composite FKs to broadcast / tenant_user /
+    tenant_messaging_account; the only non-tenant-leading indexes are the dispatcher's partial
+    `PENDING`/`SENDING` indexes, mirroring the outbox); `notification_channel_preference`.
+    `notification_outbox` gains `attempt_count`, `next_attempt_at` and a per-tenant partial
+    unique `dedupe_key`.
   - MEDIA-INT-01A (V61, ADR-018 Amendment 1): `bunny_teacher_library` - one Bunny Stream
     library per teacher inside the tenant's Bunny account. `tenant_id` NOT NULL; composite FKs
     `(tenant_id, teacher_user_id)` -> `tenant_user` and `(tenant_id, connection_id)` ->

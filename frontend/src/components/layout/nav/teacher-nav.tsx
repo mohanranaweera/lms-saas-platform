@@ -9,6 +9,7 @@ export function TeacherNav({ onNavigate }: { onNavigate?: () => void }) {
     { label: "Mark Attendance", href: "/teacher/attendance/mark" },
     { label: "Attendance Reports", href: "/teacher/attendance/reports" },
     { label: "Exams", href: "/teacher/exams/questions" },
+    { label: "Messages", href: "/teacher/communications" },
     { label: "Notifications", href: "/teacher/notifications", badge: <NotificationsNavBadge /> },
     { label: "Settings", href: "/teacher/settings" },
     { label: "Profile" },

@@ -257,9 +257,7 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
     await mockDashboardReads(page);
   });
 
-  test("Tenant Admin sees every non-empty group heading; Communication (no built destination) renders no heading", async ({
-    page,
-  }) => {
+  test("Tenant Admin sees every group heading, including Communication (Wave 11)", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await page.goto("/tenant-admin/dashboard");
 
@@ -272,10 +270,11 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
     // single case; every other group heading has no same-named link, so
     // exactly one match is the correct assertion there.
     await expect(nav.getByText("Dashboard", { exact: true }).first()).toBeVisible();
-    for (const heading of ["Academic", "Finance", "Administration", "Institute Configuration"]) {
+    for (const heading of ["Academic", "Finance", "Communication", "Administration", "Institute Configuration"]) {
       await expect(nav.getByText(heading, { exact: true })).toBeVisible();
     }
-    await expect(nav.getByText("Communication", { exact: true })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Broadcasts" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Message Templates" })).toBeVisible();
   });
 
   test("a role without BRANDING_SETTINGS/STAFF_AND_ROLES (Course Coordinator) sees no Institute Configuration/Staff/Roles & Permissions links or headings", async ({
@@ -293,6 +292,8 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
     // role has zero items in that group, so the heading itself must be gone
     // too, not just the links inside it.
     await expect(page.getByText("Institute Configuration", { exact: true })).toHaveCount(0);
+    // Wave 11: no COMMUNICATIONS grant, so the Communication group is not rendered at all.
+    await expect(page.getByText("Communication", { exact: true })).toHaveCount(0);
   });
 });
 

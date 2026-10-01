@@ -64,6 +64,9 @@ object-storage:
   secret-key: ${OBJECT_STORAGE_SECRET_KEY:${MINIO_ROOT_PASSWORD:change_this_local_password}}
 
 app:
+  # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Local only.
+  messaging:
+    sandbox-enabled: true
   public:
     tenant-url-template: ${TENANT_URL_TEMPLATE:http://{subdomain}.lms.test:3000}
   # TEN-DOM-01: local custom domains. accept-all skips DNS, so any hostname

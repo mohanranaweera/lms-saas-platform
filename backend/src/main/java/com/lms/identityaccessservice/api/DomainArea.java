@@ -87,6 +87,16 @@ public enum DomainArea {
 	 * remove). CREATE_EDIT is Tenant Admin only; the Platform Admin switch and
 	 * suspension are Platform Admin endpoints, outside this matrix.
 	 */
-	CUSTOM_DOMAINS
+	CUSTOM_DOMAINS,
+
+	/**
+	 * Wave 11 (decision D2): broadcast templates, broadcasts, event-template
+	 * editing and delivery logs. Tenant Admin and Student Support {@code
+	 * V/C/E}; Read-only Auditor {@code V}. Teachers are deliberately absent -
+	 * they may broadcast only to courses they own, an ownership check enforced
+	 * in {@code notification-management}, not a flat grant here. Messaging
+	 * provider credentials stay under {@link #INTEGRATIONS}.
+	 */
+	COMMUNICATIONS
 
 }

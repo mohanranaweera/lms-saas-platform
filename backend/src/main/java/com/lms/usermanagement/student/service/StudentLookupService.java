@@ -51,16 +51,43 @@ public class StudentLookupService implements StudentLookupApi {
 
 	@Override
 	public Optional<StudentContact> findContact(UUID userId) {
-		return studentProfileRepository.findOne((root, query, cb) -> cb.equal(root.get("userId"), userId))
-			.map(profile -> {
-				String email = userProvisioningApi.findTenantUserSummaries(List.of(userId))
-					.stream()
-					.findFirst()
-					.map(TenantUserSummary::email)
-					.orElse(null);
-				return new StudentContact(userId, profile.getName(), email, profile.getMobile(),
-						profile.getAddressLine(), profile.getCity());
-			});
+		return findContacts(List.of(userId)).stream().findFirst();
+	}
+
+	@Override
+	public List<StudentContact> findContacts(Collection<UUID> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return List.of();
+		}
+		List<StudentProfile> profiles = studentProfileRepository
+			.findAll((root, query, cb) -> root.get("userId").in(userIds));
+		Map<UUID, TenantUserSummary> summariesByUserId = userProvisioningApi
+			.findTenantUserSummaries(profiles.stream().map(StudentProfile::getUserId).toList())
+			.stream()
+			.collect(Collectors.toMap(TenantUserSummary::userId, Function.identity()));
+		return profiles.stream().map(profile -> {
+			TenantUserSummary summary = summariesByUserId.get(profile.getUserId());
+			return new StudentContact(profile.getUserId(), profile.getName(),
+					(summary != null) ? summary.email() : null, profile.getMobile(), profile.getAddressLine(),
+					profile.getCity(), profile.getWhatsappNumber(), (summary != null) ? summary.status() : null);
+		}).toList();
+	}
+
+	@Override
+	public List<StudentContact> findContactsByStudentIds(Collection<UUID> studentProfileIds) {
+		if (studentProfileIds == null || studentProfileIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> userIds = studentProfileRepository.findAllById(studentProfileIds)
+			.stream()
+			.map(StudentProfile::getUserId)
+			.toList();
+		return findContacts(userIds);
+	}
+
+	@Override
+	public List<UUID> listAllStudentUserIds() {
+		return studentProfileRepository.findAll().stream().map(StudentProfile::getUserId).toList();
 	}
 
 	@Override

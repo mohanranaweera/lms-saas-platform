@@ -187,7 +187,7 @@ test.describe("Student Notification Center", () => {
     const emptyState = page.getByRole("status").filter({ hasText: "No notifications yet" });
     await expect(emptyState).toBeVisible();
     await expect(
-      emptyState.getByText(/payment is confirmed, rejected, or refunded/)
+      emptyState.getByText(/payment updates/)
     ).toBeVisible();
   });
 
@@ -420,7 +420,7 @@ test.describe("Teacher Notification Center", () => {
 
     const emptyState = page.getByRole("status").filter({ hasText: "No notifications yet" });
     await expect(emptyState).toBeVisible();
-    await expect(emptyState.getByText(/activity feed/)).toBeVisible();
+    await expect(emptyState.getByText(/Announcements your institute sends to teachers/)).toBeVisible();
   });
 
   test("permission-denied state on a real 403 points at the teacher dashboard", async ({ page }) => {
