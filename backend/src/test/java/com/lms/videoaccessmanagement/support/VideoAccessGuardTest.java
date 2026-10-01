@@ -1,5 +1,6 @@
 package com.lms.videoaccessmanagement.support;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
@@ -48,7 +49,8 @@ class VideoAccessGuardTest {
 
 	@BeforeEach
 	void setUp() {
-		guard = new VideoAccessGuard(materialLookupApi, enrollmentAccessApi, permissionCheckService);
+		guard = new VideoAccessGuard(materialLookupApi, AccessPolicyTestDouble.backedBy(enrollmentAccessApi),
+				permissionCheckService);
 	}
 
 	@AfterEach

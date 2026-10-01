@@ -80,6 +80,13 @@ Because the cookie is `Secure`, it will not be set/sent at all over plain HTTP �
 dev must run the frontend+backend over HTTPS or `localhost` (browsers special-case
 `localhost` as a secure context) for this cookie to work.
 
+Wave 10 (ADR-022): the request may carry the `lms_device_id` cookie from an earlier sign-in;
+the response always sets it (`HttpOnly`; `SameSite=Strict`; `Path=/api/v1/auth`; `Secure`
+except under the `local` profile; `Max-Age` = `app.security.device.cookie-max-age`, 400 days).
+It is a server-issued random token naming this browser as a registered device; only its hash is
+stored. A known, active device is reused; otherwise a new device is registered - for a STUDENT
+only while a device slot is free (see "Devices" below).
+
 **Failure:**
 
 | Status | `error.code` | Condition |
@@ -88,6 +95,7 @@ dev must run the frontend+backend over HTTPS or `localhost` (browsers special-ca
 | `401` | `INVALID_CREDENTIALS` | Unknown email, or wrong password (including a wrong password against a suspended account — anti-enumeration by design, never distinguished) |
 | `403` | `TENANT_UNAVAILABLE` | Tenant subdomain unresolvable, or tenant is `suspended`/`cancelled` — rejected before credentials are evaluated, by `TenantResolutionFilter`, not this handler |
 | `403` | `USER_SUSPENDED` | Password verified successfully, but the `tenant_user` row's `status` is `suspended` |
+| `403` | `DEVICE_LIMIT_REACHED` | Wave 10: password verified, the account is a STUDENT signing in on a NEW device, and every device slot is taken (active devices plus removed ones still in their reset cooldown). Nothing is persisted. |
 
 `error.message` is always the same generic copy for `INVALID_CREDENTIALS` regardless of
 which underlying check failed — do not attempt to further distinguish in the UI.
@@ -114,7 +122,7 @@ old cookie value will fail.
 
 | Status | `error.code` | Condition |
 |---|---|---|
-| `401` | `INVALID_REFRESH_TOKEN` | Cookie missing/blank, or token not found / revoked / expired / already rotated — never distinguished |
+| `401` | `INVALID_REFRESH_TOKEN` | Cookie missing/blank, or token not found / revoked / expired / already rotated, or (Wave 10) the `lms_device_id` cookie is missing / belongs to another device / that device was removed, or the session predates device registration — never distinguished |
 
 ### `POST /api/v1/auth/logout`
 
@@ -179,7 +187,10 @@ not try to parse a distinction between these two codes into different UX.
 | `TENANT_UNAVAILABLE` | 403 | Tenant unresolvable or suspended/cancelled |
 | `USER_SUSPENDED` | 403 | Specific user row suspended, post-password-check |
 | `INVALID_REFRESH_TOKEN` | 401 | Refresh cookie missing/invalid/expired/already-rotated |
-| `SESSION_REVOKED` | 401 | Valid JWT, invalid session (revoked/expired/tenant-mismatch/account-inactive) |
+| `SESSION_REVOKED` | 401 | Valid JWT, invalid session (revoked/expired/tenant-mismatch/account-inactive, or its device was removed) |
+| `DEVICE_LIMIT_REACHED` | 403 | Wave 10: student sign-in from a new device with no free slot |
+| `DEVICE_NOT_AUTHORIZED` | 403 | Wave 10: course content opened on a device outside the course device limit |
+| `DEVICE_SELF_SERVICE_DISABLED` | 403 | Wave 10: a student tried to remove a device but the tenant manages devices |
 
 ## Tenant resolution (TEN-DOM-01 / ADR-021)
 
@@ -239,3 +250,66 @@ Added 2026-09-30. Tenant host only; the tenant comes from the subdomain. No body
 - **Forgot password:** answers the same whether or not the email has an account, and is rate-limited to 5 per IP and 3 per email per hour. `active` accounts get a reset email; `invited` accounts get a new setup email; `suspended` and unknown accounts get nothing.
 - **`403 PASSWORD_CHANGE_REQUIRED`:** while the account's `must_change_password` is true, every authenticated request except `POST /auth/password`, `/auth/logout`, `/auth/refresh` and `/api/v1/public/**` is refused. This is read from the account row on each request, not from a token claim, so ADR-007's token payload is unchanged.
 - **Login:** an `invited` account's login fails exactly like a wrong password (`401 INVALID_CREDENTIALS`).
+
+## Wave 10 — Devices (ADR-022)
+
+Device identity is the server-issued `lms_device_id` cookie (see login above) — never
+User-Agent or IP. A device belongs to one user in one tenant. Devices are never deleted:
+removal is a status change that signs the device out (all its sessions are revoked in
+Postgres and evicted from Redis in the same transaction) and keeps its slot taken until
+`slotReusableAt` (now + the tenant reset cooldown).
+
+Device limits apply to STUDENT accounts only, with precedence student exception > course
+override > tenant policy > plan default (`app.security.device.plan-default-limit`, 2).
+Sign-in uses student > tenant > plan; the course level is enforced at content time by
+`AccessPolicyApi` (`docs/api/enrollment-management.md`).
+
+### `DeviceSlotSummary` / `DeviceView` shapes
+
+```jsonc
+{
+  "devices": [{
+    "id": "<uuid>", "label": "Chrome on Windows", "status": "ACTIVE",   // or REVOKED
+    "firstSeenAt": "...", "lastSeenAt": "...", "lastIp": "203.0.113.10",
+    "revokedAt": null, "revocationSource": null,                        // ADMIN | STUDENT | SYSTEM
+    "revokeReason": null, "slotReusableAt": null, "current": true       // true = the calling session's device
+  }],
+  "limit": 2,                    // null for staff (not limited)
+  "limitSource": "TENANT",       // STUDENT | COURSE | TENANT | PLAN
+  "occupiedSlots": 2, "nextSlotFreeAt": null,
+  "studentOverride": null, "studentOverrideReason": null,
+  "selfServiceEnabled": false, "resetCooldownHours": 24
+}
+```
+
+The device token and its hash are never returned.
+
+### `GET /api/v1/devices/my`
+
+Any authenticated tenant user; always the caller's own devices. `200` `DeviceSlotSummary`.
+
+### `POST /api/v1/devices/my/{deviceId}/revoke`
+
+Remove one of the caller's OTHER devices. `200` `DeviceSlotSummary`.
+`403 DEVICE_SELF_SERVICE_DISABLED` (student, tenant has not enabled self-service),
+`409 CONFLICT` (the current device — sign out instead — or already removed),
+`404` (not the caller's device, or another tenant's). Audit: `device.revoked_by_user`.
+
+### `GET /api/v1/device-policy` · `PUT /api/v1/device-policy`
+
+`DEVICES` VIEW / CREATE_EDIT (Tenant Admin edits; Student Support and Auditor view).
+
+```jsonc
+// PUT body (DevicePolicyRequest)
+{ "maxDevices": 3,               // 1-20, null = plan default
+  "resetCooldownHours": 24,      // 0-720, required
+  "studentSelfServiceEnabled": false }
+// response (DevicePolicyView)
+{ "maxDevices": 3, "effectiveMaxDevices": 3, "planDefaultLimit": 2,
+  "resetCooldownHours": 24, "studentSelfServiceEnabled": false, "updatedAt": "..." }
+```
+
+`400 VALIDATION_ERROR` outside the bounds. Audit: `device_policy.updated` (before/after).
+
+Staff device management for one student lives under `/api/v1/students/{id}/devices`
+(`docs/api/user-management.md`).

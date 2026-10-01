@@ -596,3 +596,24 @@ pre-existing scope boundary, unchanged by Wave 3. Assigned-courses/roster/attend
 reads for a given teacher live in their owning domains (`course-management`,
 `enrollment-management`'s `GET /courses/{courseId}/roster`, `attendance-management`,
 `exam-management`), not duplicated here.
+
+## Wave 10 — Student devices (ADR-022)
+
+`{studentId}` is the `student_profile` id (like every `/students/{id}` endpoint); an id from
+another tenant is `404`. Thin wrappers over `identity-access-service`'s `DeviceManagementApi`,
+which re-checks `DEVICES` permissions. Every change also writes a `student_profile` audit row
+(visible on the Activity tab) in the same transaction. Shapes: `DeviceSlotSummary` /
+`DeviceView` in `docs/api/identity-access-service.md`.
+
+| Method / path | Gate | Body | Response |
+|---|---|---|---|
+| `GET /api/v1/students/{studentId}/devices` | `DEVICES` VIEW (Tenant Admin, Student Support, Auditor) | — | `DeviceSlotSummary` (includes `lastIp`) |
+| `POST /api/v1/students/{studentId}/devices/{deviceId}/reset` | `DEVICES` CREATE_EDIT (Tenant Admin) | `{ "reason": "..." }` (required, max 500) | `DeviceView` (REVOKED, `slotReusableAt` set) |
+| `POST /api/v1/students/{studentId}/devices/reset` | `DEVICES` CREATE_EDIT | `{ "reason": "..." }` | `{ "revokedCount": 2 }` |
+| `PUT /api/v1/students/{studentId}/device-limit` | `DEVICES` CREATE_EDIT | `{ "maxDevices": 3 \| null, "reason": "..." }` — null clears the exception | `DeviceSlotSummary` |
+
+Errors: `400 VALIDATION_ERROR` (missing reason, `maxDevices` outside 1-20), `403` (role),
+`404` (student or device not in this tenant, or device belongs to another user),
+`409 CONFLICT` (device already removed; limit on a non-student account).
+Audit: `device.reset` / `device_limit_override.set` / `device_limit_override.cleared` plus
+`student.device_reset` / `student.device_limit_changed` on the student profile.

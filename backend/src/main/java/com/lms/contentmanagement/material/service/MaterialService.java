@@ -154,12 +154,11 @@ public class MaterialService {
 			throw new NotFoundException("Material not found");
 		}
 
-		Instant now = Instant.now();
-		if (material.getAvailableFromAt() != null && material.getAvailableFromAt().isAfter(now)) {
-			throw new MaterialNotYetAvailableException("This material is not yet available");
-		}
-		if (material.getExpiryAt() != null && material.getExpiryAt().isBefore(now)) {
-			throw new MaterialExpiredException("This material's availability window has expired");
+		switch (materialAccessGuard.contentWindow(material.getAvailableFromAt(), material.getExpiryAt())) {
+			case NOT_YET_AVAILABLE -> throw new MaterialNotYetAvailableException("This material is not yet available");
+			case EXPIRED -> throw new MaterialExpiredException("This material's availability window has expired");
+			case AVAILABLE -> {
+			}
 		}
 
 		if (material.getMaterialType() == MaterialType.LINK) {

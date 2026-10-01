@@ -54,6 +54,9 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 
 	protected static final String WRONG_PASSWORD = "Totally-Wrong-Password-9!";
 
+	/** Wave 10 server-issued device cookie. */
+	protected static final String DEVICE_COOKIE = "lms_device_id";
+
 	@Autowired
 	protected TenantRepository tenantRepository;
 
@@ -150,8 +153,16 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 	}
 
 	protected HttpResult<LoginResponse> login(String host, String email, String password) {
+		return login(host, email, password, null);
+	}
+
+	/** Wave 10: logs in presenting a previously issued {@code lms_device_id} cookie (null = a new device). */
+	protected HttpResult<LoginResponse> login(String host, String email, String password, String deviceToken) {
 		MockHttpServletRequestBuilder request = jsonPost("/api/v1/auth/login", host)
 			.content(writeJson(new LoginRequest(email, password)));
+		if (deviceToken != null) {
+			request.cookie(new Cookie(DEVICE_COOKIE, deviceToken));
+		}
 		return exchange(request, LoginResponse.class);
 	}
 
@@ -168,8 +179,17 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 	}
 
 	protected HttpResult<RefreshResponse> refresh(String host, String refreshCookieName, String rawCookieValue) {
+		return refresh(host, refreshCookieName, rawCookieValue, null);
+	}
+
+	/** Wave 10: a tenant refresh must also present the device cookie of the session. */
+	protected HttpResult<RefreshResponse> refresh(String host, String refreshCookieName, String rawCookieValue,
+			String deviceToken) {
 		MockHttpServletRequestBuilder request = jsonPost("/api/v1/auth/refresh", host)
 			.cookie(new Cookie(refreshCookieName, rawCookieValue));
+		if (deviceToken != null) {
+			request.cookie(new Cookie(DEVICE_COOKIE, deviceToken));
+		}
 		return exchange(request, RefreshResponse.class);
 	}
 

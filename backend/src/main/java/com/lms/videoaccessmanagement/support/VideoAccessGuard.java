@@ -3,9 +3,8 @@ package com.lms.videoaccessmanagement.support;
 import com.lms.common.error.NotFoundException;
 import com.lms.contentmanagement.api.MaterialLookupApi;
 import com.lms.contentmanagement.api.MaterialVideoOwnership;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.ContentAvailability;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -49,14 +48,14 @@ public class VideoAccessGuard {
 
 	private final MaterialLookupApi materialLookupApi;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final AccessPolicyApi accessPolicyApi;
 
 	private final PermissionCheckService permissionCheckService;
 
-	public VideoAccessGuard(MaterialLookupApi materialLookupApi, EnrollmentAccessApi enrollmentAccessApi,
+	public VideoAccessGuard(MaterialLookupApi materialLookupApi, AccessPolicyApi accessPolicyApi,
 			PermissionCheckService permissionCheckService) {
 		this.materialLookupApi = materialLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.accessPolicyApi = accessPolicyApi;
 		this.permissionCheckService = permissionCheckService;
 	}
 
@@ -81,16 +80,19 @@ public class VideoAccessGuard {
 			if (action != PermissionAction.VIEW || !ownership.courseOpenToEnrolledStudents()) {
 				throw new NotFoundException("Video not found");
 			}
-			EnrollmentAccessState state = enrollmentAccessApi.resolveAccessState(principal.userId(),
-					ownership.courseId());
-			if (state.state() != EnrollmentAccessStateType.ACTIVE) {
-				throw new NotFoundException("Video not found");
-			}
+			// Wave 10: entitlement, expiry/extension/grace and course device limit - one central decision.
+			accessPolicyApi.requireStudentCourseAccess(ownership.courseId(),
+					() -> new NotFoundException("Video not found"));
 			return ownership;
 		}
 
 		permissionCheckService.requirePermission(DomainArea.MATERIALS, action);
 		return ownership;
+	}
+
+	/** Wave 10: the video availability window, decided by the central {@link AccessPolicyApi}. */
+	public ContentAvailability contentWindow(java.time.Instant availableFrom, java.time.Instant availableUntil) {
+		return accessPolicyApi.evaluateContentWindow(availableFrom, availableUntil);
 	}
 
 	public boolean isCurrentPrincipalStudent() {

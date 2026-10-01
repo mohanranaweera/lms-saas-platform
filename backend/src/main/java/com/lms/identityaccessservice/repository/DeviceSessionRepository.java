@@ -26,6 +26,12 @@ public interface DeviceSessionRepository extends TenantAwareRepository<DeviceSes
 				cb.equal(root.get("status"), SessionStatus.ACTIVE)));
 	}
 
+	/** Wave 10: the still-active sessions running on one device (revoked together with the device). */
+	default List<DeviceSession> findActiveForDevice(UUID deviceId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("deviceId"), deviceId),
+				cb.equal(root.get("status"), SessionStatus.ACTIVE)));
+	}
+
 	default Optional<DeviceSession> findByRefreshTokenHash(String refreshTokenHash) {
 		return findOne((root, query, cb) -> cb.equal(root.get("refreshTokenHash"), refreshTokenHash));
 	}

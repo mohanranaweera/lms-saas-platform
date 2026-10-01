@@ -119,6 +119,15 @@ public final class ApiErrorCodes {
 	/** TEN-DOM-01: the tenant already holds the maximum number of custom domains. */
 	public static final String CUSTOM_DOMAIN_LIMIT_REACHED = "CUSTOM_DOMAIN_LIMIT_REACHED";
 
+	/** Wave 10 - a login from a new device when the student's device slots are all taken (or cooling down). */
+	public static final String DEVICE_LIMIT_REACHED = "DEVICE_LIMIT_REACHED";
+
+	/** Wave 10 - the current device is not one of the devices a course-level device limit authorizes. */
+	public static final String DEVICE_NOT_AUTHORIZED = "DEVICE_NOT_AUTHORIZED";
+
+	/** Wave 10 - the tenant has not enabled student self-service device management. */
+	public static final String DEVICE_SELF_SERVICE_DISABLED = "DEVICE_SELF_SERVICE_DISABLED";
+
 	private ApiErrorCodes() {
 	}
 

@@ -400,3 +400,35 @@ export function canViewFinance(role: string | null): boolean {
 export function canManageFinance(role: string | null): boolean {
   return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
 }
+
+/**
+ * Wave 10 - `DEVICES`/`VIEW` per `PermissionCheckServiceImpl`: Tenant Admin,
+ * Student Support ("V (request only)") and Read-only Auditor. UX only - the
+ * backend re-checks every request.
+ */
+export function canViewDevices(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "STUDENT_SUPPORT" || role === "READ_ONLY_AUDITOR";
+}
+
+/** Wave 10 - `DEVICES`/`CREATE_EDIT` (reset, device limits, device policy): Tenant Admin only. UX only. */
+export function canManageDevices(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * Wave 10 - `ACCESS_EXPIRY`/`VIEW` (access policy, extension history): Tenant
+ * Admin, Finance Staff, Student Support, Read-only Auditor. UX only.
+ */
+export function canViewAccessPolicy(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/** Wave 10 - `ACCESS_EXPIRY`/`CREATE_EDIT` (grace period, course overrides, access extensions): Tenant Admin only. UX only. */
+export function canManageAccessPolicy(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}

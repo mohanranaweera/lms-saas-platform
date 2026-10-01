@@ -12,6 +12,7 @@ import com.lms.identityaccessservice.web.dto.PasswordRequests.TokenRequest;
 import org.springframework.http.ResponseEntity;
 import com.lms.common.api.ApiResponse;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.config.DeviceProperties;
 import com.lms.identityaccessservice.error.InvalidRefreshTokenException;
 import com.lms.identityaccessservice.service.AuthenticationService;
 import com.lms.identityaccessservice.service.LoginResult;
@@ -44,6 +45,12 @@ public class AuthController {
 
 	static final String REFRESH_COOKIE_PATH = "/api/v1/auth";
 
+	/**
+	 * Wave 10 (ADR-007 §2): the server-issued device identifier. Same path as
+	 * the refresh cookie, so the browser sends it only to the auth endpoints.
+	 */
+	static final String DEVICE_COOKIE_NAME = "lms_device_id";
+
 	private final AuthenticationService authenticationService;
 
 	private final RefreshTokenService refreshTokenService;
@@ -61,24 +68,31 @@ public class AuthController {
 	 */
 	private final boolean secureRefreshCookie;
 
+	private final DeviceProperties deviceProperties;
+
 	public AuthController(AuthenticationService authenticationService, RefreshTokenService refreshTokenService,
 			PasswordTokenService passwordTokenService, PasswordResetService passwordResetService,
-			PasswordChangeService passwordChangeService, Environment environment) {
+			PasswordChangeService passwordChangeService, Environment environment, DeviceProperties deviceProperties) {
 		this.authenticationService = authenticationService;
 		this.refreshTokenService = refreshTokenService;
 		this.passwordTokenService = passwordTokenService;
 		this.passwordResetService = passwordResetService;
 		this.passwordChangeService = passwordChangeService;
 		this.secureRefreshCookie = !environment.acceptsProfiles(Profiles.of("local"));
+		this.deviceProperties = deviceProperties;
 	}
 
 	@PostMapping("/login")
-	public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest,
+	public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+			@CookieValue(name = DEVICE_COOKIE_NAME, required = false) String deviceToken, HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse) {
-		String deviceIdentifierHash = DeviceFingerprint.hash(httpRequest);
-		LoginResult result = authenticationService.login(request.email(), request.password(), deviceIdentifierHash);
+		var device = new AuthenticationService.DeviceContext(deviceToken, httpRequest.getHeader("User-Agent"),
+				httpRequest.getRemoteAddr());
+		LoginResult result = authenticationService.login(request.email(), request.password(), device);
 		RefreshCookieSupport.set(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawRefreshToken(),
 				result.refreshCookieMaxAge(), secureRefreshCookie);
+		RefreshCookieSupport.set(httpResponse, DEVICE_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawDeviceToken(),
+				deviceProperties.getCookieMaxAge(), secureRefreshCookie);
 		return ApiResponse.success(new LoginResponse(result.accessToken(), result.expiresIn().toSeconds(),
 				result.sessionId(), result.mustChangePassword()));
 	}
@@ -86,11 +100,13 @@ public class AuthController {
 	@PostMapping("/refresh")
 	public ApiResponse<RefreshResponse> refresh(
 			@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+			@CookieValue(name = DEVICE_COOKIE_NAME, required = false) String deviceToken, HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse) {
 		if (refreshToken == null || refreshToken.isBlank()) {
 			throw new InvalidRefreshTokenException();
 		}
-		RotationResult result = refreshTokenService.rotateTenantSession(refreshToken);
+		RotationResult result = refreshTokenService.rotateTenantSession(refreshToken, deviceToken,
+				httpRequest.getRemoteAddr());
 		RefreshCookieSupport.set(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawRefreshToken(),
 				result.refreshCookieMaxAge(), secureRefreshCookie);
 		return ApiResponse.success(new RefreshResponse(result.accessToken(), result.expiresIn().toSeconds()));

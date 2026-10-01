@@ -17,6 +17,8 @@ import {
   canViewPaymentDashboard,
   canViewStaff,
   canViewTeachers,
+  canViewAccessPolicy,
+  canViewDevices,
 } from "@/lib/auth/permissions";
 import { NavGroup, type NavItem } from "./nav-links";
 
@@ -138,6 +140,10 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   // TEN-DOM-01 - CUSTOM_DOMAINS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewCustomDomains(role)) {
     instituteConfigItems.push({ label: "Custom Domain", href: "/tenant-admin/settings/domains" });
+  }
+  // Wave 10 - DEVICES/VIEW or ACCESS_EXPIRY/VIEW. UX only; the backend re-checks every request.
+  if (canViewDevices(role) || canViewAccessPolicy(role)) {
+    instituteConfigItems.push({ label: "Devices & Access", href: "/tenant-admin/settings/devices-access" });
   }
 
   return (

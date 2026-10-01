@@ -134,11 +134,11 @@ public class VideoPlaybackSessionService {
 		EffectivePolicy policy = resolveEffectivePolicy(videoAssetId);
 		Instant now = Instant.now();
 
-		if (policy.accessStartAt() != null && now.isBefore(policy.accessStartAt())) {
-			throw new VideoPlaybackPolicyViolationException("This video is not yet available");
-		}
-		if (policy.accessEndAt() != null && now.isAfter(policy.accessEndAt())) {
-			throw new VideoPlaybackPolicyViolationException("This video's availability window has expired");
+		switch (videoAccessGuard.contentWindow(policy.accessStartAt(), policy.accessEndAt())) {
+			case NOT_YET_AVAILABLE -> throw new VideoPlaybackPolicyViolationException("This video is not yet available");
+			case EXPIRED -> throw new VideoPlaybackPolicyViolationException("This video's availability window has expired");
+			case AVAILABLE -> {
+			}
 		}
 
 		if (policy.maxViewsPerStudent() != null) {

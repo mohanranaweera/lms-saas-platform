@@ -113,7 +113,9 @@ export function LoginForm({
         {apiError ? (
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
-            <AlertTitle>Sign-in failed</AlertTitle>
+            <AlertTitle>
+              {apiError.code === "DEVICE_LIMIT_REACHED" ? "Device limit reached" : "Sign-in failed"}
+            </AlertTitle>
             {/* Backend copy only — never invent a more specific message than
                 `error.message` here (docs/api/identity-access-service.md: the
                 same generic text covers INVALID_CREDENTIALS / TENANT_UNAVAILABLE

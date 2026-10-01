@@ -1,9 +1,11 @@
 package com.lms.coursemanagement.course.service;
 
+import com.lms.common.error.DeviceNotAuthorizedException;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
+import com.lms.enrollmentmanagement.api.AccessOutcome;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.CourseAccessDecision;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -34,9 +36,10 @@ import org.springframework.stereotype.Component;
  *
  * <p><b>Enrolled-Student read access:</b> a Student may VIEW a {@code
  * PUBLIC} or {@code PRIVATE} course (and, through the same check, its
- * modules/lessons) while {@link EnrollmentAccessApi#resolveAccessState}
- * reports their enrollment {@link EnrollmentAccessStateType#ACTIVE} - i.e.
- * inside the paid access window. A {@code DRAFT} course stays hidden even
+ * modules/lessons) while {@link AccessPolicyApi#evaluateStudentCourseAccess}
+ * allows it - i.e. inside the (possibly extended, possibly grace) access
+ * window, on an authorized device (Wave 10; an unauthorized device gets
+ * {@code 403 DEVICE_NOT_AUTHORIZED}). A {@code DRAFT} course stays hidden even
  * from enrolled Students, and an expired/superseded/missing enrollment falls
  * through to the matrix check below, which denies. This only reads existing
  * enrollment state; it is not an enrollment-activation path.
@@ -50,11 +53,11 @@ public class CourseAccessGuard {
 
 	private final PermissionCheckService permissionCheckService;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final AccessPolicyApi accessPolicyApi;
 
-	public CourseAccessGuard(PermissionCheckService permissionCheckService, EnrollmentAccessApi enrollmentAccessApi) {
+	public CourseAccessGuard(PermissionCheckService permissionCheckService, AccessPolicyApi accessPolicyApi) {
 		this.permissionCheckService = permissionCheckService;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.accessPolicyApi = accessPolicyApi;
 	}
 
 	public void requireCourseAccess(Course course, PermissionAction action) {
@@ -85,10 +88,17 @@ public class CourseAccessGuard {
 			return;
 		}
 		if (action == PermissionAction.VIEW && STUDENT_ROLE.equals(principal.role())
-				&& course.getStatus() != CourseStatus.DRAFT && enrollmentAccessApi
-					.resolveAccessState(principal.userId(), course.getId())
-					.state() == EnrollmentAccessStateType.ACTIVE) {
-			return; // enrolled Student inside the paid access window - see class javadoc
+				&& course.getStatus() != CourseStatus.DRAFT) {
+			// Wave 10: the central access decision (expiry, extension, grace, course device limit).
+			CourseAccessDecision decision = accessPolicyApi.evaluateStudentCourseAccess(principal.userId(),
+					course.getId());
+			if (decision.allowed()) {
+				return; // enrolled Student inside the access window - see class javadoc
+			}
+			if (decision.outcome() == AccessOutcome.DEVICE_NOT_AUTHORIZED) {
+				throw new DeviceNotAuthorizedException(
+						"This course can only be opened on a limited number of devices, and this device is not one of them.");
+			}
 		}
 		permissionCheckService.requirePermission(DomainArea.COURSES, action);
 	}

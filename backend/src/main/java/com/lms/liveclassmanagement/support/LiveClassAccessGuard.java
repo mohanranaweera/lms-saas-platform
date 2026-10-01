@@ -2,9 +2,7 @@ package com.lms.liveclassmanagement.support;
 
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -53,14 +51,14 @@ public class LiveClassAccessGuard {
 
 	private final CourseLookupApi courseLookupApi;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final AccessPolicyApi accessPolicyApi;
 
 	private final PermissionCheckService permissionCheckService;
 
-	public LiveClassAccessGuard(CourseLookupApi courseLookupApi, EnrollmentAccessApi enrollmentAccessApi,
+	public LiveClassAccessGuard(CourseLookupApi courseLookupApi, AccessPolicyApi accessPolicyApi,
 			PermissionCheckService permissionCheckService) {
 		this.courseLookupApi = courseLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.accessPolicyApi = accessPolicyApi;
 		this.permissionCheckService = permissionCheckService;
 	}
 
@@ -100,10 +98,9 @@ public class LiveClassAccessGuard {
 			return;
 		}
 		if (STUDENT_ROLE.equals(principal.role())) {
-			EnrollmentAccessState state = enrollmentAccessApi.resolveAccessState(principal.userId(), session.getCourseId());
-			if (state.state() != EnrollmentAccessStateType.ACTIVE) {
-				throw new NotFoundException("Class session not found");
-			}
+			// Wave 10: entitlement, expiry/extension/grace and course device limit - one central decision.
+			accessPolicyApi.requireStudentCourseAccess(session.getCourseId(),
+					() -> new NotFoundException("Class session not found"));
 			return;
 		}
 		permissionCheckService.requirePermission(DomainArea.LIVE_CLASSES, action);

@@ -1,5 +1,6 @@
 package com.lms.enrollmentmanagement.service;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,7 +70,7 @@ class EnrollmentExpiryServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new EnrollmentExpiryService(enrollmentRepository, enrollmentExpiryEventWriter,
-				reactivationRequestRepository);
+				reactivationRequestRepository, AccessPolicyTestDouble.calculatorWithoutOverrides());
 	}
 
 	@Test

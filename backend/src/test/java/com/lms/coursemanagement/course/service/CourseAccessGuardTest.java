@@ -1,5 +1,6 @@
 package com.lms.coursemanagement.course.service;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,7 +53,7 @@ class CourseAccessGuardTest {
 
 	@BeforeEach
 	void setUp() {
-		guard = new CourseAccessGuard(permissionCheckService, enrollmentAccessApi);
+		guard = new CourseAccessGuard(permissionCheckService, AccessPolicyTestDouble.backedBy(enrollmentAccessApi));
 	}
 
 	@AfterEach

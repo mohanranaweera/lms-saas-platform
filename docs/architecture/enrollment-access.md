@@ -247,6 +247,12 @@ double-activate enrollment or double-write ledger entries).
 
 ## 9. Open questions (business decisions not supplied by current material)
 
+> **Wave 10 update (ADR-022):** grace period, per-student extension and a centralized
+> `AccessPolicyApi` are now built. Decided for now: default grace 0 days, tenant setting with
+> a per-course override (course beats tenant); a Tenant Admin may extend a current enrollment
+> even after it expired (never a revoked one), append-only and audit-logged. Still open below:
+> bulk extension and its approval, reminder timing, prorated reactivation.
+
 **None of the five items below were resolved by MVP-012.** Shipping course-level
 expiry + the reactivation core required no answer to any of them — expiry is a hard
 cutover with no grace period, no precedence engine exists (only

@@ -106,6 +106,14 @@ mechanism.
 
 ## 5. Device registration at login
 
+> **Status (Wave 10, ADR-022): implemented** for tenant users. Identity is a server-issued
+> token in the `lms_device_id` cookie (hash stored in `device`); limits (§6) apply to
+> students; reset with persisted cooldown (§7) is live for Tenant Admin, and students may
+> remove their own other devices when the tenant enables it. The `device` and
+> `device_session` rows are the registration/login-activity record; resets, self-removal,
+> limit and policy changes are audit-logged. Suspicious-login detection (§8) is still not
+> built.
+
 - Device registration happens **server-side**, at the moment of successful
   login, keyed to the authenticated user id.
 - The server generates/verifies the device fingerprint/token. A client-

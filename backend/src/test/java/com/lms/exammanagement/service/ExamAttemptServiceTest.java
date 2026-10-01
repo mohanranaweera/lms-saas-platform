@@ -1,5 +1,6 @@
 package com.lms.exammanagement.service;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -93,7 +94,8 @@ class ExamAttemptServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new ExamAttemptService(examRepository, examAttemptRepository, examAnswerRepository,
-				examQuestionLinkRepository, examLifecycleService, mcqAutoMarkingService, enrollmentAccessApi,
+				examQuestionLinkRepository, examLifecycleService, mcqAutoMarkingService,
+				AccessPolicyTestDouble.backedBy(enrollmentAccessApi),
 				tenantContext, studentLookupApi, permissionCheckService);
 		when(examLifecycleService.now()).thenReturn(NOW);
 	}

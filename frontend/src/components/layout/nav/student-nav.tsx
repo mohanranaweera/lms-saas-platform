@@ -13,6 +13,7 @@ export function StudentNav({ onNavigate }: { onNavigate?: () => void }) {
     { label: "Payments", href: "/student/payments/history" },
     { label: "Reactivation", href: "/student/payments/reactivation" },
     { label: "Notifications", href: "/student/notifications", badge: <NotificationsNavBadge /> },
+    { label: "My Devices", href: "/student/devices" },
     { label: "Profile", href: "/student/profile" },
   ];
 

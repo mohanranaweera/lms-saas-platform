@@ -202,6 +202,13 @@ app:
     session:
       refresh-token-ttl: 30d
       cache-ttl: 60s
+    # Wave 10 device limits. plan-default-limit is the lowest level of the
+    # device-limit precedence (student > course > tenant > plan) - product
+    # owner decision D2: 2 devices per student. cookie-max-age is the
+    # lifetime of the server-issued lms_device_id cookie (browser cap 400d).
+    device:
+      plan-default-limit: 2
+      cookie-max-age: 400d
   content:
     material:
       # MVP working default - accepted file types/size limit are not defined

@@ -180,7 +180,7 @@ default_currency) are a conservative starter set, since no spec document enumera
 | 7 | Finance, expenses and settlement foundation — **STATUS: DONE, with explicit judgment calls and deferrals (see `docs/parity/waves/wave-07-plan.md` §10/§11)** | PAR-23-02/03/05, PAR-24-03/04 (done); PAR-23-01/04, PAR-24-02 (partial — accounts, export, platform commission settlement deferred) |
 | 8 | Attendance parity using ClassSession — **STATUS: DONE, with explicit judgment calls and deferrals (see `docs/parity/waves/wave-08-plan.md` §10/§11)** | PAR-10-01/02 (done); PAR-10-03, PAR-10-04 (deferred — blocked on Zoom participant data / unspecified alert rules) |
 | 9 | Exam parity expansion | PAR-11-05 |
-| 10 | Device/access policy management | PAR-16-01–05 |
+| 10 | Device/access policy management — **STATUS: DONE, with explicit judgment calls and deferrals (see `docs/parity/waves/wave-10-plan.md` §10/§11, ADR-022)** | PAR-16-01–04, PAR-18-03, PAR-XC-04 (done); PAR-09-04/05, PAR-18-02 (partial — session windows, bulk extension deferred); PAR-16-05 (deferred) |
 | 11 | Notifications, communications and integrations | PAR-12-03/04, PAR-21-01–03, PAR-22-01–03 |
 | 12 | Dashboards and reporting | PAR-05-06 (Analytics tab), PAR-XC-05 |
 | 13 | Public storefront, branding and domain parity | PAR-15-01/02/03 |
@@ -326,3 +326,24 @@ See `docs/api/user-management.md`, `docs/api/payment-management.md`,
 new/changed API contracts, and `docs/parity/waves/wave-03-plan.md` for the reconstructed module
 plan (written before implementation began, unlike several earlier waves' retroactive contract
 docs).
+
+## Wave 10 — Device + access policy (completed)
+
+Device controls and one centralized access policy, per `docs/parity/waves/wave-10-plan.md`
+and ADR-022:
+
+- **Devices:** server-issued device identity (no User-Agent identity), student device limits
+  with student > course > tenant > plan precedence (plan default 2), admin reset of one/all
+  devices with a persisted cooldown, student self-service removal when the tenant allows it,
+  refresh bound to the device, tenant device policy. New tables `device`,
+  `tenant_device_policy`, `student_device_limit_override` (V64).
+- **Access policy:** `AccessPolicyApi` decides course content access everywhere (entitlement,
+  billing window, manual extensions, grace period, course device limit, material/video
+  windows). New tables `tenant_access_policy`, `course_access_policy`,
+  `enrollment_access_extension` (append-only, V65).
+- **UI:** Student My Devices; Student detail Devices tab and Extend access action; Settings →
+  Devices & access (device policy, grace period, course overrides).
+- Product-owner decisions D1–D3 (extensions also for expired enrollments; plan default 2
+  devices; grace default 0) are recorded in ADR-022 — D1 needs confirmation at PR review.
+- Deferred: suspicious-login detection (PAR-16-05), bulk extension, expiry reminders, per-live-
+  session expiry windows.

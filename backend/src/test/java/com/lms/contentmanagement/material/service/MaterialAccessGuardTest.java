@@ -1,5 +1,6 @@
 package com.lms.contentmanagement.material.service;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
@@ -54,7 +55,8 @@ class MaterialAccessGuardTest {
 
 	@BeforeEach
 	void setUp() {
-		guard = new MaterialAccessGuard(courseLookupApi, permissionCheckService, enrollmentAccessApi);
+		guard = new MaterialAccessGuard(courseLookupApi, permissionCheckService,
+				AccessPolicyTestDouble.backedBy(enrollmentAccessApi));
 	}
 
 	@AfterEach

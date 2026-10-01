@@ -90,6 +90,14 @@ video-playback:
     secret: "test-only-video-playback-token-secret-not-for-production-use-32bytes+"
 
 app:
+  # Wave 10: the shared test profile does not exercise the plan-default device
+  # limit (existing tests log the same account in repeatedly without a device
+  # cookie, i.e. as new devices). Device-limit tests set explicit tenant or
+  # student limits; the plan default (2) itself is covered by
+  # DevicePolicyServiceTest.
+  security:
+    device:
+      plan-default-limit: 100
   public:
     tenant-url-template: "http://{subdomain}.lms.test"
   # TEN-DOM-01: tests use real verification against a stubbed DnsRecordLookup.

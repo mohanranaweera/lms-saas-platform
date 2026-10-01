@@ -70,6 +70,16 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/tenant-admin/settings/devices-access" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Devices &amp; access</CardTitle>
+              <CardDescription>
+                Student device limits and resets, the grace period after expiry, and per-course overrides.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         <Link href="/tenant-admin/settings/student-fields" className="block">
           <Card className="h-full transition-colors hover:bg-muted/40">
             <CardHeader>

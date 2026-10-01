@@ -1,5 +1,6 @@
 package com.lms.enrollmentmanagement.service;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -68,7 +69,8 @@ class EnrollmentQueryServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new EnrollmentQueryService(enrollmentRepository, enrollmentExpiryService, courseLookupApi,
-				studentLookupApi, permissionCheckService);
+				studentLookupApi, permissionCheckService, AccessPolicyTestDouble.calculatorWithoutOverrides(),
+				org.mockito.Mockito.mock(com.lms.enrollmentmanagement.api.AccessPolicyApi.class));
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(STUDENT_ID, TENANT_ID, "STUDENT", UUID.randomUUID()));
 	}
 

@@ -6,6 +6,7 @@ import java.util.UUID;
 
 /** {@code GET /api/v1/courses/{courseId}/access-state} response body - never the JPA/domain entity. */
 public record EnrollmentAccessStateResponse(EnrollmentAccessStateType state, UUID enrollmentId,
-		Instant accessExpiresAt, boolean canRequestReactivation) {
+		Instant accessExpiresAt, boolean canRequestReactivation, Instant accessEndsAt, boolean inGracePeriod,
+		boolean deviceAuthorized) {
 
 }
