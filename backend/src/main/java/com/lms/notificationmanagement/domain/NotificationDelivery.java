@@ -31,6 +31,22 @@ public class NotificationDelivery extends BaseEntity implements TenantOwned {
 
 	public static final int MAX_ATTEMPTS = 3;
 
+	/**
+	 * What the provider later reported for a SENT message (ADR-024 V8, V69).
+	 * Separate from {@link Status}, which it never changes.
+	 */
+	public enum ProviderStatus {
+
+		SENT(1), DELIVERED(2), READ(3), FAILED(3);
+
+		private final int rank;
+
+		ProviderStatus(int rank) {
+			this.rank = rank;
+		}
+
+	}
+
 	@Column(name = "tenant_id", nullable = false, updatable = false)
 	private UUID tenantId;
 
@@ -71,6 +87,16 @@ public class NotificationDelivery extends BaseEntity implements TenantOwned {
 
 	@Column(name = "last_error_code", length = 40)
 	private String lastErrorCode;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "provider_status", length = 10)
+	private ProviderStatus providerStatus;
+
+	@Column(name = "provider_status_at")
+	private Instant providerStatusAt;
+
+	@Column(name = "provider_error_code", length = 20)
+	private String providerErrorCode;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -136,6 +162,30 @@ public class NotificationDelivery extends BaseEntity implements TenantOwned {
 		this.lastErrorCode = reasonCode;
 		this.destinationMasked = destinationMasked;
 		this.updatedAt = now;
+	}
+
+	/**
+	 * Applies a verified provider status, forward only: {@code SENT ->
+	 * DELIVERED -> READ}, or {@code FAILED} from {@code SENT}/{@code
+	 * DELIVERED}. Out-of-order or repeated callbacks are ignored.
+	 * @return true when the row changed
+	 */
+	public boolean applyProviderStatus(ProviderStatus next, Instant at, String errorCode, Instant now) {
+		if (status != Status.SENT || next == null || at == null) {
+			return false;
+		}
+		if (providerStatus != null && (providerStatus == ProviderStatus.READ || providerStatus == ProviderStatus.FAILED
+				|| next.rank <= providerStatus.rank)) {
+			return false;
+		}
+		this.providerStatus = next;
+		this.providerStatusAt = at;
+		this.providerErrorCode = (next == ProviderStatus.FAILED)
+				? ((errorCode == null || errorCode.isBlank()) ? "UNKNOWN"
+						: errorCode.substring(0, Math.min(errorCode.length(), 20)))
+				: null;
+		this.updatedAt = now;
+		return true;
 	}
 
 	public boolean canRetry() {
@@ -230,6 +280,18 @@ public class NotificationDelivery extends BaseEntity implements TenantOwned {
 
 	public String getProviderMessageId() {
 		return providerMessageId;
+	}
+
+	public ProviderStatus getProviderStatus() {
+		return providerStatus;
+	}
+
+	public Instant getProviderStatusAt() {
+		return providerStatusAt;
+	}
+
+	public String getProviderErrorCode() {
+		return providerErrorCode;
 	}
 
 	public String getLastErrorCode() {

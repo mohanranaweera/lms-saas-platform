@@ -153,8 +153,13 @@ public class BroadcastService {
 
 	}
 
+	/**
+	 * @param providerStatus what the provider later reported (WhatsApp via Meta webhook), or null
+	 * @param providerErrorCode the provider's error code when {@code providerStatus} is FAILED
+	 */
 	public record DeliveryView(UUID id, UUID recipientUserId, String recipientName, String channel, String status,
-			int attemptCount, String destination, String errorCode, Instant nextAttemptAt, Instant completedAt) {
+			int attemptCount, String destination, String errorCode, Instant nextAttemptAt, Instant completedAt,
+			String providerStatus, Instant providerStatusAt, String providerErrorCode) {
 
 	}
 
@@ -339,7 +344,9 @@ public class BroadcastService {
 		return PageResponse.from(page.map(delivery -> new DeliveryView(delivery.getId(),
 				delivery.getRecipientUserId(), names.get(delivery.getRecipientUserId()), delivery.getChannel().name(),
 				delivery.getStatus().name(), delivery.getAttemptCount(), delivery.getDestinationMasked(),
-				delivery.getLastErrorCode(), delivery.getNextAttemptAt(), delivery.getCompletedAt())));
+				delivery.getLastErrorCode(), delivery.getNextAttemptAt(), delivery.getCompletedAt(),
+				(delivery.getProviderStatus() == null) ? null : delivery.getProviderStatus().name(),
+				delivery.getProviderStatusAt(), delivery.getProviderErrorCode())));
 	}
 
 	/**

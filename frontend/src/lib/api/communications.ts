@@ -97,7 +97,13 @@ export interface DeliveryView {
   errorCode: string | null;
   nextAttemptAt: string | null;
   completedAt: string | null;
+  /** What the provider later reported (Meta WhatsApp webhooks, ADR-024); null when nothing came back. */
+  providerStatus: ProviderDeliveryStatus | null;
+  providerStatusAt: string | null;
+  providerErrorCode: string | null;
 }
+
+export type ProviderDeliveryStatus = "SENT" | "DELIVERED" | "READ" | "FAILED";
 
 /** Mirrors `RecipientDeliveryView`. */
 export interface StudentDeliveryView {
@@ -166,11 +172,23 @@ export interface MessagingAccountView {
   disabledAt: string | null;
   updatedAt: string | null;
   operational: boolean;
+  /** WhatsApp template language (`META_WHATSAPP` only). */
+  templateLanguage: string | null;
+  /** Meta status-callback setup; only returned to users who can manage integrations. */
+  webhook: { callbackUrl: string; verifyToken: string } | null;
+}
+
+/** `credentialKeys` are write-only secrets; `settingKeys` are plain settings such as `templateLanguage`. */
+export interface MessagingProviderOption {
+  provider: string;
+  channels: string[];
+  credentialKeys: string[];
+  settingKeys: string[];
 }
 
 export interface MessagingSettingsView {
   accounts: MessagingAccountView[];
-  availableProviders: { provider: string; channels: string[]; credentialKeys: string[] }[];
+  availableProviders: MessagingProviderOption[];
 }
 
 export interface DeliveryFilters {
@@ -401,7 +419,13 @@ function useMessagingMutation<TInput, TResult>(request: (input: TInput) => { pat
 /** `credentials` is sent once and never comes back. */
 export function useConfigureMessaging() {
   return useMessagingMutation<
-    { channel: "SMS" | "WHATSAPP"; provider: string; senderId: string; credentials: Record<string, string> },
+    {
+      channel: "SMS" | "WHATSAPP";
+      provider: string;
+      senderId: string;
+      credentials: Record<string, string>;
+      templateLanguage?: string | null;
+    },
     MessagingAccountView
   >(({ channel, ...body }) => ({
     path: `/v1/tenant-admin/integrations/messaging/${channel}`,

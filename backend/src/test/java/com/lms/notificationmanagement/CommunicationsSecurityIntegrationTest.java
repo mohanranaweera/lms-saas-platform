@@ -187,7 +187,7 @@ class CommunicationsSecurityIntegrationTest extends CommunicationsTestSupport {
 		assertThat(test.status()).isEqualTo(200);
 		assertThat(test.body()).doesNotContain("94771239999").contains("•••999");
 
-		assertThat(new ConfigureMessagingRequest("SANDBOX", "ACADEMY", Map.of("apiKey", SECRET)).toString())
+		assertThat(new ConfigureMessagingRequest("SANDBOX", "ACADEMY", Map.of("apiKey", SECRET), null).toString())
 			.doesNotContain(SECRET);
 		assertThat(output.getAll()).doesNotContain(SECRET).doesNotContain("SUPERSECRET")
 			.doesNotContain("94771239999");

@@ -1,5 +1,6 @@
 package com.lms.integrationmanagement.api;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -43,11 +44,18 @@ public interface MessagingChannelApi {
 	}
 
 	/**
-	 * @param destination E.164-ish phone number; never logged
+	 * @param destination phone number as stored (normalised by the adapter); never logged
 	 * @param providerTemplateName the provider's pre-approved template name
 	 * (WhatsApp business-initiated messages), or null for SMS
+	 * @param templateParameters the template's body values in placeholder order
+	 * (ADR-024 V4); empty for SMS
 	 */
-	record OutboundMessage(Channel channel, String destination, String body, String providerTemplateName) {
+	record OutboundMessage(Channel channel, String destination, String body, String providerTemplateName,
+			List<String> templateParameters) {
+
+		public OutboundMessage {
+			templateParameters = (templateParameters == null) ? List.of() : List.copyOf(templateParameters);
+		}
 
 		@Override
 		public String toString() {
@@ -74,6 +82,12 @@ public interface MessagingChannelApi {
 		public static final String PROVIDER_REJECTED = "PROVIDER_REJECTED";
 
 		public static final String CHANNEL_NOT_AVAILABLE = "CHANNEL_NOT_AVAILABLE";
+
+		/** The provider refused the account's credentials (ADR-024 V6); permanent. */
+		public static final String PROVIDER_AUTH_REJECTED = "PROVIDER_AUTH_REJECTED";
+
+		/** The recipient's number can't be turned into an international number (ADR-024 V5); permanent. */
+		public static final String INVALID_DESTINATION = "INVALID_DESTINATION";
 
 		private final String errorCode;
 

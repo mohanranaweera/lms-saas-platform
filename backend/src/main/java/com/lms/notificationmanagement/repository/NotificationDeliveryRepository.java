@@ -42,6 +42,12 @@ public interface NotificationDeliveryRepository extends TenantAwareRepository<No
 				cb.equal(root.get("channel"), channel), cb.equal(root.get("status"), status)));
 	}
 
+	/** Tenant-scoped (current tenant only): the delivery a provider status callback names. */
+	default List<NotificationDelivery> findByProviderMessage(DeliveryChannel channel, String providerMessageId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("channel"), channel),
+				cb.equal(root.get("providerMessageId"), providerMessageId)));
+	}
+
 	default Page<NotificationDelivery> findForRecipient(UUID recipientUserId, Pageable pageable) {
 		return findAll((root, query, cb) -> cb.equal(root.get("recipientUserId"), recipientUserId), pageable);
 	}

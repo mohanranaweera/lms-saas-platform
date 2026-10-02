@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -70,8 +69,10 @@ public class SandboxMessagingAdapter implements MessagingProviderAdapter {
 	}
 
 	@Override
-	public String send(Channel channel, Map<String, String> credentials, String senderId, String destination,
-			String body, String providerTemplateName) {
+	public String send(SendRequest request) {
+		Channel channel = request.channel();
+		String destination = request.destination();
+		String body = request.body();
 		if (!enabled) {
 			throw new MessagingSendException(MessagingSendException.CHANNEL_NOT_AVAILABLE, false, null);
 		}

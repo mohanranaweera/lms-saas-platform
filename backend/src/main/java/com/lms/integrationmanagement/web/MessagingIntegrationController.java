@@ -37,12 +37,13 @@ public class MessagingIntegrationController {
 
 	/** {@code credentials} is write-only; {@link #toString()} never renders it. */
 	public record ConfigureMessagingRequest(@NotBlank @Size(max = 20) String provider,
-			@NotBlank @Size(max = 40) String senderId, Map<String, String> credentials) {
+			@NotBlank @Size(max = 40) String senderId, Map<String, String> credentials,
+			@Size(max = 15) String templateLanguage) {
 
 		@Override
 		public String toString() {
 			return "ConfigureMessagingRequest[provider=" + provider + ", senderId=" + senderId
-					+ ", credentials=***]";
+					+ ", templateLanguage=" + templateLanguage + ", credentials=***]";
 		}
 
 	}
@@ -65,7 +66,8 @@ public class MessagingIntegrationController {
 	public ResponseEntity<ApiResponse<MessagingAccountView>> configure(@PathVariable Channel channel,
 			@Valid @RequestBody ConfigureMessagingRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(
-				service.configure(channel, request.provider(), request.senderId(), request.credentials())));
+				service.configure(channel, request.provider(), request.senderId(), request.credentials(),
+						request.templateLanguage())));
 	}
 
 	@PostMapping("/{channel}/disable")

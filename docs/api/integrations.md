@@ -337,31 +337,53 @@ Credentials are **write-only**: encrypted (AES-256-GCM, integrations key, AAD
 carry only `credentialHint` (`••••` + last 4 characters when the secret has ≥ 12, else
 `••••`).
 
-Only adapters enabled in the running environment can be configured. Wave 11 ships only
-`SANDBOX` (in-process, no network; `app.messaging.sandbox-enabled`, local/test only). In
-production no provider is available until a vendor ADR adds one, so both channels stay off.
+Only adapters enabled in the running environment can be configured (MSG-PROV-01, ADR-024):
+
+| Provider | Channel | `senderId` | `credentials` (write-only) | Settings |
+|---|---|---|---|---|
+| `TEXTLK` (`app.messaging.textlk.enabled`, default on) | SMS | Text.lk sender ID: 1–11 letters/digits, or a 7–15 digit number | `apiToken` | — |
+| `META_WHATSAPP` (`app.messaging.meta-whatsapp.enabled`, default on) | WhatsApp | Meta phone number ID (5–20 digits) | `accessToken`, `appSecret` | `templateLanguage` (`^[a-z]{2,3}(_[A-Z]{2})?$`) |
+| `SANDBOX` (`app.messaging.sandbox-enabled`, local/test only) | both | 1–40 printable chars | `apiKey` | — |
+
+Each tenant connects its own vendor accounts; nothing vendor-specific is configured
+platform-wide except the Graph API version, default country code and the public
+webhook base URL (`app.messaging.*`).
 
 ### `GET /api/v1/tenant-admin/integrations/messaging`
 
 ```json
 { "accounts": [
-    { "channel": "SMS", "configured": true, "id": "uuid", "provider": "SANDBOX",
+    { "channel": "SMS", "configured": true, "id": "uuid", "provider": "TEXTLK",
       "senderId": "ACADEMY", "credentialHint": "••••9876", "status": "ACTIVE",
-      "disabledAt": null, "updatedAt": "…", "operational": true },
-    { "channel": "WHATSAPP", "configured": false, "status": "NOT_CONFIGURED", … } ],
-  "availableProviders": [ { "provider": "SANDBOX", "channels": ["SMS","WHATSAPP"], "credentialKeys": ["apiKey"] } ] }
+      "disabledAt": null, "updatedAt": "…", "operational": true,
+      "templateLanguage": null, "webhook": null },
+    { "channel": "WHATSAPP", "configured": true, "provider": "META_WHATSAPP",
+      "senderId": "106540352242922", "templateLanguage": "en", …,
+      "webhook": { "callbackUrl": "https://api.example.com/api/v1/integrations/webhooks/meta-whatsapp/{key}",
+                   "verifyToken": "…" } } ],
+  "availableProviders": [
+    { "provider": "TEXTLK", "channels": ["SMS"], "credentialKeys": ["apiToken"], "settingKeys": [] },
+    { "provider": "META_WHATSAPP", "channels": ["WHATSAPP"], "credentialKeys": ["accessToken","appSecret"],
+      "settingKeys": ["templateLanguage"] } ] }
 ```
+
+`webhook` is returned only for `META_WHATSAPP` and only to callers with `INTEGRATIONS`
+CREATE_EDIT (the auditor never sees the verify token). It stays the same when credentials
+are replaced.
 
 ### `PUT /api/v1/tenant-admin/integrations/messaging/{SMS|WHATSAPP}`
 
-Body `{ "provider": "SANDBOX", "senderId": "ACADEMY", "credentials": { "apiKey": "…" } }`.
+Body `{ "provider": "TEXTLK", "senderId": "ACADEMY", "credentials": { "apiToken": "…" } }`
+or `{ "provider": "META_WHATSAPP", "senderId": "106540352242922", "templateLanguage": "en",
+"credentials": { "accessToken": "…", "appSecret": "…" } }`.
 Replaces the channel's account: the previous ACTIVE row is disabled (rows are never
 deleted — deliveries reference the account that sent them).
 
 - `200` → `MessagingAccountView`.
-- `400 MESSAGING_PROVIDER_NOT_AVAILABLE` — unknown provider or not enabled here.
-- `400 VALIDATION_ERROR` — sender id (1–40 of letters, digits, space, `+ . _ -`), missing,
-  oversize (> 512) or unexpected credential fields.
+- `400 MESSAGING_PROVIDER_NOT_AVAILABLE` — unknown provider, not enabled here, or not
+  available for that channel.
+- `400 VALIDATION_ERROR` — sender id not valid for the provider (see table), bad or missing
+  `templateLanguage` (Meta), missing, oversize (> 512) or unexpected credential fields.
 - `503` if the encryption key is not configured (fail closed).
 
 ### `POST …/messaging/{channel}/disable`
@@ -375,8 +397,29 @@ Body `{ "destination": "+94771234567" }` (7–15 digits). `200` →
 `{ channel, destination (masked), providerMessageId }`; `409` with the fixed error code when
 the provider refuses. Audit-logged with the masked destination.
 
-Audit actions: `messaging.account_configured` (channel, provider, sender id, credential
-*key names* only), `messaging.account_disabled`, `messaging.test_sent`.
+Meta test sends use Meta's pre-approved `hello_world` template (`en_US`); Text.lk sends a
+fixed plain-text message.
+
+Audit actions: `messaging.account_configured` (channel, provider, sender id, template
+language, credential *key names* only), `messaging.account_disabled`, `messaging.test_sent`.
+
+## Meta WhatsApp status webhook (public): `/api/v1/integrations/webhooks/meta-whatsapp/{webhookKey}`
+
+`permitAll`. The tenant is chosen **only** by the stored random `webhookKey`, never by the
+payload (ADR-024 V8).
+
+- `GET ?hub.mode=subscribe&hub.verify_token=…&hub.challenge=…` → `200 text/plain` echoing
+  the challenge when the token equals that tenant's verify token; otherwise `403`.
+- `POST` with `X-Hub-Signature-256: sha256=<hex>` — HMAC-SHA256 of the raw body with that
+  tenant's Meta App Secret, verified before parsing. `200` when accepted; `401` for an
+  unknown key, bad signature or a phone number ID that is not the tenant's; `400` without
+  the header; `413` over the size limit. Each status (`sent`, `delivered`, `read`, `failed`)
+  updates `providerStatus` forward-only on that tenant's matching WhatsApp delivery
+  (by provider message id); `failed` records Meta's error code.
+
+Broadcast delivery views (`DeliveryView`) carry `providerStatus` (`SENT | DELIVERED | READ |
+FAILED` or null), `providerStatusAt` and `providerErrorCode`. Text.lk sends no delivery
+reports, so SMS rows stay null ("Accepted by provider").
 
 ## Zoom webhook (public): `POST /api/v1/integrations/webhooks/zoom`
 

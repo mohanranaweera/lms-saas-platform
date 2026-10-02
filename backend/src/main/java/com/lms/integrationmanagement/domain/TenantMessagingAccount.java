@@ -22,10 +22,14 @@ import java.util.UUID;
 @Table(name = "tenant_messaging_account")
 public class TenantMessagingAccount extends Auditable implements TenantOwned {
 
-	/** Mirrors {@code ck_tenant_messaging_account_provider} - SANDBOX only until a vendor ADR (decision D1). */
+	/**
+	 * Mirrors {@code ck_tenant_messaging_account_provider}: the local/test
+	 * sandbox (ADR-023 D1) and the vendors approved by ADR-024 - Text.lk (SMS)
+	 * and Meta WhatsApp Cloud API (WhatsApp).
+	 */
 	public enum Provider {
 
-		SANDBOX
+		SANDBOX, TEXTLK, META_WHATSAPP
 
 	}
 
@@ -48,6 +52,10 @@ public class TenantMessagingAccount extends Auditable implements TenantOwned {
 
 	@Column(name = "sender_id", nullable = false, updatable = false, length = 40)
 	private String senderId;
+
+	/** WhatsApp template language for META_WHATSAPP (ADR-024 V3); null for every other provider. */
+	@Column(name = "template_language", updatable = false, length = 15)
+	private String templateLanguage;
 
 	@Column(name = "credentials_ciphertext", nullable = false)
 	private String credentialsCiphertext;
@@ -75,10 +83,16 @@ public class TenantMessagingAccount extends Auditable implements TenantOwned {
 	 */
 	public TenantMessagingAccount(UUID tenantId, Channel channel, Provider provider, String senderId,
 			String credentialHint) {
+		this(tenantId, channel, provider, senderId, null, credentialHint);
+	}
+
+	public TenantMessagingAccount(UUID tenantId, Channel channel, Provider provider, String senderId,
+			String templateLanguage, String credentialHint) {
 		this.tenantId = tenantId;
 		this.channel = channel;
 		this.provider = provider;
 		this.senderId = senderId;
+		this.templateLanguage = templateLanguage;
 		this.credentialHint = credentialHint;
 		this.credentialsCiphertext = "pending";
 		this.status = Status.ACTIVE;
@@ -121,6 +135,10 @@ public class TenantMessagingAccount extends Auditable implements TenantOwned {
 
 	public String getSenderId() {
 		return senderId;
+	}
+
+	public String getTemplateLanguage() {
+		return templateLanguage;
 	}
 
 	public String getCredentialsCiphertext() {

@@ -190,6 +190,11 @@ public class SecurityFilterChainConfig {
 				// per .claude/rules/security.md and
 				// .claude/rules/payments.md's webhook-verification rules.
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/integrations/webhooks/**").permitAll();
+				// MSG-PROV-01 / ADR-024 V8: Meta's webhook subscription
+				// handshake is a GET on the same per-tenant callback URL. It
+				// changes nothing; MetaWhatsAppWebhookService echoes the
+				// challenge only for a known key and matching verify token.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/integrations/webhooks/meta-whatsapp/*").permitAll();
 				// MEDIA-INT-01 / ADR-018 §3: the single OAuth redirect URI the
 				// Zoom/Google/Vimeo apps send the teacher's browser back to. It
 				// carries no session/JWT; OAuthConnectFlowService trusts only

@@ -14,11 +14,19 @@ import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.MessagingChannelApi;
 import com.lms.integrationmanagement.domain.TenantMessagingAccount;
 import com.lms.integrationmanagement.domain.TenantMessagingAccount.Provider;
+import com.lms.integrationmanagement.config.MessagingProperties;
+import com.lms.integrationmanagement.domain.TenantMessagingWebhook;
 import com.lms.integrationmanagement.gateway.MediaCredentialCipher;
 import com.lms.integrationmanagement.gateway.messaging.MessagingProviderAdapter;
+import com.lms.integrationmanagement.gateway.messaging.MessagingProviderAdapter.SendRequest;
+import com.lms.integrationmanagement.gateway.messaging.MessagingProviderAdapter.TestMessage;
+import com.lms.integrationmanagement.gateway.messaging.MetaWhatsAppMessagingAdapter;
 import com.lms.integrationmanagement.repository.TenantMessagingAccountRepository;
+import com.lms.integrationmanagement.repository.TenantMessagingWebhookRepository;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,7 +63,12 @@ public class MessagingAccountService implements MessagingChannelApi {
 
 	private static final String TARGET_ENTITY = "tenant_messaging_account";
 
-	private static final Pattern SENDER_ID = Pattern.compile("^[A-Za-z0-9 +._-]{1,40}$");
+	private static final Pattern TEMPLATE_LANGUAGE = Pattern.compile("^[a-z]{2,3}(_[A-Z]{2})?$");
+
+	/** Meta status callbacks (ADR-024 V8); the key in the path selects the tenant. */
+	public static final String META_WEBHOOK_PATH = "/api/v1/integrations/webhooks/meta-whatsapp/";
+
+	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private static final Pattern PHONE = Pattern.compile("^\\+?[0-9]{7,15}$");
 
@@ -77,10 +90,17 @@ public class MessagingAccountService implements MessagingChannelApi {
 
 	private final ObjectMapper objectMapper;
 
+	private final TenantMessagingWebhookRepository webhookRepository;
+
+	private final MessagingProperties properties;
+
 	public MessagingAccountService(TenantMessagingAccountRepository repository, MediaCredentialCipher cipher,
 			List<MessagingProviderAdapter> adapterList, PermissionCheckService permissionCheckService,
-			AuditLogApi auditLogApi, TenantContext tenantContext, ObjectMapper objectMapper) {
+			AuditLogApi auditLogApi, TenantContext tenantContext, ObjectMapper objectMapper,
+			TenantMessagingWebhookRepository webhookRepository, MessagingProperties properties) {
 		this.repository = repository;
+		this.webhookRepository = webhookRepository;
+		this.properties = properties;
 		this.cipher = cipher;
 		this.adapters = new EnumMap<>(Provider.class);
 		adapterList.forEach(adapter -> this.adapters.put(adapter.provider(), adapter));
@@ -90,13 +110,30 @@ public class MessagingAccountService implements MessagingChannelApi {
 		this.objectMapper = objectMapper;
 	}
 
-	/** What the settings page shows for one channel - never a secret. */
+	/**
+	 * What the settings page shows for one channel - never a secret.
+	 * @param templateLanguage WhatsApp template language (META_WHATSAPP only)
+	 * @param webhook Meta status-callback setup, shown to managers only; else null
+	 */
 	public record MessagingAccountView(String channel, boolean configured, UUID id, String provider, String senderId,
-			String credentialHint, String status, Instant disabledAt, Instant updatedAt, boolean operational) {
+			String credentialHint, String status, Instant disabledAt, Instant updatedAt, boolean operational,
+			String templateLanguage, WebhookSetup webhook) {
 
 	}
 
-	public record ProviderOption(String provider, List<String> channels, List<String> credentialKeys) {
+	/** What the tenant pastes into its Meta app's webhook settings (ADR-024 V8). Not a credential. */
+	public record WebhookSetup(String callbackUrl, String verifyToken) {
+
+		@Override
+		public String toString() {
+			return "WebhookSetup[callbackUrl=<redacted>, verifyToken=***]";
+		}
+
+	}
+
+	/** {@code credentialKeys} are write-only secrets; {@code settingKeys} are plain settings. */
+	public record ProviderOption(String provider, List<String> channels, List<String> credentialKeys,
+			List<String> settingKeys) {
 
 	}
 
@@ -120,14 +157,15 @@ public class MessagingAccountService implements MessagingChannelApi {
 			accounts.add(repository.findLatest(channel)
 				.map(this::toView)
 				.orElse(new MessagingAccountView(channel.name(), false, null, null, null, null, "NOT_CONFIGURED",
-						null, null, false)));
+						null, null, false, null, null)));
 		}
 		List<ProviderOption> providers = adapters.values()
 			.stream()
 			.filter(MessagingProviderAdapter::isEnabled)
 			.map(adapter -> new ProviderOption(adapter.provider().name(),
 					adapter.supportedChannels().stream().map(Enum::name).sorted().toList(),
-					adapter.requiredCredentialKeys().stream().sorted().toList()))
+					adapter.requiredCredentialKeys().stream().sorted().toList(),
+					adapter.requiredSettingKeys().stream().sorted().toList()))
 			.toList();
 		return new MessagingSettingsView(accounts, providers);
 	}
@@ -138,14 +176,16 @@ public class MessagingAccountService implements MessagingChannelApi {
 	 */
 	@Transactional
 	public MessagingAccountView configure(Channel channel, String providerName, String senderId,
-			Map<String, String> credentials) {
+			Map<String, String> credentials, String templateLanguage) {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT);
 		MessagingProviderAdapter adapter = resolveConfigurableAdapter(channel, providerName);
 		String trimmedSender = (senderId == null) ? "" : senderId.trim();
-		if (!SENDER_ID.matcher(trimmedSender).matches()) {
+		String senderError = trimmedSender.isEmpty() ? "is required" : adapter.validateSenderId(trimmedSender);
+		if (senderError != null) {
 			throw new FieldValidationException("Invalid messaging account",
-					List.of(new FieldError("senderId", "must be 1-40 letters, digits, spaces or + . _ -")));
+					List.of(new FieldError("senderId", senderError)));
 		}
+		String language = validateTemplateLanguage(adapter, templateLanguage);
 		Map<String, String> cleaned = validateCredentials(adapter, credentials);
 
 		Instant now = Instant.now();
@@ -156,14 +196,24 @@ public class MessagingAccountService implements MessagingChannelApi {
 		});
 		String primarySecret = cleaned.get(adapter.requiredCredentialKeys().stream().sorted().findFirst().orElseThrow());
 		TenantMessagingAccount account = new TenantMessagingAccount(tenantContext.getTenantId(), channel,
-				adapter.provider(), trimmedSender, hint(primarySecret));
+				adapter.provider(), trimmedSender, language, hint(primarySecret));
 		account = repository.save(account);
 		account.sealCredentials(cipher.encrypt(objectMapper.writeValueAsString(cleaned), account.credentialsAad()));
 		account = repository.saveAndFlush(account);
+		if (adapter.provider() == Provider.META_WHATSAPP) {
+			ensureWebhook(adapter.provider());
+		}
 
-		auditLogApi.record(new AuditLogEntry(actor, "messaging.account_configured", TARGET_ENTITY, account.getId(),
-				null, Map.of("channel", channel.name(), "provider", adapter.provider().name(), "senderId",
-						trimmedSender, "credentialKeys", List.copyOf(cleaned.keySet()))));
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("channel", channel.name());
+		metadata.put("provider", adapter.provider().name());
+		metadata.put("senderId", trimmedSender);
+		metadata.put("credentialKeys", List.copyOf(cleaned.keySet()));
+		if (language != null) {
+			metadata.put("templateLanguage", language);
+		}
+		auditLogApi.record(
+				new AuditLogEntry(actor, "messaging.account_configured", TARGET_ENTITY, account.getId(), null, metadata));
 		return toView(account);
 	}
 
@@ -194,8 +244,7 @@ public class MessagingAccountService implements MessagingChannelApi {
 		}
 		SendReceipt receipt;
 		try {
-			receipt = send(new OutboundMessage(channel, trimmed,
-					"This is a test message from your institute's messaging settings.", null));
+			receipt = sendTest(channel, trimmed);
 		}
 		catch (MessagingSendException ex) {
 			recordTestSend(channel, ex.getProviderAccountId(), trimmed, ex.getErrorCode());
@@ -234,6 +283,23 @@ public class MessagingAccountService implements MessagingChannelApi {
 
 	@Override
 	public SendReceipt send(OutboundMessage message) {
+		return send(message, null);
+	}
+
+	/** A test send uses the vendor's own test message (e.g. Meta's {@code hello_world} template). */
+	private SendReceipt sendTest(Channel channel, String destination) {
+		TestMessage test = repository.findActive(channel)
+			.map(account -> adapters.get(account.getProvider()))
+			.map(MessagingProviderAdapter::testMessage)
+			.orElse(null);
+		if (test == null) {
+			return send(new OutboundMessage(channel, destination, null, null, null), null);
+		}
+		return send(new OutboundMessage(channel, destination, test.body(), test.templateName(), null),
+				test.templateLanguage());
+	}
+
+	private SendReceipt send(OutboundMessage message, String templateLanguageOverride) {
 		TenantMessagingAccount account = repository.findActive(message.channel())
 			.orElseThrow(() -> new MessagingSendException(MessagingSendException.CHANNEL_NOT_AVAILABLE, false, null));
 		MessagingProviderAdapter adapter = adapters.get(account.getProvider());
@@ -245,8 +311,11 @@ public class MessagingAccountService implements MessagingChannelApi {
 					new TypeReference<Map<String, String>>() {
 					});
 		try {
-			String messageId = adapter.send(message.channel(), credentials, account.getSenderId(),
-					message.destination(), message.body(), message.providerTemplateName());
+			String language = (templateLanguageOverride != null) ? templateLanguageOverride
+					: account.getTemplateLanguage();
+			String messageId = adapter.send(new SendRequest(message.channel(), credentials, account.getSenderId(),
+					language, message.destination(), message.body(), message.providerTemplateName(),
+					message.templateParameters()));
 			return new SendReceipt(account.getId(), messageId);
 		}
 		catch (MessagingSendException ex) {
@@ -282,6 +351,62 @@ public class MessagingAccountService implements MessagingChannelApi {
 							"is not available for " + channel.name() + " in this environment")));
 		}
 		return adapter;
+	}
+
+	private static String validateTemplateLanguage(MessagingProviderAdapter adapter, String templateLanguage) {
+		if (!adapter.requiredSettingKeys().contains(MessagingProviderAdapter.TEMPLATE_LANGUAGE)) {
+			return null;
+		}
+		String trimmed = (templateLanguage == null) ? "" : templateLanguage.trim();
+		if (!TEMPLATE_LANGUAGE.matcher(trimmed).matches()) {
+			throw new FieldValidationException("Invalid messaging account",
+					List.of(new FieldError(MessagingProviderAdapter.TEMPLATE_LANGUAGE,
+							"must be a WhatsApp language code such as en, en_US or si")));
+		}
+		return trimmed;
+	}
+
+	/** One stable webhook row per tenant and provider, kept across credential replacements. */
+	private TenantMessagingWebhook ensureWebhook(Provider provider) {
+		return webhookRepository.findForProvider(provider)
+			.orElseGet(() -> webhookRepository.saveAndFlush(new TenantMessagingWebhook(tenantContext.getTenantId(),
+					provider, randomToken(), randomToken())));
+	}
+
+	private static String randomToken() {
+		byte[] bytes = new byte[32];
+		RANDOM.nextBytes(bytes);
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+	}
+
+	/**
+	 * The current tenant's Meta webhook verification material (ADR-024 V8): the
+	 * App Secret and phone number ID of the newest {@code META_WHATSAPP}
+	 * account, active or not - a status for a message sent before the account
+	 * was disabled must still verify. Returned only to the webhook service, in
+	 * memory, for one verification.
+	 */
+	@Transactional(readOnly = true)
+	public Optional<MetaWebhookSecret> metaWebhookSecret() {
+		return repository.findLatest(Channel.WHATSAPP)
+			.filter(account -> account.getProvider() == Provider.META_WHATSAPP)
+			.map(account -> {
+				Map<String, String> credentials = objectMapper.readValue(
+						cipher.decrypt(account.getCredentialsCiphertext(), account.credentialsAad()),
+						new TypeReference<Map<String, String>>() {
+						});
+				return new MetaWebhookSecret(credentials.get(MetaWhatsAppMessagingAdapter.APP_SECRET),
+						account.getSenderId());
+			});
+	}
+
+	public record MetaWebhookSecret(String appSecret, String phoneNumberId) {
+
+		@Override
+		public String toString() {
+			return "MetaWebhookSecret[appSecret=***, phoneNumberId=" + phoneNumberId + "]";
+		}
+
 	}
 
 	private static Map<String, String> validateCredentials(MessagingProviderAdapter adapter,
@@ -327,7 +452,27 @@ public class MessagingAccountService implements MessagingChannelApi {
 		boolean operational = account.isActive() && adapter != null && adapter.isEnabled();
 		return new MessagingAccountView(account.getChannel().name(), true, account.getId(),
 				account.getProvider().name(), account.getSenderId(), account.getCredentialHint(),
-				account.getStatus().name(), account.getDisabledAt(), account.getUpdatedAt(), operational);
+				account.getStatus().name(), account.getDisabledAt(), account.getUpdatedAt(), operational,
+				account.getTemplateLanguage(), webhookSetup(account));
+	}
+
+	/** Managers only: the verify token lets anyone re-point the Meta subscription, so VIEW roles don't see it. */
+	private WebhookSetup webhookSetup(TenantMessagingAccount account) {
+		if (account.getProvider() != Provider.META_WHATSAPP
+				|| !permissionCheckService.hasPermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT)) {
+			return null;
+		}
+		return webhookRepository.findForProvider(Provider.META_WHATSAPP)
+			.map(webhook -> new WebhookSetup(callbackUrl(webhook.getWebhookKey()), webhook.getVerifyToken()))
+			.orElse(null);
+	}
+
+	private String callbackUrl(String webhookKey) {
+		String base = (properties.getWebhookBaseUrl() == null) ? "" : properties.getWebhookBaseUrl().trim();
+		if (base.endsWith("/")) {
+			base = base.substring(0, base.length() - 1);
+		}
+		return base + META_WEBHOOK_PATH + webhookKey;
 	}
 
 }

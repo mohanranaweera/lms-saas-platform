@@ -20,7 +20,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DeliveryStatusBadge, deliveryReason } from "./delivery-status";
+import { DeliveryStatusBadge, deliveryReason, providerStatusText } from "./delivery-status";
 
 const ALL = "ALL";
 const STATUSES: DeliveryStatus[] = ["PENDING", "SENT", "FAILED", "SKIPPED"];
@@ -107,7 +107,11 @@ function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
         if (row.status === "PENDING" && row.nextAttemptAt) {
           return `Retrying ${formatDateTime(row.nextAttemptAt)} (attempt ${row.attemptCount} of 3 failed)`;
         }
-        return reason ?? (row.completedAt ? formatDateTime(row.completedAt) : "—");
+        if (reason) return reason;
+        const provider = providerStatusText(row);
+        const when = row.providerStatusAt ?? row.completedAt;
+        if (provider) return when ? `${provider} · ${formatDateTime(when)}` : provider;
+        return row.completedAt ? formatDateTime(row.completedAt) : "—";
       },
     },
   ];

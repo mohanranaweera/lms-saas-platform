@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.lms.integrationmanagement.api.MessagingChannelApi.Channel;
 import com.lms.integrationmanagement.api.MessagingChannelApi.MessagingSendException;
 import com.lms.integrationmanagement.api.MessagingChannelApi.OutboundMessage;
+import com.lms.integrationmanagement.gateway.messaging.MessagingProviderAdapter.SendRequest;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -18,11 +19,15 @@ class SandboxMessagingAdapterTest {
 
 	private static final Map<String, String> CREDENTIALS = Map.of("apiKey", "sandbox-key");
 
+	private static SendRequest request(Channel channel, String destination, String body, String template) {
+		return new SendRequest(channel, CREDENTIALS, "ACADEMY", null, destination, body, template, null);
+	}
+
 	@Test
 	void aDisabledSandboxRefusesToSendAndReportsItself() {
 		SandboxMessagingAdapter adapter = new SandboxMessagingAdapter(false);
 		assertThat(adapter.isEnabled()).isFalse();
-		assertThatThrownBy(() -> adapter.send(Channel.SMS, CREDENTIALS, "ACADEMY", "+94771234567", "hi", null))
+		assertThatThrownBy(() -> adapter.send(request(Channel.SMS, "+94771234567", "hi", null)))
 			.isInstanceOfSatisfying(MessagingSendException.class, ex -> {
 				assertThat(ex.getErrorCode()).isEqualTo(MessagingSendException.CHANNEL_NOT_AVAILABLE);
 				assertThat(ex.isRetryable()).isFalse();
@@ -32,9 +37,9 @@ class SandboxMessagingAdapterTest {
 	@Test
 	void deterministicNumbersDriveTransientAndPermanentFailures() {
 		SandboxMessagingAdapter adapter = new SandboxMessagingAdapter(true);
-		assertThatThrownBy(() -> adapter.send(Channel.SMS, CREDENTIALS, "ACADEMY", "+94770000001", "hi", null))
+		assertThatThrownBy(() -> adapter.send(request(Channel.SMS, "+94770000001", "hi", null)))
 			.isInstanceOfSatisfying(MessagingSendException.class, ex -> assertThat(ex.isRetryable()).isTrue());
-		assertThatThrownBy(() -> adapter.send(Channel.WHATSAPP, CREDENTIALS, "ACADEMY", "+94770000002", "hi", "t"))
+		assertThatThrownBy(() -> adapter.send(request(Channel.WHATSAPP, "+94770000002", "hi", "t")))
 			.isInstanceOfSatisfying(MessagingSendException.class, ex -> {
 				assertThat(ex.isRetryable()).isFalse();
 				assertThat(ex.getMessage()).isEqualTo(MessagingSendException.PROVIDER_REJECTED)
@@ -45,7 +50,7 @@ class SandboxMessagingAdapterTest {
 	@Test
 	void aSuccessfulSendKeepsOnlyAMaskedDestination() {
 		SandboxMessagingAdapter adapter = new SandboxMessagingAdapter(true);
-		String id = adapter.send(Channel.SMS, CREDENTIALS, "ACADEMY", "+94771234567", "hello", null);
+		String id = adapter.send(request(Channel.SMS, "+94771234567", "hello", null));
 		assertThat(id).startsWith("sandbox-");
 		assertThat(adapter.recentMessages().get(0).maskedDestination()).isEqualTo("+947•••567");
 		assertThat(adapter.recentMessages().toString()).doesNotContain("94771234567").doesNotContain("sandbox-key");
@@ -53,7 +58,7 @@ class SandboxMessagingAdapterTest {
 
 	@Test
 	void anOutboundMessageNeverRendersItsDestination() {
-		assertThat(new OutboundMessage(Channel.SMS, "+94771234567", "hello", null).toString())
+		assertThat(new OutboundMessage(Channel.SMS, "+94771234567", "hello", null, null).toString())
 			.doesNotContain("94771234567");
 	}
 

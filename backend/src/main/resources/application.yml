@@ -168,6 +168,18 @@ app:
   # SMS/WhatsApp channels are unavailable (fail closed).
   messaging:
     sandbox-enabled: false
+    # MSG-PROV-01 / ADR-024: real vendors. Credentials are per tenant
+    # (encrypted in tenant_messaging_account), never configured here.
+    textlk:
+      enabled: ${MESSAGING_TEXTLK_ENABLED:true}
+    meta-whatsapp:
+      enabled: ${MESSAGING_META_WHATSAPP_ENABLED:true}
+    meta-graph-api-version: ${MESSAGING_META_GRAPH_API_VERSION:v23.0}
+    # National numbers with a leading 0 get this prefix (ADR-024 V5).
+    default-country-code: ${MESSAGING_DEFAULT_COUNTRY_CODE:94}
+    # Public API origin for the Meta status webhook URL shown to tenants
+    # (e.g. https://api.example.com). Empty = the page shows the path only.
+    webhook-base-url: ${MESSAGING_WEBHOOK_BASE_URL:}
   # AUTH-PWD-01 / ADR-020: tenant site origin used in account-setup and
   # password-reset emails; {subdomain} comes from the tenant record. Empty =
   # those emails fail closed (not sent). Non-secret (ADR-019 Decision 3).

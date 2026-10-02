@@ -9,7 +9,7 @@ import {
   useMessagingSettings,
   useTestMessaging,
   type MessagingAccountView,
-  type MessagingSettingsView,
+  type MessagingProviderOption,
 } from "@/lib/api/communications";
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime } from "@/lib/format";
@@ -25,6 +25,60 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const CHANNEL_TITLES = { SMS: "SMS", WHATSAPP: "WhatsApp" } as const;
 
+interface ProviderCopy {
+  label: string;
+  senderLabel: string;
+  senderHint: string;
+  fieldLabels: Record<string, string>;
+  help?: string;
+}
+
+/**
+ * Display copy per provider (MSG-PROV-01 / ADR-024). The backend decides which
+ * providers exist and which fields each needs; this only names them.
+ */
+const PROVIDER_COPY: Record<string, ProviderCopy> = {
+  TEXTLK: {
+    label: "Text.lk",
+    senderLabel: "Sender ID",
+    senderHint: "Your approved Text.lk sender ID (up to 11 letters or digits), or a phone number.",
+    fieldLabels: { apiToken: "API token" },
+    help: "Create an API token in your Text.lk dashboard (Developers → API Tokens). Text.lk does not send delivery reports, so sent SMS show as “Accepted by provider”.",
+  },
+  META_WHATSAPP: {
+    label: "Meta WhatsApp Cloud API",
+    senderLabel: "Phone number ID",
+    senderHint: "The phone number ID from WhatsApp Manager → API Setup (digits only), not the phone number itself.",
+    fieldLabels: {
+      accessToken: "Permanent access token",
+      appSecret: "App secret",
+      templateLanguage: "Template language",
+    },
+    help: "Use a system-user access token with the whatsapp_business_messaging permission. Broadcasts are sent as approved WhatsApp templates in the language below.",
+  },
+  SANDBOX: {
+    label: "Sandbox (local testing only)",
+    senderLabel: "Sender name",
+    senderHint: "Any name; sandbox messages are only logged and never leave this server.",
+    fieldLabels: { apiKey: "API key" },
+  },
+};
+
+function providerCopy(provider: string | null | undefined): ProviderCopy {
+  return (
+    (provider ? PROVIDER_COPY[provider] : undefined) ?? {
+      label: provider ?? "",
+      senderLabel: "Sender",
+      senderHint: "",
+      fieldLabels: {},
+    }
+  );
+}
+
+function fieldLabel(provider: string, key: string): string {
+  return providerCopy(provider).fieldLabels[key] ?? key;
+}
+
 function errorText(error: unknown): string {
   return isApiClientError(error)
     ? (error.fieldErrors[0]?.message ?? error.message)
@@ -32,8 +86,8 @@ function errorText(error: unknown): string {
 }
 
 /**
- * Tenant Admin → Institute Configuration → Messaging (Wave 11). The
- * institute's own SMS / WhatsApp provider account, `INTEGRATIONS` VIEW /
+ * Tenant Admin → Institute Configuration → Messaging (Wave 11, MSG-PROV-01).
+ * The institute's own SMS (Text.lk) / WhatsApp (Meta Cloud API) account, `INTEGRATIONS` VIEW /
  * CREATE_EDIT (Tenant Admin edits; Read-only Auditor views).
  *
  * Credentials are write-only: they are sent once, encrypted by the backend and
@@ -78,7 +132,7 @@ function ChannelCard({
   canManage,
 }: {
   account: MessagingAccountView;
-  settings: MessagingSettingsView;
+  settings: { availableProviders: MessagingProviderOption[] };
   canManage: boolean;
 }) {
   const [notice, setNotice] = useState<string | null>(null);
@@ -87,7 +141,10 @@ function ChannelCard({
     const timeout = setTimeout(() => setNotice(null), 5000);
     return () => clearTimeout(timeout);
   }, [notice]);
-  const providers = settings.availableProviders.filter((p) => p.channels.includes(account.channel));
+  // Real providers first; the sandbox (local/test only) last.
+  const providers = settings.availableProviders
+    .filter((p) => p.channels.includes(account.channel))
+    .sort((a, b) => Number(a.provider === "SANDBOX") - Number(b.provider === "SANDBOX"));
   const title = CHANNEL_TITLES[account.channel];
 
   return (
@@ -101,9 +158,15 @@ function ChannelCard({
         </CardTitle>
         <CardDescription>
           {account.configured
-            ? `Provider ${account.provider} · sender ${account.senderId} · key ${account.credentialHint}${
-                account.updatedAt ? ` · updated ${formatDateTime(account.updatedAt)}` : ""
-              }`
+            ? [
+                `Provider ${providerCopy(account.provider).label}`,
+                `${providerCopy(account.provider).senderLabel.toLowerCase()} ${account.senderId}`,
+                `key ${account.credentialHint}`,
+                account.templateLanguage ? `language ${account.templateLanguage}` : null,
+                account.updatedAt ? `updated ${formatDateTime(account.updatedAt)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")
             : `No ${title} account connected.`}
         </CardDescription>
       </CardHeader>
@@ -121,6 +184,7 @@ function ChannelCard({
         {canManage && account.status === "ACTIVE" ? (
           <ActiveAccountActions account={account} onNotice={setNotice} />
         ) : null}
+        {account.webhook ? <WebhookSetupPanel webhook={account.webhook} channel={account.channel} /> : null}
       </CardContent>
     </Card>
   );
@@ -132,14 +196,20 @@ function ConfigureForm({
   onSaved,
 }: {
   account: MessagingAccountView;
-  providers: MessagingSettingsView["availableProviders"];
+  providers: MessagingProviderOption[];
   onSaved: () => void;
 }) {
   const configure = useConfigureMessaging();
-  const [provider, setProvider] = useState(providers[0]?.provider ?? "");
+  const [provider, setProvider] = useState(
+    providers.find((p) => p.provider === account.provider)?.provider ?? providers[0]?.provider ?? ""
+  );
   const [senderId, setSenderId] = useState(account.senderId ?? "");
+  const [templateLanguage, setTemplateLanguage] = useState(account.templateLanguage ?? "en");
   const [credentials, setCredentials] = useState<Record<string, string>>({});
-  const keys = providers.find((p) => p.provider === provider)?.credentialKeys ?? [];
+  const option = providers.find((p) => p.provider === provider);
+  const keys = option?.credentialKeys ?? [];
+  const needsLanguage = option?.settingKeys.includes("templateLanguage") ?? false;
+  const copy = providerCopy(provider);
   const idPrefix = `messaging-${account.channel}`;
 
   return (
@@ -150,7 +220,14 @@ function ConfigureForm({
       onSubmit={(event) => {
         event.preventDefault();
         configure.mutate(
-          { channel: account.channel, provider, senderId, credentials },
+          {
+            channel: account.channel,
+            provider,
+            senderId,
+            // Only the chosen provider's secrets are sent.
+            credentials: Object.fromEntries(keys.map((key) => [key, credentials[key] ?? ""])),
+            templateLanguage: needsLanguage ? templateLanguage : null,
+          },
           {
             onSuccess: () => {
               setCredentials({});
@@ -165,31 +242,49 @@ function ConfigureForm({
           <Label htmlFor={`${idPrefix}-provider`}>Provider</Label>
           <Select value={provider} onValueChange={(value) => value && setProvider(value)}>
             <SelectTrigger id={`${idPrefix}-provider`} className="w-full">
-              <SelectValue />
+              <SelectValue>{copy.label}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {providers.map((p) => (
                 <SelectItem key={p.provider} value={p.provider}>
-                  {p.provider}
+                  {providerCopy(p.provider).label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-sender`}>
-            {account.channel === "SMS" ? "Sender name" : "WhatsApp number"}
-          </Label>
+          <Label htmlFor={`${idPrefix}-sender`}>{copy.senderLabel}</Label>
           <Input
             id={`${idPrefix}-sender`}
             maxLength={40}
             value={senderId}
+            aria-describedby={`${idPrefix}-sender-hint`}
             onChange={(event) => setSenderId(event.target.value)}
           />
+          <p id={`${idPrefix}-sender-hint`} className="text-xs text-muted-foreground">
+            {copy.senderHint}
+          </p>
         </div>
+        {needsLanguage ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${idPrefix}-templateLanguage`}>{fieldLabel(provider, "templateLanguage")}</Label>
+            <Input
+              id={`${idPrefix}-templateLanguage`}
+              maxLength={15}
+              placeholder="en"
+              value={templateLanguage}
+              aria-describedby={`${idPrefix}-templateLanguage-hint`}
+              onChange={(event) => setTemplateLanguage(event.target.value)}
+            />
+            <p id={`${idPrefix}-templateLanguage-hint`} className="text-xs text-muted-foreground">
+              The language your templates were approved in, e.g. en, en_US, si or ta.
+            </p>
+          </div>
+        ) : null}
         {keys.map((key) => (
           <div key={key} className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-${key}`}>{key === "apiKey" ? "API key" : key}</Label>
+            <Label htmlFor={`${idPrefix}-${key}`}>{fieldLabel(provider, key)}</Label>
             <Input
               id={`${idPrefix}-${key}`}
               type="password"
@@ -200,8 +295,10 @@ function ConfigureForm({
           </div>
         ))}
       </div>
+      {copy.help ? <p className="text-sm text-muted-foreground">{copy.help}</p> : null}
       <p className="text-xs text-muted-foreground">
-        Keys are stored encrypted and are never shown again. Saving replaces the current account.
+        Keys are stored encrypted and are never shown again. Saving replaces the current account, so enter every
+        key again when you change anything.
       </p>
       {configure.isError ? (
         <Alert variant="destructive">
@@ -269,6 +366,42 @@ function ActiveAccountActions({
       </div>
       {test.isError ? <p className="text-sm text-destructive">{errorText(test.error)}</p> : null}
       {disable.isError ? <p className="text-sm text-destructive">{errorText(disable.error)}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * Meta WhatsApp delivery receipts (ADR-024 V8): the tenant pastes these into
+ * its Meta app's webhook settings and subscribes to the `messages` field.
+ * The backend returns this to managers only.
+ */
+function WebhookSetupPanel({
+  webhook,
+  channel,
+}: {
+  webhook: NonNullable<MessagingAccountView["webhook"]>;
+  channel: MessagingAccountView["channel"];
+}) {
+  const idPrefix = `messaging-${channel}-webhook`;
+  return (
+    <div className="flex flex-col gap-3 border-t border-border pt-4">
+      <div>
+        <p className="text-sm font-medium text-foreground">Delivery receipts (webhook)</p>
+        <p className="text-sm text-muted-foreground">
+          In your Meta app, open WhatsApp → Configuration → Webhook, paste these values, then subscribe to
+          the “messages” field. Without this, WhatsApp messages show only as sent.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${idPrefix}-url`}>Callback URL</Label>
+          <Input id={`${idPrefix}-url`} readOnly value={webhook.callbackUrl} onFocus={(e) => e.target.select()} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${idPrefix}-token`}>Verify token</Label>
+          <Input id={`${idPrefix}-token`} readOnly value={webhook.verifyToken} onFocus={(e) => e.target.select()} />
+        </div>
+      </div>
     </div>
   );
 }

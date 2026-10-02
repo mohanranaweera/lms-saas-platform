@@ -204,6 +204,8 @@ test.describe("tenant admin - messaging settings", () => {
       disabledAt: null,
       updatedAt: state === "ACTIVE" ? NOW : null,
       operational: state === "ACTIVE",
+      templateLanguage: null,
+      webhook: null,
     });
     const whatsapp = { ...account("NOT_CONFIGURED"), channel: "WHATSAPP" };
     await page.route("**/v1/tenant-admin/integrations/messaging", async (route) => {
@@ -213,7 +215,9 @@ test.describe("tenant admin - messaging settings", () => {
         body: JSON.stringify(
           apiSuccess({
             accounts: [account(configured ? "ACTIVE" : "NOT_CONFIGURED"), whatsapp],
-            availableProviders: [{ provider: "SANDBOX", channels: ["SMS", "WHATSAPP"], credentialKeys: ["apiKey"] }],
+            availableProviders: [
+              { provider: "SANDBOX", channels: ["SMS", "WHATSAPP"], credentialKeys: ["apiKey"], settingKeys: [] },
+            ],
           })
         ),
       });
@@ -238,6 +242,185 @@ test.describe("tenant admin - messaging settings", () => {
     expect(await page.content()).not.toContain(secret);
   });
 
+  test("Text.lk SMS and Meta WhatsApp accounts are set per tenant with provider-specific fields", async ({ page }) => {
+    const textLkToken = "textlk_TOKEN_SECRET_1111";
+    const metaToken = "EAAG_META_TOKEN_SECRET_2222";
+    const appSecret = "meta_app_secret_3333";
+    let smsActive = false;
+    let whatsAppActive = false;
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const base = {
+      configured: false,
+      id: null,
+      provider: null,
+      senderId: null,
+      credentialHint: null,
+      status: "NOT_CONFIGURED",
+      disabledAt: null,
+      updatedAt: null,
+      operational: false,
+      templateLanguage: null,
+      webhook: null,
+    };
+    const sms = () =>
+      smsActive
+        ? {
+            ...base,
+            channel: "SMS",
+            configured: true,
+            id: "acc-sms",
+            provider: "TEXTLK",
+            senderId: "ABCINST",
+            credentialHint: "••••1111",
+            status: "ACTIVE",
+            updatedAt: NOW,
+            operational: true,
+          }
+        : { ...base, channel: "SMS" };
+    const whatsApp = () =>
+      whatsAppActive
+        ? {
+            ...base,
+            channel: "WHATSAPP",
+            configured: true,
+            id: "acc-wa",
+            provider: "META_WHATSAPP",
+            senderId: "106540352242922",
+            credentialHint: "••••2222",
+            status: "ACTIVE",
+            updatedAt: NOW,
+            operational: true,
+            templateLanguage: "si",
+            webhook: {
+              callbackUrl: "https://api.example.test/api/v1/integrations/webhooks/meta-whatsapp/key-abc",
+              verifyToken: "verify-token-xyz",
+            },
+          }
+        : { ...base, channel: "WHATSAPP" };
+    await page.route("**/v1/tenant-admin/integrations/messaging", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          apiSuccess({
+            accounts: [sms(), whatsApp()],
+            availableProviders: [
+              { provider: "TEXTLK", channels: ["SMS"], credentialKeys: ["apiToken"], settingKeys: [] },
+              {
+                provider: "META_WHATSAPP",
+                channels: ["WHATSAPP"],
+                credentialKeys: ["accessToken", "appSecret"],
+                settingKeys: ["templateLanguage"],
+              },
+            ],
+          })
+        ),
+      });
+    });
+    const bodies: Record<string, unknown> = {};
+    await page.route("**/v1/tenant-admin/integrations/messaging/SMS", async (route) => {
+      bodies.SMS = route.request().postDataJSON();
+      smsActive = true;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(sms())) });
+    });
+    await page.route("**/v1/tenant-admin/integrations/messaging/WHATSAPP", async (route) => {
+      bodies.WHATSAPP = route.request().postDataJSON();
+      whatsAppActive = true;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(apiSuccess(whatsApp())),
+      });
+    });
+
+    await page.goto("/tenant-admin/settings/messaging");
+
+    // SMS through Text.lk
+    await expect(page.locator("#messaging-SMS-provider")).toContainText("Text.lk");
+    await page.locator("#messaging-SMS-sender").fill("ABCINST");
+    await page.getByLabel("API token").fill(textLkToken);
+    await expect(page.locator("#messaging-SMS-apiToken")).toHaveAttribute("type", "password");
+    await page.getByRole("button", { name: "Connect account" }).first().click();
+    await expect(page.getByText("SMS account saved.")).toBeVisible();
+    expect(bodies.SMS).toEqual({
+      provider: "TEXTLK",
+      senderId: "ABCINST",
+      credentials: { apiToken: textLkToken },
+      templateLanguage: null,
+    });
+
+    // WhatsApp through the Meta Cloud API
+    await expect(page.locator("#messaging-WHATSAPP-provider")).toContainText("Meta WhatsApp Cloud API");
+    await page.locator("#messaging-WHATSAPP-sender").fill("106540352242922");
+    await page.locator("#messaging-WHATSAPP-templateLanguage").fill("si");
+    await page.getByLabel("Permanent access token").fill(metaToken);
+    await page.getByLabel("App secret").fill(appSecret);
+    await expect(page.locator("#messaging-WHATSAPP-appSecret")).toHaveAttribute("type", "password");
+    await page.getByRole("button", { name: "Connect account" }).click();
+    await expect(page.getByText("WhatsApp account saved.")).toBeVisible();
+    expect(bodies.WHATSAPP).toEqual({
+      provider: "META_WHATSAPP",
+      senderId: "106540352242922",
+      credentials: { accessToken: metaToken, appSecret },
+      templateLanguage: "si",
+    });
+
+    await expect(page.getByText(/Provider Text\.lk · sender id ABCINST/)).toBeVisible();
+    await expect(page.getByText(/Provider Meta WhatsApp Cloud API · phone number id 106540352242922/)).toBeVisible();
+    await expect(page.getByLabel("Callback URL")).toHaveValue(
+      "https://api.example.test/api/v1/integrations/webhooks/meta-whatsapp/key-abc"
+    );
+    await expect(page.getByLabel("Verify token")).toHaveValue("verify-token-xyz");
+    const html = await page.content();
+    for (const secret of [textLkToken, metaToken, appSecret]) expect(html).not.toContain(secret);
+  });
+
+  test("a backend validation error on the Meta phone number ID is shown", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const empty = (channel: string) => ({
+      channel,
+      configured: false,
+      id: null,
+      provider: null,
+      senderId: null,
+      credentialHint: null,
+      status: "NOT_CONFIGURED",
+      disabledAt: null,
+      updatedAt: null,
+      operational: false,
+      templateLanguage: null,
+      webhook: null,
+    });
+    await mockJson(
+      page,
+      "**/v1/tenant-admin/integrations/messaging",
+      200,
+      apiSuccess({
+        accounts: [empty("SMS"), empty("WHATSAPP")],
+        availableProviders: [
+          {
+            provider: "META_WHATSAPP",
+            channels: ["WHATSAPP"],
+            credentialKeys: ["accessToken", "appSecret"],
+            settingKeys: ["templateLanguage"],
+          },
+        ],
+      })
+    );
+    await mockJson(
+      page,
+      "**/v1/tenant-admin/integrations/messaging/WHATSAPP",
+      400,
+      apiError("VALIDATION_ERROR", "Invalid messaging account", [
+        { field: "senderId", message: "must be the WhatsApp phone number ID from Meta (digits only)" },
+      ])
+    );
+    await page.goto("/tenant-admin/settings/messaging");
+    await page.locator("#messaging-WHATSAPP-sender").fill("+94771234567");
+    await page.getByRole("button", { name: "Connect account" }).click();
+    await expect(page.getByText("must be the WhatsApp phone number ID from Meta (digits only)")).toBeVisible();
+  });
+
   test("with no provider available on the platform the channels stay off", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(
@@ -256,6 +439,8 @@ test.describe("tenant admin - messaging settings", () => {
           disabledAt: null,
           updatedAt: null,
           operational: false,
+          templateLanguage: null,
+          webhook: null,
         })),
         availableProviders: [],
       })

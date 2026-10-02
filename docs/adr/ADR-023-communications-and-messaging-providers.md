@@ -24,6 +24,7 @@ and "no retry" was an explicit MVP decision (open-decisions §22).
 ## Decisions
 
 **D1 — Provider-agnostic adapters; sandbox only until a vendor ADR.**
+*(Superseded in part by ADR-024, which adds the Text.lk SMS and Meta WhatsApp Cloud API adapters.)*
 `integration-management` exposes `api.MessagingChannelApi` (availability + send for the
 *current* tenant). Each vendor is a `gateway.messaging.MessagingProviderAdapter`. The only
 adapter shipped is `SANDBOX` (no network), enabled by `app.messaging.sandbox-enabled`

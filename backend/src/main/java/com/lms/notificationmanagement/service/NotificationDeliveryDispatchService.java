@@ -22,6 +22,7 @@ import com.lms.tenantmanagement.api.TenantSummary;
 import com.lms.usermanagement.api.StudentContact;
 import com.lms.usermanagement.api.StudentLookupApi;
 import com.lms.usermanagement.api.TeacherLookupApi;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -152,13 +153,24 @@ public class NotificationDeliveryDispatchService {
 				return;
 			}
 			masked = ContactMasking.maskPhone(address);
-			String text = renderer.render(
-					(broadcast.getSmsBody() != null) ? broadcast.getSmsBody() : broadcast.getBody(), vars);
-			String providerTemplate = (row.channel() == DeliveryChannel.WHATSAPP) ? whatsAppTemplateName(broadcast)
-					: null;
+			String source = (broadcast.getSmsBody() != null) ? broadcast.getSmsBody() : broadcast.getBody();
+			String text = renderer.render(source, vars);
+			String providerTemplate = null;
+			List<String> templateParameters = List.of();
+			if (row.channel() == DeliveryChannel.WHATSAPP) {
+				// Parameters follow the approved template's copy, not the (editable)
+				// broadcast copy, so they always match what Meta approved (ADR-024 V4).
+				Optional<CommunicationTemplate> template = whatsAppTemplate(broadcast);
+				providerTemplate = template.map(CommunicationTemplate::getWhatsAppTemplateName).orElse(null);
+				String approvedCopy = template
+					.map(t -> (t.getSmsBody() != null) ? t.getSmsBody() : t.getBody())
+					.orElse(source);
+				templateParameters = renderer.orderedValues(approvedCopy, vars);
+			}
 			MessagingChannelApi.Channel channel = (row.channel() == DeliveryChannel.SMS)
 					? MessagingChannelApi.Channel.SMS : MessagingChannelApi.Channel.WHATSAPP;
-			SendReceipt receipt = channelApi.send(new OutboundMessage(channel, address, text, providerTemplate));
+			SendReceipt receipt = channelApi.send(new OutboundMessage(channel, address, text, providerTemplate,
+					templateParameters));
 			finalizeService.markSent(row.id(), row.tenantId(), masked, receipt.providerAccountId(),
 					receipt.providerMessageId());
 		}
@@ -212,13 +224,11 @@ public class NotificationDeliveryDispatchService {
 		return mobile;
 	}
 
-	private String whatsAppTemplateName(Broadcast broadcast) {
+	private Optional<CommunicationTemplate> whatsAppTemplate(Broadcast broadcast) {
 		if (broadcast.getTemplateId() == null) {
-			return null;
+			return Optional.empty();
 		}
-		return templateRepository.findById(broadcast.getTemplateId())
-			.map(CommunicationTemplate::getWhatsAppTemplateName)
-			.orElse(null);
+		return templateRepository.findById(broadcast.getTemplateId());
 	}
 
 	private String teacherName(UUID userId) {
