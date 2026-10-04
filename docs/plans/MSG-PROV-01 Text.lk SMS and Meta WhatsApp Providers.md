@@ -18,7 +18,7 @@ through those accounts instead of the local-only sandbox.
 ## 3. Acceptance criteria
 1. Settings lists `TEXTLK` for SMS and `META_WHATSAPP` for WhatsApp when enabled in the
    environment (both on by default). `SANDBOX` is still shown only where sandbox is enabled.
-2. Text.lk: requires `apiToken` and a sender ID (1–11 letters/digits, or a phone number of
+2. Text.lk: requires `apiToken` and a sender ID (1–11 letters, digits, spaces or `- . _`, starting with a letter or digit, e.g. `AOC-EDU`; or a phone number of
    7–15 digits). Meta: requires `accessToken`, a phone number ID (5–20 digits) and a template
    language (`^[a-z]{2,3}(_[A-Z]{2})?$`), plus `appSecret` for webhook verification.
 3. Secrets are never returned, logged, or audited; the page shows only the masked hint.

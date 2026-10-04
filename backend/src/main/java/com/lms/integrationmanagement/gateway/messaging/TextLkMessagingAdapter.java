@@ -34,8 +34,12 @@ public class TextLkMessagingAdapter implements MessagingProviderAdapter {
 
 	static final String API_TOKEN = "apiToken";
 
-	/** Text.lk: an alphanumeric sender of at most 11 characters, or a phone number. */
-	private static final Pattern ALPHANUMERIC_SENDER = Pattern.compile("^[A-Za-z0-9]{1,11}$");
+	/**
+	 * Text.lk: an alphanumeric sender of at most 11 characters, or a phone number.
+	 * Approved sender IDs may carry a hyphen, space, dot or underscore (e.g. "AOC-EDU"),
+	 * but must start with a letter or digit.
+	 */
+	private static final Pattern ALPHANUMERIC_SENDER = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9 ._-]{0,10}$");
 
 	private static final Pattern NUMERIC_SENDER = Pattern.compile("^\\+?[0-9]{7,15}$");
 
@@ -71,7 +75,7 @@ public class TextLkMessagingAdapter implements MessagingProviderAdapter {
 	@Override
 	public String validateSenderId(String senderId) {
 		return (ALPHANUMERIC_SENDER.matcher(senderId).matches() || NUMERIC_SENDER.matcher(senderId).matches()) ? null
-				: "must be your Text.lk sender ID: up to 11 letters or digits, or a phone number";
+				: "must be your Text.lk sender ID: up to 11 letters, digits, spaces or - . _ (starting with a letter or digit), or a phone number";
 	}
 
 	@Override

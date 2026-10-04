@@ -341,7 +341,7 @@ Only adapters enabled in the running environment can be configured (MSG-PROV-01,
 
 | Provider | Channel | `senderId` | `credentials` (write-only) | Settings |
 |---|---|---|---|---|
-| `TEXTLK` (`app.messaging.textlk.enabled`, default on) | SMS | Text.lk sender ID: 1–11 letters/digits, or a 7–15 digit number | `apiToken` | — |
+| `TEXTLK` (`app.messaging.textlk.enabled`, default on) | SMS | Text.lk sender ID: 1–11 letters, digits, spaces or `- . _` starting with a letter or digit (e.g. `AOC-EDU`), or a 7–15 digit number | `apiToken` | — |
 | `META_WHATSAPP` (`app.messaging.meta-whatsapp.enabled`, default on) | WhatsApp | Meta phone number ID (5–20 digits) | `accessToken`, `appSecret` | `templateLanguage` (`^[a-z]{2,3}(_[A-Z]{2})?$`) |
 | `SANDBOX` (`app.messaging.sandbox-enabled`, local/test only) | both | 1–40 printable chars | `apiKey` | — |
 

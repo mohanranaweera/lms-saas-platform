@@ -41,7 +41,7 @@ const PROVIDER_COPY: Record<string, ProviderCopy> = {
   TEXTLK: {
     label: "Text.lk",
     senderLabel: "Sender ID",
-    senderHint: "Your approved Text.lk sender ID (up to 11 letters or digits), or a phone number.",
+    senderHint: "Your approved Text.lk sender ID (up to 11 characters, e.g. AOC-EDU), or a phone number.",
     fieldLabels: { apiToken: "API token" },
     help: "Create an API token in your Text.lk dashboard (Developers → API Tokens). Text.lk does not send delivery reports, so sent SMS show as “Accepted by provider”.",
   },

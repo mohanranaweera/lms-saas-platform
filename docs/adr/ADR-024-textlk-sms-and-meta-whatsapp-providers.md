@@ -26,7 +26,7 @@ switched off per environment without a code change.
 
 **V2 — Tenant-level, write-only credentials (unchanged model).**
 - Text.lk: secret `apiToken`; sender = the tenant's Text.lk-approved sender ID
-  (≤ 11 letters/digits, or a phone number).
+  (≤ 11 letters, digits, spaces or `- . _` starting with a letter or digit, e.g. `AOC-EDU`; or a phone number).
 - Meta: secrets `accessToken` (a System User permanent token is recommended) and
   `appSecret` (verifies webhooks, V8); sender = the WhatsApp **phone number ID** (digits).
 - Secrets keep ADR-023's handling: AES-256-GCM, write-only, masked hint, never logged

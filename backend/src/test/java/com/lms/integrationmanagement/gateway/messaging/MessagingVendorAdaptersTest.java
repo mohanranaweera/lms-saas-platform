@@ -93,7 +93,13 @@ class MessagingVendorAdaptersTest {
 	void textLkAcceptsOnlyItsOwnSenderIdShapeAndOnlySms() {
 		assertThat(textLk.validateSenderId("ABCInst")).isNull();
 		assertThat(textLk.validateSenderId("+94112345678")).isNull();
+		assertThat(textLk.validateSenderId("AOC-EDU")).isNull();
+		assertThat(textLk.validateSenderId("ABC Inst.")).isNull();
+		assertThat(textLk.validateSenderId("ABC_INST-01")).isNull();
 		assertThat(textLk.validateSenderId("ABC Institute Colombo")).isNotNull();
+		assertThat(textLk.validateSenderId("AOC-EDUCATION")).isNotNull();
+		assertThat(textLk.validateSenderId("-AOCEDU")).isNotNull();
+		assertThat(textLk.validateSenderId("AOC&EDU")).isNotNull();
 		assertThat(textLk.supportedChannels()).containsExactly(Channel.SMS);
 		assertThat(textLk.requiredCredentialKeys()).containsExactly("apiToken");
 	}
