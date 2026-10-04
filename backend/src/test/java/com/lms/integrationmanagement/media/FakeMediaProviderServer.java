@@ -68,6 +68,18 @@ public final class FakeMediaProviderServer {
 
 	private volatile boolean failBunnyCreate = false;
 
+	/** Scopes Google reports as granted (VIDEO Phase 3 sets upload + readonly). */
+	public static final String DEFAULT_GOOGLE_SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
+
+	public static final String TENANT_CHANNEL_SCOPES = "https://www.googleapis.com/auth/youtube.upload "
+			+ "https://www.googleapis.com/auth/youtube.readonly";
+
+	private volatile String googleScope = DEFAULT_GOOGLE_SCOPE;
+
+	private volatile String youtubeChannelId = "UC-test-channel";
+
+	private volatile String youtubeChannelTitle = "Teacher Channel";
+
 	private FakeMediaProviderServer() {
 		try {
 			server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -94,6 +106,18 @@ public final class FakeMediaProviderServer {
 		rejectRefresh = false;
 		bunnyLibraries.clear();
 		failBunnyCreate = false;
+		googleScope = DEFAULT_GOOGLE_SCOPE;
+		youtubeChannelId = "UC-test-channel";
+		youtubeChannelTitle = "Teacher Channel";
+	}
+
+	public void setGoogleScope(String scope) {
+		this.googleScope = scope;
+	}
+
+	public void setYoutubeChannel(String channelId, String title) {
+		this.youtubeChannelId = channelId;
+		this.youtubeChannelTitle = title;
 	}
 
 	public void setFailBunnyCreate(boolean fail) {
@@ -159,7 +183,7 @@ public final class FakeMediaProviderServer {
 		}
 		else if (method.equals("POST") && path.equals("/token")) {
 			respond(exchange, 200, "{\"access_token\":\"google-at-" + n + "\",\"refresh_token\":\"google-rt-" + n
-					+ "\",\"expires_in\":3599,\"scope\":\"https://www.googleapis.com/auth/youtube.readonly\"}");
+					+ "\",\"expires_in\":3599,\"scope\":\"" + googleScope + "\"}");
 		}
 		else if (method.equals("POST") && path.equals("/oauth/access_token")) {
 			respond(exchange, 200, "{\"access_token\":\"vimeo-at-" + n + "\",\"scope\":\"public private\"}");
@@ -189,7 +213,8 @@ public final class FakeMediaProviderServer {
 			respond(exchange, 204, null);
 		}
 		else if (method.equals("GET") && path.equals("/youtube/v3/channels")) {
-			respond(exchange, 200, "{\"items\":[{\"id\":\"UC-test-channel\",\"snippet\":{\"title\":\"Teacher Channel\"}}]}");
+			respond(exchange, 200, "{\"items\":[{\"id\":\"" + youtubeChannelId + "\",\"snippet\":{\"title\":\""
+					+ youtubeChannelTitle + "\"}}]}");
 		}
 		else if (method.equals("GET") && path.equals("/me")) {
 			respond(exchange, 200, "{\"uri\":\"/users/777\",\"name\":\"Vimeo Teacher\"}");

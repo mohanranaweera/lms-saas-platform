@@ -375,3 +375,36 @@ id or any credential:
 
 `capabilities.supportsOverlayWatermark` / `supportsServerSideRevocation` are `false` for
 YouTube. The UI must not imply that YouTube-hosted media is content-protected.
+
+## Tenant video configuration (`/api/v1/tenant-admin/video-configuration`) — VIDEO Phase 3
+
+Tenant-wide video settings (plan §11).
+- Requires `INTEGRATIONS` VIEW (`GET`) / CREATE_EDIT (`PUT`). Teacher/Student → `403`.
+- One row per tenant, always the authenticated tenant's; a `tenantId` in the body is ignored.
+- `max_registered_devices` is **not** here; it stays in the ADR-022 device policy.
+
+`GET` → `{settings, customized, updatedAt, updatedBy}`. `customized=false` means the platform
+defaults (no row yet).
+
+`PUT` (full replacement) body = `settings`:
+
+| Field | Allowed | Default |
+|---|---|---|
+| `defaultProvider` | `INTERNAL`, `YOUTUBE` | `INTERNAL` |
+| `defaultPrivacyStatus` | `UNLISTED`, `PRIVATE` | `UNLISTED` |
+| `uploadsEnabled`, `nativePlayerRequired` | boolean | `true`, `false` |
+| `watermarkEnabled` | boolean | `true` |
+| `watermarkOpacity` | 0.05–0.60 | 0.25 |
+| `watermarkMovementIntervalSeconds` | 5–120 | 30 |
+| `watermarkFields` | non-empty subset of `STUDENT_DISPLAY_ID, MASKED_EMAIL, MASKED_PHONE, SESSION_ID, TIMESTAMP` | `STUDENT_DISPLAY_ID, TIMESTAMP` |
+| `captureProtectionEnabled` / `captureProtectionRequired` | boolean; `required` needs `enabled` | `true` / `false` |
+| `maxConcurrentSessions` | 1–5 | 1 |
+| `watchTimePolicy` | `NONE`, `VIDEO_DURATION_MULTIPLIER` (+ `watchTimeMultiplier` 1.00–10.00), `FIXED_MINUTES` (+ `watchTimeFixedMinutes` 1–10000) | `NONE` |
+| `launchCodeTtlSeconds` | 15–60 | 45 |
+| `heartbeatIntervalSeconds` | 10–60 | 20 |
+
+- Invalid input → `400 VALIDATION_ERROR` with field errors.
+- A watch-time value that doesn't belong to the chosen policy is dropped, not rejected.
+- Every change is audited as `video_configuration.updated`, with the full `before` (or
+  `PLATFORM_DEFAULTS`) and `after`.
+- These settings are stored now; they are enforced by Phases 7–12.

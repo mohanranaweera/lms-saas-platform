@@ -133,6 +133,26 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 		return connection;
 	}
 
+	/**
+	 * The tenant's own YouTube channel (VIDEO Phase 3, ADR-018 Amendment 2,
+	 * V71): tenant-scoped, no owner, OAuth. Its credentials are sealed with the
+	 * tenant AAD, never a user's.
+	 */
+	public static MediaProviderConnection tenantOAuth(UUID tenantId, MediaProvider provider, String externalAccountId,
+			String externalAccountLabel, String credentialsCiphertext, Instant accessTokenExpiresAt,
+			String grantedScopes, Instant verifiedAt) {
+		if (provider != MediaProvider.YOUTUBE) {
+			throw new IllegalArgumentException(provider + " has no tenant-level OAuth connection");
+		}
+		MediaProviderConnection connection = new MediaProviderConnection(tenantId, provider, ConnectionScope.TENANT,
+				null, ConnectionAuthType.OAUTH, credentialsCiphertext, verifiedAt);
+		connection.externalAccountId = externalAccountId;
+		connection.externalAccountLabel = externalAccountLabel;
+		connection.accessTokenExpiresAt = accessTokenExpiresAt;
+		connection.grantedScopes = grantedScopes;
+		return connection;
+	}
+
 	/** The tenant's DynTube/Bunny account, configured with API keys by a Tenant Admin. */
 	public static MediaProviderConnection tenantApiKey(UUID tenantId, MediaProvider provider,
 			String externalAccountId, String externalAccountLabel, String credentialsCiphertext, String settingsJson,

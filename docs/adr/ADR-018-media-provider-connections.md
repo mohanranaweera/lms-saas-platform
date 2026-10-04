@@ -17,6 +17,10 @@
 5. Delivery is **phased**: MEDIA-INT-01 builds the connections and real Zoom live classes.
    Materials, secure hosting and live streaming follow in MEDIA-INT-02..04.
 
+**Amended 2026-10-04 (Amendment 2, owner approval):** decision 1 is widened. A tenant may
+also connect **its own YouTube channel** (tenant-scoped, OAuth, upload + read) for the Media
+Library; per-teacher read-only YouTube connections remain. See Amendment 2 below.
+
 No root `CLAUDE.md` change-controlled area is changed. Tenancy, auth architecture, payment,
 enrollment, deployment and migration history are untouched. This ADR records architecture
 decisions that ADR-008, ADR-011 and the open-decisions register left open.
@@ -234,3 +238,55 @@ store `{"keyType":"ACCOUNT"}`.
 - *Still to confirm with a real Bunny account:* that a Stream sub-user key may create
   libraries, and that Bunny's library search matches the tag. MEDIA-INT-03 must also confirm
   how to read a library's CDN hostname and token-auth key (pull zone read).
+
+## Amendment 2 (2026-10-04): tenant-owned YouTube channel (VIDEO Phase 3)
+
+**Status:** Accepted by the project owner on 2026-10-04 ("ADR-018 amendment for tenant YouTube
+accounts approved"). Plan: `docs/plans/multi-tenant video platform + aoc secure player.md`
+(§10, §12, Phase 3).
+
+**Decision.** Owner decision 1 is widened. Alongside each teacher's own read-only YouTube
+connection, a tenant may connect **one YouTube channel of its own**, which the Media Library
+uploads into. It is not a replacement for the teacher connections, which keep working unchanged.
+
+- **Shape:**
+  - `media_provider_connection` row with `provider = YOUTUBE`, `scope = TENANT`,
+    `owner_user_id = NULL`, `auth_type = OAUTH`;
+  - V71 widens `ck_media_provider_connection_scope` to allow exactly this combination;
+  - the existing `uq_media_provider_connection_tenant_current` keeps it to one live channel per
+    tenant.
+- **Who:** Tenant Admin (`DomainArea.INTEGRATIONS` CREATE_EDIT to connect, verify and
+  disconnect; VIEW to see it).
+- **Scopes:** exactly `youtube.upload` + `youtube.readonly`, PKCE, offline access, no
+  `include_granted_scopes`. If Google reports that either scope was not granted, the callback
+  revokes the tokens and redirects with `error=missing_scopes`; nothing is stored.
+- **Flow:** the §3 central callback is unchanged. The Redis state and pending records now carry
+  `scope`; entries without it are treated as TEACHER.
+  - For TENANT, credentials are sealed with the tenant AAD (`…:YOUTUBE:tenant`, Decision 2).
+  - The pending result can be **previewed** (channel id + title, non-consuming) and
+    **confirmed** only by the same Tenant Admin of the same tenant, with the permission
+    re-checked.
+  - A confirm attempt by anyone else (another admin, a teacher, another tenant) consumes the
+    pending entry and revokes it at Google.
+  - A teacher confirm never accepts a TENANT pending entry, and the reverse.
+- **One channel ↔ one tenant (plan Q-003, provisional):** `uq_media_provider_connection_youtube_channel`
+  rejects a second tenant confirming a channel that is another tenant's live video channel
+  (`409 VIDEO_PROVIDER_CHANNEL_IN_USE`, tokens revoked). This is the one deliberate cross-tenant
+  constraint. It only rejects writes and reveals nothing beyond the generic conflict.
+- **Replacing:** a different channel replaces the current one only with `replaceChannel=true`;
+  otherwise the response is `409 VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED` and the pending
+  entry is kept. Rows are never deleted: the old row becomes DISCONNECTED/SYSTEM with its
+  credentials wiped, because media assets reference it (V70).
+- **Audit:**
+  - `video_provider.connected`, `video_provider.reauthorized` (same channel) and
+    `video_provider.channel_replaced`, each with masked channel ids;
+  - disconnect uses the existing `media_integration.disconnected` audit and the Google revoke.
+- **Security posture (§6 unchanged):** an unlisted YouTube video remains playable on youtube.com
+  for anyone with its id. Tenant ownership of the channel does not make YouTube playback
+  protected (plan §30, ADR-008 amendment pending).
+
+**Not in this amendment:**
+- Platform Admin disable of a tenant channel (plan TD-008).
+- The upload pipeline (Phase 4).
+- Google OAuth verification of the sensitive `youtube.upload` scope, and the quota extension,
+  which are production prerequisites.

@@ -3,9 +3,9 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    2 — Media Domain Foundation
+Current Phase:    3 — Tenant Video Provider Accounts
 Last Updated:     2026-10-04
-Current Branch:   feat/video-media-foundation
+Current Branch:   feat/video-provider-accounts
 Latest Migration: V70__evolve_video_asset_provider_neutral.sql
 Backend Build:    PASS — mvnw verify, 2026-10-04 (BUILD SUCCESS, 13:56 min)
 Frontend Build:   not affected (no frontend change in Phases 1–2)
@@ -17,8 +17,8 @@ Open Blockers:    B1–B4, B6 (§0.3) — owner approvals for change-controlled 
 | Phase | Description | Status | Started | Completed |
 |---|---|---|---|---|
 | 1 | Architecture & Repository Analysis | COMPLETE | 2026-10-04 | 2026-10-04 |
-| 2 | Media Domain Foundation | TESTED (awaiting commit approval) | 2026-10-04 | |
-| 3 | Tenant Video Provider Accounts | NOT STARTED | | |
+| 2 | Media Domain Foundation | COMPLETE | 2026-10-04 | 2026-10-04 |
+| 3 | Tenant Video Provider Accounts | TESTED (full backend suite re-run + commit pending) | 2026-10-04 | |
 | 4 | YouTube Integration | NOT STARTED | | |
 | 5 | Media Library | NOT STARTED | | |
 | 6 | Lesson Integration | NOT STARTED | | |
@@ -73,7 +73,7 @@ Valid statuses: NOT STARTED · PLANNING · APPROVED · IN PROGRESS · BLOCKED ·
 ### 0.3 Blocking approvals needed before Phase 2+
 | ID | Approval | Blocks |
 |---|---|---|
-| B1 | **ADR-018 Amendment 2**: allow a *tenant-scoped* YouTube connection. This reverses the per-teacher owner decision and the V60 CHECK. | Phase 3, 4 |
+| ~~B1~~ | **ADR-018 Amendment 2**: allow a *tenant-scoped* YouTube connection. This reverses the per-teacher owner decision and the V60 CHECK. **APPROVED by owner 2026-10-04** | — |
 | B2 | **Scoped exception to architecture.md:94–97** for the upload transfer worker only (S3 staging → YouTube) | Phase 4 |
 | B3 | **ADR-008 amendment**: YouTube is gated but unprotected; protected playback = managed HLS; launch codes, exchange and heartbeat added to the token model | Phase 7 |
 | B4 | **ADR-025 Native Secure Player**: Rust/Tauri 2 stack, `aocplayer://`, installation keys, the exchange endpoint as an ADR-011-style unauthenticated carve-out, signed updates | Phase 8–11 |
@@ -984,6 +984,8 @@ Rust toolchain + `windows-latest` CI runners; owner approvals B1–B6; legal rev
 | TD-005 | No metrics registry | Not in repo | No dashboards | 15 |
 | TD-006 | macOS/mobile players, DRM, offline playback | Out of scope | — | future ADRs |
 | TD-007 | Existing `watchedDeltaSeconds=0` bypass in `PlaybackProgressRequest` | Fixed by server-clock accounting | Watch limits bypassable today | 12 |
+| TD-008 | Platform Admin cannot disable a tenant's YouTube channel (PAY-GW-01-style `disabled_by = PLATFORM`) | Not needed until uploads exist; needs a platform-admin endpoint + `disconnected_by` value | Abuse response relies on the tenant admin or DB ops | 4 (before uploads go live) |
+| TD-009 | A pending tenant authorization that is never confirmed keeps its Google grant until the user revokes it at Google (the Redis entry expires after 10 min with no revoke) | Same behaviour as the existing teacher flow | An orphaned grant on the admin's own Google account | 14 |
 
 ---
 
@@ -992,6 +994,8 @@ Rust toolchain + `windows-latest` CI runners; owner approvals B1–B6; legal rev
 | Phase | Backend | Frontend | Integration | Player | Manual | Failures | Resolution |
 |---|---|---|---|---|---|---|---|
 | 1 | not run (no code) | not run | not run | n/a | Repository inspection only | — | — |
+| 3 (frontend) | — | `tsc --noEmit` clean. `npm run lint` 0 errors (2 pre-existing warnings in untouched files). Playwright `tenant-admin-video-settings.spec.ts` 11/11. Regression `route-groups` + `tenant-admin-integrations` + `accessibility`: 43/44 in a parallel run; the one failure (`Teacher video libraries › a failed setup can be retried…`, untouched code) passed 3/3 when re-run alone, so it is timing-flaky, not a regression | — | n/a | none | 1 flaky pre-existing test | Recorded; not changed |
+| 3 | Targeted: integrationmanagement + videoaccessmanagement packages, 27 suites / 207 tests / 0 failures (incl. new `TenantVideoProviderIntegrationTest` 13/13, `TenantVideoConfigurationIntegrationTest` 6/6). Full `mvnw verify` **incomplete**: stopped by Claude Code for low system memory after 257 suites / 1947 tests, 0 failures so far | n/a (frontend not started) | see Backend | n/a | none | none | Full suite to be re-run when the machine has memory |
 | 2 | Unit: `VideoAssetLifecycleRulesTest` 8/8, `VideoProviderCatalogTest` 4/4. Full `mvnw verify` 2026-10-04: 2283 tests, 0 failures/errors/skips | n/a (no frontend change) | `MediaLibraryIntegrationTest` 10/10 (3 tagged `cross-tenant`); existing `VideoPlaybackSessionIntegrationTest` 18/18 unchanged | n/a | none | none | — (`application.yml` flag block was added after the full run started; the video suite was re-run afterwards: 53/53 pass) |
 
 ## Files Changed
@@ -999,6 +1003,7 @@ Rust toolchain + `windows-latest` CI runners; owner approvals B1–B6; legal rev
 | Phase | Created | Modified | Deleted | Migrations |
 |---|---|---|---|---|
 | 1 | `docs/plans/multi-tenant video platform + aoc secure player.md` | — | `docs/plans/VIDEO-01 Tenant YouTube Media and Secure Player.md` (untracked draft, never committed) | — |
+| 3 | Backend: `V71__tenant_video_provider_accounts.sql`; `integrationmanagement/{service/TenantVideoProviderService,web/TenantVideoProviderController}.java`; `videoaccessmanagement/domain/{TenantVideoConfiguration,TenantVideoSettings,WatchTimePolicy,WatermarkField,WatermarkFieldsConverter}.java`, `repository/TenantVideoConfigurationRepository.java`, `service/TenantVideoConfigurationService.java`, `web/TenantVideoConfigurationController.java`, `web/dto/TenantVideoConfigurationRequest.java`; tests `integrationmanagement/media/TenantVideoProviderIntegrationTest`, `videoaccessmanagement/web/TenantVideoConfigurationIntegrationTest`. Frontend: `lib/api/video-providers.ts`, `lib/validation/video-configuration.ts`, `components/integrations/tenant-youtube-channel-card.tsx`, `app/(tenant-admin)/tenant-admin/settings/{video-providers,video-configuration}/page.tsx`, `e2e/tenant-admin-video-settings.spec.ts` | Backend: `OAuthStateStore`, `OAuthConnectFlowService`, `MediaConnectionStore`, `MediaProviderConnection`, `YouTubeOAuthClient`, `ApiErrorCodes`; test `FakeMediaProviderServer`. Frontend: `settings/page.tsx`, `components/layout/nav/tenant-admin-nav.tsx`. Docs: `ADR-018` (Amendment 2), `docs/api/{integrations,video-access-management}.md`, this plan | — | `V71__tenant_video_provider_accounts.sql` |
 | 2 | `videoaccessmanagement/domain/{MediaAssetProvider,MediaPrivacyStatus,PlaybackMode,VideoProviderCapabilities,VideoAssetStatusEvent}.java`; `repository/VideoAssetStatusEventRepository.java`; `config/VideoFeatureFlags.java`; `service/{VideoProviderCatalog,MediaAssetService,MediaAssetLifecycleService,MediaAssetView,MediaAssetViews}.java`; `web/MediaController.java`; `web/dto/MediaAssetResponse.java`; tests `domain/VideoAssetLifecycleRulesTest`, `service/VideoProviderCatalogTest`, `web/MediaLibraryIntegrationTest` | `domain/{VideoAsset,VideoAssetStatus}.java`; `service/VideoAssetService.java`; `application.yml`; `docs/api/video-access-management.md`; this plan | — | `V70__evolve_video_asset_provider_neutral.sql` |
 
 ## Plan vs Implementation Deviations
@@ -1142,3 +1147,153 @@ Deviations from the **master instruction** proposed in Phase 1 (each needs appro
   - Q-003 (one channel ↔ one tenant);
   - Q-004 (playback after disconnect);
   - the owner's commit approval for Phase 2.
+- **Committed by owner:** `0c8779d feat(video): add provider-neutral media asset foundation`
+  (on local `main`).
+
+### Phase 3 — Tenant Video Provider Accounts
+
+**Before (2026-10-04, status → IN PROGRESS; owner approved B1 = ADR-018 Amendment 2)**
+
+- **Objective:**
+  - a Tenant Admin connects the tenant's **own** YouTube channel through OAuth (upload +
+    readonly scopes), then reviews and confirms it, and can verify or disconnect it;
+  - tenant-wide video configuration (`TenantVideoConfiguration`).
+- **Repository state:** branch `feat/video-provider-accounts` from `0c8779d`. V60's
+  `ck_media_provider_connection_scope` forces `YOUTUBE ⇒ TEACHER`. The ADR-018 OAuth flow
+  (Redis state + PKCE, pending-confirm, AES-GCM with AAD scoped to tenant or owner) is teacher-only.
+  The tenant API-key flow (Bunny/DynTube), `adminTest` and `adminDisconnect` already exist and
+  work by connection id inside the tenant.
+- **Affected modules:**
+  - `integrationmanagement`: provider account, OAuth, controller;
+  - `videoaccessmanagement`: configuration;
+  - docs: ADR-018 Amendment 2.
+- **Proposed changes:**
+  - `V71__tenant_video_provider_accounts.sql`:
+    - re-create `ck_media_provider_connection_scope` to also allow
+      `(YOUTUBE, TENANT, owner NULL, OAUTH)`;
+    - `uq_media_provider_connection_youtube_channel` on `(provider, external_account_id)`
+      for live tenant-scoped YouTube rows (Q-003: one channel ↔ one tenant);
+    - `tenant_video_configuration` (one row per tenant).
+  - `OAuthStateStore` records carry `scope`; a missing value (older Redis entries) means
+    TEACHER. The teacher confirm refuses a TENANT pending and vice versa.
+  - `OAuthConnectFlowService.completeCallback`, for scope TENANT:
+    - credentials are sealed with the tenant AAD (owner `null`);
+    - granted scopes must include `youtube.upload` + `youtube.readonly`, otherwise the
+      tokens are revoked and the user is redirected with `error=missing_scopes`;
+    - the user is redirected to `/tenant-admin/settings/video-providers`.
+  - `YouTubeOAuthClient#tenantChannelAuthorizationUrl` requests exactly those two scopes
+    without `include_granted_scopes`.
+  - New `TenantVideoProviderService` + `TenantVideoProviderController`
+    (`/api/v1/tenant-admin/video-providers`):
+    - list;
+    - `youtube/connect`;
+    - `youtube/pending/{id}` (non-consuming preview);
+    - `youtube/pending/{id}/confirm {replaceChannel}`;
+    - `{id}/test`;
+    - `{id}/disconnect`.
+    - Requires `INTEGRATIONS` VIEW / CREATE_EDIT.
+    - The pending entry may only be used by the same tenant + the same initiating admin.
+    - Replacing a *different* current channel needs `replaceChannel=true`; without it the
+      response is 409 and the pending entry is kept.
+  - `MediaConnectionStore#saveTenantOAuthConnection`: replaces the current row (old row →
+    DISCONNECTED/SYSTEM, never deleted). Audited as `video_provider.connected`,
+    `video_provider.reauthorized` (same channel) or `video_provider.channel_replaced`.
+    Disconnect keeps the existing `media_integration.disconnected` audit + Google revoke.
+  - `TenantVideoConfiguration` (videoaccessmanagement):
+    - entity, repo, service, `GET/PUT /api/v1/tenant-admin/video-configuration`;
+    - platform defaults when no row exists;
+    - every change audited with before/after (`video_configuration.updated`).
+- **DB impact:** V71 only. Additive CHECK relaxation + partial unique index + one new
+  tenant-owned table (`tenant_id` unique FK, CHECK ranges). No data rewrite.
+- **API impact:** new additive endpoints listed above (B6). Existing teacher/tenant-admin
+  integration endpoints are unchanged.
+- **Frontend impact:** none in this step. The provider card + configuration form follow as the
+  Phase 3 frontend step after backend review.
+- **Tenant impact:**
+  - OAuth tenant/user come only from server state.
+  - Credentials AAD is bound to the tenant.
+  - Composite tenant FKs throughout.
+  - All lookups go through tenant-aware Specifications.
+  - The global channel-uniqueness index is the one deliberate cross-tenant constraint: it can
+    only reject, and the error is generic.
+- **Security impact:**
+  - Tokens are never returned or logged.
+  - Pending confirm is bound to the initiating admin with a permission re-check.
+  - Forwarded or mismatched pendings are revoked at Google.
+  - The scope allow-list is enforced.
+  - Replace-channel needs explicit confirmation and is audited.
+- **Tests:** `FakeMediaProviderServer` gains a configurable Google scope + channel.
+  - Integration:
+    - connect → preview → confirm;
+    - missing scope rejected;
+    - teacher cannot confirm a tenant pending, and the reverse;
+    - another admin in the same tenant cannot confirm;
+    - tenant B cannot preview/confirm A's pending (T11);
+    - B cannot list/test/disconnect A's account (T6);
+    - the ciphertext does not open under another tenant's AAD;
+    - one channel cannot be confirmed by two tenants (Q-003);
+    - replace-channel guard;
+    - reconnect same channel → old row DISCONNECTED;
+    - disconnect revokes at Google;
+    - configuration defaults/update/validation/audit and cross-tenant isolation;
+    - Student/Teacher → 403.
+  - Existing teacher YouTube tests must stay green.
+- **Assumptions (provisional, owner may override):** Q-003 = one channel ↔ one tenant. Q-004 =
+  already-uploaded videos keep playing after disconnect (affects Phase 7, not this phase).
+- **Frontend step (owner: "go ahead with the Phase 3 frontend", 2026-10-04):**
+  - `lib/api/video-providers.ts` (hooks for both endpoint groups);
+  - `lib/validation/video-configuration.ts`;
+  - `settings/video-providers/page.tsx`: YouTube channel card (Connect/Reconnect/Test/Disconnect)
+    plus OAuth return handling. `?pending=` → preview → explicit Confirm, with replace-channel
+    wording when the channel differs; `?error=denied|failed|missing_scopes`;
+  - `settings/video-configuration/page.tsx`: full settings form; Read-only Auditor sees it
+    disabled;
+  - settings index + nav links (`INTEGRATIONS` view);
+  - Playwright `e2e/tenant-admin-video-settings.spec.ts` (mock-only; isolation is proven by the
+    backend tests). Native inputs/selects as in `devices-access`; no new shadcn components.
+- **Deferred:**
+  - Platform Admin disable of a tenant account → TD-008;
+  - `video_host` CHECK unchanged (the default provider lives in the configuration);
+  - YOUTUBE_CUSTOM mode preference is not stored until that mode exists.
+
+**After (2026-10-04, status → TESTED; full backend suite green, commit pending)**
+
+- **Implemented as planned.** Backend: V71, tenant-scoped YouTube OAuth (scope-tagged state,
+  preview + confirm by the initiating admin, replace guard, channel-in-use guard, revoke on every
+  rejected path), video provider endpoints, tenant video configuration with audit. Frontend:
+  Video providers page (channel card, Google return handling with explicit confirm and
+  replacement wording, expired / missing-scope messages, disconnect dialog), Video settings form,
+  index + nav links.
+- **Technical decisions:**
+  - `watermark_fields` is a CHECK-regex'd comma list with a JPA converter, not JSONB (avoids
+    the JSON FormatMapper on Jackson 3);
+  - TENANT credentials are sealed with the existing tenant AAD form;
+  - disconnect reuses `MediaConnectionService.adminDisconnect`, guarded to the tenant YouTube
+    row;
+  - "Connected by" shows "You" or "An administrator" (the API returns only a user id).
+- **Security review (inline):**
+  - no token in any response (asserted backend + E2E);
+  - consent URL must be `https:` before navigating;
+  - the `?pending`/`?error` query is stripped from the address bar on load;
+  - the confirm button is never auto-fired (unlike the teacher flow), so a forwarded link cannot
+    silently connect a channel;
+  - server-side permission checks on every endpoint; Read-only Auditor UI is read-only.
+- **Tenant-isolation review:**
+  - T6 / T11 / Q-003 / AAD-binding tests added;
+  - no repository method takes a caller `tenant_id`;
+  - the one cross-tenant artifact is the V71 channel unique index (reject-only).
+- **Deviations:** `video_host` CHECK unchanged and no YOUTUBE_CUSTOM preference column (recorded
+  above). Platform-admin disable deferred → TD-008. Orphaned Google grant on abandoned pending
+  → TD-009.
+- **Known issues:**
+  - the first full `mvnw verify` was killed for low memory after 1947/≈2300 tests (0 failures);
+    the re-run on 2026-10-04 (`MAVEN_OPTS=-Xmx512m`, `-DargLine="-Xmx1536m -XX:+UseSerialGC"`)
+    passed: 2302 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS;
+  - one pre-existing timing-flaky E2E test.
+- **Next-phase prerequisites (Phase 4, YouTube upload pipeline):**
+  - **B2** (scoped exception to architecture.md for the transfer worker);
+  - Q-007 (Google Cloud project/quota model);
+  - Q-013 (system-actor audit, current answer: status-event table);
+  - Q-014 (per-tenant upload budget);
+  - TD-008 before uploads go live;
+  - S3 staging bucket lifecycle/CORS (devops).

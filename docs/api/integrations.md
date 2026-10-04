@@ -500,3 +500,61 @@ These are additive changes to an approved contract, approved with the plan and A
   `hostConnectionStatus`.
 - The student/staff name and email for Zoom registration come from the existing user-management
   `api` lookup. They are never taken from the client.
+
+## Tenant Admin: video providers (VIDEO Phase 3, ADR-018 Amendment 2)
+
+`/api/v1/tenant-admin/video-providers`: the tenant's **own** YouTube channel used by the Media
+Library.
+- Requires `INTEGRATIONS` (VIEW for `GET`, CREATE_EDIT otherwise). Teacher/Student → `403`.
+- The tenant comes from the authenticated context. Ids from another tenant → `404`.
+- Responses never contain provider tokens.
+
+### `GET /api/v1/tenant-admin/video-providers`
+
+```jsonc
+[ { "provider": "YOUTUBE",
+    "available": true,                  // Google OAuth app + credential key configured
+    "status": "NOT_CONNECTED",          // NOT_CONNECTED | CONNECTED | EXPIRED (NEEDS_RECONNECT) | ERROR (lastError set)
+    "connection": ConnectionView | null, // current, else the latest (disconnected) one
+    "connectedByUserId": "<uuid>" | null } ]
+```
+
+### `POST /api/v1/tenant-admin/video-providers/youtube/connect`
+
+`→ 200 {authorizationUrl}`. Scopes: exactly `youtube.upload` + `youtube.readonly`.
+`503` if YouTube is not configured.
+
+Google redirects to the existing public callback (§ above). For a tenant-channel state, the
+callback returns to `<tenant origin>/tenant-admin/settings/video-providers?pending=<id>&provider=youtube`,
+or `?error=denied|failed|missing_scopes&provider=youtube`. `missing_scopes` means the admin
+unticked a permission; the tokens are revoked.
+
+### `GET /api/v1/tenant-admin/video-providers/youtube/pending/{pendingId}`
+
+Non-consuming preview, for the initiating admin only (anyone else → `404`):
+`{channelId, channelTitle, replacesCurrentChannel, currentChannelTitle}`.
+
+### `POST /api/v1/tenant-admin/video-providers/youtube/pending/{pendingId}/confirm`
+
+Body (optional): `{ "replaceChannel": true }`. `200` → the provider account view.
+
+| Case | Result |
+|---|---|
+| Not the initiating admin / other tenant / teacher pending | `404` (the pending entry is consumed and revoked at Google) |
+| Replaces a different current channel without `replaceChannel` | `409 VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED` (pending entry kept) |
+| Channel is another tenant's live video channel | `409 VIDEO_PROVIDER_CHANNEL_IN_USE` (tokens revoked) |
+| Expired / used | `404` |
+
+Audit: `video_provider.connected` | `video_provider.reauthorized` | `video_provider.channel_replaced`.
+
+### `POST /api/v1/tenant-admin/video-providers/{connectionId}/test`
+
+`ConnectionTestResult`. Refreshes `lastVerifiedAt`, or marks NEEDS_RECONNECT.
+
+### `POST /api/v1/tenant-admin/video-providers/{connectionId}/disconnect`
+
+Body `{reason?}`. Revokes at Google and keeps the row (DISCONNECTED, credentials wiped).
+Audit: `media_integration.disconnected`.
+
+Only the tenant's own YouTube channel connection is accepted on these two endpoints. Any other
+connection id (e.g. a teacher's YouTube) → `404`.

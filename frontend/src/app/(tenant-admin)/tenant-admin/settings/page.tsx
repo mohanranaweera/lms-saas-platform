@@ -60,6 +60,26 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/tenant-admin/settings/video-providers" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Video providers</CardTitle>
+              <CardDescription>
+                Connect your institute&apos;s own YouTube channel for lesson video uploads.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/video-configuration" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Video settings</CardTitle>
+              <CardDescription>
+                Where new videos are stored, the secure player, watermarks and viewing limits.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         <Link href="/tenant-admin/settings/domains" className="block">
           <Card className="h-full transition-colors hover:bg-muted/40">
             <CardHeader>

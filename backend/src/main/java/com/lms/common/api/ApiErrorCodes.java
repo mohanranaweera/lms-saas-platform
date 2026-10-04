@@ -101,6 +101,12 @@ public final class ApiErrorCodes {
 	/** MEDIA-INT-01 - the provider rejected the supplied API credentials. */
 	public static final String PROVIDER_CREDENTIALS_INVALID = "PROVIDER_CREDENTIALS_INVALID";
 
+	/** VIDEO Phase 3 - the YouTube channel is already the live video channel of another tenant (V71). */
+	public static final String VIDEO_PROVIDER_CHANNEL_IN_USE = "VIDEO_PROVIDER_CHANNEL_IN_USE";
+
+	/** VIDEO Phase 3 - confirming would replace the tenant's current, different channel without {@code replaceChannel=true}. */
+	public static final String VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED = "VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED";
+
 	/** AUTH-PWD-01: an account-setup / password-reset link is invalid, expired, used or from another tenant. */
 	public static final String TOKEN_INVALID = "TOKEN_INVALID";
 

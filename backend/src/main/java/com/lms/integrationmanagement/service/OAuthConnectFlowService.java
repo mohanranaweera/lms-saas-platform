@@ -11,6 +11,8 @@ import com.lms.integrationmanagement.gateway.media.MediaProviderException;
 import com.lms.integrationmanagement.gateway.media.OAuthProviderClient;
 import com.lms.integrationmanagement.gateway.media.OAuthTokens;
 import com.lms.integrationmanagement.gateway.media.ProviderIdentity;
+import com.lms.integrationmanagement.gateway.media.YouTubeOAuthClient;
+import com.lms.integrationmanagement.domain.ConnectionScope;
 import com.lms.integrationmanagement.service.MediaConnectionViews.AuthorizationUrlView;
 import com.lms.integrationmanagement.domain.MediaProviderConnection;
 import com.lms.integrationmanagement.service.MediaConnectionViews.ConnectionView;
@@ -71,6 +73,8 @@ public class OAuthConnectFlowService {
 
 	private static final String RETURN_PATH = "/teacher/settings/integrations";
 
+	private static final String TENANT_VIDEO_RETURN_PATH = "/tenant-admin/settings/video-providers";
+
 	private static final String DEFAULT_ERROR_PATH = "/integration-error";
 
 	private final Map<MediaProvider, OAuthProviderClient> clients = new EnumMap<>(MediaProvider.class);
@@ -91,10 +95,13 @@ public class OAuthConnectFlowService {
 
 	private final MediaConnectionViews views;
 
+	private final YouTubeOAuthClient youTubeOAuthClient;
+
 	public OAuthConnectFlowService(List<OAuthProviderClient> oauthClients, OAuthStateStore stateStore,
 			MediaCredentialsCodec codec, MediaConnectionStore store, TenantMediaSettingsService settingsService,
 			MediaIntegrationProperties properties, TenantLookupApi tenantLookupApi, TenantContext tenantContext,
-			MediaConnectionViews views) {
+			MediaConnectionViews views, YouTubeOAuthClient youTubeOAuthClient) {
+		this.youTubeOAuthClient = youTubeOAuthClient;
 		oauthClients.forEach(client -> clients.put(client.provider(), client));
 		this.stateStore = stateStore;
 		this.codec = codec;
@@ -128,10 +135,28 @@ public class OAuthConnectFlowService {
 		}
 		OAuthProviderClient client = clients.get(provider);
 		String verifier = client.supportsPkce() ? OAuthStateStore.randomToken() : null;
-		String state = stateStore
-			.issue(new PendingAuthorization(tenantContext.getTenantId(), teacherUserId, provider, verifier));
+		String state = stateStore.issue(new PendingAuthorization(tenantContext.getTenantId(), teacherUserId, provider,
+				verifier, ConnectionScope.TEACHER));
 		return new AuthorizationUrlView(
 				client.authorizationUrl(state, (verifier == null) ? null : s256(verifier), redirectUri(provider)));
+	}
+
+	/**
+	 * VIDEO Phase 3 (ADR-018 Amendment 2): starts the tenant's own YouTube
+	 * channel connection. The caller ({@code TenantVideoProviderService}) has
+	 * already checked the Tenant Admin's {@code INTEGRATIONS} permission. The
+	 * state binds the tenant and the initiating admin; the callback trusts
+	 * nothing else.
+	 */
+	public AuthorizationUrlView beginTenantYouTubeConnect(UUID adminUserId) {
+		if (!isAvailable(MediaProvider.YOUTUBE)) {
+			throw new ServiceUnavailableException("YouTube is not available right now.");
+		}
+		String verifier = OAuthStateStore.randomToken();
+		String state = stateStore.issue(new PendingAuthorization(tenantContext.getTenantId(), adminUserId,
+				MediaProvider.YOUTUBE, verifier, ConnectionScope.TENANT));
+		return new AuthorizationUrlView(youTubeOAuthClient.tenantChannelAuthorizationUrl(state, s256(verifier),
+				redirectUri(MediaProvider.YOUTUBE)));
 	}
 
 	/**
@@ -151,7 +176,9 @@ public class OAuthConnectFlowService {
 			return errorUri();
 		}
 		PendingAuthorization pending = consumed.get();
-		Optional<String> returnBase = tenantReturnBase(pending.tenantId());
+		boolean tenantScope = pending.isTenantScope();
+		Optional<String> returnBase = tenantReturnBase(pending.tenantId(),
+				tenantScope ? TENANT_VIDEO_RETURN_PATH : RETURN_PATH);
 		if (returnBase.isEmpty()) {
 			return errorUri();
 		}
@@ -165,12 +192,18 @@ public class OAuthConnectFlowService {
 		OAuthTokens tokens = null;
 		try {
 			tokens = client.exchangeCode(code, pending.codeVerifier(), redirectUri(pending.provider()));
+			if (tenantScope && !YouTubeOAuthClient.grantsTenantChannelScopes(tokens.scope())) {
+				// The admin unticked a permission on Google's consent screen - a
+				// channel we cannot upload to is useless, so keep nothing.
+				revokeQuietly(client, tokens);
+				return returnUri(returnBase.get(), "error", "missing_scopes", p);
+			}
 			ProviderIdentity identity = client.fetchIdentity(tokens.accessToken());
 			String ciphertext = codec.seal(StoredCredentials.oauth(tokens.accessToken(), tokens.refreshToken()),
-					new CredentialContext(pending.tenantId(), pending.provider(), pending.userId()));
+					credentialContext(pending.tenantId(), pending.provider(), pending.userId(), tenantScope));
 			String pendingId = stateStore.storePending(new PendingConnection(pending.tenantId(), pending.userId(),
 					pending.provider(), identity.externalId(), identity.label(), identity.accountType(), ciphertext,
-					tokens.expiresAt(), tokens.scope()));
+					tokens.expiresAt(), tokens.scope(), tenantScope ? ConnectionScope.TENANT : ConnectionScope.TEACHER));
 			return returnUri(returnBase.get(), "pending", pendingId, p);
 		}
 		catch (MediaProviderException | ServiceUnavailableException | DataAccessException
@@ -198,7 +231,8 @@ public class OAuthConnectFlowService {
 		UUID teacherUserId = IntegrationActors.requireTeacher();
 		PendingConnection pending = stateStore.consumePending(pendingId).orElseThrow(this::expiredRequest);
 		boolean sameTenant = pending.tenantId().equals(tenantContext.getTenantId());
-		if (!sameTenant || !pending.userId().equals(teacherUserId)) {
+		// A tenant-channel authorization can never be confirmed as a teacher's own account.
+		if (!sameTenant || !pending.userId().equals(teacherUserId) || pending.isTenantScope()) {
 			securityLog.atWarn()
 				.setMessage("media_integration.pending_confirm_rejected")
 				.addKeyValue("provider", pending.provider())
@@ -222,10 +256,11 @@ public class OAuthConnectFlowService {
 		return new NotFoundException("This connection request has expired or was already used. Connect again.");
 	}
 
-	private void revokePending(PendingConnection pending) {
+	/** Best-effort Google/Zoom/Vimeo revocation of a parked authorization that will never be saved. */
+	void revokePending(PendingConnection pending) {
 		try {
-			StoredCredentials credentials = codec.open(pending.credentialsCiphertext(),
-					new CredentialContext(pending.tenantId(), pending.provider(), pending.userId()));
+			StoredCredentials credentials = codec.open(pending.credentialsCiphertext(), credentialContext(
+					pending.tenantId(), pending.provider(), pending.userId(), pending.isTenantScope()));
 			revokeQuietly(clients.get(pending.provider()),
 					new OAuthTokens(credentials.accessToken(), credentials.refreshToken(), null, null));
 		}
@@ -248,10 +283,16 @@ public class OAuthConnectFlowService {
 				+ CALLBACK_PATH.replace("{provider}", provider.pathSegment());
 	}
 
-	private Optional<String> tenantReturnBase(UUID tenantId) {
+	private Optional<String> tenantReturnBase(UUID tenantId, String path) {
 		// TEN-DOM-01: the tenant's primary custom domain when it has one.
 		return tenantLookupApi.tenantOrigin(tenantId, properties.getTenantUrlTemplate())
-			.map(origin -> stripTrailingSlash(origin) + RETURN_PATH);
+			.map(origin -> stripTrailingSlash(origin) + path);
+	}
+
+	/** Tenant-scoped credentials are sealed with no owner (AAD "tenant"), teacher ones with the teacher. */
+	private static CredentialContext credentialContext(UUID tenantId, MediaProvider provider, UUID userId,
+			boolean tenantScope) {
+		return new CredentialContext(tenantId, provider, tenantScope ? null : userId);
 	}
 
 	private static URI returnUri(String base, String key, String value, String provider) {

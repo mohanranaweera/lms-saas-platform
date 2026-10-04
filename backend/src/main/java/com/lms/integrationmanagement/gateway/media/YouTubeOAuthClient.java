@@ -4,6 +4,10 @@ import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.config.MediaIntegrationProperties;
 import java.net.URI;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -21,6 +25,42 @@ import tools.jackson.databind.JsonNode;
 public class YouTubeOAuthClient implements OAuthProviderClient {
 
 	static final String SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
+
+	/** VIDEO Phase 3: the tenant's own channel needs upload on top of read. */
+	static final String UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload";
+
+	private static final List<String> TENANT_CHANNEL_SCOPES = List.of(UPLOAD_SCOPE, SCOPE);
+
+	/**
+	 * Consent URL for a tenant's own YouTube channel (VIDEO Phase 3, ADR-018
+	 * Amendment 2): exactly upload + readonly, PKCE, offline access. No
+	 * {@code include_granted_scopes} - the grant must not silently widen with
+	 * whatever else this Google account approved for the platform before.
+	 */
+	public String tenantChannelAuthorizationUrl(String state, String codeChallenge, String redirectUri) {
+		return UriComponentsBuilder.fromUriString(config.getAuthBaseUrl() + "/o/oauth2/v2/auth")
+			.queryParam("response_type", "code")
+			.queryParam("client_id", config.getClientId())
+			.queryParam("redirect_uri", redirectUri)
+			.queryParam("scope", String.join(" ", TENANT_CHANNEL_SCOPES))
+			.queryParam("access_type", "offline")
+			.queryParam("prompt", "consent")
+			.queryParam("state", state)
+			.queryParam("code_challenge", codeChallenge)
+			.queryParam("code_challenge_method", "S256")
+			.encode()
+			.build()
+			.toUriString();
+	}
+
+	/** Whether Google actually granted every scope a tenant channel needs (users can untick some). */
+	public static boolean grantsTenantChannelScopes(String grantedScopes) {
+		if (grantedScopes == null) {
+			return false;
+		}
+		Set<String> granted = new HashSet<>(Arrays.asList(grantedScopes.trim().split("\\s+")));
+		return granted.containsAll(TENANT_CHANNEL_SCOPES);
+	}
 
 	private final MediaIntegrationProperties.OAuthProvider config;
 

@@ -98,6 +98,45 @@ public class MediaConnectionStore {
 	}
 
 	/**
+	 * Saves the tenant's own YouTube channel (VIDEO Phase 3) confirmed by the
+	 * Tenant Admin who authorized it, replacing any current one (marked
+	 * DISCONNECTED/SYSTEM, credentials wiped - never deleted, media assets
+	 * reference it). Audited as {@code video_provider.connected}, {@code
+	 * .reauthorized} (same channel again) or {@code .channel_replaced}.
+	 *
+	 * @throws org.springframework.dao.DataIntegrityViolationException if the
+	 * channel is already the live channel of another tenant (V71)
+	 */
+	@Transactional
+	public MediaProviderConnection saveTenantOAuthConnection(UUID actorId, MediaProvider provider,
+			ProviderIdentity identity, String credentialsCiphertext, Instant accessTokenExpiresAt,
+			String grantedScopes) {
+		UUID tenantId = tenantContext.getTenantId();
+		Instant now = Instant.now();
+		MediaProviderConnection previous = repository.findCurrentForTenant(provider).orElse(null);
+		String action = "video_provider.connected";
+		if (previous != null) {
+			action = identity.externalId().equals(previous.getExternalAccountId()) ? "video_provider.reauthorized"
+					: "video_provider.channel_replaced";
+			previous.disconnect(ConnectionDisconnectedBy.SYSTEM, "Replaced by a new connection", now);
+			repository.saveAndFlush(previous);
+		}
+		MediaProviderConnection saved = repository.saveAndFlush(MediaProviderConnection.tenantOAuth(tenantId,
+				provider, identity.externalId(), identity.label(), credentialsCiphertext, accessTokenExpiresAt,
+				grantedScopes, now));
+		Map<String, Object> metadata = new HashMap<>();
+		metadata.put("provider", provider.name());
+		metadata.put("scope", "TENANT");
+		metadata.put("externalAccountId", MediaConnectionViews.mask(identity.externalId()));
+		if (previous != null) {
+			metadata.put("replacedConnectionId", previous.getId().toString());
+			metadata.put("replacedExternalAccountId", MediaConnectionViews.mask(previous.getExternalAccountId()));
+		}
+		auditLogApi.record(new AuditLogEntry(actorId, action, TARGET_ENTITY, saved.getId(), null, metadata));
+		return saved;
+	}
+
+	/**
 	 * Saves a Tenant Admin's DynTube/Bunny account (credentials already
 	 * verified with the provider), replacing any current one.
 	 */

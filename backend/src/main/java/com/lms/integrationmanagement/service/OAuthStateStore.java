@@ -2,6 +2,7 @@ package com.lms.integrationmanagement.service;
 
 import com.lms.common.error.ServiceUnavailableException;
 import com.lms.integrationmanagement.api.MediaProvider;
+import com.lms.integrationmanagement.domain.ConnectionScope;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -37,27 +38,44 @@ public class OAuthStateStore {
 
 	private static final SecureRandom RANDOM = new SecureRandom();
 
-	/** What a state value stands for. {@code codeVerifier} is the PKCE verifier, or {@code null}. */
-	public record PendingAuthorization(UUID tenantId, UUID userId, MediaProvider provider, String codeVerifier) {
+	/**
+	 * What a state value stands for. {@code codeVerifier} is the PKCE verifier,
+	 * or {@code null}. {@code userId} is the teacher (scope TEACHER) or the
+	 * initiating Tenant Admin (scope TENANT, VIDEO Phase 3). A {@code null}
+	 * scope - an entry written before the field existed - means TEACHER.
+	 */
+	public record PendingAuthorization(UUID tenantId, UUID userId, MediaProvider provider, String codeVerifier,
+			ConnectionScope scope) {
+
+		public boolean isTenantScope() {
+			return scope == ConnectionScope.TENANT;
+		}
 
 		@Override
 		public String toString() {
-			return "PendingAuthorization[tenantId=" + tenantId + ", userId=" + userId + ", provider=" + provider + "]";
+			return "PendingAuthorization[tenantId=" + tenantId + ", userId=" + userId + ", provider=" + provider
+					+ ", scope=" + scope + "]";
 		}
 
 	}
 
 	/**
 	 * A provider authorization that has completed but is not yet saved. {@code
-	 * credentialsCiphertext} is sealed for this tenant/provider/teacher.
+	 * credentialsCiphertext} is sealed for this tenant/provider/owner - the
+	 * owner being the teacher, or none for scope TENANT.
 	 */
 	public record PendingConnection(UUID tenantId, UUID userId, MediaProvider provider, String externalAccountId,
 			String accountLabel, String accountType, String credentialsCiphertext, Instant accessTokenExpiresAt,
-			String grantedScopes) {
+			String grantedScopes, ConnectionScope scope) {
+
+		public boolean isTenantScope() {
+			return scope == ConnectionScope.TENANT;
+		}
 
 		@Override
 		public String toString() {
-			return "PendingConnection[tenantId=" + tenantId + ", userId=" + userId + ", provider=" + provider + "]";
+			return "PendingConnection[tenantId=" + tenantId + ", userId=" + userId + ", provider=" + provider
+					+ ", scope=" + scope + "]";
 		}
 
 	}
@@ -126,6 +144,25 @@ public class OAuthStateStore {
 		}
 		try {
 			String json = redisTemplate.opsForValue().getAndDelete(PENDING_PREFIX + pendingId);
+			return (json == null) ? Optional.empty()
+					: Optional.of(objectMapper.readValue(json, PendingConnection.class));
+		}
+		catch (DataAccessException | JacksonException ex) {
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * Reads a pending authorization WITHOUT consuming it - for the Tenant
+	 * Admin's channel preview before confirming. Callers must check the
+	 * tenant and initiating user before revealing anything from it.
+	 */
+	public Optional<PendingConnection> peekPending(String pendingId) {
+		if (pendingId == null || pendingId.isBlank() || pendingId.length() > 128) {
+			return Optional.empty();
+		}
+		try {
+			String json = redisTemplate.opsForValue().get(PENDING_PREFIX + pendingId);
 			return (json == null) ? Optional.empty()
 					: Optional.of(objectMapper.readValue(json, PendingConnection.class));
 		}
