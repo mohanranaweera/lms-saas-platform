@@ -6,21 +6,15 @@ import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
 import com.lms.integrationmanagement.api.StoredObject;
 import com.lms.integrationmanagement.config.ObjectStorageProperties;
-import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
-import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -66,36 +60,10 @@ public class S3ObjectStorageApi implements ObjectStorageApi {
 	@Autowired
 	public S3ObjectStorageApi(ObjectStorageProperties properties) {
 		this.bucket = properties.getBucket();
-		Region region = Region.of(properties.getRegion());
-		AwsBasicCredentials credentials = AwsBasicCredentials.create(properties.getAccessKey(),
-				properties.getSecretKey());
-		StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(credentials);
-
-		S3ClientBuilder clientBuilder = S3Client.builder()
-			.region(region)
-			.credentialsProvider(credentialsProvider)
-			// Path-style access is required for MinIO (and most non-AWS
-			// S3-compatible endpoints) - virtual-hosted-style bucket
-			// addressing (the SDK's default) only works against real AWS.
-			.forcePathStyle(true);
-		S3Presigner.Builder presignerBuilder = S3Presigner.builder()
-			.region(region)
-			.credentialsProvider(credentialsProvider)
-			// S3Presigner has no forcePathStyle() shorthand (unlike
-			// S3ClientBuilder) - path-style access is set via
-			// S3Configuration instead. Required for presigned URLs to
-			// resolve correctly against MinIO/non-AWS endpoints, matching
-			// the S3Client builder's forcePathStyle(true) above.
-			.serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build());
-
-		if (properties.getEndpoint() != null && !properties.getEndpoint().isBlank()) {
-			URI endpointUri = URI.create(properties.getEndpoint());
-			clientBuilder.endpointOverride(endpointUri);
-			presignerBuilder.endpointOverride(endpointUri);
-		}
-
-		this.s3Client = clientBuilder.build();
-		this.s3Presigner = presignerBuilder.build();
+		// Path-style access (MinIO / non-AWS endpoints) - see S3Clients.
+		S3Clients.Pair clients = S3Clients.create(properties);
+		this.s3Client = clients.client();
+		this.s3Presigner = clients.presigner();
 	}
 
 	/**

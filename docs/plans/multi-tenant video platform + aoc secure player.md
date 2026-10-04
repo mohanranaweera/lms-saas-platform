@@ -3,10 +3,10 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    3 — Tenant Video Provider Accounts
+Current Phase:    4 — YouTube Upload Pipeline (TESTED; commit pending)
 Last Updated:     2026-10-04
-Current Branch:   feat/video-provider-accounts
-Latest Migration: V70__evolve_video_asset_provider_neutral.sql
+Current Branch:   feat/video-youtube-upload
+Latest Migration: V72__create_media_upload_job.sql
 Backend Build:    PASS — mvnw verify, 2026-10-04 (BUILD SUCCESS, 13:56 min)
 Frontend Build:   not affected (no frontend change in Phases 1–2)
 Player Build:     n/a (player project does not exist yet)
@@ -74,7 +74,7 @@ Valid statuses: NOT STARTED · PLANNING · APPROVED · IN PROGRESS · BLOCKED ·
 | ID | Approval | Blocks |
 |---|---|---|
 | ~~B1~~ | **ADR-018 Amendment 2**: allow a *tenant-scoped* YouTube connection. This reverses the per-teacher owner decision and the V60 CHECK. **APPROVED by owner 2026-10-04** | — |
-| B2 | **Scoped exception to architecture.md:94–97** for the upload transfer worker only (S3 staging → YouTube) | Phase 4 |
+| ~~B2~~ | **Scoped exception to architecture.md:94–97** for the upload transfer worker only (S3 staging → YouTube). **APPROVED by owner 2026-10-04** | — |
 | B3 | **ADR-008 amendment**: YouTube is gated but unprotected; protected playback = managed HLS; launch codes, exchange and heartbeat added to the token model | Phase 7 |
 | B4 | **ADR-025 Native Secure Player**: Rust/Tauri 2 stack, `aocplayer://`, installation keys, the exchange endpoint as an ADR-011-style unauthenticated carve-out, signed updates | Phase 8–11 |
 | ~~B5~~ | **VID-ADR-002**: evolve existing tables instead of creating the brief's separately named tables. **APPROVED by owner 2026-10-04** | — |
@@ -920,7 +920,7 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 | VID-ADR-001 | 2026-10-04 | Lessons reference media via LessonMedia → MediaAsset; never a YouTube ID/URL on lessons | Provider neutrality | `Lesson.youtubeVideoId` | No course/lesson schema change | ACCEPTED (brief mandate) |
 | VID-ADR-002 | 2026-10-04 | Evolve `video_asset`, `media_provider_connection`, `video_watch_session`, ADR-022 `device` instead of new parallel tables; Java API uses brief names | Keep existing FKs, history, tests, one entitlement path | New `media_asset`/`playback_session`/`user_device` tables + migration of old data | Brief table names differ from DB names | ACCEPTED (owner, 2026-10-04) |
 | VID-ADR-003 | 2026-10-04 | LessonMedia = existing `Material(VIDEO)` row | One ordering/visibility/entitlement path | New `lesson_media` table | No migration in Phase 6 | PROPOSED (Q-001) |
-| VID-ADR-004 | 2026-10-04 | Upload via presigned S3 staging + background worker → YouTube resumable | No binary on request threads; server-side validation; bounded memory | Multipart through backend (brief §21); browser direct to YouTube session URI | Needs a scoped architecture.md exception | PROPOSED (B2) |
+| VID-ADR-004 | 2026-10-04 | Upload via presigned S3 staging + background worker → YouTube resumable | No binary on request threads; server-side validation; bounded memory | Multipart through backend (brief §21); browser direct to YouTube session URI | Scoped architecture.md exception (worker only) | ACCEPTED (owner, B2, 2026-10-04) |
 | VID-ADR-005 | 2026-10-04 | Provider credentials stay in `media_provider_connection` ciphertext (AES-256-GCM+AAD) | Existing reviewed mechanism (ADR-018/019) | External vault/KMS | No new secret store; key rotation = TD-003 | PROPOSED |
 | VID-ADR-006 | 2026-10-04 | Feature flags = typed config properties + tenant config switches until Module D exists | No flag engine; repo pattern | Introduce Unleash/FF4J | No per-plan gating yet | PROPOSED |
 | VID-ADR-007 | 2026-10-04 | YouTube mode: no overlay on the player; watermark band outside it | YouTube RMF | Overlay anyway | Weaker attribution in YouTube mode | PROPOSED (Q-006 legal) |
@@ -939,14 +939,14 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 | Q-004 | Keep playing already-uploaded videos after disconnect? | Yes, LMS-gated | Phase 3 |
 | Q-005 | Under what authorized provider arrangement could `YOUTUBE_CUSTOM` be activated? | None today; owner/legal | — |
 | Q-006 | Legal review of RMF for the outside-player watermark band and window capture affinity in YouTube mode | Obtain before Phase 11 ships to prod | Phase 11 |
-| Q-007 | Google Cloud: one platform project (shared quota), separate upload project, or tenant-supplied projects? | One project per env + per-tenant budget | Phase 4 |
+| ~~Q-007~~ | Google Cloud: one platform project (shared quota), separate upload project, or tenant-supplied projects? | **Resolved 2026-10-04: one platform project per environment + per-tenant budget** | — |
 | Q-008 | Does a paired player installation share the browser's device slot or count as an extra device? | Share | Phase 8 |
 | Q-009 | Is the native player mandatory for all tenants, or per-tenant opt-in? | Per-tenant `native_player_required` | Phase 7 |
 | Q-010 | Teacher visibility: own uploads only, or all tenant media? | Own + attached to own courses | Phase 5 |
 | Q-011 | New `DomainArea.MEDIA_LIBRARY` or reuse `MATERIALS`/`INTEGRATIONS`? | Reuse for now | Phase 5 |
 | Q-012 | Capture protection required but OS unsupported → refuse or warn? | Refuse when tenant sets `required` | Phase 11 |
-| Q-013 | Audit `actor_id` for system jobs (DB trigger requires a real user) | Status-event table + security log | Phase 4 |
-| Q-014 | Default per-tenant YouTube upload budget | 20/day/tenant, configurable | Phase 4 |
+| ~~Q-013~~ | Audit `actor_id` for system jobs (DB trigger requires a real user) | **Resolved 2026-10-04: `video_asset_status_event` (actor NULL) + security log; `audit_log` stays for human actions** | — |
+| ~~Q-014~~ | Default per-tenant YouTube upload budget | **Resolved 2026-10-04: 20/day/tenant, configurable per tenant** | — |
 | Q-015 | macOS / mobile players timeline | Windows first; out of scope now | — |
 | Q-016 | Which commercial plans get device restrictions / native player? | Wait for Module D | — |
 | Q-017 | Deleting in the LMS also deletes on YouTube? | Optional per action, default no | Phase 5 |
@@ -984,7 +984,7 @@ Rust toolchain + `windows-latest` CI runners; owner approvals B1–B6; legal rev
 | TD-005 | No metrics registry | Not in repo | No dashboards | 15 |
 | TD-006 | macOS/mobile players, DRM, offline playback | Out of scope | — | future ADRs |
 | TD-007 | Existing `watchedDeltaSeconds=0` bypass in `PlaybackProgressRequest` | Fixed by server-clock accounting | Watch limits bypassable today | 12 |
-| TD-008 | Platform Admin cannot disable a tenant's YouTube channel (PAY-GW-01-style `disabled_by = PLATFORM`) | Not needed until uploads exist; needs a platform-admin endpoint + `disconnected_by` value | Abuse response relies on the tenant admin or DB ops | 4 (before uploads go live) |
+| ~~TD-008~~ | Platform Admin cannot disable a tenant's YouTube channel | **Resolved in Phase 4** (V72 `platform_disabled_*`, `/api/v1/platform-admin/tenants/{tenantId}/video-providers`) | — | 4 ✔ |
 | TD-009 | A pending tenant authorization that is never confirmed keeps its Google grant until the user revokes it at Google (the Redis entry expires after 10 min with no revoke) | Same behaviour as the existing teacher flow | An orphaned grant on the admin's own Google account | 14 |
 
 ---
@@ -994,6 +994,7 @@ Rust toolchain + `windows-latest` CI runners; owner approvals B1–B6; legal rev
 | Phase | Backend | Frontend | Integration | Player | Manual | Failures | Resolution |
 |---|---|---|---|---|---|---|---|
 | 1 | not run (no code) | not run | not run | n/a | Repository inspection only | — | — |
+| 4 | Targeted 2026-10-04: 12 suites / 99 tests / 0 failures — new `MediaUploadIntegrationTest` 19/19, `MediaUploadRulesTest` 6/6, `S3MediaStagingApiTest` 7/7, `YouTubeUploadUnitTest` 1/1, `YouTubeUploadServiceStatusTest` 3/3; unchanged `TenantVideoProviderIntegrationTest` 13/13, `TeacherMediaConnectionIntegrationTest` 16/16, `TenantAdminIntegrationsIntegrationTest` 7/7, `MediaProviderConnectionSchemaIntegrationTest` 5/5, `MediaLibraryIntegrationTest` 10/10, `TenantVideoConfigurationIntegrationTest` 6/6, `S3ObjectStorageApiTest` 6/6. Full `mvnw verify` 2026-10-04: **2338 tests, 0 failures/errors/skips, BUILD SUCCESS** (the shell wrapper was reaped for low memory, Maven itself finished). The retry same-channel guard added after it was verified by re-running `MediaUploadIntegrationTest`: 20/20 (incl. `aFailedUploadCannotBeRetriedIntoADifferentChannel`) | n/a (backend only) | see Backend | n/a | none | none | — |
 | 3 (frontend) | — | `tsc --noEmit` clean. `npm run lint` 0 errors (2 pre-existing warnings in untouched files). Playwright `tenant-admin-video-settings.spec.ts` 11/11. Regression `route-groups` + `tenant-admin-integrations` + `accessibility`: 43/44 in a parallel run; the one failure (`Teacher video libraries › a failed setup can be retried…`, untouched code) passed 3/3 when re-run alone, so it is timing-flaky, not a regression | — | n/a | none | 1 flaky pre-existing test | Recorded; not changed |
 | 3 | Targeted: integrationmanagement + videoaccessmanagement packages, 27 suites / 207 tests / 0 failures (incl. new `TenantVideoProviderIntegrationTest` 13/13, `TenantVideoConfigurationIntegrationTest` 6/6). Full `mvnw verify` **incomplete**: stopped by Claude Code for low system memory after 257 suites / 1947 tests, 0 failures so far | n/a (frontend not started) | see Backend | n/a | none | none | Full suite to be re-run when the machine has memory |
 | 2 | Unit: `VideoAssetLifecycleRulesTest` 8/8, `VideoProviderCatalogTest` 4/4. Full `mvnw verify` 2026-10-04: 2283 tests, 0 failures/errors/skips | n/a (no frontend change) | `MediaLibraryIntegrationTest` 10/10 (3 tagged `cross-tenant`); existing `VideoPlaybackSessionIntegrationTest` 18/18 unchanged | n/a | none | none | — (`application.yml` flag block was added after the full run started; the video suite was re-run afterwards: 53/53 pass) |
@@ -1003,6 +1004,7 @@ Rust toolchain + `windows-latest` CI runners; owner approvals B1–B6; legal rev
 | Phase | Created | Modified | Deleted | Migrations |
 |---|---|---|---|---|
 | 1 | `docs/plans/multi-tenant video platform + aoc secure player.md` | — | `docs/plans/VIDEO-01 Tenant YouTube Media and Secure Player.md` (untracked draft, never committed) | — |
+| 4 | Backend: `V72__create_media_upload_job.sql`; `integrationmanagement/api/{MediaStagingApi,VideoProviderUploadApi}.java`, `storage/{S3Clients,S3MediaStagingApi,UnavailableMediaStagingApi}.java`, `gateway/media/YouTubeUploadHttp.java`, `service/{YouTubeUploadService,PlatformVideoProviderService}.java`, `web/PlatformAdminVideoProviderController.java`; `common/error/MediaUploadException.java`; `videoaccessmanagement/config/VideoUploadProperties.java`, `domain/{MediaUploadJob,MediaUploadJobStatus,TenantVideoUsageDaily}.java`, `repository/{MediaUploadJobRepository,TenantVideoUsageDailyRepository}.java`, `service/{MediaUploadService,MediaUploadStore,UploadTransferWorker,MediaUploadMaintenance,MediaStatusSyncService,MediaUploadScheduler,UploadSchedule}.java`, `web/dto/MediaUploadDtos.java`; tests `videoaccessmanagement/web/MediaUploadIntegrationTest`, `videoaccessmanagement/service/MediaUploadRulesTest`, `integrationmanagement/storage/S3MediaStagingApiTest`, `integrationmanagement/gateway/media/YouTubeUploadUnitTest`, `integrationmanagement/service/YouTubeUploadServiceStatusTest`, test doubles `integrationmanagement/media/{InMemoryMediaStagingApi,FakeYouTubeUploads}` | Backend: `MediaProviderConnection`, `MediaConnectionApi`, `MediaConnectionLookupService`, `MediaTokenService`, `TenantVideoProviderService`, `S3ObjectStorageApi` (shared client factory), `ApiErrorCodes`, `TenantVideoConfiguration`, `TenantVideoConfigurationService`, `VideoAsset`, `VideoAssetRepository`, `MediaController`, `application.yml`; tests `FakeMediaProviderServer`, `MediaIntegrationTestSupport`, test `application.yml`. Docs: `.claude/rules/architecture.md` (B2 scoped exception), `ADR-018` (Phase 4 note), `docs/api/{integrations,video-access-management}.md`, this plan | — | `V72__create_media_upload_job.sql` |
 | 3 | Backend: `V71__tenant_video_provider_accounts.sql`; `integrationmanagement/{service/TenantVideoProviderService,web/TenantVideoProviderController}.java`; `videoaccessmanagement/domain/{TenantVideoConfiguration,TenantVideoSettings,WatchTimePolicy,WatermarkField,WatermarkFieldsConverter}.java`, `repository/TenantVideoConfigurationRepository.java`, `service/TenantVideoConfigurationService.java`, `web/TenantVideoConfigurationController.java`, `web/dto/TenantVideoConfigurationRequest.java`; tests `integrationmanagement/media/TenantVideoProviderIntegrationTest`, `videoaccessmanagement/web/TenantVideoConfigurationIntegrationTest`. Frontend: `lib/api/video-providers.ts`, `lib/validation/video-configuration.ts`, `components/integrations/tenant-youtube-channel-card.tsx`, `app/(tenant-admin)/tenant-admin/settings/{video-providers,video-configuration}/page.tsx`, `e2e/tenant-admin-video-settings.spec.ts` | Backend: `OAuthStateStore`, `OAuthConnectFlowService`, `MediaConnectionStore`, `MediaProviderConnection`, `YouTubeOAuthClient`, `ApiErrorCodes`; test `FakeMediaProviderServer`. Frontend: `settings/page.tsx`, `components/layout/nav/tenant-admin-nav.tsx`. Docs: `ADR-018` (Amendment 2), `docs/api/{integrations,video-access-management}.md`, this plan | — | `V71__tenant_video_provider_accounts.sql` |
 | 2 | `videoaccessmanagement/domain/{MediaAssetProvider,MediaPrivacyStatus,PlaybackMode,VideoProviderCapabilities,VideoAssetStatusEvent}.java`; `repository/VideoAssetStatusEventRepository.java`; `config/VideoFeatureFlags.java`; `service/{VideoProviderCatalog,MediaAssetService,MediaAssetLifecycleService,MediaAssetView,MediaAssetViews}.java`; `web/MediaController.java`; `web/dto/MediaAssetResponse.java`; tests `domain/VideoAssetLifecycleRulesTest`, `service/VideoProviderCatalogTest`, `web/MediaLibraryIntegrationTest` | `domain/{VideoAsset,VideoAssetStatus}.java`; `service/VideoAssetService.java`; `application.yml`; `docs/api/video-access-management.md`; this plan | — | `V70__evolve_video_asset_provider_neutral.sql` |
 
@@ -1023,7 +1025,12 @@ Deviations from the **master instruction** proposed in Phase 1 (each needs appro
 | **Phase 2:** separate `provider/` package (§37) | Types placed in existing `domain/`, `service/`, `config/` packages | `.claude/rules/architecture.md` package layout | None | None | §37 file list superseded by Files Changed |
 | `MEDIA_NOT_FOUND` error code (§28) | Generic `NOT_FOUND` | Matches the rest of the codebase; does not distinguish missing from foreign | Positive (no enumeration signal) | — | Revisit in Phase 5 if the UI needs it |
 | Asset provider values `MANAGED_STREAM`/`SELF_HOSTED` (§9) | `ck_video_asset_provider` = `INTERNAL`, `YOUTUBE` only | Provider = concrete host; values added with the migration that ships each provider | None | None | Phase 13 migration |
-| Sync scheduling index in V70 (§27) | Deferred | Ships with the job that reads it | None | None | Phase 4 |
+| Sync scheduling index in V70 (§27) | Deferred | Ships with the job that reads it | None | None | Phase 4 ✔ (V72 `idx_video_asset_sync_due`) |
+| **Phase 4:** `disabled_by (TENANT\|PLATFORM)` on the connection (Before block) | `platform_disabled_at` + `platform_disabled_reason`, PLATFORM only | The tenant already disables by disconnecting; only the platform switch-off needs a new state, and it must not touch status/credentials | Positive (narrow CHECK: tenant YouTube rows only) | None | — |
+| **Phase 4:** `tenant_video_configuration.daily_upload_limit` editable per tenant (Q-014) | Column + entity field, not in the Phase 3 settings API | Keeps the approved Phase 3 API contract unchanged; changed by platform operations for now | None | None | Phase 5 may expose it |
+| **Phase 4:** S3 staging tests | In-memory `MediaStagingApi` test double + mocked-SDK unit test, no MinIO container | No S3 Testcontainers module in the backend (owner-accepted in the Before block) | Real S3 presign/multipart covered only by unit tests | None | Optional MinIO container later |
+| **Phase 4:** upload progress in `MediaAssetResponse` (§28 `uploadProgress`) | Not returned yet | Phase 5 (Media Library completion) owns the response changes | None | None | Phase 5 |
+| **Phase 4:** `uploadId` in the create response (§28) | Not returned | The server keeps the S3 upload id; the browser only needs part URLs | Positive | None | — |
 
 ---
 
@@ -1297,3 +1304,214 @@ Deviations from the **master instruction** proposed in Phase 1 (each needs appro
   - Q-014 (per-tenant upload budget);
   - TD-008 before uploads go live;
   - S3 staging bucket lifecycle/CORS (devops).
+
+### Phase 4 — YouTube Upload Pipeline
+
+**Before (2026-10-04, status → PLANNING; owner approved B2, Q-007, Q-013, Q-014 as recommended)**
+
+- **Objective:** a Teacher or permitted staff member uploads a video to the tenant's connected
+  YouTube channel. Bytes go browser → S3 staging (presigned multipart). A background worker
+  streams them staging → YouTube resumable upload. A status-sync job then moves the asset to
+  READY or FAILED. All of this is backend only; the upload UI is Phase 5.
+- **Repository state:** branch `feat/video-youtube-upload` from `8244cfa`. Latest migration is V71.
+  - `ObjectStorageApi` has store / delete / signed GET only. There is no multipart or ranged read.
+  - `MediaTokenService.validAccessToken` already refreshes under a Redis lock.
+  - `MediaAssetLifecycleService` already records system transitions with a `null` actor.
+  - `NotificationOutboxRepository` is the established `FOR UPDATE SKIP LOCKED` claim pattern.
+  - There is no S3 Testcontainers module (only Postgres + Redis).
+- **Approvals recorded:**
+  - **B2 / VID-ADR-004 ACCEPTED:** only `UploadTransferWorker` may move video bytes through the
+    JVM. It runs off request threads, holds one chunk per transfer, and is capped per tenant and
+    globally. A scoped note is added to `.claude/rules/architecture.md`.
+  - **Q-007:** one Google Cloud project per environment.
+  - **Q-013:** status events + security log.
+  - **Q-014:** 20 uploads per day per tenant, configurable.
+- **Affected modules:**
+  - `integrationmanagement`: staging-storage port + S3 adapter, YouTube upload/status client,
+    platform-admin disable (TD-008);
+  - `videoaccessmanagement`: upload service, job entity/repo, worker, status sync, quota budget,
+    endpoints;
+  - `common/api/ApiErrorCodes`;
+  - docs: `docs/api/video-access-management.md`, `docs/api/integrations.md`, ADR-018 note, this plan.
+- **Proposed changes:**
+  - `V72__create_media_upload_job.sql`:
+    - `media_upload_job`:
+      - `tenant_id`, `video_asset_id`, `provider_connection_id` (composite tenant FKs);
+      - `staging_object_key`, `staging_upload_id`;
+      - `session_uri_ciphertext` (AES-GCM, tenant AAD, never returned);
+      - `bytes_total`, `bytes_sent`, `attempt_count`, `next_attempt_at`, `claimed_at`, `last_error`;
+      - status `AWAITING_PARTS / QUEUED / TRANSFERRING / RETRY_WAIT / QUOTA_PAUSED /
+        PARKED_RECONNECT / COMPLETED / FAILED / CANCELLED`;
+      - partial unique index: one live job per asset;
+      - claim index `(status, next_attempt_at)`;
+    - `tenant_video_usage_daily (tenant_id, usage_date, uploads, bytes, api_units)`: unique per
+      tenant/day, with the day in `America/Los_Angeles` to match the YouTube quota reset;
+    - `tenant_video_configuration.daily_upload_limit INT NOT NULL DEFAULT 20` (CHECK 0–1000);
+    - the deferred V70 sync index `video_asset (next_sync_at) WHERE status IN ('UPLOADED','PROCESSING')`;
+    - TD-008: `media_provider_connection.disabled_by` (`TENANT|PLATFORM`, nullable) + a CHECK.
+  - Staging port (`integrationmanagement.api.MediaStagingApi`):
+    - `initiate(tenantId, assetId, mime)` → key `video-staging/{tenantId}/{assetId}`;
+    - `presignParts(key, uploadId, partNumbers, ttl)`; `complete(parts)`; `abort`;
+    - `head` (size); `readRange(key, from, to)` → bounded stream.
+    - Two adapters, chosen by the same conditional-bean rule as `ObjectStorageApi`:
+      `S3MediaStagingApi` and a fail-closed `Unavailable…`.
+    - Tests use an in-memory fake bean, because there is no S3 container.
+  - YouTube client (`integrationmanagement.api.VideoProviderUploadApi`, implemented by
+    `YouTubeUploadClient`):
+    - `startResumableSession(connectionId, metadata, size, mime)`;
+    - `uploadChunk(sessionUri, offset, bytes, total)` → `Progress | Complete(videoId)`;
+    - `queryProgress(sessionUri, total)`; `cancel(sessionUri)`; `fetchStatus(connectionId, videoIds)`.
+    - Tokens come from `MediaTokenService` (one refresh on 401). `invalid_grant` marks the
+      connection NEEDS_RECONNECT.
+    - Errors map to a typed `UploadFailure` (`RETRYABLE / QUOTA / AUTH / SESSION_GONE / FATAL`).
+      The host allow-list is unchanged (`www.googleapis.com`).
+  - `MediaUploadService` + `MediaController` additions (§28):
+    - `POST /api/v1/media`, `POST /{id}/upload/parts`, `/upload/complete`, `/upload/cancel`,
+      `/upload/retry`.
+    - Gates, in order:
+      1. authenticated (Teacher/TA for their own asset, otherwise `MATERIALS` CREATE_EDIT);
+      2. platform flag `video.features.youtube-upload`;
+      3. tenant `uploads_enabled`;
+      4. ACTIVE tenant YouTube connection that is not platform-disabled;
+      5. `mime` in the allow-list, `sizeBytes` ≤ configured max (default 10 GiB; YouTube's cap is
+         256 GB);
+      6. daily budget: reserved at create, released on cancel or reject.
+    - `complete`: S3 complete → HEAD size equals declared → ranged GET of the first 64 KiB →
+      `VideoContentSniffer`. Reject ⇒ delete the staging object, asset FAILED. Accept ⇒ asset
+      CREATED → UPLOADING and job QUEUED.
+  - `UploadTransferWorker` (`@Scheduled`, `SKIP LOCKED` claim in a short TX, transfer with no TX
+    open, short TX per progress write):
+    - sets `TenantContext` from the claimed row;
+    - 8 MiB chunks; resumes from `bytes_sent` or a `bytes */N` query;
+    - 5xx/IO ⇒ RETRY_WAIT with exponential backoff + jitter (max 8 attempts, then FAILED);
+    - quota ⇒ QUOTA_PAUSED until the next Pacific midnight;
+    - auth ⇒ PARKED_RECONNECT, which resumes after the tenant reconnects the same channel;
+    - session 404/410 ⇒ re-init the session (bytes_sent = 0);
+    - success ⇒ store `provider_asset_id`, asset UPLOADED → PROCESSING, delete the staging
+      object, schedule the first sync.
+    - Concurrency caps: `video.upload.max-concurrent-transfers` (default 2) and 1 per tenant.
+    - A stale-claim sweeper releases `claimed_at` older than 15 min.
+  - `MediaStatusSyncJob`: batches of up to 50 `videos.list` ids per connection (`status` +
+    `processingDetails`); processed ⇒ READY (+ duration and thumbnail), rejected/failed ⇒ FAILED
+    with the provider reason, otherwise backoff on `next_sync_at` (1m → 30m, give up after
+    24 h ⇒ FAILED).
+  - `MediaStagingSweeper`: aborts or deletes staging older than 48 h for CANCELLED/FAILED/abandoned
+    jobs. A devops lifecycle rule is the backstop (documented, not deployed).
+  - TD-008: `POST /api/v1/platform-admin/tenants/{tenantId}/video-providers/{accountId}/disable|enable`.
+    PLATFORM-disabled can only be re-enabled by a Platform Admin. Audited. Uploads are refused and
+    live jobs parked while disabled.
+  - Error codes: `VIDEO_PROVIDER_NOT_CONNECTED`, `VIDEO_PROVIDER_AUTH_EXPIRED`, `MEDIA_UPLOAD_FAILED`,
+    `MEDIA_NOT_FOUND`, `UPLOAD_QUOTA_EXCEEDED` (429), `VIDEO_UPLOADS_DISABLED`.
+- **DB impact:** V72 only.
+  - Two new tenant-owned tables with `NOT NULL tenant_id`, leading-`tenant_id` indexes and
+    composite FKs.
+  - One config column with a default.
+  - One partial index.
+  - One nullable column + CHECK.
+  - No data rewrite.
+- **API impact:** additive only (B6): the media upload endpoints and the platform-admin
+  disable/enable. `/api/v1/videos/*` and the Phase 3 endpoints are unchanged.
+- **Frontend impact:** none (Phase 5).
+- **Tenant impact:**
+  - Tenant comes from auth context on requests, and from the claimed row in jobs (never a payload).
+  - Staging keys are tenant-prefixed and never accepted from the client; part URLs are generated
+    server-side for the server-held key only.
+  - Each upload uses only its own tenant's connection token (T7).
+  - One tenant's quota or `invalid_grant` never pauses another tenant's jobs (T13).
+  - The budget is per tenant.
+- **Security impact:**
+  - Server-side MIME sniff + size check before any byte leaves for YouTube.
+  - Presigned part URLs: short TTL (15 min), PUT only, one key.
+  - The resumable `session_uri` is encrypted and never returned or logged.
+  - Video bytes never touch request threads.
+  - Bounded memory (one chunk per transfer).
+  - Platform kill switch (TD-008).
+  - Security log for every rejection or park.
+  - Cancel deletes both the YouTube session and the staging object.
+- **Tests:**
+  - `FakeYouTubeServer` (resumable init / 308 Range / chunk PUT / status query / videos.list,
+    scripted 5xx / quota / 401 / invalid_grant / 404 session, records the bearer).
+  - In-memory `MediaStagingApi` fake.
+  - Unit: chunk/range math, backoff, Pacific-midnight calculation, job state machine.
+  - Integration:
+    - happy path through to READY;
+    - 308 resume after IO failure;
+    - 5xx retries then FAILED;
+    - quota ⇒ QUOTA_PAUSED and other tenant unaffected (T13);
+    - 401 refresh once;
+    - invalid_grant ⇒ parked + connection NEEDS_RECONNECT;
+    - session 404 re-init;
+    - sniff reject;
+    - size mismatch;
+    - cancel / retry;
+    - budget 429 + release on cancel;
+    - flag/tenant switch off ⇒ refused;
+    - no connection ⇒ 409;
+    - platform-disable blocks + parks, tenant cannot re-enable;
+    - Student ⇒ 403;
+    - Teacher cannot complete another teacher's upload;
+    - T1–T4 on upload endpoints, T7 (fake asserts tenant A's bearer), T12 (injected `tenantId`
+      ignored);
+    - status sync READY / FAILED / backoff;
+    - schema test for V72 tenant FKs and indexes.
+  - Existing suites stay green.
+- **Deferred:**
+  - upload UI, edit/delete and the Media Library screens → Phase 5;
+  - deleting on YouTube (Q-017) → Phase 5;
+  - per-tenant API-unit accounting beyond counting uploads is recorded but not enforced;
+  - Google quota extension request and OAuth app verification → owner/devops;
+  - S3 staging bucket lifecycle/CORS rules → devops (documented in `docs/api` + deployment notes).
+
+**After (2026-10-04, status → TESTED; full backend suite green, commit pending)**
+
+- **Implemented as planned**:
+  - V72;
+  - staging port + S3 adapter;
+  - YouTube resumable client (sealed session handle, origin-checked session URI, one refresh
+    on 401);
+  - upload endpoints;
+  - transfer worker on its own executor (2 per instance, 1 per tenant, one 8 MiB buffer);
+  - status sync;
+  - maintenance (resume parked, expire, abandon, staging sweep);
+  - per-tenant daily budget;
+  - TD-008 Platform Admin switch-off.
+- **Technical decisions:**
+  - every job state change takes a `FOR UPDATE` row lock, so cancel and worker never
+    overwrite each other; the worker stops at its next progress write after a cancel;
+  - a retry is a new job row that takes over the staged file and holds no budget slot;
+  - the budget slot is returned only if no YouTube session was ever opened;
+  - status sync postpones (never fails) when the channel can't be asked; ~26 h of
+    "processing" → FAILED;
+  - a retry or a resumed parked job continues only on the **same** channel (a replaced
+    channel → 409 / stays parked, then fails after 7 days);
+  - timers off in tests (`video.upload.scheduler-enabled=false`); tests drive
+    `UploadTransferWorker.drain`.
+- **Security review (inline):**
+  - server-side size + magic-byte check before any byte goes to YouTube; reject deletes the
+    staged file;
+  - session URI sealed (tenant AAD), never returned or logged, must match the Google API
+    origin (SSRF test);
+  - presigned URLs 15 min, server-generated tenant-prefixed keys, also enforced by a V72
+    CHECK;
+  - no video bytes on request threads;
+  - security log for rejections, parks, platform switch-off;
+  - audit for platform disable/enable.
+- **Tenant-isolation review:**
+  - T1–T4, T7 (fake asserts the tenant's own bearer), T12, T13 (quota pause isolated) tested;
+  - cross-tenant poller queries return only ids + the row's own tenant, which is then set as
+    the tenant context;
+  - repository methods taking a tenant id are called only by default methods that read it
+    from the context;
+  - composite tenant FKs on the new tables (schema test).
+- **Deviations:** see the Plan vs Implementation table (Phase 4 rows).
+- **Known issues:**
+  - the retry same-channel guard was added after the full run; `MediaUploadIntegrationTest` re-run 20/20;
+  - pre-existing: `MediaConnectionStore.markNeedsReconnect` and other request-thread logs
+    add `tenantId` that the MDC already holds, so logback drops those lines ("The name
+    'tenantId' has already been written") — not introduced here; the new Phase 4
+    request-thread logs avoid it.
+- **Production prerequisites (not code):**
+  - S3 staging lifecycle rule + CORS (`docs/api/video-access-management.md`);
+  - Google OAuth verification of `youtube.upload` and the quota extension;
+  - `VIDEO_YOUTUBE_UPLOAD_ENABLED` stays `false` until then.
+- **Next:** Phase 5 (Media Library API completion + upload UI).

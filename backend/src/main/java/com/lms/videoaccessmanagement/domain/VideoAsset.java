@@ -184,6 +184,30 @@ public class VideoAsset extends Auditable implements TenantOwned {
 		this.providerAssetId = providerAssetId;
 	}
 
+	/** VIDEO Phase 4: when the status sync should next ask the provider (null = never). */
+	public void scheduleSync(Instant nextSyncAt) {
+		this.nextSyncAt = nextSyncAt;
+	}
+
+	/** A status check that found the video still processing: count it and back off. */
+	public void recordPendingSyncCheck(Instant checkedAt, Instant nextSyncAt) {
+		this.lastSyncedAt = checkedAt;
+		this.syncFailureCount++;
+		this.nextSyncAt = nextSyncAt;
+	}
+
+	/** A final status from the provider: stop syncing and keep its metadata. */
+	public void recordFinalSync(Instant checkedAt, Integer durationSeconds, String thumbnailUrl) {
+		this.lastSyncedAt = checkedAt;
+		this.nextSyncAt = null;
+		if (durationSeconds != null) {
+			this.durationSeconds = durationSeconds;
+		}
+		if (thumbnailUrl != null) {
+			this.thumbnailUrl = thumbnailUrl;
+		}
+	}
+
 	private void requireTransition(VideoAssetStatus target) {
 		if (!status.canTransitionTo(target)) {
 			throw new IllegalStateException("Illegal video asset transition " + status + " -> " + target);

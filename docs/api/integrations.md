@@ -516,8 +516,14 @@ Library.
     "available": true,                  // Google OAuth app + credential key configured
     "status": "NOT_CONNECTED",          // NOT_CONNECTED | CONNECTED | EXPIRED (NEEDS_RECONNECT) | ERROR (lastError set)
     "connection": ConnectionView | null, // current, else the latest (disconnected) one
-    "connectedByUserId": "<uuid>" | null } ]
+    "connectedByUserId": "<uuid>" | null,
+    "platformDisabled": false,          // VIDEO Phase 4 (TD-008): switched off by a Platform Admin
+    "platformDisabledReason": null } ]
 ```
+
+While `platformDisabled` is true, `youtube/connect` and `pending/{id}/confirm` answer
+`409 VIDEO_PROVIDER_DISABLED_BY_PLATFORM`. A confirm also discards and revokes the pending grant.
+Only a Platform Admin can switch it back on (below).
 
 ### `POST /api/v1/tenant-admin/video-providers/youtube/connect`
 
@@ -558,3 +564,22 @@ Audit: `media_integration.disconnected`.
 
 Only the tenant's own YouTube channel connection is accepted on these two endpoints. Any other
 connection id (e.g. a teacher's YouTube) → `404`.
+
+## Platform Admin: tenant video channel switch-off (VIDEO Phase 4, TD-008)
+
+`/api/v1/platform-admin/tenants/{tenantId}/video-providers` is for `PLATFORM_ADMIN` only. It is
+the abuse/incident lever over a tenant's YouTube channel and does not depend on the tenant admin.
+- Switching off keeps the connection and its credentials. Videos already uploaded keep playing
+  (Q-004) and their status still syncs.
+- New uploads are refused (`409 VIDEO_PROVIDER_DISABLED_BY_PLATFORM`) and running ones are
+  parked.
+- The tenant cannot reconnect, replace or re-enable the channel.
+
+| Endpoint | Result |
+|---|---|
+| `GET` | the tenant's YouTube channel rows, newest first: `{id, provider, status, channelId (masked), channelTitle, connectedAt, platformDisabled, platformDisabledReason, platformDisabledAt}` |
+| `POST /{accountId}/disable` body `{reason}` | `200`. Reason required (`400`). Already disconnected or already switched off → `409`. Audit `video_provider.platform_disabled` (in the tenant's audit log) + security log |
+| `POST /{accountId}/enable` | `200`. Not switched off by the platform → `409`. Audit `video_provider.platform_enabled`. Parked uploads resume on the next maintenance run |
+
+An unknown tenant, or an account id that is not that tenant's YouTube channel → `404`.
+Credentials are never returned.

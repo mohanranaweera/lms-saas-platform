@@ -101,6 +101,13 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 	@Column(name = "last_error", length = MAX_ERROR_LENGTH)
 	private String lastError;
 
+	/** TD-008 (V72): set while a Platform Admin has switched the tenant YouTube channel off. */
+	@Column(name = "platform_disabled_at")
+	private Instant platformDisabledAt;
+
+	@Column(name = "platform_disabled_reason", length = MAX_ERROR_LENGTH)
+	private String platformDisabledReason;
+
 	protected MediaProviderConnection() {
 	}
 
@@ -214,6 +221,35 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 		}
 	}
 
+	/**
+	 * TD-008: a Platform Admin switches the tenant's YouTube channel off. The
+	 * connection keeps its status and credentials (already-uploaded videos
+	 * still play, Q-004) but takes no new uploads until a Platform Admin
+	 * re-enables it.
+	 */
+	public void platformDisable(String reason, Instant at) {
+		if (provider != MediaProvider.YOUTUBE || scope != ConnectionScope.TENANT) {
+			throw new IllegalStateException("Only a tenant YouTube channel can be switched off by the platform");
+		}
+		if (isPlatformDisabled()) {
+			throw new IllegalStateException("This channel is already switched off by the platform");
+		}
+		this.platformDisabledAt = at;
+		this.platformDisabledReason = truncate(reason);
+	}
+
+	public void platformEnable() {
+		if (!isPlatformDisabled()) {
+			throw new IllegalStateException("This channel is not switched off by the platform");
+		}
+		this.platformDisabledAt = null;
+		this.platformDisabledReason = null;
+	}
+
+	public boolean isPlatformDisabled() {
+		return platformDisabledAt != null;
+	}
+
 	/** A transient failure (provider unreachable) - recorded, status unchanged. */
 	public void recordError(String sanitisedError) {
 		this.lastError = truncate(sanitisedError);
@@ -310,6 +346,14 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 
 	public String getLastError() {
 		return lastError;
+	}
+
+	public Instant getPlatformDisabledAt() {
+		return platformDisabledAt;
+	}
+
+	public String getPlatformDisabledReason() {
+		return platformDisabledReason;
 	}
 
 }

@@ -67,9 +67,23 @@ public class MediaTokenService {
 	 * already expired
 	 */
 	public String validAccessToken(UUID connectionId) {
+		return accessToken(connectionId, false);
+	}
+
+	/**
+	 * VIDEO Phase 4: refreshes even though the stored token has not expired
+	 * yet - for a provider that just answered 401 to that token. Same lock and
+	 * failure semantics as {@link #validAccessToken}; if another caller is
+	 * refreshing right now this fails with UNAVAILABLE (retry later).
+	 */
+	public String refreshedAccessToken(UUID connectionId) {
+		return accessToken(connectionId, true);
+	}
+
+	private String accessToken(UUID connectionId, boolean force) {
 		MediaProviderConnection connection = store.require(connectionId);
 		requireActive(connection);
-		if (!needsRefresh(connection)) {
+		if (!force && !needsRefresh(connection)) {
 			return codec.open(connection).accessToken();
 		}
 		String lockKey = LOCK_PREFIX + connectionId;
@@ -78,7 +92,7 @@ public class MediaTokenService {
 			// thread waiting for it: inside the refresh margin the current
 			// token is usually still valid, so use it; if it has actually
 			// expired, ask the caller to retry in a moment.
-			if (isStillValid(connection)) {
+			if (!force && isStillValid(connection)) {
 				return codec.open(connection).accessToken();
 			}
 			throw new MediaProviderException(MediaProviderException.Kind.UNAVAILABLE,
@@ -88,7 +102,7 @@ public class MediaTokenService {
 			// Re-read under the lock: another request may have just refreshed.
 			connection = store.require(connectionId);
 			requireActive(connection);
-			if (!needsRefresh(connection)) {
+			if (!force && !needsRefresh(connection)) {
 				return codec.open(connection).accessToken();
 			}
 			CredentialContext context = CredentialContext.of(connection);

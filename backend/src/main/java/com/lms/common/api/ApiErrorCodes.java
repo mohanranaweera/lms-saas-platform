@@ -107,6 +107,27 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 3 - confirming would replace the tenant's current, different channel without {@code replaceChannel=true}. */
 	public static final String VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED = "VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED";
 
+	/** VIDEO Phase 4 (TD-008) - a Platform Admin switched the tenant's video channel off. */
+	public static final String VIDEO_PROVIDER_DISABLED_BY_PLATFORM = "VIDEO_PROVIDER_DISABLED_BY_PLATFORM";
+
+	/** VIDEO Phase 4 - the tenant has no connected video channel to upload to. */
+	public static final String VIDEO_PROVIDER_NOT_CONNECTED = "VIDEO_PROVIDER_NOT_CONNECTED";
+
+	/** VIDEO Phase 4 - the tenant's video channel must be reconnected before uploading. */
+	public static final String VIDEO_PROVIDER_AUTH_EXPIRED = "VIDEO_PROVIDER_AUTH_EXPIRED";
+
+	/** VIDEO Phase 4 - video uploads are switched off (platform flag or tenant setting). */
+	public static final String VIDEO_UPLOADS_DISABLED = "VIDEO_UPLOADS_DISABLED";
+
+	/** VIDEO Phase 4 - the tenant's daily upload budget is used up (Q-014). */
+	public static final String UPLOAD_QUOTA_EXCEEDED = "UPLOAD_QUOTA_EXCEEDED";
+
+	/** VIDEO Phase 4 - the uploaded file failed server-side validation (size or content type). */
+	public static final String MEDIA_UPLOAD_FAILED = "MEDIA_UPLOAD_FAILED";
+
+	/** VIDEO Phase 4 - the upload is not in a state that allows this action. */
+	public static final String MEDIA_UPLOAD_STATE_CONFLICT = "MEDIA_UPLOAD_STATE_CONFLICT";
+
 	/** AUTH-PWD-01: an account-setup / password-reset link is invalid, expired, used or from another tenant. */
 	public static final String TOKEN_INVALID = "TOKEN_INVALID";
 

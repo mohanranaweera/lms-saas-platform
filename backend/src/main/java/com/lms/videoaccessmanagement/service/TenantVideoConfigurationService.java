@@ -90,6 +90,14 @@ public class TenantVideoConfigurationService {
 			.orElse(TenantVideoSettings.PLATFORM_DEFAULTS);
 	}
 
+	/** VIDEO Phase 4 (Q-014): the current tenant's uploads-per-day budget. No permission check. */
+	@Transactional(readOnly = true)
+	public int effectiveDailyUploadLimit() {
+		return repository.findForCurrentTenant()
+			.map(TenantVideoConfiguration::getDailyUploadLimit)
+			.orElse(TenantVideoConfiguration.DEFAULT_DAILY_UPLOAD_LIMIT);
+	}
+
 	@Transactional
 	public TenantVideoConfigurationView update(TenantVideoSettings requested) {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT);

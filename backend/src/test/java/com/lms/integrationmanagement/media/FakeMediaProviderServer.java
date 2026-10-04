@@ -59,6 +59,11 @@ public final class FakeMediaProviderServer {
 
 	private volatile boolean rejectRefresh = false;
 
+	/** VIDEO Phase 4: Google answers refresh-token grants with {@code invalid_grant}. */
+	private volatile boolean rejectGoogleRefresh = false;
+
+	private final FakeYouTubeUploads youtube = new FakeYouTubeUploads();
+
 	/** A fake Bunny library, owned by one account key. */
 	public record FakeBunnyLibrary(long id, String name, long pullZoneId, String ownerKey) {
 
@@ -104,6 +109,8 @@ public final class FakeMediaProviderServer {
 		zoomUserType = 2;
 		zoomUserId = "zoom-user-" + counter.incrementAndGet();
 		rejectRefresh = false;
+		rejectGoogleRefresh = false;
+		youtube.reset();
 		bunnyLibraries.clear();
 		failBunnyCreate = false;
 		googleScope = DEFAULT_GOOGLE_SCOPE;
@@ -152,6 +159,15 @@ public final class FakeMediaProviderServer {
 		this.rejectRefresh = reject;
 	}
 
+	public void setRejectGoogleRefresh(boolean reject) {
+		this.rejectGoogleRefresh = reject;
+	}
+
+	/** VIDEO Phase 4: YouTube resumable uploads + videos.list. */
+	public FakeYouTubeUploads youtube() {
+		return youtube;
+	}
+
 	public List<Recorded> requests() {
 		return List.copyOf(requests);
 	}
@@ -164,15 +180,22 @@ public final class FakeMediaProviderServer {
 		String method = exchange.getRequestMethod();
 		String path = exchange.getRequestURI().getPath();
 		String query = exchange.getRequestURI().getRawQuery();
-		String body;
+		byte[] raw;
 		try (InputStream in = exchange.getRequestBody()) {
-			body = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+			raw = in.readAllBytes();
 		}
+		boolean youtubeUpload = youtube.handles(path);
+		// Upload chunks are binary: record their size only.
+		String body = youtubeUpload ? "<" + raw.length + " bytes>" : new String(raw, StandardCharsets.UTF_8);
 		String authorization = exchange.getRequestHeaders().getFirst("Authorization");
 		String accessKey = exchange.getRequestHeaders().getFirst("AccessKey");
 		requests.add(new Recorded(method, path, query, authorization, accessKey, body));
 		int n = counter.incrementAndGet();
 
+		if (youtubeUpload) {
+			youtube.handle(exchange, method, path, query, authorization, raw, baseUrl());
+			return;
+		}
 		if (method.equals("POST") && path.equals("/oauth/token")) {
 			if (body.contains("grant_type=refresh_token") && rejectRefresh) {
 				respond(exchange, 400, "{\"error\":\"invalid_grant\"}");
@@ -182,6 +205,10 @@ public final class FakeMediaProviderServer {
 					+ "\",\"expires_in\":3600,\"scope\":\"meeting:write:meeting meeting:read:meeting\"}");
 		}
 		else if (method.equals("POST") && path.equals("/token")) {
+			if (body.contains("grant_type=refresh_token") && rejectGoogleRefresh) {
+				respond(exchange, 400, "{\"error\":\"invalid_grant\"}");
+				return;
+			}
 			respond(exchange, 200, "{\"access_token\":\"google-at-" + n + "\",\"refresh_token\":\"google-rt-" + n
 					+ "\",\"expires_in\":3599,\"scope\":\"" + googleScope + "\"}");
 		}

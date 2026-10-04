@@ -290,3 +290,28 @@ uploads into. It is not a replacement for the teacher connections, which keep wo
 - The upload pipeline (Phase 4).
 - Google OAuth verification of the sensitive `youtube.upload` scope, and the quota extension,
   which are production prerequisites.
+
+### Implementation note (2026-10-04, VIDEO Phase 4)
+
+The upload pipeline and TD-008 now use the tenant channel. No decision above changes.
+- **Uploads** go through `VideoProviderUploadApi`, implemented by `YouTubeUploadService`. They
+  use only an ACTIVE, TENANT-scoped YouTube row of the job's own tenant. On a 401 the token is
+  refreshed once (`MediaTokenService.refreshedAccessToken`). A second 401 or `invalid_grant`
+  marks the connection NEEDS_RECONNECT (security-logged), and the upload waits until the
+  **same channel** is reconnected.
+- **The resumable session URI** is a bearer capability. It is sealed with the media credentials
+  key under the AAD `video-upload-session:{tenantId}:YOUTUBE`, stored only as
+  `media_upload_job.session_handle`, and never returned or logged. It must point at the
+  configured Google API origin before any byte is sent to it.
+- **Platform switch-off (TD-008, V72)** uses the new columns
+  `media_provider_connection.platform_disabled_at` / `platform_disabled_reason`, allowed only on
+  the tenant YouTube row.
+  - It keeps status and credentials, so existing videos keep playing (Q-004) and status sync
+    continues.
+  - Uploads are refused or parked.
+  - The tenant cannot connect, reconnect or replace a channel while it is set.
+  - Only a Platform Admin clears it (`/api/v1/platform-admin/tenants/{tenantId}/video-providers`).
+  - Audited as `video_provider.platform_disabled` / `video_provider.platform_enabled` in the
+    tenant's audit log.
+- **Google Cloud (Q-007):** one platform project per environment, shared quota, protected by a
+  per-tenant daily budget (Q-014, default 20) and a quota pause until Pacific midnight.

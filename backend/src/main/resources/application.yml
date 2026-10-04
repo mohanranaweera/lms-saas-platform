@@ -174,6 +174,22 @@ video:
     native-player: ${VIDEO_NATIVE_PLAYER_ENABLED:false}
     dynamic-watermark: ${VIDEO_DYNAMIC_WATERMARK_ENABLED:true}
     capture-protection: ${VIDEO_CAPTURE_PROTECTION_ENABLED:true}
+  # VIDEO Phase 4 upload pipeline (VideoUploadProperties, plan §13).
+  # Browser -> S3 staging (presigned multipart, part-size-bytes) -> background
+  # worker -> YouTube resumable upload (chunk-size-bytes, a multiple of
+  # 256 KiB; the only place video bytes pass through the JVM - VID-ADR-004).
+  # The per-tenant daily budget is tenant_video_configuration.daily_upload_limit.
+  upload:
+    scheduler-enabled: ${VIDEO_UPLOAD_SCHEDULER_ENABLED:true}
+    part-size-bytes: 16777216
+    chunk-size-bytes: 8388608
+    max-file-size-bytes: 10737418240
+    presign-ttl: 15m
+    max-concurrent-transfers: ${VIDEO_UPLOAD_MAX_CONCURRENT_TRANSFERS:2}
+    max-attempts: 8
+    stale-transfer-after: 15m
+    staging-retention: 48h
+    parked-expiry: 7d
 
 app:
   # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Never

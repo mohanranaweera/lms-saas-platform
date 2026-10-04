@@ -95,6 +95,12 @@ change-controlled items already listed in root `CLAUDE.md`):
   `video-access-management` and `content-management` must integrate with an external
   secure video/object storage provider and work in terms of signed URLs / tokens, not by
   streaming or storing binary media through the Spring Boot app itself.
+  - **Scoped exception (VID-ADR-004, owner approval B2, 2026-10-04):** the YouTube
+    `UploadTransferWorker` alone may stream video bytes from S3 staging to YouTube's
+    resumable upload endpoint. It runs only as a background job (never on a request
+    thread), holds at most one chunk per active transfer, is capped per tenant and
+    globally, and never writes bytes to local disk. Browsers still upload directly to
+    S3 staging via presigned URLs. No other code path may stream media through the app.
 - **All application instances must be stateless.** No in-memory session data, no
   in-JVM caches that are assumed to be authoritative, no local file storage for anything
   tenant data depends on. This is required so the backend can run multiple horizontally

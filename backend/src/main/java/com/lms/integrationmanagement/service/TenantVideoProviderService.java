@@ -59,7 +59,15 @@ public class TenantVideoProviderService {
 	 * @param connectedByUserId the Tenant Admin who confirmed the connection
 	 */
 	public record VideoProviderAccountView(String provider, boolean available, AccountStatus status,
-			ConnectionView connection, UUID connectedByUserId) {
+			ConnectionView connection, UUID connectedByUserId, boolean platformDisabled,
+			String platformDisabledReason) {
+
+		static VideoProviderAccountView of(boolean available, AccountStatus status, MediaProviderConnection latest,
+				ConnectionView view) {
+			return new VideoProviderAccountView(MediaProvider.YOUTUBE.name(), available, status, view,
+					(latest == null) ? null : latest.getCreatedBy(), latest != null && latest.isPlatformDisabled(),
+					(latest == null) ? null : latest.getPlatformDisabledReason());
+		}
 
 	}
 
@@ -104,14 +112,38 @@ public class TenantVideoProviderService {
 		MediaProviderConnection latest = repository.findCurrentForTenant(MediaProvider.YOUTUBE)
 			.or(() -> repository.findAllForTenant(MediaProvider.YOUTUBE).stream().findFirst())
 			.orElse(null);
-		return List.of(new VideoProviderAccountView(MediaProvider.YOUTUBE.name(),
-				connectFlow.isAvailable(MediaProvider.YOUTUBE), statusOf(latest),
-				(latest == null) ? null : views.toView(latest), (latest == null) ? null : latest.getCreatedBy()));
+		return List.of(VideoProviderAccountView.of(connectFlow.isAvailable(MediaProvider.YOUTUBE), statusOf(latest),
+				latest, (latest == null) ? null : views.toView(latest)));
 	}
 
 	public AuthorizationUrlView beginYouTubeConnect() {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT);
+		requireNotPlatformDisabled();
 		return connectFlow.beginTenantYouTubeConnect(IntegrationActors.currentUserId());
+	}
+
+	/**
+	 * TD-008: while a Platform Admin has the tenant channel switched off, the
+	 * tenant may not connect (or reconnect, or replace) a channel - that would
+	 * sidestep the switch-off. The latest row counts even once disconnected.
+	 */
+	private void requireNotPlatformDisabled() {
+		if (isPlatformDisabled()) {
+			throw platformDisabled();
+		}
+	}
+
+	private boolean isPlatformDisabled() {
+		return repository.findAllForTenant(MediaProvider.YOUTUBE)
+			.stream()
+			.findFirst()
+			.map(MediaProviderConnection::isPlatformDisabled)
+			.orElse(false);
+	}
+
+	private static ProviderConflictException platformDisabled() {
+		return new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_DISABLED_BY_PLATFORM,
+				"Video uploads were switched off by the platform for your institute. Contact platform support.");
 	}
 
 	/** Non-consuming preview for the admin who started the connection; anyone else sees "expired". */
@@ -139,6 +171,11 @@ public class TenantVideoProviderService {
 			stateStore.consumePending(pendingId).ifPresent(this::rejectForeignPending);
 			throw expiredRequest();
 		}
+		if (isPlatformDisabled()) {
+			// The grant can never be used while switched off: discard and revoke it now.
+			stateStore.consumePending(pendingId).ifPresent(connectFlow::revokePending);
+			throw platformDisabled();
+		}
 		Optional<MediaProviderConnection> current = repository.findCurrentForTenant(MediaProvider.YOUTUBE);
 		boolean replaces = current.map(c -> !peeked.externalAccountId().equals(c.getExternalAccountId()))
 			.orElse(false);
@@ -158,8 +195,7 @@ public class TenantVideoProviderService {
 			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_CHANNEL_IN_USE,
 					"This YouTube channel is already connected to another institute.");
 		}
-		return new VideoProviderAccountView(MediaProvider.YOUTUBE.name(), true, statusOf(saved), views.toView(saved),
-				saved.getCreatedBy());
+		return VideoProviderAccountView.of(true, statusOf(saved), saved, views.toView(saved));
 	}
 
 	public ConnectionTestResult test(UUID connectionId) {

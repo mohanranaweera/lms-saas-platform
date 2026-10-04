@@ -23,8 +23,34 @@ public interface MediaConnectionApi {
 	/** Status of each given connection in the current tenant; unknown ids are omitted. */
 	Map<UUID, MediaConnectionStatus> connectionStatuses(Collection<UUID> connectionIds);
 
+	/**
+	 * VIDEO Phase 4: the tenant's own live (non-DISCONNECTED) video channel,
+	 * if any - the channel uploads go to.
+	 */
+	Optional<TenantChannelSummary> findTenantVideoChannel(MediaProvider provider);
+
+	/**
+	 * VIDEO Phase 4: the tenant's current ACTIVE connection to the SAME
+	 * external channel as {@code connectionId} (a reconnect creates a new
+	 * row, so an upload or status sync started on an older row continues on
+	 * this one). Empty if the channel is no longer connected, was replaced by
+	 * a different channel, or needs reconnecting. Does not consider the
+	 * platform switch-off - see {@link TenantChannelSummary#usable()}.
+	 */
+	Optional<UUID> currentConnectionForSameChannel(UUID connectionId);
+
 	/** @param accountType Zoom {@code BASIC}/{@code LICENSED}; {@code null} for other providers */
 	record TeacherConnectionSummary(UUID connectionId, MediaConnectionStatus status, String accountType) {
+
+	}
+
+	/** @param platformDisabled switched off by a Platform Admin (TD-008) */
+	record TenantChannelSummary(UUID connectionId, MediaConnectionStatus status, boolean platformDisabled) {
+
+		/** Whether uploads may use this channel now. */
+		public boolean usable() {
+			return status == MediaConnectionStatus.ACTIVE && !platformDisabled;
+		}
 
 	}
 

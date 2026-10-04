@@ -376,6 +376,121 @@ id or any credential:
 `capabilities.supportsOverlayWatermark` / `supportsServerSideRevocation` are `false` for
 YouTube. The UI must not imply that YouTube-hosted media is content-protected.
 
+## Media upload to YouTube (`/api/v1/media`) — VIDEO Phase 4
+
+Upload into the tenant's own YouTube channel (ADR-018 Amendment 2), per plan §13 and VID-ADR-004:
+1. the browser asks to start an upload;
+2. it PUTs the file **directly to S3 staging** with presigned multipart part URLs;
+3. it calls `complete`;
+4. a background worker streams the staged file to YouTube's resumable upload;
+5. a status sync moves the asset to `READY` / `FAILED`.
+
+Video bytes never pass through a request thread.
+
+**Who.**
+- Teacher / Teacher Assistant: may upload, and act on **their own** uploads only.
+- Any other role needs `MATERIALS` CREATE_EDIT (Tenant Admin, permitted staff).
+- Student → `403`.
+- Another teacher's, another tenant's, an `INTERNAL` or a deleted asset → `404`.
+- The tenant, uploader and staging key always come from the server. A `tenantId` in the body
+  is ignored.
+
+**Gates, in order** (create; retry re-checks the switches and the channel):
+
+| Check | Failure |
+|---|---|
+| role / permission | `403` |
+| platform flag `video.features.youtube-upload` and tenant `uploadsEnabled` | `409 VIDEO_UPLOADS_DISABLED` |
+| tenant YouTube channel connected | `409 VIDEO_PROVIDER_NOT_CONNECTED` |
+| channel switched off by a Platform Admin (TD-008) | `409 VIDEO_PROVIDER_DISABLED_BY_PLATFORM` |
+| channel needs reconnecting | `409 VIDEO_PROVIDER_AUTH_EXPIRED` |
+| request fields | `400 VALIDATION_ERROR` (all field errors at once) |
+| daily budget (`tenant_video_configuration.daily_upload_limit`, default 20 per Pacific day, Q-014) | `429 UPLOAD_QUOTA_EXCEEDED` |
+
+### `POST /media`
+
+```jsonc
+{ "title": "Lesson 1",               // required, ≤ 100 chars, no < or >
+  "description": "…",                // optional, ≤ 5000 chars, no < or >
+  "privacyStatus": "UNLISTED",       // UNLISTED | PRIVATE (default: tenant defaultPrivacyStatus); PUBLIC → 400
+  "provider": "YOUTUBE",             // optional; anything else → 400
+  "fileName": "lesson-1.mp4",        // required, ≤ 255
+  "mimeType": "video/mp4",           // video/mp4 | video/webm | video/quicktime
+  "sizeBytes": 734003200 }           // 1 … video.upload.max-file-size-bytes (default 10 GiB)
+```
+
+**`201`** →
+```jsonc
+{ "mediaAsset": MediaAssetResponse,             // processingStatus CREATED
+  "upload": { "partSizeBytes": 16777216, "partCount": 44,
+              "parts": [ { "partNumber": 1, "url": "https://<s3>/…", "expiresAt": "…" } ] } }   // first ≤ 100 parts, 15-min URLs
+```
+
+The browser PUTs part *n* (bytes `[(n-1)·partSize, n·partSize)`) to its URL and keeps each
+response's `ETag`.
+
+### `POST /media/{id}/upload/parts`
+
+Body `{ "partNumbers": [101, 102] }` (1–100 distinct numbers ≤ `partCount`). Returns
+`UploadInstructions` with fresh URLs (also for re-signing expired ones). Only while the upload
+waits for its parts; otherwise `409 MEDIA_UPLOAD_STATE_CONFLICT`.
+
+### `POST /media/{id}/upload/complete`
+
+Body `{ "parts": [ { "partNumber": 1, "etag": "\"…\"" } ] }`: every part exactly once. The server:
+1. assembles the staging object;
+2. checks its **size** equals `sizeBytes`;
+3. reads its first 64 KiB to check the **real content type**;
+4. queues the transfer.
+
+**`202`** → `MediaAssetResponse` (`UPLOADING`). A size or content mismatch →
+`422 MEDIA_UPLOAD_FAILED`: the staged file is deleted, the asset is `FAILED` and the budget slot
+is returned.
+
+### `POST /media/{id}/upload/cancel`
+
+Cancels the live upload in any state, including a running transfer. The staged file and any
+YouTube session are discarded. Before YouTube was contacted, the budget slot is returned.
+`200` → asset `FAILED` ("Upload cancelled."). No live upload → `409 MEDIA_UPLOAD_STATE_CONFLICT`.
+
+### `POST /media/{id}/upload/retry`
+
+Re-queues a **failed transfer** whose staged file still exists (kept 48 h). It uses no new
+budget slot. `202` → asset `UPLOADING`. Otherwise `409 MEDIA_UPLOAD_STATE_CONFLICT`: upload the
+file again.
+
+### Lifecycle and background behaviour
+
+Asset: `CREATED → UPLOADING → UPLOADED → PROCESSING → READY`, or `FAILED` from any of them.
+Worker and sync transitions are recorded in `video_asset_status_event` with `actor_id = NULL`
+(Q-013). Job states (`media_upload_job.status`, never returned by the API):
+
+| Situation | Job | Effect |
+|---|---|---|
+| 5xx, timeout, rate limit | `RETRY_WAIT` | exponential backoff 30 s → 30 min; `FAILED` after 8 attempts; resumes from the byte YouTube confirmed |
+| Session expired (404/410) | `RETRY_WAIT` | new session from byte 0 |
+| YouTube quota exhausted | `QUOTA_PAUSED` | resumes after the next Pacific midnight; other tenants unaffected |
+| Grant revoked (`invalid_grant`, 401 after one refresh) | `PARKED_RECONNECT` | connection → NEEDS_RECONNECT; resumes once the **same channel** is reconnected (fails after 7 days) |
+| Channel switched off by the platform | `PARKED_RECONNECT` | resumes when a Platform Admin re-enables it |
+| YouTube refuses the video | `FAILED` | asset `FAILED` with a client-safe reason |
+
+- **Concurrency:** at most `video.upload.max-concurrent-transfers` (default 2) per instance, and
+  one transfer per tenant.
+- **Memory:** one `chunk-size-bytes` buffer (default 8 MiB) per transfer.
+- **Status sync:** `videos.list` in batches of 50, backing off 1 min → 30 min. "Still processing"
+  for about 26 h → `FAILED`. A channel that cannot be asked postpones the check; it never fails it.
+
+### Staging bucket (devops prerequisite, not deployed by the app)
+
+Staging objects live in the `object-storage.bucket` under `video-staging/{tenantId}/{assetId}/…`.
+They are deleted after transfer. The app sweeps abandoned and failed ones after 48 h. Production
+also needs:
+- a **lifecycle rule** on `video-staging/`: abort incomplete multipart uploads after 2 days and
+  expire objects after 3 days;
+- **CORS** on the bucket for the tenant origins: `PUT` only, exposing the `ETag` header.
+
+Without `object-storage.*` configured, every upload call answers `503`.
+
 ## Tenant video configuration (`/api/v1/tenant-admin/video-configuration`) — VIDEO Phase 3
 
 Tenant-wide video settings (plan §11).

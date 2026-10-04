@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.lms.integrationmanagement.api.MediaStagingApi;
 import com.lms.liveclassmanagement.LiveClassManagementTestSupport;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -14,6 +15,10 @@ import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -28,13 +33,28 @@ import tools.jackson.databind.JsonNode;
  * points at {@link FakeMediaProviderServer} and the platform Zoom/Google/Vimeo
  * OAuth apps are "configured" with test values, so live classes in this
  * Spring context go through the REAL Zoom adapter (against the stub).
+ * VIDEO Phase 4: S3 staging is the in-memory {@link #STAGING} fake.
  */
+@Import(MediaIntegrationTestSupport.StagingConfiguration.class)
 public abstract class MediaIntegrationTestSupport extends LiveClassManagementTestSupport {
 
 	/** Must match src/test/resources/application.yml's integrations.media.zoom-webhook-secret-token. */
 	protected static final String ZOOM_WEBHOOK_SECRET = "test-only-zoom-webhook-secret-token";
 
 	protected static final FakeMediaProviderServer PROVIDERS = FakeMediaProviderServer.get();
+
+	protected static final InMemoryMediaStagingApi STAGING = new InMemoryMediaStagingApi();
+
+	@TestConfiguration
+	static class StagingConfiguration {
+
+		@Bean
+		@Primary
+		MediaStagingApi inMemoryMediaStagingApi() {
+			return STAGING;
+		}
+
+	}
 
 	@DynamicPropertySource
 	static void mediaProviderProperties(DynamicPropertyRegistry registry) {
@@ -54,6 +74,7 @@ public abstract class MediaIntegrationTestSupport extends LiveClassManagementTes
 	@BeforeEach
 	void resetProviders() {
 		PROVIDERS.reset();
+		STAGING.reset();
 	}
 
 	// ------------------------------------------------------------------

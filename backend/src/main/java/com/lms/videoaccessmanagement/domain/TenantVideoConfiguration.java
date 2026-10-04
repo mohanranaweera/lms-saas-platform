@@ -77,6 +77,17 @@ public class TenantVideoConfiguration extends Auditable implements TenantOwned {
 	@Column(name = "heartbeat_interval_seconds", nullable = false)
 	private int heartbeatIntervalSeconds;
 
+	/**
+	 * VIDEO Phase 4 (V72, Q-014): uploads per Pacific day. Not part of {@link
+	 * TenantVideoSettings} - the Phase 3 settings API does not edit it; it is
+	 * changed by platform operations for now (Phase 5 may expose it).
+	 */
+	@Column(name = "daily_upload_limit", nullable = false)
+	private int dailyUploadLimit = DEFAULT_DAILY_UPLOAD_LIMIT;
+
+	/** The platform default (also the V72 column default and the value for a tenant without a row). */
+	public static final int DEFAULT_DAILY_UPLOAD_LIMIT = 20;
+
 	protected TenantVideoConfiguration() {
 	}
 
@@ -109,6 +120,10 @@ public class TenantVideoConfiguration extends Auditable implements TenantOwned {
 				watermarkEnabled, watermarkOpacity, watermarkMovementIntervalSeconds, watermarkFields,
 				captureProtectionEnabled, captureProtectionRequired, maxConcurrentSessions, watchTimePolicy,
 				watchTimeMultiplier, watchTimeFixedMinutes, launchCodeTtlSeconds, heartbeatIntervalSeconds);
+	}
+
+	public int getDailyUploadLimit() {
+		return dailyUploadLimit;
 	}
 
 	@Override

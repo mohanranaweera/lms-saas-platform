@@ -80,6 +80,18 @@ integrations:
     platform-error-url: "https://app.example.test/integration-error"
     zoom-webhook-secret-token: "test-only-zoom-webhook-secret-token"
 
+video:
+  # VIDEO Phase 4: tests drive the upload worker / status sync directly, so the
+  # timers are off; small parts and chunks keep test files tiny (the chunk size
+  # still respects YouTube's 256 KiB granularity).
+  features:
+    youtube-upload: true
+  upload:
+    scheduler-enabled: false
+    part-size-bytes: 262144
+    chunk-size-bytes: 262144
+    max-file-size-bytes: 67108864
+
 video-playback:
   token:
     # Fixed, clearly-not-a-production test-only secret (Wave 5, PAR-20-01) -
