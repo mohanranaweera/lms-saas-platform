@@ -7,16 +7,20 @@ import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
 import com.lms.videoaccessmanagement.domain.VideoAssetStatus;
 import com.lms.videoaccessmanagement.service.MediaAssetService;
 import com.lms.videoaccessmanagement.service.MediaAssetService.MediaAssetListQuery;
+import com.lms.videoaccessmanagement.service.MediaAssetService.MediaAssetUpdate;
 import com.lms.videoaccessmanagement.service.MediaAssetView;
 import com.lms.videoaccessmanagement.service.MediaUploadService;
 import com.lms.videoaccessmanagement.service.MediaUploadService.CreateUploadCommand;
 import com.lms.videoaccessmanagement.service.MediaUploadService.StartedUpload;
 import com.lms.videoaccessmanagement.service.MediaUploadService.UploadInstructions;
+import com.lms.videoaccessmanagement.service.MediaUploadService.UploadLimits;
 import com.lms.videoaccessmanagement.web.dto.MediaAssetResponse;
+import com.lms.videoaccessmanagement.web.dto.MediaAssetResponse.UploadProgressResponse;
 import com.lms.videoaccessmanagement.web.dto.MediaUploadDtos.CompleteUploadRequest;
 import com.lms.videoaccessmanagement.web.dto.MediaUploadDtos.CreateMediaUploadRequest;
 import com.lms.videoaccessmanagement.web.dto.MediaUploadDtos.PresignPartsRequest;
 import com.lms.videoaccessmanagement.web.dto.MediaUploadDtos.StartedUploadResponse;
+import com.lms.videoaccessmanagement.web.dto.MediaUploadDtos.UpdateMediaRequest;
 import com.lms.videoaccessmanagement.web.dto.MediaUploadDtos.UploadInstructionsResponse;
 import com.lms.videoaccessmanagement.web.dto.MediaUploadDtos.UploadPartResponse;
 import jakarta.validation.Valid;
@@ -28,7 +32,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -78,6 +84,30 @@ public class MediaController {
 		return ResponseEntity.ok(ApiResponse.success(toResponse(mediaAssetService.get(id))));
 	}
 
+	/** VIDEO Phase 5: limits and channel state for the upload panel. */
+	@GetMapping("/upload-limits")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<UploadLimits>> uploadLimits() {
+		return ResponseEntity.ok(ApiResponse.success(mediaUploadService.limits()));
+	}
+
+	/** VIDEO Phase 5: edits title / description / privacy (synced to YouTube once the video is there). */
+	@PatchMapping("/{id}")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<MediaAssetResponse>> update(@PathVariable UUID id,
+			@Valid @RequestBody UpdateMediaRequest request) {
+		return ResponseEntity.ok(ApiResponse.success(toResponse(mediaAssetService.update(id,
+				new MediaAssetUpdate(request.title(), request.description(), request.privacyStatus())))));
+	}
+
+	/** VIDEO Phase 5: LMS soft delete; the YouTube copy is kept (Q-017). */
+	@DeleteMapping("/{id}")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+		mediaAssetService.delete(id);
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
 	/** VIDEO Phase 4: starts a YouTube upload; returns the presigned S3 part URLs. */
 	@PostMapping
 	@PreAuthorize("isAuthenticated()")
@@ -125,7 +155,11 @@ public class MediaController {
 		return new MediaAssetResponse(view.id(), view.provider(), view.title(), view.description(),
 				view.thumbnailUrl(), view.durationSeconds(), view.privacyStatus(), view.processingStatus(),
 				view.failureReason(), view.uploadedBy(), view.createdAt(), view.capabilities(),
-				view.enabledPlaybackModes());
+				view.enabledPlaybackModes(),
+				(view.uploadProgress() == null) ? null
+						: new UploadProgressResponse(view.uploadProgress().state(), view.uploadProgress().bytesSent(),
+								view.uploadProgress().totalBytes(), view.uploadProgress().message()),
+				view.attached());
 	}
 
 	private static UploadInstructionsResponse toResponse(UploadInstructions instructions) {

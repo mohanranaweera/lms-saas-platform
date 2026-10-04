@@ -3,9 +3,9 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    4 — YouTube Upload Pipeline (TESTED; commit pending)
+Current Phase:    5 — Media Library (TESTED; commit pending)
 Last Updated:     2026-10-04
-Current Branch:   feat/video-youtube-upload
+Current Branch:   feat/video-media-library
 Latest Migration: V72__create_media_upload_job.sql
 Backend Build:    PASS — mvnw verify, 2026-10-04 (BUILD SUCCESS, 13:56 min)
 Frontend Build:   not affected (no frontend change in Phases 1–2)
@@ -942,14 +942,14 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 | ~~Q-007~~ | Google Cloud: one platform project (shared quota), separate upload project, or tenant-supplied projects? | **Resolved 2026-10-04: one platform project per environment + per-tenant budget** | — |
 | Q-008 | Does a paired player installation share the browser's device slot or count as an extra device? | Share | Phase 8 |
 | Q-009 | Is the native player mandatory for all tenants, or per-tenant opt-in? | Per-tenant `native_player_required` | Phase 7 |
-| Q-010 | Teacher visibility: own uploads only, or all tenant media? | Own + attached to own courses | Phase 5 |
-| Q-011 | New `DomainArea.MEDIA_LIBRARY` or reuse `MATERIALS`/`INTEGRATIONS`? | Reuse for now | Phase 5 |
+| Q-010 | Teacher visibility: own uploads only, or all tenant media? | **2026-10-04: own uploads in Phase 5; attached-course media added in Phase 6** | Phase 6 |
+| ~~Q-011~~ | New `DomainArea.MEDIA_LIBRARY` or reuse `MATERIALS`/`INTEGRATIONS`? | **Resolved 2026-10-04: reuse `MATERIALS`** | — |
 | Q-012 | Capture protection required but OS unsupported → refuse or warn? | Refuse when tenant sets `required` | Phase 11 |
 | ~~Q-013~~ | Audit `actor_id` for system jobs (DB trigger requires a real user) | **Resolved 2026-10-04: `video_asset_status_event` (actor NULL) + security log; `audit_log` stays for human actions** | — |
 | ~~Q-014~~ | Default per-tenant YouTube upload budget | **Resolved 2026-10-04: 20/day/tenant, configurable per tenant** | — |
 | Q-015 | macOS / mobile players timeline | Windows first; out of scope now | — |
 | Q-016 | Which commercial plans get device restrictions / native player? | Wait for Module D | — |
-| Q-017 | Deleting in the LMS also deletes on YouTube? | Optional per action, default no | Phase 5 |
+| ~~Q-017~~ | Deleting in the LMS also deletes on YouTube? | **Resolved 2026-10-04: LMS soft delete only; the video stays on YouTube.** Edits (title/description/privacy) DO sync to YouTube (owner), which needs `youtube.force-ssl` - ADR-018 Amendment 3 | — |
 | ~~Q-018~~ | Delete the superseded `VIDEO-01` draft? | **Resolved 2026-10-04: deleted at owner's instruction** | — |
 
 ## 40. Risks
@@ -1515,3 +1515,133 @@ Deviations from the **master instruction** proposed in Phase 1 (each needs appro
   - Google OAuth verification of `youtube.upload` and the quota extension;
   - `VIDEO_YOUTUBE_UPLOAD_ENABLED` stays `false` until then.
 - **Next:** Phase 5 (Media Library API completion + upload UI).
+
+### Phase 5 — Media Library
+
+**Before (2026-10-04, status → PLANNING; owner decisions Q-010, Q-011, Q-017, edit sync)**
+
+- **Objective:**
+  - complete the Media Library API (edit, delete, upload progress);
+  - build the Tenant Admin and Teacher Media Library UI: list/grid, upload panel (browser →
+    S3 multipart), detail, edit, delete, status, every loading/empty/error/denied/reconnect
+    state.
+- **Owner decisions:**
+  - Q-010: teachers see their own uploads (Phase 6 adds media attached to their courses);
+  - Q-011: `MATERIALS` VIEW / CREATE_EDIT / DELETE;
+  - Q-017: delete = LMS soft delete only, never on YouTube;
+  - edits to title / description / privacy **sync to YouTube**.
+- **Needs approval - ADR-018 Amendment 3 (B7):** YouTube has no edit-only scope. Editing
+  needs `youtube.force-ssl`, which also permits delete (we never call it).
+  - Tenant channel scopes become `youtube.upload` + `youtube.readonly` + `youtube.force-ssl`.
+  - Existing tenant channels keep uploading. Editing a YouTube-hosted asset on a channel
+    without the scope → `409 VIDEO_PROVIDER_SCOPE_MISSING` ("Reconnect YouTube to edit videos").
+  - The provider card shows "Reconnect to enable editing".
+- **Backend:**
+  - `PATCH /api/v1/media/{id}` `{title?, description?, privacyStatus?}`:
+    - allowed in CREATED (LMS only - the worker sends it at session start) and in
+      PROCESSING / READY / FAILED-with-provider-id (YouTube `videos.update`
+      snippet+status, then the LMS row);
+    - UPLOADING / UPLOADED → `409` (the session is already open);
+    - PUBLIC still refused;
+    - provider call with no transaction open;
+    - audited `media_asset.updated` (before/after).
+  - `DELETE /api/v1/media/{id}`:
+    - soft delete;
+    - `409 MEDIA_ATTACHED` while a material references it (`MaterialLookupApi`);
+    - `409` while an upload is live (cancel first);
+    - security.md requires deletions to be audited: `media_asset.deleted`;
+    - status event → DELETED;
+    - the video stays on YouTube.
+  - `MediaAssetResponse` gains `uploadProgress {state, bytesSent, totalBytes}` (latest job,
+    batch-loaded for lists) and `attached` (boolean).
+  - `VideoProviderUploadApi.updateMetadata` (scope-checked, AUTH/RETRYABLE mapping).
+  - `GET /api/v1/media/upload-limits` → `{dailyLimit, usedToday, maxFileSizeBytes,
+    partSizeBytes, uploadsEnabled, channel: NOT_CONNECTED|CONNECTED|EXPIRED|DISABLED}` for
+    the upload panel.
+  - Daily limit stays non-editable (platform operations).
+- **DB impact:** none (V72 has everything).
+- **Frontend:**
+  - `lib/api/media.ts`;
+  - `lib/api/upload-multipart.ts` (XHR PUT per part, progress, 3 retries per part, re-sign
+    expired URLs, cancel, `beforeunload` guard);
+  - `components/media/{media-library,media-card,media-status-badge,media-upload-panel,media-detail,media-edit-form}.tsx`;
+  - pages `(tenant-admin)/tenant-admin/media[/[mediaId]]` and `(teacher)/teacher/media[/[mediaId]]`;
+  - nav links;
+  - permission helpers;
+  - Playwright `e2e/media-library.spec.ts` (mocked API + presigned PUTs).
+- **Tenant impact:** unchanged model. New endpoints are tenant-filtered; cross-tenant
+  PATCH/DELETE/upload-limits → `404` / own data (T3, T4 tests).
+- **Security:**
+  - the broader Google scope is documented as a residual risk (we never delete);
+  - PATCH and DELETE are re-authorized server-side;
+  - audit on delete/edit;
+  - no staging key, session or connection id in any response.
+- **Tests:**
+  - backend integration: edit LMS-only / synced / scope-missing / wrong-state, delete
+    (attached, live upload, soft-deleted hidden, audit), progress fields, upload-limits,
+    teacher-vs-teacher and cross-tenant 404s, Student 403, scope check on the callback;
+  - Playwright for each screen state.
+- **Deferred:**
+  - lesson attach (Phase 6);
+  - media from teachers' courses (Phase 6);
+  - YouTube delete (declined);
+  - editable daily limit.
+
+**Backend step (2026-10-04, owner approved ADR-018 Amendment 3 / B7)**
+
+- **Implemented as planned:**
+  - tenant channel scopes + `force-ssl`, `canEditVideos`, `editScopeGranted`;
+  - `VideoProviderUploadApi.updateMetadata` (reads snippet+status, changes only title /
+    description / privacy, keeps other YouTube settings);
+  - `PATCH` / `DELETE /api/v1/media/{id}`;
+  - `GET /api/v1/media/upload-limits`;
+  - `uploadProgress` + `attached` on reads (batch-loaded for lists);
+  - `MaterialLookupApi.findVideoAssetIdsInUse`;
+  - error codes `VIDEO_PROVIDER_SCOPE_MISSING`, `MEDIA_ATTACHED`;
+  - audit `media_asset.updated` / `media_asset.deleted`.
+- **Tests:**
+  - new `MediaLibraryManagementIntegrationTest` 12/12;
+  - upload tests refactored onto the shared `MediaUploadTestSupport` (`MediaUploadIntegrationTest` 20/20);
+  - unchanged neighbours green: `TenantVideoProviderIntegrationTest` 13, `MediaLibraryIntegrationTest` 10,
+    `VideoPlaybackSessionIntegrationTest` 18, `TeacherMediaConnectionIntegrationTest` 16, unit suites;
+  - full `mvnw verify` to run after the frontend step.
+- **Deviation:** delete of media whose upload waits for its parts is refused (cancel first) rather than
+  cancelling implicitly - one explicit action per outcome.
+
+**Frontend step (2026-10-04, owner: "Yes go ahead with frontend development.")**
+
+- **Implemented:**
+  - `lib/api/media.ts` (React Query hooks, polling while uploads / processing are in flight);
+  - `lib/api/upload-multipart.ts` (XHR PUT per part straight to the presigned URL - no
+    credentials - 3 parts at a time, 3 retries with backoff, re-signs expiring / 403 URLs,
+    abort);
+  - `lib/validation/media.ts` (Zod; React Hook Form in both forms);
+  - `lib/media-format.ts`;
+  - `components/media/{media-library,media-upload-panel,media-detail,media-status-badge}.tsx`;
+  - pages `(tenant-admin)/tenant-admin/media[/[mediaId]]`, `(teacher)/teacher/media[/[mediaId]]`;
+  - nav links (Tenant Admin: `MATERIALS` VIEW roles; Teacher: always);
+  - permission helpers `canViewMedia` / `canManageMedia` (UX only);
+  - the YouTube card shows the platform switch-off and "reconnect to enable editing".
+- **States:**
+  - every page has loading, empty (true-empty vs filtered, with an action), error and
+    permission-denied (server 403);
+  - the upload panel adds a blocked reason from the server limits (channel not connected /
+    expired / switched off / daily limit / uploads off);
+  - the detail page explains queued / sending / retrying / paused-for-quota /
+    waiting-for-reconnect / processing / failed;
+  - delete is hidden while a lesson uses the media or an upload is live; the delete dialog
+    says the YouTube copy stays.
+- **API mismatch found and fixed (reported):** `DELETE /api/v1/media/{id}` returned a bare
+  `204`, but the codebase convention (and `apiFetch`) is `200` with `ApiResponse.success(null)`.
+  The endpoint is new in this uncommitted phase, so the backend was aligned. Doc and test updated.
+- **Tests:**
+  - Playwright `e2e/media-library.spec.ts` 15/15 (mock-only, incl. presigned PUTs with CORS
+    preflight, no Authorization header on part uploads, exact start/complete/PATCH bodies);
+  - Phase 3 `tenant-admin-video-settings.spec.ts` 11/11 (fixture updated with the new
+    account fields);
+  - `tsc --noEmit` clean;
+  - `eslint src` 0 errors (2 existing warnings in untouched files).
+- **Production prerequisite (unchanged):** the staging bucket's CORS must allow `PUT` from
+  tenant origins and expose `ETag`, or part uploads fail with a clear message.
+
+- **Full backend `mvnw verify` (2026-10-04, after the DELETE alignment): 2351 tests, 0 failures/errors/skips, BUILD SUCCESS.** Phase 5 status → TESTED, commit pending.

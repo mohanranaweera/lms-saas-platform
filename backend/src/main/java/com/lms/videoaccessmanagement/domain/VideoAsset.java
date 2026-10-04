@@ -184,6 +184,21 @@ public class VideoAsset extends Auditable implements TenantOwned {
 		this.providerAssetId = providerAssetId;
 	}
 
+	/**
+	 * VIDEO Phase 5: the editable metadata. {@code privacyStatus} applies only
+	 * to provider-hosted assets (an INTERNAL asset has none).
+	 */
+	public void updateMetadata(String title, String description, MediaPrivacyStatus privacyStatus) {
+		if (isDeleted()) {
+			throw new IllegalStateException("A deleted video asset cannot be edited");
+		}
+		this.title = title;
+		this.description = description;
+		if (provider != MediaAssetProvider.INTERNAL) {
+			this.privacyStatus = privacyStatus;
+		}
+	}
+
 	/** VIDEO Phase 4: when the status sync should next ask the provider (null = never). */
 	public void scheduleSync(Instant nextSyncAt) {
 		this.nextSyncAt = nextSyncAt;

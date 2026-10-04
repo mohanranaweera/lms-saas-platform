@@ -5,6 +5,7 @@ import com.lms.integrationmanagement.api.MediaConnectionStatus;
 import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.domain.ConnectionScope;
 import com.lms.integrationmanagement.domain.MediaProviderConnection;
+import com.lms.integrationmanagement.gateway.media.YouTubeOAuthClient;
 import com.lms.integrationmanagement.repository.MediaProviderConnectionRepository;
 import java.util.Collection;
 import java.util.Map;
@@ -47,7 +48,7 @@ public class MediaConnectionLookupService implements MediaConnectionApi {
 	public Optional<TenantChannelSummary> findTenantVideoChannel(MediaProvider provider) {
 		return repository.findCurrentForTenant(provider)
 			.map(connection -> new TenantChannelSummary(connection.getId(), connection.getStatus(),
-					connection.isPlatformDisabled()));
+					connection.isPlatformDisabled(), YouTubeOAuthClient.grantsEditScope(connection.getGrantedScopes())));
 	}
 
 	@Override

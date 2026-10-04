@@ -27,6 +27,12 @@ public final class MediaUploadDtos {
 
 	}
 
+	/** VIDEO Phase 5 {@code PATCH /media/{id}}: absent fields stay as they are; a blank description clears it. */
+	public record UpdateMediaRequest(@Size(max = 200) String title, @Size(max = 6000) String description,
+			MediaPrivacyStatus privacyStatus) {
+
+	}
+
 	public record PresignPartsRequest(@NotNull @Size(min = 1, max = 100) List<Integer> partNumbers) {
 
 	}

@@ -5,7 +5,10 @@ import com.lms.common.tenant.TenantContextHolder;
 import com.lms.videoaccessmanagement.domain.MediaUploadJob;
 import com.lms.videoaccessmanagement.domain.MediaUploadJobStatus;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;
@@ -36,6 +39,19 @@ public interface MediaUploadJobRepository extends TenantAwareRepository<MediaUpl
 				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
 			.stream()
 			.findFirst();
+	}
+
+	/** VIDEO Phase 5: the newest job of each of {@code videoAssetIds} (assets without a job are absent). */
+	default Map<UUID, MediaUploadJob> findLatestForAssets(Collection<UUID> videoAssetIds) {
+		if (videoAssetIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<UUID, MediaUploadJob> latest = new HashMap<>();
+		for (MediaUploadJob job : findAll((root, query, cb) -> root.get("videoAssetId").in(videoAssetIds),
+				Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id")))) {
+			latest.put(job.getVideoAssetId(), job);
+		}
+		return latest;
 	}
 
 	/** Other fresh (non-stale) transfers of the current tenant - the one-per-tenant cap. */

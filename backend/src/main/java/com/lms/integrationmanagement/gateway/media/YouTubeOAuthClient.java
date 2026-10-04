@@ -29,7 +29,21 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 	/** VIDEO Phase 3: the tenant's own channel needs upload on top of read. */
 	static final String UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload";
 
-	private static final List<String> TENANT_CHANNEL_SCOPES = List.of(UPLOAD_SCOPE, SCOPE);
+	/**
+	 * VIDEO Phase 5 (ADR-018 Amendment 3): editing a video's title /
+	 * description / privacy ({@code videos.update}) needs this scope. YouTube
+	 * has no narrower edit-only scope; it also permits delete, which the
+	 * platform never calls (Q-017).
+	 */
+	public static final String EDIT_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl";
+
+	private static final List<String> TENANT_CHANNEL_SCOPES = List.of(UPLOAD_SCOPE, SCOPE, EDIT_SCOPE);
+
+	/** Whether a (possibly pre-Amendment-3) tenant channel grant can edit videos. */
+	public static boolean grantsEditScope(String grantedScopes) {
+		return grantedScopes != null
+				&& Arrays.asList(grantedScopes.trim().split("\\s+")).contains(EDIT_SCOPE);
+	}
 
 	/**
 	 * Consent URL for a tenant's own YouTube channel (VIDEO Phase 3, ADR-018

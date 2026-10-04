@@ -6,9 +6,13 @@ import com.lms.contentmanagement.material.domain.Material;
 import com.lms.contentmanagement.material.repository.MaterialRepository;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * {@link MaterialLookupApi}'s single implementation. Deliberately resolves
@@ -35,6 +39,15 @@ class MaterialLookupApiImpl implements MaterialLookupApi {
 	MaterialLookupApiImpl(MaterialRepository materialRepository, CourseLookupApi courseLookupApi) {
 		this.materialRepository = materialRepository;
 		this.courseLookupApi = courseLookupApi;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Set<UUID> findVideoAssetIdsInUse(Collection<UUID> videoAssetIds) {
+		return materialRepository.findByVideoAssetIds(videoAssetIds)
+			.stream()
+			.map(Material::getVideoAssetId)
+			.collect(Collectors.toSet());
 	}
 
 	@Override

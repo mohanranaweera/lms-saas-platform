@@ -4,6 +4,7 @@ import com.lms.common.persistence.CrossTenantPersistenceException;
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.contentmanagement.material.domain.Material;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +46,14 @@ public interface MaterialRepository extends TenantAwareRepository<Material, UUID
 	 */
 	default Optional<Material> findByVideoAssetId(UUID videoAssetId) {
 		return findOne((root, query, cb) -> cb.equal(root.get("videoAssetId"), videoAssetId));
+	}
+
+	/** VIDEO Phase 5: materials referencing any of {@code videoAssetIds} (tenant-scoped). */
+	default List<Material> findByVideoAssetIds(Collection<UUID> videoAssetIds) {
+		if (videoAssetIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("videoAssetId").in(videoAssetIds));
 	}
 
 	/**

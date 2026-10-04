@@ -31,6 +31,9 @@ function account(overrides: Record<string, unknown> = {}) {
     status: "NOT_CONNECTED",
     connection: null,
     connectedByUserId: null,
+    platformDisabled: false,
+    platformDisabledReason: null,
+    canEditVideos: true,
     ...overrides,
   };
 }

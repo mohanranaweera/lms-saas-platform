@@ -376,6 +376,68 @@ id or any credential:
 `capabilities.supportsOverlayWatermark` / `supportsServerSideRevocation` are `false` for
 YouTube. The UI must not imply that YouTube-hosted media is content-protected.
 
+## Media Library management — VIDEO Phase 5
+
+The visibility rules above apply.
+- Teacher / Teacher Assistant: only their own uploads (Q-010).
+- Other roles need `MATERIALS`: VIEW to read, CREATE_EDIT to edit, DELETE to delete (Q-011).
+
+**`MediaAssetResponse` additions** (additive):
+```jsonc
+"uploadProgress": { "state": "TRANSFERRING",   // AWAITING_PARTS|QUEUED|TRANSFERRING|RETRY_WAIT|QUOTA_PAUSED|PARKED_RECONNECT|COMPLETED|FAILED|CANCELLED
+                    "bytesSent": 8388608, "totalBytes": 734003200,
+                    "message": null } | null,     // client-safe reason when paused / parked / failed; null for legacy uploads
+"attached": false                                // a lesson material uses it; it cannot be deleted
+```
+
+### `GET /media/upload-limits`
+
+For whoever may upload (Student → `403`):
+
+```jsonc
+{ "uploadsEnabled": true, "channel": "CONNECTED",  // NOT_CONNECTED | CONNECTED | EXPIRED | DISABLED (platform switch-off)
+  "editingEnabled": true,                           // false for channels connected before ADR-018 Amendment 3
+  "dailyLimit": 20, "usedToday": 3, "maxFileSizeBytes": 10737418240, "partSizeBytes": 16777216,
+  "allowedMimeTypes": ["video/mp4", "video/quicktime", "video/webm"] }
+```
+
+### `PATCH /media/{id}`
+
+Body: any of `title` (1–100, no `<`/`>`), `description` (≤ 5000, no `<`/`>`; blank clears it) and
+`privacyStatus` (`UNLISTED` | `PRIVATE`; YouTube media only). Returns `200` → `MediaAssetResponse`.
+
+| Asset state | Effect |
+|---|---|
+| `CREATED` (file not sent yet) | LMS only. YouTube receives the new values when the upload starts. |
+| `UPLOADING` / `UPLOADED` | `409 MEDIA_UPLOAD_STATE_CONFLICT`: the YouTube session already carries the old values |
+| On YouTube (`PROCESSING` / `READY`, or `FAILED` after reaching YouTube) | Sent to YouTube first (`videos.update`; other YouTube settings are kept), then stored |
+
+YouTube errors leave the LMS unchanged:
+
+| Cause | Response |
+|---|---|
+| Channel connected without the edit scope | `409 VIDEO_PROVIDER_SCOPE_MISSING` (reconnect) |
+| Grant revoked / channel replaced | `409 VIDEO_PROVIDER_AUTH_EXPIRED` |
+| Channel switched off by the platform | `409 VIDEO_PROVIDER_DISABLED_BY_PLATFORM` |
+| Video gone on YouTube | `422 MEDIA_UPLOAD_FAILED` |
+| YouTube unreachable | `503` |
+
+Audit: `media_asset.updated` with before/after title, description and privacy.
+
+### `DELETE /media/{id}`
+
+`200` (`data: null`, the codebase's DELETE convention). A **soft delete in the LMS only**: the YouTube video is kept (Q-017). The UI should say
+so and point to YouTube Studio.
+
+| Case | Response |
+|---|---|
+| A lesson material uses it | `409 MEDIA_ATTACHED` |
+| An upload is still live | `409 MEDIA_UPLOAD_STATE_CONFLICT` (cancel first) |
+| Already deleted / not visible | `404` |
+
+The status history gets `→ DELETED` with the actor, and status sync stops. Audit:
+`media_asset.deleted` (`provider`, `statusBefore`, `title`, `providerAssetId`, `providerCopyKept`).
+
 ## Media upload to YouTube (`/api/v1/media`) — VIDEO Phase 4
 
 Upload into the tenant's own YouTube channel (ADR-018 Amendment 2), per plan §13 and VID-ADR-004:

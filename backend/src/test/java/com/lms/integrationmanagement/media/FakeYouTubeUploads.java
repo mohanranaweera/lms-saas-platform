@@ -95,6 +95,11 @@ public final class FakeYouTubeUploads {
 
 	private final List<String> listedIds = new CopyOnWriteArrayList<>();
 
+	/** Bodies of {@code videos.update} calls (VIDEO Phase 5). */
+	private final List<String> updates = new CopyOnWriteArrayList<>();
+
+	private volatile Failure failUpdates;
+
 	private final AtomicInteger counter = new AtomicInteger();
 
 	private volatile Failure alwaysFailChunks;
@@ -111,6 +116,8 @@ public final class FakeYouTubeUploads {
 		chunkFailures.clear();
 		videoStatuses.clear();
 		listedIds.clear();
+		updates.clear();
+		failUpdates = null;
 		alwaysFailChunks = null;
 		failOnChunk.clear();
 		chunkPuts.set(0);
@@ -148,6 +155,15 @@ public final class FakeYouTubeUploads {
 		return List.copyOf(listedIds);
 	}
 
+	public List<String> updates() {
+		return List.copyOf(updates);
+	}
+
+	/** Every {@code videos.update} answers with this error until {@code null} is set. */
+	public void failUpdates(Failure failure) {
+		this.failUpdates = failure;
+	}
+
 	boolean handles(String path) {
 		return path.equals(UPLOAD_PATH) || path.equals(VIDEOS_PATH);
 	}
@@ -156,6 +172,21 @@ public final class FakeYouTubeUploads {
 			String baseUrl) throws IOException {
 		if (path.equals(VIDEOS_PATH) && method.equals("GET")) {
 			listVideos(exchange, query);
+			return;
+		}
+		if (path.equals(VIDEOS_PATH) && method.equals("PUT")) {
+			String json = new String(body, StandardCharsets.UTF_8);
+			updates.add(json);
+			if (failUpdates != null) {
+				error(exchange, failUpdates);
+				return;
+			}
+			Matcher id = Pattern.compile("\"id\":\"([^\"]+)\"").matcher(json);
+			if (!id.find() || !videoStatuses.containsKey(id.group(1))) {
+				respond(exchange, 404, "{\"error\":{\"code\":404,\"errors\":[{\"reason\":\"videoNotFound\"}]}}");
+				return;
+			}
+			respond(exchange, 200, json);
 			return;
 		}
 		String uploadId = param(query, "upload_id");

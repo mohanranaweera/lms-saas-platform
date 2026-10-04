@@ -315,3 +315,24 @@ The upload pipeline and TD-008 now use the tenant channel. No decision above cha
     tenant's audit log.
 - **Google Cloud (Q-007):** one platform project per environment, shared quota, protected by a
   per-tenant daily budget (Q-014, default 20) and a quota pause until Pacific midnight.
+
+## Amendment 3 (2026-10-04): edit scope for the tenant channel (VIDEO Phase 5)
+
+**Status:** Accepted by the project owner on 2026-10-04 ("Yes I approve amendment 3").
+
+**Decision.** Media Library edits of a YouTube-hosted video (title, description, privacy) are
+sent to YouTube (`videos.update`). The tenant channel scopes therefore become `youtube.upload` +
+`youtube.readonly` + **`youtube.force-ssl`**.
+- **Why this scope:** YouTube has no edit-only scope. `force-ssl` also allows deleting videos.
+  The platform never calls delete: Media Library delete is an LMS soft delete only (Q-017).
+  This is a documented residual risk of the broader grant.
+- **New connections:** the callback discards and revokes a grant missing any of the three
+  scopes (`error=missing_scopes`).
+- **Existing connections** (connected under Amendment 2) keep uploading. Editing one of their
+  videos returns `409 VIDEO_PROVIDER_SCOPE_MISSING` until a Tenant Admin reconnects the same
+  channel. The provider view shows `canEditVideos = false`, and the Media Library's
+  `upload-limits` shows `editingEnabled = false`.
+- **The edit call:** made with no transaction open, using the current connection of the same
+  channel. On any YouTube error the LMS row is not changed. Edits are audited
+  (`media_asset.updated`).
+- **Platform switch-off (TD-008)** also blocks edits.

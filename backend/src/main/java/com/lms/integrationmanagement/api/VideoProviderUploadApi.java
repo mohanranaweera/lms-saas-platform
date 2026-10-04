@@ -34,6 +34,15 @@ public interface VideoProviderUploadApi {
 	/** Best-effort cancellation of an unfinished session; never throws. */
 	void cancelSession(UUID connectionId, String sessionHandle);
 
+	/**
+	 * VIDEO Phase 5: changes the video's title / description / privacy on the
+	 * provider (ADR-018 Amendment 3). Other provider-side settings are kept.
+	 *
+	 * @throws UploadFailure {@code SCOPE_MISSING} when the channel was connected
+	 * without the edit scope, {@code FATAL} when the video no longer exists
+	 */
+	void updateMetadata(UUID connectionId, String providerVideoId, UploadMetadata metadata);
+
 	/** Processing state of up to 50 provider video ids, keyed by id (unknown ids map to NOT_FOUND). */
 	Map<String, ProviderVideoStatus> fetchStatuses(UUID connectionId, Collection<String> providerVideoIds);
 
@@ -88,7 +97,9 @@ public interface VideoProviderUploadApi {
 			/** The resumable session is gone - start a new session. */
 			SESSION_GONE,
 			/** The provider refused the upload itself - retrying will not help. */
-			FATAL
+			FATAL,
+			/** The channel's grant lacks a needed scope (e.g. editing before Amendment 3) - reconnect. */
+			SCOPE_MISSING
 
 		}
 

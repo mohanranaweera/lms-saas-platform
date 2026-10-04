@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -55,6 +56,11 @@ public class YouTubeUploadHttp {
 	private static final Duration CHUNK_TIMEOUT = Duration.ofMinutes(5);
 
 	private static final Pattern RANGE = Pattern.compile("bytes=0-(\\d+)");
+
+	/** YouTube "Education" - used only if a video somehow has no category. */
+	private static final String DEFAULT_CATEGORY_ID = "27";
+
+	private static final Set<String> SCOPE_REASONS = Set.of("insufficientpermissions", "forbidden");
 
 	private static final Set<String> QUOTA_REASONS = Set.of("quotaexceeded", "uploadlimitexceeded",
 			"dailylimitexceeded");
@@ -133,6 +139,70 @@ public class YouTubeUploadHttp {
 		return interpretSessionResponse(send(request, uri), uri);
 	}
 
+	/**
+	 * VIDEO Phase 5: {@code videos.update} of title / description / privacy.
+	 * YouTube resets every writable field of a part that is not sent, so the
+	 * current snippet and status are read first and only the three fields are
+	 * changed.
+	 */
+	public void updateVideo(String accessToken, String videoId, UploadMetadata metadata) {
+		URI readUri = UriComponentsBuilder.fromUriString(google.getApiBaseUrl() + "/youtube/v3/videos")
+			.queryParam("part", "snippet,status")
+			.queryParam("id", videoId)
+			.encode()
+			.build()
+			.toUri();
+		HttpResponse<String> current = send(HttpRequest.newBuilder(readUri)
+			.timeout(CONTROL_TIMEOUT)
+			.header("Authorization", "Bearer " + accessToken)
+			.GET()
+			.build(), readUri);
+		if (current.statusCode() != 200) {
+			throw failureFor(current, readUri, false);
+		}
+		JsonNode item = parse(current.body()).path("items").path(0);
+		if (item.isMissingNode() || ProviderHttpClient.text(item, "id") == null) {
+			throw new UploadFailure(Kind.FATAL, "The video is no longer available on YouTube.");
+		}
+
+		Map<String, Object> snippet = new LinkedHashMap<>();
+		snippet.put("title", metadata.title());
+		snippet.put("description", (metadata.description() == null) ? "" : metadata.description());
+		String categoryId = ProviderHttpClient.text(item.path("snippet"), "categoryId");
+		snippet.put("categoryId", (categoryId == null) ? DEFAULT_CATEGORY_ID : categoryId);
+		copy(item.path("snippet"), snippet, "defaultLanguage", "defaultAudioLanguage");
+		if (item.path("snippet").path("tags").isArray()) {
+			snippet.put("tags", item.path("snippet").path("tags"));
+		}
+		Map<String, Object> status = new LinkedHashMap<>();
+		status.put("privacyStatus", metadata.privacyStatus().toLowerCase(Locale.ROOT));
+		copy(item.path("status"), status, "license", "embeddable", "publicStatsViewable", "selfDeclaredMadeForKids");
+
+		URI updateUri = URI.create(google.getApiBaseUrl() + "/youtube/v3/videos?part=snippet,status");
+		Map<String, Object> body = Map.of("id", videoId, "snippet", snippet, "status", status);
+		HttpResponse<String> updated = send(HttpRequest.newBuilder(updateUri)
+			.timeout(CONTROL_TIMEOUT)
+			.header("Authorization", "Bearer " + accessToken)
+			.header("Content-Type", "application/json; charset=UTF-8")
+			.PUT(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body), StandardCharsets.UTF_8))
+			.build(), updateUri);
+		if (updated.statusCode() == 404) {
+			throw new UploadFailure(Kind.FATAL, "The video is no longer available on YouTube.");
+		}
+		if (updated.statusCode() != 200) {
+			throw failureFor(updated, updateUri, false);
+		}
+	}
+
+	private static void copy(JsonNode from, Map<String, Object> to, String... fields) {
+		for (String field : fields) {
+			JsonNode value = from.path(field);
+			if (value.isValueNode() && !value.isNull()) {
+				to.put(field, value);
+			}
+		}
+	}
+
 	/** Best effort: YouTube answers a cancelled session with 499; nothing to do on failure. */
 	public void cancel(String accessToken, String sessionUri) {
 		try {
@@ -186,6 +256,9 @@ public class YouTubeUploadHttp {
 			.log();
 		if (code == 401) {
 			return new UploadFailure(Kind.AUTH, "YouTube no longer accepts this channel's authorization.");
+		}
+		if (code == 403 && reason != null && SCOPE_REASONS.contains(reason)) {
+			return new UploadFailure(Kind.SCOPE_MISSING, "Reconnect YouTube to allow editing videos.");
 		}
 		if (sessionCall && (code == 404 || code == 410)) {
 			return new UploadFailure(Kind.SESSION_GONE, "The YouTube upload session expired. It will be restarted.");

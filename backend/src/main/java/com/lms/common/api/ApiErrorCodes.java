@@ -125,6 +125,12 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 4 - the uploaded file failed server-side validation (size or content type). */
 	public static final String MEDIA_UPLOAD_FAILED = "MEDIA_UPLOAD_FAILED";
 
+	/** VIDEO Phase 5 - the tenant channel was connected without the edit scope (ADR-018 Amendment 3); reconnect. */
+	public static final String VIDEO_PROVIDER_SCOPE_MISSING = "VIDEO_PROVIDER_SCOPE_MISSING";
+
+	/** VIDEO Phase 5 - the media is used by a lesson material and cannot be deleted. */
+	public static final String MEDIA_ATTACHED = "MEDIA_ATTACHED";
+
 	/** VIDEO Phase 4 - the upload is not in a state that allows this action. */
 	public static final String MEDIA_UPLOAD_STATE_CONFLICT = "MEDIA_UPLOAD_STATE_CONFLICT";
 

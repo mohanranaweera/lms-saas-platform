@@ -77,6 +77,10 @@ public final class FakeMediaProviderServer {
 	public static final String DEFAULT_GOOGLE_SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
 
 	public static final String TENANT_CHANNEL_SCOPES = "https://www.googleapis.com/auth/youtube.upload "
+			+ "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl";
+
+	/** A tenant channel connected before ADR-018 Amendment 3 (no edit scope). */
+	public static final String LEGACY_TENANT_CHANNEL_SCOPES = "https://www.googleapis.com/auth/youtube.upload "
 			+ "https://www.googleapis.com/auth/youtube.readonly";
 
 	private volatile String googleScope = DEFAULT_GOOGLE_SCOPE;

@@ -312,7 +312,7 @@ public class MediaUploadStore {
 				}
 			}
 			case QUOTA -> job.pauseForQuota(reason, UploadSchedule.nextQuotaReset(now));
-			case AUTH, CHANNEL_UNAVAILABLE -> job.park(reason);
+			case AUTH, CHANNEL_UNAVAILABLE, SCOPE_MISSING -> job.park(reason);
 			case FATAL -> fail(job, reason);
 		}
 		securityLog.atInfo()

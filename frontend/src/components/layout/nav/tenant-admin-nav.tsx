@@ -20,6 +20,7 @@ import {
   canViewAccessPolicy,
   canViewDevices,
   canViewCommunications,
+  canViewMedia,
 } from "@/lib/auth/permissions";
 import { NavGroup, type NavItem } from "./nav-links";
 
@@ -72,6 +73,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
     academicItems.push({ label: "Teachers", href: "/tenant-admin/teachers" });
   }
   academicItems.push({ label: "Courses", href: "/tenant-admin/courses" });
+  if (canViewMedia(role)) {
+    academicItems.push({ label: "Media Library", href: "/tenant-admin/media" });
+  }
   if (canViewAttendanceReports(role)) {
     academicItems.push({ label: "Attendance Reports", href: "/tenant-admin/attendance/reports" });
   }

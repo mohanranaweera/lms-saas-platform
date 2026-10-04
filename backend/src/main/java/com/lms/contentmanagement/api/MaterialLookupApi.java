@@ -1,6 +1,8 @@
 package com.lms.contentmanagement.api;
 
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -26,5 +28,12 @@ public interface MaterialLookupApi {
 	 * material").
 	 */
 	Optional<MaterialVideoOwnership> resolveVideoAssetOwnership(UUID videoAssetId);
+
+	/**
+	 * VIDEO Phase 5: which of {@code videoAssetIds} a material of the
+	 * caller's tenant references (the Media Library "attached" flag and the
+	 * delete guard). Ids of other tenants are never in the result.
+	 */
+	Set<UUID> findVideoAssetIdsInUse(Collection<UUID> videoAssetIds);
 
 }

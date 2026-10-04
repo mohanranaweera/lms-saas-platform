@@ -44,8 +44,13 @@ public interface MediaConnectionApi {
 
 	}
 
-	/** @param platformDisabled switched off by a Platform Admin (TD-008) */
-	record TenantChannelSummary(UUID connectionId, MediaConnectionStatus status, boolean platformDisabled) {
+	/**
+	 * @param platformDisabled switched off by a Platform Admin (TD-008)
+	 * @param editScopeGranted the grant can edit videos (ADR-018 Amendment 3);
+	 * channels connected before it must reconnect to edit
+	 */
+	record TenantChannelSummary(UUID connectionId, MediaConnectionStatus status, boolean platformDisabled,
+			boolean editScopeGranted) {
 
 		/** Whether uploads may use this channel now. */
 		public boolean usable() {

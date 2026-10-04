@@ -518,8 +518,13 @@ Library.
     "connection": ConnectionView | null, // current, else the latest (disconnected) one
     "connectedByUserId": "<uuid>" | null,
     "platformDisabled": false,          // VIDEO Phase 4 (TD-008): switched off by a Platform Admin
-    "platformDisabledReason": null } ]
+    "platformDisabledReason": null,
+    "canEditVideos": true } ]           // VIDEO Phase 5: false for a channel connected before ADR-018 Amendment 3 → "Reconnect to enable editing"
 ```
+
+Since ADR-018 Amendment 3 (VIDEO Phase 5), `youtube/connect` asks for `youtube.upload`,
+`youtube.readonly` **and** `youtube.force-ssl`. A grant missing any of them is discarded
+(`error=missing_scopes`).
 
 While `platformDisabled` is true, `youtube/connect` and `pending/{id}/confirm` answer
 `409 VIDEO_PROVIDER_DISABLED_BY_PLATFORM`. A confirm also discards and revokes the pending grant.

@@ -1,15 +1,21 @@
 package com.lms.videoaccessmanagement.service;
 
+import com.lms.auditlogmanagement.api.AuditLogApi;
+import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.videoaccessmanagement.domain.MediaPrivacyStatus;
 import com.lms.videoaccessmanagement.domain.VideoAsset;
 import com.lms.videoaccessmanagement.domain.VideoAssetStatus;
 import com.lms.videoaccessmanagement.domain.VideoAssetStatusEvent;
 import com.lms.videoaccessmanagement.repository.VideoAssetRepository;
 import com.lms.videoaccessmanagement.repository.VideoAssetStatusEventRepository;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,12 +43,18 @@ public class MediaAssetLifecycleService {
 
 	private final Clock clock;
 
+	private final AuditLogApi auditLogApi;
+
+	static final String TARGET_ENTITY = "video_asset";
+
 	public MediaAssetLifecycleService(VideoAssetRepository videoAssetRepository,
-			VideoAssetStatusEventRepository statusEventRepository, MediaAssetViews mediaAssetViews, Clock clock) {
+			VideoAssetStatusEventRepository statusEventRepository, MediaAssetViews mediaAssetViews, Clock clock,
+			AuditLogApi auditLogApi) {
 		this.videoAssetRepository = videoAssetRepository;
 		this.statusEventRepository = statusEventRepository;
 		this.mediaAssetViews = mediaAssetViews;
 		this.clock = clock;
+		this.auditLogApi = auditLogApi;
 	}
 
 	/**
@@ -86,6 +98,61 @@ public class MediaAssetLifecycleService {
 		statusEventRepository.save(new VideoAssetStatusEvent(asset.getTenantId(), asset.getId(), from, target,
 				reason, actorIdFor(asset), clock.instant()));
 		return mediaAssetViews.toView(asset);
+	}
+
+	/**
+	 * VIDEO Phase 5: stores edited metadata (after any provider update has
+	 * succeeded) and audits it with before/after.
+	 */
+	@Transactional
+	public MediaAssetView updateMetadata(UUID assetId, String title, String description,
+			MediaPrivacyStatus privacyStatus, UUID actorId) {
+		VideoAsset asset = videoAssetRepository.findById(assetId)
+			.filter(a -> !a.isDeleted())
+			.orElseThrow(() -> new NotFoundException("Media asset not found"));
+		Map<String, Object> before = metadataOf(asset);
+		asset.updateMetadata(title, description, privacyStatus);
+		asset = videoAssetRepository.saveAndFlush(asset);
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("before", before);
+		metadata.put("after", metadataOf(asset));
+		auditLogApi.record(new AuditLogEntry(actorId, "media_asset.updated", TARGET_ENTITY, assetId, null, metadata));
+		return mediaAssetViews.toView(asset);
+	}
+
+	/**
+	 * VIDEO Phase 5: soft delete (row, history and the provider's copy are
+	 * kept - Q-017). security.md requires content deletions to be audited.
+	 */
+	@Transactional
+	public void delete(UUID assetId, UUID actorId) {
+		VideoAsset asset = videoAssetRepository.findById(assetId)
+			.filter(a -> !a.isDeleted())
+			.orElseThrow(() -> new NotFoundException("Media asset not found"));
+		VideoAssetStatus from = asset.getStatus();
+		Instant now = clock.instant();
+		asset.markDeleted(actorId, now);
+		asset.scheduleSync(null);
+		videoAssetRepository.saveAndFlush(asset);
+		statusEventRepository.save(new VideoAssetStatusEvent(asset.getTenantId(), assetId, from,
+				VideoAssetStatus.DELETED, "Deleted from the Media Library", actorId, now));
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("provider", asset.getProvider().name());
+		metadata.put("statusBefore", from.name());
+		metadata.put("title", (asset.getTitle() != null) ? asset.getTitle() : asset.getOriginalFilename());
+		if (asset.getProviderAssetId() != null) {
+			metadata.put("providerAssetId", asset.getProviderAssetId());
+			metadata.put("providerCopyKept", true);
+		}
+		auditLogApi.record(new AuditLogEntry(actorId, "media_asset.deleted", TARGET_ENTITY, assetId, null, metadata));
+	}
+
+	private static Map<String, Object> metadataOf(VideoAsset asset) {
+		Map<String, Object> map = new LinkedHashMap<>();
+		map.put("title", asset.getTitle());
+		map.put("description", asset.getDescription());
+		map.put("privacyStatus", (asset.getPrivacyStatus() == null) ? null : asset.getPrivacyStatus().name());
+		return map;
 	}
 
 	/**

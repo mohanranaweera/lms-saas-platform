@@ -12,6 +12,7 @@ import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.domain.ConnectionScope;
 import com.lms.integrationmanagement.domain.MediaProviderConnection;
 import com.lms.integrationmanagement.gateway.media.ProviderIdentity;
+import com.lms.integrationmanagement.gateway.media.YouTubeOAuthClient;
 import com.lms.integrationmanagement.repository.MediaProviderConnectionRepository;
 import com.lms.integrationmanagement.service.MediaConnectionViews.AuthorizationUrlView;
 import com.lms.integrationmanagement.service.MediaConnectionViews.ConnectionTestResult;
@@ -60,13 +61,15 @@ public class TenantVideoProviderService {
 	 */
 	public record VideoProviderAccountView(String provider, boolean available, AccountStatus status,
 			ConnectionView connection, UUID connectedByUserId, boolean platformDisabled,
-			String platformDisabledReason) {
+			String platformDisabledReason, boolean canEditVideos) {
 
 		static VideoProviderAccountView of(boolean available, AccountStatus status, MediaProviderConnection latest,
 				ConnectionView view) {
 			return new VideoProviderAccountView(MediaProvider.YOUTUBE.name(), available, status, view,
 					(latest == null) ? null : latest.getCreatedBy(), latest != null && latest.isPlatformDisabled(),
-					(latest == null) ? null : latest.getPlatformDisabledReason());
+					(latest == null) ? null : latest.getPlatformDisabledReason(),
+					latest != null && !latest.isDisconnected()
+							&& YouTubeOAuthClient.grantsEditScope(latest.getGrantedScopes()));
 		}
 
 	}

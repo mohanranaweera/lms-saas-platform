@@ -130,6 +130,25 @@ export function TenantYouTubeChannelCard({ view, canManage }: { view: VideoProvi
         </dl>
       ) : null}
 
+      {view.platformDisabled ? (
+        <Alert variant="destructive">
+          <AlertCircle aria-hidden="true" />
+          <AlertDescription>
+            Video uploads were switched off by the platform
+            {view.platformDisabledReason ? ` (${view.platformDisabledReason})` : ""}. Contact platform support to
+            switch them back on. Videos already uploaded keep working.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {state === "CONNECTED" && !view.platformDisabled && !view.canEditVideos ? (
+        <Alert>
+          <AlertCircle aria-hidden="true" />
+          <AlertDescription>
+            Reconnect YouTube to allow editing video titles, descriptions and visibility from the Media Library.
+            Uploads keep working meanwhile.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {state === "EXPIRED" ? (
         <Alert variant="destructive">
           <AlertCircle aria-hidden="true" />

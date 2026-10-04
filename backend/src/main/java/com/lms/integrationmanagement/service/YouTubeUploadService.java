@@ -13,6 +13,7 @@ import com.lms.integrationmanagement.domain.MediaProviderConnection;
 import com.lms.integrationmanagement.gateway.MediaCredentialCipher;
 import com.lms.integrationmanagement.gateway.media.MediaProviderException;
 import com.lms.integrationmanagement.gateway.media.ProviderHttpClient;
+import com.lms.integrationmanagement.gateway.media.YouTubeOAuthClient;
 import com.lms.integrationmanagement.gateway.media.YouTubeUploadHttp;
 import java.net.URI;
 import java.time.Duration;
@@ -108,6 +109,25 @@ public class YouTubeUploadService implements VideoProviderUploadApi {
 		catch (RuntimeException ex) {
 			// Best effort: an unfinished YouTube session expires on its own.
 		}
+	}
+
+	@Override
+	public void updateMetadata(UUID connectionId, String providerVideoId, UploadMetadata metadata) {
+		MediaProviderConnection connection = requireTenantChannel(connectionId);
+		if (connection.isPlatformDisabled()) {
+			throw new UploadFailure(Kind.CHANNEL_UNAVAILABLE,
+					"Video changes were switched off by the platform for this institute.");
+		}
+		if (!connection.isActive()) {
+			throw new UploadFailure(Kind.AUTH, "Reconnect YouTube in Settings → Video Providers.");
+		}
+		if (!YouTubeOAuthClient.grantsEditScope(connection.getGrantedScopes())) {
+			throw new UploadFailure(Kind.SCOPE_MISSING, "Reconnect YouTube to allow editing videos.");
+		}
+		withToken(connectionId, token -> {
+			uploadHttp.updateVideo(token, providerVideoId, metadata);
+			return null;
+		});
 	}
 
 	@Override

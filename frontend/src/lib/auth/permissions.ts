@@ -455,3 +455,26 @@ export function canSendCommunications(role: string | null): boolean {
 export function canManageSystemMessaging(role: string | null): boolean {
   return role === "TENANT_ADMIN";
 }
+
+/**
+ * VIDEO Phase 5 - the whole-institute Media Library (`MATERIALS`/`VIEW`:
+ * Tenant Admin, Course Coordinator, Content Manager, Read-only Auditor).
+ * Teachers have their own Media Library of their own uploads. UX only.
+ */
+export function canViewMedia(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "COURSE_COORDINATOR" ||
+    role === "CONTENT_MANAGER" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/**
+ * VIDEO Phase 5 - upload, edit and delete media (`MATERIALS`/`CREATE_EDIT` +
+ * `DELETE`: Tenant Admin, Content Manager; a Teacher for their own uploads).
+ * UX only.
+ */
+export function canManageMedia(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "CONTENT_MANAGER" || isTeacherRole(role);
+}

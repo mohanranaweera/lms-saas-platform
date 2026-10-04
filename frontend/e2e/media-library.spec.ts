@@ -1,0 +1,446 @@
+import { test, expect, type Page, type Route } from "@playwright/test";
+import { apiError, apiPageSuccess, apiSuccess, fulfillJson } from "./fixtures/auth-mocks";
+import { mockTenantSession } from "./fixtures/class-session-mocks";
+
+/**
+ * VIDEO Phase 5 — Media Library (frontend, mock-only).
+ *
+ * Who may see, upload, edit or delete media, the size/type checks on the
+ * staged file, the YouTube sync and every cross-tenant case are proven by the
+ * backend's `MediaUploadIntegrationTest` and
+ * `MediaLibraryManagementIntegrationTest`. These tests prove the pages
+ * reflect backend state, upload the file in parts straight to the presigned
+ * URLs with no credentials, explain every waiting/failed state, and send
+ * exactly what the user chose.
+ */
+
+const STAGING = "https://staging.example.test";
+
+function asset(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "media-1",
+    provider: "YOUTUBE",
+    title: "Algebra lesson 1",
+    description: "Linear equations",
+    thumbnailUrl: null,
+    durationSeconds: 754,
+    privacyStatus: "UNLISTED",
+    processingStatus: "READY",
+    failureReason: null,
+    uploadedBy: "teacher-1",
+    createdAt: "2026-10-04T08:00:00Z",
+    capabilities: { supportsUpload: true },
+    enabledPlaybackModes: [],
+    uploadProgress: { state: "COMPLETED", bytesSent: 1000, totalBytes: 1000, message: null },
+    attached: false,
+    ...overrides,
+  };
+}
+
+function limits(overrides: Record<string, unknown> = {}) {
+  return {
+    uploadsEnabled: true,
+    channel: "CONNECTED",
+    editingEnabled: true,
+    dailyLimit: 20,
+    usedToday: 2,
+    maxFileSizeBytes: 1_000_000,
+    partSizeBytes: 10,
+    allowedMimeTypes: ["video/mp4", "video/quicktime", "video/webm"],
+    ...overrides,
+  };
+}
+
+type Reply = { status: number; body: unknown };
+
+interface MediaMock {
+  list?: unknown[] | Reply;
+  detail?: Record<string, unknown>;
+  limits?: Record<string, unknown>;
+  start?: Reply;
+  complete?: Reply;
+  patch?: Reply;
+  remove?: Reply;
+  retry?: Reply;
+}
+
+interface Captured {
+  method: string;
+  path: string;
+  body: unknown;
+}
+
+/** One router for `/v1/media…`; records every call so tests can assert what was sent. */
+async function mockMedia(page: Page, mock: MediaMock): Promise<Captured[]> {
+  const calls: Captured[] = [];
+  await page.route(/\/v1\/media(\/|\?|$)/, async (route: Route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace(/^.*\/v1\/media/, "");
+    const method = request.method();
+    const raw = request.postData();
+    calls.push({ method, path, body: raw ? JSON.parse(raw) : null });
+
+    const reply = (r: Reply | undefined, fallback: unknown) => fulfillJson(route, r?.status ?? 200, r?.body ?? fallback);
+
+    if (method === "GET" && path === "") {
+      const list = mock.list ?? [];
+      return Array.isArray(list)
+        ? fulfillJson(route, 200, apiPageSuccess(list))
+        : fulfillJson(route, list.status, list.body);
+    }
+    if (method === "GET" && path === "/upload-limits") return fulfillJson(route, 200, apiSuccess(limits(mock.limits)));
+    if (method === "POST" && path === "") return reply(mock.start, apiError("UNKNOWN", "not mocked"));
+    if (method === "POST" && path.endsWith("/upload/complete")) return reply(mock.complete, apiError("UNKNOWN", "x"));
+    if (method === "POST" && path.endsWith("/upload/cancel")) {
+      return fulfillJson(route, 200, apiSuccess(asset({ processingStatus: "FAILED" })));
+    }
+    if (method === "POST" && path.endsWith("/upload/retry")) {
+      return reply(mock.retry, apiSuccess(asset({ processingStatus: "UPLOADING" })));
+    }
+    if (method === "PATCH") return reply(mock.patch, apiError("UNKNOWN", "x"));
+    if (method === "DELETE") return reply(mock.remove, apiSuccess(null));
+    if (method === "GET") return fulfillJson(route, 200, apiSuccess(mock.detail ?? asset()));
+    return fulfillJson(route, 404, apiError("NOT_FOUND", "not mocked"));
+  });
+  return calls;
+}
+
+/** The presigned S3 part URLs: answer the CORS preflight and every PUT with an ETag. */
+async function mockStaging(page: Page) {
+  const puts: { method: string; auth: string | undefined; size: number }[] = [];
+  await page.route(`${STAGING}/**`, async (route) => {
+    const request = route.request();
+    const cors = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "PUT",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Expose-Headers": "ETag",
+    };
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: cors });
+      return;
+    }
+    const part = new URL(request.url()).pathname.split("/").pop();
+    puts.push({
+      method: request.method(),
+      auth: request.headers()["authorization"],
+      size: request.postDataBuffer()?.length ?? 0,
+    });
+    await route.fulfill({ status: 200, headers: { ...cors, ETag: `"etag-${part}"` }, body: "" });
+  });
+  return puts;
+}
+
+function startedUpload(partCount: number): Reply {
+  return {
+    status: 201,
+    body: apiSuccess({
+      mediaAsset: asset({ processingStatus: "CREATED", uploadProgress: null }),
+      upload: {
+        partSizeBytes: 10,
+        partCount,
+        parts: Array.from({ length: partCount }, (_, i) => ({
+          partNumber: i + 1,
+          url: `${STAGING}/up-1/${i + 1}?X-Amz-Signature=abc`,
+          expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+        })),
+      },
+    }),
+  };
+}
+
+async function chooseVideo(page: Page, bytes: number, mimeType = "video/mp4", name = "lesson.mp4") {
+  await page.getByLabel("Video file").setInputFiles({ name, mimeType, buffer: Buffer.alloc(bytes, 7) });
+}
+
+function uploadForm(page: Page) {
+  return page.getByRole("form", { name: "Upload a video" });
+}
+
+test.describe("Media Library list", () => {
+  test("a Tenant Admin sees every video with its status, progress and lesson use", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, {
+      list: [
+        asset({ attached: true }),
+        asset({
+          id: "media-2",
+          title: "Geometry intro",
+          processingStatus: "UPLOADING",
+          uploadProgress: { state: "TRANSFERRING", bytesSent: 500, totalBytes: 1000, message: null },
+        }),
+        asset({
+          id: "media-3",
+          title: "Paused video",
+          processingStatus: "UPLOADING",
+          uploadProgress: { state: "QUOTA_PAUSED", bytesSent: 0, totalBytes: 1000, message: "limit" },
+        }),
+        asset({ id: "media-4", title: "Broken video", processingStatus: "FAILED", failureReason: "Rejected." }),
+      ],
+    });
+
+    await page.goto("/tenant-admin/media");
+
+    await expect(page.getByRole("heading", { name: "Media Library" })).toBeVisible();
+    const items = page.getByRole("list", { name: "Media" }).getByRole("listitem");
+    await expect(items).toHaveCount(4);
+    await expect(items.nth(0)).toContainText("Ready");
+    await expect(items.nth(0)).toContainText("In a lesson");
+    await expect(items.nth(0)).toContainText("12:34");
+    await expect(items.nth(1)).toContainText("Sending to YouTube");
+    await expect(items.nth(1).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+    await expect(items.nth(2)).toContainText("Paused until tomorrow");
+    await expect(items.nth(3)).toContainText("Failed");
+    await expect(page.getByRole("link", { name: "Media Library" }).first()).toBeVisible();
+
+    await expect(items.nth(0).getByRole("link")).toHaveAttribute("href", "/tenant-admin/media/media-1");
+  });
+
+  test("an empty library offers an upload, a filtered one offers to clear filters", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, { list: [] });
+
+    await page.goto("/tenant-admin/media");
+    await expect(page.getByText("No videos yet")).toBeVisible();
+
+    await page.getByLabel("Status").selectOption("FAILED");
+    await expect(page.getByText("No media matches")).toBeVisible();
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await expect(page.getByText("No videos yet")).toBeVisible();
+  });
+
+  test("a 403 from the server shows the permission-denied state", async ({ page }) => {
+    await mockTenantSession(page, "FINANCE_STAFF");
+    await mockMedia(page, { list: { status: 403, body: apiError("FORBIDDEN", "Forbidden") } });
+
+    await page.goto("/tenant-admin/media");
+
+    await expect(page.getByText("You don't have permission to view this.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Upload video" })).toHaveCount(0);
+  });
+});
+
+test.describe("Uploading", () => {
+  test("a teacher's file goes to the presigned URLs in parts, with no credentials, then is completed", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    const calls = await mockMedia(page, {
+      list: [],
+      start: startedUpload(3),
+      complete: { status: 202, body: apiSuccess(asset({ processingStatus: "UPLOADING" })) },
+    });
+    const puts = await mockStaging(page);
+
+    await page.goto("/teacher/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await expect(page.getByText("2 of 20 uploads used today", { exact: false })).toBeVisible();
+    await page.getByLabel("Title").fill("Algebra lesson 1");
+    await page.getByLabel("Description (optional)").fill("Linear equations");
+    await page.getByLabel("Visibility on YouTube").selectOption("PRIVATE");
+    await chooseVideo(page, 25);
+    await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
+
+    await expect(page.getByText(/Upload received/)).toBeVisible();
+    const start = calls.find((c) => c.method === "POST" && c.path === "");
+    expect(start?.body).toEqual({
+      title: "Algebra lesson 1",
+      description: "Linear equations",
+      privacyStatus: "PRIVATE",
+      fileName: "lesson.mp4",
+      mimeType: "video/mp4",
+      sizeBytes: 25,
+    });
+    const sent = puts.filter((p) => p.method === "PUT");
+    expect(sent.map((p) => p.size).sort((a, b) => a - b)).toEqual([5, 10, 10]);
+    expect(sent.every((p) => p.auth === undefined)).toBe(true);
+    const complete = calls.find((c) => c.path.endsWith("/upload/complete"));
+    expect(complete?.body).toEqual({
+      parts: [
+        { partNumber: 1, etag: '"etag-1"' },
+        { partNumber: 2, etag: '"etag-2"' },
+        { partNumber: 3, etag: '"etag-3"' },
+      ],
+    });
+  });
+
+  test("a file the server rejects shows its reason and is not cancelled again", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    const calls = await mockMedia(page, {
+      list: [],
+      start: startedUpload(1),
+      complete: {
+        status: 422,
+        body: apiError("MEDIA_UPLOAD_FAILED", "This file is not a supported video. Upload an MP4, WebM or MOV file."),
+      },
+    });
+    await mockStaging(page);
+
+    await page.goto("/teacher/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByLabel("Title").fill("Not really a video");
+    await chooseVideo(page, 8);
+    await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
+
+    await expect(page.getByRole("alert").filter({ hasText: "not a supported video" })).toBeVisible();
+    expect(calls.some((c) => c.path.endsWith("/upload/cancel"))).toBe(false);
+  });
+
+  test("the form checks the title, the type and the size before anything is sent", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    const calls = await mockMedia(page, { list: [], limits: { maxFileSizeBytes: 100 } });
+
+    await page.goto("/teacher/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await chooseVideo(page, 50, "application/pdf", "notes.pdf");
+    await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
+    await expect(page.getByText("Enter a title.")).toBeVisible();
+    await expect(page.getByText("Choose an MP4, WebM or MOV video.")).toBeVisible();
+
+    await page.getByLabel("Title").fill("Too big");
+    await chooseVideo(page, 500);
+    await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
+    await expect(page.getByText(/larger than the 100 B limit/)).toBeVisible();
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  test("uploading is blocked with the reason when the channel isn't connected", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, { list: [], limits: { channel: "NOT_CONNECTED" } });
+
+    await page.goto("/tenant-admin/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+
+    await expect(page.getByText("Your institute hasn't connected a YouTube channel yet.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open video providers" })).toHaveAttribute(
+      "href",
+      "/tenant-admin/settings/video-providers"
+    );
+    await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
+  });
+
+  test("the daily limit message replaces the form's action", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    await mockMedia(page, { list: [], limits: { usedToday: 20 } });
+
+    await page.goto("/teacher/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+
+    await expect(page.getByText("Your institute has used today's 20 uploads. Try again tomorrow.")).toBeVisible();
+    await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
+  });
+});
+
+test.describe("Media detail", () => {
+  test("editing a video on YouTube sends the changes and confirms them", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    const calls = await mockMedia(page, {
+      detail: asset(),
+      patch: { status: 200, body: apiSuccess(asset({ title: "Algebra 1", privacyStatus: "PRIVATE" })) },
+    });
+
+    await page.goto("/teacher/media/media-1");
+    await page.getByRole("button", { name: "Edit details" }).click();
+    await expect(page.getByText("Changes are also made on YouTube.")).toBeVisible();
+    await page.getByLabel("Title").fill("Algebra 1");
+    await page.getByLabel("Visibility on YouTube").selectOption("PRIVATE");
+    await page.getByRole("button", { name: "Save changes" }).click();
+
+    await expect(page.getByText("Changes saved.")).toBeVisible();
+    const patch = calls.find((c) => c.method === "PATCH");
+    expect(patch?.body).toEqual({ title: "Algebra 1", description: "Linear equations", privacyStatus: "PRIVATE" });
+  });
+
+  test("a channel without the edit permission explains how to fix it", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, {
+      detail: asset(),
+      limits: { editingEnabled: false },
+      patch: {
+        status: 409,
+        body: apiError("VIDEO_PROVIDER_SCOPE_MISSING", "Reconnect YouTube in Settings → Video Providers to allow editing videos."),
+      },
+    });
+
+    await page.goto("/tenant-admin/media/media-1");
+    await page.getByRole("button", { name: "Edit details" }).click();
+    await expect(page.getByText(/connected before editing was available/)).toBeVisible();
+    await page.getByRole("button", { name: "Save changes" }).click();
+
+    await expect(page.getByRole("alert").filter({ hasText: "to allow editing videos" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open video providers" }).first()).toBeVisible();
+  });
+
+  test("deleting explains the YouTube copy is kept and returns to the library", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const calls = await mockMedia(page, { detail: asset(), list: [] });
+
+    await page.goto("/tenant-admin/media/media-1");
+    await page.getByRole("button", { name: "Delete" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toContainText("The video stays on your YouTube channel");
+    await dialog.getByRole("button", { name: "Delete" }).click();
+
+    await expect(page).toHaveURL(/\/tenant-admin\/media$/);
+    expect(calls.some((c) => c.method === "DELETE" && c.path === "/media-1")).toBe(true);
+  });
+
+  test("media used in a lesson can't be deleted", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, { detail: asset({ attached: true }) });
+
+    await page.goto("/tenant-admin/media/media-1");
+
+    await expect(page.getByText("Remove it from the lesson before deleting it.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
+  });
+
+  test("an upload waiting for a reconnect is explained and can be cancelled", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, {
+      detail: asset({
+        processingStatus: "UPLOADING",
+        uploadProgress: {
+          state: "PARKED_RECONNECT",
+          bytesSent: 0,
+          totalBytes: 1000,
+          message: "Reconnect YouTube in Settings → Video Providers.",
+        },
+      }),
+    });
+
+    await page.goto("/tenant-admin/media/media-1");
+
+    await expect(page.getByText(/continues once the same channel is connected again/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancel upload" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Edit details" })).toBeDisabled();
+  });
+
+  test("a failed upload shows its reason and can be retried", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const calls = await mockMedia(page, {
+      detail: asset({
+        processingStatus: "FAILED",
+        failureReason: "The upload to YouTube kept failing. Try again later.",
+        uploadProgress: { state: "FAILED", bytesSent: 0, totalBytes: 1000, message: "x" },
+      }),
+    });
+
+    await page.goto("/tenant-admin/media/media-1");
+    await expect(page.getByText("The upload to YouTube kept failing. Try again later.")).toBeVisible();
+    await page.getByRole("button", { name: "Retry upload" }).click();
+
+    await expect.poll(() => calls.some((c) => c.path.endsWith("/upload/retry"))).toBe(true);
+  });
+
+  test("a read-only role sees the details without any action", async ({ page }) => {
+    await mockTenantSession(page, "READ_ONLY_AUDITOR");
+    await mockMedia(page, { detail: asset() });
+
+    await page.goto("/tenant-admin/media/media-1");
+
+    await expect(page.getByRole("heading", { name: "Algebra lesson 1" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Edit details" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
+  });
+});

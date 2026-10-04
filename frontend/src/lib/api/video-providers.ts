@@ -24,6 +24,11 @@ export interface VideoProviderAccountView {
   /** Current connection, else the latest disconnected one, else null. */
   connection: ConnectionView | null;
   connectedByUserId: string | null;
+  /** VIDEO Phase 4 (TD-008): a Platform Admin switched the channel off; only they can switch it back on. */
+  platformDisabled: boolean;
+  platformDisabledReason: string | null;
+  /** VIDEO Phase 5: false for a channel connected before editing was allowed - reconnect to edit videos. */
+  canEditVideos: boolean;
 }
 
 export interface PendingChannelView {
