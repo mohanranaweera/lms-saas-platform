@@ -112,7 +112,7 @@ Gate: §1 above. **Success — `201`** (`ApiResponse<VideoAssetResponse>`):
 {
   "id": "<uuid>", "originalFilename": "lecture-01.mp4", "mimeType": "video/mp4",
   "sizeBytes": 52428800, "durationSeconds": null,   // best-effort probe; not populated this wave — see Section 11 deferral note
-  "status": "READY",                                 // upload is fully synchronous — PENDING/FAILED are schema-only, never persisted this wave
+  "status": "READY",                                 // upload is fully synchronous — INTERNAL assets are always created READY
   "uploadedBy": "<uuid>", "createdAt": "2026-08-17T00:00:00Z"
 }
 ```
@@ -296,9 +296,12 @@ table) apply. Video-access-management-specific cases:
 
 ## Tenant isolation notes
 
-- `video_asset`, `video_playback_policy`, `video_watch_session`, `video_watch_progress`
-  all carry `tenant_id NOT NULL` with tenant-leading indexes; every repository extends
-  the shared tenant-aware base.
+- `video_asset`, `video_asset_status_event` (V70, append-only, DB trigger),
+  `video_playback_policy`, `video_watch_session`, `video_watch_progress` all carry
+  `tenant_id NOT NULL` with tenant-leading indexes; every repository extends the shared
+  tenant-aware base. `video_asset.provider_connection_id` is a composite
+  `(tenant_id, …)` FK into `media_provider_connection`, so an asset can only use its own
+  tenant's provider connection.
 - `playback_jti` is globally unique (JWT identity requirement), but every lookup *from*
   a token back to a session still re-checks the token's own `tenant_id`/`studentId`
   claims against the resolved row before trusting it — a token cannot be replayed
@@ -318,8 +321,57 @@ table) apply. Video-access-management-specific cases:
 - **No new `DomainArea`** was added for video management — staff authorization reuses
   the existing `MATERIALS` permission row (video is modeled as a material sub-type,
   not a separately staff-permissioned resource).
-- **`VideoAssetStatus.PENDING`/`FAILED` are schema-only this wave** — upload is fully
-  synchronous (`store()` succeeds or throws before any row is persisted), so every
-  asset this wave's code path creates is `READY` immediately. The two other states
-  exist for a future async transcoding/probing pipeline (explicitly deferred, not
-  built).
+- **Status set widened by V70 (VIDEO Phase 2).** `status` is now one of `CREATED`,
+  `UPLOADING`, `UPLOADED`, `PROCESSING`, `READY`, `FAILED`, `DELETED`. `PENDING` was never
+  persisted and was removed. The `POST /videos` upload is still fully synchronous, so
+  every asset it creates is an `INTERNAL` asset that is `READY` immediately. The other
+  states belong to externally hosted (YouTube) assets from Phase 4 onward.
+
+## Media Library (`/api/v1/media`) — VIDEO Phase 2
+
+Provider-neutral, read-only view of `video_asset` (the MediaAsset). This is additive:
+`/videos/*` above is unchanged. Plan: `docs/plans/multi-tenant video platform + aoc secure player.md`.
+
+**Authorization.**
+- Teacher / Teacher Assistant: their **own uploads** only.
+- Any other role needs `MATERIALS`/`VIEW` and sees the whole tenant library. Tenant
+  Admin is the usual case.
+- Student: `403 FORBIDDEN`.
+- An asset the caller may not see (another teacher's, another tenant's, unknown or
+  soft-deleted) returns `404 NOT_FOUND`.
+- The tenant always comes from the authenticated context; a `tenantId` query or body
+  parameter is ignored.
+
+### `GET /media`
+
+Query (all optional):
+
+| Param | Type | Notes |
+|---|---|---|
+| `status` | `VideoAssetStatus` | exact match |
+| `provider` | `INTERNAL` \| `YOUTUBE` | exact match |
+| `q` | string ≤ 200 | case-insensitive substring of title or original filename; `%`/`_` are matched literally |
+| `page` | int ≥ 0 | default 0 |
+| `size` | 1–100 | default 20; out of range → `400 VALIDATION_ERROR` |
+
+Sorted newest first. **Success — `200`**, `ApiResponse<PageResponse<MediaAssetResponse>>`.
+
+### `GET /media/{id}`
+
+**Success — `200`**, `ApiResponse<MediaAssetResponse>`. Not visible → `404`.
+
+**`MediaAssetResponse`** — never contains the storage object key, provider connection
+id or any credential:
+
+```jsonc
+{ "id": "<uuid>", "provider": "INTERNAL", "title": "lecture-1.mp4",   // INTERNAL assets fall back to the filename
+  "description": null, "thumbnailUrl": null, "durationSeconds": null,
+  "privacyStatus": null,                                               // PRIVATE|UNLISTED|PUBLIC for external providers
+  "processingStatus": "READY", "failureReason": null,
+  "uploadedBy": "<uuid>", "createdAt": "...",
+  "capabilities": { "supportsUpload": true, "supportsOverlayWatermark": true, "...": "14 booleans" },
+  "enabledPlaybackModes": ["INTERNAL_SIGNED_URL"] }                    // provider-supported ∩ platform feature flags
+```
+
+`capabilities.supportsOverlayWatermark` / `supportsServerSideRevocation` are `false` for
+YouTube. The UI must not imply that YouTube-hosted media is content-protected.

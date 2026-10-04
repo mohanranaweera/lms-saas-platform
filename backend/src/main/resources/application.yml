@@ -162,6 +162,19 @@ video-playback:
     # -accepted forged token.
     secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:}
 
+video:
+  # VIDEO Phase 2 platform feature switches (VideoFeatureFlags, plan §25).
+  # youtube-custom-playback / managed-stream-playback / self-hosted-playback
+  # are locked: VideoFeatureFlags fails startup if any is true, because no
+  # implementation (or, for YouTube custom playback, no authorized provider
+  # arrangement) exists yet. They are intentionally not env-overridable here.
+  features:
+    youtube-upload: ${VIDEO_YOUTUBE_UPLOAD_ENABLED:false}
+    youtube-standard-playback: ${VIDEO_YOUTUBE_STANDARD_PLAYBACK_ENABLED:false}
+    native-player: ${VIDEO_NATIVE_PLAYER_ENABLED:false}
+    dynamic-watermark: ${VIDEO_DYNAMIC_WATERMARK_ENABLED:true}
+    capture-protection: ${VIDEO_CAPTURE_PROTECTION_ENABLED:true}
+
 app:
   # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Never
   # enabled outside local/test - with it off and no real vendor adapter, the

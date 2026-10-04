@@ -70,13 +70,11 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * <p><b>Upload failure handling (documented design decision):</b> {@link
  * ObjectStorageApi#store} is synchronous - it either returns a real {@link
- * StoredObject} or throws. Because of that, there is no observable window in
- * this wave where a {@code video_asset} row would ever need to sit in
- * {@link com.lms.videoaccessmanagement.domain.VideoAssetStatus#PENDING}
- * while storage is still in flight, and no scenario where a storage failure
- * should leave behind a {@link
- * com.lms.videoaccessmanagement.domain.VideoAssetStatus#FAILED} row
- * referencing a key that was never actually stored: the entity is
+ * StoredObject} or throws. Because of that, there is no observable window
+ * where an INTERNAL {@code video_asset} row would ever need to sit in an
+ * in-flight status ({@code CREATED}/{@code UPLOADING}) while storage is still
+ * running, and no scenario where a storage failure should leave behind a
+ * {@code FAILED} row referencing a key that was never actually stored: the entity is
  * constructed (already {@code READY}, see {@link VideoAsset}'s own javadoc)
  * ONLY after {@code store()} has already succeeded, mirroring {@code
  * MaterialService#createUploadedFileMaterial}'s identical "storage call
@@ -109,12 +107,14 @@ public class VideoAssetService {
 
 	private final MaterialLookupApi materialLookupApi;
 
+	private final MediaAssetLifecycleService mediaAssetLifecycleService;
+
 	private final long maxFileSizeBytes;
 
 	public VideoAssetService(VideoAssetRepository videoAssetRepository,
 			VideoPlaybackPolicyRepository videoPlaybackPolicyRepository, ObjectStorageApi objectStorageApi,
 			PermissionCheckService permissionCheckService, TenantContext tenantContext,
-			MaterialLookupApi materialLookupApi,
+			MaterialLookupApi materialLookupApi, MediaAssetLifecycleService mediaAssetLifecycleService,
 			@Value("${app.video-access.asset.max-file-size-bytes}") long maxFileSizeBytes) {
 		this.videoAssetRepository = videoAssetRepository;
 		this.videoPlaybackPolicyRepository = videoPlaybackPolicyRepository;
@@ -122,6 +122,7 @@ public class VideoAssetService {
 		this.permissionCheckService = permissionCheckService;
 		this.tenantContext = tenantContext;
 		this.materialLookupApi = materialLookupApi;
+		this.mediaAssetLifecycleService = mediaAssetLifecycleService;
 		this.maxFileSizeBytes = maxFileSizeBytes;
 	}
 
@@ -155,7 +156,8 @@ public class VideoAssetService {
 
 		VideoAsset asset = new VideoAsset(tenantId, stored.objectKey(), originalFilename, sniffedMimeType,
 				stored.sizeBytes(), uploadedBy);
-		asset = videoAssetRepository.save(asset);
+		// Saves the asset and its first status-history row in one transaction.
+		asset = mediaAssetLifecycleService.create(asset);
 		return toView(asset);
 	}
 
