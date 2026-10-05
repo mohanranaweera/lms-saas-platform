@@ -33,6 +33,7 @@ function asset(overrides: Record<string, unknown> = {}) {
     enabledPlaybackModes: [],
     uploadProgress: { state: "COMPLETED", bytesSent: 1000, totalBytes: 1000, message: null },
     attached: false,
+    youtubeUrl: null,
     ...overrides,
   };
 }
@@ -49,6 +50,8 @@ function limits(overrides: Record<string, unknown> = {}) {
     allowedMimeTypes: ["video/mp4", "video/quicktime", "video/webm"],
     canUpload: true,
     notAllowedReason: null,
+    uploadsDisabledBy: null,
+    uploadsDisabledReason: null,
     ...overrides,
   };
 }
@@ -332,6 +335,48 @@ test.describe("Uploading", () => {
     await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
   });
 
+  test("a platform that hasn't enabled uploads says so, not that the institute switched them off", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, {
+      list: [],
+      limits: {
+        uploadsEnabled: false,
+        uploadsDisabledBy: "PLATFORM",
+        uploadsDisabledReason: "Video uploads aren't enabled on this platform yet. Contact platform support.",
+      },
+    });
+
+    await page.goto("/tenant-admin/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+
+    await expect(page.getByText("Video uploads aren't enabled on this platform yet. Contact platform support.")).toBeVisible();
+    await expect(page.getByText(/switched off for your institute/)).toHaveCount(0);
+    await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
+  });
+
+  test("a video YouTube has opens on YouTube in a new tab; Details stays available", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    await mockMedia(page, {
+      list: [
+        asset({ youtubeUrl: "https://www.youtube.com/watch?v=yt-abc" }),
+        asset({ id: "media-2", title: "Still uploading", processingStatus: "UPLOADING" }),
+      ],
+    });
+
+    await page.goto("/teacher/media");
+
+    const youtubeLink = page.getByRole("link", { name: "Algebra lesson 1 - open on YouTube (new tab)" });
+    await expect(youtubeLink).toHaveAttribute("href", "https://www.youtube.com/watch?v=yt-abc");
+    await expect(youtubeLink).toHaveAttribute("target", "_blank");
+    await expect(youtubeLink).toHaveAttribute("rel", /noopener/);
+    await expect(page.getByRole("link", { name: "Details for Algebra lesson 1" })).toHaveAttribute(
+      "href",
+      "/teacher/media/media-1"
+    );
+    // Not on YouTube yet: the card opens the details page as before.
+    await expect(page.getByRole("link", { name: /Still uploading/ })).toHaveAttribute("href", "/teacher/media/media-2");
+  });
+
   test("a teacher not on the channel's allowed list sees the server's reason and can't upload", async ({ page }) => {
     await mockTenantSession(page, "TEACHER", "teacher-1");
     const calls = await mockMedia(page, {
@@ -356,6 +401,17 @@ test.describe("Uploading", () => {
 });
 
 test.describe("Media detail", () => {
+  test("the details page links to the video on YouTube in a new tab", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    await mockMedia(page, { detail: asset({ youtubeUrl: "https://www.youtube.com/watch?v=yt-abc" }) });
+
+    await page.goto("/teacher/media/media-1");
+
+    const link = page.getByRole("link", { name: /Open on YouTube/ });
+    await expect(link).toHaveAttribute("href", "https://www.youtube.com/watch?v=yt-abc");
+    await expect(link).toHaveAttribute("target", "_blank");
+  });
+
   test("editing a video on YouTube sends the changes and confirms them", async ({ page }) => {
     await mockTenantSession(page, "TEACHER", "teacher-1");
     const calls = await mockMedia(page, {

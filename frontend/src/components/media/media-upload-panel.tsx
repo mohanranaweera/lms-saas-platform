@@ -40,7 +40,12 @@ function blockedReason(limits: MediaUploadLimits): string | null {
   if (!limits.canUpload) {
     return limits.notAllowedReason ?? "Your institute hasn't given you access to upload videos. Ask your institute admin.";
   }
-  if (!limits.uploadsEnabled) return "Video uploads are switched off for your institute.";
+  if (!limits.uploadsEnabled) {
+    if (limits.uploadsDisabledReason) return limits.uploadsDisabledReason;
+    return limits.uploadsDisabledBy === "PLATFORM"
+      ? "Video uploads aren't enabled on this platform yet. Contact platform support."
+      : "Video uploads are switched off for your institute.";
+  }
   if (limits.channel === "NOT_CONNECTED") return "Your institute hasn't connected a YouTube channel yet.";
   if (limits.channel === "EXPIRED") return "YouTube needs to be reconnected before videos can be uploaded.";
   if (limits.channel === "DISABLED") return "Video uploads were switched off by the platform for your institute.";

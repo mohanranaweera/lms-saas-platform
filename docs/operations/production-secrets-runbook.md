@@ -68,9 +68,15 @@ PLATFORM_DOMAIN=example.com
 POSTGRES_DB=lms
 POSTGRES_USER=lms_app
 ZOOM_OAUTH_CLIENT_ID=...          # client IDs are not secret
-GOOGLE_OAUTH_CLIENT_ID=...
+GOOGLE_OAUTH_CLIENT_ID=...       # optional since VIDEO Phase 5c - see below
 VIMEO_OAUTH_CLIENT_ID=...
 ```
+
+> **Google OAuth app (VIDEO Phase 5c).** The Google client id / secret can instead be entered by
+> a Platform Admin under **Platform Admin → Integrations** (stored encrypted with
+> `MEDIA_CREDENTIALS_ENCRYPTION_KEY`, which must be set). A saved app takes precedence over
+> `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET`; removing it falls back to them.
+> Register the redirect URI shown on that screen in Google Cloud.
 
 Starting the stack (only once a deployment has been approved):
 

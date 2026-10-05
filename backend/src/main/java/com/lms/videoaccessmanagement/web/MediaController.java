@@ -159,7 +159,7 @@ public class MediaController {
 				(view.uploadProgress() == null) ? null
 						: new UploadProgressResponse(view.uploadProgress().state(), view.uploadProgress().bytesSent(),
 								view.uploadProgress().totalBytes(), view.uploadProgress().message()),
-				view.attached());
+				view.attached(), view.youtubeUrl());
 	}
 
 	private static UploadInstructionsResponse toResponse(UploadInstructions instructions) {

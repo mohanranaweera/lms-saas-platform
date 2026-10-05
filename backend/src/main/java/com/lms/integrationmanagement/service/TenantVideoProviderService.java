@@ -115,7 +115,7 @@ public class TenantVideoProviderService {
 		MediaProviderConnection latest = repository.findCurrentForTenant(MediaProvider.YOUTUBE)
 			.or(() -> repository.findAllForTenant(MediaProvider.YOUTUBE).stream().findFirst())
 			.orElse(null);
-		return List.of(VideoProviderAccountView.of(connectFlow.isAvailable(MediaProvider.YOUTUBE), statusOf(latest),
+		return List.of(VideoProviderAccountView.of(connectFlow.isTenantYouTubeAvailable(tenantContext.getTenantId()), statusOf(latest),
 				latest, (latest == null) ? null : views.toView(latest)));
 	}
 

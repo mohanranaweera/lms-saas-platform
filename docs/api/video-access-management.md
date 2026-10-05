@@ -387,7 +387,8 @@ The visibility rules above apply.
 "uploadProgress": { "state": "TRANSFERRING",   // AWAITING_PARTS|QUEUED|TRANSFERRING|RETRY_WAIT|QUOTA_PAUSED|PARKED_RECONNECT|COMPLETED|FAILED|CANCELLED
                     "bytesSent": 8388608, "totalBytes": 734003200,
                     "message": null } | null,     // client-safe reason when paused / parked / failed; null for legacy uploads
-"attached": false                                // a lesson material uses it; it cannot be deleted
+"attached": false,                               // a lesson material uses it; it cannot be deleted
+"youtubeUrl": "https://www.youtube.com/watch?v=…" | null   // Phase 5c: once YouTube has it
 ```
 
 ### `GET /media/upload-limits`
@@ -403,6 +404,17 @@ For whoever may upload (Student → `403`):
 
 Since VIDEO Phase 5b, `upload-limits` also returns `canUpload` (false for a teacher who is not on
 the institute channel's allowed-teachers list) and `notAllowedReason`.
+
+Since VIDEO Phase 5c:
+- `upload-limits` returns `uploadsDisabledBy` (`PLATFORM` = the platform's
+  `video.features.youtube-upload` flag / `VIDEO_YOUTUBE_UPLOAD_ENABLED` is off; `INSTITUTE` = the
+  institute's "Video uploads" setting is off; `null` when uploads are on) and
+  `uploadsDisabledReason`. The platform flag wins. `POST /media` answers `409
+  VIDEO_UPLOADS_DISABLED` with the same distinct message.
+- Media Library views carry `youtubeUrl` (the YouTube watch page) once the video has a YouTube id.
+  It is only on `/api/v1/media` responses (staff with `MATERIALS` VIEW and the uploading teacher).
+  An unlisted video can be watched by anyone with the link, so it must never be added to a
+  student-facing view; student playback stays on the playback-token path.
 
 **Allowed teachers (Phase 5b):** if the Tenant Admin has picked teachers for the institute
 channel, `POST /media` and `/upload/retry` by any other Teacher / Teacher Assistant →

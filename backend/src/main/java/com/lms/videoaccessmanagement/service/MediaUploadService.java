@@ -116,9 +116,24 @@ public class MediaUploadService {
 	 */
 	public record UploadLimits(boolean uploadsEnabled, ChannelState channel, boolean editingEnabled, int dailyLimit,
 			int usedToday, long maxFileSizeBytes, long partSizeBytes, Set<String> allowedMimeTypes, boolean canUpload,
-			String notAllowedReason) {
+			String notAllowedReason, UploadsDisabledBy uploadsDisabledBy, String uploadsDisabledReason) {
 
 	}
+
+	/** Which switch turned uploads off (null in the view when they are on). */
+	public enum UploadsDisabledBy {
+
+		/** The platform's {@code video.features.youtube-upload} flag. */
+		PLATFORM,
+		/** The institute's own "Video uploads" setting. */
+		INSTITUTE
+
+	}
+
+	static final String PLATFORM_UPLOADS_OFF = "Video uploads aren't enabled on this platform yet. Contact platform support.";
+
+	static final String INSTITUTE_UPLOADS_OFF =
+			"Video uploads are switched off for your institute. A Tenant Admin can switch them on in Video settings.";
 
 	private final MediaUploadStore store;
 
@@ -183,11 +198,13 @@ public class MediaUploadService {
 		int used = usage.findForDay(UploadSchedule.quotaDay(clock.instant()))
 			.map(TenantVideoUsageDaily::getUploads)
 			.orElse(0);
-		return new UploadLimits(featureFlags.isYoutubeUpload() && configuration.effectiveSettings().uploadsEnabled(),
-				state, channel.map(TenantChannelSummary::editScopeGranted).orElse(false),
+		UploadsDisabledBy disabledBy = uploadsDisabledBy();
+		return new UploadLimits(disabledBy == null, state,
+				channel.map(TenantChannelSummary::editScopeGranted).orElse(false),
 				configuration.effectiveDailyUploadLimit(), used, properties.getMaxFileSizeBytes(),
 				properties.getPartSizeBytes(), new TreeSet<>(ALLOWED_MIME_TYPES), allowed,
-				allowed ? null : MediaUploadException.notAllowed().getMessage());
+				allowed ? null : MediaUploadException.notAllowed().getMessage(), disabledBy,
+				(disabledBy == null) ? null : disabledMessage(disabledBy));
 	}
 
 	/**
@@ -330,10 +347,22 @@ public class MediaUploadService {
 	}
 
 	private void requireUploadsEnabled() {
-		if (!featureFlags.isYoutubeUpload() || !configuration.effectiveSettings().uploadsEnabled()) {
-			throw new ProviderConflictException(ApiErrorCodes.VIDEO_UPLOADS_DISABLED,
-					"Video uploads are switched off for your institute.");
+		UploadsDisabledBy disabledBy = uploadsDisabledBy();
+		if (disabledBy != null) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_UPLOADS_DISABLED, disabledMessage(disabledBy));
 		}
+	}
+
+	/** The platform flag wins: an institute can't switch on what the platform has off. */
+	private UploadsDisabledBy uploadsDisabledBy() {
+		if (!featureFlags.isYoutubeUpload()) {
+			return UploadsDisabledBy.PLATFORM;
+		}
+		return configuration.effectiveSettings().uploadsEnabled() ? null : UploadsDisabledBy.INSTITUTE;
+	}
+
+	private static String disabledMessage(UploadsDisabledBy disabledBy) {
+		return (disabledBy == UploadsDisabledBy.PLATFORM) ? PLATFORM_UPLOADS_OFF : INSTITUTE_UPLOADS_OFF;
 	}
 
 	private UUID requireUsableChannel() {

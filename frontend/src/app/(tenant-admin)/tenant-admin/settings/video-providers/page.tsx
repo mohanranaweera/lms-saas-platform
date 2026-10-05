@@ -10,9 +10,11 @@ import { isApiClientError } from "@/lib/api/error";
 import {
   useConfirmTenantYouTubeChannel,
   usePendingYouTubeChannel,
+  useTenantGoogleApp,
   useTenantVideoProviders,
   useVideoChannelSettings,
 } from "@/lib/api/video-providers";
+import { TenantGoogleAppSection } from "@/components/integrations/tenant-google-app-section";
 import { TenantYouTubeChannelCard } from "@/components/integrations/tenant-youtube-channel-card";
 import {
   TenantYouTubeChannelSettings,
@@ -155,6 +157,7 @@ function VideoProvidersContent() {
   const query = useTenantVideoProviders();
   // Loaded once the provider list has loaded (same INTEGRATIONS VIEW permission).
   const channelSettings = useVideoChannelSettings(query.isSuccess);
+  const googleApp = useTenantGoogleApp(query.isSuccess);
   const [result, clearResult] = useCallbackResult();
 
   return (
@@ -198,6 +201,22 @@ function VideoProvidersContent() {
                 uploaders={channelSettings.data ? uploadersSummary(channelSettings.data) : null}
               />
             ))}
+            {googleApp.isPending ? (
+              <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
+                Loading the Google app…
+              </p>
+            ) : googleApp.isError ? (
+              <Alert variant="destructive">
+                <AlertCircle aria-hidden="true" />
+                <AlertDescription>
+                  {isApiClientError(googleApp.error) && googleApp.error.status === 403
+                    ? "You don't have access to the Google app settings."
+                    : "The Google app settings could not be loaded. Refresh the page to try again."}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <TenantGoogleAppSection view={googleApp.data} canManage={canManage} />
+            )}
             {channelSettings.isPending ? (
               <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
                 Loading channel settings…

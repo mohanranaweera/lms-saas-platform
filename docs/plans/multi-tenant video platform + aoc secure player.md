@@ -3,14 +3,14 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    5b — Institute channel: allowed teachers + teacher YouTube removal (TESTED — awaiting commit)
+Current Phase:    5c — Google OAuth apps: institute's own + platform default (TESTED — awaiting commit)
 Last Updated:     2026-10-05
-Current Branch:   feat/video-channel-teachers
-Latest Migration: V73__institute_video_channel_teachers.sql
-Backend Build:    PASS — mvnw verify, 2026-10-05 (BUILD SUCCESS, 13:20 min)
+Current Branch:   feat/platform-google-oauth-app
+Latest Migration: V75__tenant_oauth_app.sql
+Backend Build:    PASS — mvnw verify, 2026-10-05 (BUILD SUCCESS, 14:51 min, Phase 5c revised)
 Frontend Build:   not affected (no frontend change in Phases 1–2)
 Player Build:     n/a (player project does not exist yet)
-Tests:            backend 2357 run / 0 failures / 0 errors / 0 skipped (full suite, 2026-10-05)
+Tests:            backend 2370 run / 0 failures / 0 errors / 0 skipped (full suite, 2026-10-05)
 Open Blockers:    B1–B4, B6 (§0.3) — owner approvals for change-controlled areas (B5 approved 2026-10-04)
 ```
 
@@ -1748,3 +1748,136 @@ Deviations from the **master instruction** proposed in Phase 1 (each needs appro
   part of this phase.
 - `tsc --noEmit` and `eslint` clean.
 - Full backend `mvnw verify` (2026-10-05): 2357 tests, 0 failures / errors / skipped, BUILD SUCCESS.
+
+### Phase 5c — Platform Admin: Google OAuth app screen
+
+**Before (2026-10-05, status → IN PROGRESS; Phase 5b committed as `c66684f`)**
+
+- **Owner decisions (ADR-018 Amendment 5):** a Platform Admin screen for the platform's single
+  Google OAuth client instead of env vars only (env vars stay the fallback); several channels
+  per institute follow in Phase 5d.
+- **Goal:** the Platform Admin enters the Google Client ID / Secret, sees the redirect URI to
+  register in Google Cloud, and can Verify the credentials with Google; tenants keep just
+  clicking Connect.
+- **Backend:**
+  - `V74__platform_oauth_app.sql`: `platform_oauth_app` (provider unique, client_id,
+    client_secret_ciphertext, updated_at / updated_by → `platform_admin_user`);
+    `platform_oauth_app_change` (append-only history: action SAVED / REMOVED, masked client id
+    before / after, secret_changed, actor, occurred_at) with a trigger rejecting UPDATE / DELETE.
+  - `GoogleOAuthAppService` (integrationmanagement): `current()` resolves saved row → env vars;
+    `view()`, `save(clientId, clientSecret)` (both always required - the secret is never read
+    back, so it is re-entered on every save), `remove()`, `verify()`.
+  - `YouTubeOAuthClient` reads credentials per call through the resolver (`isConfigured()`
+    too, so "YouTube unavailable" flips without a restart).
+  - Verify: a token request with a dummy authorization code - `invalid_grant` = the client is
+    valid, `invalid_client` / 401 = wrong id or secret. New `ProviderHttpClient.probeForm`
+    returning only the HTTP status and the OAuth `error` code.
+  - `GET` / `PUT` / `DELETE /api/v1/platform-admin/oauth-apps/google`, `POST …/verify`;
+    `hasRole('PLATFORM_ADMIN')`.
+- **Frontend:** Platform Admin → "Google (YouTube) app" page: source (saved / environment /
+  not configured), masked client id, redirect URI with copy, form (RHF + Zod; secret field
+  write-only), warning that changing the client id forces every institute to reconnect,
+  Verify, Remove saved credentials.
+- **Security / tenant:** platform-only endpoints (tenant tokens → 403); secret never in any
+  response, log, history row or metric; ciphertext bound to the provider (AAD); the
+  encryption key missing → 503, nothing stored. No tenant data involved.
+- **Tests:** role checks (tenant admin / teacher / anonymous refused); save → view masked, no
+  secret anywhere; history rows + trigger; saved row overrides env, removal falls back to env;
+  tenant YouTube connect uses the saved client id; Verify valid / invalid / unreachable
+  (fake Google); Playwright for the page.
+
+**After — backend (2026-10-05)**
+
+- Built as planned. Files: `V74__platform_oauth_app.sql`; `PlatformOAuthApp`,
+  `PlatformOAuthAppChange`, `PlatformOAuthProvider`; `PlatformOAuthAppRepository` (plain
+  `JpaRepository`, platform-level), `PlatformOAuthAppChangeRepository` (save + read only);
+  `GoogleClientCredentials` (saved row → env vars, read per call); `GoogleOAuthAppService`;
+  `PlatformAdminOAuthAppController`; `YouTubeOAuthClient` (credentials via the resolver +
+  `verifyClient`); `ProviderHttpClient.probeForm`.
+- Deviation: client ids are shown in full on the screen (Google puts them in every consent URL,
+  they are not secret); only the history stores them masked.
+- Tests: new `PlatformGoogleOAuthAppIntegrationTest` (7: roles, env view + redirect URI, saved
+  app encrypted / never returned / used by an institute's Connect and token exchange, validation,
+  removal → env fallback, Verify valid / rejected, history append-only). No secret in any log
+  line of the run. Media / YouTube suites re-run green (Teacher 16, TenantAdminIntegrations 7,
+  TenantVideoProvider 13, InstituteChannelTeachers 6, MediaUpload 20, MediaLibraryManagement 12).
+
+**After — frontend (2026-10-05)**
+
+- Platform Admin → **Integrations** (new nav entry) → "Google (YouTube) app" card:
+  source badge, client id, hidden-secret state, redirect URI with Copy, RHF + Zod form (secret
+  is a write-only password field, cleared after save), an explicit "I understand every institute
+  must reconnect" acknowledgement before replacing an existing client, Verify with Google,
+  Remove saved app (confirm dialog), recent changes; disabled with an explanation when the
+  encryption key is missing; shared loading / error / permission-denied states.
+- Files: `lib/api/platform-oauth-apps.ts`, `lib/validation/google-oauth-app.ts`,
+  `app/(platform-admin)/platform-admin/(dashboard)/integrations/{page,google-oauth-app-card}.tsx`,
+  `components/layout/nav/platform-admin-nav.tsx`.
+- Playwright `platform-admin-google-oauth-app.spec.ts`: 6 passed. `tsc` and `eslint` clean.
+- Docs: `docs/api/integrations.md` (Platform Admin: Google OAuth app),
+  `docs/operations/production-secrets-runbook.md`, ADR-018 Amendment 5.
+- Full backend `mvnw verify` (2026-10-05): 2364 tests, 0 failures / errors / skipped, BUILD SUCCESS.
+
+**Revised (2026-10-05) — owner: "Even youtube credentials are configured in platform level it should be
+against tenant level"** (decisions: Tenant Admin enters it in Video providers; the platform app
+stays the fallback). ADR-018 Amendment 5 item 1a.
+
+- Backend: `V75__tenant_oauth_app.sql` (tenant-owned, `NOT NULL tenant_id` FK, unique
+  `(tenant_id, provider)`); `TenantOAuthApp` + `TenantOAuthAppRepository` (tenant-aware);
+  `GoogleClientCredentials.current(tenantId)` (own → platform → env; reads through the
+  tenant-aware repository, setting the context only where none exists - the public callback -
+  and refusing a mismatched one); `YouTubeOAuthClient.forTenant(tenantId)` used by
+  `OAuthConnectFlowService` (begin + callback exchange, tenant from the server-side state) and
+  `MediaTokenService` (refresh, tenant from the connection row); provider view availability per
+  institute; `TenantGoogleOAuthAppService` + `TenantGoogleOAuthAppController`
+  (`/api/v1/tenant-admin/video-providers/youtube/oauth-app`, audited, marks the live channel
+  NEEDS_RECONNECT when the app in use changes). Validation shared with the platform app.
+- Fix found by the tests: `AuditLogEntry` rejects null metadata values (`Map.copyOf`) - nulls are
+  dropped before recording.
+- Tests: new `TenantGoogleOAuthAppIntegrationTest` (6: platform fallback; own app encrypted,
+  tenant-bound, audited and used for Connect, the callback exchange and refresh; cross-tenant
+  B never sees or uses A's app; changing the app marks the channel for reconnect and removal
+  falls back; roles + validation; Verify). No secret in any log line.
+- Frontend: "Google app" section on Settings → Video providers (`tenant-google-app-section.tsx`,
+  hooks in `video-providers.ts`, shared Zod schema): which app is used, redirect URI, form with
+  a reconnect acknowledgement when a channel is connected, Verify, "Remove my Google app";
+  read-only for other roles. Playwright: 4 new tests; `tenant-admin-video-settings` +
+  `platform-admin-google-oauth-app` 25 passed. `tsc` / `eslint` clean.
+- Full backend `mvnw verify` after the revision (2026-10-05): 2370 tests, 0 failures / errors / skipped, BUILD SUCCESS.
+
+**Owner follow-ups (2026-10-05): clearer "uploads off" message; open YouTube videos in a new tab**
+
+- Cause found: locally `VIDEO_YOUTUBE_UPLOAD_ENABLED` was unset (default `false`), but the screen
+  said "switched off for your institute". `upload-limits` now returns `uploadsDisabledBy`
+  (`PLATFORM` / `INSTITUTE`) + `uploadsDisabledReason`; create returns the matching message.
+- Media Library views carry `youtubeUrl` (Media Library endpoints only - see the API doc's
+  warning). A card for a video YouTube has opens it on YouTube in a new tab
+  (`target=_blank`, `rel=noopener noreferrer`), with a separate "Details" link; other cards open
+  the details page as before. The details page has "Open on YouTube".
+- The click error reported was the long-running dev server's crashed worker ("Jest worker
+  encountered 2 child process exceptions"), which breaks `/media/[id]`; restarting the dev
+  server fixes it (same as earlier in Phase 5b).
+- Tests: `MediaUploadIntegrationTest` (platform vs institute message + `uploadsDisabledBy`),
+  `MediaLibraryManagementIntegrationTest` (`youtubeUrl` absent while uploading, the watch URL
+  after) - 20 + 12 green. Playwright `media-library.spec.ts` 19 passed (3 new). `tsc` / `eslint`
+  clean.
+
+### Phase 5d — Named YouTube integrations + Media Library tabs (NOT STARTED)
+
+**Scope decided by the owner on 2026-10-05** (after reviewing Klass's Media Library, where every
+named integration is a tab - "Uploads", "AOC YT", "AOC ZOOM 0-3", "AOC Cloud Recording"):
+
+- Several named YouTube integrations per institute (ADR-018 Amendment 5 item 2): a card exists
+  before Connect (name, description, allowed teachers), one live connection per card.
+- **Media Library tabs:** "Uploads" (institute storage, `provider = INTERNAL`) + one tab per YouTube
+  integration, named after its card; a tab lists only the videos stored there; "New media" uploads
+  to the selected tab's channel (server checks the channel belongs to the institute and the
+  teacher is allowed on it). Teachers see only the tabs they may use.
+- Not in 5d: tabs for other providers (e.g. Vidrora - not supported).
+
+**Backlog - Zoom cloud-recording tabs (own phase, after 5d; owner 2026-10-05):** institute-level
+Zoom integrations whose cloud recordings appear as Media Library tabs (Klass "AOC ZOOM n").
+Needs: a decision on which Zoom accounts appear (institute-level vs teachers' own - today Zoom is
+teacher-level and only creates meetings), Zoom's recording-read scope, an ADR-018 amendment, and
+the recording-access rules (recordings are protected content).
+

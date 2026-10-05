@@ -95,10 +95,35 @@ export interface ChannelSettingsInput {
   allowedTeacherIds: string[];
 }
 
+/** VIDEO Phase 5c: which Google app this institute's YouTube channel uses. */
+export type TenantGoogleAppSource = "TENANT" | "PLATFORM" | "NOT_CONFIGURED";
+
+export interface TenantGoogleAppView {
+  source: TenantGoogleAppSource;
+  /** The institute's own client id; null when it uses the platform app. */
+  clientId: string | null;
+  /** The institute's own secret is saved; its value is never returned. */
+  secretSaved: boolean;
+  platformAppAvailable: boolean;
+  /** To register in the institute's Google Cloud project; null when the platform callback URL isn't set. */
+  redirectUri: string | null;
+  encryptionAvailable: boolean;
+  updatedAt: string | null;
+  /** A live channel exists - changing the app means connecting it again. */
+  channelConnected: boolean;
+}
+
+export interface TenantGoogleAppVerify {
+  result: "VALID" | "REJECTED" | "INCONCLUSIVE";
+  source: TenantGoogleAppSource;
+  message: string;
+}
+
 export const videoSettingsKeys = {
   all: ["video-settings"] as const,
   providers: () => [...videoSettingsKeys.all, "providers"] as const,
   channelSettings: () => [...videoSettingsKeys.all, "channel-settings"] as const,
+  googleApp: () => [...videoSettingsKeys.all, "google-app"] as const,
   pending: (pendingId: string) => [...videoSettingsKeys.all, "pending", pendingId] as const,
   configuration: () => [...videoSettingsKeys.all, "configuration"] as const,
 };
@@ -226,5 +251,48 @@ export function useUpdateVideoChannelSettings() {
     onSuccess: (data) => {
       queryClient.setQueryData(videoSettingsKeys.channelSettings(), data);
     },
+  });
+}
+
+/** VIDEO Phase 5c - the institute's own Google app (Tenant Admin; INTEGRATIONS VIEW / CREATE_EDIT). */
+export function useTenantGoogleApp(enabled = true) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: videoSettingsKeys.googleApp(),
+    queryFn: () => authorizedFetch<TenantGoogleAppView>("tenant", `${BASE}/youtube/oauth-app`),
+    enabled,
+  });
+}
+
+function useGoogleAppMutation<TInput>(request: (input: TInput) => RequestInit) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TInput) =>
+      authorizedFetch<TenantGoogleAppView>("tenant", `${BASE}/youtube/oauth-app`, request(input)),
+    onSuccess: (data) => queryClient.setQueryData(videoSettingsKeys.googleApp(), data),
+    // Availability and the channel's status may change with the app.
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: videoSettingsKeys.providers() });
+    },
+  });
+}
+
+export function useSaveTenantGoogleApp() {
+  return useGoogleAppMutation((input: { clientId: string; clientSecret: string }) => ({
+    method: "PUT",
+    body: JSON.stringify(input),
+  }));
+}
+
+export function useRemoveTenantGoogleApp() {
+  return useGoogleAppMutation<void>(() => ({ method: "DELETE" }));
+}
+
+export function useVerifyTenantGoogleApp() {
+  const { authorizedFetch } = useAuth();
+  return useMutation({
+    mutationFn: () =>
+      authorizedFetch<TenantGoogleAppVerify>("tenant", `${BASE}/youtube/oauth-app/verify`, { method: "POST" }),
   });
 }

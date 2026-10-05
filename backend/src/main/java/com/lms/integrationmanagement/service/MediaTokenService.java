@@ -13,6 +13,8 @@ import com.lms.integrationmanagement.service.MediaCredentialsCodec.StoredCredent
 import java.time.Duration;
 import java.time.Instant;
 import java.util.EnumMap;
+import com.lms.integrationmanagement.gateway.media.YouTubeOAuthClient;
+import com.lms.integrationmanagement.domain.ConnectionScope;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -109,7 +111,7 @@ public class MediaTokenService {
 			StoredCredentials current = codec.open(connection.getCredentialsCiphertext(), context);
 			OAuthTokens refreshed;
 			try {
-				refreshed = client(connection.getProvider()).refresh(current.refreshToken());
+				refreshed = client(connection).refresh(current.refreshToken());
 			}
 			catch (MediaProviderException ex) {
 				if (ex.getKind() == MediaProviderException.Kind.AUTH_REJECTED) {
@@ -139,6 +141,19 @@ public class MediaTokenService {
 	public ProviderConflictException markRejected(UUID connectionId, MediaProvider provider) {
 		store.markNeedsReconnect(connectionId, "The provider no longer accepts this connection.");
 		return reconnectRequired(provider);
+	}
+
+	/**
+	 * VIDEO Phase 5c: an institute's YouTube channel refreshes with that
+	 * institute's Google app (its own, else the platform app); the tenant is
+	 * the connection row's own.
+	 */
+	OAuthProviderClient client(MediaProviderConnection connection) {
+		OAuthProviderClient client = client(connection.getProvider());
+		if (client instanceof YouTubeOAuthClient youTube && connection.getScope() == ConnectionScope.TENANT) {
+			return youTube.forTenant(connection.getTenantId());
+		}
+		return client;
 	}
 
 	OAuthProviderClient client(MediaProvider provider) {

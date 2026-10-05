@@ -45,10 +45,14 @@ class MediaLibraryManagementIntegrationTest extends MediaUploadTestSupport {
 		assertThat(item.path("uploadProgress").path("totalBytes").asLong()).isEqualTo(PART);
 		assertThat(item.path("uploadProgress").path("bytesSent").asLong()).isZero();
 		assertThat(item.path("attached").asBoolean()).isFalse();
+		// No YouTube link until YouTube has the video (VIDEO Phase 5c).
+		assertThat(item.path("youtubeUrl").isNull()).isTrue();
 
 		worker.drain(5);
 		JsonNode detail = detail(ctx, ctx.teacherToken(), assetId);
 		assertThat(detail.path("uploadProgress").path("state").asString()).isEqualTo("COMPLETED");
+		assertThat(detail.path("youtubeUrl").asString())
+			.isEqualTo("https://www.youtube.com/watch?v=" + providerAssetId(assetId));
 		assertThat(detail.path("uploadProgress").path("bytesSent").asLong()).isEqualTo(PART);
 
 		attachToLesson(ctx, assetId);

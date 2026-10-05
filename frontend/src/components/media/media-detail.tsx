@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, CheckCircle2, Film } from "lucide-react";
+import { AlertCircle, CheckCircle2, ExternalLink, Film } from "lucide-react";
 import { isApiClientError } from "@/lib/api/error";
 import {
   useCancelMediaUpload,
@@ -362,6 +362,18 @@ function MediaDetailBody({
           </dl>
           {asset.description ? (
             <p className="text-sm whitespace-pre-line text-foreground">{asset.description}</p>
+          ) : null}
+          {asset.youtubeUrl ? (
+            <a
+              href={asset.youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4 hover:text-primary"
+            >
+              <ExternalLink aria-hidden="true" className="size-4" />
+              Open on YouTube
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
           ) : null}
         </div>
       </div>

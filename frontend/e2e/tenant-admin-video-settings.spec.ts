@@ -73,9 +73,47 @@ function channelSettings(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const REDIRECT = "https://app.example.test/api/v1/integrations/oauth/youtube/callback";
+const OWN_CLIENT = "444444444444-institute.apps.googleusercontent.com";
+const OWN_SECRET = "GOCSPX-e2e-institute-secret";
+
+function googleApp(overrides: Record<string, unknown> = {}) {
+  return {
+    source: "PLATFORM",
+    clientId: null,
+    secretSaved: false,
+    platformAppAvailable: true,
+    redirectUri: REDIRECT,
+    encryptionAvailable: true,
+    updatedAt: null,
+    channelConnected: false,
+    ...overrides,
+  };
+}
+
 async function mockProviders(page: Page, accounts: unknown[]): Promise<void> {
   await mockJson(page, "**/v1/tenant-admin/video-providers", 200, apiSuccess(accounts));
   await mockJson(page, "**/v1/tenant-admin/video-providers/youtube/settings", 200, apiSuccess(channelSettings()));
+  await mockJson(page, "**/v1/tenant-admin/video-providers/youtube/oauth-app", 200, apiSuccess(googleApp()));
+}
+
+/** The institute's Google app: GET returns `initial`; PUT / DELETE are recorded and answered like the backend. */
+async function mockGoogleApp(page: Page, initial: Record<string, unknown>) {
+  const calls = { puts: [] as unknown[], deletes: 0 };
+  let current = initial;
+  await page.route("**/v1/tenant-admin/video-providers/youtube/oauth-app", async (route) => {
+    const method = route.request().method();
+    if (method === "PUT") {
+      const body = route.request().postDataJSON() as { clientId: string };
+      calls.puts.push(body);
+      current = { ...current, source: "TENANT", clientId: body.clientId, secretSaved: true, updatedAt: "2026-10-05T09:00:00Z" };
+    } else if (method === "DELETE") {
+      calls.deletes += 1;
+      current = { ...current, source: "PLATFORM", clientId: null, secretSaved: false, updatedAt: null };
+    }
+    await fulfillJson(route, 200, apiSuccess(current));
+  });
+  return calls;
 }
 
 /** Answers GET with `current` and records every PUT body, replying with the saved view. */
@@ -262,6 +300,85 @@ test.describe("Tenant Admin video providers", () => {
     await expect(page.getByText("Institute Channel")).toBeVisible();
     await expect(page.getByRole("button", { name: /Connect|Reconnect|Disconnect|Test/ })).toHaveCount(0);
     await expect(page.getByText("Only a Tenant Admin can change video providers.")).toBeVisible();
+  });
+});
+
+test.describe("Institute Google app (Phase 5c)", () => {
+  test("by default the platform app is used; adding the institute's own sends exactly what was typed", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockProviders(page, [account()]);
+    const calls = await mockGoogleApp(page, googleApp());
+
+    await page.goto("/tenant-admin/settings/video-providers");
+
+    const section = page.getByRole("region", { name: "Google app" });
+    await expect(section.getByText("Platform Google app", { exact: true })).toBeVisible();
+    await expect(section.getByText(REDIRECT)).toBeVisible();
+    await section.getByLabel("Client ID").fill(OWN_CLIENT);
+    await section.getByLabel("Client secret").fill(OWN_SECRET);
+    await section.getByRole("button", { name: "Use my Google app" }).click();
+
+    await expect(section.getByText("Google app saved. Use Verify to check it with Google.")).toBeVisible();
+    expect(calls.puts).toEqual([{ clientId: OWN_CLIENT, clientSecret: OWN_SECRET }]);
+    await expect(section.getByText("Your institute's Google app", { exact: true })).toBeVisible();
+    await expect(section.getByText("Saved (hidden)")).toBeVisible();
+    await expect(section.getByLabel("Client secret")).toHaveValue("");
+    await expect(page.locator("body")).not.toContainText(OWN_SECRET);
+  });
+
+  test("with a connected channel, changing the app must be acknowledged; removing returns to the platform app", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL })]);
+    const calls = await mockGoogleApp(page, googleApp({ channelConnected: true }));
+
+    await page.goto("/tenant-admin/settings/video-providers");
+    const section = page.getByRole("region", { name: "Google app" });
+    await section.getByLabel("Client ID").fill(OWN_CLIENT);
+    await section.getByLabel("Client secret").fill(OWN_SECRET);
+    const save = section.getByRole("button", { name: "Use my Google app" });
+    await expect(section.getByText(/connected through a different Google app/)).toBeVisible();
+    await expect(save).toBeDisabled();
+    await section.getByLabel("I understand the channel must be connected again").check();
+    await save.click();
+    await expect(section.getByText("Your institute's Google app", { exact: true })).toBeVisible();
+    expect(calls.puts).toHaveLength(1);
+
+    await section.getByRole("button", { name: "Remove my Google app" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByText(/use the platform's Google app again/)).toBeVisible();
+    await dialog.getByRole("button", { name: "Remove", exact: true }).click();
+    await expect(section.getByText("Platform Google app", { exact: true })).toBeVisible();
+    expect(calls.deletes).toBe(1);
+  });
+
+  test("invalid values are caught before saving", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockProviders(page, [account()]);
+    const calls = await mockGoogleApp(page, googleApp());
+
+    await page.goto("/tenant-admin/settings/video-providers");
+    const section = page.getByRole("region", { name: "Google app" });
+    await section.getByLabel("Client ID").fill("not-a-client");
+    await section.getByRole("button", { name: "Use my Google app" }).click();
+
+    await expect(section.getByText("A Google client ID ends in .apps.googleusercontent.com.")).toBeVisible();
+    await expect(section.getByText("Enter the client secret.")).toBeVisible();
+    expect(calls.puts).toEqual([]);
+  });
+
+  test("a read-only auditor sees which app is used but no form", async ({ page }) => {
+    await mockTenantSession(page, "READ_ONLY_AUDITOR");
+    await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL })]);
+    await mockGoogleApp(page, googleApp({ source: "TENANT", clientId: OWN_CLIENT, secretSaved: true }));
+
+    await page.goto("/tenant-admin/settings/video-providers");
+    const section = page.getByRole("region", { name: "Google app" });
+
+    await expect(section.getByText(OWN_CLIENT)).toBeVisible();
+    await expect(section.getByLabel("Client secret")).toHaveCount(0);
+    await expect(section.getByText("Only a Tenant Admin can change the Google app.")).toBeVisible();
   });
 });
 

@@ -209,6 +209,17 @@ public final class FakeMediaProviderServer {
 					+ "\",\"expires_in\":3600,\"scope\":\"meeting:write:meeting meeting:read:meeting\"}");
 		}
 		else if (method.equals("POST") && path.equals("/token")) {
+			// VIDEO Phase 5c: the client check redeems a code that can't be valid. Like Google, a
+			// wrong secret is 401 invalid_client and a known client gets 400 invalid_grant.
+			if (body.contains("code=lms-client-check-not-a-real-code")) {
+				if (body.contains("client_secret=wrong")) {
+					respond(exchange, 401, "{\"error\":\"invalid_client\",\"error_description\":\"Unauthorized\"}");
+				}
+				else {
+					respond(exchange, 400, "{\"error\":\"invalid_grant\",\"error_description\":\"Malformed auth code.\"}");
+				}
+				return;
+			}
 			if (body.contains("grant_type=refresh_token") && rejectGoogleRefresh) {
 				respond(exchange, 400, "{\"error\":\"invalid_grant\"}");
 				return;

@@ -52,6 +52,11 @@ export interface MediaAsset {
   uploadProgress: MediaUploadProgress | null;
   /** A lesson uses this media; it cannot be deleted. */
   attached: boolean;
+  /**
+   * VIDEO Phase 5c: the video's YouTube watch page, once YouTube has it (Media Library only).
+   * Unlisted videos can be watched by anyone with this link - never show it to students.
+   */
+  youtubeUrl: string | null;
 }
 
 export type MediaChannelState = "NOT_CONNECTED" | "CONNECTED" | "EXPIRED" | "DISABLED";
@@ -70,6 +75,10 @@ export interface MediaUploadLimits {
   canUpload: boolean;
   /** The server's explanation when `canUpload` is false. */
   notAllowedReason: string | null;
+  /** VIDEO Phase 5c: which switch turned uploads off - the platform's or the institute's. */
+  uploadsDisabledBy: "PLATFORM" | "INSTITUTE" | null;
+  /** The server's explanation when `uploadsEnabled` is false. */
+  uploadsDisabledReason: string | null;
 }
 
 export interface PresignedPart {

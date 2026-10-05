@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -51,10 +52,11 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 	 * {@code include_granted_scopes} - the grant must not silently widen with
 	 * whatever else this Google account approved for the platform before.
 	 */
-	public String tenantChannelAuthorizationUrl(String state, String codeChallenge, String redirectUri) {
+	public String tenantChannelAuthorizationUrl(UUID tenantId, String state, String codeChallenge,
+			String redirectUri) {
 		return UriComponentsBuilder.fromUriString(config.getAuthBaseUrl() + "/o/oauth2/v2/auth")
 			.queryParam("response_type", "code")
-			.queryParam("client_id", config.getClientId())
+			.queryParam("client_id", credentials.require(tenantId).clientId())
 			.queryParam("redirect_uri", redirectUri)
 			.queryParam("scope", String.join(" ", TENANT_CHANNEL_SCOPES))
 			.queryParam("access_type", "offline")
@@ -76,12 +78,29 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 		return granted.containsAll(TENANT_CHANNEL_SCOPES);
 	}
 
+	/** VIDEO Phase 5c: what Google said about a client id / secret pair. */
+	public enum ClientCheck {
+
+		/** Google accepted the client (it only refused our deliberately invalid code). */
+		VALID,
+		/** Google does not know this client id, or the secret is wrong. */
+		REJECTED,
+		/** Google answered something else - not conclusive. */
+		INCONCLUSIVE
+
+	}
+
+	/** Endpoints (auth / token / API base URLs) only - the client id and secret come from {@link #credentials}. */
 	private final MediaIntegrationProperties.OAuthProvider config;
+
+	private final GoogleClientCredentials credentials;
 
 	private final ProviderHttpClient http;
 
-	public YouTubeOAuthClient(MediaIntegrationProperties properties, ProviderHttpClient http) {
+	public YouTubeOAuthClient(MediaIntegrationProperties properties, GoogleClientCredentials credentials,
+			ProviderHttpClient http) {
 		this.config = properties.getGoogle();
+		this.credentials = credentials;
 		this.http = http;
 	}
 
@@ -92,7 +111,31 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 
 	@Override
 	public boolean isConfigured() {
-		return config.isConfigured();
+		return credentials.isConfigured();
+	}
+
+	/**
+	 * VIDEO Phase 5c: asks Google's token endpoint whether this client id /
+	 * secret pair exists, by redeeming a code that can't be valid. A known
+	 * client gets {@code invalid_grant}; an unknown one or a wrong secret
+	 * gets {@code invalid_client} (401). Nothing is granted or stored.
+	 */
+	public ClientCheck verifyClient(String clientId, String clientSecret, String redirectUri) {
+		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+		form.add("client_id", clientId);
+		form.add("client_secret", clientSecret);
+		form.add("grant_type", "authorization_code");
+		form.add("code", "lms-client-check-not-a-real-code");
+		form.add("redirect_uri", redirectUri);
+		ProviderHttpClient.ProbeResult result = http.probeForm(URI.create(config.getTokenBaseUrl() + "/token"), form);
+		if ("invalid_grant".equals(result.oauthError()) || "redirect_uri_mismatch".equals(result.oauthError())) {
+			return ClientCheck.VALID;
+		}
+		if (result.status() == 401 || "invalid_client".equals(result.oauthError())
+				|| "unauthorized_client".equals(result.oauthError())) {
+			return ClientCheck.REJECTED;
+		}
+		return ClientCheck.INCONCLUSIVE;
 	}
 
 	@Override
@@ -104,7 +147,7 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 	public String authorizationUrl(String state, String codeChallenge, String redirectUri) {
 		return UriComponentsBuilder.fromUriString(config.getAuthBaseUrl() + "/o/oauth2/v2/auth")
 			.queryParam("response_type", "code")
-			.queryParam("client_id", config.getClientId())
+			.queryParam("client_id", credentials.require().clientId())
 			.queryParam("redirect_uri", redirectUri)
 			.queryParam("scope", SCOPE)
 			.queryParam("access_type", "offline")
@@ -118,9 +161,67 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 			.toUriString();
 	}
 
+	/**
+	 * VIDEO Phase 5c: this client bound to one institute's Google app (its own,
+	 * else the platform app) - used for that institute's channel connect,
+	 * token exchange and refresh. {@code tenantId} must come from a trusted
+	 * source (session, connection row or server-side OAuth state).
+	 */
+	public OAuthProviderClient forTenant(UUID tenantId) {
+		YouTubeOAuthClient self = this;
+		return new OAuthProviderClient() {
+
+			@Override
+			public MediaProvider provider() {
+				return MediaProvider.YOUTUBE;
+			}
+
+			@Override
+			public boolean isConfigured() {
+				return credentials.isConfigured(tenantId);
+			}
+
+			@Override
+			public boolean supportsPkce() {
+				return true;
+			}
+
+			@Override
+			public String authorizationUrl(String state, String codeChallenge, String redirectUri) {
+				return self.tenantChannelAuthorizationUrl(tenantId, state, codeChallenge, redirectUri);
+			}
+
+			@Override
+			public OAuthTokens exchangeCode(String code, String codeVerifier, String redirectUri) {
+				return self.exchangeCode(credentials.require(tenantId), code, codeVerifier, redirectUri);
+			}
+
+			@Override
+			public OAuthTokens refresh(String refreshToken) {
+				return self.refresh(credentials.require(tenantId), refreshToken);
+			}
+
+			@Override
+			public ProviderIdentity fetchIdentity(String accessToken) {
+				return self.fetchIdentity(accessToken);
+			}
+
+			@Override
+			public void revoke(OAuthTokens tokens) {
+				self.revoke(tokens);
+			}
+
+		};
+	}
+
 	@Override
 	public OAuthTokens exchangeCode(String code, String codeVerifier, String redirectUri) {
-		MultiValueMap<String, String> form = clientForm();
+		return exchangeCode(credentials.require(), code, codeVerifier, redirectUri);
+	}
+
+	private OAuthTokens exchangeCode(GoogleClientCredentials.Credentials client, String code, String codeVerifier,
+			String redirectUri) {
+		MultiValueMap<String, String> form = clientForm(client);
 		form.add("grant_type", "authorization_code");
 		form.add("code", code);
 		form.add("redirect_uri", redirectUri);
@@ -134,7 +235,11 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 
 	@Override
 	public OAuthTokens refresh(String refreshToken) {
-		MultiValueMap<String, String> form = clientForm();
+		return refresh(credentials.require(), refreshToken);
+	}
+
+	private OAuthTokens refresh(GoogleClientCredentials.Credentials client, String refreshToken) {
+		MultiValueMap<String, String> form = clientForm(client);
 		form.add("grant_type", "refresh_token");
 		form.add("refresh_token", refreshToken);
 		JsonNode json = http.postForm(URI.create(config.getTokenBaseUrl() + "/token"), form, headers -> {
@@ -163,10 +268,10 @@ public class YouTubeOAuthClient implements OAuthProviderClient {
 		});
 	}
 
-	private MultiValueMap<String, String> clientForm() {
+	private static MultiValueMap<String, String> clientForm(GoogleClientCredentials.Credentials client) {
 		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-		form.add("client_id", config.getClientId());
-		form.add("client_secret", config.getClientSecret());
+		form.add("client_id", client.clientId());
+		form.add("client_secret", client.clientSecret());
 		return form;
 	}
 

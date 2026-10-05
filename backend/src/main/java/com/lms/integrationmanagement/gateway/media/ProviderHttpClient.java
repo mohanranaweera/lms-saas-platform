@@ -65,6 +65,53 @@ public class ProviderHttpClient {
 			.body(String.class));
 	}
 
+	/** Outcome of {@link #probeForm}: the HTTP status and only the OAuth {@code error} code, never the body. */
+	public record ProbeResult(int status, String oauthError) {
+
+	}
+
+	/**
+	 * A form POST whose 4xx answer is the point (VIDEO Phase 5c: checking
+	 * OAuth client credentials with a deliberately invalid grant). Returns
+	 * the status and the OAuth {@code error} code instead of throwing on 4xx;
+	 * network failures and 5xx still throw {@code UNAVAILABLE}.
+	 */
+	public ProbeResult probeForm(URI uri, MultiValueMap<String, String> form) {
+		try {
+			restClient.post()
+				.uri(uri)
+				.contentType(MediaType.APPLICATION_FORM_URLENCODED)
+				.body(form)
+				.retrieve()
+				.body(String.class);
+			return new ProbeResult(200, null);
+		}
+		catch (HttpClientErrorException ex) {
+			String error = null;
+			try {
+				error = text(objectMapper.readTree(ex.getResponseBodyAsString()), "error");
+			}
+			catch (JacksonException ignored) {
+				// Not JSON - the status alone decides.
+			}
+			log.atInfo()
+				.setMessage("media_provider.probe_answered")
+				.addKeyValue("host", uri.getHost())
+				.addKeyValue("status", ex.getStatusCode().value())
+				.addKeyValue("oauthError", error)
+				.log();
+			return new ProbeResult(ex.getStatusCode().value(), error);
+		}
+		catch (RestClientException ex) {
+			log.atWarn()
+				.setMessage("media_provider.call_failed")
+				.addKeyValue("host", uri.getHost())
+				.addKeyValue("errorType", ex.getClass().getSimpleName())
+				.log();
+			throw new MediaProviderException(Kind.UNAVAILABLE, "The provider could not be reached. Try again later.");
+		}
+	}
+
 	public JsonNode postJson(URI uri, Object body, Consumer<HttpHeaders> headers) {
 		String json = objectMapper.writeValueAsString(body);
 		return execute(uri, () -> restClient.post()

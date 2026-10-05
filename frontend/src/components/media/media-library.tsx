@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useId, useState } from "react";
 import Link from "next/link";
-import { Film, Link2, UploadCloud } from "lucide-react";
+import { ExternalLink, Film, Link2, UploadCloud } from "lucide-react";
 import { useMediaList, type MediaAsset, type MediaProcessingStatus } from "@/lib/api/media";
 import { formatDateTime } from "@/lib/format";
 import { formatDuration, percent } from "@/lib/media-format";
@@ -28,13 +28,54 @@ const STATUS_OPTIONS: { value: "" | MediaProcessingStatus; label: string }[] = [
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
+const cardLinkClass =
+  "group flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
+/**
+ * VIDEO Phase 5c: a video YouTube already has opens its YouTube page in a new
+ * tab; "Details" (edit, delete, upload status) stays one click away. Anything
+ * not on YouTube yet opens the details page as before.
+ */
 function MediaCard({ asset, href }: { asset: MediaAsset; href: string }) {
+  if (!asset.youtubeUrl) {
+    return (
+      <li className="flex flex-col overflow-hidden rounded-lg border border-border">
+        <Link href={href} className={cardLinkClass}>
+          <MediaCardBody asset={asset} />
+        </Link>
+      </li>
+    );
+  }
+  return (
+    <li className="flex flex-col overflow-hidden rounded-lg border border-border">
+      <a
+        href={asset.youtubeUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${asset.title} - open on YouTube (new tab)`}
+        className={cardLinkClass}
+      >
+        <MediaCardBody asset={asset} />
+      </a>
+      <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-sm">
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <ExternalLink aria-hidden="true" className="size-3.5" />
+          Opens on YouTube
+        </span>
+        <Link href={href} className="font-medium text-foreground hover:underline">
+          Details<span className="sr-only"> for {asset.title}</span>
+        </Link>
+      </div>
+    </li>
+  );
+}
+
+function MediaCardBody({ asset }: { asset: MediaAsset }) {
   const progress = asset.uploadProgress;
   const transferring = asset.processingStatus === "UPLOADING" && progress && progress.totalBytes > 0;
   const duration = formatDuration(asset.durationSeconds);
   return (
-    <li className="flex flex-col overflow-hidden rounded-lg border border-border">
-      <Link href={href} className="group flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+    <>
         <div className="relative flex aspect-video items-center justify-center bg-muted">
           {asset.thumbnailUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- provider thumbnail on a provider CDN
@@ -79,8 +120,7 @@ function MediaCard({ asset, href }: { asset: MediaAsset; href: string }) {
           ) : null}
           <span className="mt-auto text-xs text-muted-foreground">Added {formatDateTime(asset.createdAt)}</span>
         </div>
-      </Link>
-    </li>
+    </>
   );
 }
 

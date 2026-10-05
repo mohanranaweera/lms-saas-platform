@@ -619,3 +619,77 @@ or replaced.
   Zoom and Vimeo.
 - `PUT /api/v1/tenant-admin/integrations/teacher-providers` still accepts `youtubeEnabled` and
   ignores it. The `GET` view no longer has a `youtube` toggle.
+
+## Platform Admin: Google OAuth app (VIDEO Phase 5c, ADR-018 Amendment 5)
+
+`/api/v1/platform-admin/oauth-apps/google` - `hasRole('PLATFORM_ADMIN')` only (any tenant token →
+`401`/`403`). The platform's **one** Google OAuth client, used by every institute's YouTube
+connection. When nothing is saved, `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` apply.
+A save takes effect immediately (no restart).
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/` | the view below |
+| `PUT` | `/` | `{ "clientId": "…apps.googleusercontent.com", "clientSecret": "…" }` - both always required |
+| `DELETE` | `/` | removes the saved app; the env vars apply again (idempotent, returns the view) |
+| `POST` | `/verify` | asks Google whether the effective credentials are valid |
+
+```jsonc
+// GET / PUT / DELETE response
+{ "source": "SAVED" | "ENVIRONMENT" | "NOT_CONFIGURED",
+  "clientId": "…apps.googleusercontent.com" | null,   // public: Google shows it in consent URLs
+  "secretSaved": true,                                 // the secret itself is never returned
+  "environmentConfigured": true,
+  "redirectUri": "https://…/api/v1/integrations/oauth/youtube/callback" | null,
+  "encryptionAvailable": true,                         // false = MEDIA_CREDENTIALS_ENCRYPTION_KEY missing
+  "updatedAt": "…" | null,
+  "history": [ { "action": "SAVED" | "REMOVED", "clientIdBefore": "123456…ontent.com",
+                 "clientIdAfter": "…", "secretChanged": true, "occurredAt": "…" } ] }   // newest 20
+// POST /verify
+{ "result": "VALID" | "REJECTED" | "INCONCLUSIVE", "source": "SAVED" | "ENVIRONMENT", "message": "…" }
+```
+
+- Validation (`400`): `clientId` must end in `.apps.googleusercontent.com`; `clientSecret` non-blank,
+  no spaces; both ≤ 255. Encryption key missing → `503`, nothing stored. `/verify` with nothing
+  configured → `400`.
+- The secret is AES-256-GCM encrypted (`MEDIA_CREDENTIALS_ENCRYPTION_KEY`, bound to the provider)
+  and never returned, logged or written to the history.
+- Every save / removal → `platform_oauth_app_change` (append-only; client ids masked) and a
+  `SECURITY` log entry (`google_oauth_app.saved|removed|verified`). Platform configuration has no
+  tenant, so `audit_log` is not used.
+- Verify redeems a deliberately invalid code at Google's token endpoint: `invalid_grant` = the
+  client is valid; `invalid_client` / `401` = wrong id or secret. Nothing is granted or stored.
+- **Changing the client id disconnects every institute in practice:** Google ties refresh tokens to
+  the client that issued them, so each institute must connect its channel again. The UI requires
+  an explicit acknowledgement before replacing it.
+
+## Tenant Admin: the institute's own Google app (VIDEO Phase 5c, ADR-018 Amendment 5 item 1a)
+
+`/api/v1/tenant-admin/video-providers/youtube/oauth-app` - `INTEGRATIONS` VIEW (`GET`) /
+CREATE_EDIT (`PUT`, `DELETE`, `POST /verify`); Teacher / Student → `403`. Always the caller's own
+institute (no id in the path). Without an own app, the platform app (above) is used.
+
+```jsonc
+// GET / PUT / DELETE response
+{ "source": "TENANT" | "PLATFORM" | "NOT_CONFIGURED",
+  "clientId": "…apps.googleusercontent.com" | null,   // the institute's own; null on the platform app
+  "secretSaved": true,                                 // never the secret itself
+  "platformAppAvailable": true,
+  "redirectUri": "https://…/api/v1/integrations/oauth/youtube/callback" | null,
+  "encryptionAvailable": true,
+  "updatedAt": "…" | null,
+  "channelConnected": true }
+// PUT body - both always required, same validation as the platform app
+{ "clientId": "…apps.googleusercontent.com", "clientSecret": "…" }
+// POST /verify → { "result": "VALID" | "REJECTED" | "INCONCLUSIVE", "source": "TENANT" | "PLATFORM", "message": "…" }
+```
+
+- The secret is encrypted with an AAD bound to the institute and never returned or logged.
+- Audit: `video_provider.oauth_app_saved` / `video_provider.oauth_app_removed` (client ids before /
+  after, whether the secret changed, whether the channel was marked for reconnect).
+- If the app the institute uses changes (own app saved, replaced or removed), its live YouTube
+  channel becomes `NEEDS_RECONNECT` ("Your institute's Google app changed. Connect the channel
+  again.").
+- Connect, the OAuth callback's code exchange and token refresh use the institute's app; the
+  `available` flag of the YouTube provider view reflects the institute's app too.
+

@@ -400,6 +400,11 @@ class MediaUploadIntegrationTest extends MediaUploadTestSupport {
 		result = create(off.host(), off.teacherToken(), body("X", PART));
 		assertThat(status(result)).isEqualTo(409);
 		assertThat(errorCode(result)).isEqualTo("VIDEO_UPLOADS_DISABLED");
+		assertThat(rawContent(result)).contains("switched off for your institute");
+		JsonNode offLimits = json(perform(authenticated(get(MEDIA + "/upload-limits"), off.host(), off.teacherToken())))
+			.path("data");
+		assertThat(offLimits.path("uploadsDisabledBy").asString()).isEqualTo("INSTITUTE");
+		assertThat(offLimits.path("uploadsDisabledReason").asString()).contains("switched off for your institute");
 
 		Ctx flag = seedUploadTenant("up-flag", "UC-flag");
 		featureFlags.setYoutubeUpload(false);
@@ -407,6 +412,12 @@ class MediaUploadIntegrationTest extends MediaUploadTestSupport {
 			result = create(flag.host(), flag.teacherToken(), body("X", PART));
 			assertThat(status(result)).isEqualTo(409);
 			assertThat(errorCode(result)).isEqualTo("VIDEO_UPLOADS_DISABLED");
+			// The platform switch is named as such - the institute can't fix it (VIDEO Phase 5c).
+			assertThat(rawContent(result)).contains("aren't enabled on this platform");
+			JsonNode flagLimits = json(perform(authenticated(get(MEDIA + "/upload-limits"), flag.host(),
+					flag.teacherToken()))).path("data");
+			assertThat(flagLimits.path("uploadsEnabled").asBoolean()).isFalse();
+			assertThat(flagLimits.path("uploadsDisabledBy").asString()).isEqualTo("PLATFORM");
 		}
 		finally {
 			featureFlags.setYoutubeUpload(true);

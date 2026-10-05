@@ -23,7 +23,7 @@ public record MediaAssetView(UUID id, MediaAssetProvider provider, String title,
 		String thumbnailUrl, Integer durationSeconds, MediaPrivacyStatus privacyStatus,
 		VideoAssetStatus processingStatus, String failureReason, UUID uploadedBy, Instant createdAt,
 		VideoProviderCapabilities capabilities, List<PlaybackMode> enabledPlaybackModes,
-		UploadProgress uploadProgress, boolean attached) {
+		UploadProgress uploadProgress, boolean attached, String youtubeUrl) {
 
 	/**
 	 * Where the upload to the provider stands (VIDEO Phase 5).

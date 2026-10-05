@@ -357,3 +357,45 @@ Klass's Integrations screen.
 **Clarified:** Google OAuth is configured once per platform environment by the operator (one
 OAuth client, verification of the sensitive scopes, quota extension). Tenants only click
 Connect.
+
+## Amendment 5 (2026-10-05): platform Google OAuth app screen; several channels per institute (VIDEO Phases 5c / 5d)
+
+**Status:** Accepted by the project owner on 2026-10-05 (decisions: "Platform Admin screen",
+"Yes, approve Amendment 5", "Commit 5b, then build 5c"), after reviewing Klass's Integrations
+screens.
+
+**Decision.**
+1. **Platform Google OAuth app (Phase 5c).** The platform's one Google OAuth client (id +
+   secret) can be entered by a Platform Admin instead of the `GOOGLE_OAUTH_CLIENT_ID` /
+   `GOOGLE_OAUTH_CLIENT_SECRET` environment variables, which remain the fallback when nothing is
+   saved. It is still **one app for the whole platform** - tenants never enter Google
+   credentials (a per-tenant client would need a Google Cloud project and Google app
+   verification per institute).
+   - Stored in the platform-level `platform_oauth_app` table (no `tenant_id`: platform
+     configuration, not tenant data). The secret is AES-256-GCM encrypted with
+     `MEDIA_CREDENTIALS_ENCRYPTION_KEY`, bound to its provider; it is write-only - never
+     returned, logged, put in history or sent to the browser.
+   - Every save / removal is recorded in the append-only `platform_oauth_app_change` (actor,
+     masked client id before/after, whether the secret changed, time) and a `SECURITY` log
+     entry. `audit_log` is tenant-scoped (`tenant_id NOT NULL`), so it is not used here.
+   - Changing the client id invalidates every existing channel grant (Google ties refresh
+     tokens to the client); the screen warns before saving and institutes must reconnect.
+1a. **Revised by the owner on 2026-10-05 ("Even youtube credentials are configured in platform
+   level it should be against tenant level"; decisions "Tenant Admin, in Video providers" and
+   "Use the platform default app"):** an institute's **Tenant Admin** may enter the institute's
+   own Google OAuth app (`tenant_oauth_app`, V75 - tenant-owned, secret encrypted with an AAD
+   bound to the tenant, changes in the tenant `audit_log`). Resolution for an institute: its own
+   app → the platform app (item 1) → the environment variables. Connect, the callback's code
+   exchange and token refresh all use the institute's app; the tenant always comes from the
+   session, the connection row or the server-side OAuth state. Changing the app an institute
+   uses marks its live channel NEEDS_RECONNECT (Google ties the grant to the issuing app). Each
+   institute's own Google project needs its own Google verification and quota.
+2. **Several YouTube channels per institute (Phase 5d).** Replaces Amendment 2's "one live
+   channel per tenant". Each channel is a named card (name, description, allowed teachers)
+   that exists before it is connected; one live connection per card; one Google channel still
+   cannot be live in two institutes. Allowed teachers (Amendment 4) become per channel.
+   Uploads name the target channel; the server checks it belongs to the caller's institute and
+   that a teacher is on its list. The daily upload limit stays per institute. Deleting a card
+   disconnects it; rows and videos are kept. A Platform Admin switch-off covers all of an
+   institute's YouTube channels. Detailed in the Phase 5d plan.
+

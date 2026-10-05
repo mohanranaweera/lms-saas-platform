@@ -120,6 +120,15 @@ public class OAuthConnectFlowService {
 				&& properties.isOAuthPlumbingConfigured();
 	}
 
+	/**
+	 * VIDEO Phase 5c: whether this institute could connect its YouTube channel
+	 * now - its own Google app or the platform app, plus key and URLs.
+	 */
+	public boolean isTenantYouTubeAvailable(UUID tenantId) {
+		return youTubeOAuthClient.forTenant(tenantId).isConfigured() && codec.isConfigured()
+				&& properties.isOAuthPlumbingConfigured();
+	}
+
 	public AuthorizationUrlView beginConnect(String providerSegment) {
 		UUID teacherUserId = IntegrationActors.requireTeacher();
 		MediaProvider provider = MediaProvider.fromPathSegment(providerSegment)
@@ -149,14 +158,15 @@ public class OAuthConnectFlowService {
 	 * nothing else.
 	 */
 	public AuthorizationUrlView beginTenantYouTubeConnect(UUID adminUserId) {
-		if (!isAvailable(MediaProvider.YOUTUBE)) {
+		UUID tenantId = tenantContext.getTenantId();
+		if (!isTenantYouTubeAvailable(tenantId)) {
 			throw new ServiceUnavailableException("YouTube is not available right now.");
 		}
 		String verifier = OAuthStateStore.randomToken();
-		String state = stateStore.issue(new PendingAuthorization(tenantContext.getTenantId(), adminUserId,
+		String state = stateStore.issue(new PendingAuthorization(tenantId, adminUserId,
 				MediaProvider.YOUTUBE, verifier, ConnectionScope.TENANT));
-		return new AuthorizationUrlView(youTubeOAuthClient.tenantChannelAuthorizationUrl(state, s256(verifier),
-				redirectUri(MediaProvider.YOUTUBE)));
+		return new AuthorizationUrlView(youTubeOAuthClient.tenantChannelAuthorizationUrl(tenantId, state,
+				s256(verifier), redirectUri(MediaProvider.YOUTUBE)));
 	}
 
 	/**
@@ -188,7 +198,10 @@ public class OAuthConnectFlowService {
 			return returnUri(returnBase.get(), "error", outcome, p);
 		}
 
-		OAuthProviderClient client = clients.get(pending.provider());
+		// VIDEO Phase 5c: an institute's channel is exchanged with that institute's Google app; the
+		// tenant comes from the server-side state, never from the request.
+		OAuthProviderClient client = (tenantScope && pending.provider() == MediaProvider.YOUTUBE)
+				? youTubeOAuthClient.forTenant(pending.tenantId()) : clients.get(pending.provider());
 		OAuthTokens tokens = null;
 		try {
 			tokens = client.exchangeCode(code, pending.codeVerifier(), redirectUri(pending.provider()));
