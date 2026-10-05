@@ -3,14 +3,14 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    5 — Media Library (TESTED; commit pending)
-Last Updated:     2026-10-04
-Current Branch:   feat/video-media-library
-Latest Migration: V72__create_media_upload_job.sql
-Backend Build:    PASS — mvnw verify, 2026-10-04 (BUILD SUCCESS, 13:56 min)
+Current Phase:    5b — Institute channel: allowed teachers + teacher YouTube removal (TESTED — awaiting commit)
+Last Updated:     2026-10-05
+Current Branch:   feat/video-channel-teachers
+Latest Migration: V73__institute_video_channel_teachers.sql
+Backend Build:    PASS — mvnw verify, 2026-10-05 (BUILD SUCCESS, 13:20 min)
 Frontend Build:   not affected (no frontend change in Phases 1–2)
 Player Build:     n/a (player project does not exist yet)
-Tests:            backend 2283 run / 0 failures / 0 errors / 0 skipped (full suite, 2026-10-04)
+Tests:            backend 2357 run / 0 failures / 0 errors / 0 skipped (full suite, 2026-10-05)
 Open Blockers:    B1–B4, B6 (§0.3) — owner approvals for change-controlled areas (B5 approved 2026-10-04)
 ```
 
@@ -1645,3 +1645,106 @@ Deviations from the **master instruction** proposed in Phase 1 (each needs appro
   tenant origins and expose `ETag`, or part uploads fail with a clear message.
 
 - **Full backend `mvnw verify` (2026-10-04, after the DELETE alignment): 2351 tests, 0 failures/errors/skips, BUILD SUCCESS.** Phase 5 status → TESTED, commit pending.
+
+### Phase 5b — Institute channel: allowed teachers, teacher YouTube removal
+
+**Before (2026-10-05, status → PLANNING; owner decisions after reviewing Klass's Integrations UI)**
+
+- **Owner decisions:**
+  - keep ONE institute YouTube channel;
+  - add an optional name / description and **allowed teachers** to its card ("Klass-style",
+    connect still goes straight to Google);
+  - no teachers selected = **all teachers** may upload;
+  - **remove the teacher-level YouTube connection** (needs ADR-018 Amendment 4 = B8).
+- **Clarified:** Google OAuth is set up once per platform environment by the operator, not per
+  tenant (one OAuth client, app verification for the sensitive scopes, quota extension).
+  Klass does the same.
+- **Needs approval - ADR-018 Amendment 4 (B8):**
+  - YouTube stops being a teacher-level provider. Teachers no longer connect a personal
+    YouTube account; the institute channel is the only YouTube connection.
+  - Live teacher YouTube connections are disconnected by migration (status DISCONNECTED /
+    SYSTEM, credentials wiped, rows kept as history). They can't be revoked at Google from a
+    migration, so the read-only grant stays on the teacher's own Google account until they
+    remove it. Nothing used these grants (no consumer exists).
+  - Tenant "teacher providers" toggles lose `youtubeEnabled`: still accepted in `PUT` and
+    ignored (no breaking change); dropped from the view.
+- **Backend:**
+  - `V73__institute_video_channel_teachers.sql`:
+    - `tenant_video_configuration` += `channel_display_name VARCHAR(100)`,
+      `channel_description VARCHAR(500)`;
+    - new `tenant_video_upload_teacher (tenant_id, teacher_user_id)` (composite tenant FKs to
+      `tenant_user`, PK on both);
+    - disconnect live TEACHER-scope YouTube connections.
+  - `GET` / `PUT /api/v1/tenant-admin/video-providers/youtube/settings`
+    `{displayName, description, allowedTeacherIds[]}` (empty = all teachers): `INTEGRATIONS`
+    VIEW / CREATE_EDIT; teacher ids must be TEACHER / TEACHER_ASSISTANT users of the same
+    tenant (else 400); audited `video_provider.settings_updated` with before/after.
+  - The provider account view gains `displayName`, `description`, `allowedTeacherIds`,
+    `allTeachersAllowed`.
+  - Enforcement: `MediaUploadService.create` / `retry` - a Teacher / TA not on a non-empty
+    list → `403 VIDEO_UPLOAD_NOT_ALLOWED`. Editing / deleting / cancelling their own existing
+    media stays allowed. Staff with `MATERIALS` are unaffected.
+  - `upload-limits` += `canUpload` + `notAllowedReason` for the caller.
+  - Teacher YouTube: OAuth begin / confirm for YOUTUBE + TEACHER refused (404, same as an
+    unknown provider); removed from the teacher overview and the teacher-provider toggles.
+- **Frontend:**
+  - Video providers card: "Name" / "Description" and "Who can upload: All teachers / Selected
+    teachers" (checkbox list of the institute's teachers), saved separately from Connect;
+  - card subtitle "YouTube · All teachers / N teachers" like Klass;
+  - the teacher Media Library shows "You haven't been given access to upload…" from the
+    server;
+  - the teacher Settings → Integrations page drops YouTube;
+  - the admin teacher-provider toggles drop YouTube;
+  - RHF + Zod; Playwright.
+- **Tenant / security:**
+  - teacher ids are validated against the caller's tenant (composite FK backstop);
+  - the allow-list is checked server-side on every create / retry;
+  - cross-tenant tests: B can't read or set A's list; a teacher id from another tenant → 400.
+- **Tests:** settings CRUD + validation + audit; enforcement (listed / unlisted / all);
+  existing-media edit by a de-listed teacher still works; teacher YouTube connect refused;
+  migration disconnects teacher YouTube rows; cross-tenant; Playwright for the card, the
+  teacher-denied state and the teacher integrations page.
+
+**After — backend (2026-10-05, ADR-018 Amendment 4 approved "Yes Approved")**
+
+- Built as planned, with these differences:
+  - the settings live on their own endpoint/view (`ChannelSettingsView`), not on the provider
+    account view;
+  - the view also returns `availableTeachers` (every teacher of the institute by **user id**):
+    `/api/v1/teachers` returns teacher-*profile* ids, which the allow-list does not accept, so
+    the form takes its choices from here (found while building the frontend);
+  - allowed ids are validated against `TeacherLookupApi.listTeachers()` (the tenant's teacher
+    profiles); a student / another tenant's teacher / unknown id → 400.
+- Files: `V73__institute_video_channel_teachers.sql`; `TenantVideoUploadTeacher` +
+  repository; `TenantVideoChannelService`; `TenantVideoChannelController`;
+  `TenantVideoConfiguration` (+ name / description); `MediaUploadService` (allow-list on
+  create / retry, `canUpload` / `notAllowedReason`); `MediaUploadException.notAllowed()`;
+  `ApiErrorCodes.VIDEO_UPLOAD_NOT_ALLOWED`; `MediaProvider.YOUTUBE` no longer teacher-scoped;
+  `MediaConnectionService` / `MediaConnectionViews` (teacher providers = Zoom, Vimeo).
+- Tests: new `InstituteChannelTeachersIntegrationTest` (6, incl. cross-tenant and V73 checks);
+  `TeacherMediaConnectionIntegrationTest` and `TenantVideoProviderIntegrationTest` reworked
+  to Vimeo + "YouTube begin → 404". Video/integration suites: 80 tests across 7 classes, green.
+
+**After — frontend (2026-10-05)**
+
+- `video-providers.ts`: `ChannelSettingsView`, `useVideoChannelSettings`,
+  `useUpdateVideoChannelSettings`.
+- New `tenant-youtube-channel-settings.tsx` (RHF + Zod `validation/video-channel.ts`): Name,
+  Description, "Who can upload: All teachers / Selected teachers only" with a checkbox list;
+  server field errors mapped onto the form; disabled with no Save button for read-only roles.
+- `tenant-youtube-channel-card.tsx`: subtitle "<name> — YouTube · All teachers / N teachers".
+- `media.ts` / `media-upload-panel.tsx`: `canUpload` / `notAllowedReason` block the upload form
+  with the server's reason.
+- Teacher YouTube removed from `integrations.ts`, the teacher provider card, the admin
+  teacher-provider toggles and the e2e fixtures.
+- Playwright: 4 new channel-settings tests (exact PUT body with user ids, validation + back to
+  all teachers, server field error, read-only auditor), 1 new teacher-not-allowed upload test,
+  teacher integrations page asserts no YouTube card and uses Vimeo for the denied case.
+  `tenant-admin-video-settings`, `media-library`, `teacher-integrations`,
+  `tenant-admin-integrations`: 65 passed, 2 failed — the 2 are **pre-existing** (they fail
+  identically on `HEAD` with Phase 5b stashed): `teacher-integrations` "confirms a finished
+  connection exactly once…" and "an expired or someone else's connection request…" stay on
+  "Finishing connecting…" (the confirm mutation's result is never shown). Logged as TD, not
+  part of this phase.
+- `tsc --noEmit` and `eslint` clean.
+- Full backend `mvnw verify` (2026-10-05): 2357 tests, 0 failures / errors / skipped, BUILD SUCCESS.

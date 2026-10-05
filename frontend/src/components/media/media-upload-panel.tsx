@@ -37,6 +37,9 @@ const EMPTY: MediaUploadFormValues = { title: "", description: "", privacyStatus
 
 /** Why uploading is not possible right now, from the server's limits (or null). */
 function blockedReason(limits: MediaUploadLimits): string | null {
+  if (!limits.canUpload) {
+    return limits.notAllowedReason ?? "Your institute hasn't given you access to upload videos. Ask your institute admin.";
+  }
   if (!limits.uploadsEnabled) return "Video uploads are switched off for your institute.";
   if (limits.channel === "NOT_CONNECTED") return "Your institute hasn't connected a YouTube channel yet.";
   if (limits.channel === "EXPIRED") return "YouTube needs to be reconnected before videos can be uploaded.";

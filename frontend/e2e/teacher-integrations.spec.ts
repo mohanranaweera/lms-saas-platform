@@ -30,9 +30,8 @@ test.describe("Teacher integrations", () => {
     await expect(zoom.getByText("jane.zoom@example.test")).toBeVisible();
     await expect(zoom.getByRole("button", { name: "Reconnect Zoom" })).toBeVisible();
 
-    const youtube = page.getByRole("region", { name: "YouTube" });
-    await expect(youtube.getByText("Not connected")).toBeVisible();
-    await expect(youtube.getByRole("button", { name: "Connect YouTube" })).toBeVisible();
+    // YouTube is the institute's channel now (ADR-018 Amendment 4) - not a teacher connection.
+    await expect(page.getByRole("region", { name: "YouTube" })).toHaveCount(0);
 
     const vimeo = page.getByRole("region", { name: "Vimeo" });
     await expect(vimeo.getByText("Not enabled by your institute")).toBeVisible();
@@ -114,9 +113,9 @@ test.describe("Teacher integrations", () => {
     await mockTenantSession(page, "TEACHER", TEACHER_ID);
     await mockTeacherIntegrations(page, teacherIntegrations());
 
-    await page.goto("/teacher/settings/integrations?error=denied&provider=youtube");
+    await page.goto("/teacher/settings/integrations?error=denied&provider=vimeo");
 
-    await expect(page.getByText("YouTube was not connected because access wasn't allowed.")).toBeVisible();
+    await expect(page.getByText("Vimeo was not connected because access wasn't allowed.")).toBeVisible();
   });
 
   test("disconnecting Zoom warns about upcoming classes first (keyboard only)", async ({ page }) => {

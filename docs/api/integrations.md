@@ -588,3 +588,34 @@ the abuse/incident lever over a tenant's YouTube channel and does not depend on 
 
 An unknown tenant, or an account id that is not that tenant's YouTube channel → `404`.
 Credentials are never returned.
+
+## Institute channel settings: name, description, allowed teachers (VIDEO Phase 5b)
+
+`/api/v1/tenant-admin/video-providers/youtube/settings`: `INTEGRATIONS` VIEW (`GET`) /
+CREATE_EDIT (`PUT`). Teacher / Student → `403`. Settings are kept when the channel is reconnected
+or replaced.
+
+```jsonc
+// GET / PUT response
+{ "displayName": "Institute Channel" | null, "description": "…" | null,
+  "allTeachersAllowed": false,
+  "allowedTeachers": [ { "userId": "<uuid>", "name": "Teacher One", "email": "…" } ],
+  // every teacher of the institute, by USER id - the only ids allowedTeacherIds accepts
+  // (the /api/v1/teachers list uses teacher-profile ids, which are NOT accepted here)
+  "availableTeachers": [ { "userId": "<uuid>", "name": "Teacher One", "email": "…" } ] }
+// PUT body (full replacement)
+{ "displayName": "…", "description": "…", "allowedTeacherIds": ["<uuid>"] }   // [] or absent = all teachers
+```
+
+- `displayName` ≤ 100 and `description` ≤ 500, both without `<` or `>`.
+- `allowedTeacherIds` must be teachers of this institute; anything else (unknown, another
+  institute's, a student) → `400`.
+- Audit: `video_provider.settings_updated` with before/after.
+- Enforcement: see `docs/api/video-access-management.md` (`403 VIDEO_UPLOAD_NOT_ALLOWED`).
+
+**Teacher YouTube connections removed (ADR-018 Amendment 4):**
+- Teachers no longer connect a personal YouTube account. `POST
+  /api/v1/teacher/integrations/youtube/connect` → `404`, and the teacher overview lists only
+  Zoom and Vimeo.
+- `PUT /api/v1/tenant-admin/integrations/teacher-providers` still accepts `youtubeEnabled` and
+  ignores it. The `GET` view no longer has a `youtube` toggle.

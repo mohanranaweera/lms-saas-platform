@@ -26,6 +26,12 @@ public final class MediaUploadException extends ApplicationException {
 		return new MediaUploadException(HttpStatus.UNPROCESSABLE_CONTENT, ApiErrorCodes.MEDIA_UPLOAD_FAILED, message);
 	}
 
+	/** 403 - the institute restricts uploads to selected teachers and this one is not among them. */
+	public static MediaUploadException notAllowed() {
+		return new MediaUploadException(HttpStatus.FORBIDDEN, ApiErrorCodes.VIDEO_UPLOAD_NOT_ALLOWED,
+				"Your institute hasn't given you access to upload videos. Ask your institute admin.");
+	}
+
 	/** 409 - the upload is not in a state that allows this action. */
 	public static MediaUploadException stateConflict(String message) {
 		return new MediaUploadException(HttpStatus.CONFLICT, ApiErrorCodes.MEDIA_UPLOAD_STATE_CONFLICT, message);

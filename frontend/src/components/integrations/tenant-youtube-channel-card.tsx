@@ -54,7 +54,19 @@ function isSafeConsentUrl(url: string): boolean {
  * Connecting sends the browser to Google; the page then shows the returned
  * channel for an explicit confirmation. No token ever reaches the browser.
  */
-export function TenantYouTubeChannelCard({ view, canManage }: { view: VideoProviderAccountView; canManage: boolean }) {
+export function TenantYouTubeChannelCard({
+  view,
+  canManage,
+  displayName = null,
+  uploaders = null,
+}: {
+  view: VideoProviderAccountView;
+  canManage: boolean;
+  /** VIDEO Phase 5b - the institute's own name for the channel, if set. */
+  displayName?: string | null;
+  /** VIDEO Phase 5b - "All teachers" / "N teachers" who may upload. */
+  uploaders?: string | null;
+}) {
   const { session } = useAuth();
   const connectMutation = useBeginTenantYouTubeConnect();
   const testMutation = useTestVideoProvider();
@@ -105,6 +117,11 @@ export function TenantYouTubeChannelCard({ view, canManage }: { view: VideoProvi
           {label}
         </Badge>
       </div>
+      {displayName || uploaders ? (
+        <p className="text-sm text-foreground">
+          {[displayName, uploaders ? `YouTube · ${uploaders}` : null].filter(Boolean).join(" — ")}
+        </p>
+      ) : null}
       <p className="text-sm text-muted-foreground">
         Upload lesson videos to your institute&apos;s own YouTube channel. YouTube stores and streams them at no cost,
         and students can only reach them through your courses. Unlisted YouTube videos can still be watched by anyone

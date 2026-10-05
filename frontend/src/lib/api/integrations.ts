@@ -6,7 +6,7 @@ import { classSessionKeys } from "@/lib/api/class-sessions";
  * MEDIA-INT-01 / ADR-018 — media & meeting provider connections. Contract:
  * `docs/api/integrations.md`.
  *
- * - Teachers connect their OWN Zoom / YouTube / Vimeo accounts through the
+ * - Teachers connect their OWN Zoom / Vimeo accounts through the
  *   provider's OAuth consent page; the backend returns the consent URL and the
  *   browser is sent there with a full-page redirect.
  * - The Tenant Admin configures the tenant-wide DynTube / Bunny.net accounts.
@@ -19,7 +19,8 @@ import { classSessionKeys } from "@/lib/api/class-sessions";
  */
 
 export type MediaProvider = "ZOOM" | "YOUTUBE" | "VIMEO" | "DYNTUBE" | "BUNNY";
-export type TeacherMediaProvider = "ZOOM" | "YOUTUBE" | "VIMEO";
+/** YouTube is institute-level only since ADR-018 Amendment 4 (Settings → Video providers). */
+export type TeacherMediaProvider = "ZOOM" | "VIMEO";
 export type ConnectionStatus = "ACTIVE" | "NEEDS_RECONNECT" | "DISCONNECTED";
 export type VideoHost = "NONE" | "DYNTUBE" | "BUNNY";
 
@@ -109,7 +110,6 @@ export interface ProviderToggleView {
 
 export interface TeacherProvidersView {
   zoom: ProviderToggleView;
-  youtube: ProviderToggleView;
   vimeo: ProviderToggleView;
 }
 
@@ -272,7 +272,7 @@ function useAdminMutation<TInput, TResult>(request: (input: TInput) => [string, 
 }
 
 export function useUpdateTeacherProviders() {
-  return useAdminMutation<{ zoomEnabled: boolean; youtubeEnabled: boolean; vimeoEnabled: boolean }, TeacherProvidersView>(
+  return useAdminMutation<{ zoomEnabled: boolean; vimeoEnabled: boolean }, TeacherProvidersView>(
     (input) => ["/v1/tenant-admin/integrations/teacher-providers", { method: "PUT", body: JSON.stringify(input) }]
   );
 }

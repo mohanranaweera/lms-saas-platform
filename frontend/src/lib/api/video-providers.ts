@@ -71,9 +71,34 @@ export interface TenantVideoConfigurationView {
   updatedBy: string | null;
 }
 
+/** VIDEO Phase 5b - a teacher by USER id (not the `/v1/teachers` profile id). */
+export interface ChannelTeacher {
+  userId: string;
+  name: string | null;
+  email: string | null;
+}
+
+/** The institute channel's name / description and who may upload (empty list = all teachers). */
+export interface ChannelSettingsView {
+  displayName: string | null;
+  description: string | null;
+  allTeachersAllowed: boolean;
+  allowedTeachers: ChannelTeacher[];
+  /** Every teacher of the institute - the only ids the list accepts. */
+  availableTeachers: ChannelTeacher[];
+}
+
+export interface ChannelSettingsInput {
+  displayName: string | null;
+  description: string | null;
+  /** Empty = every teacher may upload. */
+  allowedTeacherIds: string[];
+}
+
 export const videoSettingsKeys = {
   all: ["video-settings"] as const,
   providers: () => [...videoSettingsKeys.all, "providers"] as const,
+  channelSettings: () => [...videoSettingsKeys.all, "channel-settings"] as const,
   pending: (pendingId: string) => [...videoSettingsKeys.all, "pending", pendingId] as const,
   configuration: () => [...videoSettingsKeys.all, "configuration"] as const,
 };
@@ -175,6 +200,31 @@ export function useUpdateTenantVideoConfiguration() {
       }),
     onSuccess: (data) => {
       queryClient.setQueryData(videoSettingsKeys.configuration(), data);
+    },
+  });
+}
+
+/** VIDEO Phase 5b - Tenant Admin (INTEGRATIONS VIEW); a 403 means no access. */
+export function useVideoChannelSettings(enabled = true) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: videoSettingsKeys.channelSettings(),
+    queryFn: () => authorizedFetch<ChannelSettingsView>("tenant", `${BASE}/youtube/settings`),
+    enabled,
+  });
+}
+
+export function useUpdateVideoChannelSettings() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ChannelSettingsInput) =>
+      authorizedFetch<ChannelSettingsView>("tenant", `${BASE}/youtube/settings`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(videoSettingsKeys.channelSettings(), data);
     },
   });
 }

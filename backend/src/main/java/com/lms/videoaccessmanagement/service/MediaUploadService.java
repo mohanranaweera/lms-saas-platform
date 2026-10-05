@@ -115,7 +115,8 @@ public class MediaUploadService {
 	 * @param editingEnabled the channel's grant can edit videos (ADR-018 Amendment 3)
 	 */
 	public record UploadLimits(boolean uploadsEnabled, ChannelState channel, boolean editingEnabled, int dailyLimit,
-			int usedToday, long maxFileSizeBytes, long partSizeBytes, Set<String> allowedMimeTypes) {
+			int usedToday, long maxFileSizeBytes, long partSizeBytes, Set<String> allowedMimeTypes, boolean canUpload,
+			String notAllowedReason) {
 
 	}
 
@@ -145,11 +146,14 @@ public class MediaUploadService {
 
 	private final Clock clock;
 
+	private final TenantVideoChannelService channelSettings;
+
 	public MediaUploadService(MediaUploadStore store, VideoAssetRepository assets, MediaAssetViews views,
 			MediaStagingApi staging, VideoProviderUploadApi providerUploads, MediaConnectionApi connections,
 			TenantVideoConfigurationService configuration, VideoFeatureFlags featureFlags,
 			VideoUploadProperties properties, PermissionCheckService permissionCheckService,
-			TenantContext tenantContext, TenantVideoUsageDailyRepository usage, Clock clock) {
+			TenantContext tenantContext, TenantVideoUsageDailyRepository usage, Clock clock,
+			TenantVideoChannelService channelSettings) {
 		this.store = store;
 		this.assets = assets;
 		this.views = views;
@@ -163,12 +167,15 @@ public class MediaUploadService {
 		this.tenantContext = tenantContext;
 		this.usage = usage;
 		this.clock = clock;
+		this.channelSettings = channelSettings;
 	}
 
 	/** The upload panel's limits and channel state, for whoever may upload. */
 	@Transactional(readOnly = true)
 	public UploadLimits limits() {
-		requireUploader();
+		UUID callerId = requireUploader(false);
+		boolean allowed = !isTeacher(AuthenticatedPrincipalHolder.get())
+				|| channelSettings.isTeacherAllowedToUpload(callerId);
 		Optional<TenantChannelSummary> channel = connections.findTenantVideoChannel(MediaProvider.YOUTUBE);
 		ChannelState state = channel.map(c -> c.platformDisabled() ? ChannelState.DISABLED
 				: (c.status() == MediaConnectionStatus.ACTIVE) ? ChannelState.CONNECTED : ChannelState.EXPIRED)
@@ -179,7 +186,8 @@ public class MediaUploadService {
 		return new UploadLimits(featureFlags.isYoutubeUpload() && configuration.effectiveSettings().uploadsEnabled(),
 				state, channel.map(TenantChannelSummary::editScopeGranted).orElse(false),
 				configuration.effectiveDailyUploadLimit(), used, properties.getMaxFileSizeBytes(),
-				properties.getPartSizeBytes(), new TreeSet<>(ALLOWED_MIME_TYPES));
+				properties.getPartSizeBytes(), new TreeSet<>(ALLOWED_MIME_TYPES), allowed,
+				allowed ? null : MediaUploadException.notAllowed().getMessage());
 	}
 
 	/**
@@ -188,7 +196,7 @@ public class MediaUploadService {
 	 * usable tenant YouTube channel, the request itself, the daily budget.
 	 */
 	public StartedUpload create(CreateUploadCommand command) {
-		UUID actorId = requireUploader();
+		UUID actorId = requireUploader(true);
 		requireUploadsEnabled();
 		UUID connectionId = requireUsableChannel();
 		CreateUploadCommand valid = validate(command);
@@ -271,6 +279,7 @@ public class MediaUploadService {
 	/** Re-queues a failed transfer whose staged file still exists (no new budget slot). */
 	public MediaAssetView retry(UUID assetId) {
 		VideoAsset asset = requireAccessibleAsset(assetId);
+		requireTeacherAllowList();
 		requireUploadsEnabled();
 		requireUsableChannel();
 		// The asset belongs to the channel it was created for; a replaced channel cannot take it over.
@@ -282,12 +291,28 @@ public class MediaUploadService {
 
 	// ------------------------------------------------------------------
 
-	private UUID requireUploader() {
+	/**
+	 * Teacher / TA, or {@code MATERIALS} CREATE_EDIT staff. With {@code
+	 * enforceAllowList}, a teacher must also be on the institute channel's
+	 * allowed-teachers list when the admin has set one (VIDEO Phase 5b).
+	 */
+	private UUID requireUploader(boolean enforceAllowList) {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		if (!isTeacher(principal)) {
 			permissionCheckService.requirePermission(DomainArea.MATERIALS, PermissionAction.CREATE_EDIT);
 		}
+		else if (enforceAllowList) {
+			requireTeacherAllowList();
+		}
 		return principal.userId();
+	}
+
+	private void requireTeacherAllowList() {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (isTeacher(principal) && !channelSettings.isTeacherAllowedToUpload(principal.userId())) {
+			securityLog.atInfo().setMessage("video_upload.teacher_not_allowed").log();
+			throw MediaUploadException.notAllowed();
+		}
 	}
 
 	/** 404 for another tenant's asset (tenant filter), another teacher's upload, or a deleted asset. */

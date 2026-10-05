@@ -11,8 +11,13 @@ import {
   useConfirmTenantYouTubeChannel,
   usePendingYouTubeChannel,
   useTenantVideoProviders,
+  useVideoChannelSettings,
 } from "@/lib/api/video-providers";
 import { TenantYouTubeChannelCard } from "@/components/integrations/tenant-youtube-channel-card";
+import {
+  TenantYouTubeChannelSettings,
+  uploadersSummary,
+} from "@/components/integrations/tenant-youtube-channel-settings";
 import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -148,6 +153,8 @@ function VideoProvidersContent() {
   const { session } = useAuth();
   const canManage = canManageIntegrations(session?.role ?? null);
   const query = useTenantVideoProviders();
+  // Loaded once the provider list has loaded (same INTEGRATIONS VIEW permission).
+  const channelSettings = useVideoChannelSettings(query.isSuccess);
   const [result, clearResult] = useCallbackResult();
 
   return (
@@ -183,8 +190,33 @@ function VideoProvidersContent() {
         {(accounts) => (
           <div className="flex max-w-2xl flex-col gap-4">
             {accounts.map((account) => (
-              <TenantYouTubeChannelCard key={account.provider} view={account} canManage={canManage} />
+              <TenantYouTubeChannelCard
+                key={account.provider}
+                view={account}
+                canManage={canManage}
+                displayName={channelSettings.data?.displayName ?? null}
+                uploaders={channelSettings.data ? uploadersSummary(channelSettings.data) : null}
+              />
             ))}
+            {channelSettings.isPending ? (
+              <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
+                Loading channel settings…
+              </p>
+            ) : channelSettings.isError ? (
+              <Alert variant="destructive">
+                <AlertCircle aria-hidden="true" />
+                <AlertDescription>
+                  {isApiClientError(channelSettings.error) && channelSettings.error.status === 403
+                    ? "You don't have access to the channel settings."
+                    : "The channel settings could not be loaded. Refresh the page to try again."}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <TenantYouTubeChannelSettings
+                settings={channelSettings.data}
+                canManage={canManage}
+              />
+            )}
             {!canManage ? (
               <p className="text-sm text-muted-foreground">Only a Tenant Admin can change video providers.</p>
             ) : null}

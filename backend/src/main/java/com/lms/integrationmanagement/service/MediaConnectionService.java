@@ -74,8 +74,7 @@ public class MediaConnectionService {
 
 	private static final Logger log = LoggerFactory.getLogger(MediaConnectionService.class);
 
-	private static final List<MediaProvider> TEACHER_PROVIDERS = List.of(MediaProvider.ZOOM, MediaProvider.YOUTUBE,
-			MediaProvider.VIMEO);
+	private static final List<MediaProvider> TEACHER_PROVIDERS = List.of(MediaProvider.ZOOM, MediaProvider.VIMEO);
 
 	private static final int MAX_KEY_LENGTH = 512;
 
@@ -204,16 +203,17 @@ public class MediaConnectionService {
 	@Transactional
 	public TeacherProvidersView updateTeacherProviders(Boolean zoom, Boolean youtube, Boolean vimeo) {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT);
-		if (zoom == null || youtube == null || vimeo == null) {
+		if (zoom == null || vimeo == null) {
 			throw new FieldValidationException("Invalid teacher provider settings",
-					List.of(new FieldError("zoomEnabled", "zoomEnabled, youtubeEnabled and vimeoEnabled are required")));
+					List.of(new FieldError("zoomEnabled", "zoomEnabled and vimeoEnabled are required")));
 		}
 		TenantMediaIntegrationSettings settings = settingsService.currentForUpdate();
-		settings.setTeacherProviders(zoom, youtube, vimeo);
+		// youtubeEnabled is still accepted but ignored (ADR-018 Amendment 4): the stored value is kept as-is.
+		settings.setTeacherProviders(zoom, settings.isEnabled(MediaProvider.YOUTUBE), vimeo);
 		TenantMediaIntegrationSettings saved = settingsService.save(settings);
 		auditLogApi.record(new AuditLogEntry(IntegrationActors.currentUserId(),
 				"media_integration.teacher_providers_updated", SETTINGS_TARGET, saved.getId(), null,
-				Map.of("zoomEnabled", zoom, "youtubeEnabled", youtube, "vimeoEnabled", vimeo)));
+				Map.of("zoomEnabled", zoom, "vimeoEnabled", vimeo)));
 		return teacherProvidersView(saved);
 	}
 
@@ -442,8 +442,7 @@ public class MediaConnectionService {
 	private TeacherProvidersView teacherProvidersView(TenantMediaIntegrationSettings settings) {
 		Function<MediaProvider, ProviderToggleView> toggle = provider -> new ProviderToggleView(
 				settings.isEnabled(provider), connectFlow.isAvailable(provider));
-		return new TeacherProvidersView(toggle.apply(MediaProvider.ZOOM), toggle.apply(MediaProvider.YOUTUBE),
-				toggle.apply(MediaProvider.VIMEO));
+		return new TeacherProvidersView(toggle.apply(MediaProvider.ZOOM), toggle.apply(MediaProvider.VIMEO));
 	}
 
 	private CredentialContext tenantCredentialContext(MediaProvider provider) {

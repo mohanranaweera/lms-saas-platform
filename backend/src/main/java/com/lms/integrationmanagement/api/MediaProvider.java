@@ -13,7 +13,9 @@ import java.util.Optional;
  */
 public enum MediaProvider {
 
-	ZOOM(true), YOUTUBE(true), VIMEO(true), DYNTUBE(false), BUNNY(false);
+	// YOUTUBE is institute-level only since ADR-018 Amendment 4 (VIDEO Phase 5b): teachers no longer
+	// connect a personal YouTube account; the tenant channel is the only YouTube connection.
+	ZOOM(true), YOUTUBE(false), VIMEO(true), DYNTUBE(false), BUNNY(false);
 
 	private final boolean teacherScoped;
 
@@ -21,7 +23,7 @@ public enum MediaProvider {
 		this.teacherScoped = teacherScoped;
 	}
 
-	/** True for per-teacher OAuth providers (Zoom/YouTube/Vimeo). */
+	/** True for per-teacher OAuth providers (Zoom/Vimeo). */
 	public boolean isTeacherScoped() {
 		return teacherScoped;
 	}

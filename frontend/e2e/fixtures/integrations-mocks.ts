@@ -50,7 +50,7 @@ export function connection(overrides: Partial<ConnectionMock> & { id: string; pr
 }
 
 export interface TeacherProviderMock {
-  provider: "ZOOM" | "YOUTUBE" | "VIMEO";
+  provider: "ZOOM" | "VIMEO";
   enabledByTenant: boolean;
   available: boolean;
   connection: ConnectionMock | null;
@@ -59,7 +59,7 @@ export interface TeacherProviderMock {
 export type BunnyLibraryStatusMock = "PROVISIONING" | "ACTIVE" | "FAILED" | "UNAVAILABLE";
 
 export function teacherIntegrations(
-  overrides: Partial<Record<"ZOOM" | "YOUTUBE" | "VIMEO", Partial<TeacherProviderMock>>> = {},
+  overrides: Partial<Record<"ZOOM" | "VIMEO", Partial<TeacherProviderMock>>> = {},
   bunny: {
     bunnyConnected?: boolean;
     bunnyLibrary?: { status: BunnyLibraryStatusMock; libraryName: string } | null;
@@ -72,7 +72,7 @@ export function teacherIntegrations(
   return {
     bunnyConnected: bunny.bunnyConnected ?? false,
     bunnyLibrary: bunny.bunnyLibrary ?? null,
-    providers: (["ZOOM", "YOUTUBE", "VIMEO"] as const).map((provider) => ({
+    providers: (["ZOOM", "VIMEO"] as const).map((provider) => ({
       provider,
       enabledByTenant: true,
       available: true,
@@ -93,7 +93,6 @@ export function tenantIntegrations(overrides: Record<string, unknown> = {}) {
   return {
     teacherProviders: {
       zoom: { enabled: true, available: true },
-      youtube: { enabled: true, available: true },
       vimeo: { enabled: true, available: true },
     },
     videoHost: "NONE",

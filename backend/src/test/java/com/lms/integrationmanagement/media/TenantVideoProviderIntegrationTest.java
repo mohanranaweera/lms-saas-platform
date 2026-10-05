@@ -124,7 +124,9 @@ class TenantVideoProviderIntegrationTest extends MediaIntegrationTestSupport {
 	@Test
 	void aTenantAdminCannotPromoteATeachersPersonalAuthorizationToTheTenantChannel() {
 		Ctx ctx = seedTenant("vp-admin-teacher-pending");
-		String teacherPending = pendingIdOf(authorizeTeacher(ctx.host(), ctx.teacherToken(), "youtube"));
+		// Teachers can no longer authorize YouTube (ADR-018 Amendment 4); a Vimeo pending keeps the check.
+		assertThat(status(beginConnect(ctx.host(), ctx.teacherToken(), "youtube"))).isEqualTo(404);
+		String teacherPending = pendingIdOf(authorizeTeacher(ctx.host(), ctx.teacherToken(), "vimeo"));
 
 		assertThat(status(preview(ctx.host(), ctx.adminToken(), teacherPending))).isEqualTo(404);
 		assertThat(status(confirm(ctx.host(), ctx.adminToken(), teacherPending, false))).isEqualTo(404);
@@ -209,9 +211,9 @@ class TenantVideoProviderIntegrationTest extends MediaIntegrationTestSupport {
 	}
 
 	@Test
-	void teacherYouTubeConnectionIdsAreNotReachableThroughTheVideoProviderEndpoints() {
+	void teacherConnectionIdsAreNotReachableThroughTheVideoProviderEndpoints() {
 		Ctx ctx = seedTenant("vp-teacher-id");
-		JsonNode teacherConnection = connectTeacher(ctx.host(), ctx.teacherToken(), "youtube");
+		JsonNode teacherConnection = connectTeacher(ctx.host(), ctx.teacherToken(), "vimeo");
 		UUID teacherConnectionId = UUID.fromString(teacherConnection.path("id").asString());
 
 		assertThat(status(test(ctx.host(), ctx.adminToken(), teacherConnectionId))).isEqualTo(404);

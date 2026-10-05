@@ -29,7 +29,6 @@ import {
 
 const DESCRIPTIONS: Record<TeacherProviderView["provider"], string> = {
   ZOOM: "Host your live classes on your own Zoom account. Each student gets a personal join link. A licensed (paid) Zoom account is required.",
-  YOUTUBE: "Link your own YouTube channel so you can use your private or unlisted videos in lessons (coming soon).",
   VIMEO: "Link your own Vimeo account so you can use your private videos in lessons (coming soon).",
 };
 

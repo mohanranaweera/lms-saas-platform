@@ -77,7 +77,8 @@ public class MediaConnectionViews {
 
 	}
 
-	public record TeacherProvidersView(ProviderToggleView zoom, ProviderToggleView youtube, ProviderToggleView vimeo) {
+	/** YouTube is no longer a teacher-level provider (ADR-018 Amendment 4), so it has no toggle here. */
+	public record TeacherProvidersView(ProviderToggleView zoom, ProviderToggleView vimeo) {
 
 	}
 

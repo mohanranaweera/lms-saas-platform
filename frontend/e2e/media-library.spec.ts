@@ -47,6 +47,8 @@ function limits(overrides: Record<string, unknown> = {}) {
     maxFileSizeBytes: 1_000_000,
     partSizeBytes: 10,
     allowedMimeTypes: ["video/mp4", "video/quicktime", "video/webm"],
+    canUpload: true,
+    notAllowedReason: null,
     ...overrides,
   };
 }
@@ -328,6 +330,28 @@ test.describe("Uploading", () => {
 
     await expect(page.getByText("Your institute has used today's 20 uploads. Try again tomorrow.")).toBeVisible();
     await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
+  });
+
+  test("a teacher not on the channel's allowed list sees the server's reason and can't upload", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    const calls = await mockMedia(page, {
+      list: [asset()],
+      limits: {
+        canUpload: false,
+        notAllowedReason: "Your institute hasn't given you access to upload videos. Ask your institute admin.",
+      },
+    });
+
+    await page.goto("/teacher/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+
+    await expect(
+      page.getByText("Your institute hasn't given you access to upload videos. Ask your institute admin.")
+    ).toBeVisible();
+    await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
+    // Their existing videos are still listed.
+    await expect(page.getByText("Algebra lesson 1")).toBeVisible();
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
   });
 });
 

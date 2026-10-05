@@ -401,6 +401,14 @@ For whoever may upload (Student → `403`):
   "allowedMimeTypes": ["video/mp4", "video/quicktime", "video/webm"] }
 ```
 
+Since VIDEO Phase 5b, `upload-limits` also returns `canUpload` (false for a teacher who is not on
+the institute channel's allowed-teachers list) and `notAllowedReason`.
+
+**Allowed teachers (Phase 5b):** if the Tenant Admin has picked teachers for the institute
+channel, `POST /media` and `/upload/retry` by any other Teacher / Teacher Assistant →
+`403 VIDEO_UPLOAD_NOT_ALLOWED`. Their existing media can still be viewed, edited, cancelled and
+deleted. Staff with `MATERIALS` are not affected. No teachers picked = every teacher may upload.
+
 ### `PATCH /media/{id}`
 
 Body: any of `title` (1–100, no `<`/`>`), `description` (≤ 5000, no `<`/`>`; blank clears it) and

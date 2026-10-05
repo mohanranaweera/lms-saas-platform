@@ -336,3 +336,24 @@ sent to YouTube (`videos.update`). The tenant channel scopes therefore become `y
   channel. On any YouTube error the LMS row is not changed. Edits are audited
   (`media_asset.updated`).
 - **Platform switch-off (TD-008)** also blocks edits.
+
+## Amendment 4 (2026-10-05): institute channel only; allowed teachers (VIDEO Phase 5b)
+
+**Status:** Accepted by the project owner on 2026-10-05 ("Yes Approved"), after reviewing
+Klass's Integrations screen.
+
+**Decision.**
+1. **YouTube is no longer a teacher-level provider.** The institute channel (Amendment 2) is the
+   only YouTube connection. `MediaProvider.YOUTUBE` is not teacher-scoped, a teacher YouTube
+   connect returns `404`, and YouTube is removed from the teacher overview and from the
+   per-teacher provider toggles (`youtubeEnabled` is accepted and ignored).
+2. V73 disconnects live teacher YouTube rows (DISCONNECTED / SYSTEM, credentials wiped, rows
+   kept). A migration cannot revoke them at Google, so the read-only grant stays on the
+   teacher's own Google account until they remove it. No feature ever consumed these grants.
+3. **Allowed teachers.** The Tenant Admin can give the channel a display name / description and
+   limit uploads to selected teachers (`tenant_video_upload_teacher`). None selected = all
+   teachers. Enforced server-side on upload create / retry; audited.
+
+**Clarified:** Google OAuth is configured once per platform environment by the operator (one
+OAuth client, verification of the sensitive scopes, quota extension). Tenants only click
+Connect.

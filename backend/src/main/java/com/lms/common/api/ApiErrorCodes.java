@@ -128,6 +128,9 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 5 - the tenant channel was connected without the edit scope (ADR-018 Amendment 3); reconnect. */
 	public static final String VIDEO_PROVIDER_SCOPE_MISSING = "VIDEO_PROVIDER_SCOPE_MISSING";
 
+	/** VIDEO Phase 5b - this teacher is not on the institute channel's allowed-teachers list. */
+	public static final String VIDEO_UPLOAD_NOT_ALLOWED = "VIDEO_UPLOAD_NOT_ALLOWED";
+
 	/** VIDEO Phase 5 - the media is used by a lesson material and cannot be deleted. */
 	public static final String MEDIA_ATTACHED = "MEDIA_ATTACHED";
 

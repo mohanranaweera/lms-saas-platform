@@ -66,6 +66,10 @@ export interface MediaUploadLimits {
   maxFileSizeBytes: number;
   partSizeBytes: number;
   allowedMimeTypes: string[];
+  /** VIDEO Phase 5b: false for a teacher not on the institute channel's allowed-teacher list. */
+  canUpload: boolean;
+  /** The server's explanation when `canUpload` is false. */
+  notAllowedReason: string | null;
 }
 
 export interface PresignedPart {

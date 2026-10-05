@@ -113,13 +113,13 @@ class TeacherMediaConnectionIntegrationTest extends MediaIntegrationTestSupport 
 	@Test
 	void deniedConsentStoresNothing() {
 		TeacherCtx ctx = seedTeacher("mi-denied");
-		String url = json(beginConnect(ctx.host(), ctx.token(), "youtube")).path("data").path("authorizationUrl")
+		String url = json(beginConnect(ctx.host(), ctx.token(), "vimeo")).path("data").path("authorizationUrl")
 			.asString();
 
-		MvcResult result = callback("youtube", null, "access_denied", stateOf(url));
+		MvcResult result = callback("vimeo", null, "access_denied", stateOf(url));
 
 		assertThat(result.getResponse().getHeader(HttpHeaders.LOCATION))
-			.endsWith("/teacher/settings/integrations?error=denied&provider=youtube");
+			.endsWith("/teacher/settings/integrations?error=denied&provider=vimeo");
 		assertThat(connectionCount(ctx.tenant().getId())).isZero();
 	}
 
@@ -143,16 +143,20 @@ class TeacherMediaConnectionIntegrationTest extends MediaIntegrationTestSupport 
 	}
 
 	@Test
-	void youTubeAndVimeoAreIndependentPerTeacherConnections() {
+	void youTubeIsNoLongerATeacherProviderButVimeoStillIs() {
+		// ADR-018 Amendment 4 (VIDEO Phase 5b): the institute channel is the only YouTube connection.
 		TeacherCtx ctx = seedTeacher("mi-yt-vimeo");
 
-		assertThat(connectTeacher(ctx.host(), ctx.token(), "youtube").path("status").asString()).isEqualTo("ACTIVE");
+		assertThat(status(beginConnect(ctx.host(), ctx.token(), "youtube"))).isEqualTo(404);
 		assertThat(connectTeacher(ctx.host(), ctx.token(), "vimeo").path("status").asString()).isEqualTo("ACTIVE");
 
 		JsonNode providers = json(teacherOverview(ctx.host(), ctx.token())).path("data").path("providers");
+		assertThat(providers).hasSize(2);
+		assertThat(providers.toString()).doesNotContain("YOUTUBE");
 		assertThat(providers.path(0).path("connection").isNull()).isTrue();
-		assertThat(providers.path(1).path("connection").path("accountLabel").asString()).isEqualTo("Teacher Channel");
-		assertThat(providers.path(2).path("connection").path("accountLabel").asString()).isEqualTo("Vimeo Teacher");
+		assertThat(providers.path(1).path("connection").path("accountLabel").asString()).isEqualTo("Vimeo Teacher");
+		assertThat(rawContent(adminPut(ctx.host(), ctx.adminToken(), "/teacher-providers",
+				Map.of("zoomEnabled", true, "youtubeEnabled", true, "vimeoEnabled", true)))).doesNotContain("youtube");
 	}
 
 	@Test

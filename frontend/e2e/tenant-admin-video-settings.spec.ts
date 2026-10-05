@@ -57,8 +57,47 @@ const DEFAULT_SETTINGS = {
   heartbeatIntervalSeconds: 20,
 };
 
+const TEACHERS = [
+  { userId: "user-t1", name: "Teacher One", email: "one@example.test" },
+  { userId: "user-t2", name: "Teacher Two", email: "two@example.test" },
+];
+
+function channelSettings(overrides: Record<string, unknown> = {}) {
+  return {
+    displayName: null,
+    description: null,
+    allTeachersAllowed: true,
+    allowedTeachers: [],
+    availableTeachers: TEACHERS,
+    ...overrides,
+  };
+}
+
 async function mockProviders(page: Page, accounts: unknown[]): Promise<void> {
   await mockJson(page, "**/v1/tenant-admin/video-providers", 200, apiSuccess(accounts));
+  await mockJson(page, "**/v1/tenant-admin/video-providers/youtube/settings", 200, apiSuccess(channelSettings()));
+}
+
+/** Answers GET with `current` and records every PUT body, replying with the saved view. */
+async function mockChannelSettings(page: Page, current: Record<string, unknown>, putReply?: { status: number; body: unknown }) {
+  const puts: unknown[] = [];
+  await page.route("**/v1/tenant-admin/video-providers/youtube/settings", async (route) => {
+    if (route.request().method() === "PUT") {
+      const body = route.request().postDataJSON() as { displayName: string | null; allowedTeacherIds: string[] };
+      puts.push(body);
+      if (putReply) return fulfillJson(route, putReply.status, putReply.body);
+      const allowed = TEACHERS.filter((t) => body.allowedTeacherIds.includes(t.userId));
+      return fulfillJson(
+        route,
+        200,
+        apiSuccess(
+          channelSettings({ ...body, allTeachersAllowed: allowed.length === 0, allowedTeachers: allowed })
+        )
+      );
+    }
+    return fulfillJson(route, 200, apiSuccess(current));
+  });
+  return puts;
 }
 
 test.describe("Tenant Admin video providers", () => {
@@ -223,6 +262,93 @@ test.describe("Tenant Admin video providers", () => {
     await expect(page.getByText("Institute Channel")).toBeVisible();
     await expect(page.getByRole("button", { name: /Connect|Reconnect|Disconnect|Test/ })).toHaveCount(0);
     await expect(page.getByText("Only a Tenant Admin can change video providers.")).toBeVisible();
+  });
+});
+
+test.describe("Institute channel settings (Phase 5b)", () => {
+  test("by default all teachers may upload; choosing teachers sends exactly their user ids", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL })]);
+    const puts = await mockChannelSettings(page, channelSettings());
+
+    await page.goto("/tenant-admin/settings/video-providers");
+
+    const card = page.getByRole("region", { name: "YouTube" });
+    await expect(card.getByText("YouTube · All teachers")).toBeVisible();
+    const form = page.getByRole("form", { name: "Channel settings" });
+    await expect(form.getByLabel("All teachers")).toBeChecked();
+    await expect(form.getByText("Teacher One")).toHaveCount(0);
+
+    await form.getByLabel("Name (optional)").fill("  Lessons channel ");
+    await form.getByLabel("Selected teachers only").check();
+    await form.getByLabel(/Teacher Two/).check();
+    await form.getByRole("button", { name: "Save channel settings" }).click();
+
+    await expect(form.getByText("Channel settings saved.")).toBeVisible();
+    expect(puts).toEqual([{ displayName: "Lessons channel", description: null, allowedTeacherIds: ["user-t2"] }]);
+    await expect(card.getByText("Lessons channel — YouTube · 1 teacher")).toBeVisible();
+  });
+
+  test("selected teachers need at least one, and going back to all teachers sends an empty list", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL })]);
+    const puts = await mockChannelSettings(
+      page,
+      channelSettings({ allTeachersAllowed: false, allowedTeachers: TEACHERS, displayName: "Lessons" })
+    );
+
+    await page.goto("/tenant-admin/settings/video-providers");
+    const form = page.getByRole("form", { name: "Channel settings" });
+    await expect(page.getByRole("region", { name: "YouTube" }).getByText("Lessons — YouTube · 2 teachers")).toBeVisible();
+    await expect(form.getByLabel(/Teacher One/)).toBeChecked();
+
+    await form.getByLabel(/Teacher One/).uncheck();
+    await form.getByLabel(/Teacher Two/).uncheck();
+    await form.getByLabel("Name (optional)").fill("<b>");
+    await form.getByRole("button", { name: "Save channel settings" }).click();
+    await expect(form.getByText("Choose at least one teacher, or allow all teachers.")).toBeVisible();
+    await expect(form.getByText("The name can't contain < or >.")).toBeVisible();
+    expect(puts).toEqual([]);
+
+    await form.getByLabel("Name (optional)").fill("Lessons");
+    await form.getByLabel("All teachers").check();
+    await form.getByRole("button", { name: "Save channel settings" }).click();
+    await expect(form.getByText("Channel settings saved.")).toBeVisible();
+    expect(puts).toEqual([{ displayName: "Lessons", description: null, allowedTeacherIds: [] }]);
+  });
+
+  test("a server field error is shown on the form", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL })]);
+    await mockChannelSettings(page, channelSettings(), {
+      status: 400,
+      body: apiError("VALIDATION_ERROR", "Invalid channel settings", [
+        { field: "allowedTeacherIds", message: "must list teachers of this institute" },
+      ]),
+    });
+
+    await page.goto("/tenant-admin/settings/video-providers");
+    const form = page.getByRole("form", { name: "Channel settings" });
+    await form.getByLabel("Selected teachers only").check();
+    await form.getByLabel(/Teacher One/).check();
+    await form.getByRole("button", { name: "Save channel settings" }).click();
+
+    await expect(form.getByText("Some of these teachers are no longer part of your institute.")).toBeVisible();
+  });
+
+  test("a read-only auditor sees the channel settings disabled without a save button", async ({ page }) => {
+    await mockTenantSession(page, "READ_ONLY_AUDITOR");
+    await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL })]);
+    await mockChannelSettings(page, channelSettings({ allTeachersAllowed: false, allowedTeachers: [TEACHERS[0]] }));
+
+    await page.goto("/tenant-admin/settings/video-providers");
+    const form = page.getByRole("form", { name: "Channel settings" });
+
+    await expect(form.getByLabel(/Teacher One/)).toBeChecked();
+    await expect(form.getByLabel(/Teacher One/)).toBeDisabled();
+    await expect(form.getByLabel("Name (optional)")).toBeDisabled();
+    await expect(form.getByRole("button", { name: "Save channel settings" })).toHaveCount(0);
+    await expect(form.getByText("Only a Tenant Admin can change these settings.")).toBeVisible();
   });
 });
 

@@ -48,7 +48,7 @@ function errorText(error: unknown, fallback: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Teacher providers (which of Zoom / YouTube / Vimeo teachers may connect)
+// Teacher providers (which of Zoom / Vimeo teachers may connect; YouTube is the institute channel)
 // ---------------------------------------------------------------------------
 
 export function TeacherProvidersSection({
@@ -61,13 +61,11 @@ export function TeacherProvidersSection({
   const mutation = useUpdateTeacherProviders();
   const [values, setValues] = useState({
     zoomEnabled: providers.zoom.enabled,
-    youtubeEnabled: providers.youtube.enabled,
     vimeoEnabled: providers.vimeo.enabled,
   });
   const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null);
   const rows: { key: keyof typeof values; provider: TeacherMediaProvider; toggle: typeof providers.zoom }[] = [
     { key: "zoomEnabled", provider: "ZOOM", toggle: providers.zoom },
-    { key: "youtubeEnabled", provider: "YOUTUBE", toggle: providers.youtube },
     { key: "vimeoEnabled", provider: "VIMEO", toggle: providers.vimeo },
   ];
 
@@ -586,7 +584,6 @@ export function TeacherConnectionsSection({
             >
               <option value="ALL">All services</option>
               <option value="ZOOM">Zoom</option>
-              <option value="YOUTUBE">YouTube</option>
               <option value="VIMEO">Vimeo</option>
             </select>
           </div>
@@ -610,7 +607,7 @@ export function TeacherConnectionsSection({
       {rows.length === 0 ? (
         <EmptyState
           title="No teacher has connected an account yet"
-          description="Teachers connect Zoom, YouTube or Vimeo from their own Settings → Integrations page. Connected accounts will appear here."
+          description="Teachers connect Zoom or Vimeo from their own Settings → Integrations page. Connected accounts will appear here."
         />
       ) : filtered.length === 0 ? (
         <EmptyState
