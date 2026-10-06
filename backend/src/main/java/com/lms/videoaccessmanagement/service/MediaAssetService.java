@@ -132,9 +132,10 @@ public class MediaAssetService {
 		Page<VideoAsset> page = videoAssetRepository.findAll(spec, pageRequest);
 		List<UUID> ids = page.getContent().stream().map(VideoAsset::getId).toList();
 		Map<UUID, MediaUploadJob> jobs = jobRepository.findLatestForAssets(ids);
-		Set<UUID> attached = materialLookupApi.findVideoAssetIdsInUse(ids);
+		Map<UUID, Integer> attachmentCounts = java.util.Optional
+			.ofNullable(materialLookupApi.countLessonAttachments(ids)).orElse(Map.of());
 		return page.map(asset -> mediaAssetViews.toView(asset, jobs.get(asset.getId()),
-				attached.contains(asset.getId())));
+				attachmentCounts.getOrDefault(asset.getId(), 0)));
 	}
 
 	/**
@@ -230,8 +231,11 @@ public class MediaAssetService {
 	// ------------------------------------------------------------------
 
 	private MediaAssetView enriched(VideoAsset asset) {
+		Map<UUID, Integer> counts = java.util.Optional
+			.ofNullable(materialLookupApi.countLessonAttachments(Set.of(asset.getId()))).orElse(Map.of());
+		int attachedLessonCount = counts.getOrDefault(asset.getId(), 0);
 		return mediaAssetViews.toView(asset, jobRepository.findLatestForAsset(asset.getId()).orElse(null),
-				materialLookupApi.findVideoAssetIdsInUse(Set.of(asset.getId())).contains(asset.getId()));
+				attachedLessonCount);
 	}
 
 	private void pushToProvider(VideoAsset asset, MediaAssetUpdate merged) {
@@ -309,7 +313,18 @@ public class MediaAssetService {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
 			UUID userId = principal.userId();
-			return (root, q, cb) -> cb.equal(root.get("uploadedBy"), userId);
+			if (action != PermissionAction.VIEW) {
+				return (root, q, cb) -> cb.equal(root.get("uploadedBy"), userId);
+			}
+			Set<UUID> attachedToCourses = java.util.Optional
+				.ofNullable(materialLookupApi.findVideoAssetIdsForTeacher(userId)).orElse(Set.of());
+			return (root, q, cb) -> {
+				var isUploader = cb.equal(root.get("uploadedBy"), userId);
+				if (attachedToCourses.isEmpty()) {
+					return isUploader;
+				}
+				return cb.or(isUploader, root.get("id").in(attachedToCourses));
+			};
 		}
 		permissionCheckService.requirePermission(DomainArea.MATERIALS, action);
 		return (root, q, cb) -> cb.conjunction();

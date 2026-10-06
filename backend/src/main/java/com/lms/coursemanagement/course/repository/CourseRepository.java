@@ -40,4 +40,8 @@ public interface CourseRepository extends TenantAwareRepository<Course, UUID> {
 		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("slug"), slug), cb.equal(root.get("status"), status)));
 	}
 
+	default java.util.List<Course> findByTeacherId(UUID teacherId) {
+		return findAll((root, query, cb) -> cb.equal(root.get("teacherId"), teacherId));
+	}
+
 }

@@ -143,4 +143,17 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 							course.getTeacherId(), course.getStatus() != CourseStatus.DRAFT))));
 	}
 
+	@Override
+	public Set<UUID> findLessonIdsByTeacherId(UUID teacherUserId) {
+		Set<UUID> courseIds = courseRepository.findByTeacherId(teacherUserId).stream()
+			.map(Course::getId)
+			.collect(Collectors.toSet());
+		Set<UUID> moduleIds = courseModuleRepository.findByCourseIds(courseIds).stream()
+			.map(com.lms.coursemanagement.course.domain.CourseModule::getId)
+			.collect(Collectors.toSet());
+		return courseLessonRepository.findByModuleIds(moduleIds).stream()
+			.map(com.lms.coursemanagement.course.domain.CourseLesson::getId)
+			.collect(Collectors.toSet());
+	}
+
 }

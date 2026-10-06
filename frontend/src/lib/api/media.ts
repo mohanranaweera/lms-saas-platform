@@ -59,7 +59,27 @@ export interface MediaAsset {
   youtubeUrl: string | null;
   /** VIDEO Phase 5d: the YouTube integration (tab) the video belongs to; null for platform-stored videos. */
   integrationId: string | null;
+  /** VIDEO Phase 6: number of distinct lessons using this asset. */
+  attachedLessonCount: number;
 }
+
+export type LessonMediaVisibility = "VISIBLE" | "HIDDEN";
+
+export interface LessonMedia {
+  id: string;
+  lessonId: string;
+  courseId: string;
+  mediaAssetId: string;
+  title: string;
+  sequence: number;
+  visibility: LessonMediaVisibility;
+  provider: MediaAssetProvider;
+  durationSeconds: number | null;
+  status: MediaProcessingStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 /** VIDEO Phase 5d: one YouTube integration tab for the caller. */
 export interface MediaTab {
@@ -151,7 +171,12 @@ export const mediaKeys = {
   detail: (id: string) => [...mediaKeys.all, "detail", id] as const,
   limits: (integrationId: string | null) => [...mediaKeys.all, "limits", integrationId ?? "none"] as const,
   tabs: () => [...mediaKeys.all, "tabs"] as const,
+  lesson: (courseId: string, lessonId: string) => [...mediaKeys.all, "lesson", courseId, lessonId] as const,
 };
+
+const lessonMediaPath = (courseId: string, lessonId: string) =>
+  `/v1/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/media`;
+
 
 const BASE = "/v1/media";
 
@@ -180,11 +205,12 @@ function listPath(params: MediaListParams): string {
   return `${BASE}?${search.toString()}`;
 }
 
-export function useMediaList(params: MediaListParams) {
+export function useMediaList(params: MediaListParams, enabled = true) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: mediaKeys.list(params),
     queryFn: () => authorizedFetch<PageResponse<MediaAsset>>("tenant", listPath(params)),
+    enabled,
     refetchInterval: (query) => (query.state.data?.content.some(isMediaInFlight) ? 10_000 : false),
   });
 }
@@ -218,6 +244,74 @@ export function useMediaTabs() {
   return useQuery({
     queryKey: mediaKeys.tabs(),
     queryFn: () => authorizedFetch<MediaTabs>("tenant", `${BASE}/channels`),
+  });
+}
+
+export function useLessonMedia(courseId: string, lessonId: string, enabled = true) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: mediaKeys.lesson(courseId, lessonId),
+    queryFn: () => authorizedFetch<LessonMedia[]>("tenant", lessonMediaPath(courseId, lessonId)),
+    enabled: Boolean(courseId && lessonId) && enabled,
+  });
+}
+
+export interface AttachLessonMediaInput {
+  mediaAssetId: string;
+  title?: string;
+  sequence?: number;
+}
+
+export interface UpdateLessonMediaInput {
+  title: string;
+  sequence: number;
+  visibility: LessonMediaVisibility;
+}
+
+export function useAttachLessonMedia(courseId: string, lessonId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AttachLessonMediaInput) =>
+      authorizedFetch<LessonMedia>("tenant", lessonMediaPath(courseId, lessonId), {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.lesson(courseId, lessonId) });
+      void queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "list"] });
+    },
+  });
+}
+
+export function useUpdateLessonMedia(courseId: string, lessonId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ lessonMediaId, input }: { lessonMediaId: string; input: UpdateLessonMediaInput }) =>
+      authorizedFetch<LessonMedia>("tenant", `${lessonMediaPath(courseId, lessonId)}/${encodeURIComponent(lessonMediaId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.lesson(courseId, lessonId) });
+      void queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "list"] });
+    },
+  });
+}
+
+export function useDetachLessonMedia(courseId: string, lessonId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (lessonMediaId: string) =>
+      authorizedFetch<null>("tenant", `${lessonMediaPath(courseId, lessonId)}/${encodeURIComponent(lessonMediaId)}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.lesson(courseId, lessonId) });
+      void queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "list"] });
+    },
   });
 }
 

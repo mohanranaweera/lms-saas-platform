@@ -4,6 +4,7 @@ import com.lms.common.persistence.CrossTenantPersistenceException;
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.contentmanagement.material.domain.Material;
+import com.lms.contentmanagement.material.domain.MaterialType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,33 @@ public interface MaterialRepository extends TenantAwareRepository<Material, UUID
 				cb.equal(root.get("sequence"), sequence), cb.notEqual(root.get("id"), excludedId)));
 	}
 
+	default boolean existsByLessonIdAndSequence(UUID lessonId, Integer sequence) {
+		return exists((root, query, cb) -> cb.and(cb.equal(root.get("lessonId"), lessonId),
+				cb.equal(root.get("sequence"), sequence)));
+	}
+
+	default java.util.Optional<Material> findVideoByLessonIdAndVideoAssetId(UUID lessonId, UUID videoAssetId) {
+		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("lessonId"), lessonId),
+				cb.equal(root.get("videoAssetId"), videoAssetId),
+				root.get("materialType").in(MaterialType.VIDEO, MaterialType.RECORDING)));
+	}
+
+	default List<Material> findVideoMaterialsByLessonId(UUID lessonId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("lessonId"), lessonId),
+				root.get("materialType").in(MaterialType.VIDEO, MaterialType.RECORDING)),
+				Sort.by(Sort.Direction.ASC, "sequence"));
+	}
+
+	default int findMaxVideoSequenceByLessonId(UUID lessonId) {
+		return findVideoMaterialsByLessonId(lessonId).stream().mapToInt(Material::getSequence).max().orElse(0);
+	}
+
+	default boolean existsByLessonIdAndSequenceAndIdNotForVideo(UUID lessonId, Integer sequence, UUID excludedId) {
+		return exists((root, query, cb) -> cb.and(cb.equal(root.get("lessonId"), lessonId),
+				cb.equal(root.get("sequence"), sequence), cb.notEqual(root.get("id"), excludedId),
+				root.get("materialType").in(MaterialType.VIDEO, MaterialType.RECORDING)));
+	}
+
 	default int findMaxSequenceByLessonId(UUID lessonId) {
 		return findByLessonId(lessonId).stream().mapToInt(Material::getSequence).max().orElse(0);
 	}
@@ -53,7 +81,38 @@ public interface MaterialRepository extends TenantAwareRepository<Material, UUID
 		if (videoAssetIds.isEmpty()) {
 			return List.of();
 		}
-		return findAll((root, query, cb) -> root.get("videoAssetId").in(videoAssetIds));
+		return findAll((root, query, cb) -> cb.and(root.get("videoAssetId").in(videoAssetIds),
+				root.get("materialType").in(MaterialType.VIDEO, MaterialType.RECORDING)));
+	}
+
+	/** VIDEO Phase 6: all video asset IDs attached to any of {@code lessonIds} in this tenant. */
+	default java.util.Set<UUID> findVideoAssetIdsByLessonIds(Collection<UUID> lessonIds) {
+		if (lessonIds.isEmpty()) {
+			return java.util.Set.of();
+		}
+		return findAll((root, query, cb) -> cb.and(root.get("lessonId").in(lessonIds),
+				root.get("materialType").in(MaterialType.VIDEO, MaterialType.RECORDING)))
+			.stream()
+			.map(Material::getVideoAssetId)
+			.filter(java.util.Objects::nonNull)
+			.collect(java.util.stream.Collectors.toSet());
+	}
+
+	/** VIDEO Phase 6: attachment count per video asset ID for this tenant. */
+	default java.util.Map<UUID, Integer> countLessonAttachmentsByVideoAssetIds(Collection<UUID> videoAssetIds) {
+		if (videoAssetIds.isEmpty()) {
+			return java.util.Map.of();
+		}
+		java.util.Map<UUID, java.util.Set<UUID>> lessonIdsByAsset = new java.util.HashMap<>();
+		for (Material material : findByVideoAssetIds(videoAssetIds)) {
+			if (material.getVideoAssetId() != null && material.getLessonId() != null) {
+				lessonIdsByAsset.computeIfAbsent(material.getVideoAssetId(), ignored -> new java.util.HashSet<>())
+						.add(material.getLessonId());
+			}
+		}
+		java.util.Map<UUID, Integer> counts = new java.util.HashMap<>();
+		lessonIdsByAsset.forEach((assetId, lessonIds) -> counts.put(assetId, lessonIds.size()));
+		return counts;
 	}
 
 	/**

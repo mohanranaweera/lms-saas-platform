@@ -54,7 +54,15 @@ const NO_MODULE_VALUE = "__no-module__";
  * confirmation-dialog primitive already exists in this codebase for
  * "leave a dirty form via in-app navigation").
  */
-export function ClassSessionCreateForm() {
+export function ClassSessionCreateForm({
+  backHref = "/teacher/live-classes",
+  successPath = "/teacher/live-classes",
+  initialCourseId = "",
+}: {
+  backHref?: string;
+  successPath?: string;
+  initialCourseId?: string;
+} = {}) {
   const router = useRouter();
   const coursesQuery = useCourses();
   const [selectedModuleId, setSelectedModuleId] = useState<string>(NO_MODULE_VALUE);
@@ -73,7 +81,7 @@ export function ClassSessionCreateForm() {
     formState: { errors, isDirty },
   } = useForm<ClassSessionFormValues>({
     resolver: zodResolver(classSessionFormSchema),
-    defaultValues: CLASS_SESSION_FORM_DEFAULT_VALUES,
+    defaultValues: { ...CLASS_SESSION_FORM_DEFAULT_VALUES, courseId: initialCourseId },
   });
 
   const courseId = useWatch({ control, name: "courseId" });
@@ -123,7 +131,7 @@ export function ClassSessionCreateForm() {
         scheduledStart: datetimeLocalToIso(values.scheduledStart),
         scheduledEnd: datetimeLocalToIso(values.scheduledEnd),
       });
-      router.push(`/teacher/live-classes/${created.id}?created=1`);
+      router.push(`${successPath}/${created.id}?created=1`);
     } catch (error) {
       if (isApiClientError(error)) {
         if (error.fieldErrors.length > 0) {
@@ -160,7 +168,7 @@ export function ClassSessionCreateForm() {
     <div className="flex flex-col gap-6">
       <div>
         <Link
-          href="/teacher/live-classes"
+          href={backHref}
           onClick={(event) => {
             if (!confirmDiscardUnsavedChanges()) {
               event.preventDefault();

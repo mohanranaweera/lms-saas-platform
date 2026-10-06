@@ -48,7 +48,13 @@ type ClassSessionEditFormValues = z.infer<typeof classSessionEditSchema>;
  * rather than letting a submit round-trip fail with a confusing 409, mirroring
  * `exam-draft-form.tsx`'s identical convention.
  */
-export function ClassSessionEditForm({ session }: { session: ClassSessionResponse }) {
+export function ClassSessionEditForm({
+  session,
+  backHref,
+}: {
+  session: ClassSessionResponse;
+  backHref?: string;
+}) {
   const router = useRouter();
   const isScheduled = session.status === "SCHEDULED";
   const mutation = useUpdateClassSession(session.id);
@@ -89,7 +95,7 @@ export function ClassSessionEditForm({ session }: { session: ClassSessionRespons
         scheduledStart: datetimeLocalToIso(values.scheduledStart),
         scheduledEnd: datetimeLocalToIso(values.scheduledEnd),
       });
-      router.push(`/teacher/live-classes/${session.id}?updated=1`);
+      router.push(`${backHref ?? "/teacher/live-classes"}/${session.id}?updated=1`);
     } catch (error) {
       setPageError(isApiClientError(error) ? error.message : "An unexpected error occurred. Please try again.");
     }

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { Video } from "lucide-react";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { MaterialRow } from "@/components/courses/material-row";
 import { MaterialUploadForm } from "@/components/courses/material-upload-form";
+import { MediaPickerSheet } from "@/components/media/media-picker-sheet";
+import { LessonMediaAttachments } from "@/components/media/lesson-media-attachments";
 import { useMaterials, useUpdateMaterial } from "@/lib/api/materials";
+import { useLessonMedia } from "@/lib/api/media";
 import { isApiClientError } from "@/lib/api/error";
 import { reorderAdjacentMaterial, sortBySequence } from "@/lib/courses/material-reorder";
 
@@ -26,8 +30,10 @@ interface MaterialsSectionProps {
  */
 export function MaterialsSection({ courseId, moduleId, lessonId, lessonTitle }: MaterialsSectionProps) {
   const materialsQuery = useMaterials(courseId, moduleId, lessonId);
+  const lessonMediaQuery = useLessonMedia(courseId, lessonId);
   const moveMaterialMutation = useUpdateMaterial(courseId, moduleId, lessonId);
 
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [reorderBusyIds, setReorderBusyIds] = useState<Set<string>>(new Set());
   const [reorderError, setReorderError] = useState<string | null>(null);
 
@@ -59,9 +65,32 @@ export function MaterialsSection({ courseId, moduleId, lessonId, lessonTitle }: 
 
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-3">
-      <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        Materials
-      </h4>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Materials</h4>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          onClick={() => setPickerOpen(true)}
+          disabled={reorderBusyIds.size > 0}
+        >
+          <Video aria-hidden="true" className="size-3.5" />
+          Choose from Media Library
+        </button>
+      </div>
+
+      <MediaPickerSheet
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        courseId={courseId}
+        lessonId={lessonId}
+        attached={lessonMediaQuery.data ?? []}
+        onAttached={() => {
+          void lessonMediaQuery.refetch();
+          void materialsQuery.refetch();
+        }}
+      />
+
+      <LessonMediaAttachments courseId={courseId} lessonId={lessonId} />
 
       <QueryStateBoundary
         query={materialsQuery}

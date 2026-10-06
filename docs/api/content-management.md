@@ -290,6 +290,30 @@ first via this module's own `DELETE .../materials/{materialId}`. No Java/API-lev
 exists between the two modules for this (only a SQL-level `FOREIGN KEY`), consistent with
 `.claude/rules/architecture.md`'s cross-module boundary rules.
 
+## LessonMedia facade (`/api/v1/courses/{courseId}/lessons/{lessonId}/media`) — VIDEO Phase 6
+
+LessonMedia reuses the existing tenant-scoped `material` row with `material_type = VIDEO` (or the
+legacy `RECORDING` type). It does not create a second association table. Every endpoint requires an
+authenticated caller and resolves tenant and lesson ownership server-side; no request accepts a
+`tenantId`.
+
+- `GET /api/v1/courses/{courseId}/lessons/{lessonId}/media` → `200` with an ordered array of
+  `LessonMediaResponse`. Teachers/staff see visible and hidden rows; enrolled students see only
+  visible rows after the normal `AccessPolicyApi` entitlement check.
+- `POST .../media` body `{ "mediaAssetId": "<uuid>", "title": "optional", "sequence": 1 }` → `201`.
+  The asset must belong to the caller's tenant and be `READY`; omitted title uses the asset title or
+  filename, and omitted sequence appends. Duplicate asset or sequence → `409`; unknown/foreign
+  asset or lesson → `404`; a processing asset → `409 MEDIA_NOT_READY`.
+- `PATCH .../media/{lessonMediaId}` body `{ "title": "...", "sequence": 2, "visibility": "VISIBLE|HIDDEN" }`
+  → `200`. Sequence collisions → `409`.
+- `DELETE .../media/{lessonMediaId}` → `200` with `data: null`. This removes only the Material
+  association; the underlying `video_asset` remains in the Media Library. Attach and detach are
+  audit-logged as `lesson_media.attached` / `lesson_media.detached`.
+
+`LessonMediaResponse` contains `id`, `lessonId`, `courseId`, `mediaAssetId`, `title`, `sequence`,
+`visibility`, `provider`, `durationSeconds`, `status`, `createdAt`, and `updatedAt`. It deliberately
+contains no provider credential, storage key, playback token, or direct thumbnail URL.
+
 ## Cross-module interaction: video-access-management and live-class-management (Wave 5)
 
 - `material.video_asset_id` is an **opaque cross-domain pointer only** — this module

@@ -23,6 +23,13 @@ public interface CourseModuleRepository extends TenantAwareRepository<CourseModu
 				(root, query, cb) -> cb.and(cb.equal(root.get("id"), id), cb.equal(root.get("courseId"), courseId)));
 	}
 
+	default List<CourseModule> findByCourseIds(java.util.Collection<UUID> courseIds) {
+		if (courseIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("courseId").in(courseIds));
+	}
+
 	default boolean existsByCourseIdAndSequence(UUID courseId, Integer sequence) {
 		return exists((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
 				cb.equal(root.get("sequence"), sequence)));

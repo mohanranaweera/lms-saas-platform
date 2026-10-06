@@ -140,6 +140,9 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 5 - the media is used by a lesson material and cannot be deleted. */
 	public static final String MEDIA_ATTACHED = "MEDIA_ATTACHED";
 
+	/** VIDEO Phase 6 - a media asset must finish processing before lesson attachment. */
+	public static final String MEDIA_NOT_READY = "MEDIA_NOT_READY";
+
 	/** VIDEO Phase 4 - the upload is not in a state that allows this action. */
 	public static final String MEDIA_UPLOAD_STATE_CONFLICT = "MEDIA_UPLOAD_STATE_CONFLICT";
 

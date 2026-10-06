@@ -20,11 +20,16 @@ public class MediaAssetViews {
 
 	/** Without upload progress or attachment (upload flow responses). */
 	public MediaAssetView toView(VideoAsset asset) {
-		return toView(asset, null, false);
+		return toView(asset, null, 0);
 	}
 
 	/** @param latestJob the asset's newest upload job, or {@code null} */
 	public MediaAssetView toView(VideoAsset asset, MediaUploadJob latestJob, boolean attached) {
+		return toView(asset, latestJob, attached ? 1 : 0);
+	}
+
+	/** @param latestJob the asset's newest upload job, or {@code null} */
+	public MediaAssetView toView(VideoAsset asset, MediaUploadJob latestJob, int attachedLessonCount) {
 		// Legacy INTERNAL uploads have no title; their filename is the best label.
 		String title = asset.getTitle() != null ? asset.getTitle() : asset.getOriginalFilename();
 		UploadProgress progress = (latestJob == null) ? null
@@ -34,8 +39,8 @@ public class MediaAssetViews {
 				asset.getThumbnailUrl(), asset.getDurationSeconds(), asset.getPrivacyStatus(), asset.getStatus(),
 				asset.getProviderFailureReason(), asset.getUploadedBy(), asset.getCreatedAt(),
 				providerCatalog.capabilities(asset.getProvider()),
-				providerCatalog.enabledPlaybackModes(asset.getProvider()), progress, attached, youtubeUrl(asset),
-				asset.getIntegrationId());
+				providerCatalog.enabledPlaybackModes(asset.getProvider()), progress, attachedLessonCount > 0,
+				attachedLessonCount, youtubeUrl(asset), asset.getIntegrationId());
 	}
 
 	/**

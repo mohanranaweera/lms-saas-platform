@@ -3,15 +3,15 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    5d — Named YouTube integrations + Media Library tabs (TESTED — awaiting commit)
-Last Updated:     2026-10-05
-Current Branch:   feat/video-multi-channel
-Latest Migration: V76__tenant_media_integrations.sql
-Backend Build:    PASS — mvnw verify, 2026-10-05 (BUILD SUCCESS, 17:59 min, Phase 5d)
-Frontend Build:   not affected (no frontend change in Phases 1–2)
+Current Phase:    6 — Lesson Integration (BACKEND IMPLEMENTED — frontend pending)
+Last Updated:     2026-10-06
+Current Branch:   feat/video-lesson-integration
+Latest Migration: V76__tenant_media_integrations.sql (no Phase 6 migration)
+Backend Build:    not run — shell execution blocked by environment gate
+Frontend Build:   not started (backend-first workflow)
 Player Build:     n/a (player project does not exist yet)
-Tests:            backend 2371 run / 0 failures / 0 errors / 0 skipped (full suite, 2026-10-05)
-Open Blockers:    B1–B4, B6 (§0.3) — owner approvals for change-controlled areas (B5 approved 2026-10-04)
+Tests:            Phase 6 tests added; Maven verification pending environment access
+Open Blockers:    B3–B4 (§0.3) — owner approvals for later playback/player phases
 ```
 
 | Phase | Description | Status | Started | Completed |
@@ -856,7 +856,7 @@ test evidence and files changed.
 | 3 | Tenant YouTube connection (connect/confirm/disconnect/platform disable), `tenant_video_configuration` API, isolation tests | ✔ | provider card, config form | — | B1 |
 | 4 | YouTube OAuth scopes, upload pipeline (presign → worker → resumable), status sync, quota budget, `FakeYouTubeServer` | ✔ | — | — | B1, B2 |
 | 5 | Media Library API completion + UI (upload, cards, status, edit, delete) | ✔ | ✔ | — | — |
-| 6 | LessonMedia endpoints + lesson editor picker | ✔ | ✔ | — | Q-001 |
+| 6 | LessonMedia endpoints + lesson editor picker | ✔ | IN PROGRESS | — | Q-001 resolved (reuse Material(VIDEO)); verification pending |
 | 7 | Playback sessions, authorization, launch codes, exchange, descriptors, WEB YouTube engine | ✔ | ✔ | — | B3, B4 (exchange carve-out) |
 | 8 | Player installations, pairing, device limits/revocation, concurrency, admin revoke | ✔ | ✔ | — | B4 |
 | 9 | `native-player/` Tauri shell, deep link, single instance, exchange client, session lifecycle, updater foundation, CI | — | download page | ✔ | B4 |
@@ -919,7 +919,7 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 |---|---|---|---|---|---|---|
 | VID-ADR-001 | 2026-10-04 | Lessons reference media via LessonMedia → MediaAsset; never a YouTube ID/URL on lessons | Provider neutrality | `Lesson.youtubeVideoId` | No course/lesson schema change | ACCEPTED (brief mandate) |
 | VID-ADR-002 | 2026-10-04 | Evolve `video_asset`, `media_provider_connection`, `video_watch_session`, ADR-022 `device` instead of new parallel tables; Java API uses brief names | Keep existing FKs, history, tests, one entitlement path | New `media_asset`/`playback_session`/`user_device` tables + migration of old data | Brief table names differ from DB names | ACCEPTED (owner, 2026-10-04) |
-| VID-ADR-003 | 2026-10-04 | LessonMedia = existing `Material(VIDEO)` row | One ordering/visibility/entitlement path | New `lesson_media` table | No migration in Phase 6 | PROPOSED (Q-001) |
+| VID-ADR-003 | 2026-10-06 | LessonMedia = existing `Material(VIDEO)` row | One ordering/visibility/entitlement path | New `lesson_media` table | No migration in Phase 6 | ACCEPTED (owner Q-001) |
 | VID-ADR-004 | 2026-10-04 | Upload via presigned S3 staging + background worker → YouTube resumable | No binary on request threads; server-side validation; bounded memory | Multipart through backend (brief §21); browser direct to YouTube session URI | Scoped architecture.md exception (worker only) | ACCEPTED (owner, B2, 2026-10-04) |
 | VID-ADR-005 | 2026-10-04 | Provider credentials stay in `media_provider_connection` ciphertext (AES-256-GCM+AAD) | Existing reviewed mechanism (ADR-018/019) | External vault/KMS | No new secret store; key rotation = TD-003 | PROPOSED |
 | VID-ADR-006 | 2026-10-04 | Feature flags = typed config properties + tenant config switches until Module D exists | No flag engine; repo pattern | Introduce Unleash/FF4J | No per-plan gating yet | PROPOSED |
@@ -933,7 +933,7 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 
 | ID | Question | Recommendation | Blocks |
 |---|---|---|---|
-| Q-001 | LessonMedia: reuse `Material(VIDEO)` or new `lesson_media` table? | Reuse | Phase 6 |
+| ~~Q-001~~ | LessonMedia: reuse `Material(VIDEO)` or new `lesson_media` table? | **Resolved 2026-10-06: reuse existing tenant-scoped `Material(VIDEO)` rows** | — |
 | Q-002 | Which managed streaming provider? | Bunny Stream (already integrated), confirm after review | Phase 13 |
 | Q-003 | May one YouTube channel be connected to two tenants? | No | Phase 3 |
 | Q-004 | Keep playing already-uploaded videos after disconnect? | Yes, LMS-gated | Phase 3 |
@@ -1042,9 +1042,8 @@ Deviations from the **master instruction** proposed in Phase 1 (each needs appro
 - **After:** plan created. No code, migrations or tests.
 - **2026-10-04 owner decisions:** B5 / VID-ADR-002 approved (evolve existing tables). The VIDEO-01
   draft was deleted (Q-018).
-- **Still open:** B1–B4, B6 for later phases; Q-001…Q-017.
-- **Phase 2 prerequisites:** B5 is met. Q-001 / Q-003 / Q-004 affect later phases only. Phase 2
-  still needs an explicit instruction to start.
+- **Historical Phase 1 note:** B1–B4 and B6 were open at the time of the original architecture review; later phase blocks record the approvals and implementation decisions.
+- **Phase 2 prerequisites:** B5 was met. Q-001 / Q-003 / Q-004 affected later phases; Q-001 is now resolved by VID-ADR-003.
 
 ### Phase 2 — Media Domain Foundation
 
@@ -1861,6 +1860,54 @@ stays the fallback). ADR-018 Amendment 5 item 1a.
   `MediaLibraryManagementIntegrationTest` (`youtubeUrl` absent while uploading, the watch URL
   after) - 20 + 12 green. Playwright `media-library.spec.ts` 19 passed (3 new). `tsc` / `eslint`
   clean.
+
+### Phase 6 — Lesson Integration
+
+**Before (2026-10-06, status → PLANNING; owner selected Q-001 = reuse `Material(VIDEO)`)**
+
+- **Objective:** expose additive LessonMedia-shaped attach/list/update/detach endpoints over the
+  existing tenant-scoped `material` association, and extend Teacher Media Library VIEW visibility
+  to videos attached to courses they teach.
+- **Decision:** VID-ADR-003 accepted; no `lesson_media` table or Flyway migration. Existing
+  composite tenant FKs, material ordering/visibility, and enrollment guard remain authoritative.
+- **Security/tenant requirements:** lesson ownership comes from `CourseLookupApi`; media details
+  come through `VideoAccessApi`; foreign ids return 404; students use the existing entitlement
+  path and see visible rows only; attach/detach are audited; deleted/non-READY assets cannot attach.
+- **Frontend:** deferred until backend implementation and tests complete, per backend-first workflow.
+
+**Backend implementation (2026-10-06)**
+
+- Added `LessonMediaController` and `LessonMediaService` under content-management with
+  `GET/POST/PATCH/DELETE /api/v1/courses/{courseId}/lessons/{lessonId}/media`.
+- Added request/response DTOs and `MEDIA_NOT_READY`; attach uses READY-only assets, duplicate and
+  sequence checks, and records `lesson_media.attached`; detach removes only the Material row and
+  records `lesson_media.detached`.
+- Added tenant-scoped `VideoAssetDetails` projections, distinct `attachedLessonCount`, teacher
+  attached-course VIEW visibility, and batch course/module/lesson lookup helpers. Deleted assets
+  are excluded from both legacy and LessonMedia attachment paths.
+- Added `LessonMediaServiceTest`, `LessonMediaIntegrationTest`, and a cross-tenant
+  `CourseLookupApiIntegrationTest` case. Maven compile/verify could not be executed in this session:
+  shell calls were intercepted by the environment's temporary model-availability gate before Maven
+  output was produced; this remains a verification blocker.
+- API documentation updated in `docs/api/content-management.md` and
+  `docs/api/video-access-management.md`. No frontend files changed.
+
+**Frontend implementation (2026-10-06)**
+
+- Added typed LessonMedia query/mutation hooks to `frontend/src/lib/api/media.ts`.
+- Added responsive accessible `MediaPickerSheet` with READY filtering, search, attached-state,
+  loading/empty/error/403 states, and server-authoritative attach handling.
+- Added `LessonMediaAttachments` for server-backed title/visibility updates and detach confirmation;
+  integrated both into the existing course lesson Materials section.
+- Added `frontend/e2e/lesson-media.spec.ts` covering attach, READY filtering, empty, permission-denied,
+  and detach flows with mocked API responses.
+- Frontend typecheck/lint/Playwright could not be executed in this session because shell commands were
+  intercepted by the environment's temporary model-availability gate. Existing known failures remain the
+  two pre-existing teacher integration confirmation tests documented under Phase 5b.
+
+**Phase 6 status:** implementation complete pending environment verification; no Flyway migration,
+payment/enrollment rule, authentication architecture, or player code changed. Next: run backend Maven
+verification, frontend typecheck/lint, and the new Playwright spec when shell access is available.
 
 ### Phase 5d — Named YouTube integrations + Media Library tabs
 

@@ -125,4 +125,11 @@ public interface CourseLookupApi {
 	 */
 	Optional<CheckoutAmount> getResolvedCheckoutAmount(UUID courseId);
 
+	/**
+	 * @return all lesson IDs belonging to courses taught by {@code teacherUserId}
+	 * in the caller's tenant. Added for VIDEO Phase 6 (Q-010) - allowing teachers
+	 * to view and manage media attached to courses they teach.
+	 */
+	Set<UUID> findLessonIdsByTeacherId(UUID teacherUserId);
+
 }

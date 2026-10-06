@@ -1,0 +1,177 @@
+- generic [ref=f2e1]:
+  - button "Open Next.js Dev Tools" [ref=f2e11] [cursor=pointer]
+  - alert [ref=f2e15]
+  - generic [ref=f2e16]:
+    - complementary [ref=f2e17]:
+      - generic [ref=f2e18]: Tenant Admin
+      - navigation "Primary" [ref=f2e19]:
+        - generic [ref=f2e20]:
+          - generic [ref=f2e21]:
+            - generic [ref=f2e22]: Dashboard
+            - list [ref=f2e23]:
+              - listitem [ref=f2e24]:
+                - link "Dashboard" [ref=f2e25] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+          - generic [ref=f2e26]:
+            - generic [ref=f2e27]: Academic
+            - list [ref=f2e28]:
+              - listitem [ref=f2e29]:
+                - link "Students" [ref=f2e30] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+              - listitem [ref=f2e31]:
+                - link "Teachers" [ref=f2e32] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+              - listitem [ref=f2e33]:
+                - link "Courses" [ref=f2e34] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+              - listitem [ref=f2e35]:
+                - link "Media Library" [ref=f2e36] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+              - listitem [ref=f2e37]:
+                - link "Attendance Reports" [ref=f2e38] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+              - listitem [ref=f2e39]:
+                - link "Mark Attendance" [ref=f2e40] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+              - listitem [ref=f2e41]:
+                - link "Exams" [ref=f2e42] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+              - listitem [ref=f2e43]:
+                - link "Live Classes" [ref=f2e44] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+          - generic [ref=f2e45]:
+            - generic [ref=f2e46]: Finance
+            - list [ref=f2e47]:
+              - listitem [ref=f2e48]:
+                - link "Payments" [ref=f2e49] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+              - listitem [ref=f2e50]:
+                - link "Refunds" [ref=f2e51] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+              - listitem [ref=f2e52]:
+                - link "Payment Slips" [ref=f2e53] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+              - listitem [ref=f2e54]:
+                - link "Reactivation Approvals" [ref=f2e55] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+              - listitem [ref=f2e56]:
+                - link "Finance Summary" [ref=f2e57] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+              - listitem [ref=f2e58]:
+                - link "Expenses" [ref=f2e59] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+              - listitem [ref=f2e60]:
+                - link "Expense Categories" [ref=f2e61] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+              - listitem [ref=f2e62]:
+                - link "Finance Reports" [ref=f2e63] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+              - listitem [ref=f2e64]:
+                - link "Teacher Payouts" [ref=f2e65] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+          - generic [ref=f2e66]:
+            - generic [ref=f2e67]: Communication
+            - list [ref=f2e68]:
+              - listitem [ref=f2e69]:
+                - link "Broadcasts" [ref=f2e70] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+              - listitem [ref=f2e71]:
+                - link "Message Templates" [ref=f2e72] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+          - generic [ref=f2e73]:
+            - generic [ref=f2e74]: Administration
+            - list [ref=f2e75]:
+              - listitem [ref=f2e76]:
+                - link "Staff" [ref=f2e77] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+              - listitem [ref=f2e78]:
+                - link "Roles & Permissions" [ref=f2e79] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+              - listitem [ref=f2e80]:
+                - link "Audit Log" [ref=f2e81] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+          - generic [ref=f2e82]:
+            - generic [ref=f2e83]: Institute Configuration
+            - list [ref=f2e84]:
+              - listitem [ref=f2e85]:
+                - link "General" [ref=f2e86] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+              - listitem [ref=f2e87]:
+                - link "Branding" [ref=f2e88] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+              - listitem [ref=f2e89]:
+                - link "Student Fields" [ref=f2e90] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+              - listitem [ref=f2e91]:
+                - link "Online Payments" [ref=f2e92] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+              - listitem [ref=f2e93]:
+                - link "Integrations" [ref=f2e94] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+              - listitem [ref=f2e95]:
+                - link "Messaging (SMS & WhatsApp)" [ref=f2e96] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+              - listitem [ref=f2e97]:
+                - link "Video Providers" [ref=f2e98] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+              - listitem [ref=f2e99]:
+                - link "Video Settings" [ref=f2e100] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+              - listitem [ref=f2e101]:
+                - link "Custom Domain" [ref=f2e102] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+              - listitem [ref=f2e103]:
+                - link "Devices & Access" [ref=f2e104] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+    - generic [ref=f2e105]:
+      - banner [ref=f2e106]:
+        - generic [ref=f2e107]:
+          - link "Change password" [ref=f2e108] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f2e110]
+      - main [ref=f2e111]:
+        - generic [ref=f2e112]:
+          - link "Back to students" [ref=f2e114] [cursor=pointer]:
+            - /url: /tenant-admin/students
+          - generic [ref=f2e117]:
+            - generic [ref=f2e118]:
+              - generic [ref=f2e119]:
+                - heading "Demo Student" [level=1] [ref=f2e120]
+                - generic [ref=f2e121]: Active
+              - generic [ref=f2e122]:
+                - button "Deactivate" [ref=f2e123]
+                - button "Enroll" [ref=f2e124]
+                - button "Reset password" [ref=f2e125]
+            - status
+            - generic [ref=f2e126]:
+              - tablist "Student detail sections" [ref=f2e127]:
+                - tab "Profile" [ref=f2e128]
+                - tab "Enrollments" [ref=f2e129]
+                - tab "Payments" [ref=f2e130]
+                - tab "Attendance" [ref=f2e131]
+                - tab "Exams" [ref=f2e132]
+                - tab "Devices" [active] [selected] [ref=f2e133]
+                - tab "Notifications" [ref=f2e134]
+                - tab "Activity" [ref=f2e135]
+              - tabpanel "Devices" [ref=f2e201]:
+                - generic [ref=f2e202]:
+                  - status [ref=f2e203]:
+                    - generic [ref=f2e206]: 0 of 2 device slots in use
+                    - paragraph [ref=f2e208]: This student's limit comes from the standard plan. A removed device keeps its slot for 0 hours before a new device can use it.
+                  - status
+                  - paragraph [ref=f2e209]: No devices yet. A device appears here after the student signs in on it.
+                  - generic [ref=f2e210]:
+                    - generic [ref=f2e211]:
+                      - heading "Device-limit exception" [level=3] [ref=f2e212]
+                      - paragraph [ref=f2e213]: Overrides the course, institute and plan limits for this student. Leave empty to remove the exception.
+                    - generic [ref=f2e214]:
+                      - generic [ref=f2e215]:
+                        - generic [ref=f2e216]: Devices allowed
+                        - spinbutton "Devices allowed" [ref=f2e217]
+                      - generic [ref=f2e218]:
+                        - generic [ref=f2e219]:
+                          - text: Reason
+                          - generic [ref=f2e220]: (required)
+                        - textbox "Reason (required)" [ref=f2e221]:
+                          - /placeholder: e.g. Approved a shared family computer
+                    - button "Save exception" [ref=f2e222]

@@ -333,7 +333,9 @@ Provider-neutral, read-only view of `video_asset` (the MediaAsset). This is addi
 `/videos/*` above is unchanged. Plan: `docs/plans/multi-tenant video platform + aoc secure player.md`.
 
 **Authorization.**
-- Teacher / Teacher Assistant: their **own uploads** only.
+- Teacher / Teacher Assistant: their **own uploads**, plus media already attached to lessons in
+  courses they teach (VIDEO Phase 6 / Q-010). Mutations remain limited to their own uploads;
+  attachment/detachment uses the LessonMedia endpoint and course ownership checks.
 - Any other role needs `MATERIALS`/`VIEW` and sees the whole tenant library. Tenant
   Admin is the usual case.
 - Student: `403 FORBIDDEN`.
@@ -368,7 +370,7 @@ id or any credential:
   "description": null, "thumbnailUrl": null, "durationSeconds": null,
   "privacyStatus": null,                                               // PRIVATE|UNLISTED|PUBLIC for external providers
   "processingStatus": "READY", "failureReason": null,
-  "uploadedBy": "<uuid>", "createdAt": "...",
+  "uploadedBy": "<uuid>", "createdAt": "...", "attachedLessonCount": 2,
   "capabilities": { "supportsUpload": true, "supportsOverlayWatermark": true, "...": "14 booleans" },
   "enabledPlaybackModes": ["INTERNAL_SIGNED_URL"] }                    // provider-supported ∩ platform feature flags
 ```
@@ -388,6 +390,7 @@ The visibility rules above apply.
                     "bytesSent": 8388608, "totalBytes": 734003200,
                     "message": null } | null,     // client-safe reason when paused / parked / failed; null for legacy uploads
 "attached": false,                               // a lesson material uses it; it cannot be deleted
+"attachedLessonCount": 0,                       // distinct lessons referencing this asset (Phase 6)
 "youtubeUrl": "https://www.youtube.com/watch?v=…" | null   // Phase 5c: once YouTube has it
 ```
 

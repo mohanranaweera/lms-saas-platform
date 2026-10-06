@@ -36,4 +36,15 @@ public interface MaterialLookupApi {
 	 */
 	Set<UUID> findVideoAssetIdsInUse(Collection<UUID> videoAssetIds);
 
+	/**
+	 * VIDEO Phase 6: attachment count per video asset ID in the caller's tenant.
+	 */
+	java.util.Map<UUID, Integer> countLessonAttachments(Collection<UUID> videoAssetIds);
+
+	/**
+	 * VIDEO Phase 6 (Q-010): video asset IDs attached to any lesson in courses
+	 * taught by {@code teacherUserId} in the caller's tenant.
+	 */
+	Set<UUID> findVideoAssetIdsForTeacher(UUID teacherUserId);
+
 }

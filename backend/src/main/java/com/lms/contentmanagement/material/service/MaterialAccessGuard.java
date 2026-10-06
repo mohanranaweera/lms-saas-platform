@@ -90,11 +90,25 @@ public class MaterialAccessGuard {
 	}
 
 	public LessonOwnership requireLessonAccess(UUID courseId, UUID moduleId, UUID lessonId, PermissionAction action) {
-		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		LessonOwnership ownership = resolveLessonOwnership(courseId, moduleId, lessonId);
+		return authorize(ownership, action);
+	}
 
+	public LessonOwnership requireLessonAccess(UUID courseId, UUID lessonId, PermissionAction action) {
 		LessonOwnership ownership = courseLookupApi.resolveLessonOwnership(lessonId)
+			.filter(resolved -> resolved.courseId().equals(courseId))
+			.orElseThrow(() -> new NotFoundException("Lesson not found"));
+		return authorize(ownership, action);
+	}
+
+	private LessonOwnership resolveLessonOwnership(UUID courseId, UUID moduleId, UUID lessonId) {
+		return courseLookupApi.resolveLessonOwnership(lessonId)
 			.filter(resolved -> resolved.moduleId().equals(moduleId) && resolved.courseId().equals(courseId))
 			.orElseThrow(() -> new NotFoundException("Lesson not found"));
+	}
+
+	private LessonOwnership authorize(LessonOwnership ownership, PermissionAction action) {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 
 		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
 			if (!ownership.teacherId().equals(principal.userId())) {

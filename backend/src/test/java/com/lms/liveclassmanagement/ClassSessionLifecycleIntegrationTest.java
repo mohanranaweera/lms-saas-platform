@@ -68,6 +68,21 @@ class ClassSessionLifecycleIntegrationTest extends LiveClassManagementTestSuppor
 	}
 
 	@Test
+	void tenantAdminCanEditAScheduledSessionOnAnyTenantCourse() {
+		LiveClassFixture fixture = seedLiveClassFixture("lc-admin-edit");
+		ClassSessionResponse created = scheduleSessionOrFail(fixture.host(), fixture.teacherToken(),
+				newSessionRequest(fixture.course().id(), null, "Admin edit target"));
+		Instant newStart = Instant.now().plus(3, ChronoUnit.DAYS);
+		ClassSessionUpdateRequest editRequest = new ClassSessionUpdateRequest("Admin updated title",
+				"Admin updated description", newStart, newStart.plus(1, ChronoUnit.HOURS));
+
+		HttpResult<ClassSessionResponse> edited = updateSession(fixture.host(), fixture.adminToken(), created.id(), editRequest);
+
+		assertThat(edited.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(edited.getBody().data().title()).isEqualTo("Admin updated title");
+	}
+
+	@Test
 	void courseCoordinatorCanScheduleButStudentCannot() {
 		LiveClassFixture fixture = seedLiveClassFixture("lc-coordinator");
 		seedTenantUser(fixture.tenant().getId(), "coordinator@example.test", RAW_PASSWORD, Role.COURSE_COORDINATOR);

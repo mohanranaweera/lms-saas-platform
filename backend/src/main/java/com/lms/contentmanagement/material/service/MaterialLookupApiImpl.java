@@ -51,6 +51,19 @@ class MaterialLookupApiImpl implements MaterialLookupApi {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
+	public java.util.Map<UUID, Integer> countLessonAttachments(Collection<UUID> videoAssetIds) {
+		return materialRepository.countLessonAttachmentsByVideoAssetIds(videoAssetIds);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Set<UUID> findVideoAssetIdsForTeacher(UUID teacherUserId) {
+		Set<UUID> lessonIds = courseLookupApi.findLessonIdsByTeacherId(teacherUserId);
+		return materialRepository.findVideoAssetIdsByLessonIds(lessonIds);
+	}
+
+	@Override
 	public Optional<MaterialVideoOwnership> resolveVideoAssetOwnership(UUID videoAssetId) {
 		Optional<Material> materialOpt = materialRepository.findByVideoAssetId(videoAssetId);
 		if (materialOpt.isEmpty()) {

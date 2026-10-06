@@ -21,6 +21,8 @@ export const COURSE_WORKSPACE_TABS: CourseWorkspaceTab[] = [
   { segment: "", label: "Overview" },
   { segment: "billing", label: "Fees & Billing" },
   { segment: "settings", label: "Settings" },
+  { segment: "modules", label: "Modules & lessons" },
+  { segment: "roster", label: "Roster" },
   { segment: "access", label: "Access" },
   { segment: "schedule", label: "Schedule" },
   { segment: "sessions", label: "Sessions" },
