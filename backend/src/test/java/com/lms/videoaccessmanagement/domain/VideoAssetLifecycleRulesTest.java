@@ -59,7 +59,7 @@ class VideoAssetLifecycleRulesTest {
 
 	@Test
 	void createForProviderRefusesInternal() {
-		assertThatThrownBy(() -> VideoAsset.createForProvider(TENANT, MediaAssetProvider.INTERNAL, UUID.randomUUID(),
+		assertThatThrownBy(() -> VideoAsset.createForProvider(TENANT, MediaAssetProvider.INTERNAL, UUID.randomUUID(), UUID.randomUUID(),
 				"t", null, MediaPrivacyStatus.UNLISTED, "a.mp4", "video/mp4", 10L, USER))
 			.isInstanceOf(IllegalArgumentException.class);
 	}
@@ -106,7 +106,8 @@ class VideoAssetLifecycleRulesTest {
 	}
 
 	private static VideoAsset youtubeAsset() {
-		return VideoAsset.createForProvider(TENANT, MediaAssetProvider.YOUTUBE, UUID.randomUUID(), "Lecture 1",
+		return VideoAsset.createForProvider(TENANT, MediaAssetProvider.YOUTUBE, UUID.randomUUID(), UUID.randomUUID(),
+				"Lecture 1",
 				"desc", MediaPrivacyStatus.UNLISTED, "lecture.mp4", "video/mp4", 1024L, USER);
 	}
 

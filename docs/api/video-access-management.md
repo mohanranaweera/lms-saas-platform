@@ -405,6 +405,22 @@ For whoever may upload (Student → `403`):
 Since VIDEO Phase 5b, `upload-limits` also returns `canUpload` (false for a teacher who is not on
 the institute channel's allowed-teachers list) and `notAllowedReason`.
 
+Since VIDEO Phase 5d (named YouTube integrations - Media Library tabs):
+- `GET /api/v1/media/channels` → `{ "integrations": [ { "integrationId", "name", "connected",
+  "canUpload" } ], "hasArchived": bool }` - the tabs the caller sees. Staff with `MATERIALS` VIEW:
+  every live integration. A Teacher / TA: the integrations they may upload to plus any holding
+  their own videos. The Uploads tab (platform storage) is always shown by the UI.
+- `GET /api/v1/media` adds `integrationId=` (one tab; another tenant's id → `404`) and
+  `archived=true` (videos of deleted integrations); the Uploads tab uses `provider=INTERNAL`.
+- `GET /api/v1/media/upload-limits?integrationId=` - limits and that integration's channel state
+  (no id → `NOT_CONNECTED`; a deleted or foreign one → `404`). `canUpload` reflects that card's
+  teacher list.
+- `POST /api/v1/media` requires `integrationId` (missing → `400`; foreign or deleted → `404`; not
+  connected → `409 VIDEO_PROVIDER_NOT_CONNECTED`; switched off → `409
+  VIDEO_PROVIDER_DISABLED_BY_PLATFORM`; teacher not on its list → `403 VIDEO_UPLOAD_NOT_ALLOWED`).
+  Retry stays on the video's own integration.
+- Media views carry `integrationId` (null for platform-stored videos).
+
 Since VIDEO Phase 5c:
 - `upload-limits` returns `uploadsDisabledBy` (`PLATFORM` = the platform's
   `video.features.youtube-upload` flag / `VIDEO_YOUTUBE_UPLOAD_ENABLED` is off; `INSTITUTE` = the

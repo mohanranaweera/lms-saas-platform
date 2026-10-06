@@ -34,6 +34,7 @@ function asset(overrides: Record<string, unknown> = {}) {
     uploadProgress: { state: "COMPLETED", bytesSent: 1000, totalBytes: 1000, message: null },
     attached: false,
     youtubeUrl: null,
+    integrationId: "int-1",
     ...overrides,
   };
 }
@@ -58,7 +59,16 @@ function limits(overrides: Record<string, unknown> = {}) {
 
 type Reply = { status: number; body: unknown };
 
+function tabs(overrides: Record<string, unknown> = {}) {
+  return {
+    integrations: [{ integrationId: "int-1", name: "Institute YouTube", connected: true, canUpload: true }],
+    hasArchived: false,
+    ...overrides,
+  };
+}
+
 interface MediaMock {
+  tabs?: Record<string, unknown>;
   list?: unknown[] | Reply;
   detail?: Record<string, unknown>;
   limits?: Record<string, unknown>;
@@ -94,6 +104,7 @@ async function mockMedia(page: Page, mock: MediaMock): Promise<Captured[]> {
         : fulfillJson(route, list.status, list.body);
     }
     if (method === "GET" && path === "/upload-limits") return fulfillJson(route, 200, apiSuccess(limits(mock.limits)));
+    if (method === "GET" && path === "/channels") return fulfillJson(route, 200, apiSuccess(tabs(mock.tabs)));
     if (method === "POST" && path === "") return reply(mock.start, apiError("UNKNOWN", "not mocked"));
     if (method === "POST" && path.endsWith("/upload/complete")) return reply(mock.complete, apiError("UNKNOWN", "x"));
     if (method === "POST" && path.endsWith("/upload/cancel")) {
@@ -206,12 +217,12 @@ test.describe("Media Library list", () => {
     await mockMedia(page, { list: [] });
 
     await page.goto("/tenant-admin/media");
-    await expect(page.getByText("No videos yet")).toBeVisible();
+    await expect(page.getByText("No videos on this channel yet")).toBeVisible();
 
     await page.getByLabel("Status").selectOption("FAILED");
     await expect(page.getByText("No media matches")).toBeVisible();
     await page.getByRole("button", { name: "Clear filters" }).click();
-    await expect(page.getByText("No videos yet")).toBeVisible();
+    await expect(page.getByText("No videos on this channel yet")).toBeVisible();
   });
 
   test("a 403 from the server shows the permission-denied state", async ({ page }) => {
@@ -249,6 +260,7 @@ test.describe("Uploading", () => {
     await expect(page.getByText(/Upload received/)).toBeVisible();
     const start = calls.find((c) => c.method === "POST" && c.path === "");
     expect(start?.body).toEqual({
+      integrationId: "int-1",
       title: "Algebra lesson 1",
       description: "Linear equations",
       privacyStatus: "PRIVATE",
@@ -397,6 +409,64 @@ test.describe("Uploading", () => {
     // Their existing videos are still listed.
     await expect(page.getByText("Algebra lesson 1")).toBeVisible();
     expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+});
+
+test.describe("Media Library tabs (Phase 5d)", () => {
+  test("each YouTube integration is a tab; Uploads and Archived list their own videos", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const calls = await mockMedia(page, {
+      tabs: tabs({
+        integrations: [
+          { integrationId: "int-1", name: "AOC YT", connected: true, canUpload: true },
+          { integrationId: "int-2", name: "Science", connected: false, canUpload: false },
+        ],
+        hasArchived: true,
+      }),
+      list: [asset()],
+    });
+
+    await page.goto("/tenant-admin/media");
+
+    const tablist = page.getByRole("tablist", { name: "Where videos are hosted" });
+    await expect(tablist.getByRole("tab")).toHaveText(["AOC YT", "ScienceNot connected", "Uploads", "Archived"]);
+    await expect(tablist.getByRole("tab", { name: "AOC YT" })).toHaveAttribute("aria-selected", "true");
+    await expect.poll(() => calls.some((c) => c.method === "GET" && c.path === "")).toBe(true);
+
+    await tablist.getByRole("tab", { name: "Uploads" }).click();
+    await expect(page.getByText(/To upload a new video, choose a YouTube tab/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Upload video" })).toHaveCount(0);
+    await tablist.getByRole("tab", { name: "Archived" }).click();
+    await expect(page.getByText(/YouTube integrations that were removed/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Upload video" })).toHaveCount(0);
+  });
+
+  test("each tab asks the server for its own videos and uploads go to the selected channel", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    await mockMedia(page, {
+      tabs: tabs({
+        integrations: [
+          { integrationId: "int-1", name: "AOC YT", connected: true, canUpload: true },
+          { integrationId: "int-2", name: "Science", connected: true, canUpload: true },
+        ],
+      }),
+      list: [],
+    });
+    // Registered after mockMedia so it runs first, records, then falls back to it.
+    const requested: string[] = [];
+    await page.route(/\/v1\/media\?/, async (route) => {
+      requested.push(new URL(route.request().url()).search);
+      await route.fallback();
+    });
+
+    await page.goto("/teacher/media");
+    await page.getByRole("tab", { name: "Science" }).click();
+    await page.getByRole("tabpanel").getByRole("button", { name: "Upload video" }).first().click();
+
+    await expect(page.getByText("To YouTube · Science")).toBeVisible();
+    await page.getByRole("tab", { name: "Uploads" }).click();
+    await expect.poll(() => requested.some((q) => q.includes("integrationId=int-2"))).toBe(true);
+    await expect.poll(() => requested.some((q) => q.includes("provider=INTERNAL"))).toBe(true);
   });
 });
 

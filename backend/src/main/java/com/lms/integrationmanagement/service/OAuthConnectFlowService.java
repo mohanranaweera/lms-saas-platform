@@ -145,7 +145,7 @@ public class OAuthConnectFlowService {
 		OAuthProviderClient client = clients.get(provider);
 		String verifier = client.supportsPkce() ? OAuthStateStore.randomToken() : null;
 		String state = stateStore.issue(new PendingAuthorization(tenantContext.getTenantId(), teacherUserId, provider,
-				verifier, ConnectionScope.TEACHER));
+				verifier, ConnectionScope.TEACHER, null));
 		return new AuthorizationUrlView(
 				client.authorizationUrl(state, (verifier == null) ? null : s256(verifier), redirectUri(provider)));
 	}
@@ -154,17 +154,18 @@ public class OAuthConnectFlowService {
 	 * VIDEO Phase 3 (ADR-018 Amendment 2): starts the tenant's own YouTube
 	 * channel connection. The caller ({@code TenantVideoProviderService}) has
 	 * already checked the Tenant Admin's {@code INTEGRATIONS} permission. The
-	 * state binds the tenant and the initiating admin; the callback trusts
-	 * nothing else.
+	 * state binds the tenant, the initiating admin and (VIDEO Phase 5d) the
+	 * integration card - already checked to be this tenant's own, ACTIVE card;
+	 * the callback trusts nothing else.
 	 */
-	public AuthorizationUrlView beginTenantYouTubeConnect(UUID adminUserId) {
+	public AuthorizationUrlView beginTenantYouTubeConnect(UUID adminUserId, UUID integrationId) {
 		UUID tenantId = tenantContext.getTenantId();
 		if (!isTenantYouTubeAvailable(tenantId)) {
 			throw new ServiceUnavailableException("YouTube is not available right now.");
 		}
 		String verifier = OAuthStateStore.randomToken();
 		String state = stateStore.issue(new PendingAuthorization(tenantId, adminUserId,
-				MediaProvider.YOUTUBE, verifier, ConnectionScope.TENANT));
+				MediaProvider.YOUTUBE, verifier, ConnectionScope.TENANT, integrationId));
 		return new AuthorizationUrlView(youTubeOAuthClient.tenantChannelAuthorizationUrl(tenantId, state,
 				s256(verifier), redirectUri(MediaProvider.YOUTUBE)));
 	}
@@ -216,7 +217,8 @@ public class OAuthConnectFlowService {
 					credentialContext(pending.tenantId(), pending.provider(), pending.userId(), tenantScope));
 			String pendingId = stateStore.storePending(new PendingConnection(pending.tenantId(), pending.userId(),
 					pending.provider(), identity.externalId(), identity.label(), identity.accountType(), ciphertext,
-					tokens.expiresAt(), tokens.scope(), tenantScope ? ConnectionScope.TENANT : ConnectionScope.TEACHER));
+					tokens.expiresAt(), tokens.scope(), tenantScope ? ConnectionScope.TENANT : ConnectionScope.TEACHER,
+					pending.integrationId()));
 			return returnUri(returnBase.get(), "pending", pendingId, p);
 		}
 		catch (MediaProviderException | ServiceUnavailableException | DataAccessException

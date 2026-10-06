@@ -11,6 +11,7 @@ import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.service.MediaCredentialsCodec;
 import com.lms.integrationmanagement.service.MediaCredentialsCodec.CredentialContext;
 import com.lms.tenantmanagement.domain.Tenant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
@@ -232,8 +233,8 @@ class TenantVideoProviderIntegrationTest extends MediaIntegrationTestSupport {
 		Ctx b = seedTenant("vp-iso-b");
 		UUID aConnection = connectTenantChannel(a, "UC-iso-a", "A");
 
-		assertThat(json(list(b.host(), b.adminToken())).path("data").path(0).path("status").asString())
-			.isEqualTo("NOT_CONNECTED");
+		// VIDEO Phase 5d: B has no cards of its own, and never sees A's.
+		assertThat(json(list(b.host(), b.adminToken())).path("data")).isEmpty();
 		assertThat(rawContent(list(b.host(), b.adminToken()))).doesNotContain(aConnection.toString());
 		assertThat(status(test(b.host(), b.adminToken(), aConnection))).isEqualTo(404);
 		assertThat(status(disconnect(b.host(), b.adminToken(), aConnection))).isEqualTo(404);
@@ -318,8 +319,28 @@ class TenantVideoProviderIntegrationTest extends MediaIntegrationTestSupport {
 		return perform(authenticated(get(BASE), host, token));
 	}
 
+	/** VIDEO Phase 5d: connects the host institute's main integration card (created on first use). */
 	private MvcResult connect(String host, String token) {
-		return perform(authenticated(post(BASE + "/youtube/connect"), host, token));
+		return perform(authenticated(post(BASE + "/youtube/integrations/{id}/connect", mainIntegration(host)), host,
+				token));
+	}
+
+	/**
+	 * The host institute's first live YouTube integration. Seeded directly so
+	 * negative tests (teacher / student tokens) still reach the endpoint.
+	 */
+	private UUID mainIntegration(String host) {
+		String subdomain = host.substring(0, host.indexOf('.'));
+		UUID tenantId = jdbcTemplate.queryForObject("SELECT id FROM tenant WHERE subdomain = ?", UUID.class, subdomain);
+		List<UUID> existing = jdbcTemplate.queryForList("SELECT id FROM tenant_media_integration "
+				+ "WHERE tenant_id = ? AND status = 'ACTIVE' ORDER BY created_at, id", UUID.class, tenantId);
+		if (!existing.isEmpty()) {
+			return existing.get(0);
+		}
+		UUID id = UUID.randomUUID();
+		jdbcTemplate.update("INSERT INTO tenant_media_integration (id, tenant_id, provider, name, status, created_at, "
+				+ "updated_at) VALUES (?, ?, 'YOUTUBE', 'Main channel', 'ACTIVE', now(), now())", id, tenantId);
+		return id;
 	}
 
 	private MvcResult preview(String host, String token, String pendingId) {

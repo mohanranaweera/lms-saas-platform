@@ -7,6 +7,7 @@ import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
 import com.lms.videoaccessmanagement.domain.VideoAssetStatus;
 import com.lms.videoaccessmanagement.service.MediaAssetService;
 import com.lms.videoaccessmanagement.service.MediaAssetService.MediaAssetListQuery;
+import com.lms.videoaccessmanagement.service.MediaAssetService.MediaTabs;
 import com.lms.videoaccessmanagement.service.MediaAssetService.MediaAssetUpdate;
 import com.lms.videoaccessmanagement.service.MediaAssetView;
 import com.lms.videoaccessmanagement.service.MediaUploadService;
@@ -71,9 +72,11 @@ public class MediaController {
 			@RequestParam(required = false) MediaAssetProvider provider,
 			@RequestParam(name = "q", required = false) @Size(max = 200) String search,
 			@RequestParam(defaultValue = "0") @Min(0) int page,
-			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+			@RequestParam(required = false) UUID integrationId,
+			@RequestParam(defaultValue = "false") boolean archived) {
 		PageResponse<MediaAssetResponse> body = PageResponse.from(mediaAssetService
-			.list(new MediaAssetListQuery(status, provider, search, page, size))
+			.list(new MediaAssetListQuery(status, provider, search, page, size, integrationId, archived))
 			.map(MediaController::toResponse));
 		return ResponseEntity.ok(ApiResponse.success(body));
 	}
@@ -84,11 +87,19 @@ public class MediaController {
 		return ResponseEntity.ok(ApiResponse.success(toResponse(mediaAssetService.get(id))));
 	}
 
-	/** VIDEO Phase 5: limits and channel state for the upload panel. */
+	/** VIDEO Phase 5 / 5d: limits and the selected integration's state for the upload panel. */
 	@GetMapping("/upload-limits")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<ApiResponse<UploadLimits>> uploadLimits() {
-		return ResponseEntity.ok(ApiResponse.success(mediaUploadService.limits()));
+	public ResponseEntity<ApiResponse<UploadLimits>> uploadLimits(
+			@RequestParam(required = false) UUID integrationId) {
+		return ResponseEntity.ok(ApiResponse.success(mediaUploadService.limits(integrationId)));
+	}
+
+	/** VIDEO Phase 5d: the Media Library tabs the caller sees. */
+	@GetMapping("/channels")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<MediaTabs>> tabs() {
+		return ResponseEntity.ok(ApiResponse.success(mediaAssetService.tabs()));
 	}
 
 	/** VIDEO Phase 5: edits title / description / privacy (synced to YouTube once the video is there). */
@@ -115,7 +126,7 @@ public class MediaController {
 			@Valid @RequestBody CreateMediaUploadRequest request) {
 		StartedUpload started = mediaUploadService.create(new CreateUploadCommand(request.title(),
 				request.description(), request.privacyStatus(), request.provider(), request.fileName(),
-				request.mimeType(), request.sizeBytes()));
+				request.mimeType(), request.sizeBytes(), request.integrationId()));
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse.success(new StartedUploadResponse(toResponse(started.mediaAsset()),
 					toResponse(started.upload()))));
@@ -159,7 +170,7 @@ public class MediaController {
 				(view.uploadProgress() == null) ? null
 						: new UploadProgressResponse(view.uploadProgress().state(), view.uploadProgress().bytesSent(),
 								view.uploadProgress().totalBytes(), view.uploadProgress().message()),
-				view.attached(), view.youtubeUrl());
+				view.attached(), view.youtubeUrl(), view.integrationId());
 	}
 
 	private static UploadInstructionsResponse toResponse(UploadInstructions instructions) {

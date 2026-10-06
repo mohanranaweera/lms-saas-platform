@@ -11,7 +11,9 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.domain.ConnectionScope;
 import com.lms.integrationmanagement.domain.MediaProviderConnection;
+import com.lms.integrationmanagement.domain.TenantMediaIntegration;
 import com.lms.integrationmanagement.repository.MediaProviderConnectionRepository;
+import com.lms.integrationmanagement.repository.TenantMediaIntegrationRepository;
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import java.time.Instant;
 import java.util.List;
@@ -44,7 +46,9 @@ public class PlatformVideoProviderService {
 	private static final String TARGET_ENTITY = MediaConnectionStore.TARGET_ENTITY;
 
 	/** What a Platform Admin sees. Never contains credentials. */
-	public record PlatformVideoProviderView(UUID id, String provider, String status, String channelId,
+	/** @param integrationName VIDEO Phase 5d: the institute's name for this channel's integration (card) */
+	public record PlatformVideoProviderView(UUID id, String integrationName, String provider, String status,
+			String channelId,
 			String channelTitle, Instant connectedAt, boolean platformDisabled, String platformDisabledReason,
 			Instant platformDisabledAt) {
 
@@ -56,8 +60,11 @@ public class PlatformVideoProviderService {
 
 	private final TenantLookupApi tenantLookupApi;
 
+	private final TenantMediaIntegrationRepository integrations;
+
 	public PlatformVideoProviderService(MediaProviderConnectionRepository repository, AuditLogApi auditLogApi,
-			TenantLookupApi tenantLookupApi) {
+			TenantLookupApi tenantLookupApi, TenantMediaIntegrationRepository integrations) {
+		this.integrations = integrations;
 		this.repository = repository;
 		this.auditLogApi = auditLogApi;
 		this.tenantLookupApi = tenantLookupApi;
@@ -67,7 +74,7 @@ public class PlatformVideoProviderService {
 	public List<PlatformVideoProviderView> list(UUID tenantId) {
 		return asPlatformAdminFor(tenantId, () -> repository.findAllForTenant(MediaProvider.YOUTUBE)
 			.stream()
-			.map(PlatformVideoProviderService::toView)
+			.map(this::toView)
 			.toList());
 	}
 
@@ -138,8 +145,11 @@ public class PlatformVideoProviderService {
 		return AuthenticatedPrincipalHolder.get().userId();
 	}
 
-	private static PlatformVideoProviderView toView(MediaProviderConnection connection) {
-		return new PlatformVideoProviderView(connection.getId(), connection.getProvider().name(),
+	/** Runs inside {@link #asPlatformAdminFor}, so the integration lookup is the target tenant's. */
+	private PlatformVideoProviderView toView(MediaProviderConnection connection) {
+		String integrationName = (connection.getIntegrationId() == null) ? null
+				: integrations.findById(connection.getIntegrationId()).map(TenantMediaIntegration::getName).orElse(null);
+		return new PlatformVideoProviderView(connection.getId(), integrationName, connection.getProvider().name(),
 				connection.getStatus().name(), MediaConnectionViews.mask(connection.getExternalAccountId()),
 				connection.getExternalAccountLabel(), connection.getCreatedAt(), connection.isPlatformDisabled(),
 				connection.getPlatformDisabledReason(), connection.getPlatformDisabledAt());

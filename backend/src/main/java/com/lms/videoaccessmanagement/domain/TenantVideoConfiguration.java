@@ -88,27 +88,7 @@ public class TenantVideoConfiguration extends Auditable implements TenantOwned {
 	/** The platform default (also the V72 column default and the value for a tenant without a row). */
 	public static final int DEFAULT_DAILY_UPLOAD_LIMIT = 20;
 
-	/** VIDEO Phase 5b (V73): how the institute names its YouTube channel in the LMS (optional). */
-	@Column(name = "channel_display_name", length = 100)
-	private String channelDisplayName;
-
-	@Column(name = "channel_description", length = 500)
-	private String channelDescription;
-
 	protected TenantVideoConfiguration() {
-	}
-
-	public void updateChannel(String displayName, String description) {
-		this.channelDisplayName = displayName;
-		this.channelDescription = description;
-	}
-
-	public String getChannelDisplayName() {
-		return channelDisplayName;
-	}
-
-	public String getChannelDescription() {
-		return channelDescription;
 	}
 
 	public TenantVideoConfiguration(UUID tenantId, TenantVideoSettings settings) {

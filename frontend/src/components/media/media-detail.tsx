@@ -317,7 +317,8 @@ function MediaDetailBody({
 }) {
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
-  const limits = useMediaUploadLimits(canManage);
+  // VIDEO Phase 5d: editing depends on the video's own integration's grant.
+  const limits = useMediaUploadLimits(asset.integrationId, canManage && asset.integrationId !== null);
   const cancel = useCancelMediaUpload();
   const retry = useRetryMediaUpload();
   const live =

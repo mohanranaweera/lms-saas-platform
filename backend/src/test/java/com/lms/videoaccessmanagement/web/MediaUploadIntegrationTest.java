@@ -391,6 +391,9 @@ class MediaUploadIntegrationTest extends MediaUploadTestSupport {
 	@Test
 	void uploadsNeedTheFlagTheTenantSwitchAndAConnectedChannel() {
 		Ctx noChannel = seedUploadTenant("up-nochannel", null);
+		// VIDEO Phase 5d: no card at all - the upload names nowhere to go.
+		assertThat(status(create(noChannel.host(), noChannel.teacherToken(), body("X", PART)))).isEqualTo(400);
+		mainIntegration(noChannel); // a card that was never connected
 		MvcResult result = create(noChannel.host(), noChannel.teacherToken(), body("X", PART));
 		assertThat(status(result)).isEqualTo(409);
 		assertThat(errorCode(result)).isEqualTo("VIDEO_PROVIDER_NOT_CONNECTED");
@@ -515,8 +518,7 @@ class MediaUploadIntegrationTest extends MediaUploadTestSupport {
 		MvcResult upload = create(ctx.host(), ctx.teacherToken(), body("Blocked", PART));
 		assertThat(status(upload)).isEqualTo(409);
 		assertThat(errorCode(upload)).isEqualTo("VIDEO_PROVIDER_DISABLED_BY_PLATFORM");
-		MvcResult reconnect = perform(authenticated(post(PROVIDERS_BASE + "/youtube/connect"), ctx.host(),
-				ctx.adminToken()));
+		MvcResult reconnect = beginConnect(ctx.host(), ctx.adminToken(), mainIntegration(ctx));
 		assertThat(status(reconnect)).isEqualTo(409);
 		assertThat(errorCode(reconnect)).isEqualTo("VIDEO_PROVIDER_DISABLED_BY_PLATFORM");
 		JsonNode account = json(perform(authenticated(get(PROVIDERS_BASE), ctx.host(), ctx.adminToken())))

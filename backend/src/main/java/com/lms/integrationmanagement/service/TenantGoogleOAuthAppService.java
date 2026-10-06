@@ -185,9 +185,9 @@ public class TenantGoogleOAuthAppService {
 		Optional<TenantOAuthApp> own = repository.findForCurrentTenant(PlatformOAuthProvider.GOOGLE);
 		boolean platformAvailable = credentials.isConfigured();
 		Source source = own.isPresent() ? Source.TENANT : platformAvailable ? Source.PLATFORM : Source.NOT_CONFIGURED;
-		boolean channelConnected = connections.findCurrentForTenant(MediaProvider.YOUTUBE)
-			.map(connection -> connection.getStatus() == MediaConnectionStatus.ACTIVE)
-			.orElse(false);
+		boolean channelConnected = connections.findCurrentTenantYouTube()
+			.stream()
+			.anyMatch(connection -> connection.getStatus() == MediaConnectionStatus.ACTIVE);
 		String redirect = connectFlow.redirectUri(MediaProvider.YOUTUBE);
 		return new TenantGoogleOAuthAppView(source, own.map(TenantOAuthApp::getClientId).orElse(null),
 				own.isPresent(), platformAvailable, redirect.startsWith("http") ? redirect : null,
@@ -199,10 +199,13 @@ public class TenantGoogleOAuthAppService {
 		if (clientIdBefore == null || clientIdBefore.equals(clientIdAfter)) {
 			return false;
 		}
-		Optional<MediaProviderConnection> live = connections.findCurrentForTenant(MediaProvider.YOUTUBE)
-			.filter(connection -> connection.getStatus() == MediaConnectionStatus.ACTIVE);
-		live.ifPresent(connection -> store.markNeedsReconnect(connection.getId(), RECONNECT_REASON));
-		return live.isPresent();
+		// VIDEO Phase 5d: every live channel of the institute uses the same Google app.
+		List<MediaProviderConnection> live = connections.findCurrentTenantYouTube()
+			.stream()
+			.filter(connection -> connection.getStatus() == MediaConnectionStatus.ACTIVE)
+			.toList();
+		live.forEach(connection -> store.markNeedsReconnect(connection.getId(), RECONNECT_REASON));
+		return !live.isEmpty();
 	}
 
 	/** {@link AuditLogEntry} copies its metadata with {@code Map.copyOf}, which rejects null values. */

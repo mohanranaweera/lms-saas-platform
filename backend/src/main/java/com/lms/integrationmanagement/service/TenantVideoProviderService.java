@@ -11,6 +11,9 @@ import com.lms.integrationmanagement.api.MediaConnectionStatus;
 import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.domain.ConnectionScope;
 import com.lms.integrationmanagement.domain.MediaProviderConnection;
+import com.lms.integrationmanagement.domain.TenantMediaIntegration;
+import com.lms.integrationmanagement.service.TenantMediaIntegrationService.IntegrationDetails;
+import com.lms.integrationmanagement.service.TenantMediaIntegrationService.IntegrationTeacher;
 import com.lms.integrationmanagement.gateway.media.ProviderIdentity;
 import com.lms.integrationmanagement.gateway.media.YouTubeOAuthClient;
 import com.lms.integrationmanagement.repository.MediaProviderConnectionRepository;
@@ -59,13 +62,16 @@ public class TenantVideoProviderService {
 	 * the tenant never connected
 	 * @param connectedByUserId the Tenant Admin who confirmed the connection
 	 */
-	public record VideoProviderAccountView(String provider, boolean available, AccountStatus status,
-			ConnectionView connection, UUID connectedByUserId, boolean platformDisabled,
+	public record VideoProviderAccountView(UUID integrationId, String name, String description,
+			boolean allTeachersAllowed, List<IntegrationTeacher> allowedTeachers, String provider, boolean available,
+			AccountStatus status, ConnectionView connection, UUID connectedByUserId, boolean platformDisabled,
 			String platformDisabledReason, boolean canEditVideos) {
 
-		static VideoProviderAccountView of(boolean available, AccountStatus status, MediaProviderConnection latest,
-				ConnectionView view) {
-			return new VideoProviderAccountView(MediaProvider.YOUTUBE.name(), available, status, view,
+		static VideoProviderAccountView of(IntegrationDetails card, boolean available, AccountStatus status,
+				MediaProviderConnection latest, ConnectionView view) {
+			return new VideoProviderAccountView(card.integration().getId(), card.integration().getName(),
+					card.integration().getDescription(), card.allowedTeachers().isEmpty(), card.allowedTeachers(),
+					MediaProvider.YOUTUBE.name(), available, status, view,
 					(latest == null) ? null : latest.getCreatedBy(), latest != null && latest.isPlatformDisabled(),
 					(latest == null) ? null : latest.getPlatformDisabledReason(),
 					latest != null && !latest.isDisconnected()
@@ -75,8 +81,8 @@ public class TenantVideoProviderService {
 	}
 
 	/** What the admin is about to confirm. Never contains tokens. */
-	public record PendingChannelView(String channelId, String channelTitle, boolean replacesCurrentChannel,
-			String currentChannelTitle) {
+	public record PendingChannelView(UUID integrationId, String integrationName, String channelId,
+			String channelTitle, boolean replacesCurrentChannel, String currentChannelTitle) {
 
 	}
 
@@ -96,10 +102,13 @@ public class TenantVideoProviderService {
 
 	private final TenantContext tenantContext;
 
+	private final TenantMediaIntegrationService integrations;
+
 	public TenantVideoProviderService(PermissionCheckService permissionCheckService,
 			OAuthConnectFlowService connectFlow, OAuthStateStore stateStore, MediaConnectionStore store,
 			MediaConnectionService connectionService, MediaProviderConnectionRepository repository,
-			MediaConnectionViews views, TenantContext tenantContext) {
+			MediaConnectionViews views, TenantContext tenantContext, TenantMediaIntegrationService integrations) {
+		this.integrations = integrations;
 		this.permissionCheckService = permissionCheckService;
 		this.connectFlow = connectFlow;
 		this.stateStore = stateStore;
@@ -110,34 +119,64 @@ public class TenantVideoProviderService {
 		this.tenantContext = tenantContext;
 	}
 
+	/** VIDEO Phase 5d: one view per live YouTube integration (card), oldest first. */
 	public List<VideoProviderAccountView> list() {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.VIEW);
-		MediaProviderConnection latest = repository.findCurrentForTenant(MediaProvider.YOUTUBE)
-			.or(() -> repository.findAllForTenant(MediaProvider.YOUTUBE).stream().findFirst())
-			.orElse(null);
-		return List.of(VideoProviderAccountView.of(connectFlow.isTenantYouTubeAvailable(tenantContext.getTenantId()), statusOf(latest),
-				latest, (latest == null) ? null : views.toView(latest)));
+		boolean available = connectFlow.isTenantYouTubeAvailable(tenantContext.getTenantId());
+		return integrations.listYouTube().stream().map(card -> cardView(card, available)).toList();
 	}
 
-	public AuthorizationUrlView beginYouTubeConnect() {
+	private VideoProviderAccountView cardView(IntegrationDetails card, boolean available) {
+		UUID integrationId = card.integration().getId();
+		MediaProviderConnection latest = repository.findCurrentForIntegration(integrationId)
+			.or(() -> repository.findAllForIntegration(integrationId).stream().findFirst())
+			.orElse(null);
+		return VideoProviderAccountView.of(card, available, statusOf(latest), latest,
+				(latest == null) ? null : views.toView(latest));
+	}
+
+	/** VIDEO Phase 5d: adds a card (not connected yet). */
+	public VideoProviderAccountView createIntegration(String name, String description, List<UUID> allowedTeacherIds) {
+		IntegrationDetails card = integrations.create(name, description, allowedTeacherIds);
+		return cardView(card, connectFlow.isTenantYouTubeAvailable(tenantContext.getTenantId()));
+	}
+
+	public VideoProviderAccountView updateIntegration(UUID integrationId, String name, String description,
+			List<UUID> allowedTeacherIds) {
+		IntegrationDetails card = integrations.update(integrationId, name, description, allowedTeacherIds);
+		return cardView(card, connectFlow.isTenantYouTubeAvailable(tenantContext.getTenantId()));
+	}
+
+	public void deleteIntegration(UUID integrationId) {
+		integrations.delete(integrationId);
+	}
+
+	public List<IntegrationTeacher> teacherChoices() {
+		return integrations.teacherChoices();
+	}
+
+	/** Starts connecting (or reconnecting) the channel of one of this institute's cards. */
+	public AuthorizationUrlView beginYouTubeConnect(UUID integrationId) {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT);
-		requireNotPlatformDisabled();
-		return connectFlow.beginTenantYouTubeConnect(IntegrationActors.currentUserId());
+		integrations.requireActive(integrationId);
+		requireNotPlatformDisabled(integrationId);
+		return connectFlow.beginTenantYouTubeConnect(IntegrationActors.currentUserId(), integrationId);
 	}
 
 	/**
-	 * TD-008: while a Platform Admin has the tenant channel switched off, the
-	 * tenant may not connect (or reconnect, or replace) a channel - that would
-	 * sidestep the switch-off. The latest row counts even once disconnected.
+	 * TD-008: while a Platform Admin has a card's channel switched off, the
+	 * tenant may not connect (or reconnect, or replace) that card's channel -
+	 * that would sidestep the switch-off. The latest row counts even once
+	 * disconnected. VIDEO Phase 5d: per card (owner decision: per channel).
 	 */
-	private void requireNotPlatformDisabled() {
-		if (isPlatformDisabled()) {
+	private void requireNotPlatformDisabled(UUID integrationId) {
+		if (isPlatformDisabled(integrationId)) {
 			throw platformDisabled();
 		}
 	}
 
-	private boolean isPlatformDisabled() {
-		return repository.findAllForTenant(MediaProvider.YOUTUBE)
+	private boolean isPlatformDisabled(UUID integrationId) {
+		return repository.findAllForIntegration(integrationId)
 			.stream()
 			.findFirst()
 			.map(MediaProviderConnection::isPlatformDisabled)
@@ -155,11 +194,12 @@ public class TenantVideoProviderService {
 		PendingConnection pending = stateStore.peekPending(pendingId)
 			.filter(this::isOwnedByCaller)
 			.orElseThrow(this::expiredRequest);
-		Optional<MediaProviderConnection> current = repository.findCurrentForTenant(MediaProvider.YOUTUBE);
+		TenantMediaIntegration card = cardOf(pending);
+		Optional<MediaProviderConnection> current = repository.findCurrentForIntegration(card.getId());
 		boolean replaces = current.map(c -> !pending.externalAccountId().equals(c.getExternalAccountId()))
 			.orElse(false);
-		return new PendingChannelView(pending.externalAccountId(), pending.accountLabel(), replaces,
-				replaces ? current.get().getExternalAccountLabel() : null);
+		return new PendingChannelView(card.getId(), card.getName(), pending.externalAccountId(),
+				pending.accountLabel(), replaces, replaces ? current.get().getExternalAccountLabel() : null);
 	}
 
 	/**
@@ -174,12 +214,21 @@ public class TenantVideoProviderService {
 			stateStore.consumePending(pendingId).ifPresent(this::rejectForeignPending);
 			throw expiredRequest();
 		}
-		if (isPlatformDisabled()) {
+		TenantMediaIntegration card;
+		try {
+			card = cardOf(peeked);
+		}
+		catch (NotFoundException ex) {
+			// The card was deleted meanwhile: the grant has nowhere to go.
+			stateStore.consumePending(pendingId).ifPresent(connectFlow::revokePending);
+			throw ex;
+		}
+		if (isPlatformDisabled(card.getId())) {
 			// The grant can never be used while switched off: discard and revoke it now.
 			stateStore.consumePending(pendingId).ifPresent(connectFlow::revokePending);
 			throw platformDisabled();
 		}
-		Optional<MediaProviderConnection> current = repository.findCurrentForTenant(MediaProvider.YOUTUBE);
+		Optional<MediaProviderConnection> current = repository.findCurrentForIntegration(card.getId());
 		boolean replaces = current.map(c -> !peeked.externalAccountId().equals(c.getExternalAccountId()))
 			.orElse(false);
 		if (replaces && !replaceChannel) {
@@ -189,7 +238,8 @@ public class TenantVideoProviderService {
 		PendingConnection pending = stateStore.consumePending(pendingId).orElseThrow(this::expiredRequest);
 		MediaProviderConnection saved;
 		try {
-			saved = store.saveTenantOAuthConnection(IntegrationActors.currentUserId(), MediaProvider.YOUTUBE,
+			saved = store.saveTenantOAuthConnection(IntegrationActors.currentUserId(), card.getId(),
+					MediaProvider.YOUTUBE,
 					new ProviderIdentity(pending.externalAccountId(), pending.accountLabel(), pending.accountType()),
 					pending.credentialsCiphertext(), pending.accessTokenExpiresAt(), pending.grantedScopes());
 		}
@@ -198,7 +248,12 @@ public class TenantVideoProviderService {
 			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_CHANNEL_IN_USE,
 					"This YouTube channel is already connected to another institute.");
 		}
-		return VideoProviderAccountView.of(true, statusOf(saved), saved, views.toView(saved));
+		IntegrationDetails details = integrations.listYouTube()
+			.stream()
+			.filter(c -> c.integration().getId().equals(card.getId()))
+			.findFirst()
+			.orElseThrow(this::expiredRequest);
+		return VideoProviderAccountView.of(details, true, statusOf(saved), saved, views.toView(saved));
 	}
 
 	public ConnectionTestResult test(UUID connectionId) {
@@ -218,6 +273,14 @@ public class TenantVideoProviderService {
 		if (connection.getScope() != ConnectionScope.TENANT || connection.getProvider() != MediaProvider.YOUTUBE) {
 			throw new NotFoundException("Connection not found");
 		}
+	}
+
+	/** The pending connection's card - this tenant's own, still live; else "expired". */
+	private TenantMediaIntegration cardOf(PendingConnection pending) {
+		if (pending.integrationId() == null) {
+			throw expiredRequest();
+		}
+		return integrations.requireActive(pending.integrationId());
 	}
 
 	private boolean isOwnedByCaller(PendingConnection pending) {

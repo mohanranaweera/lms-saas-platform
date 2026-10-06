@@ -44,8 +44,9 @@ public class OAuthStateStore {
 	 * initiating Tenant Admin (scope TENANT, VIDEO Phase 3). A {@code null}
 	 * scope - an entry written before the field existed - means TEACHER.
 	 */
+	/** @param integrationId VIDEO Phase 5d: the institute YouTube card being connected; null for teachers */
 	public record PendingAuthorization(UUID tenantId, UUID userId, MediaProvider provider, String codeVerifier,
-			ConnectionScope scope) {
+			ConnectionScope scope, UUID integrationId) {
 
 		public boolean isTenantScope() {
 			return scope == ConnectionScope.TENANT;
@@ -64,9 +65,10 @@ public class OAuthStateStore {
 	 * credentialsCiphertext} is sealed for this tenant/provider/owner - the
 	 * owner being the teacher, or none for scope TENANT.
 	 */
+	/** @param integrationId VIDEO Phase 5d: the institute YouTube card being connected */
 	public record PendingConnection(UUID tenantId, UUID userId, MediaProvider provider, String externalAccountId,
 			String accountLabel, String accountType, String credentialsCiphertext, Instant accessTokenExpiresAt,
-			String grantedScopes, ConnectionScope scope) {
+			String grantedScopes, ConnectionScope scope, UUID integrationId) {
 
 		public boolean isTenantScope() {
 			return scope == ConnectionScope.TENANT;

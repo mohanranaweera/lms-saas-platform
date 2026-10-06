@@ -131,6 +131,12 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 5b - this teacher is not on the institute channel's allowed-teachers list. */
 	public static final String VIDEO_UPLOAD_NOT_ALLOWED = "VIDEO_UPLOAD_NOT_ALLOWED";
 
+	/** VIDEO Phase 5d - the institute already has the maximum number of video integrations. */
+	public static final String VIDEO_INTEGRATION_LIMIT = "VIDEO_INTEGRATION_LIMIT";
+
+	/** VIDEO Phase 5d - another live integration of this institute already has this name. */
+	public static final String VIDEO_INTEGRATION_NAME_TAKEN = "VIDEO_INTEGRATION_NAME_TAKEN";
+
 	/** VIDEO Phase 5 - the media is used by a lesson material and cannot be deleted. */
 	public static final String MEDIA_ATTACHED = "MEDIA_ATTACHED";
 

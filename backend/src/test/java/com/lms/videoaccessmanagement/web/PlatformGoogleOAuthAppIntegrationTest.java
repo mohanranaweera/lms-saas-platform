@@ -94,8 +94,7 @@ class PlatformGoogleOAuthAppIntegrationTest extends MediaUploadTestSupport {
 
 		// An institute's Connect now uses the saved client, without a restart.
 		Ctx ctx = seedUploadTenant("gapp-connect", null);
-		String url = json(perform(authenticated(post(PROVIDERS_BASE + "/youtube/connect"), ctx.host(),
-				ctx.adminToken()))).path("data").path("authorizationUrl").asString();
+		String url = json(beginConnect(ctx.host(), ctx.adminToken(), mainIntegration(ctx))).path("data").path("authorizationUrl").asString();
 		assertThat(url).contains("client_id=" + CLIENT_ID);
 		connectChannel(ctx, "UC-gapp-" + UUID.randomUUID().toString().substring(0, 8));
 		assertThat(PROVIDERS.requests("POST", "/token"))
@@ -128,8 +127,7 @@ class PlatformGoogleOAuthAppIntegrationTest extends MediaUploadTestSupport {
 		assertThat(jdbcTemplate.queryForObject("SELECT action FROM platform_oauth_app_change "
 				+ "ORDER BY occurred_at DESC, id DESC LIMIT 1", String.class)).isEqualTo("REMOVED");
 		Ctx ctx = seedUploadTenant("gapp-removed", null);
-		String url = json(perform(authenticated(post(PROVIDERS_BASE + "/youtube/connect"), ctx.host(),
-				ctx.adminToken()))).path("data").path("authorizationUrl").asString();
+		String url = json(beginConnect(ctx.host(), ctx.adminToken(), mainIntegration(ctx))).path("data").path("authorizationUrl").asString();
 		assertThat(url).contains("client_id=test-google-client");
 	}
 

@@ -399,3 +399,9 @@ screens.
    disconnects it; rows and videos are kept. A Platform Admin switch-off covers all of an
    institute's YouTube channels. Detailed in the Phase 5d plan.
 
+**Amendment 5, item 2 - details settled with the owner on 2026-10-05 (Phase 5d):** integrations
+are cards in `tenant_media_integration` (at most 10 YouTube per institute); allowed teachers
+belong to the integration; the Platform Admin switch-off is **per channel** (the existing
+per-connection endpoint), replacing "covers all of an institute's YouTube channels"; deleting
+an integration keeps its videos, listed read-only under an Archived tab.
+

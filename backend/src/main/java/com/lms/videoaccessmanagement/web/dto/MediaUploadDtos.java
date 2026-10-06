@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Bodies of the VIDEO Phase 4 upload endpoints ({@code /api/v1/media},
@@ -23,7 +24,7 @@ public final class MediaUploadDtos {
 	/** Field-level rules are checked (with all errors at once) by {@code MediaUploadService}. */
 	public record CreateMediaUploadRequest(@Size(max = 200) String title, @Size(max = 6000) String description,
 			MediaPrivacyStatus privacyStatus, MediaAssetProvider provider, @Size(max = 300) String fileName,
-			@Size(max = 100) String mimeType, Long sizeBytes) {
+			@Size(max = 100) String mimeType, Long sizeBytes, UUID integrationId) {
 
 	}
 

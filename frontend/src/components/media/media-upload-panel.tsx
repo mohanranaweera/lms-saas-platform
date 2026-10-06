@@ -63,14 +63,19 @@ function blockedReason(limits: MediaUploadLimits): string | null {
  * limit, who may upload) is enforced again by the server.
  */
 export function MediaUploadPanel({
+  integrationId,
+  integrationName,
   settingsHref,
   onClose,
 }: {
+  /** VIDEO Phase 5d: the YouTube integration (selected tab) the video is uploaded to. */
+  integrationId: string;
+  integrationName: string;
   /** Where the YouTube channel is managed, shown to those who may manage it. */
   settingsHref?: string;
   onClose: () => void;
 }) {
-  const limitsQuery = useMediaUploadLimits();
+  const limitsQuery = useMediaUploadLimits(integrationId);
 
   if (limitsQuery.isPending) {
     return (
@@ -90,14 +95,26 @@ export function MediaUploadPanel({
       </Alert>
     );
   }
-  return <UploadForm limits={limitsQuery.data} settingsHref={settingsHref} onClose={onClose} />;
+  return (
+    <UploadForm
+      limits={limitsQuery.data}
+      integrationId={integrationId}
+      integrationName={integrationName}
+      settingsHref={settingsHref}
+      onClose={onClose}
+    />
+  );
 }
 
 function UploadForm({
   limits,
+  integrationId,
+  integrationName,
   settingsHref,
   onClose,
 }: {
+  integrationId: string;
+  integrationName: string;
   limits: MediaUploadLimits;
   settingsHref?: string;
   onClose: () => void;
@@ -154,6 +171,7 @@ function UploadForm({
     setPhase({ kind: "uploading", sent: 0, total: file.size });
     try {
       const started = await api.start({
+        integrationId,
         title: values.title.trim(),
         description: values.description.trim() || undefined,
         privacyStatus: values.privacyStatus,
@@ -241,7 +259,10 @@ function UploadForm({
       className="flex flex-col gap-4 rounded-lg border border-border p-4"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-base font-medium text-foreground">Upload a video</h2>
+        <div>
+          <h2 className="text-base font-medium text-foreground">Upload a video</h2>
+          <p className="text-sm text-muted-foreground">To YouTube · {integrationName}</p>
+        </div>
         <p className="text-sm text-muted-foreground">
           {limits.usedToday} of {limits.dailyLimit} uploads used today · up to {formatBytes(limits.maxFileSizeBytes)}
         </p>

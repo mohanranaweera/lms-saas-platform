@@ -16,7 +16,14 @@ import type { ConnectionTestResult, ConnectionView } from "@/lib/api/integration
 
 export type VideoProviderAccountStatus = "NOT_CONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
 
+/** VIDEO Phase 5d: one named YouTube integration (Klass-style card) and its channel. */
 export interface VideoProviderAccountView {
+  integrationId: string;
+  name: string;
+  description: string | null;
+  /** No allowed-teacher list = every teacher may upload. */
+  allTeachersAllowed: boolean;
+  allowedTeachers: ChannelTeacher[];
   provider: "YOUTUBE";
   /** Platform Google OAuth app + credential key configured. */
   available: boolean;
@@ -32,6 +39,9 @@ export interface VideoProviderAccountView {
 }
 
 export interface PendingChannelView {
+  /** VIDEO Phase 5d: the card being connected. */
+  integrationId: string;
+  integrationName: string;
   channelId: string;
   channelTitle: string | null;
   replacesCurrentChannel: boolean;
@@ -78,20 +88,10 @@ export interface ChannelTeacher {
   email: string | null;
 }
 
-/** The institute channel's name / description and who may upload (empty list = all teachers). */
-export interface ChannelSettingsView {
-  displayName: string | null;
+/** VIDEO Phase 5d: create / edit an integration card. Empty `allowedTeacherIds` = every teacher. */
+export interface VideoIntegrationInput {
+  name: string;
   description: string | null;
-  allTeachersAllowed: boolean;
-  allowedTeachers: ChannelTeacher[];
-  /** Every teacher of the institute - the only ids the list accepts. */
-  availableTeachers: ChannelTeacher[];
-}
-
-export interface ChannelSettingsInput {
-  displayName: string | null;
-  description: string | null;
-  /** Empty = every teacher may upload. */
   allowedTeacherIds: string[];
 }
 
@@ -122,7 +122,7 @@ export interface TenantGoogleAppVerify {
 export const videoSettingsKeys = {
   all: ["video-settings"] as const,
   providers: () => [...videoSettingsKeys.all, "providers"] as const,
-  channelSettings: () => [...videoSettingsKeys.all, "channel-settings"] as const,
+  teachers: () => [...videoSettingsKeys.all, "teachers"] as const,
   googleApp: () => [...videoSettingsKeys.all, "google-app"] as const,
   pending: (pendingId: string) => [...videoSettingsKeys.all, "pending", pendingId] as const,
   configuration: () => [...videoSettingsKeys.all, "configuration"] as const,
@@ -138,12 +138,67 @@ export function useTenantVideoProviders() {
   });
 }
 
+/** Starts connecting (or reconnecting) one card's channel - VIDEO Phase 5d. */
 export function useBeginTenantYouTubeConnect() {
   const { authorizedFetch } = useAuth();
   return useMutation({
-    mutationFn: () =>
-      authorizedFetch<{ authorizationUrl: string }>("tenant", `${BASE}/youtube/connect`, { method: "POST" }),
+    mutationFn: (integrationId: string) =>
+      authorizedFetch<{ authorizationUrl: string }>(
+        "tenant",
+        `${BASE}/youtube/integrations/${encodeURIComponent(integrationId)}/connect`,
+        { method: "POST" }
+      ),
   });
+}
+
+/** VIDEO Phase 5d: the institute's teachers by user id - choices for an integration's allowed teachers. */
+export function useIntegrationTeacherChoices(enabled = true) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: videoSettingsKeys.teachers(),
+    queryFn: () => authorizedFetch<ChannelTeacher[]>("tenant", `${BASE}/youtube/teachers`),
+    enabled,
+  });
+}
+
+function useIntegrationMutation<TInput, TResult>(request: (input: TInput) => [string, RequestInit]) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TInput) => {
+      const [path, init] = request(input);
+      return authorizedFetch<TResult>("tenant", path, init);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: videoSettingsKeys.providers() });
+      // The Media Library tabs follow the integrations.
+      void queryClient.invalidateQueries({ queryKey: ["media"] });
+    },
+  });
+}
+
+export function useCreateVideoIntegration() {
+  return useIntegrationMutation<VideoIntegrationInput, VideoProviderAccountView>((input) => [
+    `${BASE}/youtube/integrations`,
+    { method: "POST", body: JSON.stringify(input) },
+  ]);
+}
+
+export function useUpdateVideoIntegration() {
+  return useIntegrationMutation<VideoIntegrationInput & { integrationId: string }, VideoProviderAccountView>(
+    ({ integrationId, ...input }) => [
+      `${BASE}/youtube/integrations/${encodeURIComponent(integrationId)}`,
+      { method: "PUT", body: JSON.stringify(input) },
+    ]
+  );
+}
+
+/** Disconnects the card's channel and archives the card; its videos stay (Media Library → Archived). */
+export function useDeleteVideoIntegration() {
+  return useIntegrationMutation<string, null>((integrationId) => [
+    `${BASE}/youtube/integrations/${encodeURIComponent(integrationId)}`,
+    { method: "DELETE" },
+  ]);
 }
 
 /** Non-consuming preview of a parked authorization (only for the admin who started it). */
@@ -225,31 +280,6 @@ export function useUpdateTenantVideoConfiguration() {
       }),
     onSuccess: (data) => {
       queryClient.setQueryData(videoSettingsKeys.configuration(), data);
-    },
-  });
-}
-
-/** VIDEO Phase 5b - Tenant Admin (INTEGRATIONS VIEW); a 403 means no access. */
-export function useVideoChannelSettings(enabled = true) {
-  const { authorizedFetch } = useAuth();
-  return useQuery({
-    queryKey: videoSettingsKeys.channelSettings(),
-    queryFn: () => authorizedFetch<ChannelSettingsView>("tenant", `${BASE}/youtube/settings`),
-    enabled,
-  });
-}
-
-export function useUpdateVideoChannelSettings() {
-  const { authorizedFetch } = useAuth();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: ChannelSettingsInput) =>
-      authorizedFetch<ChannelSettingsView>("tenant", `${BASE}/youtube/settings`, {
-        method: "PUT",
-        body: JSON.stringify(input),
-      }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(videoSettingsKeys.channelSettings(), data);
     },
   });
 }

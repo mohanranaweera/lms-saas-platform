@@ -1,6 +1,7 @@
 package com.lms.integrationmanagement.api;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,18 +25,24 @@ public interface MediaConnectionApi {
 	Map<UUID, MediaConnectionStatus> connectionStatuses(Collection<UUID> connectionIds);
 
 	/**
-	 * VIDEO Phase 4: the tenant's own live (non-DISCONNECTED) video channel,
-	 * if any - the channel uploads go to.
+	 * VIDEO Phase 5d: the institute's YouTube integrations (cards), live and
+	 * deleted, oldest first - the Media Library's tabs. Tenant-scoped.
 	 */
-	Optional<TenantChannelSummary> findTenantVideoChannel(MediaProvider provider);
+	List<VideoIntegrationSummary> listVideoIntegrations();
+
+	/** VIDEO Phase 5d: one of the institute's integrations (any status); empty for another tenant's id. */
+	Optional<VideoIntegrationSummary> findVideoIntegration(UUID integrationId);
+
+	/** VIDEO Phase 5d: whether this teacher may upload to the integration (no list = every teacher). */
+	boolean isTeacherAllowedOnIntegration(UUID integrationId, UUID teacherUserId);
 
 	/**
-	 * VIDEO Phase 4: the tenant's current ACTIVE connection to the SAME
-	 * external channel as {@code connectionId} (a reconnect creates a new
-	 * row, so an upload or status sync started on an older row continues on
-	 * this one). Empty if the channel is no longer connected, was replaced by
-	 * a different channel, or needs reconnecting. Does not consider the
-	 * platform switch-off - see {@link TenantChannelSummary#usable()}.
+	 * VIDEO Phase 4: the current ACTIVE connection of the SAME integration to
+	 * the SAME external channel as {@code connectionId} (a reconnect creates a
+	 * new row, so an upload or status sync started on an older row continues
+	 * on this one). Empty if the channel is no longer connected, was replaced
+	 * by a different channel, or needs reconnecting. Does not consider the
+	 * platform switch-off - see {@link VideoIntegrationSummary#usable()}.
 	 */
 	Optional<UUID> currentConnectionForSameChannel(UUID connectionId);
 
@@ -45,18 +52,21 @@ public interface MediaConnectionApi {
 	}
 
 	/**
-	 * @param platformDisabled switched off by a Platform Admin (TD-008)
-	 * @param editScopeGranted the grant can edit videos (ADR-018 Amendment 3);
-	 * channels connected before it must reconnect to edit
+	 * VIDEO Phase 5d: one institute YouTube integration.
+	 *
+	 * @param active false once deleted (its videos are archived)
+	 * @param connectionId the live (non-DISCONNECTED) connection, or null
+	 * @param platformDisabled the latest connection was switched off by a Platform Admin (TD-008)
+	 * @param editScopeGranted the live grant can edit videos (ADR-018 Amendment 3)
 	 */
-	record TenantChannelSummary(UUID connectionId, MediaConnectionStatus status, boolean platformDisabled,
-			boolean editScopeGranted) {
+	record VideoIntegrationSummary(UUID integrationId, String name, boolean active, UUID connectionId,
+			MediaConnectionStatus status, boolean platformDisabled, boolean editScopeGranted) {
 
-		/** Whether uploads may use this channel now. */
+		/** Whether uploads may use this integration now. */
 		public boolean usable() {
-			return status == MediaConnectionStatus.ACTIVE && !platformDisabled;
+			return active && connectionId != null && status == MediaConnectionStatus.ACTIVE && !platformDisabled;
 		}
 
-	}
+		}
 
 }

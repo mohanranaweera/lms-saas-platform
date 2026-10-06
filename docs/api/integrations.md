@@ -589,29 +589,42 @@ the abuse/incident lever over a tenant's YouTube channel and does not depend on 
 An unknown tenant, or an account id that is not that tenant's YouTube channel → `404`.
 Credentials are never returned.
 
-## Institute channel settings: name, description, allowed teachers (VIDEO Phase 5b)
+## YouTube integrations - named cards (VIDEO Phase 5d, ADR-018 Amendment 5 item 2)
 
-`/api/v1/tenant-admin/video-providers/youtube/settings`: `INTEGRATIONS` VIEW (`GET`) /
-CREATE_EDIT (`PUT`). Teacher / Student → `403`. Settings are kept when the channel is reconnected
-or replaced.
+Replaces Phase 5b's single `/youtube/settings` and Phase 3's `POST /youtube/connect` (both
+removed; never released). Base `/api/v1/tenant-admin/video-providers`; `INTEGRATIONS` VIEW (read)
+/ CREATE_EDIT (write); every id is resolved through the tenant filter (another institute's id →
+`404`).
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/` | the institute's live YouTube cards, oldest first (empty list when none) |
+| `POST` | `/youtube/integrations` | `{name, description, allowedTeacherIds}` → `201` card view |
+| `PUT` | `/youtube/integrations/{id}` | same body; full replacement |
+| `DELETE` | `/youtube/integrations/{id}` | disconnects the card's channel (revoked at Google), marks the card DELETED; its videos stay (Media Library → Archived) |
+| `POST` | `/youtube/integrations/{id}/connect` | Google consent URL for this card; the OAuth state carries the card |
+| `GET` | `/youtube/teachers` | the institute's teachers by user id - choices for `allowedTeacherIds` |
+| `GET` / `POST` | `/youtube/pending/{pendingId}[/confirm]` | as before; the preview adds `integrationId`, `integrationName`; "replaces" means a different channel on *this* card |
 
 ```jsonc
-// GET / PUT response
-{ "displayName": "Institute Channel" | null, "description": "…" | null,
-  "allTeachersAllowed": false,
-  "allowedTeachers": [ { "userId": "<uuid>", "name": "Teacher One", "email": "…" } ],
-  // every teacher of the institute, by USER id - the only ids allowedTeacherIds accepts
-  // (the /api/v1/teachers list uses teacher-profile ids, which are NOT accepted here)
-  "availableTeachers": [ { "userId": "<uuid>", "name": "Teacher One", "email": "…" } ] }
-// PUT body (full replacement)
-{ "displayName": "…", "description": "…", "allowedTeacherIds": ["<uuid>"] }   // [] or absent = all teachers
+// card view (GET list item, POST / PUT response)
+{ "integrationId": "<uuid>", "name": "AOC YT", "description": "…" | null,
+  "allTeachersAllowed": false, "allowedTeachers": [ { "userId": "<uuid>", "name": "…", "email": "…" } ],
+  "provider": "YOUTUBE", "available": true, "status": "NOT_CONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR",
+  "connection": { … } | null, "connectedByUserId": "<uuid>" | null,
+  "platformDisabled": false, "platformDisabledReason": null, "canEditVideos": true }
 ```
 
-- `displayName` ≤ 100 and `description` ≤ 500, both without `<` or `>`.
-- `allowedTeacherIds` must be teachers of this institute; anything else (unknown, another
-  institute's, a student) → `400`.
-- Audit: `video_provider.settings_updated` with before/after.
-- Enforcement: see `docs/api/video-access-management.md` (`403 VIDEO_UPLOAD_NOT_ALLOWED`).
+- `name` required, ≤ 100, no `<`/`>`, unique per institute among live cards (case-insensitive →
+  `409 VIDEO_INTEGRATION_NAME_TAKEN`); `description` ≤ 500; `allowedTeacherIds` must be teachers of
+  this institute (else `400`), empty = every teacher.
+- At most 10 live cards per institute → `409 VIDEO_INTEGRATION_LIMIT`.
+- Audit: `video_integration.created|updated|deleted` (before / after); connecting stays
+  `video_provider.connected|reauthorized|channel_replaced` with `integrationId` in the metadata.
+- One live connection per card (V76 index); a Google channel can still be live in only one place
+  on the platform. Several cards share the institute's Google app (Phase 5c).
+- Platform Admin switch-off stays per connection (per channel); its list now includes
+  `integrationName`.
 
 **Teacher YouTube connections removed (ADR-018 Amendment 4):**
 - Teachers no longer connect a personal YouTube account. `POST

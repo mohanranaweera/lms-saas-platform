@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, CheckCircle2, CircleSlash, PlugZap, RefreshCw, TriangleAlert } from "lucide-react";
+import { AlertCircle, CheckCircle2, CircleSlash, Pencil, PlugZap, RefreshCw, Trash2, TriangleAlert } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime } from "@/lib/format";
 import {
   useBeginTenantYouTubeConnect,
+  useDeleteVideoIntegration,
   useDisconnectVideoProvider,
   useTestVideoProvider,
   type VideoProviderAccountStatus,
@@ -27,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { VideoIntegrationSheet } from "@/components/integrations/video-integration-sheet";
 
 const STATUS: Record<
   VideoProviderAccountStatus | "UNAVAILABLE",
@@ -54,19 +56,14 @@ function isSafeConsentUrl(url: string): boolean {
  * Connecting sends the browser to Google; the page then shows the returned
  * channel for an explicit confirmation. No token ever reaches the browser.
  */
-export function TenantYouTubeChannelCard({
-  view,
-  canManage,
-  displayName = null,
-  uploaders = null,
-}: {
-  view: VideoProviderAccountView;
-  canManage: boolean;
-  /** VIDEO Phase 5b - the institute's own name for the channel, if set. */
-  displayName?: string | null;
-  /** VIDEO Phase 5b - "All teachers" / "N teachers" who may upload. */
-  uploaders?: string | null;
-}) {
+/** "All teachers" / "1 teacher" / "N teachers" - the card's Klass-style summary. */
+export function uploadersSummary(view: VideoProviderAccountView): string {
+  if (view.allTeachersAllowed) return "All teachers";
+  const count = view.allowedTeachers.length;
+  return count === 1 ? "1 teacher" : `${count} teachers`;
+}
+
+export function TenantYouTubeChannelCard({ view, canManage }: { view: VideoProviderAccountView; canManage: boolean }) {
   const { session } = useAuth();
   const connectMutation = useBeginTenantYouTubeConnect();
   const testMutation = useTestVideoProvider();
@@ -74,11 +71,13 @@ export function TenantYouTubeChannelCard({
   const connection = view.connection && view.connection.status !== "DISCONNECTED" ? view.connection : null;
   const state = view.available ? view.status : "UNAVAILABLE";
   const { label, variant, Icon } = STATUS[state];
+  const headingId = `integration-${view.integrationId}-heading`;
+  const [editing, setEditing] = useState(false);
 
   async function handleConnect() {
     setMessage(null);
     try {
-      const { authorizationUrl } = await connectMutation.mutateAsync();
+      const { authorizationUrl } = await connectMutation.mutateAsync(view.integrationId);
       if (!isSafeConsentUrl(authorizationUrl)) {
         setMessage({ text: "We couldn't open Google's sign-in page. Please try again.", error: true });
         return;
@@ -105,23 +104,20 @@ export function TenantYouTubeChannelCard({
 
   return (
     <section
-      aria-labelledby="tenant-youtube-heading"
+      aria-labelledby={headingId}
       className="flex flex-col gap-3 rounded-lg border border-border p-4"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <h2 id="tenant-youtube-heading" className="text-base font-medium text-foreground">
-          YouTube
+        <h2 id={headingId} className="text-base font-medium text-foreground">
+          {view.name}
         </h2>
         <Badge variant={variant}>
           <Icon aria-hidden="true" />
           {label}
         </Badge>
       </div>
-      {displayName || uploaders ? (
-        <p className="text-sm text-foreground">
-          {[displayName, uploaders ? `YouTube · ${uploaders}` : null].filter(Boolean).join(" — ")}
-        </p>
-      ) : null}
+      <p className="text-sm text-muted-foreground">YouTube · {uploadersSummary(view)}</p>
+      {view.description ? <p className="text-sm whitespace-pre-line text-foreground">{view.description}</p> : null}
       <p className="text-sm text-muted-foreground">
         Upload lesson videos to your institute&apos;s own YouTube channel. YouTube stores and streams them at no cost,
         and students can only reach them through your courses. Unlisted YouTube videos can still be watched by anyone
@@ -216,6 +212,16 @@ export function TenantYouTubeChannelCard({
           {connection ? <DisconnectChannelDialog connectionId={connection.id} /> : null}
         </div>
       ) : null}
+      {canManage ? (
+        <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+            <Pencil aria-hidden="true" />
+            Edit<span className="sr-only"> {view.name}</span>
+          </Button>
+          <DeleteIntegrationDialog view={view} />
+          <VideoIntegrationSheet open={editing} onOpenChange={setEditing} integration={view} />
+        </div>
+      ) : null}
 
       {message ? (
         <p
@@ -226,6 +232,60 @@ export function TenantYouTubeChannelCard({
         </p>
       ) : null}
     </section>
+  );
+}
+
+function DeleteIntegrationDialog({ view }: { view: VideoProviderAccountView }) {
+  const remove = useDeleteVideoIntegration();
+  const [open, setOpen] = useState(false);
+
+  async function handleConfirm() {
+    try {
+      await remove.mutateAsync(view.integrationId);
+      setOpen(false);
+    } catch {
+      // Shown below.
+    }
+  }
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger render={<Button type="button" variant="outline" size="sm" />}>
+        <Trash2 aria-hidden="true" />
+        Delete<span className="sr-only"> {view.name}</span>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete &ldquo;{view.name}&rdquo;?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {view.connection && view.connection.status !== "DISCONNECTED"
+              ? "Its YouTube channel is disconnected and Google is asked to revoke this platform's access. "
+              : ""}
+            Videos already uploaded stay on YouTube and in lessons; the Media Library lists them under Archived.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {remove.isError ? (
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden="true" />
+            <AlertDescription>
+              {isApiClientError(remove.error) ? remove.error.message : "The integration could not be deleted."}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        <AlertDialogFooter>
+          <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={remove.isPending}
+            aria-busy={remove.isPending}
+          >
+            {remove.isPending ? "Deleting…" : "Delete integration"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

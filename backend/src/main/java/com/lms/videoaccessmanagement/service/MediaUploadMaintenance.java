@@ -1,13 +1,15 @@
 package com.lms.videoaccessmanagement.service;
 
 import com.lms.integrationmanagement.api.MediaConnectionApi;
-import com.lms.integrationmanagement.api.MediaConnectionApi.TenantChannelSummary;
+import com.lms.integrationmanagement.api.MediaConnectionApi.VideoIntegrationSummary;
 import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.api.MediaStagingApi;
 import com.lms.integrationmanagement.api.MediaStagingApi.StagingUpload;
 import com.lms.videoaccessmanagement.config.VideoUploadProperties;
 import com.lms.videoaccessmanagement.domain.MediaUploadJob;
+import com.lms.videoaccessmanagement.domain.VideoAsset;
 import com.lms.videoaccessmanagement.repository.MediaUploadJobRepository;
+import com.lms.videoaccessmanagement.repository.VideoAssetRepository;
 import com.lms.videoaccessmanagement.repository.MediaUploadJobRepository.JobRef;
 import com.lms.videoaccessmanagement.service.MediaUploadStore.Cleanup;
 import java.time.Clock;
@@ -47,8 +49,12 @@ public class MediaUploadMaintenance {
 
 	private final Clock clock;
 
+	private final VideoAssetRepository assets;
+
 	public MediaUploadMaintenance(MediaUploadJobRepository jobs, MediaUploadStore store, MediaStagingApi staging,
-			MediaConnectionApi connections, VideoUploadProperties properties, Clock clock) {
+			MediaConnectionApi connections, VideoUploadProperties properties, Clock clock,
+			VideoAssetRepository assets) {
+		this.assets = assets;
 		this.jobs = jobs;
 		this.store = store;
 		this.staging = staging;
@@ -89,8 +95,11 @@ public class MediaUploadMaintenance {
 		if (job == null) {
 			return false;
 		}
-		boolean channelUsable = connections.findTenantVideoChannel(MediaProvider.YOUTUBE)
-			.map(TenantChannelSummary::usable)
+		// VIDEO Phase 5d: only the video's own integration, and only while it is live and usable.
+		boolean channelUsable = assets.findById(job.getVideoAssetId())
+			.map(VideoAsset::getIntegrationId)
+			.flatMap(connections::findVideoIntegration)
+			.map(VideoIntegrationSummary::usable)
 			.orElse(false);
 		Optional<UUID> current = channelUsable
 				? connections.currentConnectionForSameChannel(job.getProviderConnectionId()) : Optional.empty();

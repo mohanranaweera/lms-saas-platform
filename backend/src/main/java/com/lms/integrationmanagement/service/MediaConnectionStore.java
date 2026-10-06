@@ -108,12 +108,13 @@ public class MediaConnectionStore {
 	 * channel is already the live channel of another tenant (V71)
 	 */
 	@Transactional
-	public MediaProviderConnection saveTenantOAuthConnection(UUID actorId, MediaProvider provider,
+	public MediaProviderConnection saveTenantOAuthConnection(UUID actorId, UUID integrationId, MediaProvider provider,
 			ProviderIdentity identity, String credentialsCiphertext, Instant accessTokenExpiresAt,
 			String grantedScopes) {
 		UUID tenantId = tenantContext.getTenantId();
 		Instant now = Instant.now();
-		MediaProviderConnection previous = repository.findCurrentForTenant(provider).orElse(null);
+		// VIDEO Phase 5d: a card holds at most one live connection; other cards are untouched.
+		MediaProviderConnection previous = repository.findCurrentForIntegration(integrationId).orElse(null);
 		String action = "video_provider.connected";
 		if (previous != null) {
 			action = identity.externalId().equals(previous.getExternalAccountId()) ? "video_provider.reauthorized"
@@ -122,11 +123,12 @@ public class MediaConnectionStore {
 			repository.saveAndFlush(previous);
 		}
 		MediaProviderConnection saved = repository.saveAndFlush(MediaProviderConnection.tenantOAuth(tenantId,
-				provider, identity.externalId(), identity.label(), credentialsCiphertext, accessTokenExpiresAt,
+				integrationId, provider, identity.externalId(), identity.label(), credentialsCiphertext, accessTokenExpiresAt,
 				grantedScopes, now));
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("provider", provider.name());
 		metadata.put("scope", "TENANT");
+		metadata.put("integrationId", integrationId.toString());
 		metadata.put("externalAccountId", MediaConnectionViews.mask(identity.externalId()));
 		if (previous != null) {
 			metadata.put("replacedConnectionId", previous.getId().toString());

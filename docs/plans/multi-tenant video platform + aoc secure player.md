@@ -3,14 +3,14 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    5c — Google OAuth apps: institute's own + platform default (TESTED — awaiting commit)
+Current Phase:    5d — Named YouTube integrations + Media Library tabs (TESTED — awaiting commit)
 Last Updated:     2026-10-05
-Current Branch:   feat/platform-google-oauth-app
-Latest Migration: V75__tenant_oauth_app.sql
-Backend Build:    PASS — mvnw verify, 2026-10-05 (BUILD SUCCESS, 14:51 min, Phase 5c revised)
+Current Branch:   feat/video-multi-channel
+Latest Migration: V76__tenant_media_integrations.sql
+Backend Build:    PASS — mvnw verify, 2026-10-05 (BUILD SUCCESS, 17:59 min, Phase 5d)
 Frontend Build:   not affected (no frontend change in Phases 1–2)
 Player Build:     n/a (player project does not exist yet)
-Tests:            backend 2370 run / 0 failures / 0 errors / 0 skipped (full suite, 2026-10-05)
+Tests:            backend 2371 run / 0 failures / 0 errors / 0 skipped (full suite, 2026-10-05)
 Open Blockers:    B1–B4, B6 (§0.3) — owner approvals for change-controlled areas (B5 approved 2026-10-04)
 ```
 
@@ -1862,7 +1862,7 @@ stays the fallback). ADR-018 Amendment 5 item 1a.
   after) - 20 + 12 green. Playwright `media-library.spec.ts` 19 passed (3 new). `tsc` / `eslint`
   clean.
 
-### Phase 5d — Named YouTube integrations + Media Library tabs (NOT STARTED)
+### Phase 5d — Named YouTube integrations + Media Library tabs
 
 **Scope decided by the owner on 2026-10-05** (after reviewing Klass's Media Library, where every
 named integration is a tab - "Uploads", "AOC YT", "AOC ZOOM 0-3", "AOC Cloud Recording"):
@@ -1881,3 +1881,68 @@ Needs: a decision on which Zoom accounts appear (institute-level vs teachers' ow
 teacher-level and only creates meetings), Zoom's recording-read scope, an ADR-018 amendment, and
 the recording-access rules (recordings are protected content).
 
+**Before (2026-10-05, status → IN PROGRESS; Phase 5c committed as `5d90402`)**
+
+- **Owner decisions:** deleting an integration keeps its videos in a read-only **Archived** tab;
+  the **Uploads** tab lists every video file stored in the platform's own storage
+  (`provider = INTERNAL` video assets - course VIDEO / RECORDING materials point to these);
+  Platform Admin switch-off stays **per channel** (the existing per-connection endpoint);
+  at most **10** YouTube integrations per institute.
+- **DB `V76__tenant_media_integrations.sql`:** `tenant_media_integration` (tenant-owned; name
+  unique per tenant among ACTIVE, case-insensitive; ACTIVE / DELETED); its teacher list
+  `tenant_media_integration_teacher` (V73's `tenant_video_upload_teacher` copied in, then dropped);
+  `media_provider_connection.integration_id` (composite FK, required for YouTube TENANT rows);
+  one live connection per integration replaces one per (tenant, provider) for YouTube;
+  `video_asset.integration_id` (composite FK) backfilled from the connection; one integration per
+  existing channel / 5b settings (name = 5b display name → channel title → "YouTube");
+  `tenant_video_configuration.channel_display_name / channel_description` dropped.
+- **API:** Tenant Admin list = cards; `POST/PUT/DELETE .../youtube/integrations[/{id}]`;
+  `POST .../integrations/{id}/connect`; pending preview / confirm per card; `POST /youtube/connect`
+  and 5b `/youtube/settings` removed (never released). Media: `GET /media/channels` (tabs for the
+  caller), `GET /media?integrationId=`, `upload-limits?integrationId=`, `POST /media` requires
+  `integrationId`. Integration-management owns names / teacher lists; video-access-management
+  reads them through `MediaConnectionApi`.
+- **Security / tenant:** every card / tab id resolved through the tenant filter (foreign → 404);
+  uploads re-check integration + teacher list on create / retry; resume stays on the same
+  integration; deleting a card revokes at Google and keeps all rows.
+- **Tests:** rework single-channel tests; new: several cards, two channels in one institute,
+  per-card teachers, upload to the chosen card, tabs per role, Archived, backfill, limit 10,
+  cross-tenant; Playwright for cards, dialogs, tabs and upload target.
+
+**After — backend (2026-10-05)**
+
+- Built as planned: `V76__tenant_media_integrations.sql`; `TenantMediaIntegration`,
+  `TenantMediaIntegrationTeacher` + tenant-aware repositories; `TenantMediaIntegrationService`
+  (create / update / delete, limit 10, unique names, audit; delete disconnects outside the DB
+  transaction, then marks DELETED); `TenantVideoProviderService` / controller per card;
+  `MediaProviderConnection.integrationId` + per-integration finders; OAuth state carries the card;
+  `MediaConnectionApi` → `listVideoIntegrations` / `findVideoIntegration` /
+  `isTeacherAllowedOnIntegration` / `VideoIntegrationSummary`; `MediaUploadService` (create needs
+  `integrationId`, retry stays on the asset's card), `MediaUploadMaintenance` (resume only on a
+  usable own card), `MediaAssetService` (tabs, `integrationId` / `archived` filters),
+  `VideoAsset.integrationId`; `TenantGoogleOAuthAppService` checks / resets every live channel;
+  Platform Admin list adds `integrationName`.
+- Removed: 5b `TenantVideoChannelService`, `TenantVideoChannelController`,
+  `TenantVideoUploadTeacher` (+ repository, table dropped by V76), `POST /youtube/connect`,
+  `/youtube/settings`, `InstituteChannelTeachersIntegrationTest`.
+- Tests: new `VideoIntegrationsIntegrationTest` (7: card CRUD + validation + name rule + limit 10 +
+  audit; two channels and upload to the chosen card; per-card teacher lists and teacher tabs;
+  delete → disconnect + revoke + Archived; per-channel platform switch-off; cross-tenant;
+  schema constraints). Reworked: `TenantVideoProviderIntegrationTest`,
+  `MediaUploadIntegrationTest`, `MediaLibraryManagementIntegrationTest` (per-card helpers).
+
+**After — frontend (2026-10-05)**
+
+- Video providers: "N of M connected", **Add integration** (disabled at 10), Klass-style cards
+  ("YouTube · All teachers / N teachers", description, Connect / Reconnect / Test / Disconnect,
+  **Edit**, **Delete** with the Archived explanation), `VideoIntegrationSheet` (RHF + Zod, full-screen
+  on phones), confirm step names the card; the 5b channel-settings section is gone; the Google app
+  section stays.
+- Media Library: tabs per YouTube integration ("Not connected" badge), **Uploads** (platform
+  storage) and **Archived**; each tab queries only its own videos; "Upload video" uploads to the
+  selected tab ("To YouTube · <name>"); the details page reads limits for the video's own card.
+- Playwright: `tenant-admin-video-settings` 20 passed (5 new integration tests),
+  `media-library` 21 passed (2 new tab tests); `teacher-integrations` / `tenant-admin-integrations` /
+  `platform-admin-google-oauth-app` green except the 2 pre-existing teacher confirm failures.
+  `tsc` / `eslint` clean.
+- Full backend `mvnw verify` (2026-10-05): 2371 tests, 0 failures / errors / skipped, BUILD SUCCESS; media / integration suites re-run green after adding `integrationId` to the media view.

@@ -55,6 +55,10 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 	@Column(name = "owner_user_id", updatable = false)
 	private UUID ownerUserId;
 
+	/** VIDEO Phase 5d (V76): the institute YouTube integration (card) this connection belongs to. */
+	@Column(name = "integration_id", updatable = false)
+	private UUID integrationId;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "auth_type", nullable = false, updatable = false, length = 10)
 	private ConnectionAuthType authType;
@@ -145,11 +149,14 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 	 * V71): tenant-scoped, no owner, OAuth. Its credentials are sealed with the
 	 * tenant AAD, never a user's.
 	 */
-	public static MediaProviderConnection tenantOAuth(UUID tenantId, MediaProvider provider, String externalAccountId,
-			String externalAccountLabel, String credentialsCiphertext, Instant accessTokenExpiresAt,
-			String grantedScopes, Instant verifiedAt) {
+	public static MediaProviderConnection tenantOAuth(UUID tenantId, UUID integrationId, MediaProvider provider,
+			String externalAccountId, String externalAccountLabel, String credentialsCiphertext,
+			Instant accessTokenExpiresAt, String grantedScopes, Instant verifiedAt) {
 		if (provider != MediaProvider.YOUTUBE) {
 			throw new IllegalArgumentException(provider + " has no tenant-level OAuth connection");
+		}
+		if (integrationId == null) {
+			throw new IllegalArgumentException("An institute YouTube connection belongs to an integration");
 		}
 		MediaProviderConnection connection = new MediaProviderConnection(tenantId, provider, ConnectionScope.TENANT,
 				null, ConnectionAuthType.OAUTH, credentialsCiphertext, verifiedAt);
@@ -157,6 +164,7 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 		connection.externalAccountLabel = externalAccountLabel;
 		connection.accessTokenExpiresAt = accessTokenExpiresAt;
 		connection.grantedScopes = grantedScopes;
+		connection.integrationId = integrationId;
 		return connection;
 	}
 
@@ -284,6 +292,10 @@ public class MediaProviderConnection extends Auditable implements TenantOwned {
 
 	public ConnectionScope getScope() {
 		return scope;
+	}
+
+	public UUID getIntegrationId() {
+		return integrationId;
 	}
 
 	public UUID getOwnerUserId() {

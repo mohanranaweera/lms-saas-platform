@@ -14,6 +14,7 @@ import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.MediaConnectionApi;
+import com.lms.integrationmanagement.api.MediaConnectionApi.VideoIntegrationSummary;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi.UploadFailure;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi.UploadMetadata;
@@ -111,6 +112,17 @@ public class MediaAssetService {
 		if (query.provider() != null) {
 			spec = spec.and((root, q, cb) -> cb.equal(root.get("provider"), query.provider()));
 		}
+		if (query.integrationId() != null) {
+			// Another tenant's (or an unknown) integration is "not found", never an empty page.
+			UUID integrationId = connections.findVideoIntegration(query.integrationId())
+				.map(VideoIntegrationSummary::integrationId)
+				.orElseThrow(() -> new NotFoundException("Integration not found"));
+			spec = spec.and((root, q, cb) -> cb.equal(root.get("integrationId"), integrationId));
+		}
+		if (query.archived()) {
+			List<UUID> deleted = deletedIntegrationIds();
+			spec = spec.and((root, q, cb) -> deleted.isEmpty() ? cb.disjunction() : root.get("integrationId").in(deleted));
+		}
 		if (query.search() != null && !query.search().isBlank()) {
 			spec = spec.and(titleOrFilenameContains(query.search()));
 		}
@@ -123,6 +135,51 @@ public class MediaAssetService {
 		Set<UUID> attached = materialLookupApi.findVideoAssetIdsInUse(ids);
 		return page.map(asset -> mediaAssetViews.toView(asset, jobs.get(asset.getId()),
 				attached.contains(asset.getId())));
+	}
+
+	/**
+	 * VIDEO Phase 5d: the tabs the caller sees. Staff with {@code MATERIALS}
+	 * VIEW: every live integration. A teacher: the live integrations they may
+	 * upload to plus any holding their own videos (so a de-listed teacher can
+	 * still manage them). Archived appears when the caller can see videos of
+	 * a deleted integration.
+	 */
+	@Transactional(readOnly = true)
+	public MediaTabs tabs() {
+		Specification<VideoAsset> visible = visibleToCaller(PermissionAction.VIEW).and(notDeleted());
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		boolean teacher = TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role());
+		boolean staffCanUpload = !teacher
+				&& permissionCheckService.hasPermission(DomainArea.MATERIALS, PermissionAction.CREATE_EDIT);
+		List<MediaTab> tabs = new ArrayList<>();
+		boolean hasArchived = false;
+		for (VideoIntegrationSummary integration : connections.listVideoIntegrations()) {
+			UUID id = integration.integrationId();
+			if (!integration.active()) {
+				hasArchived = hasArchived || videoAssetRepository.exists(visible.and(inIntegration(id)));
+				continue;
+			}
+			boolean allowed = teacher ? connections.isTeacherAllowedOnIntegration(id, principal.userId())
+					: staffCanUpload;
+			if (teacher && !allowed && !videoAssetRepository.exists(visible.and(inIntegration(id)))) {
+				continue;
+			}
+			tabs.add(new MediaTab(id, integration.name(), integration.connectionId() != null,
+					allowed && integration.usable()));
+		}
+		return new MediaTabs(tabs, hasArchived);
+	}
+
+	private List<UUID> deletedIntegrationIds() {
+		return connections.listVideoIntegrations()
+			.stream()
+			.filter(integration -> !integration.active())
+			.map(VideoIntegrationSummary::integrationId)
+			.toList();
+	}
+
+	private static Specification<VideoAsset> inIntegration(UUID integrationId) {
+		return (root, q, cb) -> cb.equal(root.get("integrationId"), integrationId);
 	}
 
 	@Transactional(readOnly = true)
@@ -277,8 +334,29 @@ public class MediaAssetService {
 	}
 
 	/** Media Library list filters; all optional except paging. */
+	/**
+	 * @param integrationId VIDEO Phase 5d: one YouTube integration's tab
+	 * @param archived VIDEO Phase 5d: the Archived tab - videos of deleted integrations
+	 */
 	public record MediaAssetListQuery(VideoAssetStatus status, MediaAssetProvider provider, String search, int page,
-			int size) {
+			int size, UUID integrationId, boolean archived) {
+
+	}
+
+	/**
+	 * VIDEO Phase 5d: one YouTube integration tab for the caller.
+	 *
+	 * @param canUpload the caller may upload here now (connected, usable, on its teacher list)
+	 */
+	public record MediaTab(UUID integrationId, String name, boolean connected, boolean canUpload) {
+
+	}
+
+	/**
+	 * VIDEO Phase 5d: the Media Library tabs. The Uploads tab (platform storage)
+	 * is always shown; {@code hasArchived} adds the Archived tab.
+	 */
+	public record MediaTabs(List<MediaTab> integrations, boolean hasArchived) {
 
 	}
 

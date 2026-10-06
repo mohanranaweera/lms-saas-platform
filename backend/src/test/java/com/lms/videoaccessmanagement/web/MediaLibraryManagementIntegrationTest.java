@@ -14,12 +14,14 @@ import com.lms.coursemanagement.course.web.dto.CourseResponse;
 import com.lms.integrationmanagement.media.FakeYouTubeUploads.Failure;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -273,8 +275,7 @@ class MediaLibraryManagementIntegrationTest extends MediaUploadTestSupport {
 		Ctx ctx = seedUploadTenant("lib-scope", null);
 		PROVIDERS.setGoogleScope(LEGACY_TENANT_CHANNEL_SCOPES);
 		PROVIDERS.setYoutubeChannel("UC-lib-scope-" + UUID.randomUUID().toString().substring(0, 8), "Scope");
-		String url = json(perform(authenticated(post(PROVIDERS_BASE + "/youtube/connect"), ctx.host(),
-				ctx.adminToken()))).path("data").path("authorizationUrl").asString();
+		String url = json(beginConnect(ctx.host(), ctx.adminToken(), mainIntegration(ctx))).path("data").path("authorizationUrl").asString();
 		assertThat(url).contains("youtube.force-ssl");
 
 		String location = callback("youtube", "code-" + UUID.randomUUID(), null, stateOf(url)).getResponse()
@@ -297,8 +298,16 @@ class MediaLibraryManagementIntegrationTest extends MediaUploadTestSupport {
 		return perform(authenticated(delete(MEDIA + "/{id}", assetId), host, token));
 	}
 
+	/** VIDEO Phase 5d: limits for the host institute's main card (the tab the upload panel opens on). */
 	private JsonNode limits(String host, String token) {
-		return json(perform(authenticated(get(MEDIA + "/upload-limits"), host, token))).path("data");
+		List<UUID> main = jdbcTemplate.queryForList("SELECT i.id FROM tenant_media_integration i JOIN tenant t "
+				+ "ON t.id = i.tenant_id WHERE t.subdomain = ? AND i.status = 'ACTIVE' ORDER BY i.created_at, i.id",
+				UUID.class, host.substring(0, host.indexOf('.')));
+		MockHttpServletRequestBuilder request = get(MEDIA + "/upload-limits");
+		if (!main.isEmpty()) {
+			request.param("integrationId", main.get(0).toString());
+		}
+		return json(perform(authenticated(request, host, token))).path("data");
 	}
 
 	private JsonNode detail(Ctx ctx, String token, UUID assetId) {

@@ -22,7 +22,8 @@ public record MediaAssetResponse(UUID id, MediaAssetProvider provider, String ti
 		String thumbnailUrl, Integer durationSeconds, MediaPrivacyStatus privacyStatus,
 		VideoAssetStatus processingStatus, String failureReason, UUID uploadedBy, Instant createdAt,
 		VideoProviderCapabilities capabilities, List<PlaybackMode> enabledPlaybackModes,
-		UploadProgressResponse uploadProgress, boolean attached, String youtubeUrl) {
+		UploadProgressResponse uploadProgress, boolean attached, String youtubeUrl,
+		UUID integrationId) {
 
 	/** @param message client-safe reason for a paused / parked / failed upload */
 	public record UploadProgressResponse(MediaUploadJobStatus state, long bytesSent, long totalBytes,

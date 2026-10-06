@@ -39,7 +39,10 @@ public interface MediaProviderConnectionRepository extends TenantAwareRepository
 				cb.equal(root.get("provider"), provider)), Sort.by(Sort.Direction.DESC, "createdAt"));
 	}
 
-	/** The tenant's current (non-DISCONNECTED) DynTube/Bunny connection, if any. */
+	/**
+	 * The tenant's current (non-DISCONNECTED) DynTube/Bunny connection, if any.
+	 * Not for YouTube since Phase 5d (several per tenant - use the integration finders).
+	 */
 	default Optional<MediaProviderConnection> findCurrentForTenant(MediaProvider provider) {
 		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("scope"), ConnectionScope.TENANT),
 				cb.equal(root.get("provider"), provider),
@@ -50,6 +53,26 @@ public interface MediaProviderConnectionRepository extends TenantAwareRepository
 	default List<MediaProviderConnection> findAllForTenant(MediaProvider provider) {
 		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("scope"), ConnectionScope.TENANT),
 				cb.equal(root.get("provider"), provider)), Sort.by(Sort.Direction.DESC, "createdAt"));
+	}
+
+	/** VIDEO Phase 5d: the integration's current (non-DISCONNECTED) connection - at most one (V76). */
+	default Optional<MediaProviderConnection> findCurrentForIntegration(UUID integrationId) {
+		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("integrationId"), integrationId),
+				cb.notEqual(root.get("status"), MediaConnectionStatus.DISCONNECTED)));
+	}
+
+	/** VIDEO Phase 5d: every connection (any status) of the integration, newest first. */
+	default List<MediaProviderConnection> findAllForIntegration(UUID integrationId) {
+		return findAll((root, query, cb) -> cb.equal(root.get("integrationId"), integrationId),
+				Sort.by(Sort.Direction.DESC, "createdAt"));
+	}
+
+	/** VIDEO Phase 5d: every current (non-DISCONNECTED) institute YouTube connection. */
+	default List<MediaProviderConnection> findCurrentTenantYouTube() {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("scope"), ConnectionScope.TENANT),
+				cb.equal(root.get("provider"), MediaProvider.YOUTUBE),
+				cb.notEqual(root.get("status"), MediaConnectionStatus.DISCONNECTED)),
+				Sort.by(Sort.Direction.ASC, "createdAt"));
 	}
 
 	/** Every current (non-DISCONNECTED) teacher connection in the tenant - Tenant Admin overview. */

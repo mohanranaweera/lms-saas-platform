@@ -14,7 +14,7 @@ import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.MediaConnectionApi;
-import com.lms.integrationmanagement.api.MediaConnectionApi.TenantChannelSummary;
+import com.lms.integrationmanagement.api.MediaConnectionApi.VideoIntegrationSummary;
 import com.lms.integrationmanagement.api.MediaConnectionStatus;
 import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.api.MediaStagingApi;
@@ -89,8 +89,9 @@ public class MediaUploadService {
 
 	private static final String TEACHER_ASSISTANT_ROLE = "TEACHER_ASSISTANT";
 
+	/** @param integrationId VIDEO Phase 5d: the YouTube integration (tab) to upload to */
 	public record CreateUploadCommand(String title, String description, MediaPrivacyStatus privacyStatus,
-			MediaAssetProvider provider, String fileName, String mimeType, Long sizeBytes) {
+			MediaAssetProvider provider, String fileName, String mimeType, Long sizeBytes, UUID integrationId) {
 
 	}
 
@@ -161,14 +162,11 @@ public class MediaUploadService {
 
 	private final Clock clock;
 
-	private final TenantVideoChannelService channelSettings;
-
 	public MediaUploadService(MediaUploadStore store, VideoAssetRepository assets, MediaAssetViews views,
 			MediaStagingApi staging, VideoProviderUploadApi providerUploads, MediaConnectionApi connections,
 			TenantVideoConfigurationService configuration, VideoFeatureFlags featureFlags,
 			VideoUploadProperties properties, PermissionCheckService permissionCheckService,
-			TenantContext tenantContext, TenantVideoUsageDailyRepository usage, Clock clock,
-			TenantVideoChannelService channelSettings) {
+			TenantContext tenantContext, TenantVideoUsageDailyRepository usage, Clock clock) {
 		this.store = store;
 		this.assets = assets;
 		this.views = views;
@@ -182,25 +180,31 @@ public class MediaUploadService {
 		this.tenantContext = tenantContext;
 		this.usage = usage;
 		this.clock = clock;
-		this.channelSettings = channelSettings;
 	}
 
-	/** The upload panel's limits and channel state, for whoever may upload. */
+	/**
+	 * The upload panel's limits and the state of one integration (VIDEO Phase
+	 * 5d: the selected tab), for whoever may upload. Without an integration
+	 * the channel reads NOT_CONNECTED; another tenant's or a deleted one is 404.
+	 */
 	@Transactional(readOnly = true)
-	public UploadLimits limits() {
-		UUID callerId = requireUploader(false);
-		boolean allowed = !isTeacher(AuthenticatedPrincipalHolder.get())
-				|| channelSettings.isTeacherAllowedToUpload(callerId);
-		Optional<TenantChannelSummary> channel = connections.findTenantVideoChannel(MediaProvider.YOUTUBE);
-		ChannelState state = channel.map(c -> c.platformDisabled() ? ChannelState.DISABLED
-				: (c.status() == MediaConnectionStatus.ACTIVE) ? ChannelState.CONNECTED : ChannelState.EXPIRED)
+	public UploadLimits limits(UUID integrationId) {
+		UUID callerId = requireUploader();
+		Optional<VideoIntegrationSummary> channel = (integrationId == null) ? Optional.empty()
+				: Optional.of(requireLiveIntegration(integrationId));
+		boolean allowed = !isTeacher(AuthenticatedPrincipalHolder.get()) || channel
+			.map(c -> connections.isTeacherAllowedOnIntegration(c.integrationId(), callerId))
+			.orElse(true);
+		ChannelState state = channel.filter(c -> c.connectionId() != null)
+			.map(c -> c.platformDisabled() ? ChannelState.DISABLED
+					: (c.status() == MediaConnectionStatus.ACTIVE) ? ChannelState.CONNECTED : ChannelState.EXPIRED)
 			.orElse(ChannelState.NOT_CONNECTED);
 		int used = usage.findForDay(UploadSchedule.quotaDay(clock.instant()))
 			.map(TenantVideoUsageDaily::getUploads)
 			.orElse(0);
 		UploadsDisabledBy disabledBy = uploadsDisabledBy();
 		return new UploadLimits(disabledBy == null, state,
-				channel.map(TenantChannelSummary::editScopeGranted).orElse(false),
+				channel.map(VideoIntegrationSummary::editScopeGranted).orElse(false),
 				configuration.effectiveDailyUploadLimit(), used, properties.getMaxFileSizeBytes(),
 				properties.getPartSizeBytes(), new TreeSet<>(ALLOWED_MIME_TYPES), allowed,
 				allowed ? null : MediaUploadException.notAllowed().getMessage(), disabledBy,
@@ -209,17 +213,24 @@ public class MediaUploadService {
 
 	/**
 	 * Creates the asset and its staging upload; returns the first part URLs.
-	 * Checks, in order: who may upload, platform flag + tenant switch, a
-	 * usable tenant YouTube channel, the request itself, the daily budget.
+	 * Checks, in order: who may upload, platform flag + tenant switch, the
+	 * chosen integration (this tenant's, live, connected - VIDEO Phase 5d), a
+	 * teacher on its list, the request itself, the daily budget.
 	 */
 	public StartedUpload create(CreateUploadCommand command) {
-		UUID actorId = requireUploader(true);
+		UUID actorId = requireUploader();
 		requireUploadsEnabled();
-		UUID connectionId = requireUsableChannel();
+		if (command == null || command.integrationId() == null) {
+			throw new FieldValidationException("Choose where to upload",
+					List.of(new FieldError("integrationId", "is required")));
+		}
+		VideoIntegrationSummary integration = requireLiveIntegration(command.integrationId());
+		UUID connectionId = requireUsable(integration);
+		requireTeacherAllowed(integration.integrationId());
 		CreateUploadCommand valid = validate(command);
 
 		VideoAsset newAsset = VideoAsset.createForProvider(tenantContext.getTenantId(), MediaAssetProvider.YOUTUBE,
-				connectionId, valid.title(), valid.description(), valid.privacyStatus(), valid.fileName(),
+				integration.integrationId(), connectionId, valid.title(), valid.description(), valid.privacyStatus(), valid.fileName(),
 				valid.mimeType(), valid.sizeBytes(), actorId);
 		CreatedUpload created = store.createPending(newAsset, connectionId, configuration.effectiveDailyUploadLimit());
 		MediaUploadJob job = created.job();
@@ -296,9 +307,11 @@ public class MediaUploadService {
 	/** Re-queues a failed transfer whose staged file still exists (no new budget slot). */
 	public MediaAssetView retry(UUID assetId) {
 		VideoAsset asset = requireAccessibleAsset(assetId);
-		requireTeacherAllowList();
 		requireUploadsEnabled();
-		requireUsableChannel();
+		// VIDEO Phase 5d: the asset stays on its own integration, which must still be live and usable.
+		VideoIntegrationSummary integration = requireLiveIntegration(asset.getIntegrationId());
+		requireUsable(integration);
+		requireTeacherAllowed(integration.integrationId());
 		// The asset belongs to the channel it was created for; a replaced channel cannot take it over.
 		UUID connectionId = connections.currentConnectionForSameChannel(asset.getProviderConnectionId())
 			.orElseThrow(() -> MediaUploadException
@@ -308,25 +321,27 @@ public class MediaUploadService {
 
 	// ------------------------------------------------------------------
 
-	/**
-	 * Teacher / TA, or {@code MATERIALS} CREATE_EDIT staff. With {@code
-	 * enforceAllowList}, a teacher must also be on the institute channel's
-	 * allowed-teachers list when the admin has set one (VIDEO Phase 5b).
-	 */
-	private UUID requireUploader(boolean enforceAllowList) {
+	/** Teacher / TA, or {@code MATERIALS} CREATE_EDIT staff. */
+	private UUID requireUploader() {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		if (!isTeacher(principal)) {
 			permissionCheckService.requirePermission(DomainArea.MATERIALS, PermissionAction.CREATE_EDIT);
 		}
-		else if (enforceAllowList) {
-			requireTeacherAllowList();
-		}
 		return principal.userId();
 	}
 
-	private void requireTeacherAllowList() {
+	/** 404 unless this is the caller's institute's own live integration (tenant filter + status). */
+	private VideoIntegrationSummary requireLiveIntegration(UUID integrationId) {
+		return Optional.ofNullable(integrationId)
+			.flatMap(connections::findVideoIntegration)
+			.filter(VideoIntegrationSummary::active)
+			.orElseThrow(() -> new NotFoundException("Integration not found"));
+	}
+
+	/** A teacher must be on the integration's allowed-teacher list when it has one (VIDEO Phase 5b / 5d). */
+	private void requireTeacherAllowed(UUID integrationId) {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
-		if (isTeacher(principal) && !channelSettings.isTeacherAllowedToUpload(principal.userId())) {
+		if (isTeacher(principal) && !connections.isTeacherAllowedOnIntegration(integrationId, principal.userId())) {
 			securityLog.atInfo().setMessage("video_upload.teacher_not_allowed").log();
 			throw MediaUploadException.notAllowed();
 		}
@@ -365,10 +380,11 @@ public class MediaUploadService {
 		return (disabledBy == UploadsDisabledBy.PLATFORM) ? PLATFORM_UPLOADS_OFF : INSTITUTE_UPLOADS_OFF;
 	}
 
-	private UUID requireUsableChannel() {
-		TenantChannelSummary channel = connections.findTenantVideoChannel(MediaProvider.YOUTUBE)
-			.orElseThrow(() -> new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_NOT_CONNECTED,
-					"Video uploads aren't set up for your institute yet."));
+	private UUID requireUsable(VideoIntegrationSummary channel) {
+		if (channel.connectionId() == null) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_NOT_CONNECTED,
+					"This YouTube integration isn't connected yet.");
+		}
 		if (channel.platformDisabled()) {
 			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_DISABLED_BY_PLATFORM,
 					"Video uploads were switched off by the platform for your institute.");
@@ -415,7 +431,7 @@ public class MediaUploadService {
 			throw new FieldValidationException("Invalid upload", errors);
 		}
 		return new CreateUploadCommand(title, description, privacy, MediaAssetProvider.YOUTUBE, fileName,
-				c.mimeType(), c.sizeBytes());
+				c.mimeType(), c.sizeBytes(), c.integrationId());
 	}
 
 	private static void validateParts(List<CompletedPart> parts, int partCount) {

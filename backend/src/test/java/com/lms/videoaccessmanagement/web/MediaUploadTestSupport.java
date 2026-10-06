@@ -99,12 +99,48 @@ abstract class MediaUploadTestSupport extends MediaIntegrationTestSupport {
 		return ctx;
 	}
 
-	/** Tenant Admin connects (or reconnects) the tenant YouTube channel. @return the connection id */
+	/**
+	 * VIDEO Phase 5d: the institute's first live YouTube integration, created
+	 * ("Main channel") through the API on first use.
+	 */
+	protected UUID mainIntegration(Ctx ctx) {
+		List<UUID> existing = jdbcTemplate.queryForList("SELECT id FROM tenant_media_integration "
+				+ "WHERE tenant_id = ? AND status = 'ACTIVE' ORDER BY created_at, id", UUID.class, ctx.tenant().getId());
+		return existing.isEmpty() ? createIntegration(ctx, "Main channel", List.of()) : existing.get(0);
+	}
+
+	/** Tenant Admin adds a YouTube integration card. @return its id */
+	protected UUID createIntegration(Ctx ctx, String name, List<UUID> allowedTeacherIds) {
+		Map<String, Object> request = new HashMap<>();
+		request.put("name", name);
+		request.put("allowedTeacherIds", allowedTeacherIds.stream().map(UUID::toString).toList());
+		MvcResult created = perform(authenticated(post(PROVIDERS_BASE + "/youtube/integrations")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(request)), ctx.host(), ctx.adminToken()));
+		if (status(created) != 201) {
+			throw new IllegalStateException("create integration failed: " + rawContent(created));
+		}
+		return UUID.fromString(json(created).path("data").path("integrationId").asString());
+	}
+
+	/** Starts connecting a card's channel; the response carries Google's consent URL. */
+	protected MvcResult beginConnect(String host, String token, UUID integrationId) {
+		return perform(authenticated(post(PROVIDERS_BASE + "/youtube/integrations/{id}/connect", integrationId),
+				host, token));
+	}
+
+	/** Tenant Admin connects (or reconnects) the main card's channel. @return the connection id */
 	protected UUID connectChannel(Ctx ctx, String channelId) {
+		return connectChannel(ctx, mainIntegration(ctx), channelId);
+	}
+
+	/** Tenant Admin connects (or reconnects) a card's channel. @return the connection id */
+	protected UUID connectChannel(Ctx ctx, UUID integrationId, String channelId) {
 		PROVIDERS.setGoogleScope(TENANT_CHANNEL_SCOPES);
 		PROVIDERS.setYoutubeChannel(channelId, "Channel " + channelId);
-		String url = json(perform(authenticated(post(PROVIDERS_BASE + "/youtube/connect"), ctx.host(),
-				ctx.adminToken()))).path("data").path("authorizationUrl").asString();
+		String url = json(beginConnect(ctx.host(), ctx.adminToken(), integrationId)).path("data")
+			.path("authorizationUrl")
+			.asString();
 		String location = callback("youtube", "code-" + UUID.randomUUID(), null, stateOf(url)).getResponse()
 			.getHeader(HttpHeaders.LOCATION);
 		MvcResult confirmed = perform(authenticated(post(PROVIDERS_BASE + "/youtube/pending/{id}/confirm",
@@ -157,9 +193,19 @@ abstract class MediaUploadTestSupport extends MediaIntegrationTestSupport {
 		return bytes;
 	}
 
+	/** Starts an upload; without an {@code integrationId} it goes to the host tenant's main card (Phase 5d). */
 	protected MvcResult create(String host, String token, Map<String, Object> body) {
+		Map<String, Object> request = new HashMap<>(body);
+		if (!request.containsKey("integrationId")) {
+			List<UUID> main = jdbcTemplate.queryForList("SELECT i.id FROM tenant_media_integration i "
+					+ "JOIN tenant t ON t.id = i.tenant_id WHERE t.subdomain = ? AND i.status = 'ACTIVE' "
+					+ "ORDER BY i.created_at, i.id", UUID.class, host.substring(0, host.indexOf('.')));
+			if (!main.isEmpty()) {
+				request.put("integrationId", main.get(0).toString());
+			}
+		}
 		return perform(authenticated(post(MEDIA).contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(body)), host, token));
+			.content(objectMapper.writeValueAsString(request)), host, token));
 	}
 
 	protected MvcResult complete(String host, String token, UUID assetId, List<Map<String, Object>> parts) {

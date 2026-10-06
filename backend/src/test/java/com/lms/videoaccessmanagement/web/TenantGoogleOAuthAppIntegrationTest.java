@@ -177,7 +177,7 @@ class TenantGoogleOAuthAppIntegrationTest extends MediaUploadTestSupport {
 	}
 
 	private String connectUrl(Ctx ctx) {
-		return json(perform(authenticated(post(PROVIDERS_BASE + "/youtube/connect"), ctx.host(), ctx.adminToken())))
+		return json(beginConnect(ctx.host(), ctx.adminToken(), mainIntegration(ctx)))
 			.path("data")
 			.path("authorizationUrl")
 			.asString();

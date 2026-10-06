@@ -43,6 +43,10 @@ public class VideoAsset extends Auditable implements TenantOwned {
 	@Column(name = "provider_asset_id")
 	private String providerAssetId;
 
+	/** VIDEO Phase 5d (V76): the YouTube integration (Media Library tab) the video belongs to. */
+	@Column(name = "integration_id", updatable = false)
+	private UUID integrationId;
+
 	@Column(name = "title")
 	private String title;
 
@@ -120,7 +124,7 @@ public class VideoAsset extends Auditable implements TenantOwned {
 	 * bytes have reached the provider yet. The provider connection must belong
 	 * to {@code tenantId} - the composite FK backstops that.
 	 */
-	public static VideoAsset createForProvider(UUID tenantId, MediaAssetProvider provider,
+	public static VideoAsset createForProvider(UUID tenantId, MediaAssetProvider provider, UUID integrationId,
 			UUID providerConnectionId, String title, String description, MediaPrivacyStatus privacyStatus,
 			String originalFilename, String mimeType, long sizeBytes, UUID uploadedBy) {
 		if (provider == MediaAssetProvider.INTERNAL) {
@@ -130,6 +134,7 @@ public class VideoAsset extends Auditable implements TenantOwned {
 		asset.tenantId = tenantId;
 		asset.provider = provider;
 		asset.providerConnectionId = providerConnectionId;
+		asset.integrationId = integrationId;
 		asset.title = title;
 		asset.description = description;
 		asset.privacyStatus = privacyStatus;
@@ -273,6 +278,10 @@ public class VideoAsset extends Auditable implements TenantOwned {
 
 	public UUID getProviderConnectionId() {
 		return providerConnectionId;
+	}
+
+	public UUID getIntegrationId() {
+		return integrationId;
 	}
 
 	public String getProviderAssetId() {

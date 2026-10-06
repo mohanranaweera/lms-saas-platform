@@ -57,6 +57,23 @@ export interface MediaAsset {
    * Unlisted videos can be watched by anyone with this link - never show it to students.
    */
   youtubeUrl: string | null;
+  /** VIDEO Phase 5d: the YouTube integration (tab) the video belongs to; null for platform-stored videos. */
+  integrationId: string | null;
+}
+
+/** VIDEO Phase 5d: one YouTube integration tab for the caller. */
+export interface MediaTab {
+  integrationId: string;
+  name: string;
+  connected: boolean;
+  /** The caller may upload here now (connected, usable, on its teacher list). */
+  canUpload: boolean;
+}
+
+/** VIDEO Phase 5d: the Media Library tabs; Uploads is always shown, Archived when `hasArchived`. */
+export interface MediaTabs {
+  integrations: MediaTab[];
+  hasArchived: boolean;
 }
 
 export type MediaChannelState = "NOT_CONNECTED" | "CONNECTED" | "EXPIRED" | "DISABLED";
@@ -105,11 +122,19 @@ export interface StartUploadInput {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
+  /** VIDEO Phase 5d: the YouTube integration (tab) to upload to. */
+  integrationId: string;
 }
 
 export interface MediaListParams {
   q?: string;
   status?: MediaProcessingStatus;
+  /** VIDEO Phase 5d: one integration's tab. */
+  integrationId?: string;
+  /** VIDEO Phase 5d: the Uploads tab - videos in the platform's own storage. */
+  provider?: MediaAssetProvider;
+  /** VIDEO Phase 5d: the Archived tab - videos of deleted integrations. */
+  archived?: boolean;
   page?: number;
   size?: number;
 }
@@ -124,7 +149,8 @@ export const mediaKeys = {
   all: ["media"] as const,
   list: (params: MediaListParams) => [...mediaKeys.all, "list", params] as const,
   detail: (id: string) => [...mediaKeys.all, "detail", id] as const,
-  limits: () => [...mediaKeys.all, "limits"] as const,
+  limits: (integrationId: string | null) => [...mediaKeys.all, "limits", integrationId ?? "none"] as const,
+  tabs: () => [...mediaKeys.all, "tabs"] as const,
 };
 
 const BASE = "/v1/media";
@@ -146,6 +172,9 @@ function listPath(params: MediaListParams): string {
   const search = new URLSearchParams();
   if (params.q?.trim()) search.set("q", params.q.trim());
   if (params.status) search.set("status", params.status);
+  if (params.integrationId) search.set("integrationId", params.integrationId);
+  if (params.provider) search.set("provider", params.provider);
+  if (params.archived) search.set("archived", "true");
   search.set("page", String(params.page ?? 0));
   search.set("size", String(params.size ?? 24));
   return `${BASE}?${search.toString()}`;
@@ -169,12 +198,26 @@ export function useMediaAsset(id: string) {
   });
 }
 
-export function useMediaUploadLimits(enabled = true) {
+/** VIDEO Phase 5d: limits and the state of one integration (the selected tab, or a video's own). */
+export function useMediaUploadLimits(integrationId: string | null, enabled = true) {
   const { authorizedFetch } = useAuth();
   return useQuery({
-    queryKey: mediaKeys.limits(),
-    queryFn: () => authorizedFetch<MediaUploadLimits>("tenant", `${BASE}/upload-limits`),
+    queryKey: mediaKeys.limits(integrationId),
+    queryFn: () =>
+      authorizedFetch<MediaUploadLimits>(
+        "tenant",
+        integrationId ? `${BASE}/upload-limits?integrationId=${encodeURIComponent(integrationId)}` : `${BASE}/upload-limits`
+      ),
     enabled,
+  });
+}
+
+/** VIDEO Phase 5d: the tabs the caller sees (decided by the server per role and teacher list). */
+export function useMediaTabs() {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: mediaKeys.tabs(),
+    queryFn: () => authorizedFetch<MediaTabs>("tenant", `${BASE}/channels`),
   });
 }
 

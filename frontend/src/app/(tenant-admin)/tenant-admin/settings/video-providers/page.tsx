@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageIntegrations } from "@/lib/auth/permissions";
 import { isApiClientError } from "@/lib/api/error";
@@ -12,18 +12,17 @@ import {
   usePendingYouTubeChannel,
   useTenantGoogleApp,
   useTenantVideoProviders,
-  useVideoChannelSettings,
 } from "@/lib/api/video-providers";
 import { TenantGoogleAppSection } from "@/components/integrations/tenant-google-app-section";
 import { TenantYouTubeChannelCard } from "@/components/integrations/tenant-youtube-channel-card";
-import {
-  TenantYouTubeChannelSettings,
-  uploadersSummary,
-} from "@/components/integrations/tenant-youtube-channel-settings";
+import { VideoIntegrationSheet } from "@/components/integrations/video-integration-sheet";
 import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+
+/** Mirrors `TenantMediaIntegrationService.MAX_INTEGRATIONS` (the server enforces it). */
+const MAX_INTEGRATIONS = 10;
 
 type CallbackResult = { kind: "pending"; pendingId: string } | { kind: "denied" | "missing_scopes" | "failed" };
 
@@ -105,7 +104,7 @@ function ConfirmChannelPanel({ pendingId, onDone }: { pendingId: string; onDone:
       className="flex max-w-2xl flex-col gap-3 rounded-lg border border-border p-4"
     >
       <h2 id="confirm-channel-heading" className="text-base font-medium text-foreground">
-        Connect this YouTube channel?
+        Connect this YouTube channel to &ldquo;{channel.integrationName}&rdquo;?
       </h2>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
         <dt className="text-muted-foreground">Channel</dt>
@@ -156,8 +155,8 @@ function VideoProvidersContent() {
   const canManage = canManageIntegrations(session?.role ?? null);
   const query = useTenantVideoProviders();
   // Loaded once the provider list has loaded (same INTEGRATIONS VIEW permission).
-  const channelSettings = useVideoChannelSettings(query.isSuccess);
   const googleApp = useTenantGoogleApp(query.isSuccess);
+  const [adding, setAdding] = useState(false);
   const [result, clearResult] = useCallbackResult();
 
   return (
@@ -190,57 +189,71 @@ function VideoProvidersContent() {
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
       >
-        {(accounts) => (
-          <div className="flex max-w-2xl flex-col gap-4">
-            {accounts.map((account) => (
-              <TenantYouTubeChannelCard
-                key={account.provider}
-                view={account}
-                canManage={canManage}
-                displayName={channelSettings.data?.displayName ?? null}
-                uploaders={channelSettings.data ? uploadersSummary(channelSettings.data) : null}
-              />
-            ))}
-            {googleApp.isPending ? (
-              <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
-                Loading the Google app…
-              </p>
-            ) : googleApp.isError ? (
-              <Alert variant="destructive">
-                <AlertCircle aria-hidden="true" />
-                <AlertDescription>
-                  {isApiClientError(googleApp.error) && googleApp.error.status === 403
-                    ? "You don't have access to the Google app settings."
-                    : "The Google app settings could not be loaded. Refresh the page to try again."}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <TenantGoogleAppSection view={googleApp.data} canManage={canManage} />
-            )}
-            {channelSettings.isPending ? (
-              <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
-                Loading channel settings…
-              </p>
-            ) : channelSettings.isError ? (
-              <Alert variant="destructive">
-                <AlertCircle aria-hidden="true" />
-                <AlertDescription>
-                  {isApiClientError(channelSettings.error) && channelSettings.error.status === 403
-                    ? "You don't have access to the channel settings."
-                    : "The channel settings could not be loaded. Refresh the page to try again."}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <TenantYouTubeChannelSettings
-                settings={channelSettings.data}
-                canManage={canManage}
-              />
-            )}
-            {!canManage ? (
-              <p className="text-sm text-muted-foreground">Only a Tenant Admin can change video providers.</p>
-            ) : null}
-          </div>
-        )}
+        {(accounts) => {
+          const connected = accounts.filter((account) => account.status === "CONNECTED").length;
+          const atLimit = accounts.length >= MAX_INTEGRATIONS;
+          return (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p role="status" className="text-sm text-muted-foreground">
+                  {accounts.length === 0
+                    ? "No YouTube integrations yet."
+                    : `${connected} of ${accounts.length} YouTube ${accounts.length === 1 ? "integration" : "integrations"} connected`}
+                </p>
+                {canManage ? (
+                  <div className="flex flex-col items-end gap-1">
+                    <Button type="button" onClick={() => setAdding(true)} disabled={atLimit}>
+                      <Plus aria-hidden="true" />
+                      Add integration
+                    </Button>
+                    {atLimit ? (
+                      <p className="text-xs text-muted-foreground">
+                        Up to {MAX_INTEGRATIONS} YouTube integrations per institute.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+              {accounts.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+                  {canManage
+                    ? "Add a YouTube integration, then connect its channel. Videos uploaded to it appear in the Media Library under its own tab."
+                    : "Your institute hasn't added a YouTube integration yet."}
+                </div>
+              ) : (
+                <ul aria-label="YouTube integrations" className="grid gap-4 lg:grid-cols-2">
+                  {accounts.map((account) => (
+                    <li key={account.integrationId}>
+                      <TenantYouTubeChannelCard view={account} canManage={canManage} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canManage ? <VideoIntegrationSheet open={adding} onOpenChange={setAdding} /> : null}
+              <div className="max-w-2xl">
+                {googleApp.isPending ? (
+                  <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
+                    Loading the Google app…
+                  </p>
+                ) : googleApp.isError ? (
+                  <Alert variant="destructive">
+                    <AlertCircle aria-hidden="true" />
+                    <AlertDescription>
+                      {isApiClientError(googleApp.error) && googleApp.error.status === 403
+                        ? "You don't have access to the Google app settings."
+                        : "The Google app settings could not be loaded. Refresh the page to try again."}
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <TenantGoogleAppSection view={googleApp.data} canManage={canManage} />
+                )}
+              </div>
+              {!canManage ? (
+                <p className="text-sm text-muted-foreground">Only a Tenant Admin can change video providers.</p>
+              ) : null}
+            </div>
+          );
+        }}
       </QueryStateBoundary>
     </div>
   );

@@ -6,16 +6,21 @@ import com.lms.integrationmanagement.service.MediaConnectionViews.ConnectionTest
 import com.lms.integrationmanagement.service.MediaConnectionViews.ConnectionView;
 import com.lms.integrationmanagement.service.TenantVideoProviderService;
 import com.lms.integrationmanagement.service.TenantVideoProviderService.PendingChannelView;
+import com.lms.integrationmanagement.service.TenantMediaIntegrationService.IntegrationTeacher;
 import com.lms.integrationmanagement.service.TenantVideoProviderService.VideoProviderAccountView;
 import com.lms.integrationmanagement.web.dto.IntegrationRequests.DisconnectRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,9 +47,38 @@ public class TenantVideoProviderController {
 		return ResponseEntity.ok(ApiResponse.success(service.list()));
 	}
 
-	@PostMapping("/youtube/connect")
-	public ResponseEntity<ApiResponse<AuthorizationUrlView>> connectYouTube() {
-		return ResponseEntity.ok(ApiResponse.success(service.beginYouTubeConnect()));
+	/** VIDEO Phase 5d: a new YouTube integration card (connected separately). */
+	@PostMapping("/youtube/integrations")
+	public ResponseEntity<ApiResponse<VideoProviderAccountView>> createIntegration(
+			@Valid @RequestBody IntegrationRequest request) {
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(ApiResponse.success(service.createIntegration(request.name(), request.description(),
+					request.allowedTeacherIds())));
+	}
+
+	@PutMapping("/youtube/integrations/{integrationId}")
+	public ResponseEntity<ApiResponse<VideoProviderAccountView>> updateIntegration(@PathVariable UUID integrationId,
+			@Valid @RequestBody IntegrationRequest request) {
+		return ResponseEntity.ok(ApiResponse.success(service.updateIntegration(integrationId, request.name(),
+				request.description(), request.allowedTeacherIds())));
+	}
+
+	/** Disconnects the card's channel and archives the card; its videos stay (Archived tab). */
+	@DeleteMapping("/youtube/integrations/{integrationId}")
+	public ResponseEntity<ApiResponse<Void>> deleteIntegration(@PathVariable UUID integrationId) {
+		service.deleteIntegration(integrationId);
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
+	@PostMapping("/youtube/integrations/{integrationId}/connect")
+	public ResponseEntity<ApiResponse<AuthorizationUrlView>> connectYouTube(@PathVariable UUID integrationId) {
+		return ResponseEntity.ok(ApiResponse.success(service.beginYouTubeConnect(integrationId)));
+	}
+
+	/** The institute's teachers by user id - the choices for an integration's allowed teachers. */
+	@GetMapping("/youtube/teachers")
+	public ResponseEntity<ApiResponse<List<IntegrationTeacher>>> teacherChoices() {
+		return ResponseEntity.ok(ApiResponse.success(service.teacherChoices()));
 	}
 
 	@GetMapping("/youtube/pending/{pendingId}")
@@ -71,7 +105,13 @@ public class TenantVideoProviderController {
 			.ok(ApiResponse.success(service.disconnect(connectionId, (request == null) ? null : request.reason())));
 	}
 
-	/** {@code replaceChannel} must be true to swap the tenant's current channel for a different one. */
+	/** {@code allowedTeacherIds} empty (or absent) = every teacher may upload. */
+	public record IntegrationRequest(@Size(max = 200) String name, @Size(max = 1000) String description,
+			@Size(max = 500) List<UUID> allowedTeacherIds) {
+
+	}
+
+	/** {@code replaceChannel} must be true to swap the card's current channel for a different one. */
 	public record ConfirmChannelRequest(Boolean replaceChannel) {
 
 	}

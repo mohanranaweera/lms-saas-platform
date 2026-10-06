@@ -3,7 +3,13 @@
 import { useDeferredValue, useId, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Film, Link2, UploadCloud } from "lucide-react";
-import { useMediaList, type MediaAsset, type MediaProcessingStatus } from "@/lib/api/media";
+import {
+  useMediaList,
+  useMediaTabs,
+  type MediaAsset,
+  type MediaProcessingStatus,
+  type MediaTab,
+} from "@/lib/api/media";
 import { formatDateTime } from "@/lib/format";
 import { formatDuration, percent } from "@/lib/media-format";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
@@ -11,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs } from "@/components/ui/tabs";
 import { MediaStatusBadge } from "./media-status-badge";
 import { MediaUploadPanel } from "./media-upload-panel";
 
@@ -124,10 +131,15 @@ function MediaCardBody({ asset }: { asset: MediaAsset }) {
   );
 }
 
+type TabKey = "uploads" | "archived" | `integration:${string}`;
+
 /**
- * The Media Library list shared by the Tenant Admin and Teacher pages (VIDEO
- * Phase 5). What the list contains is decided by the server: a Teacher gets
- * their own uploads, staff with `MATERIALS` the whole institute's.
+ * The Media Library shared by the Tenant Admin and Teacher pages (VIDEO
+ * Phases 5 / 5d). Tabs follow where videos are hosted, like Klass: one per
+ * YouTube integration, "Uploads" for the platform's own storage and, when
+ * any exist, "Archived" for videos of deleted integrations. Which tabs and
+ * videos appear is decided by the server: a Teacher gets their own uploads
+ * and the integrations they may use; staff with `MATERIALS` everything.
  */
 export function MediaLibrary({
   basePath,
@@ -143,23 +155,119 @@ export function MediaLibrary({
   settingsHref?: string;
   scopeNote: string;
 }) {
+  const tabsQuery = useMediaTabs();
+  const [selected, setSelected] = useState<TabKey | null>(null);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">Media Library</h1>
+        <p className="text-sm text-muted-foreground">{scopeNote}</p>
+      </div>
+      <QueryStateBoundary
+        query={tabsQuery}
+        loadingLabel="Loading media…"
+        loginPath="/login"
+        permissionDenied={{ dashboardHref }}
+      >
+        {(tabs) => {
+          const first = tabs.integrations[0];
+          const active: TabKey = selected ?? (first ? `integration:${first.integrationId}` : "uploads");
+          const panel = (key: TabKey) =>
+            key === active ? (
+              <MediaTabPanel
+                key={key}
+                tabKey={key}
+                tab={tabs.integrations.find((t) => `integration:${t.integrationId}` === key) ?? null}
+                basePath={basePath}
+                dashboardHref={dashboardHref}
+                canUpload={canUpload}
+                settingsHref={settingsHref}
+              />
+            ) : null;
+          const items = [
+            ...tabs.integrations.map((tab) => ({
+              value: `integration:${tab.integrationId}` as TabKey,
+              label: tab.name,
+              badge: !tab.connected ? (
+                <Badge variant="outline" className="text-xs">
+                  Not connected
+                </Badge>
+              ) : undefined,
+            })),
+            { value: "uploads" as TabKey, label: "Uploads" },
+            ...(tabs.hasArchived ? [{ value: "archived" as TabKey, label: "Archived" }] : []),
+          ].map((item) => ({ ...item, content: panel(item.value) }));
+          return (
+            <div className="flex flex-col gap-3">
+              {tabs.integrations.length === 0 && settingsHref ? (
+                <p className="text-sm text-muted-foreground">
+                  No YouTube integration yet.{" "}
+                  <Link href={settingsHref} className="font-medium underline">
+                    Add one in Video providers
+                  </Link>{" "}
+                  to upload videos.
+                </p>
+              ) : null}
+              <Tabs
+                aria-label="Where videos are hosted"
+                items={items}
+                value={active}
+                onValueChange={(value) => setSelected(value as TabKey)}
+              />
+            </div>
+          );
+        }}
+      </QueryStateBoundary>
+    </div>
+  );
+}
+
+/** One tab: its videos with search / status filters, and uploading to it when it is a YouTube integration. */
+function MediaTabPanel({
+  tabKey,
+  tab,
+  basePath,
+  dashboardHref,
+  canUpload,
+  settingsHref,
+}: {
+  tabKey: TabKey;
+  tab: MediaTab | null;
+  basePath: string;
+  dashboardHref: string;
+  canUpload: boolean;
+  settingsHref?: string;
+}) {
   const ids = { search: useId(), status: useId() };
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | MediaProcessingStatus>("");
   const [page, setPage] = useState(0);
   const [showUpload, setShowUpload] = useState(false);
   const deferredSearch = useDeferredValue(search);
-  const query = useMediaList({ q: deferredSearch, status: status || undefined, page, size: PAGE_SIZE });
+  const query = useMediaList({
+    q: deferredSearch,
+    status: status || undefined,
+    page,
+    size: PAGE_SIZE,
+    integrationId: tab?.integrationId,
+    provider: tabKey === "uploads" ? "INTERNAL" : undefined,
+    archived: tabKey === "archived",
+  });
   const filtered = Boolean(deferredSearch.trim() || status);
+  const uploadHere = canUpload && tab !== null;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Media Library</h1>
-          <p className="text-sm text-muted-foreground">{scopeNote}</p>
-        </div>
-        {canUpload && !showUpload ? (
+        <p className="text-sm text-muted-foreground">
+          {tab
+            ? `Videos on the "${tab.name}" YouTube channel.`
+            : tabKey === "uploads"
+              ? "Videos stored in your institute's own storage on this platform. To upload a new video, choose a YouTube tab."
+              : "Videos from YouTube integrations that were removed. They stay on YouTube and in the lessons that use them."}
+        </p>
+        {uploadHere && !showUpload ? (
           <Button type="button" onClick={() => setShowUpload(true)}>
             <UploadCloud aria-hidden="true" />
             Upload video
@@ -167,9 +275,14 @@ export function MediaLibrary({
         ) : null}
       </div>
 
-      {canUpload && showUpload ? (
+      {uploadHere && showUpload && tab ? (
         <div className="max-w-2xl">
-          <MediaUploadPanel settingsHref={settingsHref} onClose={() => setShowUpload(false)} />
+          <MediaUploadPanel
+            integrationId={tab.integrationId}
+            integrationName={tab.name}
+            settingsHref={settingsHref}
+            onClose={() => setShowUpload(false)}
+          />
         </div>
       ) : null}
 
@@ -227,13 +340,23 @@ export function MediaLibrary({
                   },
                 },
               }
-            : {
-                title: "No videos yet",
-                description: canUpload
-                  ? "Upload a lesson video to add it to the library."
-                  : "Videos uploaded by your institute will appear here.",
-                action: canUpload ? { label: "Upload video", onClick: () => setShowUpload(true) } : undefined,
-              }
+            : tab
+              ? {
+                  title: "No videos on this channel yet",
+                  description: uploadHere
+                    ? "Upload a lesson video to add it to this channel."
+                    : "Videos uploaded to this channel will appear here.",
+                  action: uploadHere ? { label: "Upload video", onClick: () => setShowUpload(true) } : undefined,
+                }
+              : tabKey === "uploads"
+                ? {
+                    title: "No stored videos",
+                    description: "Videos kept in your institute's own storage will appear here.",
+                  }
+                : {
+                    title: "No archived videos",
+                    description: "Videos of removed YouTube integrations will appear here.",
+                  }
         }
       >
         {(data) => (
