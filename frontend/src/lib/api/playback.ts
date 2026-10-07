@@ -24,18 +24,30 @@ export interface PlaybackDescriptor {
   allowDownload: boolean;
 }
 
-/** Mirrors `WebPlaybackSessionResponse`. */
-export interface WebPlaybackSession {
-  sessionId: string | null;
+/** VIDEO Phase 8: a one-time `aocplayer://play?code=` link for the AOC Player. */
+export interface NativeLaunch {
+  url: string;
   expiresAt: string;
-  descriptor: PlaybackDescriptor;
 }
 
-export function useCreateWebPlayback() {
+/**
+ * Mirrors `PlayerDtos.PlaybackStartResponse`. `WEB` carries a descriptor;
+ * `NATIVE` (the institute requires the AOC Player) carries a launch link and
+ * a session id to poll, and no descriptor.
+ */
+export interface PlaybackStart {
+  sessionId: string | null;
+  channel: "WEB" | "NATIVE";
+  expiresAt: string;
+  descriptor: PlaybackDescriptor | null;
+  launch: NativeLaunch | null;
+}
+
+export function useStartPlayback() {
   const { authorizedFetch } = useAuth();
   return useMutation({
     mutationFn: (lessonMediaId: string) =>
-      authorizedFetch<WebPlaybackSession>("tenant", "/v1/playback/sessions", {
+      authorizedFetch<PlaybackStart>("tenant", "/v1/playback/sessions", {
         method: "POST",
         body: JSON.stringify({ lessonMediaId }),
       }),

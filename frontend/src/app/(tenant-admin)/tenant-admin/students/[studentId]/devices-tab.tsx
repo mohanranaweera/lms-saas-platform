@@ -7,6 +7,7 @@ import { DeviceList } from "@/components/devices/device-list";
 import { DeviceLimitSummary } from "@/components/devices/device-limit-summary";
 import { ResetDeviceDialog } from "./reset-device-dialog";
 import { DeviceLimitForm } from "./device-limit-form";
+import { PlayerInstallationsSection } from "./player-installations-section";
 
 /**
  * Student detail - Devices (Wave 10, PAR-03-04/PAR-16-03). Visible to roles
@@ -72,6 +73,7 @@ export function DevicesTab({ studentId, canManage }: { studentId: string; canMan
                 }
               />
             )}
+            <PlayerInstallationsSection studentId={studentId} canManage={canManage} onSuccess={setNotice} />
             {canManage ? <DeviceLimitForm studentId={studentId} summary={summary} onSuccess={setNotice} /> : null}
           </div>
         );

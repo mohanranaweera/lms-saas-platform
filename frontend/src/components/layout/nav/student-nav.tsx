@@ -14,6 +14,7 @@ export function StudentNav({ onNavigate }: { onNavigate?: () => void }) {
     { label: "Reactivation", href: "/student/payments/reactivation" },
     { label: "Notifications", href: "/student/notifications", badge: <NotificationsNavBadge /> },
     { label: "My Devices", href: "/student/devices" },
+    { label: "AOC Player", href: "/student/player" },
     { label: "Profile", href: "/student/profile" },
   ];
 

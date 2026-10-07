@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { SecureVideoPlayer } from "@/components/courses/secure-video-player";
 import { YouTubeLessonPlayer } from "@/components/player/youtube-lesson-player";
+import { NativePlayerLauncher } from "@/components/player/native-player-launcher";
 import { useLessonMedia, type MediaAssetProvider } from "@/lib/api/media";
 import {
   formatFileSize,
@@ -316,7 +317,12 @@ function StudentMaterialRow({
   );
 }
 
-/** Picks the player for an opened lesson video: YouTube (Phase 7 WEB) or platform storage (legacy). */
+/**
+ * Picks the player for an opened lesson video: YouTube (Phase 7 WEB) or
+ * platform storage (legacy). When the institute requires the AOC Player
+ * (Phase 8), the YouTube player hands over to the launcher itself and the
+ * legacy player reports `NATIVE_PLAYER_REQUIRED` so this shows the launcher.
+ */
 function LessonVideo({
   material,
   videoAssetId,
@@ -342,5 +348,19 @@ function LessonVideo({
   if (videoSource.provider === "YOUTUBE") {
     return <YouTubeLessonPlayer lessonMediaId={material.id} title={material.title} />;
   }
-  return <SecureVideoPlayer videoAssetId={videoAssetId} title={material.title} />;
+  return <PlatformStorageVideo material={material} videoAssetId={videoAssetId} />;
+}
+
+function PlatformStorageVideo({ material, videoAssetId }: { material: MaterialResponse; videoAssetId: string }) {
+  const [nativeRequired, setNativeRequired] = useState(false);
+  if (nativeRequired) {
+    return <NativePlayerLauncher lessonMediaId={material.id} title={material.title} />;
+  }
+  return (
+    <SecureVideoPlayer
+      videoAssetId={videoAssetId}
+      title={material.title}
+      onNativePlayerRequired={() => setNativeRequired(true)}
+    />
+  );
 }

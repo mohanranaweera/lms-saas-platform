@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCreateWebPlayback } from "@/lib/api/playback";
-import { isApiClientError } from "@/lib/api/error";
+import { NativePlayerLauncher } from "@/components/player/native-player-launcher";
+import { playbackErrorMessage, VIDEO_NOT_AVAILABLE } from "@/components/player/playback-errors";
+import { useStartPlayback } from "@/lib/api/playback";
 
 /**
  * Student WEB player for a YouTube LessonMedia (VIDEO Phase 7, B3-only).
@@ -25,36 +26,13 @@ import { isApiClientError } from "@/lib/api/error";
 /** YouTube video ids are 11 URL-safe characters; anything else is never embedded. */
 const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 
-const NOT_AVAILABLE = "This video isn't available. It may have been removed, or you may not have access to it.";
-
-function playbackErrorMessage(error: unknown): { message: string; retryable: boolean } {
-  if (!isApiClientError(error)) {
-    return { message: "Couldn't load this video. Please try again.", retryable: true };
-  }
-  if (error.status === 403 || error.status === 404) {
-    return { message: NOT_AVAILABLE, retryable: false };
-  }
-  switch (error.code) {
-    case "MEDIA_NOT_READY":
-      return { message: "This video is still processing. Try again in a few minutes.", retryable: true };
-    case "VIDEO_PLAYBACK_DISABLED":
-      return { message: "YouTube videos can't be played right now. Please try again later.", retryable: true };
-    case "VIDEO_PROVIDER_DISABLED_BY_PLATFORM":
-      return { message: "This video's channel isn't available right now.", retryable: false };
-  }
-  if (error.status === 409) {
-    return { message: "This video isn't available right now.", retryable: false };
-  }
-  return { message: "Couldn't load this video. Please try again.", retryable: true };
-}
-
 interface YouTubeLessonPlayerProps {
   lessonMediaId: string;
   title: string;
 }
 
 export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlayerProps) {
-  const playback = useCreateWebPlayback();
+  const playback = useStartPlayback();
   const { mutate } = playback;
 
   useEffect(() => {
@@ -81,6 +59,17 @@ export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlaye
     );
   }
 
+  // VIDEO Phase 8: the institute requires the AOC Player - hand over to the launcher.
+  if (playback.data?.channel === "NATIVE" && playback.data.sessionId && playback.data.launch) {
+    return (
+      <NativePlayerLauncher
+        lessonMediaId={lessonMediaId}
+        title={title}
+        initial={{ sessionId: playback.data.sessionId, launch: playback.data.launch }}
+      />
+    );
+  }
+
   const descriptor = playback.data?.descriptor;
   if (!descriptor) {
     return (
@@ -98,7 +87,7 @@ export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlaye
   if (descriptor.provider !== "YOUTUBE" || !videoId || !YOUTUBE_VIDEO_ID.test(videoId)) {
     return (
       <p role="alert" className="rounded-md border border-border bg-muted/20 p-3 text-sm text-foreground">
-        {NOT_AVAILABLE}
+        {VIDEO_NOT_AVAILABLE}
       </p>
     );
   }

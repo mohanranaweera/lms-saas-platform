@@ -203,6 +203,10 @@ function VideoConfigurationForm({ view, canManage }: { view: TenantVideoConfigur
                 <span className="block text-xs text-muted-foreground">
                   Students must open lessons in the desktop player instead of the browser.
                 </span>
+                <span className="block text-xs text-muted-foreground">
+                  The player is for Windows computers only for now: students won&apos;t be able to watch lesson
+                  videos on phones, tablets or Macs while this is on.
+                </span>
               </span>
             </label>
             <label className="flex items-start gap-2 text-sm text-foreground sm:col-span-2">

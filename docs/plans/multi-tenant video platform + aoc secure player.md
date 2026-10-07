@@ -3,15 +3,15 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    7 — Playback Authorization (B3-only WEB scope; backend in progress)
+Current Phase:    8 — Player installations, launch codes and exchange (backend + frontend done; commit pending)
 Last Updated:     2026-10-06
-Current Branch:   feat/video-playback-authorization
-Latest Migration: V76__tenant_media_integrations.sql (no Phase 6 migration)
-Backend Build:    mvnw verify 2026-10-07: 2397 tests, 0 failures (Phase 7 WEB backend)
+Current Branch:   feat/video-device-security
+Latest Migration: V77__player_installations_and_launch_codes.sql
+Backend Build:    mvnw verify 2026-10-07: 2419 tests, 0 failures (Phase 8 backend)
 Frontend Build:   Phase 7 WEB player done 2026-10-07 (tsc clean, new Playwright spec 8/8)
 Player Build:     n/a (player project does not exist yet)
 Tests:            Phase 6 tests added; Maven verification pending environment access
-Open Blockers:    B3–B4 (§0.3) — owner approvals for later playback/player phases
+Open Blockers:    none for Phase 8 (B4 accepted 2026-10-07); code-signing route needed before Phase 9 releases
 ```
 
 | Phase | Description | Status | Started | Completed |
@@ -76,7 +76,7 @@ Valid statuses: NOT STARTED · PLANNING · APPROVED · IN PROGRESS · BLOCKED ·
 | ~~B1~~ | **ADR-018 Amendment 2**: allow a *tenant-scoped* YouTube connection. This reverses the per-teacher owner decision and the V60 CHECK. **APPROVED by owner 2026-10-04** | — |
 | ~~B2~~ | **Scoped exception to architecture.md:94–97** for the upload transfer worker only (S3 staging → YouTube). **APPROVED by owner 2026-10-04** | — |
 | ~~B3~~ | **ADR-008 amendment**: YouTube WEB playback is LMS-gated but unprotected; protected playback requires managed streaming. **Approved by owner for Phase 7 WEB scope 2026-10-06.** Native exchange/player work remains deferred. | Phase 7 |
-| B4 | **ADR-025 Native Secure Player**: Rust/Tauri 2 stack, `aocplayer://`, installation keys, the exchange endpoint as an ADR-011-style unauthenticated carve-out, signed updates. **Drafted 2026-10-07 as PROPOSED** (`docs/adr/ADR-025-native-secure-player.md`); awaiting owner acceptance + Q-008/Q-009 | Phase 8–11 |
+| ~~B4~~ | **ADR-025 Native Secure Player**: Rust/Tauri 2 stack, `aocplayer://`, installation keys, the exchange endpoint as an ADR-011-style unauthenticated carve-out, signed updates. **ACCEPTED by owner 2026-10-07** (`docs/adr/ADR-025-native-secure-player.md`; Q-008 share slot, Q-009 per-tenant default off, Windows only). Code signing route still open (Phase 9) | Phase 8–11 |
 | ~~B5~~ | **VID-ADR-002**: evolve existing tables instead of creating the brief's separately named tables. **APPROVED by owner 2026-10-04** | — |
 | ~~B6~~ | **Additive API contracts**: new `/api/v1/media`, `/api/v1/playback/*`; existing `/api/v1/videos/*` unchanged. **APPROVED by owner 2026-10-04** | — |
 
@@ -924,8 +924,8 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 | VID-ADR-005 | 2026-10-04 | Provider credentials stay in `media_provider_connection` ciphertext (AES-256-GCM+AAD) | Existing reviewed mechanism (ADR-018/019) | External vault/KMS | No new secret store; key rotation = TD-003 | PROPOSED |
 | VID-ADR-006 | 2026-10-04 | Feature flags = typed config properties + tenant config switches until Module D exists | No flag engine; repo pattern | Introduce Unleash/FF4J | No per-plan gating yet | PROPOSED |
 | VID-ADR-007 | 2026-10-04 | YouTube mode: no overlay on the player; watermark band outside it | YouTube RMF | Overlay anyway | Weaker attribution in YouTube mode | PROPOSED (Q-006 legal) |
-| VID-ADR-008 | 2026-10-04 | One generic external launch-code error; detailed reason only in security logs | Avoid oracle for code probing | Brief's three distinct codes | Player shows one message | PROPOSED |
-| VID-ADR-009 | 2026-10-04 | Player authenticates with an installation keypair (proof-of-possession), never an LMS JWT | Deep-link hijack resistance; no long-lived bearer on disk | Bearer installation token | Pairing step required | PROPOSED (B4) |
+| VID-ADR-008 | 2026-10-04 | One generic external launch-code error; detailed reason only in security logs | Avoid oracle for code probing | Brief's three distinct codes | Player shows one message | ACCEPTED (owner, B4, 2026-10-07) |
+| VID-ADR-009 | 2026-10-04 | Player authenticates with an installation keypair (proof-of-possession), never an LMS JWT | Deep-link hijack resistance; no long-lived bearer on disk | Bearer installation token | Pairing step required | ACCEPTED (owner, B4, 2026-10-07) |
 | VID-ADR-010 | 2026-10-04 | `YOUTUBE_CUSTOM` = interfaces + locked-off flag; no resolver code | No authorized arrangement; YouTube terms | Implement extraction | Future work needs ADR + provider authorization | ACCEPTED (brief mandate) |
 | VID-ADR-011 | 2026-10-04 | NativeMediaProxy via custom protocol scheme with descriptor-bound allow-list, not a localhost port | Reduces local attack surface and SSRF | localhost HTTP proxy | Phase 13 design | PROPOSED |
 
@@ -940,14 +940,14 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 | Q-005 | Under what authorized provider arrangement could `YOUTUBE_CUSTOM` be activated? | None today; owner/legal | — |
 | Q-006 | Legal review of RMF for the outside-player watermark band and window capture affinity in YouTube mode | Obtain before Phase 11 ships to prod | Phase 11 |
 | ~~Q-007~~ | Google Cloud: one platform project (shared quota), separate upload project, or tenant-supplied projects? | **Resolved 2026-10-04: one platform project per environment + per-tenant budget** | — |
-| Q-008 | Does a paired player installation share the browser's device slot or count as an extra device? | Share | Phase 8 |
-| Q-009 | Is the native player mandatory for all tenants, or per-tenant opt-in? | Per-tenant `native_player_required` | Phase 7 |
+| ~~Q-008~~ | Does a paired player installation share the browser's device slot or count as an extra device? | **Resolved 2026-10-07: share the browser's device slot** | — |
+| ~~Q-009~~ | Is the native player mandatory for all tenants, or per-tenant opt-in? | **Resolved 2026-10-07: per-tenant `native_player_required`, default false** | — |
 | Q-010 | Teacher visibility: own uploads only, or all tenant media? | **2026-10-04: own uploads in Phase 5; attached-course media added in Phase 6** | Phase 6 |
 | ~~Q-011~~ | New `DomainArea.MEDIA_LIBRARY` or reuse `MATERIALS`/`INTEGRATIONS`? | **Resolved 2026-10-04: reuse `MATERIALS`** | — |
 | Q-012 | Capture protection required but OS unsupported → refuse or warn? | Refuse when tenant sets `required` | Phase 11 |
 | ~~Q-013~~ | Audit `actor_id` for system jobs (DB trigger requires a real user) | **Resolved 2026-10-04: `video_asset_status_event` (actor NULL) + security log; `audit_log` stays for human actions** | — |
 | ~~Q-014~~ | Default per-tenant YouTube upload budget | **Resolved 2026-10-04: 20/day/tenant, configurable per tenant** | — |
-| Q-015 | macOS / mobile players timeline | Windows first; out of scope now | — |
+| ~~Q-015~~ | macOS / mobile players timeline | **Resolved 2026-10-07: Windows only for now; a mobile app (Android/iOS) WILL be built later (owner, 2026-10-07) - see the Phase 8 "Mobile devices" note** | — |
 | Q-016 | Which commercial plans get device restrictions / native player? | Wait for Module D | — |
 | ~~Q-017~~ | Deleting in the LMS also deletes on YouTube? | **Resolved 2026-10-04: LMS soft delete only; the video stays on YouTube.** Edits (title/description/privacy) DO sync to YouTube (owner), which needs `youtube.force-ssl` - ADR-018 Amendment 3 | — |
 | ~~Q-018~~ | Delete the superseded `VIDEO-01` draft? | **Resolved 2026-10-04: deleted at owner's instruction** | — |
@@ -1980,6 +1980,140 @@ verification, frontend typecheck/lint, and the new Playwright spec when shell ac
   Phase 8 with pairing (the exchange needs a paired installation key to verify).
 - Owner must confirm before acceptance: stack exception, carve-out + player auth model, Q-008,
   Q-009, Windows-only (Q-015), code-signing route and updater-key custody.
+
+### Phase 8 — Player installations, launch codes and exchange (ADR-025)
+
+**Before (2026-10-07, status → PLANNING; branch `feat/video-device-security`; ADR-025 accepted)**
+
+- **Objective:** everything the backend and web app need before the Tauri player exists (Phase 9):
+  pairing a player installation to a student's device, one-time launch codes, the exchange, signed
+  heartbeat/end with a player-only playback token, per-tenant `native_player_required`, and
+  revocation (student, admin, device revoke). Watch-time accounting stays in Phase 12.
+- **Findings that shape the design:**
+  1. `AccessPolicyService.isCurrentDeviceAuthorized` returns true when no principal is set, so the
+     exchange must not call `requireStudentCourseAccess`. New
+     `AccessPolicyApi.requireStudentCourseAccessOnDevice(studentId, courseId, deviceId, notFound)` +
+     `DeviceAccessApi.isDeviceAuthorized(userId, deviceId, courseMaxDevices)` (device must be ACTIVE).
+  2. Device revoke publishes no event. Identity publishes `DeviceRevokedEvent(tenantId, userId,
+     deviceId)` inside the revoke transaction; video-access-management listens synchronously and
+     revokes that device's installations and their PENDING_LAUNCH / ACTIVE native sessions.
+  3. `tenant_video_configuration` already has `native_player_required`, `launch_code_ttl_seconds`,
+     `heartbeat_interval_seconds`; `video.features.native-player` exists. No config migration.
+  4. Playback JWTs have no audience. Player tokens get `aud=player` + `installation_id`; the legacy
+     `/videos/playback-sessions/*` parser rejects any token with an audience.
+  5. Installation keys are **ECDSA P-256 (SHA256withECDSA)**, not Ed25519: Windows CNG/TPM
+     non-exportable keys support P-256, not Ed25519. JDK-native, no new dependency.
+- **DB `V77__player_installations_and_launch_codes.sql`** (new tables tenant-owned, composite FKs,
+  `tenant_id`-leading indexes):
+  - `player_pairing_code` (user, device, `code_hash` unique, ISSUED/CONSUMED/EXPIRED, TTL ≤ 120 s
+    CHECK, consumed installation);
+  - `player_installation` (user, device FK, `public_key` SPKI, `key_algorithm` = ES256, platform,
+    player version, ACTIVE/REVOKED + revoke fields; one ACTIVE per device - re-pairing revokes the
+    previous one; rows never deleted);
+  - `playback_launch_code` (session FK, student, `issued_for_device_id`, `code_hash` unique,
+    ISSUED/CONSUMED/EXPIRED/REVOKED, TTL ≤ 60 s CHECK, one ISSUED per session);
+  - `video_watch_session` + `material_id`, `launch_channel` (WEB|NATIVE, default WEB),
+    `player_installation_id`; status + `PENDING_LAUNCH`; revoked reasons + `DEVICE_REVOKED`,
+    `INSTALLATION_REVOKED`, `ACCESS_REVOKED`, `ADMIN`, `LAUNCH_EXPIRED` (CHECKs replaced in V77).
+- **API (additive, B6):**
+  - Student JWT: `POST /api/v1/player/pairings` → `{pairingUrl, expiresAt}`;
+    `GET /api/v1/player/installations`; `POST /api/v1/player/installations/{id}/revoke`;
+    `POST /api/v1/playback/sessions` adds `channel` (WEB|NATIVE) and `launch{url, expiresAt}`;
+    `GET /api/v1/playback/sessions/{id}/status` → `{status, exchanged}` (own session only).
+  - Player, **no JWT** (all under `/api/v1/player/`, exact matchers, excluded from
+    `TenantResolutionFilter`): `POST /player/pairings/complete` (pairing code + public key; tenant
+    from the pairing row), `POST /player/exchange` (tenant from the consumed launch-code row),
+    `POST /player/sessions/{id}/heartbeat` and `/end` (player token + signature). Signed requests
+    carry `X-Player-Installation`, `X-Player-Timestamp` (±60 s), `X-Player-Nonce` (Redis `SET NX`),
+    `X-Player-Signature` over `METHOD
+PATH
+TIMESTAMP
+NONCE
+base64url(SHA-256(body))`.
+  - Tenant Admin (`DomainArea.DEVICES`): `GET /api/v1/tenant-admin/students/{id}/player-installations`,
+    `POST .../{installationId}/revoke` (reason), `POST /api/v1/tenant-admin/playback/sessions/{id}/revoke`.
+- **Rules:** exchange failures → one generic `400 PLAYBACK_LAUNCH_CODE_INVALID` (detail only in the
+  security log); `426 PLAYER_VERSION_UNSUPPORTED` below `app.player.min-version`; heartbeat failures →
+  `401 PLAYBACK_SESSION_EXPIRED`; heartbeat re-runs the access check on the installation's device and
+  answers `STOP` when access, device, installation or session is gone. If a tenant requires the native
+  player but the platform `native-player` flag is off, playback is refused (`409 NATIVE_PLAYER_UNAVAILABLE`),
+  never silently downgraded to WEB. Pending launches expire with their code.
+- **New secret:** `PLAYER_LAUNCH_CODE_PEPPER` (pairing + launch code HMAC) in the four ADR-019 places.
+- **Audit:** `player.paired`, `player.installation_revoked` (student/admin), `video.playback_authorized`
+  (channel), `video.playback_session_revoked` (admin). Device revoke keeps its own audit entry.
+- **Frontend:** Student "AOC Player" page (pair + installations + revoke); lesson player handles
+  `channel=NATIVE` ("Open in AOC Player" from the click, status polling, fallback copy); Tenant Admin
+  video configuration toggle for `native_player_required`; student detail lists installations with
+  revoke.
+- **Tests:** pairing (single use, expiry, cooldown/revoked device refused, re-pair revokes previous),
+  exchange (happy, expired, replayed, 10 concurrent → exactly one, wrong installation, other student's
+  installation, bad signature, nonce replay, clock skew, revoked installation, lost access, course
+  device limit), heartbeat (refresh, STOP on revoke/access lost, token audience separation both ways),
+  device revoke cascade, admin revoke, native required + flag off, cross-tenant (code, installation,
+  session, admin endpoints), schema (composite FKs, CHECKs). Playwright for every new screen state.
+
+**After — backend (2026-10-07)**
+
+- Built as planned, with these changes found while building (all in ADR-025 Amendment 1 / `docs/api/aoc-player.md`):
+  - `V77`: also widens `video_watch_session.status` to VARCHAR(20) (`PENDING_LAUNCH` did not fit V51's 10).
+  - The player token travels in `X-Player-Token` (not `Authorization`, so the login filter never parses it).
+  - Staff installation endpoints use the student **profile** id like the ADR-022 device endpoints:
+    `/api/v1/students/{studentProfileId}/player-installations[/{id}/revoke]`; admin session stop is
+    `POST /api/v1/playback/sessions/{id}/revoke`.
+  - When `native_player_required`, the NATIVE channel serves INTERNAL media too (signed URL in the
+    exchange descriptor, refreshed in each heartbeat) and the legacy `/videos/{id}/playback-sessions`
+    refuses Students (`409 NATIVE_PLAYER_REQUIRED`) - otherwise the requirement could be bypassed.
+  - `AccessPolicyApi.requireStudentCourseAccessOnDevice` is deliberately not `@Transactional`: the exchange
+    and heartbeat catch its denial to revoke the session, and a joined throwing transaction would have been
+    marked rollback-only.
+  - Exchange per-installation rate limit is keyed by installation + IP (it runs before the signature check).
+- New: `LessonMediaPlayability` (one playability rule for WEB authorize, exchange and heartbeat);
+  `service/player/{PlayerCodes, PlayerRequestVerifier, PlayerVersion, PlayerRateLimiter, PlayerSessionRevoker,
+  NativeLaunchService, PlayerPairingService, PlayerExchangeTransactions, PlayerExchangeService,
+  PlayerSessionService}`; domain `PlayerInstallation`, `PlayerPairingCode`, `PlaybackLaunchCode` + enums;
+  repositories with the two named `findByCodeHashAcrossTenantsForUpdate` lookups; `PlayerController`,
+  `StudentPlayerInstallationController`, `PlayerDtos`; `PlayerProperties` (`app.player.*`);
+  identity `DeviceRevokedEvent` + `DeviceAccessApi.findActiveSessionDeviceId / isDeviceAuthorized`;
+  exact carve-outs in `SecurityFilterChainConfig` / `TenantResolutionFilter`; `PLAYER_LAUNCH_CODE_PEPPER`
+  in application.yml, compose (both lists) and `prod-secrets.reference`. Removed `WebPlaybackSessionResponse`.
+- Tests: `PlayerIntegrationTest` 14/14 (happy path; single use + expiry; 10 concurrent exchanges -> exactly
+  one; wrong key / other student's player cannot use or burn a code; nonce replay, stale clock, bad token;
+  audience separation; device reset cascade; student revoke + re-pair; lost access -> STOP; admin revoke +
+  audit + permissions; native required cannot be bypassed or downgraded; old player 426; cross-tenant;
+  schema), `PlayerCryptoTest` 4/4, `PlaybackAuthorizationServiceTest` 8/8. Full `mvnw verify`:
+  **2419 tests, 0 failures/errors/skips, BUILD SUCCESS** (18:26). The rate-limit key change landed during
+  the run; the player suites were re-run after it: 26/26.
+
+**After — frontend (2026-10-07)**
+
+- `lib/api/player.ts` (installations, pairing, launch status with 2 s polling, staff list/revoke);
+  `lib/api/playback.ts` now types `PlaybackStart {sessionId, channel, expiresAt, descriptor, launch}`
+  (`useStartPlayback`); `lib/player/native-launch.ts` (only `aocplayer://(play|pair)?code=` links; test
+  hook `window.__aocLaunch`); `components/player/{native-player-launcher.tsx, playback-errors.ts}`;
+  YouTube player hands NATIVE answers to the launcher; `SecureVideoPlayer` gained
+  `onNativePlayerRequired` (legacy `409 NATIVE_PLAYER_REQUIRED` -> launcher); new Student page
+  `(student)/student/player` + nav link; Tenant Admin Devices tab `player-installations-section.tsx`
+  (list + remove with reason); device mutations also refresh the player list. The tenant switch already
+  existed (Phase 3 Video configuration).
+- Tests: new `e2e/aoc-player.spec.ts` 12/12 (36/36 over 3 repeats); regression `devices-and-access`,
+  `student-youtube-playback`, `secure-video-player` pass. `tsc --noEmit` clean, eslint 0 errors.
+
+**Mobile devices (owner decision 2026-10-07, while testing Phase 8)**
+
+- A tenant that requires the AOC Player gets NO browser playback on any device, so its students cannot
+  watch lesson videos on phones, tablets or Macs until a player exists there. Option 1 was built: on a
+  non-Windows browser the lesson page and the AOC Player page say "This video can only be watched on a
+  Windows computer with the AOC Player" (no launch, no pairing), and the Tenant Admin "Require the AOC
+  Secure Player app" switch warns about phones/tablets/Macs. The device check is UX only
+  (`isAocPlayerSupportedPlatform`, user-agent based); the backend never trusts it. Playwright: phone and
+  Mac cases in `e2e/aoc-player.spec.ts` (15 tests, 60/60 over 4 repeats).
+- Rejected for now: a per-tenant "allow phones in the browser" switch - the device type is client-claimed,
+  so anyone could fake a phone and get the unprotected player.
+- **Backlog - mobile AOC Player (owner: "we have to develop a mobile application later"):** Android and
+  iOS apps (Tauri 2 mobile or native), after Phase 9 Windows. Needs an ADR-025 amendment (platforms,
+  store distribution and signing, `player_installation.platform` CHECK, mobile key storage - Android
+  Keystore / iOS Secure Enclave, both P-256), and honest capture copy: Android `FLAG_SECURE` blocks
+  capture; iOS can only detect recording. The backend API is already platform-neutral.
 
 ### Phase 5d — Named YouTube integrations + Media Library tabs
 

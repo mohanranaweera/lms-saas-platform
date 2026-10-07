@@ -4,6 +4,8 @@ import com.lms.common.persistence.BaseEntity;
 import com.lms.common.persistence.TenantOwned;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -65,6 +67,22 @@ public class VideoWatchSession extends BaseEntity implements TenantOwned {
 	@Column(name = "status", nullable = false)
 	private VideoWatchSessionStatus status;
 
+	/** V77 (VIDEO Phase 8): the LessonMedia (VIDEO material) a NATIVE session plays. */
+	@Column(name = "material_id", updatable = false)
+	private UUID materialId;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "launch_channel", nullable = false, updatable = false)
+	private LaunchChannel launchChannel = LaunchChannel.WEB;
+
+	/** Set (by a guarded UPDATE) when the AOC Player claims the session at exchange. */
+	@Column(name = "player_installation_id", insertable = false, updatable = false)
+	private UUID playerInstallationId;
+
+	/** The ADR-022 device of the browser session that pressed Play (NATIVE only). */
+	@Column(name = "issued_for_device_id", updatable = false)
+	private UUID issuedForDeviceId;
+
 	protected VideoWatchSession() {
 	}
 
@@ -78,6 +96,21 @@ public class VideoWatchSession extends BaseEntity implements TenantOwned {
 		this.issuedAt = issuedAt;
 		this.expiresAt = expiresAt;
 		this.status = VideoWatchSessionStatus.ACTIVE;
+	}
+
+	/**
+	 * A NATIVE session waiting for the AOC Player (VIDEO Phase 8). It becomes
+	 * ACTIVE only through {@code VideoWatchSessionRepository#activateNativeIfPending}.
+	 */
+	public static VideoWatchSession pendingNative(UUID tenantId, UUID videoAssetId, UUID studentId, UUID materialId,
+			UUID issuedForDeviceId, UUID playbackJti, Instant issuedAt, Instant launchExpiresAt) {
+		VideoWatchSession session = new VideoWatchSession(tenantId, videoAssetId, studentId, playbackJti, null, issuedAt,
+				launchExpiresAt);
+		session.status = VideoWatchSessionStatus.PENDING_LAUNCH;
+		session.launchChannel = LaunchChannel.NATIVE;
+		session.materialId = materialId;
+		session.issuedForDeviceId = issuedForDeviceId;
+		return session;
 	}
 
 	@Override
@@ -124,6 +157,22 @@ public class VideoWatchSession extends BaseEntity implements TenantOwned {
 
 	public VideoWatchSessionStatus getStatus() {
 		return status;
+	}
+
+	public UUID getMaterialId() {
+		return materialId;
+	}
+
+	public LaunchChannel getLaunchChannel() {
+		return launchChannel;
+	}
+
+	public UUID getPlayerInstallationId() {
+		return playerInstallationId;
+	}
+
+	public UUID getIssuedForDeviceId() {
+		return issuedForDeviceId;
 	}
 
 }

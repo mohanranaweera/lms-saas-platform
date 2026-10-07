@@ -12,6 +12,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DeviceAccessApi;
 import com.lms.identityaccessservice.api.DeviceLimitSource;
 import com.lms.identityaccessservice.api.DeviceManagementApi;
+import com.lms.identityaccessservice.api.DeviceRevokedEvent;
 import com.lms.identityaccessservice.api.DeviceSlotSummary;
 import com.lms.identityaccessservice.api.DeviceView;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,10 +80,13 @@ public class DeviceManagementService implements DeviceManagementApi, DeviceAcces
 
 	private final AuditLogApi auditLogApi;
 
+	private final ApplicationEventPublisher eventPublisher;
+
 	public DeviceManagementService(DeviceRepository deviceRepository, DeviceSessionRepository deviceSessionRepository,
 			StudentDeviceLimitOverrideRepository overrideRepository, TenantUserRepository tenantUserRepository,
 			DevicePolicyService devicePolicyService, DeviceSessionCacheService cacheService,
-			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi) {
+			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi,
+			ApplicationEventPublisher eventPublisher) {
 		this.deviceRepository = deviceRepository;
 		this.deviceSessionRepository = deviceSessionRepository;
 		this.overrideRepository = overrideRepository;
@@ -90,6 +95,7 @@ public class DeviceManagementService implements DeviceManagementApi, DeviceAcces
 		this.cacheService = cacheService;
 		this.permissionCheckService = permissionCheckService;
 		this.auditLogApi = auditLogApi;
+		this.eventPublisher = eventPublisher;
 	}
 
 	// ---- staff (DeviceManagementApi) ----
@@ -217,9 +223,39 @@ public class DeviceManagementService implements DeviceManagementApi, DeviceAcces
 		if (deviceId == null) {
 			return false;
 		}
+		return isAmongAuthorizedDevices(userId, deviceId, limit.limit());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<UUID> findActiveSessionDeviceId(UUID userId, UUID sessionId) {
+		return deviceSessionRepository.findById(sessionId)
+			.map(DeviceSession::getDeviceId)
+			.flatMap(deviceRepository::findById)
+			.filter(device -> device.getUserId().equals(userId) && device.isActive())
+			.map(Device::getId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public boolean isDeviceAuthorized(UUID userId, UUID deviceId, Integer courseMaxDevices) {
+		boolean active = deviceRepository.findById(deviceId)
+			.filter(device -> device.getUserId().equals(userId) && device.isActive())
+			.isPresent();
+		if (!active) {
+			return false;
+		}
+		if (courseMaxDevices == null) {
+			return true;
+		}
+		DevicePolicyService.ResolvedLimit limit = devicePolicyService.resolve(userId, courseMaxDevices);
+		return limit.source() != DeviceLimitSource.COURSE || isAmongAuthorizedDevices(userId, deviceId, limit.limit());
+	}
+
+	private boolean isAmongAuthorizedDevices(UUID userId, UUID deviceId, int limit) {
 		return deviceRepository.findActiveByUserIdOldestFirst(userId)
 			.stream()
-			.limit(limit.limit())
+			.limit(limit)
 			.anyMatch(device -> device.getId().equals(deviceId));
 	}
 
@@ -241,6 +277,9 @@ public class DeviceManagementService implements DeviceManagementApi, DeviceAcces
 		metadata.put("after", "revoked");
 		metadata.put("slotReusableAt", device.getSlotReusableAt().toString());
 		auditLogApi.record(new AuditLogEntry(actorId, action, "device", device.getId(), reason, metadata));
+		// Same transaction: listeners (VIDEO Phase 8 player installations) revoke what hangs off this device.
+		eventPublisher.publishEvent(new DeviceRevokedEvent(device.getTenantId(), device.getUserId(), device.getId(),
+				actorId, now));
 	}
 
 	private DeviceSlotSummary summarize(TenantUser user, UUID currentDeviceId) {

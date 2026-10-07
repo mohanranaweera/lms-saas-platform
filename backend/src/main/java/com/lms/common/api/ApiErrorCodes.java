@@ -149,6 +149,30 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 7 - the requested playback provider is not enabled for WEB playback. */
 	public static final String VIDEO_PLAYBACK_DISABLED = "VIDEO_PLAYBACK_DISABLED";
 
+	/** VIDEO Phase 8 - any failed launch-code exchange (one generic code; detail in the security log only). */
+	public static final String PLAYBACK_LAUNCH_CODE_INVALID = "PLAYBACK_LAUNCH_CODE_INVALID";
+
+	/** VIDEO Phase 8 - any failed pairing completion (generic). */
+	public static final String PLAYER_PAIRING_CODE_INVALID = "PLAYER_PAIRING_CODE_INVALID";
+
+	/** VIDEO Phase 8 - the AOC Player is older than {@code app.player.min-version}. */
+	public static final String PLAYER_VERSION_UNSUPPORTED = "PLAYER_VERSION_UNSUPPORTED";
+
+	/** VIDEO Phase 8 - a player heartbeat/end with a missing, invalid or expired token/signature. */
+	public static final String PLAYBACK_SESSION_EXPIRED = "PLAYBACK_SESSION_EXPIRED";
+
+	/** VIDEO Phase 8 - the tenant requires the AOC Player but the platform has it switched off. */
+	public static final String NATIVE_PLAYER_UNAVAILABLE = "NATIVE_PLAYER_UNAVAILABLE";
+
+	/** VIDEO Phase 8 - the tenant requires the AOC Player; this browser endpoint refuses Students. */
+	public static final String NATIVE_PLAYER_REQUIRED = "NATIVE_PLAYER_REQUIRED";
+
+	/** VIDEO Phase 8 - the browser session has no active registered device to pair or launch on. */
+	public static final String PLAYER_DEVICE_NOT_REGISTERED = "PLAYER_DEVICE_NOT_REGISTERED";
+
+	/** VIDEO Phase 8 - too many player pairing/exchange attempts. */
+	public static final String PLAYER_RATE_LIMITED = "PLAYER_RATE_LIMITED";
+
 	/** VIDEO Phase 4 - the upload is not in a state that allows this action. */
 	public static final String MEDIA_UPLOAD_STATE_CONFLICT = "MEDIA_UPLOAD_STATE_CONFLICT";
 

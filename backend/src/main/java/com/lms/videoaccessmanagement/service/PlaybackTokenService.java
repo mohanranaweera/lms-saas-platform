@@ -60,6 +60,11 @@ public class PlaybackTokenService {
 
 	private static final String CLAIM_WATCH_SESSION_ID = "watch_session_id";
 
+	/** VIDEO Phase 8: audience of AOC Player tokens. Legacy browser tokens carry no audience. */
+	public static final String PLAYER_AUDIENCE = "aoc-player";
+
+	private static final String CLAIM_INSTALLATION_ID = "installation_id";
+
 	private final VideoPlaybackTokenProperties properties;
 
 	public PlaybackTokenService(VideoPlaybackTokenProperties properties) {
@@ -89,6 +94,10 @@ public class PlaybackTokenService {
 		try {
 			Jws<Claims> jws = Jwts.parser().verifyWith(signingKey()).build().parseSignedClaims(token);
 			Claims claims = jws.getPayload();
+			// VIDEO Phase 8: an AOC Player token is never valid on the legacy browser endpoints.
+			if (claims.getAudience() != null && !claims.getAudience().isEmpty()) {
+				throw new PlaybackTokenInvalidException("Invalid or expired playback token");
+			}
 			UUID studentId = UUID.fromString(claims.getSubject());
 			UUID tenantId = UUID.fromString(claims.get(CLAIM_TENANT_ID, String.class));
 			UUID videoAssetId = UUID.fromString(claims.get(CLAIM_VIDEO_ASSET_ID, String.class));
@@ -100,6 +109,58 @@ public class PlaybackTokenService {
 		catch (JwtException | IllegalArgumentException | NullPointerException invalid) {
 			throw new PlaybackTokenInvalidException("Invalid or expired playback token");
 		}
+	}
+
+	/**
+	 * VIDEO Phase 8 (ADR-025 §5): a token for one NATIVE session, usable only by
+	 * the installation that claimed it ({@code aud = aoc-player}). Same signing
+	 * key and claim shape as the browser token plus {@code installation_id}.
+	 */
+	public String issuePlayerToken(UUID studentId, UUID tenantId, UUID videoAssetId, UUID watchSessionId,
+			UUID installationId, UUID jti, Instant issuedAt, Instant expiresAt) {
+		return Jwts.builder()
+			.subject(studentId.toString())
+			.audience()
+			.add(PLAYER_AUDIENCE)
+			.and()
+			.claim(CLAIM_TENANT_ID, tenantId.toString())
+			.claim(CLAIM_VIDEO_ASSET_ID, videoAssetId.toString())
+			.claim(CLAIM_WATCH_SESSION_ID, watchSessionId.toString())
+			.claim(CLAIM_INSTALLATION_ID, installationId.toString())
+			.id(jti.toString())
+			.issuedAt(Date.from(issuedAt))
+			.expiration(Date.from(expiresAt))
+			.signWith(signingKey(), Jwts.SIG.HS256)
+			.compact();
+	}
+
+	/**
+	 * Validates an AOC Player token: signature, expiry and the {@code aoc-player}
+	 * audience (a browser token is rejected here, and vice versa).
+	 */
+	public ParsedPlayerToken parsePlayerToken(String token) {
+		try {
+			Claims claims = Jwts.parser()
+				.verifyWith(signingKey())
+				.requireAudience(PLAYER_AUDIENCE)
+				.build()
+				.parseSignedClaims(token)
+				.getPayload();
+			return new ParsedPlayerToken(UUID.fromString(claims.getSubject()),
+					UUID.fromString(claims.get(CLAIM_TENANT_ID, String.class)),
+					UUID.fromString(claims.get(CLAIM_VIDEO_ASSET_ID, String.class)),
+					UUID.fromString(claims.get(CLAIM_WATCH_SESSION_ID, String.class)),
+					UUID.fromString(claims.get(CLAIM_INSTALLATION_ID, String.class)), UUID.fromString(claims.getId()),
+					claims.getExpiration().toInstant());
+		}
+		catch (JwtException | IllegalArgumentException | NullPointerException invalid) {
+			throw new PlaybackTokenInvalidException("Invalid or expired playback token");
+		}
+	}
+
+	/** Validated claims of an AOC Player token. */
+	public record ParsedPlayerToken(UUID studentId, UUID tenantId, UUID videoAssetId, UUID watchSessionId,
+			UUID installationId, UUID jti, Instant expiresAt) {
 	}
 
 	/**

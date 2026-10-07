@@ -117,6 +117,8 @@ function useStudentDeviceMutation<TInput, TResult>(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: deviceKeys.student(studentId) });
+      // VIDEO Phase 8: resetting a device also removes the AOC Player paired on it.
+      void queryClient.invalidateQueries({ queryKey: ["player", "student", studentId] });
       // Resets and limit changes are audit-logged on the student's Activity tab.
       void queryClient.invalidateQueries({ queryKey: ["students", studentId, "activity"] });
     },

@@ -1,6 +1,8 @@
 package com.lms.videoaccessmanagement.service;
 
+import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.error.ConflictException;
+import com.lms.common.error.PlayerRequestException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.error.PlaybackTokenInvalidException;
 import com.lms.common.error.VideoPlaybackPolicyViolationException;
@@ -27,6 +29,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,12 +81,15 @@ public class VideoPlaybackSessionService {
 
 	private final TenantContext tenantContext;
 
+	private final TenantVideoConfigurationService configurationService;
+
 	public VideoPlaybackSessionService(VideoAccessGuard videoAccessGuard, VideoAssetRepository videoAssetRepository,
 			VideoPlaybackPolicyRepository videoPlaybackPolicyRepository,
 			VideoWatchSessionRepository videoWatchSessionRepository,
 			VideoWatchProgressRepository videoWatchProgressRepository, ObjectStorageApi objectStorageApi,
 			PlaybackTokenService playbackTokenService, PlaybackSessionCacheService playbackSessionCacheService,
-			VideoWatchSessionRevocationRecorder revocationRecorder, TenantContext tenantContext) {
+			VideoWatchSessionRevocationRecorder revocationRecorder, TenantContext tenantContext,
+			TenantVideoConfigurationService configurationService) {
 		this.videoAccessGuard = videoAccessGuard;
 		this.videoAssetRepository = videoAssetRepository;
 		this.videoPlaybackPolicyRepository = videoPlaybackPolicyRepository;
@@ -94,6 +100,7 @@ public class VideoPlaybackSessionService {
 		this.playbackSessionCacheService = playbackSessionCacheService;
 		this.revocationRecorder = revocationRecorder;
 		this.tenantContext = tenantContext;
+		this.configurationService = configurationService;
 	}
 
 	/**
@@ -122,6 +129,12 @@ public class VideoPlaybackSessionService {
 
 		if (videoAccessGuard.isCurrentPrincipalTeacher()) {
 			return issueTeacherPreviewSession(asset);
+		}
+		// VIDEO Phase 8 (ADR-025, Q-009): when the institute requires the AOC
+		// Player, this browser endpoint must not be a way around it.
+		if (configurationService.effectiveSettings().nativePlayerRequired()) {
+			throw new PlayerRequestException(HttpStatus.CONFLICT, ApiErrorCodes.NATIVE_PLAYER_REQUIRED,
+					"Open this lesson in the AOC Player.");
 		}
 		return issueStudentSession(asset, deviceFingerprintHash);
 	}

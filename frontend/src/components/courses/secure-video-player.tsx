@@ -78,11 +78,16 @@ const MAX_CONSECUTIVE_VIDEO_ERRORS = 2;
 interface SecureVideoPlayerProps {
   videoAssetId: string;
   title: string;
+  /**
+   * VIDEO Phase 8: called when the backend answers `409 NATIVE_PLAYER_REQUIRED`
+   * (the institute requires the AOC Player), so the parent can show the launcher.
+   */
+  onNativePlayerRequired?: () => void;
 }
 
 type PlayerState = "loading" | "not-entitled" | "error" | "ready" | "revoked" | "token-invalid";
 
-export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProps) {
+export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired }: SecureVideoPlayerProps) {
   const issueSessionMutation = useIssuePlaybackSession();
   const progressMutation = useRecordPlaybackProgress();
   const endSessionMutation = useEndPlaybackSession();
@@ -135,14 +140,16 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
           }
         });
       } catch (error) {
-        if (isApiClientError(error) && error.status === 404) {
+        if (isApiClientError(error) && error.code === "NATIVE_PLAYER_REQUIRED" && onNativePlayerRequired) {
+          onNativePlayerRequired();
+        } else if (isApiClientError(error) && error.status === 404) {
           setState("not-entitled");
         } else {
           setState("error");
         }
       }
     },
-    [issueSessionMutation, videoAssetId, isPlaying]
+    [issueSessionMutation, videoAssetId, isPlaying, onNativePlayerRequired]
   );
 
   // Initial session on mount — the canonical "fetch on mount" effect

@@ -23,12 +23,14 @@ The server resolves tenant, LessonMedia, lesson/course ownership, enrollment/pay
 visibility, availability window, asset status, provider integration state, and the platform playback
 flag. Tenant and role are never accepted from the request body.
 
-Success (`201`):
+Success (`201`). Phase 8 added `channel` (`WEB` | `NATIVE`) and `launch`. WEB:
 
 ```json
 {
   "sessionId": null,
+  "channel": "WEB",
   "expiresAt": "2026-10-06T12:05:00Z",
+  "launch": null,
   "descriptor": {
     "sessionId": null,
     "provider": "YOUTUBE",
@@ -44,6 +46,24 @@ Success (`201`):
 }
 ```
 
+When the tenant requires the AOC Player (`native_player_required`, Phase 8) the answer is NATIVE —
+no descriptor, a one-time launch link, for YouTube and INTERNAL media alike:
+
+```json
+{
+  "sessionId": "…",
+  "channel": "NATIVE",
+  "expiresAt": "2026-10-07T12:00:45Z",
+  "descriptor": null,
+  "launch": { "url": "aocplayer://play?code=…", "expiresAt": "2026-10-07T12:00:45Z" }
+}
+```
+
+The browser opens `launch.url` from the click and polls `GET /api/v1/playback/sessions/{id}/status`;
+the player claims the session through `POST /api/v1/player/exchange` (see `aoc-player.md`). If the
+tenant requires the player but the platform switched it off: `409 NATIVE_PLAYER_UNAVAILABLE`. A Student
+with no active registered device on this browser session: `409 PLAYER_DEVICE_NOT_REGISTERED`.
+
 `providerVideoId` is only emitted in the authenticated WEB playback descriptor. Credentials,
 connection IDs, storage keys, LMS refresh tokens, native launch codes, and installation secrets are
 never returned.
@@ -51,7 +71,8 @@ never returned.
 The descriptor is currently WEB-only. INTERNAL assets remain on the legacy
 `POST /api/v1/videos/{id}/playback-sessions` signed-object-storage path until the provider-aware WEB
 player migration is completed. That legacy endpoint refuses YouTube assets with `409 CONFLICT`
-before creating a session, counting a view or signing anything.
+before creating a session, counting a view or signing anything. When the tenant requires the AOC
+Player it also refuses Students with `409 NATIVE_PLAYER_REQUIRED` (Phase 8).
 
 ## Errors
 

@@ -160,6 +160,8 @@ async function gotoDevicesTab(page: Page, role: string) {
   await mockTenantSession(page, role);
   await mockJson(page, `**/v1/students/${STUDENT.id}`, 200, apiSuccess(STUDENT));
   await mockJson(page, `**/v1/students/${STUDENT.id}/devices`, 200, apiSuccess(summary()));
+  // VIDEO Phase 8: the tab also lists the student's AOC Players.
+  await mockJson(page, `**/v1/students/${STUDENT.id}/player-installations`, 200, apiSuccess([]));
   await page.goto(`/tenant-admin/students/${STUDENT.id}?tab=devices`);
   await expect(page.getByRole("heading", { name: STUDENT.name })).toBeVisible();
 }

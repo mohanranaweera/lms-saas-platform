@@ -64,6 +64,9 @@ object-storage:
   secret-key: ${OBJECT_STORAGE_SECRET_KEY:${MINIO_ROOT_PASSWORD:change_this_local_password}}
 
 app:
+  # VIDEO Phase 8: local-only pepper for player pairing/launch-code HMACs.
+  player:
+    launch-code-pepper: ${PLAYER_LAUNCH_CODE_PEPPER:local-dev-player-launch-code-pepper-not-for-production}
   # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Local only.
   messaging:
     sandbox-enabled: true

@@ -1,5 +1,6 @@
 package com.lms.identityaccessservice.api;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -20,5 +21,19 @@ public interface DeviceAccessApi {
 	 * not authorized for a course with its own limit.
 	 */
 	boolean isSessionDeviceAuthorized(UUID userId, UUID sessionId, Integer courseMaxDevices);
+
+	/**
+	 * VIDEO Phase 8: the ACTIVE device behind one of {@code userId}'s signed-in
+	 * sessions, or empty when the session has no registered device (issued
+	 * before Wave 10) or that device was revoked.
+	 */
+	Optional<UUID> findActiveSessionDeviceId(UUID userId, UUID sessionId);
+
+	/**
+	 * VIDEO Phase 8: same rule as {@link #isSessionDeviceAuthorized} for an
+	 * explicit device (the AOC Player exchange has no browser session). False
+	 * when the device is not {@code userId}'s or is no longer ACTIVE.
+	 */
+	boolean isDeviceAuthorized(UUID userId, UUID deviceId, Integer courseMaxDevices);
 
 }

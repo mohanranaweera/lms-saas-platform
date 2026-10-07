@@ -30,6 +30,16 @@ public interface AccessPolicyApi {
 	CourseAccessDecision requireStudentCourseAccess(UUID courseId,
 			Supplier<? extends RuntimeException> deniedAsNotFound);
 
+	/**
+	 * VIDEO Phase 8: the same entitlement rule for a request with no signed-in
+	 * student (the AOC Player exchange and heartbeats), evaluated on an explicit
+	 * device taken from a server-held row - never from the request. Unlike the
+	 * session-based check, a missing or revoked device always denies. Tenant
+	 * from {@code TenantContext}.
+	 */
+	CourseAccessDecision requireStudentCourseAccessOnDevice(UUID studentId, UUID courseId, UUID deviceId,
+			Supplier<? extends RuntimeException> deniedAsNotFound);
+
 	/** Material/video availability window check (null bounds = open-ended). */
 	ContentAvailability evaluateContentWindow(Instant availableFrom, Instant availableUntil);
 

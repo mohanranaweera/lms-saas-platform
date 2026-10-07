@@ -3,6 +3,7 @@ package com.lms.videoaccessmanagement.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lms.common.error.PlaybackNotAuthorizedException;
@@ -18,7 +19,11 @@ import com.lms.videoaccessmanagement.api.VideoAccessApi;
 import com.lms.videoaccessmanagement.api.VideoAssetDetails;
 import com.lms.videoaccessmanagement.config.VideoFeatureFlags;
 import com.lms.integrationmanagement.api.MediaConnectionApi;
+import com.lms.videoaccessmanagement.domain.LaunchChannel;
 import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
+import com.lms.videoaccessmanagement.domain.TenantVideoSettings;
+import com.lms.videoaccessmanagement.service.player.NativeLaunchService;
+import com.lms.common.error.PlayerRequestException;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -49,14 +54,21 @@ class PlaybackAuthorizationServiceTest {
 	private VideoFeatureFlags featureFlags;
 	@Mock
 	private MediaConnectionApi mediaConnectionApi;
+	@Mock
+	private TenantVideoConfigurationService configurationService;
+	@Mock
+	private NativeLaunchService nativeLaunchService;
 
 	private PlaybackAuthorizationService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new PlaybackAuthorizationService(materialLookupApi, videoAccessApi, accessPolicyApi, tenantContext,
+		LessonMediaPlayability playability = new LessonMediaPlayability(materialLookupApi, videoAccessApi, tenantContext,
 				featureFlags, mediaConnectionApi);
+		service = new PlaybackAuthorizationService(playability, accessPolicyApi, featureFlags, configurationService,
+				nativeLaunchService);
 		lenient().when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
+		lenient().when(configurationService.effectiveSettings()).thenReturn(TenantVideoSettings.PLATFORM_DEFAULTS);
 	}
 
 	@AfterEach
@@ -82,7 +94,10 @@ class PlaybackAuthorizationServiceTest {
 		when(featureFlags.isPlaybackModeEnabled(com.lms.videoaccessmanagement.domain.PlaybackMode.YOUTUBE_STANDARD))
 				.thenReturn(true);
 
-		PlaybackDescriptor descriptor = service.authorize(MATERIAL_ID);
+		PlaybackAuthorizationService.PlaybackStart start = service.authorize(MATERIAL_ID);
+		assertThat(start.channel()).isEqualTo(LaunchChannel.WEB);
+		assertThat(start.launch()).isNull();
+		PlaybackDescriptor descriptor = start.descriptor();
 
 		assertThat(descriptor.provider()).isEqualTo(MediaAssetProvider.YOUTUBE);
 		assertThat(descriptor.providerVideoId()).isEqualTo("youtube-video-123");
@@ -132,6 +147,46 @@ class PlaybackAuthorizationServiceTest {
 
 		assertThatThrownBy(() -> service.authorize(MATERIAL_ID))
 				.isInstanceOf(com.lms.common.error.NotFoundException.class);
+	}
+
+	@Test
+	void aTenantRequiringTheNativePlayerIsRefusedWhileThePlatformFlagIsOff() {
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "STUDENT", UUID.randomUUID()));
+		when(configurationService.effectiveSettings()).thenReturn(nativeRequired());
+		when(featureFlags.isNativePlayer()).thenReturn(false);
+
+		assertThatThrownBy(() -> service.authorize(MATERIAL_ID)).isInstanceOf(PlayerRequestException.class)
+			.hasFieldOrPropertyWithValue("errorCode", "NATIVE_PLAYER_UNAVAILABLE");
+		verifyNoInteractions(nativeLaunchService);
+	}
+
+	@Test
+	void aTenantRequiringTheNativePlayerGetsALaunchLinkAndNoDescriptor() {
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "STUDENT", UUID.randomUUID()));
+		when(configurationService.effectiveSettings()).thenReturn(nativeRequired());
+		when(featureFlags.isNativePlayer()).thenReturn(true);
+		when(materialLookupApi.resolveLessonMediaForPlayback(MATERIAL_ID)).thenReturn(Optional.of(context(MaterialVisibility.VISIBLE)));
+		when(videoAccessApi.getDetails(ASSET_ID, TENANT_ID)).thenReturn(Optional.of(
+				new VideoAssetDetails(ASSET_ID, "READY", "INTERNAL", "Lesson", 120, null, null, null)));
+		UUID sessionId = UUID.randomUUID();
+		when(nativeLaunchService.start(MATERIAL_ID, ASSET_ID, 45)).thenReturn(new NativeLaunchService.NativeLaunch(
+				sessionId, "aocplayer://play?code=x", java.time.Instant.now().plusSeconds(45)));
+
+		PlaybackAuthorizationService.PlaybackStart start = service.authorize(MATERIAL_ID);
+
+		assertThat(start.channel()).isEqualTo(LaunchChannel.NATIVE);
+		assertThat(start.descriptor()).isNull();
+		assertThat(start.sessionId()).isEqualTo(sessionId);
+		assertThat(start.launch().url()).startsWith("aocplayer://play?code=");
+	}
+
+	private static TenantVideoSettings nativeRequired() {
+		TenantVideoSettings d = TenantVideoSettings.PLATFORM_DEFAULTS;
+		return new TenantVideoSettings(d.defaultProvider(), d.defaultPrivacyStatus(), d.uploadsEnabled(), true,
+				d.watermarkEnabled(), d.watermarkOpacity(), d.watermarkMovementIntervalSeconds(), d.watermarkFields(),
+				d.captureProtectionEnabled(), d.captureProtectionRequired(), d.maxConcurrentSessions(),
+				d.watchTimePolicy(), d.watchTimeMultiplier(), d.watchTimeFixedMinutes(), d.launchCodeTtlSeconds(),
+				d.heartbeatIntervalSeconds());
 	}
 
 	private static LessonMediaPlaybackContext context(MaterialVisibility visibility) {

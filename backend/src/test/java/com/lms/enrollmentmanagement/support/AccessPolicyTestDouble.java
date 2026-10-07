@@ -76,6 +76,16 @@ public final class AccessPolicyTestDouble implements AccessPolicyApi {
 	}
 
 	@Override
+	public CourseAccessDecision requireStudentCourseAccessOnDevice(UUID studentId, UUID courseId, UUID deviceId,
+			Supplier<? extends RuntimeException> deniedAsNotFound) {
+		CourseAccessDecision decision = evaluateStudentCourseAccess(studentId, courseId);
+		if (!decision.allowed()) {
+			throw deniedAsNotFound.get();
+		}
+		return decision;
+	}
+
+	@Override
 	public ContentAvailability evaluateContentWindow(Instant availableFrom, Instant availableUntil) {
 		Instant now = Instant.now();
 		if (availableFrom != null && availableFrom.isAfter(now)) {

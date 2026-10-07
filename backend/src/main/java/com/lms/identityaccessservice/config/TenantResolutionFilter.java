@@ -80,8 +80,15 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 				// MEDIA-INT-01: the OAuth callback is served from the platform's
 				// callback host, not a tenant subdomain; its tenant comes from
 				// the single-use OAuth state (OAuthConnectFlowService).
-				|| path.startsWith("/api/v1/integrations/oauth/");
+				|| path.startsWith("/api/v1/integrations/oauth/")
+				// VIDEO Phase 8 / ADR-025 Amendment 1: the AOC Player calls one fixed
+				// API origin with no tenant host; the tenant comes from the consumed
+				// pairing/launch code row or the verified player token. Exact paths.
+				|| PLAYER_CARVE_OUTS.matcher(path).matches();
 	}
+
+	private static final java.util.regex.Pattern PLAYER_CARVE_OUTS = java.util.regex.Pattern.compile(
+			"^/api/v1/player/(pairings/complete|exchange|sessions/[0-9a-fA-F-]{36}/(heartbeat|end))$");
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

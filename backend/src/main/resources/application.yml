@@ -192,6 +192,14 @@ video:
     parked-expiry: 7d
 
 app:
+  # VIDEO Phase 8 (ADR-025): AOC Player pairing / launch codes / exchange.
+  # launch-code-pepper keys the HMAC that stores pairing and launch codes
+  # (PLAYER_LAUNCH_CODE_PEPPER, ADR-019). Empty = pairing and native launches
+  # fail closed with 503. min-version is the kill switch for old players.
+  player:
+    launch-code-pepper: ${PLAYER_LAUNCH_CODE_PEPPER:}
+    min-version: ${PLAYER_MIN_VERSION:0.1.0}
+    pairing-code-ttl-seconds: 90
   # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Never
   # enabled outside local/test - with it off and no real vendor adapter, the
   # SMS/WhatsApp channels are unavailable (fail closed).

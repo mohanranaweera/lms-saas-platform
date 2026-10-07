@@ -201,6 +201,15 @@ public class SecurityFilterChainConfig {
 				// the single-use Redis state, never the request, to decide the
 				// tenant and teacher.
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/integrations/oauth/*/callback").permitAll();
+				// VIDEO Phase 8 / ADR-025 Amendment 1: the AOC Player has no LMS
+				// login. These four EXACT endpoints (never a wildcard) authenticate
+				// by a one-time code (pairing, exchange) or by the aud=aoc-player
+				// token plus the installation's ECDSA signature (heartbeat, end);
+				// the tenant comes only from a server-held row. The player's other
+				// endpoints (/pairings, /installations) stay JWT-authenticated.
+				authorize.requestMatchers(HttpMethod.POST, "/api/v1/player/pairings/complete", "/api/v1/player/exchange",
+						"/api/v1/player/sessions/{sessionId}/heartbeat", "/api/v1/player/sessions/{sessionId}/end")
+					.permitAll();
 				authorize.anyRequest().authenticated();
 			})
 			.addFilterBefore(tenantResolutionFilter, UsernamePasswordAuthenticationFilter.class)

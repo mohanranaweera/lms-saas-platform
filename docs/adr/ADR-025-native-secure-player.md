@@ -2,10 +2,12 @@
 
 ## Status
 
-**Proposed (2026-10-07)**, blocker **B4** in
-`docs/plans/multi-tenant video platform + aoc secure player.md` §0.3. Not accepted. No
-player, launch-code, exchange or installation code may be written until the project owner
-accepts this ADR.
+**Accepted (2026-10-07)** by the project owner, blocker **B4** in
+`docs/plans/multi-tenant video platform + aoc secure player.md` §0.3, with these choices:
+accepted as written (stack exception, player auth model, exchange carve-out); **Q-008** a paired
+installation shares the browser's device slot; **Q-009** per-tenant `native_player_required`,
+default false; **Q-015** Windows only for now. The code-signing route and updater-key custody
+(item 6 below) are still open and are needed before Phase 9 releases, not before Phase 8.
 
 This ADR touches four root `CLAUDE.md` change-controlled areas and needs the owner's explicit
 sign-off on each one:
@@ -240,3 +242,35 @@ cannot be finished inside Phase 7 alone. Recommended order:
   pattern), ADR-019 (secrets), ADR-022 (device limits, `AccessPolicyApi`)
 - `.claude/rules/security.md` (video and session protection), `.claude/rules/tenancy.md`
 - `SecurityFilterChainConfig.java`, `TenantResolutionFilter.java`, `AuthRateLimiter.java`
+
+## Amendment 1 (2026-10-07): the player's non-JWT endpoints, key type, kill switch
+
+Approved by the owner while planning Phase 8.
+
+1. **Four non-JWT endpoints, not one.** The player has no LMS login when it completes pairing, sends
+   heartbeats or ends a session, so §4's carve-out covers exactly these four, each an exact
+   `permitAll()` matcher and an exact `TenantResolutionFilter` exclusion (never a wildcard):
+   - `POST /api/v1/player/pairings/complete`: pairing code + public key. Tenant, user and device come
+     only from the consumed pairing-code row (`consumeByCodeHashAcrossTenants`).
+   - `POST /api/v1/player/exchange`: launch code + installation signature (§4).
+   - `POST /api/v1/player/sessions/{id}/heartbeat` and `POST /api/v1/player/sessions/{id}/end`:
+     the `aud=player` playback token (server-signed; its `tenant_id` is trusted only after signature
+     verification) **and** the installation signature. The session row must match the token's session,
+     student and installation.
+   Signed requests carry `X-Player-Installation`, `X-Player-Timestamp` (±60 s), `X-Player-Nonce`
+   (single use, Redis `SET NX`) and `X-Player-Signature` over
+   `METHOD\nPATH\nTIMESTAMP\nNONCE\nbase64url(SHA-256(body))`.
+2. **Key type ECDSA P-256 (ES256), not Ed25519.** Windows CNG/TPM non-exportable keys support P-256;
+   Ed25519 would have to live in software. Verification uses the JDK's built-in `SHA256withECDSA`.
+3. **Kill switch.** When a tenant requires the native player and the platform flag
+   `video.features.native-player` is off, playback is refused (`409 NATIVE_PLAYER_UNAVAILABLE`), never
+   downgraded to WEB.
+4. **Where things travel (Phase 8 build).** The player token goes in `X-Player-Token`, never in
+   `Authorization`, so the LMS login filter never parses it. Staff installation endpoints sit next to
+   the ADR-022 device endpoints: `/api/v1/students/{studentProfileId}/player-installations[/{id}/revoke]`,
+   and an admin stops a session with `POST /api/v1/playback/sessions/{id}/revoke`. Full contract:
+   `docs/api/aoc-player.md`.
+5. **Phones, tablets and Macs (2026-10-07).** A tenant requiring the player gets no browser playback on
+   any device, so non-Windows students cannot watch until a player exists there; the web app says so.
+   The owner has decided a mobile app will be built later; it needs its own amendment (platforms,
+   store signing, mobile key storage, capture limits per OS).

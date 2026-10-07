@@ -91,6 +91,34 @@ public class AccessPolicyService implements AccessPolicyApi {
 		}
 	}
 
+	/**
+	 * Deliberately NOT {@code @Transactional}: the AOC Player exchange and
+	 * heartbeat call this inside their own transaction and catch the denial to
+	 * revoke the session. A throwing {@code @Transactional} method joined to
+	 * that transaction would mark it rollback-only and undo the revocation.
+	 * Every read below runs in the caller's transaction (or its own).
+	 */
+	@Override
+	public CourseAccessDecision requireStudentCourseAccessOnDevice(UUID studentId, UUID courseId, UUID deviceId,
+			Supplier<? extends RuntimeException> deniedAsNotFound) {
+		EnrollmentAccessState state = enrollmentExpiryService.resolveAccessState(studentId, courseId);
+		if (state.state() != EnrollmentAccessStateType.ACTIVE) {
+			throw deniedAsNotFound.get();
+		}
+		Integer courseMaxDevices = coursePolicyRepository.findByCourseId(courseId)
+			.map(CourseAccessPolicy::getMaxDevices)
+			.orElse(null);
+		if (!deviceAccessApi.isDeviceAuthorized(studentId, deviceId, courseMaxDevices)) {
+			throw new DeviceNotAuthorizedException(
+					"This course can only be opened on a limited number of devices, and this device is not one of them.");
+		}
+		Enrollment enrollment = enrollmentRepository.findCurrentByStudentIdAndCourseId(studentId, courseId)
+			.orElseThrow(deniedAsNotFound);
+		AccessWindowCalculator.AccessWindow window = accessWindowCalculator.windowFor(enrollment);
+		return new CourseAccessDecision(AccessOutcome.ALLOWED, enrollment.getId(), window.effectiveExpiresAt(),
+				window.accessEndsAt(), window.inGracePeriod(Instant.now()), false);
+	}
+
 	@Override
 	public ContentAvailability evaluateContentWindow(Instant availableFrom, Instant availableUntil) {
 		Instant now = Instant.now();
