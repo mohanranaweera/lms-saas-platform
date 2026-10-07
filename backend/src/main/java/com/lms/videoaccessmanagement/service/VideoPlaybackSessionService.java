@@ -11,6 +11,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
+import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
 import com.lms.videoaccessmanagement.domain.VideoAsset;
 import com.lms.videoaccessmanagement.domain.VideoPlaybackPolicy;
 import com.lms.videoaccessmanagement.domain.VideoWatchProgress;
@@ -112,6 +113,12 @@ public class VideoPlaybackSessionService {
 
 		VideoAsset asset = videoAssetRepository.findById(videoAssetId)
 			.orElseThrow(() -> new NotFoundException("Video not found"));
+		// VIDEO Phase 7: only platform-storage assets have an object to sign. Externally
+		// hosted (YouTube) assets play through POST /api/v1/playback/sessions; refuse them
+		// here before any session, view count or signing happens.
+		if (asset.getProvider() != MediaAssetProvider.INTERNAL) {
+			throw new ConflictException("This video plays through the lesson player.");
+		}
 
 		if (videoAccessGuard.isCurrentPrincipalTeacher()) {
 			return issueTeacherPreviewSession(asset);

@@ -47,4 +47,7 @@ public interface MaterialLookupApi {
 	 */
 	Set<UUID> findVideoAssetIdsForTeacher(UUID teacherUserId);
 
+	/** VIDEO Phase 7: resolves one LessonMedia row for playback authorization. */
+	Optional<LessonMediaPlaybackContext> resolveLessonMediaForPlayback(UUID lessonMediaId);
+
 }

@@ -61,7 +61,7 @@ class LessonMediaServiceTest {
 		when(materialAccessGuard.requireLessonAccess(courseId, lessonId, PermissionAction.CREATE_EDIT))
 				.thenReturn(new LessonOwnership(lessonId, UUID.randomUUID(), courseId, actorId, true));
 		when(videoAccessApi.getDetails(assetId, TENANT_ID))
-				.thenReturn(Optional.of(new VideoAssetDetails(assetId, "PROCESSING", "YOUTUBE", "Processing", null, null)));
+				.thenReturn(Optional.of(new VideoAssetDetails(assetId, "PROCESSING", "YOUTUBE", "Processing", null, null, null, null)));
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(actorId, TENANT_ID, "TEACHER", UUID.randomUUID()));
 
 		assertThatThrownBy(() -> service.attach(courseId, lessonId, assetId, null, null))
@@ -93,7 +93,7 @@ class LessonMediaServiceTest {
 		when(materialAccessGuard.requireLessonAccess(courseId, lessonId, PermissionAction.CREATE_EDIT))
 				.thenReturn(new LessonOwnership(lessonId, UUID.randomUUID(), courseId, actorId, true));
 		when(videoAccessApi.getDetails(assetId, TENANT_ID))
-				.thenReturn(Optional.of(new VideoAssetDetails(assetId, "READY", "INTERNAL", "Ready", null, null)));
+				.thenReturn(Optional.of(new VideoAssetDetails(assetId, "READY", "INTERNAL", "Ready", null, null, null, null)));
 		when(materialRepository.findVideoByLessonIdAndVideoAssetId(lessonId, assetId))
 				.thenReturn(Optional.of(org.mockito.Mockito.mock(Material.class)));
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(actorId, TENANT_ID, "TEACHER", UUID.randomUUID()));

@@ -10,6 +10,8 @@ import { LoadingState } from "@/components/states/loading-state";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { SecureVideoPlayer } from "@/components/courses/secure-video-player";
+import { YouTubeLessonPlayer } from "@/components/player/youtube-lesson-player";
+import { useLessonMedia, type MediaAssetProvider } from "@/lib/api/media";
 import {
   formatFileSize,
   materialDownloadErrorMessage,
@@ -136,7 +138,45 @@ function MaterialsBody({
     );
   }
 
-  const materials = query.data ?? [];
+  return <MaterialsList courseId={courseId} moduleId={moduleId} lessonId={lessonId} materials={query.data ?? []} />;
+}
+
+/**
+ * VIDEO Phase 7: which player a lesson video needs is decided by its asset's
+ * provider, which `MaterialResponse` doesn't carry. The LessonMedia list
+ * (`GET .../lessons/{lessonId}/media`, VID-ADR-003: LessonMedia ids are the
+ * `VIDEO` material ids) does — so it is fetched only when the lesson has a
+ * `VIDEO` material. `RECORDING` materials are never LessonMedia and always
+ * play from platform storage.
+ */
+type VideoSource =
+  | { state: "known"; provider: MediaAssetProvider }
+  | { state: "loading" }
+  | { state: "error"; retry: () => void };
+
+function MaterialsList({
+  courseId,
+  moduleId,
+  lessonId,
+  materials,
+}: {
+  courseId: string;
+  moduleId: string;
+  lessonId: string;
+  materials: MaterialResponse[];
+}) {
+  const hasLessonVideo = materials.some((material) => material.materialType === "VIDEO");
+  const lessonMediaQuery = useLessonMedia(courseId, lessonId, hasLessonVideo);
+
+  const videoSource = (material: MaterialResponse): VideoSource => {
+    if (material.materialType !== "VIDEO") return { state: "known", provider: "INTERNAL" };
+    if (lessonMediaQuery.status === "pending") return { state: "loading" };
+    if (lessonMediaQuery.status === "error") {
+      return { state: "error", retry: () => void lessonMediaQuery.refetch() };
+    }
+    const lessonMedia = lessonMediaQuery.data.find((media) => media.id === material.id);
+    return { state: "known", provider: lessonMedia?.provider ?? "INTERNAL" };
+  };
 
   if (materials.length === 0) {
     return (
@@ -156,6 +196,7 @@ function MaterialsBody({
           moduleId={moduleId}
           lessonId={lessonId}
           material={material}
+          videoSource={videoSource(material)}
         />
       ))}
     </ol>
@@ -187,11 +228,13 @@ function StudentMaterialRow({
   moduleId,
   lessonId,
   material,
+  videoSource,
 }: {
   courseId: string;
   moduleId: string;
   lessonId: string;
   material: MaterialResponse;
+  videoSource: VideoSource;
 }) {
   const downloadUrlMutation = useMaterialDownloadUrl(courseId, moduleId, lessonId);
   const [viewError, setViewError] = useState<string | null>(null);
@@ -265,10 +308,39 @@ function StudentMaterialRow({
       material.videoAssetId ? (
         <Accordion title="Open video" open={videoOpen} onOpenChange={setVideoOpen}>
           {videoOpen ? (
-            <SecureVideoPlayer videoAssetId={material.videoAssetId} title={material.title} />
+            <LessonVideo material={material} videoAssetId={material.videoAssetId} videoSource={videoSource} />
           ) : null}
         </Accordion>
       ) : null}
     </li>
   );
+}
+
+/** Picks the player for an opened lesson video: YouTube (Phase 7 WEB) or platform storage (legacy). */
+function LessonVideo({
+  material,
+  videoAssetId,
+  videoSource,
+}: {
+  material: MaterialResponse;
+  videoAssetId: string;
+  videoSource: VideoSource;
+}) {
+  if (videoSource.state === "loading") {
+    return <LoadingState label="Loading video…" />;
+  }
+  if (videoSource.state === "error") {
+    return (
+      <div role="alert" className="flex flex-col items-start gap-2 text-sm text-foreground">
+        <p>Couldn&apos;t load this video. Please try again.</p>
+        <Button type="button" variant="outline" size="sm" onClick={videoSource.retry}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
+  if (videoSource.provider === "YOUTUBE") {
+    return <YouTubeLessonPlayer lessonMediaId={material.id} title={material.title} />;
+  }
+  return <SecureVideoPlayer videoAssetId={videoAssetId} title={material.title} />;
 }

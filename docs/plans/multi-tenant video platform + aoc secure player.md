@@ -3,12 +3,12 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    6 — Lesson Integration (BACKEND IMPLEMENTED — frontend pending)
+Current Phase:    7 — Playback Authorization (B3-only WEB scope; backend in progress)
 Last Updated:     2026-10-06
-Current Branch:   feat/video-lesson-integration
+Current Branch:   feat/video-playback-authorization
 Latest Migration: V76__tenant_media_integrations.sql (no Phase 6 migration)
-Backend Build:    not run — shell execution blocked by environment gate
-Frontend Build:   not started (backend-first workflow)
+Backend Build:    mvnw verify 2026-10-07: 2397 tests, 0 failures (Phase 7 WEB backend)
+Frontend Build:   Phase 7 WEB player done 2026-10-07 (tsc clean, new Playwright spec 8/8)
 Player Build:     n/a (player project does not exist yet)
 Tests:            Phase 6 tests added; Maven verification pending environment access
 Open Blockers:    B3–B4 (§0.3) — owner approvals for later playback/player phases
@@ -75,8 +75,8 @@ Valid statuses: NOT STARTED · PLANNING · APPROVED · IN PROGRESS · BLOCKED ·
 |---|---|---|
 | ~~B1~~ | **ADR-018 Amendment 2**: allow a *tenant-scoped* YouTube connection. This reverses the per-teacher owner decision and the V60 CHECK. **APPROVED by owner 2026-10-04** | — |
 | ~~B2~~ | **Scoped exception to architecture.md:94–97** for the upload transfer worker only (S3 staging → YouTube). **APPROVED by owner 2026-10-04** | — |
-| B3 | **ADR-008 amendment**: YouTube is gated but unprotected; protected playback = managed HLS; launch codes, exchange and heartbeat added to the token model | Phase 7 |
-| B4 | **ADR-025 Native Secure Player**: Rust/Tauri 2 stack, `aocplayer://`, installation keys, the exchange endpoint as an ADR-011-style unauthenticated carve-out, signed updates | Phase 8–11 |
+| ~~B3~~ | **ADR-008 amendment**: YouTube WEB playback is LMS-gated but unprotected; protected playback requires managed streaming. **Approved by owner for Phase 7 WEB scope 2026-10-06.** Native exchange/player work remains deferred. | Phase 7 |
+| B4 | **ADR-025 Native Secure Player**: Rust/Tauri 2 stack, `aocplayer://`, installation keys, the exchange endpoint as an ADR-011-style unauthenticated carve-out, signed updates. **Drafted 2026-10-07 as PROPOSED** (`docs/adr/ADR-025-native-secure-player.md`); awaiting owner acceptance + Q-008/Q-009 | Phase 8–11 |
 | ~~B5~~ | **VID-ADR-002**: evolve existing tables instead of creating the brief's separately named tables. **APPROVED by owner 2026-10-04** | — |
 | ~~B6~~ | **Additive API contracts**: new `/api/v1/media`, `/api/v1/playback/*`; existing `/api/v1/videos/*` unchanged. **APPROVED by owner 2026-10-04** | — |
 
@@ -857,7 +857,7 @@ test evidence and files changed.
 | 4 | YouTube OAuth scopes, upload pipeline (presign → worker → resumable), status sync, quota budget, `FakeYouTubeServer` | ✔ | — | — | B1, B2 |
 | 5 | Media Library API completion + UI (upload, cards, status, edit, delete) | ✔ | ✔ | — | — |
 | 6 | LessonMedia endpoints + lesson editor picker | ✔ | IN PROGRESS | — | Q-001 resolved (reuse Material(VIDEO)); verification pending |
-| 7 | Playback sessions, authorization, launch codes, exchange, descriptors, WEB YouTube engine | ✔ | ✔ | — | B3, B4 (exchange carve-out) |
+| 7 | Authenticated WEB playback authorization, descriptors, WEB YouTube engine | IN PROGRESS | PLANNED | — | B3 approved; B4/native exchange deferred |
 | 8 | Player installations, pairing, device limits/revocation, concurrency, admin revoke | ✔ | ✔ | — | B4 |
 | 9 | `native-player/` Tauri shell, deep link, single instance, exchange client, session lifecycle, updater foundation, CI | — | download page | ✔ | B4 |
 | 10 | Engines: YouTubeStandard (prod), Hls/Dash (behind flag), FutureProvider stub | — | web engine split | ✔ | — |
@@ -1908,6 +1908,78 @@ stays the fallback). ADR-018 Amendment 5 item 1a.
 **Phase 6 status:** implementation complete pending environment verification; no Flyway migration,
 payment/enrollment rule, authentication architecture, or player code changed. Next: run backend Maven
 verification, frontend typecheck/lint, and the new Playwright spec when shell access is available.
+
+### Phase 7 — Playback Authorization (B3-only WEB scope)
+
+**Before (2026-10-06, status → PLANNING; owner selected B3-only / defer B4)**
+
+- **Objective:** authorize authenticated Student WEB playback from LessonMedia and support WEB
+  YouTube Standard descriptors without YouTube stream extraction.
+- **Approval:** B3 approved for this WEB scope; B4/ADR-025 native exchange/player work deferred.
+- **Constraints:** legacy `/api/v1/videos/*` remains INTERNAL playback; no native launch codes,
+  unauthenticated exchange, installation keys, or new native schema.
+
+**Backend implementation (2026-10-06)**
+
+- Added safe `LessonMediaPlaybackContext` and `VideoAssetDetails.providerAssetId/integrationId`
+  projections across the existing module API boundaries.
+- Added `PlaybackAuthorizationService` and authenticated
+  `POST /api/v1/playback/sessions` for Student LessonMedia authorization.
+- Added provider-aware WEB descriptor types. YouTube returns only the provider asset ID required
+  by the documented WEB player; INTERNAL remains on the legacy signed-object-storage endpoint.
+- Added `PLAYBACK_NOT_AUTHORIZED` and `VIDEO_PLAYBACK_DISABLED` error codes; deleted, hidden,
+  foreign, not-ready, disabled, and missing-provider-id cases are rejected.
+- Added unit coverage in `PlaybackAuthorizationServiceTest` for Student-only access, YouTube
+  descriptor safety, disabled playback, hidden materials, and non-READY assets.
+- Backend `mvnw.cmd -DskipTests compile` and `test-compile` pass. Focused
+  `PlaybackAuthorizationServiceTest`: **5 tests, 0 failures/errors**.
+- **Verification (2026-10-07):** new `PlaybackAuthorizationIntegrationTest` 11/11 (real fake-YouTube
+  upload -> READY -> LessonMedia; enrolled student descriptor, flag off, not enrolled 404, staff 403,
+  anonymous 401, hidden/unknown 404, platform-disabled channel 409, INTERNAL 409; cross-tenant T8 and
+  T12). Fixed to match the contract: non-READY -> `409 MEDIA_NOT_READY` (was generic CONFLICT),
+  DELETED asset -> 404. Full `mvnw verify`: **2397 tests, 0 failures/errors/skips, BUILD SUCCESS**
+  (13:12). The service fix landed after verify compiled, so the playback suites were re-run on the
+  final code: 40/40 (`PlaybackAuthorization*`, `VideoPlaybackSessionIntegrationTest`,
+  `LessonMediaIntegrationTest`).
+- API contract: `docs/api/playback-authorization.md`. Native/B4 work remains deferred.
+
+**Frontend (2026-10-07)**
+
+- `lib/api/playback.ts` (`useCreateWebPlayback`), `components/player/youtube-lesson-player.tsx`
+  (authorize on open, `youtube-nocookie.com` embed of a validated 11-char id, no overlay, watermark
+  band below, honest "plays through YouTube" copy, fixed anti-enumeration copy for 403/404), and the
+  Student lesson materials page picks the player from the LessonMedia `provider` (YouTube → new
+  player; INTERNAL / RECORDING → legacy `SecureVideoPlayer`).
+- Tests: new `e2e/student-youtube-playback.spec.ts` 8/8 (stable 3x with `secure-video-player`:
+  36/36); regression `secure-video-player`, `material-student-*`, `student-course-content` pass.
+  `tsc --noEmit` clean; eslint 0 errors (2 pre-existing warnings in untouched files).
+- Pre-existing, not caused by this phase (also fail with these changes stashed): `lesson-media.spec.ts`
+  "loads ready media, attaches it…" (Phase 6), and the popup tests `material-student-visibility:93` /
+  `material-student-types:37` (intermittent).
+- Full Playwright suite 2026-10-07: **847 passed, 14 failed, 1 skipped**. None of the failing
+  specs use a file changed in Phase 7. Known: `lesson-media:137`, the two `teacher-integrations`
+  Zoom confirm tests, the intermittent `material-student-types:37` popup. The other 10 fail the same
+  way on a serial re-run (forgot-password disabled form x4, platform-admin audit-log drill-down x2,
+  tenant-admin course-edit parity x2, student-profile error state, bank-transfer in-flight) - pre-existing,
+  to triage separately.
+- Gap fixed (owner approved 2026-10-07): the legacy `POST /api/v1/videos/{id}/playback-sessions`
+  now refuses non-INTERNAL (YouTube) assets with `409 CONFLICT` before any session, view count or
+  signing (`VideoPlaybackSessionService`). Test
+  `PlaybackAuthorizationIntegrationTest#theLegacyVideoEndpointRefusesYouTubeAssetsWithoutCreatingASession`;
+  re-run 51/51 (`PlaybackAuthorization*`, `VideoPlaybackSessionIntegrationTest`,
+  `MediaLibraryIntegrationTest`, `LessonMediaIntegrationTest`).
+
+**B4 draft (2026-10-07)**
+
+- Owner chose "draft ADR-025 first". `docs/adr/ADR-025-native-secure-player.md` written as
+  **PROPOSED** (docs only, no code): Tauri 2 stack exception for `native-player/` only; launch
+  codes; installation key pair + pairing (VID-ADR-009); exact-path exchange carve-out with tenant
+  from the consumed code row; `aud=player` session-bound playback token; per-tenant
+  `native_player_required`; dual-signed, approval-gated releases.
+- Recommended sequencing in the ADR: finish Phase 7 WEB unchanged; launch codes + exchange move to
+  Phase 8 with pairing (the exchange needs a paired installation key to verify).
+- Owner must confirm before acceptance: stack exception, carve-out + player auth model, Q-008,
+  Q-009, Windows-only (Q-015), code-signing route and updater-key custody.
 
 ### Phase 5d — Named YouTube integrations + Media Library tabs
 

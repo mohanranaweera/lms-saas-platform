@@ -395,6 +395,13 @@ export interface StudentMaterialsMockOptions {
   downloadUrlStatus?: number;
   /** Response body for the failing `download-url` response above; defaults to a generic `apiError`. */
   downloadUrlBody?: unknown;
+  /**
+   * VIDEO Phase 7: `GET /courses/{c}/lessons/{l}/media` - the page reads each
+   * `VIDEO` material's provider from it. Defaults to an empty list (every
+   * video then plays from platform storage, as before Phase 7).
+   */
+  lessonMediaStatus?: number;
+  lessonMediaBody?: unknown;
 }
 
 export interface StudentMaterialsMockState {
@@ -451,6 +458,14 @@ export async function setupStudentMaterialsMocks(
 
   await page.route(`**${materialsBase}`, async (route: Route) => {
     await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  });
+
+  await page.route(`**/api/v1/courses/${COURSE_ID}/lessons/${LESSON_ID}/media`, async (route: Route) => {
+    await route.fulfill({
+      status: options.lessonMediaStatus ?? 200,
+      contentType: "application/json",
+      body: JSON.stringify(options.lessonMediaBody ?? apiSuccess([])),
+    });
   });
 
   return state;

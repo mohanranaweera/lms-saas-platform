@@ -1,0 +1,59 @@
+- generic [ref=f2e1]:
+  - button "Open Next.js Dev Tools" [ref=f2e31] [cursor=pointer]
+  - alert [ref=f2e35]
+  - generic [ref=f2e41]:
+    - complementary [ref=f2e42]:
+      - generic [ref=f2e43]: Student Portal
+      - navigation "Primary" [ref=f2e44]:
+        - list [ref=f2e45]:
+          - listitem [ref=f2e46]:
+            - link "Dashboard" [ref=f2e47] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f2e48]:
+            - link "My Courses" [active] [ref=f2e49] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f2e50]:
+            - link "Browse Courses" [ref=f2e51] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=f2e52]:
+            - link "My Attendance" [ref=f2e53] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f2e54]:
+            - link "Exams" [ref=f2e55] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f2e56]:
+            - link "Payments" [ref=f2e57] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f2e58]:
+            - link "Reactivation" [ref=f2e59] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f2e60]:
+            - link "Notifications" [ref=f2e61] [cursor=pointer]:
+              - /url: /student/notifications
+          - listitem [ref=f2e62]:
+            - link "My Devices" [ref=f2e63] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=f2e64]:
+            - link "Profile" [ref=f2e65] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f2e66]:
+      - banner [ref=f2e67]:
+        - generic [ref=f2e68]:
+          - link "Change password" [ref=f2e69] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f2e71]
+      - main [ref=f2e72]:
+        - generic [ref=f2e114]:
+          - generic [ref=f2e115]:
+            - heading "My courses" [level=1] [ref=f2e116]
+            - paragraph [ref=f2e117]: Your enrollments and current course access.
+          - list "My enrolled courses" [ref=f2e118]:
+            - listitem [ref=f2e119]:
+              - generic [ref=f2e120]:
+                - heading "2027 Chemistry Theory Class" [level=2] [ref=f2e121]
+                - generic [ref=f2e122]: Chemistry
+              - generic [ref=f2e123]: Active
+              - paragraph [ref=f2e125]: Nov 5, 2026, 3:38 PM
+              - link "Open course 2027 Chemistry Theory Class" [ref=f2e127] [cursor=pointer]:
+                - /url: /student/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c
+                - text: Open course

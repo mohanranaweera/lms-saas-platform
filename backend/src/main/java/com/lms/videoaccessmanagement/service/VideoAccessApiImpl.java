@@ -70,7 +70,7 @@ public class VideoAccessApiImpl implements VideoAccessApi {
 	private static VideoAssetDetails toDetails(VideoAsset asset) {
 		String title = asset.getTitle() != null ? asset.getTitle() : asset.getOriginalFilename();
 		return new VideoAssetDetails(asset.getId(), asset.getStatus().name(), asset.getProvider().name(), title,
-				asset.getDurationSeconds(), asset.getThumbnailUrl());
+				asset.getDurationSeconds(), asset.getThumbnailUrl(), asset.getProviderAssetId(), asset.getIntegrationId());
 	}
 
 }

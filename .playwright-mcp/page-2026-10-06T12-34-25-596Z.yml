@@ -1,0 +1,30 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - link "LMS Platform" [ref=f2e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=f2e5]:
+      - generic [ref=f2e6]:
+        - generic [ref=f2e7]: Sign in
+        - generic [ref=f2e8]: Access your LMS Platform account.
+      - generic [ref=f2e9]:
+        - alert [ref=f2e36]:
+          - generic [ref=f2e39]: Device limit reached
+          - generic [ref=f2e40]: A device was recently removed from your account. You can sign in on a new device after 2026-10-07T09:36:39.243310Z.
+        - generic [ref=f2e10]:
+          - generic [ref=f2e11]:
+            - generic [ref=f2e12]: Email
+            - textbox "Email" [ref=f2e13]: student@demo.test
+          - generic [ref=f2e14]:
+            - generic [ref=f2e15]: Password
+            - generic [ref=f2e16]:
+              - textbox "Password" [ref=f2e17]: Passw0rd!123
+              - button "Show password" [ref=f2e18]
+            - link "Forgot password?" [ref=f2e22] [cursor=pointer]:
+              - /url: /forgot-password
+          - button "Sign in" [ref=f2e23]
+        - paragraph [ref=f2e24]:
+          - text: Don't have an account?
+          - link "Create one" [ref=f2e25] [cursor=pointer]:
+            - /url: /register
+  - button "Open Next.js Dev Tools" [ref=f2e31] [cursor=pointer]
+  - alert [ref=f2e35]

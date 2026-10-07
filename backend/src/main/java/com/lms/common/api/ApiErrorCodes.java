@@ -143,6 +143,12 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 6 - a media asset must finish processing before lesson attachment. */
 	public static final String MEDIA_NOT_READY = "MEDIA_NOT_READY";
 
+	/** VIDEO Phase 7 - the requested playback cannot be authorized for the lesson. */
+	public static final String PLAYBACK_NOT_AUTHORIZED = "PLAYBACK_NOT_AUTHORIZED";
+
+	/** VIDEO Phase 7 - the requested playback provider is not enabled for WEB playback. */
+	public static final String VIDEO_PLAYBACK_DISABLED = "VIDEO_PLAYBACK_DISABLED";
+
 	/** VIDEO Phase 4 - the upload is not in a state that allows this action. */
 	public static final String MEDIA_UPLOAD_STATE_CONFLICT = "MEDIA_UPLOAD_STATE_CONFLICT";
 

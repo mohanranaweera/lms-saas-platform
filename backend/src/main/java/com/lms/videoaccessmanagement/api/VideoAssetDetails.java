@@ -8,6 +8,6 @@ import java.util.UUID;
  * provider, and thumbnail without leaking internal storage keys or credentials.
  */
 public record VideoAssetDetails(UUID id, String status, String provider, String title, Integer durationSeconds,
-		String thumbnailUrl) {
+		String thumbnailUrl, String providerAssetId, UUID integrationId) {
 
 }

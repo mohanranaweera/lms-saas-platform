@@ -1,0 +1,64 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]
+  - generic [ref=e16]:
+    - complementary [ref=e17]:
+      - generic [ref=e18]: Student Portal
+      - navigation "Primary" [ref=e19]:
+        - list [ref=e20]:
+          - listitem [ref=e21]:
+            - link "Dashboard" [ref=e22] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=e23]:
+            - link "My Courses" [ref=e24] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=e25]:
+            - link "Browse Courses" [ref=e26] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=e27]:
+            - link "My Attendance" [ref=e28] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=e29]:
+            - link "Exams" [ref=e30] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=e31]:
+            - link "Payments" [ref=e32] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=e33]:
+            - link "Reactivation" [ref=e34] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=e35]:
+            - link "Notifications" [ref=e36] [cursor=pointer]:
+              - /url: /student/notifications
+          - listitem [ref=e37]:
+            - link "My Devices" [ref=e38] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=e39]:
+            - link "Profile" [ref=e40] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=e41]:
+      - banner [ref=e42]:
+        - generic [ref=e43]:
+          - link "Change password" [ref=e44] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=e46]
+      - main [ref=e47]:
+        - generic [ref=e48]:
+          - navigation "Breadcrumb" [ref=e49]:
+            - link "← Back to course" [ref=e50] [cursor=pointer]:
+              - /url: /student/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c
+          - generic [ref=e51]:
+            - heading "Lesson materials" [level=1] [ref=e52]
+            - paragraph [ref=e53]: Files your teacher has shared for this lesson.
+          - list [ref=e54]:
+            - listitem [ref=e55]:
+              - generic [ref=e57]:
+                - generic [ref=e58]:
+                  - paragraph [ref=e59]: 63794 - No issue found.mp4
+                  - generic [ref=e60]: Video
+                - paragraph [ref=e61]: ·
+              - generic [ref=e62]:
+                - button "Open video" [expanded] [active] [ref=e63]
+                - generic [ref=e68]:
+                  - generic "63794 - No issue found.mp4" [ref=e69]
+                  - generic [aria-hidden]: 01a0d48c-f9d7-7877-8e34-c744fa573c4b · 24c4ed08-f732-46a5-a5c2-4f998d55327d

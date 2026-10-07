@@ -64,6 +64,18 @@ class MaterialLookupApiImpl implements MaterialLookupApi {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
+	public Optional<com.lms.contentmanagement.api.LessonMediaPlaybackContext> resolveLessonMediaForPlayback(UUID lessonMediaId) {
+		return materialRepository.findById(lessonMediaId)
+			.filter(material -> material.getMaterialType() == com.lms.contentmanagement.material.domain.MaterialType.VIDEO
+					|| material.getMaterialType() == com.lms.contentmanagement.material.domain.MaterialType.RECORDING)
+			.flatMap(material -> courseLookupApi.resolveLessonOwnership(material.getLessonId())
+				.map(ownership -> new com.lms.contentmanagement.api.LessonMediaPlaybackContext(material.getId(),
+						material.getLessonId(), ownership.courseId(), material.getVideoAssetId(), material.getVisibility(),
+						material.getAvailableFromAt(), material.getExpiryAt(), ownership.courseOpenToEnrolledStudents())));
+	}
+
+	@Override
 	public Optional<MaterialVideoOwnership> resolveVideoAssetOwnership(UUID videoAssetId) {
 		Optional<Material> materialOpt = materialRepository.findByVideoAssetId(videoAssetId);
 		if (materialOpt.isEmpty()) {
