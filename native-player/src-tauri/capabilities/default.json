@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The player UI may read the player state, listen for state changes and end the current session. Nothing else: no file, shell, HTTP or opener access.",
+  "windows": ["main"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-get-state",
+    "allow-end-session"
+  ]
+}

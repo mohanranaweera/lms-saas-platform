@@ -3,28 +3,28 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    8 — Player installations, launch codes and exchange (backend + frontend done; commit pending)
-Last Updated:     2026-10-06
-Current Branch:   feat/video-device-security
+Current Phase:    9 — AOC Secure Player foundation (native-player/ Tauri shell)
+Last Updated:     2026-10-08
+Current Branch:   feat/aoc-secure-player
 Latest Migration: V77__player_installations_and_launch_codes.sql
 Backend Build:    mvnw verify 2026-10-07: 2419 tests, 0 failures (Phase 8 backend)
 Frontend Build:   Phase 7 WEB player done 2026-10-07 (tsc clean, new Playwright spec 8/8)
-Player Build:     n/a (player project does not exist yet)
+Player Build:     2026-10-08 cargo test 35/35 (incl. TPM), clippy -D warnings clean (dev + release feature)
 Tests:            Phase 6 tests added; Maven verification pending environment access
-Open Blockers:    none for Phase 8 (B4 accepted 2026-10-07); code-signing route needed before Phase 9 releases
+Open Blockers:    none for Phase 9 dev builds; code-signing route + updater-key custody needed before the first player release
 ```
 
 | Phase | Description | Status | Started | Completed |
 |---|---|---|---|---|
 | 1 | Architecture & Repository Analysis | COMPLETE | 2026-10-04 | 2026-10-04 |
 | 2 | Media Domain Foundation | COMPLETE | 2026-10-04 | 2026-10-04 |
-| 3 | Tenant Video Provider Accounts | TESTED (full backend suite re-run + commit pending) | 2026-10-04 | |
-| 4 | YouTube Integration | NOT STARTED | | |
-| 5 | Media Library | NOT STARTED | | |
-| 6 | Lesson Integration | NOT STARTED | | |
-| 7 | Playback Authorization | NOT STARTED | | |
-| 8 | Device & Session Security | NOT STARTED | | |
-| 9 | AOC Secure Player Foundation | NOT STARTED | | |
+| 3 | Tenant Video Provider Accounts | COMPLETE | 2026-10-04 | |
+| 4 | YouTube Integration | COMPLETE | | |
+| 5 | Media Library | COMPLETE | | |
+| 6 | Lesson Integration | COMPLETE | 2026-10-06 | |
+| 7 | Playback Authorization | COMPLETE | 2026-10-06 | 2026-10-07 |
+| 8 | Device & Session Security | COMPLETE | 2026-10-07 | 2026-10-07 |
+| 9 | AOC Secure Player Foundation | TESTED (manual run against local backend + commit pending) | 2026-10-08 | |
 | 10 | Playback Engines | NOT STARTED | | |
 | 11 | Watermark & Capture Protection | NOT STARTED | | |
 | 12 | Watch-Time & Heartbeat | NOT STARTED | | |
@@ -2025,11 +2025,7 @@ verification, frontend typecheck/lint, and the new Playwright spec when shell ac
     from the pairing row), `POST /player/exchange` (tenant from the consumed launch-code row),
     `POST /player/sessions/{id}/heartbeat` and `/end` (player token + signature). Signed requests
     carry `X-Player-Installation`, `X-Player-Timestamp` (±60 s), `X-Player-Nonce` (Redis `SET NX`),
-    `X-Player-Signature` over `METHOD
-PATH
-TIMESTAMP
-NONCE
-base64url(SHA-256(body))`.
+    `X-Player-Signature` over `METHOD\nPATH\nTIMESTAMP\nNONCE\nbase64url(SHA-256(body))`.
   - Tenant Admin (`DomainArea.DEVICES`): `GET /api/v1/tenant-admin/students/{id}/player-installations`,
     `POST .../{installationId}/revoke` (reason), `POST /api/v1/tenant-admin/playback/sessions/{id}/revoke`.
 - **Rules:** exchange failures → one generic `400 PLAYBACK_LAUNCH_CODE_INVALID` (detail only in the
@@ -2199,3 +2195,92 @@ the recording-access rules (recordings are protected content).
   `platform-admin-google-oauth-app` green except the 2 pre-existing teacher confirm failures.
   `tsc` / `eslint` clean.
 - Full backend `mvnw verify` (2026-10-05): 2371 tests, 0 failures / errors / skipped, BUILD SUCCESS; media / integration suites re-run green after adding `integrationId` to the media view.
+
+### Phase 9 — AOC Secure Player foundation (`native-player/`, ADR-025)
+
+**Before (2026-10-08, status → IN PROGRESS; branch `feat/aoc-secure-player`; Rust 1.99 installed)**
+
+- **Objective:** the Windows player shell that uses the Phase 8 player API unchanged: pairing, the
+  `aocplayer://` launch link, the signed exchange, the session lifecycle (heartbeat, `STOP`, end,
+  missed-deadline teardown), the updater foundation and CI; plus a download section on the Student
+  "AOC Player" page. Video engines are Phase 10: a claimed session shows a "session active" screen
+  (lesson title, watermark text) with no video yet.
+- **Owner decisions (2026-10-08):**
+  1. Installation key in **Windows CNG**: non-exportable ECDSA P-256, created in the Microsoft
+     Platform Crypto Provider (TPM) when available, otherwise the Microsoft Software Key Storage
+     Provider. `NCryptSignHash` already returns IEEE P1363 `r‖s`, the contract's format. DPAPI was
+     rejected (a software key can be copied by malware running as the user).
+  2. Download section reads `NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL`; unset → "not available yet". The
+     public `GET /api/v1/player/releases/latest` (ADR-025 §7) waits for signed releases. No backend
+     change this phase.
+  3. Code signing deferred: dev builds only. The release workflow is wired (manual dispatch,
+     protected environment) but cannot publish until the signing route and updater-key custody are
+     decided.
+- **Design:**
+  - Tauri 2 + WebView2; UI is Vite + plain TypeScript (npm), no framework (few screens, small attack
+    surface). Plugins: `single-instance` (`deep-link` feature) registered first, `deep-link` (static
+    scheme `aocplayer`), `updater` behind the `release` cargo feature (dev builds carry no updater key).
+  - Deep links: only `aocplayer://pair?code=<43 base64url>` and `aocplayer://play?code=<43>`; any other
+    host, path, parameter or length is rejected before a network call (covers fake command-line links).
+  - API origin compiled in per build (`AOC_API_ORIGIN`); `http://` only for loopback in debug builds.
+  - State: `%LOCALAPPDATA%\com.aoc.secureplayer\installation.json` = installation id + CNG key name (no secret).
+    Re-pairing creates a new key and replaces both.
+  - Signing: `METHOD\nPATH\nTIMESTAMP\nNONCE\nbase64url(SHA-256(body))`, 32-byte CSPRNG nonce.
+  - Session: exchange → heartbeat every `heartbeatIntervalSeconds`; `STOP`, 401/403 or a missed deadline
+    tears down and clears session state; closing the window sends `/end`. The player token stays in
+    Rust memory only, never in the WebView or on disk.
+  - WebView: devtools off in release, strict CSP, navigation limited to the bundled UI, capability file
+    exposing only the player's own commands.
+- **Impact:** DB none; API none (Phase 8 contract `docs/api/aoc-player.md`); tenant none on the client
+  (tenant comes from server rows); frontend: download section on `(student)/student/player`.
+- **Tests:** Rust unit (deep-link parser incl. hostile input, canonical string, signature encoding,
+  version, session state machine), Rust integration against a mock HTTP server, a cross-check that
+  a player signature verifies with Java `SHA256withECDSA`, a manual run against the local backend
+  (pair → Play → exchange → heartbeats → admin revoke → `STOP`), Playwright for the download
+  section, `cargo clippy -D warnings`, `cargo fmt --check`.
+
+**After (2026-10-08)**
+
+- Built as planned. Changes found while building:
+  - Tauri resolved to 2.11 because edition-2024's resolver honours `rust-version`; raised to
+    `rust-version = "1.90"` so the crate (2.12.1) matches `@tauri-apps/api` (the CLI refuses a
+    mismatch). `windows` 0.62 (same copy Tauri uses).
+  - `reqwest` uses `native-tls` (SChannel, the OS trust store): the default rustls/aws-lc-rs needs
+    CMake + NASM on Windows.
+  - The TPM provider rejects `NCRYPT_SILENT_FLAG` on `NCryptDeleteKey`; deletes pass 0.
+  - App data lives under the bundle identifier: `%LOCALAPPDATA%\com.aoc.secureplayer\` (the
+    identifier must not change after the first release).
+  - Clock: timestamps use the server time learnt from `Date` headers; a refused exchange that
+    reveals > 30 s of skew is retried once (a refused exchange never consumes the code).
+  - Machine setup: the VS 2022 install lacked the "MSVC v143 C++ x64/x86 build tools" component
+    (only OneCore libs, `LNK1104 msvcrt.lib`); owner installed it. In Git Bash `/usr/bin/link`
+    shadows the MSVC linker - build from PowerShell (README).
+- `native-player/`: `src-tauri/src/{config, deep_link, signing, keystore/{mod, cng, software(test)},
+  api, installation, player (+ tests), lib, main}.rs`, `build.rs` (release builds need an https
+  `AOC_API_ORIGIN`; app-manifest limits commands to `get_state`/`end_session`), `tauri.conf.json`
+  (strict CSP, `aocplayer` scheme, NSIS per-user), `capabilities/default.json`, UI
+  `index.html` + `src/main.ts` + `src/styles.css`, placeholder icon, `README.md`.
+  CI `.github/workflows/native-player.yml` (PR checks; release = manual dispatch in the
+  `player-release` environment, refuses until signing is configured, uploads an artifact only).
+- Frontend: Student "AOC Player" page gains an "Install the AOC Player" card
+  (`NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL`, validated https/path in `lib/env.ts`; unset → "isn't
+  available yet"; hidden on phones/tablets/Macs). `.env.example`, deployment doc updated.
+- Security review (2026-10-08): fixed - updater signing secret scoped to the build step only (was
+  job-wide, readable by `npm ci` install scripts); "End"/close no longer waits for an in-flight
+  heartbeat; response bodies capped while streaming. Accepted: a same-user process can ask CNG to
+  sign with the key but cannot export it (ADR-025 deterrence model). Recommended for the signing
+  change: pin release-job actions to commit SHAs.
+- Tests: `cargo test` **35/35** incl. the TPM test (deep links incl. hostile input, canonical
+  bytes, SPKI, CNG software + TPM keys sign/verify/non-exportable/delete, origin rules, navigation
+  allow-list, installation file, and the player lifecycle against a mock server with every
+  signature verified: pair/re-pair/failed pair, not paired, exchange → CONTINUE → STOP, 401 →
+  EXPIRED, unknown action, missed deadline, student end, replaced session, same link twice, clock
+  correction, slow heartbeat, oversized response). Cross-language: a TPM-made signature verified
+  with Java `SHA256withECDSAinP1363Format` (tampered message rejected). `cargo clippy -D warnings`
+  (dev + `release`), `cargo fmt --check`, `tauri build --debug --no-bundle`, release build refused
+  without/with http origin and accepted with https. Frontend: `tsc` clean, eslint clean,
+  `e2e/aoc-player.spec.ts` 16 passed (48/48 over 3 repeats) + the configured-installer test passed
+  with the variable set.
+- Pending: manual run against the local backend (pair → Play → exchange → heartbeats → admin
+  revoke → STOP) and the commit.
+

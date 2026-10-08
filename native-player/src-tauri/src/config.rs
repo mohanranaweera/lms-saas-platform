@@ -1,0 +1,99 @@
+//! Build-time configuration. The API origin is compiled into the binary
+//! (ADR-025 §1): the player never takes a host from a deep link, a file or
+//! the user.
+
+use url::Url;
+
+pub const PLAYER_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The only platform the backend accepts today (ADR-025, Q-015).
+pub const PLATFORM: &str = "WINDOWS";
+
+/// Debug builds talk to the local backend unless `AOC_API_ORIGIN` says otherwise.
+const DEBUG_DEFAULT_ORIGIN: &str = "http://localhost:8080";
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ConfigError {
+    #[error("no API origin was compiled into this build")]
+    Missing,
+    #[error("the compiled API origin is not a valid https origin")]
+    Invalid,
+}
+
+/// The pinned API origin for this build.
+pub fn api_origin() -> Result<Url, ConfigError> {
+    let raw = option_env!("AOC_API_ORIGIN").or(if cfg!(debug_assertions) {
+        Some(DEBUG_DEFAULT_ORIGIN)
+    } else {
+        None
+    });
+    parse_origin(raw.ok_or(ConfigError::Missing)?, cfg!(debug_assertions))
+}
+
+/// Accepts a bare origin: `https://host[:port]`, or `http://` to a loopback
+/// host when `allow_loopback_http` (debug builds only).
+pub fn parse_origin(raw: &str, allow_loopback_http: bool) -> Result<Url, ConfigError> {
+    let url = Url::parse(raw.trim()).map_err(|_| ConfigError::Invalid)?;
+    let bare = url.path() == "/"
+        && url.query().is_none()
+        && url.fragment().is_none()
+        && url.username().is_empty()
+        && url.password().is_none();
+    let host = url.host_str().ok_or(ConfigError::Invalid)?;
+    let scheme_ok = match url.scheme() {
+        "https" => true,
+        "http" => allow_loopback_http && matches!(host, "localhost" | "127.0.0.1" | "[::1]"),
+        _ => false,
+    };
+    if bare && scheme_ok {
+        Ok(url)
+    } else {
+        Err(ConfigError::Invalid)
+    }
+}
+
+/// Whether plain HTTP may be used at all (debug builds against loopback).
+pub fn allows_http(origin: &Url) -> bool {
+    origin.scheme() == "http"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_https_origins() {
+        let url = parse_origin("https://lms.example.com", false).unwrap();
+        assert_eq!(url.as_str(), "https://lms.example.com/");
+        assert!(parse_origin("https://lms.example.com:8443/", false).is_ok());
+    }
+
+    #[test]
+    fn http_only_for_loopback_in_debug() {
+        assert!(parse_origin("http://localhost:8080", true).is_ok());
+        assert!(parse_origin("http://127.0.0.1:8080", true).is_ok());
+        assert_eq!(
+            parse_origin("http://localhost:8080", false),
+            Err(ConfigError::Invalid)
+        );
+        assert_eq!(
+            parse_origin("http://lms.example.com", true),
+            Err(ConfigError::Invalid)
+        );
+    }
+
+    #[test]
+    fn rejects_anything_but_a_bare_origin() {
+        for raw in [
+            "https://lms.example.com/api",
+            "https://lms.example.com/?x=1",
+            "https://lms.example.com/#x",
+            "https://user:pw@lms.example.com",
+            "ftp://lms.example.com",
+            "aocplayer://play",
+            "not a url",
+        ] {
+            assert_eq!(parse_origin(raw, true), Err(ConfigError::Invalid), "{raw}");
+        }
+    }
+}

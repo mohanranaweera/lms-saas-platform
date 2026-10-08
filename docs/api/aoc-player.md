@@ -1,7 +1,8 @@
 # AOC Player API — Phase 8 (ADR-025 + Amendment 1)
 
 The backend side of the native AOC Player: pairing an installation, launching NATIVE playback,
-the exchange, signed heartbeats and revocation. The Windows player itself is Phase 9.
+the exchange, signed heartbeats and revocation. The Windows player that calls these endpoints is
+`native-player/` (Phase 9, see "The player (Phase 9)" below and `native-player/README.md`).
 All responses use the standard `ApiResponse` envelope.
 
 ## Concepts
@@ -142,3 +143,23 @@ Ids from another tenant are 404.
   Admin can remove one with a required reason. Device resets refresh it. The "Require the AOC Secure
   Player app" switch in Settings → Video configuration (Phase 3) is the tenant setting.
 - Playwright: `e2e/aoc-player.spec.ts` (15 tests incl. phone and Mac, mocked backend; `window.__aocLaunch` captures links).
+
+## The player (Phase 9)
+
+`native-player/` is the client of the four player endpoints above; no endpoint changed.
+
+- **Keys:** non-exportable ECDSA P-256 in Windows CNG - the TPM (Microsoft Platform Crypto
+  Provider) when available, otherwise the Microsoft Software Key Storage Provider. The public key
+  is sent as base64 X.509 SPKI; `NCryptSignHash` signatures are already IEEE P1363 `r‖s`. A TPM-made
+  signature was verified with Java's `SHA256withECDSAinP1363Format` over the canonical bytes
+  (2026-10-08).
+- **Requests:** `platform: "WINDOWS"`, `playerVersion` = the binary's version. Timestamps use the
+  server clock learnt from `Date` headers; a refused exchange that reveals a clock more than 30 s
+  off is retried once. Heartbeats send `positionSeconds: 0`, `state: "IDLE"` until Phase 10/12.
+- **Teardown:** `STOP` (any `reason`), 401/403/404 (`EXPIRED`), 426, a non-`CONTINUE` action, or a
+  missed `expiresAt` deadline (network trouble or 5xx are retried until then) end the session.
+  "End session" and closing the window call `/end` (5 s cap). A new launch link ends the current
+  session first.
+- **Download:** the Student AOC Player page shows an "Install the AOC Player" card linking to
+  `NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL` (https or a site path, build-time); unset, it says the
+  download isn't available yet. Hidden on phones, tablets and Macs. Playwright covers both states.

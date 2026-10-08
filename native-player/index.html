@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AOC Player</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <span>AOC Player</span>
+      </header>
+      <section class="card" aria-live="polite">
+        <p class="eyebrow" id="eyebrow"></p>
+        <h1 id="title">Starting…</h1>
+        <p class="message" id="message"></p>
+        <p class="watermark" id="watermark" hidden></p>
+        <button type="button" id="end" hidden>End session</button>
+      </section>
+      <footer class="footer" id="footer"></footer>
+    </main>
+  </body>
+</html>

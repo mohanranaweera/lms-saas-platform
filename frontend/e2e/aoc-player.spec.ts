@@ -90,6 +90,45 @@ test.describe("student AOC Player page", () => {
     await expect(page.getByRole("list", { name: "Your AOC Players" })).toContainText("Version 1.0.0");
   });
 
+  test("pairing again on this computer is recognised although the number of players stays the same", async ({ page }) => {
+    // Re-pairing replaces this device's player: the old one is revoked (REPAIRED), a new one is active.
+    const launched = await captureLaunches(page);
+    await mockSession(page, "STUDENT");
+    const oldPlayer = installation();
+    const newPlayer = installation({ id: "i0000000-0000-0000-0000-000000000002", pairedAt: "2026-10-08T03:34:04Z" });
+    let repaired = false;
+    await page.route("**/v1/player/installations", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          apiSuccess(
+            repaired
+              ? [newPlayer, { ...oldPlayer, status: "REVOKED", revokedAt: "2026-10-08T03:34:04Z", revocationSource: "REPAIRED" }]
+              : [oldPlayer]
+          )
+        ),
+      })
+    );
+    await page.route("**/v1/player/pairings", (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(apiSuccess({ pairingUrl: PAIR_URL, expiresAt: new Date(Date.now() + 90_000).toISOString() })),
+      })
+    );
+
+    await page.goto("/student/player");
+    await expect(page.getByRole("list", { name: "Your AOC Players" })).toContainText("Active");
+    await page.getByRole("button", { name: "Pair the AOC Player" }).click();
+    await expect(page.getByText("Waiting for the AOC Player to finish pairing…")).toBeVisible();
+    expect(await launched()).toEqual([PAIR_URL]);
+
+    repaired = true;
+    await expect(page.getByText("The AOC Player is paired.")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("list", { name: "Your AOC Players" })).toContainText("replaced by a newer pairing");
+  });
+
   test("a platform switch-off or an unregistered browser explains what to do and opens nothing", async ({ page }) => {
     const launched = await captureLaunches(page);
     await mockSession(page, "STUDENT");
@@ -150,6 +189,33 @@ test.describe("student AOC Player page", () => {
     await mockJson(page, "**/v1/player/installations", 200, apiSuccess([]));
     await page.goto("/student/player");
     await expect(page.getByRole("link", { name: "AOC Player" }).first()).toHaveAttribute("href", "/student/player");
+  });
+
+  // VIDEO Phase 9: the installer URL is a build-time setting, unset until signed
+  // releases exist. The dev server Playwright starts inherits this process's
+  // environment, so each state runs when the environment matches it.
+  const downloadUrl = process.env.NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL;
+
+  test("the install step says the download isn't available while no installer is configured", async ({ page }) => {
+    test.skip(!!downloadUrl, "an installer URL is configured");
+    await mockSession(page, "STUDENT");
+    await mockJson(page, "**/v1/player/installations", 200, apiSuccess([]));
+    await page.goto("/student/player");
+    await expect(page.getByText("Install the AOC Player", { exact: true })).toBeVisible();
+    await expect(page.getByText("The AOC Player download isn't available yet.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Download for Windows" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pair the AOC Player" })).toBeVisible();
+  });
+
+  test("the install step links to the configured installer", async ({ page }) => {
+    test.skip(!downloadUrl, "set NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL to run");
+    await mockSession(page, "STUDENT");
+    await mockJson(page, "**/v1/player/installations", 200, apiSuccess([]));
+    await page.goto("/student/player");
+    const link = page.getByRole("link", { name: "Download for Windows" });
+    await expect(link).toHaveAttribute("href", downloadUrl!);
+    await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(page.getByText("The AOC Player download isn't available yet.")).toHaveCount(0);
   });
 });
 
@@ -413,6 +479,7 @@ test.describe("AOC Player on a phone", () => {
     await page.goto("/student/player");
     await expect(page.getByText("This video can only be watched on a Windows computer with the AOC Player.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Pair the AOC Player" })).toHaveCount(0);
+    await expect(page.getByText("Install the AOC Player", { exact: true })).toHaveCount(0);
   });
 });
 

@@ -1,0 +1,435 @@
+//! The player core (ADR-025 §3, §5): pairing, launching and the session
+//! lifecycle - heartbeat, `STOP`, end, and teardown when a heartbeat deadline
+//! is missed. It has no Tauri dependency so it can be tested against a mock
+//! server.
+//!
+//! The player never decides entitlement: it plays only while the server keeps
+//! answering `CONTINUE`. The playback token and descriptor live only inside
+//! the session task and are dropped when it ends; nothing is written to disk
+//! except the installation record (no secret).
+
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
+
+use serde::Serialize;
+use time::OffsetDateTime;
+use tokio::sync::{Mutex as AsyncMutex, watch};
+use tokio::task::JoinHandle;
+use uuid::Uuid;
+
+use crate::api::{ApiClient, ApiError, Exchange};
+use crate::deep_link::{self, DeepLink};
+use crate::installation::{Installation, InstallationStore};
+use crate::keystore::{self, InstallationKey, KeyError, KeyStore};
+
+/// Bounds for the server's heartbeat interval.
+const MIN_INTERVAL: Duration = Duration::from_secs(1);
+const MAX_INTERVAL: Duration = Duration::from_secs(300);
+/// After a failed heartbeat, retry at most this often until the deadline.
+const RETRY_DELAY: Duration = Duration::from_secs(5);
+/// A deadline further away than this is not believed.
+const MAX_DEADLINE: Duration = Duration::from_secs(900);
+/// How long closing the player waits for `/end`.
+const END_TIMEOUT: Duration = Duration::from_secs(5);
+/// A clock correction larger than this retries a refused exchange once.
+const CLOCK_RETRY_THRESHOLD_SECONDS: i64 = 30;
+
+/// What the UI shows. Codes are mapped to text by the UI.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "screen",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum View {
+    NotPaired,
+    Pairing,
+    Ready,
+    Opening,
+    Playing {
+        lesson_title: Option<String>,
+        watermark_text: Option<String>,
+    },
+    Stopped {
+        reason: String,
+    },
+    Error {
+        code: String,
+    },
+}
+
+pub trait ViewSink: Send + Sync + 'static {
+    fn show(&self, view: &View);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Cancel {
+    None,
+    /// The student pressed "End" or closed the window.
+    User,
+    /// A new link replaces the current session.
+    Replaced,
+}
+
+struct Active {
+    generation: u64,
+    cancel: watch::Sender<Cancel>,
+    task: JoinHandle<()>,
+}
+
+struct State {
+    view: View,
+    active: Option<Active>,
+    generation: u64,
+    last_link: Option<String>,
+}
+
+/// Everything one live session needs; owned by the session task only.
+struct Session {
+    id: Uuid,
+    token: String,
+    deadline: Instant,
+    interval: Duration,
+}
+
+pub struct Player {
+    api: ApiClient,
+    keys: Box<dyn KeyStore>,
+    store: InstallationStore,
+    sink: Arc<dyn ViewSink>,
+    /// Links are handled one at a time.
+    operations: AsyncMutex<()>,
+    state: Mutex<State>,
+    closing: AtomicBool,
+}
+
+impl Player {
+    pub fn new(
+        api: ApiClient,
+        keys: Box<dyn KeyStore>,
+        store: InstallationStore,
+        sink: Arc<dyn ViewSink>,
+    ) -> Arc<Self> {
+        let view = if store.load().is_some() {
+            View::Ready
+        } else {
+            View::NotPaired
+        };
+        Arc::new(Self {
+            api,
+            keys,
+            store,
+            sink,
+            operations: AsyncMutex::new(()),
+            state: Mutex::new(State {
+                view,
+                active: None,
+                generation: 0,
+                last_link: None,
+            }),
+            closing: AtomicBool::new(false),
+        })
+    }
+
+    pub fn view(&self) -> View {
+        self.state().view.clone()
+    }
+
+    pub fn has_session(&self) -> bool {
+        self.state().active.is_some()
+    }
+
+    /// Handles one `aocplayer://` link. A link that was just handled (the OS
+    /// can deliver the same one twice) is ignored.
+    pub async fn handle_link(self: &Arc<Self>, raw: &str) {
+        let _one_at_a_time = self.operations.lock().await;
+        if self.closing.load(Ordering::SeqCst) {
+            return;
+        }
+        {
+            let mut state = self.state();
+            if state.last_link.as_deref() == Some(raw) {
+                return;
+            }
+            state.last_link = Some(raw.to_owned());
+        }
+        match deep_link::parse(raw) {
+            Err(_) => self.show(error("INVALID_LINK")),
+            Ok(DeepLink::Pair(code)) => self.pair(&code).await,
+            Ok(DeepLink::Play(code)) => self.play(&code).await,
+        }
+    }
+
+    /// "End" in the UI: tells the server, then shows the stopped screen.
+    pub async fn end_by_student(&self) {
+        let _one_at_a_time = self.operations.lock().await;
+        self.stop_active(Cancel::User).await;
+    }
+
+    /// Window closing: ends any session (bounded by `END_TIMEOUT`) and refuses
+    /// new links.
+    pub async fn shutdown(&self) {
+        self.closing.store(true, Ordering::SeqCst);
+        self.stop_active(Cancel::User).await;
+    }
+
+    async fn pair(self: &Arc<Self>, code: &str) {
+        self.stop_active(Cancel::Replaced).await;
+        self.show(View::Pairing);
+        let previous = self.store.load();
+        let name = keystore::new_key_name();
+        let created = {
+            let me = Arc::clone(self);
+            let name = name.clone();
+            tokio::task::spawn_blocking(move || me.keys.create(&name)).await
+        };
+        let Ok(Ok((key, provider))) = created else {
+            return self.show(error("KEY_UNAVAILABLE"));
+        };
+        let result = match key.public_key_spki() {
+            Ok(public_key) => self.api.complete_pairing(code, &public_key).await,
+            Err(failure) => Err(failure.into()),
+        };
+        match result {
+            Ok(installation_id) => {
+                let installation = Installation {
+                    installation_id,
+                    key_name: name,
+                    key_provider: provider,
+                    paired_at: OffsetDateTime::now_utc(),
+                };
+                if self.store.save(&installation).is_err() {
+                    let _ = self
+                        .keys
+                        .delete(&installation.key_name, &installation.key_provider);
+                    return self.show(error("STORAGE_UNAVAILABLE"));
+                }
+                // The server revoked the previous installation of this device.
+                if let Some(old) = previous {
+                    let _ = self.keys.delete(&old.key_name, &old.key_provider);
+                }
+                self.show(View::Ready);
+            }
+            Err(failure) => {
+                let _ = self.keys.delete(&name, &provider);
+                self.show(error_view(&failure));
+            }
+        }
+    }
+
+    async fn play(self: &Arc<Self>, code: &str) {
+        self.stop_active(Cancel::Replaced).await;
+        let Some(installation) = self.store.load() else {
+            return self.show(error("NOT_PAIRED"));
+        };
+        let key: Arc<dyn InstallationKey> = match self
+            .keys
+            .open(&installation.key_name, &installation.key_provider)
+        {
+            Ok(key) => Arc::from(key),
+            Err(KeyError::NotFound) => {
+                let _ = self.store.clear();
+                return self.show(error("NOT_PAIRED"));
+            }
+            Err(_) => return self.show(error("KEY_UNAVAILABLE")),
+        };
+        self.show(View::Opening);
+        let offset_before = self.api.clock_offset();
+        let mut result = self
+            .api
+            .exchange(&*key, installation.installation_id, code)
+            .await;
+        // A refused exchange never consumes the code, so after learning that
+        // our clock is off we may try once more with corrected timestamps.
+        if matches!(result, Err(ApiError::Rejected { status: 400, .. }))
+            && (self.api.clock_offset() - offset_before).abs() > CLOCK_RETRY_THRESHOLD_SECONDS
+        {
+            result = self
+                .api
+                .exchange(&*key, installation.installation_id, code)
+                .await;
+        }
+        match result {
+            Ok(exchange) => self.start(key, exchange),
+            Err(failure) => self.show(error_view(&failure)),
+        }
+    }
+
+    fn start(self: &Arc<Self>, key: Arc<dyn InstallationKey>, exchange: Exchange) {
+        let session = Session {
+            id: exchange.session_id,
+            token: exchange.playback_token,
+            deadline: self.local_deadline(exchange.expires_at),
+            interval: clamp_interval(exchange.heartbeat_interval_seconds),
+        };
+        self.show(View::Playing {
+            lesson_title: exchange.descriptor.title,
+            watermark_text: exchange.descriptor.watermark_text,
+        });
+        let (cancel, cancelled) = watch::channel(Cancel::None);
+        let mut state = self.state();
+        state.generation += 1;
+        let generation = state.generation;
+        let me = Arc::clone(self);
+        let task = tokio::spawn(async move { me.run(generation, key, session, cancelled).await });
+        state.active = Some(Active {
+            generation,
+            cancel,
+            task,
+        });
+    }
+
+    async fn run(
+        self: Arc<Self>,
+        generation: u64,
+        key: Arc<dyn InstallationKey>,
+        mut session: Session,
+        mut cancelled: watch::Receiver<Cancel>,
+    ) {
+        let mut wait = session.interval;
+        let outcome = loop {
+            tokio::select! {
+                _ = tokio::time::sleep(wait) => {}
+                changed = cancelled.changed() => {
+                    let cause = if changed.is_ok() { *cancelled.borrow() } else { Cancel::User };
+                    break Err(cause);
+                }
+            }
+            if Instant::now() >= session.deadline {
+                break Ok("CONNECTION_LOST".to_owned());
+            }
+            // "End" or closing the window must not wait for a slow heartbeat.
+            let beat = tokio::select! {
+                beat = self.api.heartbeat(&*key, session.id, &session.token, 0, "IDLE") => beat,
+                changed = cancelled.changed() => {
+                    let cause = if changed.is_ok() { *cancelled.borrow() } else { Cancel::User };
+                    break Err(cause);
+                }
+            };
+            match beat {
+                Ok(beat) if beat.action == "CONTINUE" => {
+                    match (beat.playback_token, beat.expires_at) {
+                        (Some(token), Some(expires_at)) => {
+                            session.token = token;
+                            session.deadline = self.local_deadline(expires_at);
+                            if let Some(seconds) = beat.heartbeat_interval_seconds {
+                                session.interval = clamp_interval(seconds);
+                            }
+                            wait = session.interval;
+                        }
+                        _ => wait = retry_wait(&session),
+                    }
+                }
+                // STOP, or anything this player does not understand.
+                Ok(beat) => break Ok(sanitize(beat.reason.as_deref(), "STOPPED")),
+                Err(ApiError::Rejected {
+                    status: 401 | 403 | 404,
+                    ..
+                }) => break Ok("EXPIRED".to_owned()),
+                Err(ApiError::Rejected { status: 426, .. }) => {
+                    break Ok("PLAYER_VERSION_UNSUPPORTED".to_owned());
+                }
+                // Network trouble or a server error: keep trying until the deadline.
+                Err(_) => wait = retry_wait(&session),
+            }
+        };
+        let reason = match outcome {
+            Ok(reason) => Some(reason),
+            Err(cause) => {
+                let _ = tokio::time::timeout(
+                    END_TIMEOUT,
+                    self.api.end(&*key, session.id, &session.token),
+                )
+                .await;
+                (cause == Cancel::User).then(|| "ENDED_BY_STUDENT".to_owned())
+            }
+        };
+        // Tear down: the token and descriptor die with this task.
+        drop(session);
+        {
+            let mut state = self.state();
+            if state
+                .active
+                .as_ref()
+                .is_some_and(|active| active.generation == generation)
+            {
+                state.active = None;
+            }
+        }
+        if let Some(reason) = reason {
+            self.show(View::Stopped { reason });
+        }
+    }
+
+    async fn stop_active(&self, cause: Cancel) {
+        let active = self.state().active.take();
+        if let Some(active) = active {
+            let _ = active.cancel.send(cause);
+            let _ = active.task.await;
+        }
+    }
+
+    /// Converts the server's deadline to a local instant, using the clock
+    /// offset learnt from the server.
+    fn local_deadline(&self, expires_at: OffsetDateTime) -> Instant {
+        let remaining = (expires_at.unix_timestamp() - self.api.server_now()).max(0) as u64;
+        Instant::now() + Duration::from_secs(remaining).min(MAX_DEADLINE)
+    }
+
+    fn show(&self, view: View) {
+        self.state().view = view.clone();
+        self.sink.show(&view);
+    }
+
+    fn state(&self) -> MutexGuard<'_, State> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+fn clamp_interval(seconds: u32) -> Duration {
+    Duration::from_secs(seconds.into()).clamp(MIN_INTERVAL, MAX_INTERVAL)
+}
+
+fn retry_wait(session: &Session) -> Duration {
+    RETRY_DELAY.min(session.interval)
+}
+
+fn error(code: &str) -> View {
+    View::Error {
+        code: code.to_owned(),
+    }
+}
+
+fn error_view(failure: &ApiError) -> View {
+    let code = match failure {
+        ApiError::Rejected { status: 426, .. } => "PLAYER_VERSION_UNSUPPORTED".to_owned(),
+        ApiError::Rejected { status: 429, .. } => "PLAYER_RATE_LIMITED".to_owned(),
+        ApiError::Rejected { code, .. } => sanitize(code.as_deref(), "REJECTED"),
+        ApiError::Network => "NETWORK".to_owned(),
+        ApiError::Protocol => "PROTOCOL".to_owned(),
+        ApiError::Key(_) => "KEY_UNAVAILABLE".to_owned(),
+    };
+    View::Error { code }
+}
+
+/// Server-provided codes are shown only if they look like codes.
+fn sanitize(code: Option<&str>, fallback: &str) -> String {
+    match code {
+        Some(code)
+            if !code.is_empty()
+                && code.len() <= 64
+                && code
+                    .bytes()
+                    .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_') =>
+        {
+            code.to_owned()
+        }
+        _ => fallback.to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests;

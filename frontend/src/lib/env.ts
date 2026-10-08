@@ -24,10 +24,27 @@ const envSchema = z.object({
     .refine((value) => value.startsWith("/") || URL.canParse(value), {
       message: "NEXT_PUBLIC_API_BASE_URL must be a path such as /api or a full URL.",
     }),
+  /**
+   * VIDEO Phase 9 (ADR-025): where Students download the AOC Player installer
+   * for Windows. Unset until signed releases exist; the AOC Player page then
+   * says the download isn't available yet. Must be https (or a same-site path).
+   */
+  NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined)
+    .refine(
+      (value) =>
+        value === undefined ||
+        (value.startsWith("/") && !value.startsWith("//")) ||
+        (URL.canParse(value) && new URL(value).protocol === "https:"),
+      { message: "NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL must be an https URL or a path." }
+    ),
 });
 
 const parsed = envSchema.safeParse({
   NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL: process.env.NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL,
 });
 
 if (!parsed.success) {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
+  Download,
   Link2,
   Loader2,
   MonitorSmartphone,
@@ -11,7 +12,7 @@ import {
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { playbackErrorMessage } from "@/components/player/playback-errors";
 import { isApiClientError } from "@/lib/api/error";
+import { env } from "@/lib/env";
 import {
   useMyPlayerInstallations,
   useRevokeMyInstallation,
@@ -74,9 +76,10 @@ export default function AocPlayerPage() {
           with this computer once.
         </p>
       </div>
+      <InstallCard />
       <PairCard
         onPaired={refreshPlayers}
-        pairedCount={activeCount(query.data)}
+        activeIds={activeIds(query.data)}
       />
       <section
         aria-labelledby="players-heading"
@@ -109,33 +112,87 @@ export default function AocPlayerPage() {
   );
 }
 
-function activeCount(installations: PlayerInstallation[] | undefined): number {
+function activeIds(installations: PlayerInstallation[] | undefined): string[] {
   return (
-    installations?.filter((installation) => installation.status === "ACTIVE")
-      .length ?? 0
+    installations
+      ?.filter((installation) => installation.status === "ACTIVE")
+      .map((installation) => installation.id) ?? []
+  );
+}
+
+/**
+ * Step 1: install the player (VIDEO Phase 9). The installer location is a
+ * build-time setting; until signed releases exist it is unset and the card
+ * says so. On phones, tablets and Macs the pairing card already explains the
+ * player is Windows-only, so this card is not shown.
+ */
+function InstallCard() {
+  const supported = useAocPlayerSupported();
+  if (supported === false) {
+    return null;
+  }
+  const downloadUrl = env.NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Download aria-hidden="true" className="size-4" />
+          Install the AOC Player
+        </CardTitle>
+        <CardDescription>
+          For Windows 10 and 11. Install it once on this computer, then pair it
+          below.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {downloadUrl ? (
+          <a
+            href={downloadUrl}
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            <Download aria-hidden="true" />
+            Download for Windows
+          </a>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            The AOC Player download isn&apos;t available yet. Your institute will
+            let you know when it is.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
 function PairCard({
   onPaired,
-  pairedCount,
+  activeIds,
 }: {
   onPaired: () => void;
-  pairedCount: number;
+  activeIds: string[];
 }) {
   const pairing = useStartPairing();
   const [waitingSince, setWaitingSince] = useState<number | null>(null);
-  const [baseline, setBaseline] = useState(pairedCount);
+  const [baseline, setBaseline] = useState<string[]>(activeIds);
   const [launchFailed, setLaunchFailed] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
-  const paired = waitingSince !== null && pairedCount > baseline;
+  // Paired once an active player appears that wasn't there before. Re-pairing
+  // this computer replaces its player, so the count alone doesn't change.
+  const paired =
+    waitingSince !== null && activeIds.some((id) => !baseline.includes(id));
   const waiting = waitingSince !== null && !paired;
 
   // While waiting for the player, re-read the list so the new player shows up.
   useEffect(() => {
     if (!waiting) return;
     const poll = setInterval(onPaired, PAIRING_POLL_MS);
-    const stop = setTimeout(() => setWaitingSince(null), PAIRING_WAIT_MS);
+    const stop = setTimeout(() => {
+      setWaitingSince(null);
+      setTimedOut(true);
+    }, PAIRING_WAIT_MS);
     return () => {
       clearInterval(poll);
       clearTimeout(stop);
@@ -144,13 +201,14 @@ function PairCard({
 
   const pair = async () => {
     setLaunchFailed(false);
+    setTimedOut(false);
     try {
       const start = await pairing.mutateAsync();
       if (!openInAocPlayer(start.pairingUrl)) {
         setLaunchFailed(true);
         return;
       }
-      setBaseline(pairedCount);
+      setBaseline(activeIds);
       setWaitingSince(Date.now());
     } catch {
       // shown from pairing.error below
@@ -168,7 +226,7 @@ function PairCard({
           Pair this computer
         </CardTitle>
         <CardDescription>
-          1. Install the AOC Player (Windows). 2. Choose &ldquo;Pair the AOC
+          With the AOC Player installed, choose &ldquo;Pair the AOC
           Player&rdquo; and allow your browser to open it. Pairing again on this
           computer replaces the previous player.
         </CardDescription>
@@ -189,6 +247,15 @@ function PairCard({
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
             <AlertDescription>{error.message}</AlertDescription>
+          </Alert>
+        ) : null}
+        {timedOut ? (
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden="true" />
+            <AlertDescription>
+              The AOC Player didn&apos;t finish pairing. Make sure it&apos;s
+              installed on this computer, then try again.
+            </AlertDescription>
           </Alert>
         ) : null}
         {launchFailed ? (

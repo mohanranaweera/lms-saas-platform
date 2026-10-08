@@ -1,0 +1,158 @@
+name: AOC Player
+
+# ADR-025 §7. Pull requests: format, lint, test and build the Windows player.
+# Releases: manual dispatch only, in the protected `player-release`
+# environment (required reviewers). Publishing a player release is a
+# production release and is never automatic.
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "native-player/**"
+      - ".github/workflows/native-player.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "native-player/**"
+      - ".github/workflows/native-player.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Build a signed release (requires approval in the player-release environment)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Player fmt, clippy, test, build
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: native-player
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: native-player/package-lock.json
+
+      - name: Install UI dependencies
+        run: npm ci
+
+      - name: Typecheck and build UI
+        run: npm run build
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native-player/src-tauri
+
+      - name: cargo fmt
+        working-directory: native-player/src-tauri
+        run: cargo fmt --check
+
+      - name: cargo clippy (dev)
+        working-directory: native-player/src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo clippy (release feature)
+        working-directory: native-player/src-tauri
+        run: cargo clippy --all-targets --features release -- -D warnings
+
+      - name: cargo test
+        working-directory: native-player/src-tauri
+        run: cargo test
+
+      - name: Debug build
+        run: npx tauri build --debug --no-bundle
+
+  release:
+    name: Signed release build
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    needs: check
+    runs-on: windows-latest
+    environment: player-release
+    defaults:
+      run:
+        working-directory: native-player
+    env:
+      AOC_API_ORIGIN: ${{ vars.AOC_API_ORIGIN }}
+      AOC_UPDATER_ENDPOINT: ${{ vars.AOC_UPDATER_ENDPOINT }}
+      AOC_UPDATER_PUBKEY: ${{ vars.AOC_UPDATER_PUBKEY }}
+      AOC_SIGNING_ROUTE: ${{ vars.AOC_SIGNING_ROUTE }}
+      # Only whether the key exists; the key itself is given to the build step alone,
+      # so no other step (npm ci and its install scripts included) can read it.
+      HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+    steps:
+      - name: Refuse until release signing is decided and configured
+        shell: pwsh
+        run: |
+          # The code-signing route (Azure Trusted Signing or a certificate) and the
+          # updater-key custody are still open (ADR-025, plan Phase 9). Until the
+          # owner decides and this job gains the matching signing step, it stops here.
+          $missing = @()
+          if (-not $env:AOC_API_ORIGIN.StartsWith("https://")) { $missing += "vars.AOC_API_ORIGIN (https)" }
+          if (-not $env:AOC_UPDATER_ENDPOINT.StartsWith("https://")) { $missing += "vars.AOC_UPDATER_ENDPOINT (https)" }
+          if (-not $env:AOC_UPDATER_PUBKEY) { $missing += "vars.AOC_UPDATER_PUBKEY" }
+          if ($env:HAS_UPDATER_KEY -ne "true") { $missing += "secrets.TAURI_SIGNING_PRIVATE_KEY" }
+          if ($env:AOC_SIGNING_ROUTE -notin @("azure-trusted-signing", "certificate")) { $missing += "vars.AOC_SIGNING_ROUTE" }
+          if ($missing.Count -gt 0) {
+            Write-Error ("Release signing is not configured: " + ($missing -join ", "))
+            exit 1
+          }
+          Write-Error "Authenticode signing for '$env:AOC_SIGNING_ROUTE' is not implemented yet (needs its own change)."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: native-player/package-lock.json
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install UI dependencies
+        run: npm ci
+
+      - name: Write release config (updater key and endpoint)
+        shell: pwsh
+        run: |
+          @{
+            bundle  = @{ createUpdaterArtifacts = $true }
+            plugins = @{ updater = @{ pubkey = $env:AOC_UPDATER_PUBKEY; endpoints = @($env:AOC_UPDATER_ENDPOINT) } }
+          } | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 src-tauri/tauri.release.conf.json
+
+      - name: Build signed installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --features release --config src-tauri/tauri.release.conf.json
+
+      - name: Upload installer (not published)
+        uses: actions/upload-artifact@v4
+        with:
+          name: aoc-player-windows
+          path: |
+            native-player/src-tauri/target/release/bundle/nsis/*.exe
+            native-player/src-tauri/target/release/bundle/nsis/*.sig
+          if-no-files-found: error
