@@ -109,7 +109,7 @@ export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlaye
       {descriptor.watermarkText ? (
         <p
           data-testid="watermark-band"
-          className="truncate rounded-md bg-muted px-3 py-1 text-center text-xs text-muted-foreground"
+          className="whitespace-pre-line rounded-md bg-muted px-3 py-2 text-left text-xs leading-snug text-muted-foreground"
         >
           {descriptor.watermarkText}
         </p>

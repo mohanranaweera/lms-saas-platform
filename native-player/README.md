@@ -6,7 +6,8 @@ Vite + TypeScript app bundled into the binary. It talks only to the four player 
 `docs/api/aoc-player.md` and never holds an LMS login.
 
 It pairs, launches, keeps the session alive, plays the lesson video (Phase 10) and stops it.
-Screen-capture blocking and the moving watermark are Phase 11; adaptive streaming (HLS) Phase 13.
+Phase 11 adds Windows capture-affinity deterrence and a moving watermark for platform-hosted media;
+adaptive streaming (HLS) remains Phase 13.
 
 ## How it works
 
@@ -39,6 +40,23 @@ the whole frame is shown letterboxed (never cropped). The window opens centred.
 | `YOUTUBE` | `youtube.ts`: the official embed (`youtube-nocookie.com/embed/<id>`, documented parameters only) | Id must be `^[A-Za-z0-9_-]{11}$`. Sandboxed cross-origin frame (no top navigation, no picture-in-picture); nothing is drawn over it, the watermark band sits below (YouTube terms). "Watch on YouTube" opens in the system browser; every other pop-up is refused. YouTube's own menu handles quality and speed. LMS-gated, not protected (B3). |
 | `INTERNAL` | `file.ts` + `controls.ts`: `<video>` on the signed MP4 URL | URL must be on an origin in `AOC_MEDIA_ORIGINS`. Own control bar: play/pause, −10 s, seek bar (only when `allowSeeking`), time, mute + volume, speed 0.75–2×, full screen; keys Space/K, ←/J, →/L (seeking only), ↑/↓, M, F. No download, PiP or casting. A fresh URL is swapped in only when the current one fails (expired), resuming at the same point. Single progressive file: no adaptive bitrate until Phase 13. |
 | anything else | refusal (FutureProviderEngine) | The session is ended at once and the player says the video can't be played here. |
+
+## Capture deterrence and watermark (Phase 11)
+
+- On Windows 10 version 2004 and later, the Rust shell applies
+  `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` to the AOC Player window before required
+  playback is shown, and clears it when the session ends or the window closes.
+- This is a capture deterrent, not DRM: external cameras, HDMI/hardware capture, some GPU
+  drivers, virtual machines, remote desktop paths and modified binaries may still record the
+  display. The player and tenant settings use that wording deliberately.
+- If a tenant requires the control and Windows cannot apply it, the exchange is ended and the
+  player shows `CAPTURE_PROTECTION_UNAVAILABLE`; it never silently starts unprotected playback.
+- INTERNAL/platform-hosted media may show a bounded, moving watermark inside the video stage.
+  YouTube always shows the watermark in the band outside the cross-origin iframe; no overlay is
+  drawn over the YouTube player.
+- The server remains authoritative for tenant policy and entitlement. The UI receives only the
+  sanitized capability status (`NOT_REQUESTED`, `APPLIED`, `UNSUPPORTED` or `FAILED`) and never
+  receives a window handle, player token or tenant credential.
 
 ## Security properties
 

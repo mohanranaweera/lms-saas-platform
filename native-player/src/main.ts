@@ -5,6 +5,15 @@ import "./styles.css";
 
 // Mirrors `player::View` in the Rust core. The UI only displays state; every
 // decision (pairing, entitlement, stopping) is made in Rust or on the server.
+type CaptureStatus = "NOT_REQUESTED" | "APPLIED" | "UNSUPPORTED" | "FAILED";
+type WatermarkPolicy = {
+  enabled: boolean;
+  text: string | null;
+  opacity: number | null;
+  movementIntervalSeconds: number;
+  placement: "OVERLAY" | "OUTSIDE_PLAYER";
+};
+
 type View =
   | { screen: "notPaired" }
   | { screen: "pairing" }
@@ -15,6 +24,8 @@ type View =
       sessionId: string;
       lessonTitle: string | null;
       watermarkText: string | null;
+      watermark?: WatermarkPolicy;
+      captureStatus?: CaptureStatus;
       media: Media;
     }
   | { screen: "stopped"; reason: string }
@@ -45,6 +56,8 @@ const ERRORS: Record<string, string> = {
   NETWORK: "The player couldn't reach the LMS. Check your internet connection and try again.",
   KEY_UNAVAILABLE: "The player couldn't use this computer's secure key storage.",
   MEDIA_UNAVAILABLE: "This video can't be played in the AOC Player. Ask your institute.",
+  CAPTURE_PROTECTION_UNAVAILABLE:
+    "This device can't turn on the institute's screen-capture deterrence. Playback was refused.",
   STORAGE_UNAVAILABLE: "The player couldn't save its settings on this computer.",
 };
 
@@ -66,6 +79,46 @@ const engineError = element("engine-error");
 // One engine per session and media type; Rust decides when it starts and stops.
 let engine: Engine | null = null;
 let engineKey: string | null = null;
+let overlayWatermark: HTMLElement | null = null;
+let watermarkTimer: number | null = null;
+
+const WATERMARK_POSITIONS = [
+  [12, 14],
+  [68, 16],
+  [42, 42],
+  [12, 70],
+  [70, 72],
+] as const;
+
+function stopWatermark(): void {
+  if (watermarkTimer !== null) {
+    window.clearInterval(watermarkTimer);
+    watermarkTimer = null;
+  }
+  overlayWatermark?.remove();
+  overlayWatermark = null;
+}
+
+function startWatermark(policy: WatermarkPolicy, media: Media): void {
+  stopWatermark();
+  if (!policy.enabled || policy.placement !== "OVERLAY" || media.engine !== "file" || !policy.text) return;
+  const mark = document.createElement("span");
+  mark.className = "stage-watermark";
+  mark.textContent = policy.text;
+  mark.style.opacity = String(policy.opacity ?? 0.25);
+  mark.setAttribute("aria-hidden", "true");
+  stage.append(mark);
+  overlayWatermark = mark;
+  let position = 0;
+  const move = () => {
+    const [left, top] = WATERMARK_POSITIONS[position % WATERMARK_POSITIONS.length];
+    mark.style.left = `${left}%`;
+    mark.style.top = `${top}%`;
+    position += 1;
+  };
+  move();
+  watermarkTimer = window.setInterval(move, policy.movementIntervalSeconds * 1000);
+}
 
 function syncEngine(view: View): void {
   if (view.screen !== "playing") {
@@ -84,9 +137,20 @@ function syncEngine(view: View): void {
     engineError.textContent = problem;
     engineError.hidden = false;
   });
+  startWatermark(
+    view.watermark ?? {
+      enabled: false,
+      text: null,
+      opacity: null,
+      movementIntervalSeconds: 0,
+      placement: "OUTSIDE_PLAYER",
+    },
+    view.media,
+  );
 }
 
 function stopEngine(): void {
+  stopWatermark();
   engine?.destroy();
   engine = null;
   engineKey = null;
@@ -123,7 +187,7 @@ function render(view: View): void {
       label = "Session active";
       heading = view.lessonTitle ?? "Lesson video";
       text = "This session is checked with the LMS while it plays.";
-      mark = view.watermarkText;
+      mark = view.watermark?.placement !== "OVERLAY" ? view.watermarkText : null;
       tone = "ok";
       break;
     case "stopped":

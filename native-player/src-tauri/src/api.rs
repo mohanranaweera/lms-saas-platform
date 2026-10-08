@@ -73,6 +73,42 @@ pub struct Descriptor {
     pub watermark_text: Option<String>,
     #[serde(default)]
     pub allow_seeking: bool,
+    #[serde(default)]
+    pub watermark: WatermarkPolicy,
+    #[serde(default)]
+    pub capture_protection: CaptureProtectionPolicy,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WatermarkPolicy {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub text: Option<String>,
+    #[serde(default)]
+    pub opacity: Option<f32>,
+    #[serde(default)]
+    pub movement_interval_seconds: u32,
+    #[serde(default)]
+    pub placement: WatermarkPlacement,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum WatermarkPlacement {
+    Overlay,
+    #[default]
+    OutsidePlayer,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptureProtectionPolicy {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub required: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

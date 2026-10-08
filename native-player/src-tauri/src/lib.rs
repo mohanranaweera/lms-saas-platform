@@ -1,6 +1,7 @@
 //! AOC Secure Player (ADR-025): Tauri shell around the player core.
 
 pub mod api;
+pub mod capture_protection;
 pub mod config;
 pub mod deep_link;
 pub mod installation;
@@ -11,6 +12,7 @@ pub mod signing;
 
 use std::sync::Arc;
 
+use tauri::Wry;
 use tauri::webview::NewWindowResponse;
 use tauri::{
     AppHandle, Emitter, Manager, RunEvent, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
@@ -44,10 +46,14 @@ pub fn run() {
     // hands its link to this instance and exits.
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
+            }
+            let player = app.state::<Arc<Player>>().inner().clone();
+            for link in forwarded_deep_links(&argv) {
+                handle(&player, link);
             }
         }));
     }
@@ -63,30 +69,33 @@ pub fn run() {
             let origin = config::api_origin()?;
             let api = ApiClient::new(origin)?;
             let store = InstallationStore::new(app.path().app_local_data_dir()?);
-            let player = Player::new(
+            let window =
+                WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::App("index.html".into()))
+                    .title("AOC Player")
+                    .inner_size(1280.0, 760.0)
+                    .min_inner_size(640.0, 400.0)
+                    .center()
+                    .on_navigation(is_bundled_ui)
+                    // No pop-up windows. YouTube's own links ("Watch on YouTube")
+                    // open in the system browser instead.
+                    .on_new_window(|url, _features| {
+                        if media::is_youtube_page(&url) {
+                            open_in_browser(&url);
+                        }
+                        NewWindowResponse::Deny
+                    })
+                    .build()?;
+            let player = Player::with_capture_controller(
                 api,
                 keystore::platform_store(),
                 store,
                 Arc::new(WindowSink(app.handle().clone())),
                 config::media_origins()?,
+                Arc::new(capture_protection::WindowController::<Wry>::new(
+                    window.clone(),
+                )),
             );
             app.manage(Arc::clone(&player));
-
-            WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::App("index.html".into()))
-                .title("AOC Player")
-                .inner_size(1280.0, 760.0)
-                .min_inner_size(640.0, 400.0)
-                .center()
-                .on_navigation(is_bundled_ui)
-                // No pop-up windows. YouTube's own links ("Watch on YouTube")
-                // open in the system browser instead.
-                .on_new_window(|url, _features| {
-                    if media::is_youtube_page(&url) {
-                        open_in_browser(&url);
-                    }
-                    NewWindowResponse::Deny
-                })
-                .build()?;
 
             // Installed builds get the scheme from the installer; a dev build
             // registers it for the current user so links work during development.
@@ -143,6 +152,15 @@ fn handle(player: &Arc<Player>, link: &str) {
     tauri::async_runtime::spawn(async move { player.handle_link(&link).await });
 }
 
+/// The single-instance plugin forwards the second process's command-line
+/// arguments, including the executable path. Only registered-scheme arguments
+/// are candidates; `Player::handle_link` performs the strict final validation.
+fn forwarded_deep_links(args: &[String]) -> impl Iterator<Item = &str> {
+    args.iter()
+        .map(String::as_str)
+        .filter(|arg| arg.starts_with("aocplayer://"))
+}
+
 /// Hands an already-validated https YouTube page to the default browser.
 fn open_in_browser(url: &url::Url) {
     #[cfg(windows)]
@@ -193,7 +211,32 @@ async fn update_when_idle(app: AppHandle, player: Arc<Player>) {
 
 #[cfg(test)]
 mod tests {
-    use super::is_bundled_ui;
+    use super::{forwarded_deep_links, is_bundled_ui};
+
+    #[test]
+    fn forwarded_arguments_keep_only_registered_scheme_links() {
+        let args = vec![
+            "aoc-player.exe".to_owned(),
+            "--some-flag".to_owned(),
+            "aocplayer://pair?code=AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE".to_owned(),
+            "https://evil.example.test/".to_owned(),
+            "aocplayerx://play?code=bad".to_owned(),
+        ];
+
+        assert_eq!(
+            forwarded_deep_links(&args).collect::<Vec<_>>(),
+            vec!["aocplayer://pair?code=AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE"]
+        );
+    }
+
+    #[test]
+    fn malformed_registered_scheme_links_are_forwarded_to_the_strict_parser() {
+        let args = vec!["aocplayer://play?code=short".to_owned()];
+        assert_eq!(
+            forwarded_deep_links(&args).collect::<Vec<_>>(),
+            vec![args[0].as_str()]
+        );
+    }
 
     #[test]
     fn navigation_is_limited_to_the_bundled_ui() {

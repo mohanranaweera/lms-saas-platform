@@ -526,6 +526,7 @@ test.describe("Tenant Admin video settings", () => {
     await page.getByLabel("Require the AOC Secure Player app").check();
     await page.getByLabel("Watch-time limit per video").selectOption("VIDEO_DURATION_MULTIPLIER");
     await page.getByLabel("Multiplier").fill("1.5");
+    await page.getByLabel("Student full name").check();
     await page.getByLabel("Session code").check();
     await page.getByRole("button", { name: "Save video settings" }).click();
 
@@ -538,7 +539,7 @@ test.describe("Tenant Admin video settings", () => {
       watchTimeMultiplier: 1.5,
       watchTimeFixedMinutes: null,
     });
-    expect(saved[0].watermarkFields).toEqual(["STUDENT_DISPLAY_ID", "TIMESTAMP", "SESSION_ID"]);
+    expect(saved[0].watermarkFields).toEqual(["STUDENT_DISPLAY_ID", "TIMESTAMP", "STUDENT_FULL_NAME", "SESSION_ID"]);
   });
 
   test("invalid values are caught before saving and server field errors are shown", async ({ page }) => {

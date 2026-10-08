@@ -20,6 +20,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::api::{ApiClient, ApiError, Exchange};
+use crate::capture_protection::{CaptureStatus, Controller, UnsupportedController};
 use crate::deep_link::{self, DeepLink};
 use crate::installation::{Installation, InstallationStore};
 use crate::keystore::{self, InstallationKey, KeyError, KeyStore};
@@ -38,7 +39,7 @@ const END_TIMEOUT: Duration = Duration::from_secs(5);
 const CLOCK_RETRY_THRESHOLD_SECONDS: i64 = 30;
 
 /// What the UI shows. Codes are mapped to text by the UI.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(
     tag = "screen",
     rename_all = "camelCase",
@@ -53,6 +54,8 @@ pub enum View {
         session_id: Uuid,
         lesson_title: Option<String>,
         watermark_text: Option<String>,
+        watermark: crate::api::WatermarkPolicy,
+        capture_status: CaptureStatus,
         media: Media,
     },
     Stopped {
@@ -98,6 +101,8 @@ struct Session {
     lesson_title: Option<String>,
     watermark_text: Option<String>,
     media: Media,
+    capture_status: CaptureStatus,
+    watermark: crate::api::WatermarkPolicy,
 }
 
 pub struct Player {
@@ -111,6 +116,7 @@ pub struct Player {
     operations: AsyncMutex<()>,
     state: Mutex<State>,
     closing: AtomicBool,
+    capture: Arc<dyn Controller>,
 }
 
 impl Player {
@@ -120,6 +126,24 @@ impl Player {
         store: InstallationStore,
         sink: Arc<dyn ViewSink>,
         media_origins: Vec<Url>,
+    ) -> Arc<Self> {
+        Self::with_capture_controller(
+            api,
+            keys,
+            store,
+            sink,
+            media_origins,
+            Arc::new(UnsupportedController),
+        )
+    }
+
+    pub fn with_capture_controller(
+        api: ApiClient,
+        keys: Box<dyn KeyStore>,
+        store: InstallationStore,
+        sink: Arc<dyn ViewSink>,
+        media_origins: Vec<Url>,
+        capture: Arc<dyn Controller>,
     ) -> Arc<Self> {
         let view = if store.load().is_some() {
             View::Ready
@@ -140,6 +164,7 @@ impl Player {
                 last_link: None,
             }),
             closing: AtomicBool::new(false),
+            capture,
         })
     }
 
@@ -149,6 +174,15 @@ impl Player {
 
     pub fn has_session(&self) -> bool {
         self.state().active.is_some()
+    }
+
+    /// Returns the server-supplied capture capability currently shown to the UI.
+    /// No native handle or policy secret crosses this boundary.
+    pub fn capture_status(&self) -> Option<CaptureStatus> {
+        match self.view() {
+            View::Playing { capture_status, .. } => Some(capture_status),
+            _ => None,
+        }
     }
 
     /// Handles one `aocplayer://` link. A link that was just handled (the OS
@@ -262,7 +296,17 @@ impl Player {
                 .await;
         }
         match result {
-            Ok(exchange) => {
+            Ok(mut exchange) => {
+                let Some(watermark) = sanitize_watermark(&exchange.descriptor.watermark) else {
+                    let _ = tokio::time::timeout(
+                        END_TIMEOUT,
+                        self.api
+                            .end(&*key, exchange.session_id, &exchange.playback_token),
+                    )
+                    .await;
+                    return self.show(error("MEDIA_UNAVAILABLE"));
+                };
+                exchange.descriptor.watermark = watermark;
                 let media = Media::from_descriptor(&exchange.descriptor, &self.media_origins);
                 if media == Media::Unsupported {
                     // Nothing this player may play: give the session back at once.
@@ -274,13 +318,32 @@ impl Player {
                     .await;
                     return self.show(error("MEDIA_UNAVAILABLE"));
                 }
-                self.start(key, exchange, media)
+                let capture_status = self
+                    .capture
+                    .apply(exchange.descriptor.capture_protection.enabled);
+                if exchange.descriptor.capture_protection.required && !capture_status.is_applied() {
+                    self.capture.clear();
+                    let _ = tokio::time::timeout(
+                        END_TIMEOUT,
+                        self.api
+                            .end(&*key, exchange.session_id, &exchange.playback_token),
+                    )
+                    .await;
+                    return self.show(error("CAPTURE_PROTECTION_UNAVAILABLE"));
+                }
+                self.start(key, exchange, media, capture_status)
             }
             Err(failure) => self.show(error_view(&failure)),
         }
     }
 
-    fn start(self: &Arc<Self>, key: Arc<dyn InstallationKey>, exchange: Exchange, media: Media) {
+    fn start(
+        self: &Arc<Self>,
+        key: Arc<dyn InstallationKey>,
+        exchange: Exchange,
+        media: Media,
+        capture_status: CaptureStatus,
+    ) {
         let session = Session {
             id: exchange.session_id,
             token: exchange.playback_token,
@@ -289,6 +352,8 @@ impl Player {
             lesson_title: exchange.descriptor.title,
             watermark_text: exchange.descriptor.watermark_text,
             media,
+            capture_status,
+            watermark: exchange.descriptor.watermark,
         };
         self.show(playing_view(&session));
         let (cancel, cancelled) = watch::channel(Cancel::None);
@@ -384,7 +449,9 @@ impl Player {
                 (cause == Cancel::User).then(|| "ENDED_BY_STUDENT".to_owned())
             }
         };
-        // Tear down: the token and descriptor die with this task.
+        // Tear down: the token and descriptor die with this task, and the
+        // native window is no longer excluded from capture.
+        self.capture.clear();
         drop(session);
         {
             let mut state = self.state();
@@ -437,11 +504,36 @@ impl Player {
     }
 }
 
+fn sanitize_watermark(policy: &crate::api::WatermarkPolicy) -> Option<crate::api::WatermarkPolicy> {
+    if !policy.enabled {
+        return Some(crate::api::WatermarkPolicy::default());
+    }
+    let text = policy.text.as_deref()?.trim();
+    if text.is_empty()
+        || text.len() > 256
+        || !policy
+            .opacity
+            .is_some_and(|opacity| (0.05..=0.60).contains(&opacity))
+        || !(5..=120).contains(&policy.movement_interval_seconds)
+    {
+        return None;
+    }
+    Some(crate::api::WatermarkPolicy {
+        enabled: true,
+        text: Some(text.to_owned()),
+        opacity: policy.opacity,
+        movement_interval_seconds: policy.movement_interval_seconds,
+        placement: policy.placement,
+    })
+}
+
 fn playing_view(session: &Session) -> View {
     View::Playing {
         session_id: session.id,
         lesson_title: session.lesson_title.clone(),
         watermark_text: session.watermark_text.clone(),
+        watermark: session.watermark.clone(),
+        capture_status: session.capture_status,
         media: session.media.clone(),
     }
 }

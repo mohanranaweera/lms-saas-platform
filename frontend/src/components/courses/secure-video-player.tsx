@@ -401,7 +401,7 @@ export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired 
       {session?.watermarkText ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute select-none text-xs font-semibold text-white/60"
+          className="pointer-events-none absolute max-w-[36%] whitespace-pre-line select-none text-xs font-semibold leading-snug text-white/60"
           style={{ top: `${watermarkPosition.top}%`, left: `${watermarkPosition.left}%` }}
         >
           {session.watermarkText}

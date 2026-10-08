@@ -61,6 +61,17 @@ A refused attempt does not consume the code. Audited `player.paired`.
 Body `{launchCode, playerVersion, platform}` →
 `200 {sessionId, playbackToken, expiresAt, heartbeatIntervalSeconds, descriptor}`.
 `descriptor.provider` is `YOUTUBE` (`providerVideoId`) or `INTERNAL` (`signedUrl`, ~3 min).
+The additive `descriptor.watermark` policy is `{enabled, text, opacity, movementIntervalSeconds,
+placement}`. The server builds `text` from the tenant-selected fields using bounded attribution;
+`text` is newline-delimited with one labeled row per selected attribute:
+`STUDENT_DISPLAY_ID` is an opaque student UUID prefix, `STUDENT_FULL_NAME` is the current
+student profile name resolved within the tenant, `MASKED_EMAIL` and `MASKED_PHONE` are masked,
+and `SESSION_ID`/`TIMESTAMP` are bounded session metadata. `placement` is always `OUTSIDE_PLAYER`
+for YouTube and may be `OVERLAY` only for INTERNAL media. The native player renders the watermark
+with a legible responsive font size and keeps YouTube text outside the cross-origin iframe.
+`descriptor.captureProtection` is
+`{enabled, required}`; it is derived from the trusted tenant configuration and platform feature gate,
+never from the player request.
 
 Checks, in order: code usable → installation ACTIVE, same student, same device the Student pressed
 Play on → signature, clock, nonce → player version → session still pending → the same playability
@@ -69,9 +80,15 @@ flags) → other ACTIVE sessions of that video for the student are superseded. A
 `video.playback_authorized` (channel NATIVE).
 
 Failures: one generic `400 PLAYBACK_LAUNCH_CODE_INVALID` (the reason is only in the security log);
-`426 PLAYER_VERSION_UNSUPPORTED`; `429 PLAYER_RATE_LIMITED` (30/min per IP, 20/min per installation + IP). A
-request without the right key never consumes the code. Losing access revokes the pending session.
+`426 PLAYER_VERSION_UNSUPPORTED`; `429 PLAYER_RATE_LIMITED` (30/min per IP, 20/min per installation + IP).
+A request without the right key never consumes the code. Losing access revokes the pending session.
 Concurrent exchanges of one code: exactly one succeeds.
+
+Before showing media, the Windows player applies `WDA_EXCLUDEFROMCAPTURE` when capture protection
+is enabled. If `required=true` and the OS/window cannot apply it, the player ends the exchanged
+session and displays `CAPTURE_PROTECTION_UNAVAILABLE`; it never silently starts unprotected
+playback. This is capture deterrence only, not DRM or a guarantee against cameras, HDMI hardware,
+virtual machines, remote desktop, GPU-specific capture paths, or modified binaries.
 
 ### `POST /api/v1/player/sessions/{id}/heartbeat` (signed + `X-Player-Token`)
 
@@ -171,12 +188,14 @@ No endpoint or field changed; the player now uses the exchange `descriptor` and 
 `mediaUrl`:
 
 - `provider: YOUTUBE` → `providerVideoId` (must match `^[A-Za-z0-9_-]{11}$`) is played with the
-  official YouTube embed. Watermark band below the player, never over it (YouTube terms).
+  official YouTube embed. The watermark is rendered in the band below the player, never over the
+  cross-origin iframe (YouTube terms); capture affinity in this mode remains deterrence only.
 - `provider: INTERNAL` → `signedUrl` is played only if its origin is one of the player build's
   `AOC_MEDIA_ORIGINS` (the object-storage/CDN origin, i.e. `OBJECT_STORAGE_ENDPOINT`'s host in that
   environment). `allowSeeking: false` hides the seek bar and undoes forward jumps (deterrent; the
-  server stays authoritative). Each `CONTINUE` heartbeat's `mediaUrl` is validated the same way and
-  used when the current URL expires; a URL on any other origin is ignored.
+  server stays authoritative). An enabled `watermark` with `placement=OVERLAY` moves through bounded
+  positions inside the stage at the configured interval. Each `CONTINUE` heartbeat's `mediaUrl` is
+  validated the same way and used when the current URL expires; a URL on any other origin is ignored.
 - Any other provider, or a reference that fails validation: the player calls `/end` at once and
   shows "this video can't be played here" (`MEDIA_UNAVAILABLE`, player-side only).
 - Deploy note: the player build for an environment must list that environment's storage/CDN

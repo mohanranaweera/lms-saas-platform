@@ -3,7 +3,7 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    10 — Playback engines (native player)
+Current Phase:    11 — Watermark & Capture Protection
 Last Updated:     2026-10-08
 Current Branch:   feat/video-playback-engines
 Latest Migration: V77__player_installations_and_launch_codes.sql
@@ -25,8 +25,8 @@ Open Blockers:    none for Phase 9 dev builds; code-signing route + updater-key 
 | 7 | Playback Authorization | COMPLETE | 2026-10-06 | 2026-10-07 |
 | 8 | Device & Session Security | COMPLETE | 2026-10-07 | 2026-10-07 |
 | 9 | AOC Secure Player Foundation | COMPLETE | 2026-10-08 | 2026-10-08 |
-| 10 | Playback Engines | TESTED (commit pending) | 2026-10-08 | |
-| 11 | Watermark & Capture Protection | NOT STARTED | | |
+| 10 | Playback Engines | TESTED (commit pending) | 2026-10-08 | 2026-10-08 |
+| 11 | Watermark & Capture Protection | IN PROGRESS | 2026-10-08 | |
 | 12 | Watch-Time & Heartbeat | NOT STARTED | | |
 | 13 | Managed/Self-Hosted Streaming | NOT STARTED | | |
 | 14 | Security Hardening | NOT STARTED | | |
@@ -2378,4 +2378,50 @@ the recording-access rules (recordings are protected content).
 - **Not verified here:** a YouTube lesson end-to-end in the player (no YouTube video was attached to
   a lesson in the demo data; the embed itself was checked in Edge), and the > 3 min signed-URL
   swap (owner reported "looks right" without that detail) - re-check during Phase 11 testing.
+
+### Phase 11 — Watermark & Capture Protection
+
+**Before (2026-10-08, status → IN PROGRESS; branch `feat/video-content-protection`; branch creation pending environment shell classifier recovery)**
+
+- **Objective:** make the existing tenant watermark/capture settings effective in the native player:
+  Windows `WDA_EXCLUDEFROMCAPTURE` capture-affinity deterrence, capability reporting and fail-closed
+  behavior for `captureProtectionRequired`, plus a moving watermark for INTERNAL media. YouTube stays
+  outside-player only because its watermark cannot be drawn over the cross-origin iframe.
+- **Owner decisions carried forward:** Q-012 refuses playback when required protection is unavailable;
+  Q-006 legal review remains required before production shipping of capture affinity in YouTube mode.
+- **Impact:** no migration is expected; V71 already stores tenant watermark/capture settings. The
+  exchange descriptor gains additive watermark/capture policy objects. Tenant identity remains derived
+  from the consumed launch-code row and trusted effective settings; the player request cannot supply
+  tenant or policy values.
+- **Security/test goals:** apply affinity before required media is shown, clear it on every teardown,
+  never expose handles/tokens to the WebView, render moving overlays only for INTERNAL media, and add
+  native/backend contract tests plus honest deterrence documentation.
+
+**Implementation update (2026-10-08; automated verification complete, acceptance gates pending)**
+
+- **Backend:** `PlaybackDescriptor` now carries additive `watermark` and `captureProtection` policy
+  objects. `PlayerExchangeService` resolves trusted tenant settings under the consumed launch-code
+  tenant, applies platform gates, forces YouTube placement to `OUTSIDE_PLAYER`, and builds bounded
+  attribution from the tenant-scoped identity API (`maskedEmail`, session id and configured timestamp
+  fields). No request-controlled tenant/policy values are accepted. V71 remains sufficient; no DB
+  migration was added.
+- **Native player:** added `capture_protection.rs` with Windows `SetWindowDisplayAffinity`/
+  `WDA_EXCLUDEFROMCAPTURE`, a testable controller abstraction, explicit unsupported/failed statuses,
+  and `WDA_NONE` teardown. Required protection ends the exchanged session before `View::Playing` if
+  affinity is unavailable. `View::Playing` reports sanitized watermark policy and capture status.
+  INTERNAL media gets a bounded moving stage watermark; YouTube retains only the outside-player band.
+  The remote iframe receives no IPC or overlay access.
+- **Frontend/UX:** capture-required copy remains honest about deterrence and external capture methods;
+  the native UI shows a generic refusal message without exposing OS handles or policy secrets.
+- **Tests added/updated:** native lifecycle tests cover required-capture fail-closed behavior,
+  successful applied-capture reporting, teardown clearing, policy/view serialization, watermark bounds
+  and old descriptor defaults; backend player integration assertions cover trusted attribution,
+  YouTube placement, masked-phone attribution, effective capture policy and cross-tenant behavior.
+  `native-player` TypeScript/Vite build, Rust formatting, normal/release clippy and Rust tests pass;
+  final focused backend player verification passes (15 tests), and definitive full backend verification
+  passes 2,420 tests with 0 failures/errors/skips (`BUILD SUCCESS`). Manual Windows affinity verification
+  and Q-006 legal review remain pending.
+- **Security review:** no new migration, credential, endpoint, or WebView command. Capture is explicitly
+  deterrence, not DRM; server entitlement and tenant context remain authoritative. Work is on
+  `feat/video-content-protection`; no commit, push, production enablement or release has been performed.
 

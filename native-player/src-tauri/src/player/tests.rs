@@ -43,12 +43,49 @@ impl Recorder {
     }
 }
 
+struct CaptureRecorder {
+    requests: Mutex<Vec<bool>>,
+    clears: std::sync::atomic::AtomicUsize,
+    applied_status: crate::capture_protection::CaptureStatus,
+}
+
+impl CaptureRecorder {
+    fn new(applied_status: crate::capture_protection::CaptureStatus) -> Self {
+        Self {
+            requests: Mutex::new(Vec::new()),
+            clears: std::sync::atomic::AtomicUsize::new(0),
+            applied_status,
+        }
+    }
+
+    fn clear_count(&self) -> usize {
+        self.clears.load(std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+impl crate::capture_protection::Controller for CaptureRecorder {
+    fn apply(&self, enabled: bool) -> crate::capture_protection::CaptureStatus {
+        self.requests.lock().unwrap().push(enabled);
+        if enabled {
+            self.applied_status
+        } else {
+            crate::capture_protection::CaptureStatus::NotRequested
+        }
+    }
+
+    fn clear(&self) {
+        self.clears
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 struct Fixture {
     server: MockServer,
     player: Arc<Player>,
     views: Arc<Recorder>,
     keys: MemoryKeyStore,
     dir: PathBuf,
+    capture: Arc<CaptureRecorder>,
 }
 
 impl Drop for Fixture {
@@ -58,17 +95,23 @@ impl Drop for Fixture {
 }
 
 async fn fixture() -> Fixture {
+    fixture_with_capture(crate::capture_protection::CaptureStatus::Unsupported).await
+}
+
+async fn fixture_with_capture(applied_status: crate::capture_protection::CaptureStatus) -> Fixture {
     let server = MockServer::start().await;
     let dir = std::env::temp_dir().join(format!("aoc-player-test-{}", Uuid::new_v4()));
     let keys = MemoryKeyStore::default();
     let views = Arc::new(Recorder::default());
+    let capture = Arc::new(CaptureRecorder::new(applied_status));
     let api = ApiClient::new(Url::parse(&server.uri()).unwrap()).unwrap();
-    let player = Player::new(
+    let player = Player::with_capture_controller(
         api,
         Box::new(keys.clone()),
         InstallationStore::new(dir.clone()),
         views.clone(),
         crate::config::parse_origins(MEDIA_ORIGIN, false).unwrap(),
+        capture.clone(),
     );
     Fixture {
         server,
@@ -76,6 +119,7 @@ async fn fixture() -> Fixture {
         views,
         keys,
         dir,
+        capture,
     }
 }
 
@@ -161,6 +205,16 @@ fn in_seconds(seconds: i64) -> String {
 }
 
 fn exchange_body(session_id: Uuid, token: &str, deadline_seconds: i64) -> Value {
+    exchange_body_with_capture(session_id, token, deadline_seconds, false, false)
+}
+
+fn exchange_body_with_capture(
+    session_id: Uuid,
+    token: &str,
+    deadline_seconds: i64,
+    capture_enabled: bool,
+    capture_required: bool,
+) -> Value {
     envelope(json!({
         "sessionId": session_id,
         "playbackToken": token,
@@ -169,7 +223,9 @@ fn exchange_body(session_id: Uuid, token: &str, deadline_seconds: i64) -> Value 
         "descriptor": {
             "sessionId": session_id, "provider": "YOUTUBE", "providerVideoId": "dQw4w9WgXcQ",
             "signedUrl": null, "expiresAt": null, "title": "Lesson 1", "durationSeconds": 600,
-            "watermarkText": "student@example.test", "allowSeeking": true, "allowDownload": false
+            "watermarkText": "student@example.test", "allowSeeking": true, "allowDownload": false,
+            "watermark": { "enabled": false, "text": null, "opacity": null, "movementIntervalSeconds": 0, "placement": "OUTSIDE_PLAYER" },
+            "captureProtection": { "enabled": capture_enabled, "required": capture_required }
         }
     }))
 }
@@ -338,6 +394,8 @@ async fn signed_exchange_then_heartbeats_until_the_server_says_stop() {
             session_id,
             lesson_title: Some("Lesson 1".into()),
             watermark_text: Some("student@example.test".into()),
+            watermark: crate::api::WatermarkPolicy::default(),
+            capture_status: crate::capture_protection::CaptureStatus::NotRequested,
             media: Media::Youtube {
                 video_id: "dQw4w9WgXcQ".into()
             },
@@ -360,6 +418,119 @@ async fn signed_exchange_then_heartbeats_until_the_server_says_stop() {
         body,
         json!({ "launchCode": CODE, "playerVersion": env!("CARGO_PKG_VERSION"), "platform": "WINDOWS" })
     );
+}
+
+#[tokio::test]
+async fn required_capture_protection_fails_closed_before_playing() {
+    let f = fixture().await;
+    paired(&f);
+    let session_id = Uuid::new_v4();
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(exchange_body_with_capture(
+                session_id, "token-1", 60, true, true,
+            )),
+        )
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(
+            format!("/api/v1/player/sessions/{session_id}/end").as_str(),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(envelope(Value::Null)))
+        .expect(1)
+        .mount(&f.server)
+        .await;
+
+    f.player.handle_link(&play_link()).await;
+
+    assert_eq!(
+        f.views.last(),
+        Some(View::Error {
+            code: "CAPTURE_PROTECTION_UNAVAILABLE".into()
+        })
+    );
+    assert!(!f.player.has_session());
+    assert_eq!(f.capture.requests.lock().unwrap().as_slice(), &[true]);
+    assert_eq!(f.capture.clear_count(), 1);
+    assert!(
+        !f.views
+            .0
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|view| matches!(view, View::Playing { .. }))
+    );
+}
+
+#[tokio::test]
+async fn applied_capture_protection_is_reported_before_playing() {
+    let f = fixture_with_capture(crate::capture_protection::CaptureStatus::Applied).await;
+    paired(&f);
+    let session_id = Uuid::new_v4();
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(exchange_body_with_capture(
+                session_id, "token-1", 60, true, true,
+            )),
+        )
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(
+            format!("/api/v1/player/sessions/{session_id}/heartbeat").as_str(),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(beat("STOP", Some("ADMIN"), "")))
+        .mount(&f.server)
+        .await;
+
+    f.player.handle_link(&play_link()).await;
+
+    assert!(matches!(
+        f.views.last(),
+        Some(View::Playing {
+            capture_status: crate::capture_protection::CaptureStatus::Applied,
+            ..
+        })
+    ));
+    assert_eq!(f.capture.requests.lock().unwrap().as_slice(), &[true]);
+    let _ = wait_for(&f.views, |view| matches!(view, View::Stopped { .. })).await;
+    assert_eq!(f.capture.clear_count(), 1);
+}
+
+#[tokio::test]
+async fn disabled_capture_protection_is_not_requested() {
+    let f = fixture().await;
+    paired(&f);
+    let session_id = Uuid::new_v4();
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(exchange_body(session_id, "token-1", 60)),
+        )
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(
+            format!("/api/v1/player/sessions/{session_id}/heartbeat").as_str(),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(beat("STOP", Some("ADMIN"), "")))
+        .mount(&f.server)
+        .await;
+
+    f.player.handle_link(&play_link()).await;
+    assert!(matches!(
+        f.views.last(),
+        Some(View::Playing {
+            capture_status: crate::capture_protection::CaptureStatus::NotRequested,
+            ..
+        })
+    ));
+    assert_eq!(f.capture.requests.lock().unwrap().as_slice(), &[false]);
+    let _ = wait_for(&f.views, |view| matches!(view, View::Stopped { .. })).await;
+    assert_eq!(f.capture.clear_count(), 1);
 }
 
 #[tokio::test]
@@ -650,6 +821,8 @@ fn views_serialize_for_the_ui() {
         session_id,
         lesson_title: Some("L".into()),
         watermark_text: None,
+        watermark: crate::api::WatermarkPolicy::default(),
+        capture_status: crate::capture_protection::CaptureStatus::NotRequested,
         media: Media::File {
             url: "https://media.example.test/a.mp4".into(),
             allow_seeking: false,
@@ -662,6 +835,8 @@ fn views_serialize_for_the_ui() {
             "sessionId": "00000000-0000-0000-0000-000000000000",
             "lessonTitle": "L",
             "watermarkText": null,
+            "watermark": { "enabled": false, "text": null, "opacity": null, "movementIntervalSeconds": 0, "placement": "OUTSIDE_PLAYER" },
+            "captureStatus": "NOT_REQUESTED",
             "media": { "engine": "file", "url": "https://media.example.test/a.mp4", "allowSeeking": false }
         })
     );
@@ -682,6 +857,36 @@ fn server_codes_are_sanitized() {
     assert_eq!(sanitize(Some(""), "F"), "F");
     assert_eq!(sanitize(Some(&"A".repeat(65)), "F"), "F");
     assert_eq!(sanitize(None, "F"), "F");
+}
+
+#[test]
+fn watermark_policy_defaults_and_bounds_are_enforced() {
+    assert_eq!(
+        serde_json::from_value::<crate::api::Descriptor>(json!({ "provider": "YOUTUBE" }))
+            .unwrap()
+            .watermark,
+        crate::api::WatermarkPolicy::default()
+    );
+    assert!(
+        sanitize_watermark(&crate::api::WatermarkPolicy {
+            enabled: true,
+            text: Some("  student@example.test  ".into()),
+            opacity: Some(0.25),
+            movement_interval_seconds: 30,
+            placement: crate::api::WatermarkPlacement::Overlay,
+        })
+        .is_some_and(|policy| policy.text.as_deref() == Some("student@example.test"))
+    );
+    assert!(
+        sanitize_watermark(&crate::api::WatermarkPolicy {
+            enabled: true,
+            text: Some("x".into()),
+            opacity: Some(0.01),
+            movement_interval_seconds: 30,
+            placement: crate::api::WatermarkPlacement::Overlay,
+        })
+        .is_none()
+    );
 }
 
 #[tokio::test]
@@ -762,7 +967,9 @@ fn internal_exchange(session_id: Uuid, signed_url: &str) -> Value {
         "descriptor": {
             "sessionId": session_id, "provider": "INTERNAL", "providerVideoId": null,
             "signedUrl": signed_url, "expiresAt": in_seconds(180), "title": "Lesson 2",
-            "durationSeconds": 600, "watermarkText": null, "allowSeeking": false, "allowDownload": false
+            "durationSeconds": 600, "watermarkText": null, "allowSeeking": false, "allowDownload": false,
+            "watermark": { "enabled": false, "text": null, "opacity": null, "movementIntervalSeconds": 0, "placement": "OUTSIDE_PLAYER" },
+            "captureProtection": { "enabled": false, "required": false }
         }
     }))
 }

@@ -51,7 +51,13 @@ export interface PendingChannelView {
 export type MediaAssetProvider = "INTERNAL" | "YOUTUBE";
 export type DefaultPrivacyStatus = "UNLISTED" | "PRIVATE";
 export type WatchTimePolicy = "NONE" | "VIDEO_DURATION_MULTIPLIER" | "FIXED_MINUTES";
-export type WatermarkField = "STUDENT_DISPLAY_ID" | "MASKED_EMAIL" | "MASKED_PHONE" | "SESSION_ID" | "TIMESTAMP";
+export type WatermarkField =
+  | "STUDENT_DISPLAY_ID"
+  | "STUDENT_FULL_NAME"
+  | "MASKED_EMAIL"
+  | "MASKED_PHONE"
+  | "SESSION_ID"
+  | "TIMESTAMP";
 
 /** Mirrors `TenantVideoSettings`; also the `PUT` body. */
 export interface TenantVideoSettings {

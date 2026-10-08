@@ -29,9 +29,10 @@ cd backend
 ./mvnw.cmd spring-boot:run
 # Confirms healthy once GET http://localhost:8080/actuator/health returns {"status":"UP"}
 
-# 3. Start the frontend natively (from frontend/), pointed at the local backend
+# 3. Start the frontend natively (from frontend/)
+# Keep API calls same-origin so tenant refresh cookies work on tenant hosts.
 cd frontend
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api npm run dev
+npm run dev
 ```
 
 This matches `backend/src/main/resources/application-local.yml`'s defaults

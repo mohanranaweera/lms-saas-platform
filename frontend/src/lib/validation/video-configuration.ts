@@ -9,6 +9,7 @@ import type { TenantVideoSettings, WatermarkField } from "@/lib/api/video-provid
 
 export const WATERMARK_FIELDS: { value: WatermarkField; label: string }[] = [
   { value: "STUDENT_DISPLAY_ID", label: "Student ID" },
+  { value: "STUDENT_FULL_NAME", label: "Student full name" },
   { value: "MASKED_EMAIL", label: "Masked email" },
   { value: "MASKED_PHONE", label: "Masked phone number" },
   { value: "SESSION_ID", label: "Session code" },
@@ -43,7 +44,9 @@ export const videoConfigurationSchema = z
     watermarkOpacity: decimalInRange(0.05, 0.6, "Watermark opacity"),
     watermarkMovementIntervalSeconds: wholeInRange(5, 120, "Movement interval"),
     watermarkFields: z
-      .array(z.enum(["STUDENT_DISPLAY_ID", "MASKED_EMAIL", "MASKED_PHONE", "SESSION_ID", "TIMESTAMP"]))
+      .array(
+        z.enum(["STUDENT_DISPLAY_ID", "STUDENT_FULL_NAME", "MASKED_EMAIL", "MASKED_PHONE", "SESSION_ID", "TIMESTAMP"])
+      )
       .min(1, "Choose at least one thing to show in the watermark."),
     captureProtectionEnabled: z.boolean(),
     captureProtectionRequired: z.boolean(),

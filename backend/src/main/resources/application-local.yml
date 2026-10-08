@@ -63,6 +63,12 @@ object-storage:
   access-key: ${OBJECT_STORAGE_ACCESS_KEY:${MINIO_ROOT_USER:lms_minio}}
   secret-key: ${OBJECT_STORAGE_SECRET_KEY:${MINIO_ROOT_PASSWORD:change_this_local_password}}
 
+video:
+  # Local testing only: allow tenants configured for the AOC Player to issue
+  # native launch links. The base/default profile remains fail-closed.
+  features:
+    native-player: true
+
 app:
   # VIDEO Phase 8: local-only pepper for player pairing/launch-code HMACs.
   player:

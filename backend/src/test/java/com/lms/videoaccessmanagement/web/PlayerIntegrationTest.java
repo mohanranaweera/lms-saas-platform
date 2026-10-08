@@ -107,6 +107,12 @@ class PlayerIntegrationTest extends MediaUploadTestSupport {
 		assertThat(exchange.path("sessionId").asString()).isEqualTo(sessionId.toString());
 		assertThat(exchange.path("descriptor").path("provider").asString()).isEqualTo("YOUTUBE");
 		assertThat(exchange.path("descriptor").path("providerVideoId").asString()).isEqualTo(lesson.videoId());
+		assertThat(exchange.path("descriptor").path("watermark").path("enabled").asBoolean()).isTrue();
+		assertThat(exchange.path("descriptor").path("watermark").path("text").asString())
+				.isEqualTo("Student ID: " + lesson.studentId().toString().substring(0, 8));
+		assertThat(exchange.path("descriptor").path("watermark").path("placement").asString()).isEqualTo("OUTSIDE_PLAYER");
+		assertThat(exchange.path("descriptor").path("captureProtection").path("enabled").asBoolean()).isTrue();
+		assertThat(exchange.path("descriptor").path("captureProtection").path("required").asBoolean()).isFalse();
 		String token = exchange.path("playbackToken").asString();
 		assertThat(token).isNotBlank();
 		assertThat(rawContent(exchanged)).doesNotContain(accessTokenOf(lesson.ctx().tenant().getId()));
@@ -135,6 +141,52 @@ class PlayerIntegrationTest extends MediaUploadTestSupport {
 	// ------------------------------------------------------------------
 	// Launch codes
 	// ------------------------------------------------------------------
+
+	@Test
+	void configuredFullNameWatermarkUsesTenantScopedStudentContact() {
+		Lesson lesson = nativeLesson("pl-full-name-watermark");
+		jdbcTemplate.update("UPDATE student_profile SET name = ?, updated_at = now() WHERE id = ?",
+				"Demo Student", lesson.studentProfileId());
+		jdbcTemplate.update("UPDATE tenant_video_configuration SET watermark_fields = ? WHERE tenant_id = ?",
+				"STUDENT_FULL_NAME", lesson.ctx().tenant().getId());
+		TestPlayer player = pair(lesson.ctx());
+		String launchUrl = json(play(lesson)).path("data").path("launch").path("url").asString();
+
+		JsonNode exchange = json(exchange(player, codeOf(launchUrl))).path("data");
+		assertThat(exchange.path("descriptor").path("watermark").path("text").asString())
+				.isEqualTo("Student name: Demo Student");
+	}
+
+	@Test
+	void configuredMultipleWatermarkFieldsUseOneLabeledRowPerAttribute() {
+		Lesson lesson = nativeLesson("pl-multi-watermark");
+		jdbcTemplate.update("UPDATE student_profile SET name = ?, mobile = ?, updated_at = now() WHERE id = ?",
+				"Demo Student", "+94771234567", lesson.studentProfileId());
+		jdbcTemplate.update("UPDATE tenant_video_configuration SET watermark_fields = ? WHERE tenant_id = ?",
+				"STUDENT_FULL_NAME,MASKED_PHONE,SESSION_ID", lesson.ctx().tenant().getId());
+		TestPlayer player = pair(lesson.ctx());
+		String launchUrl = json(play(lesson)).path("data").path("launch").path("url").asString();
+
+		JsonNode exchange = json(exchange(player, codeOf(launchUrl))).path("data");
+		String watermark = exchange.path("descriptor").path("watermark").path("text").asText();
+		assertThat(watermark).startsWith("Student name: Demo Student\nPhone: +947•••567\nSession: ");
+		assertThat(watermark.lines()).hasSize(3);
+	}
+
+	@Test
+	void configuredMaskedPhoneWatermarkUsesTenantScopedStudentContact() {
+		Lesson lesson = nativeLesson("pl-phone-watermark");
+		jdbcTemplate.update("UPDATE student_profile SET mobile = ?, updated_at = now() WHERE id = ?",
+				"+94771234567", lesson.studentProfileId());
+		jdbcTemplate.update("UPDATE tenant_video_configuration SET watermark_fields = ? WHERE tenant_id = ?",
+				"MASKED_PHONE", lesson.ctx().tenant().getId());
+		TestPlayer player = pair(lesson.ctx());
+		String launchUrl = json(play(lesson)).path("data").path("launch").path("url").asString();
+
+		JsonNode exchange = json(exchange(player, codeOf(launchUrl))).path("data");
+		assertThat(exchange.path("descriptor").path("watermark").path("text").asString())
+				.isEqualTo("Phone: +947•••567");
+	}
 
 	@Test
 	void aLaunchCodeWorksOnceAndNotAfterItExpires() {
