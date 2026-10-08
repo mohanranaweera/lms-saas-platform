@@ -26,6 +26,7 @@ use crate::signing;
 
 const CODE: &str = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE";
 const EXCHANGE: &str = "/api/v1/player/exchange";
+const MEDIA_ORIGIN: &str = "https://media.example.test";
 
 #[derive(Default)]
 struct Recorder(Mutex<Vec<View>>);
@@ -67,6 +68,7 @@ async fn fixture() -> Fixture {
         Box::new(keys.clone()),
         InstallationStore::new(dir.clone()),
         views.clone(),
+        crate::config::parse_origins(MEDIA_ORIGIN, false).unwrap(),
     );
     Fixture {
         server,
@@ -333,8 +335,12 @@ async fn signed_exchange_then_heartbeats_until_the_server_says_stop() {
     assert_eq!(
         f.views.last(),
         Some(View::Playing {
+            session_id,
             lesson_title: Some("Lesson 1".into()),
             watermark_text: Some("student@example.test".into()),
+            media: Media::Youtube {
+                video_id: "dQw4w9WgXcQ".into()
+            },
         })
     );
     assert!(f.player.has_session());
@@ -639,13 +645,25 @@ async fn a_wrong_clock_is_corrected_and_the_exchange_retried_once() {
 
 #[test]
 fn views_serialize_for_the_ui() {
+    let session_id = Uuid::nil();
     let playing = View::Playing {
+        session_id,
         lesson_title: Some("L".into()),
         watermark_text: None,
+        media: Media::File {
+            url: "https://media.example.test/a.mp4".into(),
+            allow_seeking: false,
+        },
     };
     assert_eq!(
         serde_json::to_value(&playing).unwrap(),
-        json!({ "screen": "playing", "lessonTitle": "L", "watermarkText": null })
+        json!({
+            "screen": "playing",
+            "sessionId": "00000000-0000-0000-0000-000000000000",
+            "lessonTitle": "L",
+            "watermarkText": null,
+            "media": { "engine": "file", "url": "https://media.example.test/a.mp4", "allowSeeking": false }
+        })
     );
     assert_eq!(
         serde_json::to_value(View::NotPaired).unwrap(),
@@ -733,4 +751,200 @@ async fn oversized_responses_are_refused() {
         })
     );
     assert!(!f.player.has_session());
+}
+
+fn internal_exchange(session_id: Uuid, signed_url: &str) -> Value {
+    envelope(json!({
+        "sessionId": session_id,
+        "playbackToken": "token-1",
+        "expiresAt": in_seconds(60),
+        "heartbeatIntervalSeconds": 1,
+        "descriptor": {
+            "sessionId": session_id, "provider": "INTERNAL", "providerVideoId": null,
+            "signedUrl": signed_url, "expiresAt": in_seconds(180), "title": "Lesson 2",
+            "durationSeconds": 600, "watermarkText": null, "allowSeeking": false, "allowDownload": false
+        }
+    }))
+}
+
+fn beat_with_media(token: &str, media_url: &str) -> Value {
+    envelope(json!({
+        "action": "CONTINUE", "reason": null, "playbackToken": token,
+        "expiresAt": in_seconds(60), "heartbeatIntervalSeconds": 1, "mediaUrl": media_url
+    }))
+}
+
+fn file_url(view: &View) -> Option<String> {
+    match view {
+        View::Playing {
+            media: Media::File { url, .. },
+            ..
+        } => Some(url.clone()),
+        _ => None,
+    }
+}
+
+#[tokio::test]
+async fn a_platform_file_plays_and_gets_fresh_signed_urls_from_heartbeats() {
+    let f = fixture().await;
+    paired(&f);
+    let session_id = Uuid::new_v4();
+    let heartbeat = format!("/api/v1/player/sessions/{session_id}/heartbeat");
+    let first = format!("{MEDIA_ORIGIN}/videos/a.mp4?X-Amz-Signature=1");
+    let second = format!("{MEDIA_ORIGIN}/videos/a.mp4?X-Amz-Signature=2");
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(internal_exchange(session_id, &first)),
+        )
+        .mount(&f.server)
+        .await;
+    // A fresh URL on a foreign host is ignored; the next good one is used.
+    Mock::given(method("POST"))
+        .and(path(heartbeat.as_str()))
+        .and(header(TOKEN_HEADER, "token-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(beat_with_media(
+            "token-2",
+            "https://evil.example.test/a.mp4",
+        )))
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(heartbeat.as_str()))
+        .and(header(TOKEN_HEADER, "token-2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(beat_with_media("token-3", &second)))
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(heartbeat.as_str()))
+        .and(header(TOKEN_HEADER, "token-3"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(beat(
+            "STOP",
+            Some("ACCESS_REVOKED"),
+            "",
+        )))
+        .mount(&f.server)
+        .await;
+
+    f.player.handle_link(&play_link()).await;
+    let playing = f.views.last().unwrap();
+    assert_eq!(file_url(&playing).as_deref(), Some(first.as_str()));
+    assert!(matches!(
+        playing,
+        View::Playing {
+            media: Media::File {
+                allow_seeking: false,
+                ..
+            },
+            ..
+        }
+    ));
+
+    let stopped = wait_for(&f.views, |v| matches!(v, View::Stopped { .. })).await;
+    assert_eq!(
+        stopped,
+        View::Stopped {
+            reason: "ACCESS_REVOKED".into()
+        }
+    );
+    let urls: Vec<String> = f
+        .views
+        .0
+        .lock()
+        .unwrap()
+        .iter()
+        .filter_map(file_url)
+        .collect();
+    assert_eq!(
+        urls,
+        vec![first.clone(), second.clone()],
+        "only allowed URLs reach the UI"
+    );
+}
+
+#[tokio::test]
+async fn unplayable_media_gives_the_session_back() {
+    let f = fixture().await;
+    paired(&f);
+    let session_id = Uuid::new_v4();
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .respond_with(ResponseTemplate::new(200).set_body_json(internal_exchange(
+            session_id,
+            "https://evil.example.test/a.mp4",
+        )))
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(
+            format!("/api/v1/player/sessions/{session_id}/end").as_str(),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(envelope(Value::Null)))
+        .expect(1)
+        .mount(&f.server)
+        .await;
+
+    f.player.handle_link(&play_link()).await;
+    assert_eq!(
+        f.views.last(),
+        Some(View::Error {
+            code: "MEDIA_UNAVAILABLE".into()
+        })
+    );
+    assert!(!f.player.has_session());
+    let shown = f.views.0.lock().unwrap().clone();
+    assert!(
+        !shown.iter().any(|v| matches!(v, View::Playing { .. })),
+        "never shown as playing"
+    );
+}
+
+#[tokio::test]
+async fn a_revoked_installation_is_forgotten_so_the_next_launch_asks_to_pair() {
+    let f = fixture().await;
+    paired(&f);
+    let session_id = Uuid::new_v4();
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(exchange_body(session_id, "token-1", 60)),
+        )
+        .expect(1)
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(
+            format!("/api/v1/player/sessions/{session_id}/heartbeat").as_str(),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(beat(
+            "STOP",
+            Some("INSTALLATION_REVOKED"),
+            "",
+        )))
+        .mount(&f.server)
+        .await;
+
+    f.player.handle_link(&play_link()).await;
+    let stopped = wait_for(&f.views, |v| matches!(v, View::Stopped { .. })).await;
+    assert_eq!(
+        stopped,
+        View::Stopped {
+            reason: "INSTALLATION_REVOKED".into()
+        }
+    );
+    assert_eq!(InstallationStore::new(f.dir.clone()).load(), None);
+    assert!(
+        f.keys.keys.lock().unwrap().is_empty(),
+        "the dead key is deleted"
+    );
+
+    f.player
+        .handle_link(&format!("aocplayer://play?code={}", CODE.replace('A', "C")))
+        .await;
+    assert_eq!(
+        f.views.last(),
+        Some(View::Error {
+            code: "NOT_PAIRED".into()
+        })
+    );
 }

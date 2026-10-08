@@ -5,11 +5,13 @@ pub mod config;
 pub mod deep_link;
 pub mod installation;
 pub mod keystore;
+pub mod media;
 pub mod player;
 pub mod signing;
 
 use std::sync::Arc;
 
+use tauri::webview::NewWindowResponse;
 use tauri::{
     AppHandle, Emitter, Manager, RunEvent, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
@@ -36,12 +38,6 @@ fn get_state(player: State<'_, Arc<Player>>) -> View {
     player.view()
 }
 
-#[tauri::command]
-async fn end_session(player: State<'_, Arc<Player>>) -> Result<(), ()> {
-    player.end_by_student().await;
-    Ok(())
-}
-
 pub fn run() {
     let mut builder = tauri::Builder::default();
     // Must be the first plugin: a second launch (e.g. a new aocplayer:// link)
@@ -62,7 +58,7 @@ pub fn run() {
     }
 
     let app = builder
-        .invoke_handler(tauri::generate_handler![get_state, end_session])
+        .invoke_handler(tauri::generate_handler![get_state])
         .setup(|app| {
             let origin = config::api_origin()?;
             let api = ApiClient::new(origin)?;
@@ -72,14 +68,24 @@ pub fn run() {
                 keystore::platform_store(),
                 store,
                 Arc::new(WindowSink(app.handle().clone())),
+                config::media_origins()?,
             );
             app.manage(Arc::clone(&player));
 
             WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::App("index.html".into()))
                 .title("AOC Player")
-                .inner_size(960.0, 600.0)
-                .min_inner_size(640.0, 420.0)
+                .inner_size(1280.0, 760.0)
+                .min_inner_size(640.0, 400.0)
+                .center()
                 .on_navigation(is_bundled_ui)
+                // No pop-up windows. YouTube's own links ("Watch on YouTube")
+                // open in the system browser instead.
+                .on_new_window(|url, _features| {
+                    if media::is_youtube_page(&url) {
+                        open_in_browser(&url);
+                    }
+                    NewWindowResponse::Deny
+                })
                 .build()?;
 
             // Installed builds get the scheme from the installer; a dev build
@@ -135,6 +141,23 @@ fn handle(player: &Arc<Player>, link: &str) {
     let player = Arc::clone(player);
     let link = link.to_owned();
     tauri::async_runtime::spawn(async move { player.handle_link(&link).await });
+}
+
+/// Hands an already-validated https YouTube page to the default browser.
+fn open_in_browser(url: &url::Url) {
+    #[cfg(windows)]
+    {
+        use windows::Win32::UI::Shell::ShellExecuteW;
+        use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+        use windows::core::{HSTRING, w};
+        let target = HSTRING::from(url.as_str());
+        // SAFETY: plain Win32 call with owned, NUL-terminated wide strings.
+        unsafe {
+            ShellExecuteW(None, w!("open"), &target, None, None, SW_SHOWNORMAL);
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = url;
 }
 
 /// The window may only show the bundled UI (ADR-025 §1 navigation allow-list).

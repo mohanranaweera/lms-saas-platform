@@ -92,6 +92,8 @@ jobs:
         working-directory: native-player
     env:
       AOC_API_ORIGIN: ${{ vars.AOC_API_ORIGIN }}
+      # Comma-separated https origins platform-hosted videos are served from (storage/CDN).
+      AOC_MEDIA_ORIGINS: ${{ vars.AOC_MEDIA_ORIGINS }}
       AOC_UPDATER_ENDPOINT: ${{ vars.AOC_UPDATER_ENDPOINT }}
       AOC_UPDATER_PUBKEY: ${{ vars.AOC_UPDATER_PUBKEY }}
       AOC_SIGNING_ROUTE: ${{ vars.AOC_SIGNING_ROUTE }}
@@ -108,6 +110,10 @@ jobs:
           $missing = @()
           if (-not $env:AOC_API_ORIGIN.StartsWith("https://")) { $missing += "vars.AOC_API_ORIGIN (https)" }
           if (-not $env:AOC_UPDATER_ENDPOINT.StartsWith("https://")) { $missing += "vars.AOC_UPDATER_ENDPOINT (https)" }
+          $media = @("$env:AOC_MEDIA_ORIGINS".Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+          # Bare https origins only: the list is written into the release CSP, so
+          # anything else (paths, spaces, ';') could add CSP directives.
+          if ($media.Count -eq 0 -or ($media | Where-Object { $_ -notmatch '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?$' })) { $missing += "vars.AOC_MEDIA_ORIGINS (bare https origins, comma-separated)" }
           if (-not $env:AOC_UPDATER_PUBKEY) { $missing += "vars.AOC_UPDATER_PUBKEY" }
           if ($env:HAS_UPDATER_KEY -ne "true") { $missing += "secrets.TAURI_SIGNING_PRIVATE_KEY" }
           if ($env:AOC_SIGNING_ROUTE -notin @("azure-trusted-signing", "certificate")) { $missing += "vars.AOC_SIGNING_ROUTE" }
@@ -134,13 +140,20 @@ jobs:
       - name: Install UI dependencies
         run: npm ci
 
-      - name: Write release config (updater key and endpoint)
+      - name: Write release config (updater key, endpoint, content policy)
         shell: pwsh
         run: |
+          # The release CSP allows media only from this build's storage/CDN origins
+          # (dev builds allow the local MinIO instead).
+          $media = ("$env:AOC_MEDIA_ORIGINS".Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ }) -join " "
+          $csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; " +
+            "connect-src ipc: http://ipc.localhost; media-src 'self' $media; frame-src https://www.youtube-nocookie.com; " +
+            "object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
           @{
+            app     = @{ security = @{ csp = $csp; freezePrototype = $true } }
             bundle  = @{ createUpdaterArtifacts = $true }
             plugins = @{ updater = @{ pubkey = $env:AOC_UPDATER_PUBKEY; endpoints = @($env:AOC_UPDATER_ENDPOINT) } }
-          } | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 src-tauri/tauri.release.conf.json
+          } | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 src-tauri/tauri.release.conf.json
 
       - name: Build signed installer
         env:

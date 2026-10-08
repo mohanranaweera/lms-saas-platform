@@ -155,7 +155,8 @@ Ids from another tenant are 404.
   (2026-10-08).
 - **Requests:** `platform: "WINDOWS"`, `playerVersion` = the binary's version. Timestamps use the
   server clock learnt from `Date` headers; a refused exchange that reveals a clock more than 30 s
-  off is retried once. Heartbeats send `positionSeconds: 0`, `state: "IDLE"` until Phase 10/12.
+  off is retried once. Heartbeats send `positionSeconds: 0`, `state: "IDLE"` until Phase 12
+  (watch-time).
 - **Teardown:** `STOP` (any `reason`), 401/403/404 (`EXPIRED`), 426, a non-`CONTINUE` action, or a
   missed `expiresAt` deadline (network trouble or 5xx are retried until then) end the session.
   "End session" and closing the window call `/end` (5 s cap). A new launch link ends the current
@@ -163,3 +164,21 @@ Ids from another tenant are 404.
 - **Download:** the Student AOC Player page shows an "Install the AOC Player" card linking to
   `NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL` (https or a site path, build-time); unset, it says the
   download isn't available yet. Hidden on phones, tablets and Macs. Playwright covers both states.
+
+## Playback in the player (Phase 10)
+
+No endpoint or field changed; the player now uses the exchange `descriptor` and the heartbeat
+`mediaUrl`:
+
+- `provider: YOUTUBE` → `providerVideoId` (must match `^[A-Za-z0-9_-]{11}$`) is played with the
+  official YouTube embed. Watermark band below the player, never over it (YouTube terms).
+- `provider: INTERNAL` → `signedUrl` is played only if its origin is one of the player build's
+  `AOC_MEDIA_ORIGINS` (the object-storage/CDN origin, i.e. `OBJECT_STORAGE_ENDPOINT`'s host in that
+  environment). `allowSeeking: false` hides the seek bar and undoes forward jumps (deterrent; the
+  server stays authoritative). Each `CONTINUE` heartbeat's `mediaUrl` is validated the same way and
+  used when the current URL expires; a URL on any other origin is ignored.
+- Any other provider, or a reference that fails validation: the player calls `/end` at once and
+  shows "this video can't be played here" (`MEDIA_UNAVAILABLE`, player-side only).
+- Deploy note: the player build for an environment must list that environment's storage/CDN
+  origin in `AOC_MEDIA_ORIGINS`, or INTERNAL videos are refused by the player.
+

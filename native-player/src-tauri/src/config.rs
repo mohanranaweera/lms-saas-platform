@@ -52,6 +52,28 @@ pub fn parse_origin(raw: &str, allow_loopback_http: bool) -> Result<Url, ConfigE
     }
 }
 
+/// Debug builds accept files from the local MinIO unless `AOC_MEDIA_ORIGINS` says otherwise.
+const DEBUG_DEFAULT_MEDIA_ORIGINS: &str = "http://localhost:9000,http://127.0.0.1:9000";
+
+/// Where platform-hosted (INTERNAL) video files may come from (Phase 10):
+/// the object-storage / CDN origins compiled into this build, comma-separated
+/// in `AOC_MEDIA_ORIGINS`. A signed URL on any other host is never played.
+pub fn media_origins() -> Result<Vec<Url>, ConfigError> {
+    let raw = option_env!("AOC_MEDIA_ORIGINS").or(if cfg!(debug_assertions) {
+        Some(DEBUG_DEFAULT_MEDIA_ORIGINS)
+    } else {
+        None
+    });
+    parse_origins(raw.ok_or(ConfigError::Missing)?, cfg!(debug_assertions))
+}
+
+pub fn parse_origins(raw: &str, allow_loopback_http: bool) -> Result<Vec<Url>, ConfigError> {
+    raw.split(',')
+        .filter(|part| !part.trim().is_empty())
+        .map(|part| parse_origin(part, allow_loopback_http))
+        .collect()
+}
+
 /// Whether plain HTTP may be used at all (debug builds against loopback).
 pub fn allows_http(origin: &Url) -> bool {
     origin.scheme() == "http"

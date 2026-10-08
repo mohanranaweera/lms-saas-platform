@@ -3,13 +3,13 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    9 — AOC Secure Player foundation (native-player/ Tauri shell)
+Current Phase:    10 — Playback engines (native player)
 Last Updated:     2026-10-08
-Current Branch:   feat/aoc-secure-player
+Current Branch:   feat/video-playback-engines
 Latest Migration: V77__player_installations_and_launch_codes.sql
 Backend Build:    mvnw verify 2026-10-07: 2419 tests, 0 failures (Phase 8 backend)
 Frontend Build:   Phase 7 WEB player done 2026-10-07 (tsc clean, new Playwright spec 8/8)
-Player Build:     2026-10-08 cargo test 35/35 (incl. TPM), clippy -D warnings clean (dev + release feature)
+Player Build:     2026-10-08 (Phase 10) cargo test 45/45 incl. TPM, clippy -D warnings clean (dev + release feature)
 Tests:            Phase 6 tests added; Maven verification pending environment access
 Open Blockers:    none for Phase 9 dev builds; code-signing route + updater-key custody needed before the first player release
 ```
@@ -24,8 +24,8 @@ Open Blockers:    none for Phase 9 dev builds; code-signing route + updater-key 
 | 6 | Lesson Integration | COMPLETE | 2026-10-06 | |
 | 7 | Playback Authorization | COMPLETE | 2026-10-06 | 2026-10-07 |
 | 8 | Device & Session Security | COMPLETE | 2026-10-07 | 2026-10-07 |
-| 9 | AOC Secure Player Foundation | TESTED (manual run against local backend + commit pending) | 2026-10-08 | |
-| 10 | Playback Engines | NOT STARTED | | |
+| 9 | AOC Secure Player Foundation | COMPLETE | 2026-10-08 | 2026-10-08 |
+| 10 | Playback Engines | TESTED (commit pending) | 2026-10-08 | |
 | 11 | Watermark & Capture Protection | NOT STARTED | | |
 | 12 | Watch-Time & Heartbeat | NOT STARTED | | |
 | 13 | Managed/Self-Hosted Streaming | NOT STARTED | | |
@@ -2283,4 +2283,99 @@ the recording-access rules (recordings are protected content).
   with the variable set.
 - Pending: manual run against the local backend (pair → Play → exchange → heartbeats → admin
   revoke → STOP) and the commit.
+
+### Phase 10 — Playback engines (native player)
+
+**Before (2026-10-08, status → IN PROGRESS; branch `feat/video-playback-engines`)**
+
+- **Objective:** the AOC Player plays the lesson video. Phase 9 manual run (2026-10-08, local
+  backend): pairing, signed exchange and ~4 min of TPM-signed heartbeats verified; Phase 9 committed
+  as `996489c`.
+- **Owner decisions (2026-10-08):**
+  1. Engines now: **YouTube** (official embed) and **File** (INTERNAL MP4 via the signed URL), plus
+     the refusing `FutureProviderEngine` stub. **HLS/DASH engines move to Phase 13**, with the first
+     real stream source (nothing emits manifests yet).
+  2. YouTube: **plain embed iframe**, documented player parameters only; no `iframe_api` script in
+     the privileged player window. Position/state for watch-time is decided in Phase 12.
+  3. **Web engine split deferred** (to Phase 13): browser players unchanged; Phase 10 is
+     `native-player/` only.
+- **Design:** no backend/API change (exchange descriptor: `provider`, `providerVideoId`,
+  `signedUrl`, `allowSeeking`, `watermarkText`; heartbeat `mediaUrl` refreshes INTERNAL links).
+  Rust validates every media reference before the UI sees it (YouTube id `^[A-Za-z0-9_-]{11}$`;
+  file URL https - http only for loopback in debug - on a host in the compiled
+  `AOC_MEDIA_ORIGINS` allow-list) and pushes a fresh `mediaUrl` to the File engine, which swaps the
+  source keeping position. `allowSeeking=false` → no scrubber + snap-back. Teardown destroys the
+  engine and clears `src`. CSP opens `frame-src` to the YouTube embed host and `media-src` to the
+  build's media origins only. Watermark stays outside the YouTube player (band below), as on the
+  web. Risk checked first: YouTube embed "Error 153" (missing/odd referrer) from
+  `http://tauri.localhost`.
+- **Owner decision (2026-10-08, during Phase 10): player controls now, adaptive streaming in Phase 13.**
+  The File engine gets its own control bar (play/pause, back 10 s, scrubber only when seeking is
+  allowed, time, mute + volume, speed 0.75-2x, fullscreen, keyboard shortcuts). INTERNAL video is a
+  single progressive MP4, so there is no adaptive bitrate or quality menu until Phase 13 transcodes
+  to HLS (hls.js levels: Auto + per-rendition). YouTube keeps its own quality/speed menu (its API no
+  longer sets quality). Consequence for **Phase 12**: with speed allowed, watch-time counts video
+  time watched (position progress), not wall-clock time.
+- Found during the manual run: a STOP with `INSTALLATION_REVOKED`/`DEVICE_REVOKED` now makes the
+  player forget its pairing (local record + key), so the next launch says "pair again" instead of the
+  generic, deliberately uninformative `PLAYBACK_LAUNCH_CODE_INVALID`.
+- **Owner decisions for Phase 11 (2026-10-08, asked during the Phase 10 manual run):**
+  - YouTube watermark stays a **band below the YouTube player** (YouTube API terms forbid drawing
+    over the player; a breach risks the platform's YouTube API access for every tenant). The moving
+    on-video watermark is for platform-hosted video only; content that needs protection should be
+    hosted on the platform, not YouTube.
+  - Screen-capture blocking (`SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`, Windows 10 2004+)
+    is the **next phase (11)**, started right after Phase 10 is tested and committed, together with
+    the moving watermark, the tenant "capture protection required" setting, capability reporting
+    and Q-012 (refuse when required and unsupported). Capture blocking in YouTube mode remains part
+    of the Q-006 legal review.
+- Owner UX changes (2026-10-08): while playing, the window shows only the video, control bar and
+  watermark line (no header, title, description or End button); closing the window (✕) ends the
+  session (the `end_session` command was removed); the whole frame is shown letterboxed
+  (`object-fit: contain`); the window opens centred at 1280×760.
+- **Impact:** DB none; API none; tenant none; security: third-party frame + media origins,
+  constrained by CSP and Rust-side validation.
+- **Tests:** Rust unit (media validation, mediaUrl refresh, teardown view), UI typecheck/build,
+  manual run with one YouTube and one INTERNAL lesson.
+
+**After (2026-10-08)**
+
+- Built as planned (YouTube + File engines, refusal stub; HLS/DASH and the web split deferred to
+  Phase 13), plus the owner's in-phase changes (controls, video-only window, close = end, centred
+  window). No backend, API, DB or frontend change.
+- **Rust:** `media.rs` (engine choice + validation: YouTube id regex; file URL origin must equal one
+  of `AOC_MEDIA_ORIGINS`, no credentials/fragment, ≤ 4096 chars; YouTube-page check for links
+  opened outside); `config::media_origins` (compiled list; debug default local MinIO);
+  `player.rs` (`View::Playing` carries `sessionId` + `media`; unplayable media → `/end` +
+  `MEDIA_UNAVAILABLE`; heartbeat `mediaUrl` validated and pushed; revoked STOP forgets the pairing);
+  `lib.rs` (`on_new_window` → Deny, https YouTube pages to the system browser via `ShellExecuteW`;
+  window centred 1280×760; `end_session` command removed - closing the window ends the session);
+  `build.rs` (release needs https `AOC_MEDIA_ORIGINS`); `[profile.dev]` keeps debug info for this
+  crate only (target/ had reached 12 GB on a nearly full disk).
+- **UI:** `src/engines/{types, index, youtube, file, controls}.ts`; `main.ts` keeps one engine per
+  session + media type, destroys it on any non-playing view; while playing only the video, control
+  bar and watermark line are shown (letterboxed, `object-fit: contain`).
+- **CSP:** `frame-src https://www.youtube-nocookie.com`; `media-src 'self'` + local MinIO in the
+  base config, replaced in releases by the workflow from `vars.AOC_MEDIA_ORIGINS` (validated as bare
+  https origins).
+- **Checks done first:** YouTube embed from a `*.localhost` origin in Edge (WebView2's engine) - no
+  "Error 153"; Tauri 2.12's `on_navigation` is top-level only (NavigationStarting), so the YouTube
+  frame is unaffected, and `on_new_window` exists to refuse pop-ups.
+- **Manual run (local backend, owner, 2026-10-08):** INTERNAL lesson plays in the player with the
+  control bar; layout fixes found and verified in Edge at the window size (video element covered the
+  bar; then video-only full-window layout). A launch refused with `installation_mismatch` turned out
+  to be the Phase 9 admin-revoke test's installation - led to the "forget revoked pairing" change.
+- **Security review (2026-10-08):** fixed - release `AOC_MEDIA_ORIGINS` could inject CSP directives
+  (now strict origin regex); YouTube frame no longer allows picture-in-picture (a PiP window would
+  escape Phase 11 capture blocking). Verified: Rust-side validation of every media reference, no
+  IPC for the remote YouTube frame (no `remote` capability), sandboxed frame without top
+  navigation, pop-ups refused, UI can only read state.
+- **Tests:** `cargo test` **45/45** incl. TPM (new: 7 media-validation tests; platform file plays and
+  takes fresh URLs while foreign ones never reach the UI; unplayable media ends the session and is
+  never shown playing; revoked installation is forgotten and the next launch says NOT_PAIRED).
+  `cargo clippy -D warnings` (dev + `release`), `cargo fmt --check`, `npm run build` (tsc + vite),
+  `tauri build --debug --no-bundle`.
+- **Not verified here:** a YouTube lesson end-to-end in the player (no YouTube video was attached to
+  a lesson in the demo data; the embed itself was checked in Edge), and the > 3 min signed-URL
+  swap (owner reported "looks right" without that detail) - re-check during Phase 11 testing.
 

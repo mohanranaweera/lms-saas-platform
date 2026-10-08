@@ -16,12 +16,14 @@ use serde::Serialize;
 use time::OffsetDateTime;
 use tokio::sync::{Mutex as AsyncMutex, watch};
 use tokio::task::JoinHandle;
+use url::Url;
 use uuid::Uuid;
 
 use crate::api::{ApiClient, ApiError, Exchange};
 use crate::deep_link::{self, DeepLink};
 use crate::installation::{Installation, InstallationStore};
 use crate::keystore::{self, InstallationKey, KeyError, KeyStore};
+use crate::media::Media;
 
 /// Bounds for the server's heartbeat interval.
 const MIN_INTERVAL: Duration = Duration::from_secs(1);
@@ -48,8 +50,10 @@ pub enum View {
     Ready,
     Opening,
     Playing {
+        session_id: Uuid,
         lesson_title: Option<String>,
         watermark_text: Option<String>,
+        media: Media,
     },
     Stopped {
         reason: String,
@@ -91,6 +95,9 @@ struct Session {
     token: String,
     deadline: Instant,
     interval: Duration,
+    lesson_title: Option<String>,
+    watermark_text: Option<String>,
+    media: Media,
 }
 
 pub struct Player {
@@ -98,6 +105,8 @@ pub struct Player {
     keys: Box<dyn KeyStore>,
     store: InstallationStore,
     sink: Arc<dyn ViewSink>,
+    /// Origins a platform-hosted video file may come from (compiled in).
+    media_origins: Vec<Url>,
     /// Links are handled one at a time.
     operations: AsyncMutex<()>,
     state: Mutex<State>,
@@ -110,6 +119,7 @@ impl Player {
         keys: Box<dyn KeyStore>,
         store: InstallationStore,
         sink: Arc<dyn ViewSink>,
+        media_origins: Vec<Url>,
     ) -> Arc<Self> {
         let view = if store.load().is_some() {
             View::Ready
@@ -121,6 +131,7 @@ impl Player {
             keys,
             store,
             sink,
+            media_origins,
             operations: AsyncMutex::new(()),
             state: Mutex::new(State {
                 view,
@@ -251,22 +262,35 @@ impl Player {
                 .await;
         }
         match result {
-            Ok(exchange) => self.start(key, exchange),
+            Ok(exchange) => {
+                let media = Media::from_descriptor(&exchange.descriptor, &self.media_origins);
+                if media == Media::Unsupported {
+                    // Nothing this player may play: give the session back at once.
+                    let _ = tokio::time::timeout(
+                        END_TIMEOUT,
+                        self.api
+                            .end(&*key, exchange.session_id, &exchange.playback_token),
+                    )
+                    .await;
+                    return self.show(error("MEDIA_UNAVAILABLE"));
+                }
+                self.start(key, exchange, media)
+            }
             Err(failure) => self.show(error_view(&failure)),
         }
     }
 
-    fn start(self: &Arc<Self>, key: Arc<dyn InstallationKey>, exchange: Exchange) {
+    fn start(self: &Arc<Self>, key: Arc<dyn InstallationKey>, exchange: Exchange, media: Media) {
         let session = Session {
             id: exchange.session_id,
             token: exchange.playback_token,
             deadline: self.local_deadline(exchange.expires_at),
             interval: clamp_interval(exchange.heartbeat_interval_seconds),
-        };
-        self.show(View::Playing {
             lesson_title: exchange.descriptor.title,
             watermark_text: exchange.descriptor.watermark_text,
-        });
+            media,
+        };
+        self.show(playing_view(&session));
         let (cancel, cancelled) = watch::channel(Cancel::None);
         let mut state = self.state();
         state.generation += 1;
@@ -316,6 +340,14 @@ impl Player {
                             if let Some(seconds) = beat.heartbeat_interval_seconds {
                                 session.interval = clamp_interval(seconds);
                             }
+                            // A platform-hosted file gets a fresh signed URL each beat.
+                            let fresh = beat.media_url.as_deref().and_then(|url| {
+                                session.media.with_fresh_url(url, &self.media_origins)
+                            });
+                            if let Some(fresh) = fresh.filter(|fresh| *fresh != session.media) {
+                                session.media = fresh;
+                                self.show(playing_view(&session));
+                            }
                             wait = session.interval;
                         }
                         _ => wait = retry_wait(&session),
@@ -335,7 +367,14 @@ impl Player {
             }
         };
         let reason = match outcome {
-            Ok(reason) => Some(reason),
+            Ok(reason) => {
+                // This pairing is dead on the server: forget it, so the next
+                // launch asks to pair again instead of failing generically.
+                if matches!(reason.as_str(), "INSTALLATION_REVOKED" | "DEVICE_REVOKED") {
+                    self.forget_installation();
+                }
+                Some(reason)
+            }
             Err(cause) => {
                 let _ = tokio::time::timeout(
                     END_TIMEOUT,
@@ -359,6 +398,15 @@ impl Player {
         }
         if let Some(reason) = reason {
             self.show(View::Stopped { reason });
+        }
+    }
+
+    fn forget_installation(&self) {
+        if let Some(installation) = self.store.load() {
+            let _ = self
+                .keys
+                .delete(&installation.key_name, &installation.key_provider);
+            let _ = self.store.clear();
         }
     }
 
@@ -386,6 +434,15 @@ impl Player {
         self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+fn playing_view(session: &Session) -> View {
+    View::Playing {
+        session_id: session.id,
+        lesson_title: session.lesson_title.clone(),
+        watermark_text: session.watermark_text.clone(),
+        media: session.media.clone(),
     }
 }
 

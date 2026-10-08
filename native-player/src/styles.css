@@ -148,3 +148,194 @@ button:focus-visible {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* Phase 10: the player stage. Nothing is ever drawn over the video area. */
+.player {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  min-width: 200px;
+  min-height: 200px;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100vh - 260px);
+  background: #000000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stage .media,
+.stage .file-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.file-player {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-player video {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: #000000;
+}
+
+.file-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background: #111827;
+  color: #f9fafb;
+  font-size: 13px;
+}
+
+.file-controls button {
+  margin: 0;
+  padding: 4px 14px;
+}
+
+button.secondary {
+  color: #111827;
+  background: #e5e7eb;
+}
+
+.player .watermark {
+  margin: 0;
+  text-align: center;
+}
+
+.engine-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--error);
+}
+
+body[data-playing] .card {
+  flex: none;
+  padding: 16px 20px;
+  gap: 6px;
+  max-width: 1120px;
+}
+
+body[data-playing] h1 {
+  font-size: 18px;
+}
+
+body[data-playing] .shell {
+  gap: 12px;
+  padding: 16px;
+}
+
+.file-controls {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.file-controls .scrubber {
+  flex: 1 1 160px;
+  min-width: 120px;
+  accent-color: #60a5fa;
+}
+
+.file-controls .spacer {
+  flex: 1 1 0;
+}
+
+.file-controls .scrubber:not([hidden]) + .file-time + .spacer {
+  display: none;
+}
+
+.file-controls .volume {
+  width: 80px;
+  accent-color: #60a5fa;
+}
+
+.file-controls select {
+  font: inherit;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: none;
+  color: #111827;
+  background: #e5e7eb;
+}
+
+.file-controls button:focus-visible,
+.file-controls select:focus-visible,
+.file-controls input:focus-visible,
+.file-player:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.file-player:fullscreen {
+  background: #000000;
+}
+
+/* While a video plays the window shows only the video (owner, 2026-10-08):
+   no header, title or buttons; closing the window ends the session. The whole
+   frame is shown, letterboxed, never cropped. */
+body[data-playing] {
+  overflow: hidden;
+  background: #000000;
+}
+
+body[data-playing] .brand,
+body[data-playing] .card,
+body[data-playing] .footer {
+  display: none;
+}
+
+body[data-playing] .shell {
+  height: 100vh;
+  padding: 0;
+  gap: 0;
+}
+
+body[data-playing] .player {
+  max-width: none;
+  height: 100vh;
+  gap: 0;
+}
+
+body[data-playing] .stage {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.file-player video {
+  object-fit: contain;
+}
+
+body[data-playing] .player .watermark {
+  flex: none;
+  margin: 0;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 0;
+  font-size: 12px;
+  color: #9ca3af;
+  background: #000000;
+}
+
+body[data-playing] .engine-error {
+  flex: none;
+  padding: 8px 12px;
+  color: #fca5a5;
+  background: #000000;
+}

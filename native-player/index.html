@@ -12,12 +12,15 @@
         <span class="logo" aria-hidden="true"></span>
         <span>AOC Player</span>
       </header>
+      <section class="player" id="player" hidden>
+        <div class="stage" id="stage"></div>
+        <p class="engine-error" id="engine-error" role="alert" hidden></p>
+        <p class="watermark" id="watermark" hidden></p>
+      </section>
       <section class="card" aria-live="polite">
         <p class="eyebrow" id="eyebrow"></p>
         <h1 id="title">Starting…</h1>
         <p class="message" id="message"></p>
-        <p class="watermark" id="watermark" hidden></p>
-        <button type="button" id="end" hidden>End session</button>
       </section>
       <footer class="footer" id="footer"></footer>
     </main>

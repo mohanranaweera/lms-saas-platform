@@ -39,12 +39,20 @@ httpdate = "1"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 
 [dev-dependencies]
 p256 = { version = "0.14", features = ["ecdsa"] }
 wiremock = "0.6"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync"] }
+
+# Keep target/ small: line tables (backtraces) for this crate, no debug info
+# for dependencies.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
 
 [profile.release]
 codegen-units = 1
