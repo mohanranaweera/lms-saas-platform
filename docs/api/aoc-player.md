@@ -92,17 +92,31 @@ virtual machines, remote desktop, GPU-specific capture paths, or modified binari
 
 ### `POST /api/v1/player/sessions/{id}/heartbeat` (signed + `X-Player-Token`)
 
-Body `{positionSeconds, state, playerVersion}` →
-`200 {action: CONTINUE|STOP, reason, playbackToken, expiresAt, heartbeatIntervalSeconds, mediaUrl}`.
+Body `{positionSeconds, state, playerVersion}` (`state` is `PLAYING`, `PAUSED`, or `IDLE`) →
+`200 {action: CONTINUE|STOP, reason, playbackToken, expiresAt, heartbeatIntervalSeconds, mediaUrl,
+resumePositionSeconds, remainingWatchSeconds}`.
 
 - `CONTINUE`: a fresh token and deadline (`max(60 s, 3 × heartbeatIntervalSeconds)`); `mediaUrl`
-  is a fresh signed URL for INTERNAL media.
+  is a fresh signed URL for INTERNAL media. `resumePositionSeconds` and nullable
+  `remainingWatchSeconds` are server-derived; the latter is null for unlimited watch time.
 - `STOP` (`reason`: `ENDED`, `EXPIRED`, `DEVICE_REVOKED`, `INSTALLATION_REVOKED`, `ACCESS_REVOKED`,
-  `ADMIN`, `SUPERSEDED_BY_NEW_SESSION`, `PLAYER_VERSION_UNSUPPORTED`): the player must tear down
-  playback and clear media state. Missing a deadline is `EXPIRED`.
+  `ADMIN`, `SUPERSEDED_BY_NEW_SESSION`, `WATCH_TIME_EXHAUSTED`, `PLAYER_VERSION_UNSUPPORTED`):
+  the player must tear down playback and clear media state. Missing a deadline is `EXPIRED`.
+  `WATCH_TIME_EXHAUSTED` is terminal and is never followed by a refreshed token.
 - `401 PLAYBACK_SESSION_EXPIRED`: missing/invalid/expired token, signature, clock or nonce.
 
-Every heartbeat re-checks access on the installation's device. Watch-time accounting is Phase 12.
+Every heartbeat re-checks access on the installation's device. Server-authoritative watch time charges
+only while the client reports `PLAYING`: forward progress from the session's previous position, capped at
+2 x server elapsed (the fastest player speed; owner decision 2026-10-08: with speed allowed, video
+time watched counts); no forward progress while playing (rewind, rewatch, stall) counts server
+elapsed. Elapsed is capped at 300 s per heartbeat. Pause/idle count nothing.
+The exchange anchors accounting (`last_heartbeat_at`), so the first interval counts. The budget is
+snapshotted per tenant/student/video. Accounting runs in the heartbeat's own transaction: a heartbeat
+that fails after accounting is rolled back as a whole, so its retry is charged once. When the budget is
+used up the answer is `STOP` / `WATCH_TIME_EXHAUSTED`, and the next `POST /playback/sessions` for that
+video is refused with `409 PLAYBACK_WATCH_LIMIT` before any launch code is issued. Progress is retained in PostgreSQL; Redis is not authoritative.
+Stale ACTIVE sessions are expired by backend cleanup. Watch-time accounting runs inside the LMS-controlled
+player only; YouTube playback outside the LMS cannot be governed.
 
 ### `POST /api/v1/player/sessions/{id}/end` (signed + `X-Player-Token`)
 
@@ -148,18 +162,29 @@ Ids from another tenant are 404.
   path) or the legacy player gets `NATIVE_PLAYER_REQUIRED` (platform-storage path),
   `components/player/native-player-launcher.tsx` shows "Open in AOC Player". The click opens the
   one-time link (a fresh one when the current link was already used or is about to expire), then
-  polls `GET /playback/sessions/{id}/status` every 2 s: "Playing in the AOC Player." once claimed;
-  "The AOC Player didn't open." with a link to the setup page once the link expires unclaimed.
+  polls `GET /playback/sessions/{id}/status` every 2 s: "Playing in the AOC Player." once claimed.
   `NATIVE_PLAYER_UNAVAILABLE` and `PLAYER_DEVICE_NOT_REGISTERED` have their own messages; nothing
   falls back to browser playback.
-- `lib/player/native-launch.ts` only opens `aocplayer://(play|pair)?code=<43 chars>` links.
+- **No pairing step (ADR-025 Amendment 2, 2026-10-09):** when the Student has no ACTIVE player on
+  the browser's device, the launch link is `aocplayer://play?code=<43>&pair=<43>`; the player pairs
+  with the `pair` code (new key, `POST /player/pairings/complete`) and then claims the launch code.
+  The AOC Player page's "Pair this computer" is optional.
+- **Install fallback:** if the player hasn't claimed the link 12 s after it was opened, the launcher
+  shows "Install the AOC Player to watch this video" (download button, or a help link when no
+  installer is configured) and "I've installed it - play now" (fresh link). A browser that has seen
+  a claim before (`localStorage` `aoc-player:seen`, UX only) shows "The AOC Player didn't open."
+  instead.
+- `lib/player/native-launch.ts` only opens `aocplayer://pair?code=<43>` and
+  `aocplayer://play?code=<43>[&pair=<43>]` links.
 - On a non-Windows browser (phone, tablet, Mac) the launcher and the pairing card show "This video can
-  only be watched on a Windows computer with the AOC Player" instead (user-agent check, UX only). A
-  mobile app is planned (plan Phase 8 "Mobile devices").
+  only be watched on a Windows computer with the AOC Player" (user-agent check, UX only). On
+  Android/iOS, once `NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL` / `NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL`
+  are set (https, build-time), it shows "Watch this video in the AOC app" with the store link
+  instead. The mobile app itself is not built yet (needs its own ADR-025 amendment).
 - **Tenant Admin → Student → Devices**: an "AOC Player" section lists the student's players; Tenant
   Admin can remove one with a required reason. Device resets refresh it. The "Require the AOC Secure
   Player app" switch in Settings → Video configuration (Phase 3) is the tenant setting.
-- Playwright: `e2e/aoc-player.spec.ts` (15 tests incl. phone and Mac, mocked backend; `window.__aocLaunch` captures links).
+- Playwright: `e2e/aoc-player.spec.ts` (17 tests incl. phone and Mac, mocked backend; `window.__aocLaunch` captures links).
 
 ## The player (Phase 9)
 
@@ -172,8 +197,14 @@ Ids from another tenant are 404.
   (2026-10-08).
 - **Requests:** `platform: "WINDOWS"`, `playerVersion` = the binary's version. Timestamps use the
   server clock learnt from `Date` headers; a refused exchange that reveals a clock more than 30 s
-  off is retried once. Heartbeats send `positionSeconds: 0`, `state: "IDLE"` until Phase 12
-  (watch-time).
+  off is retried once. Heartbeats send the current bounded position and `state` (`PLAYING`, `PAUSED`,
+  or `IDLE`); the server, not the player, decides watch-time authorization. The UI reports them to
+  Rust (`report_playback` command, kept only for the live session id; non-finite or negative
+  positions ignored): the File engine from `<video>` events (buffering, pause and end are `PAUSED`),
+  the YouTube engine from the embed's own `enablejsapi` messages, accepted only from that frame's
+  window and `https://www.youtube-nocookie.com` (no YouTube script runs in the player window). A beat
+  reports `PLAYING` when playback ran at any point since the previous beat, so pausing just before a
+  beat does not hide the time watched; the server still caps it by wall-clock and position progress.
 - **Teardown:** `STOP` (any `reason`), 401/403/404 (`EXPIRED`), 426, a non-`CONTINUE` action, or a
   missed `expiresAt` deadline (network trouble or 5xx are retried until then) end the session.
   "End session" and closing the window call `/end` (5 s cap). A new launch link ends the current

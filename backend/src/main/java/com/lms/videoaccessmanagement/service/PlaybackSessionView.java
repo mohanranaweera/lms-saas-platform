@@ -12,6 +12,7 @@ import java.util.UUID;
  * alone; there is no separate policy-enforced re-validation loop to protect.
  */
 public record PlaybackSessionView(UUID watchSessionId, String playbackToken, String signedUrl, Instant expiresAt,
-		String watermarkText, boolean allowSeeking, boolean allowDownload) {
+		String watermarkText, boolean allowSeeking, boolean allowDownload, Integer heartbeatIntervalSeconds,
+		Integer resumePositionSeconds, Integer remainingWatchSeconds) {
 
 }

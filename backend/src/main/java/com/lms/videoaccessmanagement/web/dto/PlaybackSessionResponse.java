@@ -9,6 +9,7 @@ import java.util.UUID;
  * javadoc.
  */
 public record PlaybackSessionResponse(UUID watchSessionId, String playbackToken, String signedUrl, Instant expiresAt,
-		String watermarkText, boolean allowSeeking, boolean allowDownload) {
+		String watermarkText, boolean allowSeeking, boolean allowDownload, Integer heartbeatIntervalSeconds,
+		Integer resumePositionSeconds, Integer remainingWatchSeconds) {
 
 }

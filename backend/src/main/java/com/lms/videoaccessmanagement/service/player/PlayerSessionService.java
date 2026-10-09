@@ -18,14 +18,18 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.videoaccessmanagement.config.PlayerProperties;
 import com.lms.videoaccessmanagement.domain.LaunchChannel;
+import com.lms.videoaccessmanagement.domain.PlaybackState;
 import com.lms.videoaccessmanagement.domain.PlayerInstallation;
 import com.lms.videoaccessmanagement.domain.VideoWatchSession;
 import com.lms.videoaccessmanagement.domain.VideoWatchSessionRevokedReason;
 import com.lms.videoaccessmanagement.domain.VideoWatchSessionStatus;
 import com.lms.videoaccessmanagement.repository.PlayerInstallationRepository;
+import com.lms.videoaccessmanagement.repository.VideoAssetRepository;
+import com.lms.videoaccessmanagement.repository.VideoWatchProgressRepository;
 import com.lms.videoaccessmanagement.repository.VideoWatchSessionRepository;
 import com.lms.videoaccessmanagement.service.LessonMediaPlayability;
 import com.lms.videoaccessmanagement.service.PlaybackTokenService;
+import com.lms.videoaccessmanagement.service.WatchTimeService;
 import com.lms.videoaccessmanagement.service.TenantVideoConfigurationService;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -84,12 +88,16 @@ public class PlayerSessionService {
 
 	private final AuditLogApi auditLogApi;
 
+	private final WatchTimeService watchTimeService;
+
+	private final VideoAssetRepository videoAssetRepository;
+
 	public PlayerSessionService(PlaybackTokenService tokenService, VideoWatchSessionRepository sessions,
 			PlayerInstallationRepository installations, PlayerRequestVerifier verifier, PlayerSessionRevoker revoker,
 			LessonMediaPlayability playability, AccessPolicyApi accessPolicyApi,
 			TenantVideoConfigurationService configurationService, PlayerProperties properties,
 			NativeLaunchService nativeLaunchService, PermissionCheckService permissionCheckService,
-			AuditLogApi auditLogApi) {
+			AuditLogApi auditLogApi, WatchTimeService watchTimeService, VideoAssetRepository videoAssetRepository) {
 		this.tokenService = tokenService;
 		this.sessions = sessions;
 		this.installations = installations;
@@ -102,13 +110,16 @@ public class PlayerSessionService {
 		this.nativeLaunchService = nativeLaunchService;
 		this.permissionCheckService = permissionCheckService;
 		this.auditLogApi = auditLogApi;
+		this.watchTimeService = watchTimeService;
+		this.videoAssetRepository = videoAssetRepository;
 	}
 
 	public record HeartbeatResult(String action, String reason, String playbackToken, Instant expiresAt,
-			Integer heartbeatIntervalSeconds, String mediaUrl) {
+			Integer heartbeatIntervalSeconds, String mediaUrl, Integer resumePositionSeconds,
+			Integer remainingWatchSeconds) {
 
 		static HeartbeatResult stop(String reason) {
-			return new HeartbeatResult("STOP", reason, null, null, null, null);
+			return new HeartbeatResult("STOP", reason, null, null, null, null, null, null);
 		}
 
 	}
@@ -119,7 +130,7 @@ public class PlayerSessionService {
 
 	@Transactional
 	public HeartbeatResult heartbeat(UUID sessionId, String playerToken, PlayerRequestVerifier.SignedRequest signed,
-			String playerVersion) {
+			String playerVersion, Integer positionSeconds, PlaybackState state) {
 		PlaybackTokenService.ParsedPlayerToken token = parse(playerToken, sessionId);
 		TenantContextHolder.set(token.tenantId());
 		try {
@@ -154,6 +165,16 @@ public class PlayerSessionService {
 				return HeartbeatResult.stop(VideoWatchSessionRevokedReason.ACCESS_REVOKED.name());
 			}
 			int interval = configurationService.effectiveSettings().heartbeatIntervalSeconds();
+			int reportedPosition = positionSeconds == null ? session.getLastPositionSeconds() : positionSeconds;
+			PlaybackState reportedState = state == null ? PlaybackState.IDLE : state;
+			var asset = videoAssetRepository.findById(session.getVideoAssetId())
+				.orElseThrow(() -> expired("asset_missing"));
+			WatchTimeService.AccountingResult accounting = watchTimeService.record(session, asset, reportedPosition,
+					reportedState, now);
+			if (accounting.stop()) {
+				revoker.revoke(session, VideoWatchSessionRevokedReason.WATCH_TIME_EXHAUSTED, now);
+				return HeartbeatResult.stop(VideoWatchSessionRevokedReason.WATCH_TIME_EXHAUSTED.name());
+			}
 			Instant expiresAt = now.plus(PlayerExchangeTransactions.sessionWindow(interval));
 			if (sessions.extendNativeIfActive(session.getId(), session.getTenantId(), expiresAt) == 0) {
 				return HeartbeatResult.stop(VideoWatchSessionStatus.ENDED.name());
@@ -165,7 +186,8 @@ public class PlayerSessionService {
 					expiresAt);
 			String mediaUrl = playable.isYouTube() ? null
 					: nativeLaunchService.signInternalMedia(session.getVideoAssetId()).url();
-			return new HeartbeatResult("CONTINUE", null, refreshed, expiresAt, interval, mediaUrl);
+			return new HeartbeatResult("CONTINUE", null, refreshed, expiresAt, interval, mediaUrl,
+					accounting.acceptedPositionSeconds(), accounting.remainingWatchSeconds());
 		}
 		finally {
 			TenantContextHolder.clear();
@@ -179,7 +201,13 @@ public class PlayerSessionService {
 		TenantContextHolder.set(token.tenantId());
 		try {
 			Bound bound = bind(sessionId, token, signed);
-			sessions.endIfActive(bound.session().getId(), bound.session().getTenantId());
+			VideoWatchSession session = bound.session();
+				var asset = videoAssetRepository.findById(session.getVideoAssetId()).orElse(null);
+				if (asset != null) {
+					watchTimeService.flush(session, asset, session.getLastPositionSeconds(), session.getLastHeartbeatState(),
+							Instant.now());
+				}
+				sessions.endIfActive(session.getId(), session.getTenantId());
 		}
 		finally {
 			TenantContextHolder.clear();

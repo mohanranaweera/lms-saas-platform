@@ -21,7 +21,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 
 use crate::api::ApiClient;
 use crate::installation::InstallationStore;
-use crate::player::{Player, View, ViewSink};
+use crate::player::{PlaybackState, Player, View, ViewSink};
 
 const MAIN_WINDOW: &str = "main";
 const VIEW_EVENT: &str = "player://view";
@@ -38,6 +38,18 @@ impl ViewSink for WindowSink {
 #[tauri::command]
 fn get_state(player: State<'_, Arc<Player>>) -> View {
     player.view()
+}
+
+/// Playback position and state from the engine (VIDEO Phase 12), sent with
+/// the next heartbeat. Only the live session's reports are kept.
+#[tauri::command]
+fn report_playback(
+    player: State<'_, Arc<Player>>,
+    session_id: uuid::Uuid,
+    position_seconds: f64,
+    state: PlaybackState,
+) {
+    player.report_playback(session_id, position_seconds, state);
 }
 
 pub fn run() {
@@ -64,7 +76,7 @@ pub fn run() {
     }
 
     let app = builder
-        .invoke_handler(tauri::generate_handler![get_state])
+        .invoke_handler(tauri::generate_handler![get_state, report_playback])
         .setup(|app| {
             let origin = config::api_origin()?;
             let api = ApiClient::new(origin)?;
@@ -97,10 +109,16 @@ pub fn run() {
             );
             app.manage(Arc::clone(&player));
 
-            // Installed builds get the scheme from the installer; a dev build
-            // registers it for the current user so links work during development.
+            // Installed builds get the scheme from the installer. A local debug
+            // build with the UI compiled in (`npm run build:local`) registers it
+            // for the current user. A `tauri dev` build does not: its UI lives on
+            // the Vite server, so a link opening it while Vite is down would show
+            // "127.0.0.1 refused to connect". Links reach a running `tauri dev`
+            // instance anyway through the single-instance plugin.
             #[cfg(debug_assertions)]
-            app.deep_link().register_all()?;
+            if !tauri::is_dev() {
+                app.deep_link().register_all()?;
+            }
 
             let on_link = Arc::clone(&player);
             app.deep_link().on_open_url(move |event| {

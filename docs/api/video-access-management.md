@@ -201,7 +201,10 @@ above), then in order:
   "expiresAt": "2026-08-17T00:03:00Z",
   "watermarkText": "<studentId> · <tenantId>",   // null if watermarkEnabled=false or Teacher preview
   "allowSeeking": true,
-  "allowDownload": false
+  "allowDownload": false,
+  "heartbeatIntervalSeconds": 20,                 // null for Teacher preview
+  "resumePositionSeconds": 0,                     // null for Teacher preview
+  "remainingWatchSeconds": null                  // null when unlimited or Teacher preview
 }
 ```
 
@@ -221,8 +224,21 @@ through this endpoint before it can fetch a fresh signed URL).
 Request (`PlaybackProgressRequest`):
 
 ```jsonc
-{ "playbackToken": "<jwt>", "positionSeconds": 42, "watchedDeltaSeconds": 5 }
+{
+  "playbackToken": "<jwt>",
+  "positionSeconds": 42,
+  "watchedDeltaSeconds": 5,       // legacy telemetry; never authoritative
+  "state": "PLAYING"              // PLAYING | PAUSED | IDLE; omitted legacy bodies infer IDLE/PLAYING from delta
+}
 ```
+
+The server is authoritative: it charges only while the client reports `PLAYING`: forward progress from the session's previous position, capped at
+2 x server elapsed (the fastest player speed; owner decision 2026-10-08: with speed allowed, video
+time watched counts); no forward progress while playing (rewind, rewatch, stall) counts server
+elapsed. Elapsed is capped at 300 s per heartbeat. Pause/idle count nothing. The finite budget is snapshotted
+per tenant/student/video from the tenant watch-time policy and the asset policy. Progress is flushed on
+pause/end/exhaustion and stale ACTIVE sessions are expired by backend cleanup; Redis is only ephemeral
+coordination/cache.
 
 Validation order, on every call:
 
@@ -242,12 +258,16 @@ Validation order, on every call:
    `positionSeconds` exceeds `furthest_position_seconds + 5` seconds tolerance → `409
    SEEK_NOT_ALLOWED` ("Seeking ahead is not allowed for this video"). The heartbeat is
    rejected outright — no partial progress is ever applied.
-6. Max-watch-duration check: if the effective policy's `maxWatchDurationSeconds` is set
-   and `total_watched_seconds + watchedDeltaSeconds` would exceed it, the session is
-   revoked (`POLICY_VIOLATION`/`max_watch_duration_exceeded`, audit-logged) and the call
-   is rejected — `409 POLICY_VIOLATION` ("...maximum watch duration has been reached").
-7. Otherwise: the heartbeat is recorded (`total_watched_seconds` accumulates,
-   `furthest_position_seconds` advances).
+6. Watch-time accounting (rule above), measured from the SESSION's previous heartbeat
+   position, so rewatching an earlier part is charged. The legacy client delta is not trusted.
+7. When the snapshotted budget reaches zero, the session is revoked with
+   `WATCH_TIME_EXHAUSTED`, audited, and the call returns `409 PLAYBACK_WATCH_LIMIT`. The
+   refusal commits (the final accounting and the revoke are kept). Issuing a new session for
+   that video (`POST /videos/{id}/playback-sessions` or `POST /playback/sessions`) is then
+   refused with `409 PLAYBACK_WATCH_LIMIT`; the check runs after every access check.
+8. Otherwise: the heartbeat is recorded (`authorized_watch_seconds` and the legacy
+   `total_watched_seconds` accumulate; `last_position_seconds`/`furthest_position_seconds`
+   advance; `last_position_seconds` is the resume point (latest), `furthest_position_seconds` the maximum).
 
 **Success — `200`** (`ApiResponse<null>`). Any IP/device mismatch or policy-violation
 revocation on this path writes a security audit-log entry, per
@@ -259,6 +279,83 @@ Client-driven graceful end. Verifies the caller owns the session (`404 NOT_FOUND
 otherwise — anti-enumeration, matching the rest of this domain's Student-facing shape).
 Idempotent: `ACTIVE → ENDED` if currently active, a no-op otherwise. **Success — `200`**
 (`ApiResponse<null>`).
+
+## Per-video watch-time limit (`/api/v1/videos/{id}/watch-time-limit`) — VIDEO Phase 12
+
+Owner decision 2026-10-09: the limit is set per video (when it is added to a lesson, or later) and
+**the video's own limit wins over the institute rule, higher or lower**. The institute-wide rule
+(Tenant Admin video configuration) is only the default for videos without their own limit. It is
+stored in `video_playback_policy.max_watch_duration_seconds` (the same field as the playback rules'
+"Watch-time limit"); before this decision the lower of the two applied.
+
+- `GET` → `200 {videoAssetId, videoLimitSeconds|null, instituteDefaultSeconds|null,
+  instituteDefaultKnown, effectiveSeconds|null}` (`instituteDefaultKnown=false` when the institute rule
+  needs the video's length and it isn't known yet).
+- `PUT {limitSeconds: 60-3600000 | null}` → `200` (same shape). `null` removes the video's own limit.
+  A change clears every Student's budget snapshot for the video, so it applies from their next
+  heartbeat; time watched and staff grants are untouched. If the video had no policy row, one is
+  created with playback's defaults (seeking allowed, no download, watermark on).
+- Permission: the same ownership-aware gate as `PUT /videos/{id}/policy` (§2: the course's Teacher, or
+  staff with `MATERIALS` CREATE_EDIT). `403` otherwise; `404` for another tenant's video; `400` outside
+  the range. Audit `video.watch_time_limit_changed` on `video_asset` with `before`/`after` seconds
+  (`"institute_rule"` when none) and `studentsAffected`.
+- The full `PUT /videos/{id}/policy` also clears the snapshots when it changes the limit.
+- UI: the Media Library picker has an optional "Watch-time limit (minutes)" for the video being added;
+  each attached lesson video shows its limit with "Edit limit"; the material upload form's playback
+  rules take the limit in minutes.
+
+Tests: `VideoWatchTimeLimitIntegrationTest` (change applies to a blocked student, audit, defaults
+kept, owner/other-teacher/student/staff permissions, cross-tenant), `WatchTimeServiceTest`
+(video limit wins even when higher), Playwright `e2e/lesson-media.spec.ts`.
+
+## Watch-time grants (`/api/v1/students/{studentId}/watch-time`) — VIDEO Phase 12
+
+Staff view of a Student's watch time per video and extra time granted on top of the limit. `{studentId}`
+is the student profile id (as for `/students/{studentId}/devices`). Permission `DomainArea.ACCESS_EXPIRY`:
+VIEW to list (Tenant Admin, Finance Staff, Student Support, Read-only Auditor), CREATE_EDIT to grant
+(Tenant Admin). Extra watch time is an access extension: every grant is audited.
+
+**Rule.** Allowed time = the budget snapshot on `video_watch_progress` (or, before the Student's first
+heartbeat, the video's own limit, else the institute rule) **plus the sum of grants**. Time watched
+(`authorized_watch_seconds`) is never reduced. Grants live in `video_watch_time_grant` (V80): append-only
+(DB trigger rejects UPDATE/DELETE), tenant-scoped, composite FKs to `video_asset` and `tenant_user`. The
+heartbeat accounting, the start-time block (`409 PLAYBACK_WATCH_LIMIT`) and `remainingWatchSeconds` all use
+the extended allowance, so a grant takes effect on the Student's next Play.
+
+### `GET /students/{studentId}/watch-time`
+
+`200` - one entry per video the Student has started, most recently watched first:
+
+```json
+{
+  "videoAssetId": "…", "title": "Week 1 lecture",
+  "limit": "LIMITED",            // LIMITED | NONE (no limit applies) | UNKNOWN (needs the video's length)
+  "usedSeconds": 600, "baseSeconds": 600, "grantedSeconds": 1800,
+  "allowedSeconds": 2400, "remainingSeconds": 1800, "exhausted": false,
+  "lastWatchedAt": "2026-10-09T08:00:00Z",
+  "grants": [{ "id": "…", "extraSeconds": 1800, "reason": "…", "grantedBy": "…", "grantedAt": "…" }]
+}
+```
+
+`allowedSeconds`/`remainingSeconds` are null when no limit applies. `title` falls back to the upload's
+file name for platform-storage videos (they have no title of their own). Another tenant's student:
+`404`. The Watch time tab searches by video name and can show only used-up videos.
+
+### `POST /students/{studentId}/watch-time/{videoAssetId}/grants`
+
+Body `{ "extraMinutes": 1-6000, "reason": "1-500 chars" }` → `201` with the updated entry (shape above).
+
+- `400 VALIDATION_ERROR` (`fieldErrors` on `extraMinutes` / `reason`).
+- `403` without `ACCESS_EXPIRY`/`CREATE_EDIT`.
+- `404` for an unknown/other-tenant student or video.
+- `409` when no limit applies to the video (nothing to extend) or its limit needs a video length that
+  isn't known yet.
+- Audit: `video.watch_time_granted` on `student_profile` `{studentId}`, reason, metadata `videoAssetId`,
+  `studentUserId`, `grantId`, `extraSeconds`, `usedSeconds`, `before`/`after` allowed seconds.
+
+Tests: `StudentWatchTimeIntegrationTest` (grant lifts the block and keeps history, append-only trigger,
+validation, permissions, cross-tenant), `WatchTimeServiceTest`, Playwright `e2e/student-watch-time.spec.ts`.
+UI: Tenant Admin → Students → a student → **Watch time** tab ("Add time" with a required reason).
 
 ## Response shapes
 
@@ -289,7 +386,8 @@ table) apply. Video-access-management-specific cases:
 | Oversized video upload | `PAYLOAD_TOO_LARGE` | `413` |
 | Failed video content-sniff | `UNSUPPORTED_MEDIA_TYPE` | `415` |
 | Invalid playback-policy field combination | `VALIDATION_ERROR` | `400` |
-| Access window / max-views / max-watch-duration / device-fingerprint-mismatch violation | `POLICY_VIOLATION` | `409` |
+| Access window / max-views / device-fingerprint-mismatch violation | `POLICY_VIOLATION` | `409` |
+| Server-authoritative watch-time budget exhausted | `PLAYBACK_WATCH_LIMIT` | `409` |
 | Forward seek beyond tolerance while `allowSeeking = false` | `SEEK_NOT_ALLOWED` | `409` |
 | Concurrency-cap race lost (cap = 1, two concurrent session requests) | `CONFLICT` | `409` |
 | Playback token failed signature/expiry/`jti`-to-session validation, or its session is no longer `ACTIVE` | `PLAYBACK_TOKEN_INVALID` | `401` |
@@ -297,7 +395,8 @@ table) apply. Video-access-management-specific cases:
 ## Tenant isolation notes
 
 - `video_asset`, `video_asset_status_event` (V70, append-only, DB trigger),
-  `video_playback_policy`, `video_watch_session`, `video_watch_progress` all carry
+  `video_playback_policy`, `video_watch_session`, `video_watch_progress` (V79 watch-time
+  counters, resume position, budget snapshot and heartbeat state) all carry
   `tenant_id NOT NULL` with tenant-leading indexes; every repository extends the shared
   tenant-aware base. `video_asset.provider_connection_id` is a composite
   `(tenant_id, …)` FK into `media_provider_connection`, so an asset can only use its own

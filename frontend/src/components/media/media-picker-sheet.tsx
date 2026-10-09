@@ -1,6 +1,8 @@
 "use client";
 
 import { useDeferredValue, useId, useMemo, useState } from "react";
+import { useSetVideoWatchTimeLimit } from "@/lib/api/videos";
+import { parseLimitMinutes } from "@/components/media/watch-time-limit";
 import { Film, Loader2, Search, Video } from "lucide-react";
 import { isApiClientError } from "@/lib/api/error";
 import {
@@ -48,16 +50,33 @@ export function MediaPickerSheet({
   const deferredSearch = useDeferredValue(search);
   const mediaQuery = useMediaList({ q: deferredSearch, status: "READY", size: 100 }, open);
   const attachMutation = useAttachLessonMedia(courseId, lessonId);
+  const limitMutation = useSetVideoWatchTimeLimit();
+  const limitId = useId();
+  const [limitMinutes, setLimitMinutes] = useState("");
+  const parsedLimit = parseLimitMinutes(limitMinutes);
   const attachedIds = useMemo(() => new Set(attached.map((item) => item.mediaAssetId)), [attached]);
 
   async function attach(asset: MediaAsset) {
+    if (!parsedLimit.ok) return;
+    let lessonMedia: LessonMedia;
     try {
-      const lessonMedia = await attachMutation.mutateAsync({ mediaAssetId: asset.id });
-      onAttached?.(lessonMedia);
-      onOpenChange(false);
+      lessonMedia = await attachMutation.mutateAsync({ mediaAssetId: asset.id });
     } catch {
       // The mutation error is rendered below; no optimistic authorization is attempted.
+      return;
     }
+    onAttached?.(lessonMedia);
+    // VIDEO Phase 12: this video's own watch-time limit, set as it is added.
+    if (parsedLimit.seconds !== null) {
+      try {
+        await limitMutation.mutateAsync({ videoAssetId: asset.id, limitSeconds: parsedLimit.seconds });
+      } catch {
+        // Attached, but the limit was refused: the error is shown below and can be set from the lesson.
+        return;
+      }
+    }
+    setLimitMinutes("");
+    onOpenChange(false);
   }
 
   return (
@@ -83,6 +102,39 @@ export function MediaPickerSheet({
               />
             </div>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={limitId}>
+              Watch-time limit for the video you add (minutes)
+              <span className="font-normal text-muted-foreground"> (optional)</span>
+            </Label>
+            <Input
+              id={limitId}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              className="w-40"
+              placeholder="Institute rule"
+              value={limitMinutes}
+              aria-invalid={parsedLimit.ok ? undefined : true}
+              aria-describedby={`${limitId}-hint`}
+              onChange={(event) => setLimitMinutes(event.target.value)}
+            />
+            <p id={`${limitId}-hint`} className={parsedLimit.ok ? "text-xs text-muted-foreground" : "text-xs text-destructive"} role={parsedLimit.ok ? undefined : "alert"}>
+              {parsedLimit.ok
+                ? "Empty: your institute's watch-time rule applies. Set: this limit applies to every student instead."
+                : parsedLimit.message}
+            </p>
+          </div>
+
+          {limitMutation.isError ? (
+            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              The video was added, but its watch-time limit wasn&apos;t saved
+              {isApiClientError(limitMutation.error) ? `: ${limitMutation.error.message}` : "."} You can set it from the
+              lesson.
+            </div>
+          ) : null}
 
           {attachMutation.isError ? (
             <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
@@ -137,7 +189,7 @@ export function MediaPickerSheet({
                         type="button"
                         size="sm"
                         variant={alreadyAttached ? "outline" : "default"}
-                        disabled={alreadyAttached || attachMutation.isPending}
+                        disabled={alreadyAttached || attachMutation.isPending || limitMutation.isPending || !parsedLimit.ok}
                         aria-busy={attachMutation.isPending && attachMutation.variables?.mediaAssetId === asset.id}
                         onClick={() => void attach(asset)}
                       >

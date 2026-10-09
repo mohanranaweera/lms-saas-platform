@@ -10,6 +10,17 @@ import { z } from "zod";
  * Fails fast (throws) at import time when the environment is misconfigured, so a
  * broken deployment surfaces immediately instead of failing deep inside a component.
  */
+/** An optional https URL setting (blank means unset). */
+function httpsUrl(name: string) {
+  return z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined)
+    .refine((value) => value === undefined || (URL.canParse(value) && new URL(value).protocol === "https:"), {
+      message: `${name} must be an https URL.`,
+    });
+}
+
 const envSchema = z.object({
   /**
    * TEN-DOM-01 / ADR-021: defaults to `/api` on the site's own address, so each
@@ -40,11 +51,20 @@ const envSchema = z.object({
         (URL.canParse(value) && new URL(value).protocol === "https:"),
       { message: "NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL must be an https URL or a path." }
     ),
+  /**
+   * ADR-025 Amendment 2: store pages of the AOC mobile app. Unset until the
+   * app is published; phones and tablets then keep the "use a Windows
+   * computer" message. https only.
+   */
+  NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL: httpsUrl("NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL"),
+  NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL: httpsUrl("NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL"),
 });
 
 const parsed = envSchema.safeParse({
   NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
   NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL: process.env.NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL,
+  NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL: process.env.NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL,
+  NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL: process.env.NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL,
 });
 
 if (!parsed.success) {

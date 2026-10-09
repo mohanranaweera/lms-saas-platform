@@ -30,6 +30,11 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public interface VideoWatchSessionRepository extends TenantAwareRepository<VideoWatchSession, UUID> {
 
+	/** Explicit cross-tenant maintenance lookup; the returned row supplies the trusted tenant context. */
+	@Query(value = "SELECT * FROM video_watch_session WHERE status = 'ACTIVE' AND expires_at <= :now "
+			+ "ORDER BY expires_at LIMIT :limit", nativeQuery = true)
+	List<VideoWatchSession> findActiveExpiredBeforeAcrossTenants(@Param("now") Instant now, @Param("limit") int limit);
+
 	/** The concurrency/entitlement lookup shape (plan §3): every currently-{@code ACTIVE} session, oldest first. */
 	default List<VideoWatchSession> findActiveSessionsFor(UUID tenantId, UUID videoAssetId, UUID studentId) {
 		assertTenantIdMatchesContext(tenantId);
@@ -112,20 +117,25 @@ public interface VideoWatchSessionRepository extends TenantAwareRepository<Video
 
 	/**
 	 * Exchange: PENDING_LAUNCH -> ACTIVE, bound to the claiming installation.
-	 * 0 rows = no longer pending (revoked, superseded or already claimed).
+	 * Also anchors watch-time accounting at the claim (Phase 12), so the first
+	 * heartbeat's interval is counted. 0 rows = no longer pending (revoked,
+	 * superseded or already claimed).
 	 */
 	@Transactional
-	default int activateNativeIfPending(UUID id, UUID tenantId, UUID installationId, Instant expiresAt) {
+	default int activateNativeIfPending(UUID id, UUID tenantId, UUID installationId, Instant expiresAt,
+			Instant activatedAt) {
 		assertTenantIdMatchesContext(tenantId);
-		return activateNativeIfPendingUnchecked(id, tenantId, installationId, expiresAt);
+		return activateNativeIfPendingUnchecked(id, tenantId, installationId, expiresAt, activatedAt);
 	}
 
 	@Modifying
 	@Query(value = "UPDATE video_watch_session SET status = 'ACTIVE', player_installation_id = :installationId, "
-			+ "expires_at = :expiresAt WHERE id = :id AND tenant_id = :tenantId AND status = 'PENDING_LAUNCH' "
-			+ "AND launch_channel = 'NATIVE'", nativeQuery = true)
+			+ "expires_at = :expiresAt, last_heartbeat_at = :activatedAt, last_position_seconds = 0, "
+			+ "last_heartbeat_state = 'IDLE' WHERE id = :id AND tenant_id = :tenantId "
+			+ "AND status = 'PENDING_LAUNCH' AND launch_channel = 'NATIVE'", nativeQuery = true)
 	int activateNativeIfPendingUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId,
-			@Param("installationId") UUID installationId, @Param("expiresAt") Instant expiresAt);
+			@Param("installationId") UUID installationId, @Param("expiresAt") Instant expiresAt,
+			@Param("activatedAt") Instant activatedAt);
 
 	/** Heartbeat: pushes an ACTIVE NATIVE session's deadline forward. 0 rows = no longer ACTIVE. */
 	@Transactional

@@ -1,5 +1,9 @@
 package com.lms.videoaccessmanagement.service;
 
+import java.util.Objects;
+
+import com.lms.videoaccessmanagement.repository.VideoWatchProgressRepository;
+
 import com.lms.common.api.FieldError;
 import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
@@ -111,11 +115,15 @@ public class VideoAssetService {
 
 	private final long maxFileSizeBytes;
 
+	private final VideoWatchProgressRepository videoWatchProgressRepository;
+
 	public VideoAssetService(VideoAssetRepository videoAssetRepository,
 			VideoPlaybackPolicyRepository videoPlaybackPolicyRepository, ObjectStorageApi objectStorageApi,
 			PermissionCheckService permissionCheckService, TenantContext tenantContext,
 			MaterialLookupApi materialLookupApi, MediaAssetLifecycleService mediaAssetLifecycleService,
-			@Value("${app.video-access.asset.max-file-size-bytes}") long maxFileSizeBytes) {
+			@Value("${app.video-access.asset.max-file-size-bytes}") long maxFileSizeBytes,
+			VideoWatchProgressRepository videoWatchProgressRepository) {
+		this.videoWatchProgressRepository = videoWatchProgressRepository;
 		this.videoAssetRepository = videoAssetRepository;
 		this.videoPlaybackPolicyRepository = videoPlaybackPolicyRepository;
 		this.objectStorageApi = objectStorageApi;
@@ -168,6 +176,9 @@ public class VideoAssetService {
 
 		videoAssetRepository.findById(videoAssetId).orElseThrow(() -> new NotFoundException("Video asset not found"));
 
+		Integer previousLimit = videoPlaybackPolicyRepository.findByVideoAssetId(videoAssetId)
+			.map(VideoPlaybackPolicy::getMaxWatchDurationSeconds)
+			.orElse(null);
 		VideoPlaybackPolicy policy = videoPlaybackPolicyRepository.findByVideoAssetId(videoAssetId)
 			.map(existing -> {
 				existing.update(command.accessStartAt(), command.accessEndAt(), command.maxViewsPerStudent(),
@@ -180,6 +191,10 @@ public class VideoAssetService {
 						command.accessEndAt(), command.maxViewsPerStudent(), command.maxWatchDurationSeconds(),
 						command.allowSeeking(), command.allowDownload(), command.watermarkEnabled(),
 						command.maxConcurrentSessions())));
+		// A changed watch-time limit applies to every Student from their next heartbeat.
+		if (!Objects.equals(previousLimit, command.maxWatchDurationSeconds())) {
+			videoWatchProgressRepository.clearBudgetSnapshots(tenantContext.getTenantId(), videoAssetId);
+		}
 
 		return toPolicyView(policy);
 	}
@@ -212,7 +227,7 @@ public class VideoAssetService {
 	 * ownership from - falls back to {@link #requireUploadOrPolicyAuthorization}
 	 * for that narrow pre-attach window only.
 	 */
-	private void requirePolicyAuthorization(UUID videoAssetId) {
+	void requirePolicyAuthorization(UUID videoAssetId) {
 		Optional<MaterialVideoOwnership> ownership = materialLookupApi.resolveVideoAssetOwnership(videoAssetId);
 		if (ownership.isEmpty()) {
 			requireUploadOrPolicyAuthorization();

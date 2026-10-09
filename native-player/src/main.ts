@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { createEngine, type Engine, type Media } from "./engines";
+import { createEngine, type Engine, type Media, type PlaybackReport, type PlaybackState } from "./engines";
 import "./styles.css";
 
 // Mirrors `player::View` in the Rust core. The UI only displays state; every
@@ -39,16 +39,17 @@ const STOP_REASONS: Record<string, string> = {
   EXPIRED: `Your session expired. ${PLAY_AGAIN}`,
   CONNECTION_LOST: `The connection to the LMS was lost, so playback stopped. ${PLAY_AGAIN}`,
   ADMIN: "Your institute stopped this session.",
-  DEVICE_REVOKED: "This computer was removed from your account. Ask your institute or pair again from the LMS.",
-  INSTALLATION_REVOKED: "This player was removed from your account. Pair it again from the AOC Player page in the LMS.",
+  DEVICE_REVOKED: "This computer was removed from your account. Sign in to the LMS again on this computer and press Play; the player sets itself up again.",
+  INSTALLATION_REVOKED: `This player was removed from your account. ${PLAY_AGAIN} It sets itself up again.`,
   ACCESS_REVOKED: "You no longer have access to this video.",
   SUPERSEDED_BY_NEW_SESSION: "This video was opened in a new session.",
+  WATCH_TIME_EXHAUSTED: "You've used all the watch time allowed for this video. Ask your institute if you need more time.",
   PLAYER_VERSION_UNSUPPORTED: "This version of the AOC Player is no longer supported. Install the latest version.",
 };
 
 const ERRORS: Record<string, string> = {
   INVALID_LINK: "That isn't a valid AOC Player link. Open videos with the Play button in your LMS.",
-  NOT_PAIRED: "This player isn't paired yet. In the LMS, open AOC Player in your student menu and choose “Pair the AOC Player”.",
+  NOT_PAIRED: `This player isn't set up yet. ${PLAY_AGAIN} It sets itself up automatically.`,
   PLAYER_PAIRING_CODE_INVALID: "This pairing link has expired or was already used. Start pairing again from the LMS.",
   PLAYBACK_LAUNCH_CODE_INVALID: `This link has expired or was already used. ${PLAY_AGAIN} If this keeps happening, pair the AOC Player again from the LMS.`,
   PLAYER_VERSION_UNSUPPORTED: "This version of the AOC Player is too old. Install the latest version.",
@@ -120,6 +121,25 @@ function startWatermark(policy: WatermarkPolicy, media: Media): void {
   watermarkTimer = window.setInterval(move, policy.movementIntervalSeconds * 1000);
 }
 
+/** Report a state change at once; otherwise at most this often (ms). */
+const REPORT_INTERVAL_MS = 2_000;
+
+/**
+ * Hands the engine's position and state to Rust (VIDEO Phase 12), which sends
+ * the latest one with each heartbeat. Rust keeps only the live session's.
+ */
+function playbackReporter(sessionId: string): PlaybackReport {
+  let lastState: PlaybackState | null = null;
+  let lastSent = 0;
+  return (positionSeconds, state) => {
+    const now = Date.now();
+    if (state === lastState && now - lastSent < REPORT_INTERVAL_MS) return;
+    lastState = state;
+    lastSent = now;
+    void invoke("report_playback", { sessionId, positionSeconds, state }).catch(() => undefined);
+  };
+}
+
 function syncEngine(view: View): void {
   if (view.screen !== "playing") {
     stopEngine();
@@ -133,10 +153,16 @@ function syncEngine(view: View): void {
   stopEngine();
   player.hidden = false;
   engineKey = key;
-  engine = createEngine(stage, view.media, view.lessonTitle ?? "Lesson video", (problem) => {
-    engineError.textContent = problem;
-    engineError.hidden = false;
-  });
+  engine = createEngine(
+    stage,
+    view.media,
+    view.lessonTitle ?? "Lesson video",
+    (problem) => {
+      engineError.textContent = problem;
+      engineError.hidden = false;
+    },
+    playbackReporter(view.sessionId),
+  );
   startWatermark(
     view.watermark ?? {
       enabled: false,

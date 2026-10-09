@@ -62,7 +62,11 @@ no descriptor, a one-time launch link, for YouTube and INTERNAL media alike:
 The browser opens `launch.url` from the click and polls `GET /api/v1/playback/sessions/{id}/status`;
 the player claims the session through `POST /api/v1/player/exchange` (see `aoc-player.md`). If the
 tenant requires the player but the platform switched it off: `409 NATIVE_PLAYER_UNAVAILABLE`. A Student
-with no active registered device on this browser session: `409 PLAYER_DEVICE_NOT_REGISTERED`.
+with no active registered device on this browser session: `409 PLAYER_DEVICE_NOT_REGISTERED`. A
+Student with no ACTIVE AOC Player on that device (never paired, removed, or revoked with the device)
+gets a launch link that also carries a one-time pairing code, `aocplayer://play?code=…&pair=…`
+(ADR-025 Amendment 2); the player pairs and plays in one step. A Student whose watch time for the
+video is used up: `409 PLAYBACK_WATCH_LIMIT`, before anything is issued.
 
 `providerVideoId` is only emitted in the authenticated WEB playback descriptor. Credentials,
 connection IDs, storage keys, LMS refresh tokens, native launch codes, and installation secrets are

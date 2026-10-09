@@ -79,6 +79,9 @@ public final class ApiErrorCodes {
 	 */
 	public static final String POLICY_VIOLATION = "POLICY_VIOLATION";
 
+	/** VIDEO Phase 12 - the server-authoritative watch-time budget was exhausted. */
+	public static final String PLAYBACK_WATCH_LIMIT = "PLAYBACK_WATCH_LIMIT";
+
 	/**
 	 * Wave 5 (PAR-20-01/PAR-20-02) - the supplied video playback token failed
 	 * signature/expiry/{@code jti}-to-session validation, or the session it

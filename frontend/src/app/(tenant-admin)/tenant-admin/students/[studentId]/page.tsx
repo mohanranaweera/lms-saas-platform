@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import {
   canManageAccessPolicy,
   canManageDevices,
+  canViewAccessPolicy,
   canManageStudents,
   canViewCommunications,
   canViewDevices,
@@ -29,6 +30,7 @@ import { ExamsTab } from "./exams-tab";
 import { StudentActivityTab } from "./activity-tab";
 import { DevicesTab } from "./devices-tab";
 import { NotificationsTab } from "./notifications-tab";
+import { WatchTimeTab } from "./watch-time-tab";
 
 const VALID_TABS = [
   "profile",
@@ -37,6 +39,7 @@ const VALID_TABS = [
   "attendance",
   "exams",
   "devices",
+  "watch-time",
   "notifications",
   "activity",
 ] as const;
@@ -73,6 +76,7 @@ function StudentDetailPageContent() {
     manageDevices: canManageDevices(role),
     viewCommunications: canViewCommunications(role),
     extendAccess: canManageAccessPolicy(role),
+    viewWatchTime: canViewAccessPolicy(role),
   };
 
   const studentQuery = useStudent(studentId);
@@ -141,7 +145,13 @@ function StudentDetailBody({
 }: {
   student: StudentResponse;
   canManage: boolean;
-  access: { viewDevices: boolean; manageDevices: boolean; extendAccess: boolean; viewCommunications: boolean };
+  access: {
+    viewDevices: boolean;
+    manageDevices: boolean;
+    extendAccess: boolean;
+    viewCommunications: boolean;
+    viewWatchTime: boolean;
+  };
   activeTab: TabValue;
   onTabChange: (value: string) => void;
   enrollOpen: boolean;
@@ -177,6 +187,16 @@ function StudentDetailBody({
             value: "devices",
             label: "Devices",
             content: <DevicesTab studentId={student.id} canManage={access.manageDevices} />,
+          },
+        ]
+      : []),
+    // VIDEO Phase 12 - watch time per video and extra-time grants, ACCESS_EXPIRY/VIEW (grant: C/E).
+    ...(access.viewWatchTime
+      ? [
+          {
+            value: "watch-time",
+            label: "Watch time",
+            content: <WatchTimeTab studentId={student.id} canGrant={access.extendAccess} />,
           },
         ]
       : []),

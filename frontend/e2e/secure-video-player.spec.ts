@@ -94,6 +94,31 @@ test.describe("secure video player — policy violation heartbeat", () => {
     await expect(page.locator("video")).toHaveCount(0);
   });
 
+  test("a 409 PLAYBACK_WATCH_LIMIT heartbeat ends playback for good with the watch-time message", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await openVideoMaterial(page);
+    await setupVideoMocks(page, {
+      progressFailures: [
+        { status: 409, code: "PLAYBACK_WATCH_LIMIT", message: "You have used all the watch time allowed for this video." },
+      ],
+    });
+
+    await page.goto(studentMaterialsUrl());
+    await page.getByRole("button", { name: "Open video" }).click();
+    const video = page.locator("video");
+    await expect(video).toBeVisible();
+    await video.dispatchEvent("play");
+
+    await page.clock.fastForward(HEARTBEAT_INTERVAL_MS);
+
+    await expect(page.getByText("You've used all the watch time allowed for this video.", { exact: false })).toBeVisible();
+    await expect(page.locator("video")).toHaveCount(0);
+    // Terminal: no reload offered, the limit doesn't go away by retrying.
+    await expect(page.getByRole("button", { name: "Reload" })).toHaveCount(0);
+  });
+
   test("a mocked 409 SEEK_NOT_ALLOWED heartbeat shows a brief notice without ending the session", async ({
     page,
   }) => {

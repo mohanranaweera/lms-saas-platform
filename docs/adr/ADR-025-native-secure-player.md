@@ -274,3 +274,34 @@ Approved by the owner while planning Phase 8.
    any device, so non-Windows students cannot watch until a player exists there; the web app says so.
    The owner has decided a mobile app will be built later; it needs its own amendment (platforms,
    store signing, mobile key storage, capture limits per OS).
+
+## Amendment 2 (2026-10-09): pairing on first Play, install fallback, mobile preparation
+
+**Status: accepted by the project owner (2026-10-09)**, asked during the Phase 12 manual run
+("Pairing and removing the player is an additional step. Is there a way to skip that step?").
+
+1. **Pairing happens inside Play.** `POST /api/v1/playback/sessions` (NATIVE) checks whether the
+   Student has an ACTIVE installation bound to the browser's device. If not, it also issues a
+   pairing code (the same `player_pairing_code` row, TTL and rules as `POST /player/pairings`) and
+   the launch link becomes `aocplayer://play?code=<launch>&pair=<pairing>`. A player given a
+   `pair` code first completes pairing (new non-exportable key, `POST /player/pairings/complete`,
+   replacing any local record) and then claims the launch code. The Student only presses Play.
+   Nothing about the trust model changes: both codes are one-time and short-lived, issued only to
+   the signed-in Student's device-bound browser session, the installation is still bound to that
+   device slot (Q-008), every later request is still signed with the installation key, and a
+   stolen link is still useless after its TTL. A device removed while the player was closed is
+   re-paired on the next Play instead of failing.
+2. **The separate pairing page stays** for managing players (list, remove) and the installer
+   download; it is no longer a required step. `PLAYER_NOT_PAIRED` (added earlier on 2026-10-09) is
+   withdrawn - the launch pairs instead of refusing.
+3. **Install fallback.** A browser cannot reliably tell whether a desktop app is installed. The
+   lesson page opens the link and polls the session status; when the player has not claimed it
+   after a short wait, the page shows "Install the AOC Player" (download link, then "I've
+   installed it - play now", which asks for a fresh link). A browser that has seen a claim before
+   remembers it (UX only) and shows "didn't open" instead.
+4. **Mobile (prepared, not built).** On Android/iOS the lesson page shows "Watch in the AOC app"
+   with a store link when `NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL` /
+   `NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL` are configured, and the current "use a Windows computer"
+   message otherwise. The mobile app itself (platforms, store signing, mobile key storage, app
+   links, capture limits per OS, `player_installation.platform` values) still needs its own
+   amendment, as recorded in Amendment 1. The device check stays UX only.

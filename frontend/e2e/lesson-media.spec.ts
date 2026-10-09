@@ -88,7 +88,8 @@ async function setupCourseEditorMocks(
       return;
     }
     if (path === MEDIA_BASE && method === "GET") {
-      const response = options.lesson ?? lessonState;
+      // An array option seeds `lessonState`, which attach/detach then change.
+      const response = Array.isArray(options.lesson) || !options.lesson ? lessonState : options.lesson;
       if (Array.isArray(response)) {
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(response)) });
       } else {
@@ -127,6 +128,34 @@ async function setupCourseEditorMocks(
   });
 
   return calls;
+}
+
+/** VIDEO Phase 12: the per-video watch-time limit endpoints. Returns the PUT bodies. */
+async function mockWatchTimeLimit(page: Page, initial: number | null = null) {
+  let current: number | null = initial;
+  const puts: unknown[] = [];
+  await page.route(/\/api(?:\/api)?\/v1\/videos\/[^/]+\/watch-time-limit$/, async (route: Route) => {
+    const request = route.request();
+    if (request.method() === "PUT") {
+      const body = request.postDataJSON() as { limitSeconds: number | null };
+      puts.push(body);
+      current = body.limitSeconds;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        apiSuccess({
+          videoAssetId: "media-ready-1",
+          videoLimitSeconds: current,
+          instituteDefaultSeconds: null,
+          instituteDefaultKnown: true,
+          effectiveSeconds: current,
+        })
+      ),
+    });
+  });
+  return puts;
 }
 
 function editorUrl() {
@@ -177,5 +206,41 @@ test.describe("Lesson Media integration", () => {
     await expect(dialog).toContainText("remains in the Media Library");
     await dialog.getByRole("button", { name: "Remove from lesson" }).click();
     await expect.poll(() => calls.some((call) => call.method === "DELETE" && call.path.endsWith("/lesson-media-1"))).toBe(true);
+  });
+  test("a watch-time limit can be set while adding a video and edited later", async ({ page }) => {
+    await setupSession(page);
+    await setupCourseEditorMocks(page, { lesson: [], media: [mediaAsset()] });
+    const puts = await mockWatchTimeLimit(page);
+
+    await page.goto(editorUrl());
+    await page.getByRole("button", { name: "Choose from Media Library" }).click();
+    const limitField = page.getByLabel(/Watch-time limit for the video you add/);
+    await limitField.fill("0");
+    await expect(page.getByText("Enter whole minutes between 1 and 60000, or leave it empty.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add" })).toBeDisabled();
+    await limitField.fill("45");
+    await page.getByRole("button", { name: "Add" }).click();
+
+    await expect.poll(() => puts).toEqual([{ limitSeconds: 2700 }]);
+    await expect(page.getByText("Watch-time limit: 45 min (this video)")).toBeVisible();
+
+    await page.getByRole("button", { name: "Edit watch-time limit for Algebra lesson" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByLabel("Limit (minutes)")).toHaveValue("45");
+    await dialog.getByLabel("Limit (minutes)").fill("");
+    await dialog.getByRole("button", { name: "Save limit" }).click();
+    await expect.poll(() => puts).toEqual([{ limitSeconds: 2700 }, { limitSeconds: null }]);
+    await expect(page.getByText("Watch-time limit: No limit (institute rule)")).toBeVisible();
+  });
+
+  test("adding without a limit leaves the institute rule in place", async ({ page }) => {
+    await setupSession(page);
+    await setupCourseEditorMocks(page, { lesson: [], media: [mediaAsset()] });
+    const puts = await mockWatchTimeLimit(page);
+    await page.goto(editorUrl());
+    await page.getByRole("button", { name: "Choose from Media Library" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
+    await expect(page.getByText("Media Library videos")).toBeVisible();
+    expect(puts).toEqual([]);
   });
 });

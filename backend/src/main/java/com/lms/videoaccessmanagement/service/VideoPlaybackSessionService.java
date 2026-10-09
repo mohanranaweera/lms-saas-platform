@@ -5,6 +5,7 @@ import com.lms.common.error.ConflictException;
 import com.lms.common.error.PlayerRequestException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.error.PlaybackTokenInvalidException;
+import com.lms.common.error.PlaybackWatchLimitException;
 import com.lms.common.error.VideoPlaybackPolicyViolationException;
 import com.lms.common.error.VideoSeekNotAllowedException;
 import com.lms.common.tenant.TenantContext;
@@ -14,6 +15,7 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
+import com.lms.videoaccessmanagement.domain.PlaybackState;
 import com.lms.videoaccessmanagement.domain.VideoAsset;
 import com.lms.videoaccessmanagement.domain.VideoPlaybackPolicy;
 import com.lms.videoaccessmanagement.domain.VideoWatchProgress;
@@ -83,13 +85,15 @@ public class VideoPlaybackSessionService {
 
 	private final TenantVideoConfigurationService configurationService;
 
+	private final WatchTimeService watchTimeService;
+
 	public VideoPlaybackSessionService(VideoAccessGuard videoAccessGuard, VideoAssetRepository videoAssetRepository,
 			VideoPlaybackPolicyRepository videoPlaybackPolicyRepository,
 			VideoWatchSessionRepository videoWatchSessionRepository,
 			VideoWatchProgressRepository videoWatchProgressRepository, ObjectStorageApi objectStorageApi,
 			PlaybackTokenService playbackTokenService, PlaybackSessionCacheService playbackSessionCacheService,
 			VideoWatchSessionRevocationRecorder revocationRecorder, TenantContext tenantContext,
-			TenantVideoConfigurationService configurationService) {
+			TenantVideoConfigurationService configurationService, WatchTimeService watchTimeService) {
 		this.videoAccessGuard = videoAccessGuard;
 		this.videoAssetRepository = videoAssetRepository;
 		this.videoPlaybackPolicyRepository = videoPlaybackPolicyRepository;
@@ -101,6 +105,7 @@ public class VideoPlaybackSessionService {
 		this.revocationRecorder = revocationRecorder;
 		this.tenantContext = tenantContext;
 		this.configurationService = configurationService;
+		this.watchTimeService = watchTimeService;
 	}
 
 	/**
@@ -127,7 +132,10 @@ public class VideoPlaybackSessionService {
 			throw new ConflictException("This video plays through the lesson player.");
 		}
 
-		if (videoAccessGuard.isCurrentPrincipalTeacher()) {
+		// Staff (Teacher/TA, Tenant Admin and other staff with MATERIALS VIEW, already checked
+		// above) preview: a signed URL only - no student session, view count or watch time,
+		// and the AOC Player requirement (a student rule) does not apply to them.
+		if (!videoAccessGuard.isCurrentPrincipalStudent()) {
 			return issueTeacherPreviewSession(asset);
 		}
 		// VIDEO Phase 8 (ADR-025, Q-009): when the institute requires the AOC
@@ -142,7 +150,7 @@ public class VideoPlaybackSessionService {
 	private PlaybackSessionView issueTeacherPreviewSession(VideoAsset asset) {
 		SignedDownloadUrl signed = objectStorageApi.generateSignedDownloadUrl(asset.getStorageObjectKey(),
 				PlaybackTokenService.TOKEN_TTL);
-		return new PlaybackSessionView(null, null, signed.url(), signed.expiresAt(), null, true, true);
+		return new PlaybackSessionView(null, null, signed.url(), signed.expiresAt(), null, true, true, null, null, null);
 	}
 
 	private PlaybackSessionView issueStudentSession(VideoAsset asset, String deviceFingerprintHash) {
@@ -161,6 +169,8 @@ public class VideoPlaybackSessionService {
 			}
 		}
 
+		watchTimeService.requireRemaining(videoAssetId, studentId);
+
 		if (policy.maxViewsPerStudent() != null) {
 			int viewsSoFar = videoWatchProgressRepository.findByVideoAssetIdAndStudentId(videoAssetId, studentId)
 				.map(VideoWatchProgress::getViewsCount)
@@ -175,9 +185,9 @@ public class VideoPlaybackSessionService {
 		UUID watchSessionId;
 		UUID jti = UUID.randomUUID();
 		Instant expiresAt = now.plus(PlaybackTokenService.TOKEN_TTL);
+		VideoWatchSession session = new VideoWatchSession(tenantId, videoAssetId, studentId, jti,
+				deviceFingerprintHash, now, expiresAt);
 		try {
-			VideoWatchSession session = new VideoWatchSession(tenantId, videoAssetId, studentId, jti,
-					deviceFingerprintHash, now, expiresAt);
 			session = videoWatchSessionRepository.save(session);
 			watchSessionId = session.getId();
 		}
@@ -190,6 +200,7 @@ public class VideoPlaybackSessionService {
 		}
 
 		videoWatchProgressRepository.incrementViewCount(tenantId, videoAssetId, studentId, now);
+		watchTimeService.initialize(session, asset, now);
 		playbackSessionCacheService.cache(jti, watchSessionId, expiresAt);
 
 		String token = playbackTokenService.issue(studentId, tenantId, videoAssetId, watchSessionId, jti, now,
@@ -198,8 +209,12 @@ public class VideoPlaybackSessionService {
 				PlaybackTokenService.TOKEN_TTL);
 		String watermarkText = policy.watermarkEnabled() ? (studentId + " · " + tenantId) : null;
 
+		VideoWatchProgress progress = videoWatchProgressRepository.findByVideoAssetIdAndStudentId(videoAssetId, studentId)
+				.orElseThrow(() -> new PlaybackTokenInvalidException("Playback progress is unavailable"));
+		Integer remaining = watchTimeService.allowance(asset, studentId).remainingSeconds();
 		return new PlaybackSessionView(watchSessionId, token, signed.url(), signed.expiresAt(), watermarkText,
-				policy.allowSeeking(), policy.allowDownload());
+				policy.allowSeeking(), policy.allowDownload(), configurationService.effectiveSettings().heartbeatIntervalSeconds(),
+				progress.getLastPositionSeconds(), remaining);
 	}
 
 	/**
@@ -238,9 +253,9 @@ public class VideoPlaybackSessionService {
 	 * so a caller probing with someone else's token/session id learns
 	 * nothing about which check failed.
 	 */
-	@Transactional
+	@Transactional(noRollbackFor = PlaybackWatchLimitException.class)
 	public void recordProgress(UUID watchSessionId, String rawToken, int positionSeconds, int watchedDeltaSeconds,
-			String currentDeviceFingerprintHash) {
+			PlaybackState state, String currentDeviceFingerprintHash) {
 		ParsedPlaybackToken parsed = playbackTokenService.parseAndValidate(rawToken);
 		UUID tenantId = tenantContext.getTenantId();
 		UUID callerId = AuthenticatedPrincipalHolder.get().userId();
@@ -275,15 +290,17 @@ public class VideoPlaybackSessionService {
 			throw new VideoSeekNotAllowedException("Seeking ahead is not allowed for this video");
 		}
 
-		if (policy.maxWatchDurationSeconds() != null) {
-			int projectedTotal = progress.getTotalWatchedSeconds() + watchedDeltaSeconds;
-			if (projectedTotal > policy.maxWatchDurationSeconds()) {
-				revokeAndAudit(session, VideoWatchSessionRevokedReason.POLICY_VIOLATION, "max_watch_duration_exceeded");
-				throw new VideoPlaybackPolicyViolationException("This video's maximum watch duration has been reached");
-			}
+		VideoAsset asset = videoAssetRepository.findById(session.getVideoAssetId())
+			.orElseThrow(() -> new PlaybackTokenInvalidException("Invalid or expired playback token"));
+		WatchTimeService.AccountingResult accounting = watchTimeService.record(session, asset, positionSeconds, state,
+				Instant.now());
+		if (accounting.stop()) {
+			// Committed together with this heartbeat's accounting (noRollbackFor).
+			revocationRecorder.revokeAndAuditInCurrentTransaction(session,
+					VideoWatchSessionRevokedReason.WATCH_TIME_EXHAUSTED, "watch_time_exhausted");
+			playbackSessionCacheService.evict(session.getPlaybackJti());
+			throw new PlaybackWatchLimitException("You have used all the watch time allowed for this video.");
 		}
-
-		progress.recordHeartbeat(watchedDeltaSeconds, positionSeconds, Instant.now());
 	}
 
 	/** Idempotent: {@code ACTIVE -> ENDED} if currently active, a no-op otherwise. Verifies caller ownership first. */
@@ -296,6 +313,9 @@ public class VideoPlaybackSessionService {
 		if (!session.getStudentId().equals(callerId)) {
 			throw new NotFoundException("Playback session not found");
 		}
+		VideoAsset asset = videoAssetRepository.findById(session.getVideoAssetId())
+				.orElseThrow(() -> new NotFoundException("Playback session not found"));
+		watchTimeService.flush(session, asset, session.getLastPositionSeconds(), session.getLastHeartbeatState(), Instant.now());
 		videoWatchSessionRepository.endIfActive(watchSessionId, tenantId);
 		playbackSessionCacheService.evict(session.getPlaybackJti());
 	}

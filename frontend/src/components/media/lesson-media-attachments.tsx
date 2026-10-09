@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/media";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { formatDuration } from "@/lib/media-format";
+import { VideoWatchTimeLimitControl } from "@/components/media/watch-time-limit";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogClose, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +118,9 @@ function LessonMediaAttachmentRow({
           }}
           className="mt-2 h-8"
         />
+        <div className="mt-1.5">
+          <VideoWatchTimeLimitControl videoAssetId={item.mediaAssetId} title={item.title} />
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button

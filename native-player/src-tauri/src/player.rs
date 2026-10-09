@@ -37,6 +37,39 @@ const MAX_DEADLINE: Duration = Duration::from_secs(900);
 const END_TIMEOUT: Duration = Duration::from_secs(5);
 /// A clock correction larger than this retries a refused exchange once.
 const CLOCK_RETRY_THRESHOLD_SECONDS: i64 = 30;
+/// Largest position the UI may report (the server refuses anything larger).
+const MAX_POSITION_SECONDS: f64 = 86_400_000.0;
+
+/// What the UI reports about playback (VIDEO Phase 12). Telemetry only: the
+/// server decides how much of it counts as watched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PlaybackState {
+    Playing,
+    Paused,
+    Idle,
+}
+
+impl PlaybackState {
+    fn as_str(self) -> &'static str {
+        match self {
+            PlaybackState::Playing => "PLAYING",
+            PlaybackState::Paused => "PAUSED",
+            PlaybackState::Idle => "IDLE",
+        }
+    }
+}
+
+/// The latest report for the live session.
+struct Progress {
+    session_id: Uuid,
+    position_seconds: u32,
+    state: PlaybackState,
+    /// Playback ran at some point since the last heartbeat, so a pause just
+    /// before the beat does not hide the time watched (the server still caps
+    /// it by wall-clock time and position progress).
+    played_since_beat: bool,
+}
 
 /// What the UI shows. Codes are mapped to text by the UI.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -117,6 +150,8 @@ pub struct Player {
     state: Mutex<State>,
     closing: AtomicBool,
     capture: Arc<dyn Controller>,
+    /// Reported by the UI; read by the session task at each heartbeat.
+    progress: Mutex<Option<Progress>>,
 }
 
 impl Player {
@@ -165,7 +200,45 @@ impl Player {
             }),
             closing: AtomicBool::new(false),
             capture,
+            progress: Mutex::new(None),
         })
+    }
+
+    /// Records what the UI is doing. Reports for anything but the live
+    /// session, or with a position that isn't a sane number, are ignored.
+    pub fn report_playback(&self, session_id: Uuid, position_seconds: f64, state: PlaybackState) {
+        if !position_seconds.is_finite() || position_seconds < 0.0 {
+            return;
+        }
+        let mut progress = self.progress();
+        if let Some(progress) = progress.as_mut().filter(|p| p.session_id == session_id) {
+            progress.position_seconds = position_seconds.min(MAX_POSITION_SECONDS).floor() as u32;
+            progress.state = state;
+            progress.played_since_beat |= state == PlaybackState::Playing;
+        }
+    }
+
+    /// What the next heartbeat reports; starts a new reporting window.
+    fn progress_for_beat(&self, session_id: Uuid) -> (u32, PlaybackState) {
+        let mut progress = self.progress();
+        match progress.as_mut().filter(|p| p.session_id == session_id) {
+            Some(progress) => {
+                let state = if progress.played_since_beat {
+                    PlaybackState::Playing
+                } else {
+                    progress.state
+                };
+                progress.played_since_beat = progress.state == PlaybackState::Playing;
+                (progress.position_seconds, state)
+            }
+            None => (0, PlaybackState::Idle),
+        }
+    }
+
+    fn progress(&self) -> MutexGuard<'_, Option<Progress>> {
+        self.progress
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub fn view(&self) -> View {
@@ -202,7 +275,7 @@ impl Player {
         match deep_link::parse(raw) {
             Err(_) => self.show(error("INVALID_LINK")),
             Ok(DeepLink::Pair(code)) => self.pair(&code).await,
-            Ok(DeepLink::Play(code)) => self.play(&code).await,
+            Ok(DeepLink::Play { code, pair }) => self.play(&code, pair.as_deref()).await,
         }
     }
 
@@ -222,6 +295,16 @@ impl Player {
     async fn pair(self: &Arc<Self>, code: &str) {
         self.stop_active(Cancel::Replaced).await;
         self.show(View::Pairing);
+        match self.pair_installation(code).await {
+            Ok(()) => self.show(View::Ready),
+            Err(code) => self.show(View::Error { code }),
+        }
+    }
+
+    /// Creates a key and pairs it with the student's device; on success the
+    /// new installation replaces any previous one (local record and key). The
+    /// error is the code the UI shows.
+    async fn pair_installation(self: &Arc<Self>, code: &str) -> Result<(), String> {
         let previous = self.store.load();
         let name = keystore::new_key_name();
         let created = {
@@ -230,7 +313,7 @@ impl Player {
             tokio::task::spawn_blocking(move || me.keys.create(&name)).await
         };
         let Ok(Ok((key, provider))) = created else {
-            return self.show(error("KEY_UNAVAILABLE"));
+            return Err("KEY_UNAVAILABLE".to_owned());
         };
         let result = match key.public_key_spki() {
             Ok(public_key) => self.api.complete_pairing(code, &public_key).await,
@@ -248,23 +331,30 @@ impl Player {
                     let _ = self
                         .keys
                         .delete(&installation.key_name, &installation.key_provider);
-                    return self.show(error("STORAGE_UNAVAILABLE"));
+                    return Err("STORAGE_UNAVAILABLE".to_owned());
                 }
                 // The server revoked the previous installation of this device.
                 if let Some(old) = previous {
                     let _ = self.keys.delete(&old.key_name, &old.key_provider);
                 }
-                self.show(View::Ready);
+                Ok(())
             }
             Err(failure) => {
                 let _ = self.keys.delete(&name, &provider);
-                self.show(error_view(&failure));
+                Err(error_code(&failure))
             }
         }
     }
 
-    async fn play(self: &Arc<Self>, code: &str) {
+    async fn play(self: &Arc<Self>, code: &str, pair: Option<&str>) {
         self.stop_active(Cancel::Replaced).await;
+        // The LMS found no active player for this device: pair first, then play.
+        if let Some(pair) = pair {
+            self.show(View::Pairing);
+            if let Err(code) = self.pair_installation(pair).await {
+                return self.show(View::Error { code });
+            }
+        }
         let Some(installation) = self.store.load() else {
             return self.show(error("NOT_PAIRED"));
         };
@@ -355,6 +445,13 @@ impl Player {
             capture_status,
             watermark: exchange.descriptor.watermark,
         };
+        // Ready before the UI sees the session, so its first report counts.
+        *self.progress() = Some(Progress {
+            session_id: session.id,
+            position_seconds: 0,
+            state: PlaybackState::Idle,
+            played_since_beat: false,
+        });
         self.show(playing_view(&session));
         let (cancel, cancelled) = watch::channel(Cancel::None);
         let mut state = self.state();
@@ -388,9 +485,10 @@ impl Player {
             if Instant::now() >= session.deadline {
                 break Ok("CONNECTION_LOST".to_owned());
             }
+            let (position_seconds, state) = self.progress_for_beat(session.id);
             // "End" or closing the window must not wait for a slow heartbeat.
             let beat = tokio::select! {
-                beat = self.api.heartbeat(&*key, session.id, &session.token, 0, "IDLE") => beat,
+                beat = self.api.heartbeat(&*key, session.id, &session.token, position_seconds, state.as_str()) => beat,
                 changed = cancelled.changed() => {
                     let cause = if changed.is_ok() { *cancelled.borrow() } else { Cancel::User };
                     break Err(cause);
@@ -452,6 +550,15 @@ impl Player {
         // Tear down: the token and descriptor die with this task, and the
         // native window is no longer excluded from capture.
         self.capture.clear();
+        {
+            let mut progress = self.progress();
+            if progress
+                .as_ref()
+                .is_some_and(|p| p.session_id == session.id)
+            {
+                *progress = None;
+            }
+        }
         drop(session);
         {
             let mut state = self.state();
@@ -553,15 +660,20 @@ fn error(code: &str) -> View {
 }
 
 fn error_view(failure: &ApiError) -> View {
-    let code = match failure {
+    View::Error {
+        code: error_code(failure),
+    }
+}
+
+fn error_code(failure: &ApiError) -> String {
+    match failure {
         ApiError::Rejected { status: 426, .. } => "PLAYER_VERSION_UNSUPPORTED".to_owned(),
         ApiError::Rejected { status: 429, .. } => "PLAYER_RATE_LIMITED".to_owned(),
         ApiError::Rejected { code, .. } => sanitize(code.as_deref(), "REJECTED"),
         ApiError::Network => "NETWORK".to_owned(),
         ApiError::Protocol => "PROTOCOL".to_owned(),
         ApiError::Key(_) => "KEY_UNAVAILABLE".to_owned(),
-    };
-    View::Error { code }
+    }
 }
 
 /// Server-provided codes are shown only if they look like codes.

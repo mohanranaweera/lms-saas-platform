@@ -129,6 +129,9 @@ ADR when a decision is needed:
   Build the frontend with `NEXT_PUBLIC_API_BASE_URL=/api`, the default.
   `NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL` (https) points Students at the signed AOC Player
   installer; leave it unset until a player release has been published (ADR-025 §7).
+  `NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL` / `NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL` (https) point
+  phones and tablets at the AOC mobile app's store pages; unset until the app is published
+  (ADR-025 Amendment 2).
 - **Managed vs. self-hosted PostgreSQL/Redis in staging/production** -- this document
   shows them as Compose services for topology purposes; whether production actually
   runs them as managed cloud services (with Docker Compose used only for

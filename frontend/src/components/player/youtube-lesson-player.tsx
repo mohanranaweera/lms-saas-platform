@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { NativePlayerLauncher } from "@/components/player/native-player-launcher";
-import { playbackErrorMessage, VIDEO_NOT_AVAILABLE } from "@/components/player/playback-errors";
+import { PlaybackErrorNotice } from "@/components/player/playback-error-notice";
+import { VIDEO_NOT_AVAILABLE } from "@/components/player/playback-errors";
 import { useStartPlayback } from "@/lib/api/playback";
 
 /**
@@ -40,23 +40,7 @@ export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlaye
   }, [lessonMediaId, mutate]);
 
   if (playback.isError) {
-    const { message, retryable } = playbackErrorMessage(playback.error);
-    return (
-      <div
-        role="alert"
-        className="flex flex-col items-start gap-2 rounded-md border border-border bg-muted/20 p-3 text-sm"
-      >
-        <p className="flex items-center gap-2 text-foreground">
-          <AlertCircle aria-hidden="true" className="size-4 shrink-0 text-destructive" />
-          {message}
-        </p>
-        {retryable ? (
-          <Button type="button" variant="outline" size="sm" onClick={() => mutate(lessonMediaId)}>
-            Try again
-          </Button>
-        ) : null}
-      </div>
-    );
+    return <PlaybackErrorNotice error={playback.error} onRetry={() => mutate(lessonMediaId)} />;
   }
 
   // VIDEO Phase 8: the institute requires the AOC Player - hand over to the launcher.

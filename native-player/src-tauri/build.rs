@@ -25,8 +25,9 @@ fn main() {
     // Only these app commands exist for the UI, and capabilities/default.json
     // must grant each one explicitly.
     tauri_build::try_build(
-        tauri_build::Attributes::new()
-            .app_manifest(tauri_build::AppManifest::new().commands(&["get_state"])),
+        tauri_build::Attributes::new().app_manifest(
+            tauri_build::AppManifest::new().commands(&["get_state", "report_playback"]),
+        ),
     )
     .expect("failed to run tauri-build");
 }

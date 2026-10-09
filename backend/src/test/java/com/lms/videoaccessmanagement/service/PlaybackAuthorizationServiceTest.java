@@ -24,6 +24,8 @@ import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
 import com.lms.videoaccessmanagement.domain.TenantVideoSettings;
 import com.lms.videoaccessmanagement.service.player.NativeLaunchService;
 import com.lms.common.error.PlayerRequestException;
+import com.lms.common.error.PlaybackWatchLimitException;
+import static org.mockito.Mockito.doThrow;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -58,6 +60,8 @@ class PlaybackAuthorizationServiceTest {
 	private TenantVideoConfigurationService configurationService;
 	@Mock
 	private NativeLaunchService nativeLaunchService;
+	@Mock
+	private WatchTimeService watchTimeService;
 
 	private PlaybackAuthorizationService service;
 
@@ -66,7 +70,7 @@ class PlaybackAuthorizationServiceTest {
 		LessonMediaPlayability playability = new LessonMediaPlayability(materialLookupApi, videoAccessApi, tenantContext,
 				featureFlags, mediaConnectionApi);
 		service = new PlaybackAuthorizationService(playability, accessPolicyApi, featureFlags, configurationService,
-				nativeLaunchService);
+				nativeLaunchService, watchTimeService);
 		lenient().when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		lenient().when(configurationService.effectiveSettings()).thenReturn(TenantVideoSettings.PLATFORM_DEFAULTS);
 	}
@@ -178,6 +182,21 @@ class PlaybackAuthorizationServiceTest {
 		assertThat(start.descriptor()).isNull();
 		assertThat(start.sessionId()).isEqualTo(sessionId);
 		assertThat(start.launch().url()).startsWith("aocplayer://play?code=");
+	}
+
+	@Test
+	void usedUpWatchTimeIsRefusedBeforeAnyLaunchIsIssued() {
+		UUID studentId = UUID.randomUUID();
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
+		when(configurationService.effectiveSettings()).thenReturn(nativeRequired());
+		when(featureFlags.isNativePlayer()).thenReturn(true);
+		when(materialLookupApi.resolveLessonMediaForPlayback(MATERIAL_ID)).thenReturn(Optional.of(context(MaterialVisibility.VISIBLE)));
+		when(videoAccessApi.getDetails(ASSET_ID, TENANT_ID)).thenReturn(Optional.of(
+				new VideoAssetDetails(ASSET_ID, "READY", "INTERNAL", "Lesson", 120, null, null, null)));
+		doThrow(new PlaybackWatchLimitException("used up")).when(watchTimeService).requireRemaining(ASSET_ID, studentId);
+
+		assertThatThrownBy(() -> service.authorize(MATERIAL_ID)).isInstanceOf(PlaybackWatchLimitException.class);
+		verifyNoInteractions(nativeLaunchService);
 	}
 
 	private static TenantVideoSettings nativeRequired() {

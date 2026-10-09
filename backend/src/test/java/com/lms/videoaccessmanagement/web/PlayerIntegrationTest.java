@@ -337,8 +337,87 @@ class PlayerIntegrationTest extends MediaUploadTestSupport {
 				second.installationId), lesson.ctx().host(), lesson.ctx().studentToken()));
 		assertThat(status(removed)).isEqualTo(200);
 		assertThat(json(removed).path("data").path("status").asString()).isEqualTo("REVOKED");
-		String code = codeOf(json(play(lesson)).path("data").path("launch").path("url").asString());
-		assertThat(status(exchange(second, code))).isEqualTo(400);
+		// Removed: the next launch carries a pairing code; the removed player still can't claim it.
+		String launchUrl = json(play(lesson)).path("data").path("launch").path("url").asString();
+		assertThat(param(launchUrl, "pair")).isNotNull();
+		assertThat(status(exchange(second, codeOf(launchUrl)))).isEqualTo(400);
+	}
+
+	@Test
+	void usedUpWatchTimeStopsThePlayerAndBlocksTheNextLaunch() {
+		Lesson lesson = nativeLesson("pl-budget");
+		UUID tenantId = lesson.ctx().tenant().getId();
+		jdbcTemplate.update("UPDATE tenant_video_configuration SET watch_time_policy = 'FIXED_MINUTES', "
+				+ "watch_time_fixed_minutes = 1, watch_time_multiplier = NULL WHERE tenant_id = ?", tenantId);
+		TestPlayer player = pair(lesson.ctx());
+		ActiveSession session = start(lesson, player);
+		// The claim anchors accounting, so the first interval counts.
+		assertThat(jdbcTemplate.queryForObject("SELECT last_heartbeat_at IS NOT NULL FROM video_watch_session "
+				+ "WHERE id = ?", Boolean.class, session.id())).isTrue();
+
+		// Paused time never counts.
+		backdateHeartbeat(session.id(), 30);
+		JsonNode paused = json(heartbeat(player, session.id(), session.token(), 0, "PAUSED")).path("data");
+		assertThat(paused.path("action").asString()).isEqualTo("CONTINUE");
+		assertThat(paused.path("remainingWatchSeconds").asInt()).isEqualTo(60);
+
+		backdateHeartbeat(session.id(), 40);
+		JsonNode playing = json(heartbeat(player, session.id(), paused.path("playbackToken").asString(), 40,
+				"PLAYING")).path("data");
+		assertThat(playing.path("action").asString()).isEqualTo("CONTINUE");
+		assertThat(playing.path("remainingWatchSeconds").asInt()).isEqualTo(20);
+
+		backdateHeartbeat(session.id(), 30);
+		JsonNode exhausted = json(heartbeat(player, session.id(), playing.path("playbackToken").asString(), 70,
+				"PLAYING")).path("data");
+		assertThat(exhausted.path("action").asString()).isEqualTo("STOP");
+		assertThat(exhausted.path("reason").asString()).isEqualTo("WATCH_TIME_EXHAUSTED");
+		assertThat(exhausted.path("playbackToken").isNull()).isTrue();
+		assertThat(jdbcTemplate.queryForObject("SELECT authorized_watch_seconds FROM video_watch_progress "
+				+ "WHERE tenant_id = ? AND video_asset_id = ?", Integer.class, tenantId, lesson.assetId()))
+			.isEqualTo(60);
+
+		MvcResult again = play(lesson);
+		assertThat(status(again)).isEqualTo(409);
+		assertThat(errorCode(again)).isEqualTo("PLAYBACK_WATCH_LIMIT");
+	}
+
+	@Test
+	void aLaunchWithoutAPlayerOnThisDevicePairsAndPlaysInOneStep() {
+		Lesson lesson = nativeLesson("pl-autopair");
+		UUID tenantId = lesson.ctx().tenant().getId();
+
+		// Never paired: the launch link also carries a one-time pairing code.
+		String first = json(play(lesson)).path("data").path("launch").path("url").asString();
+		assertThat(first).matches("aocplayer://play\\?code=[A-Za-z0-9_-]{43}&pair=[A-Za-z0-9_-]{43}");
+		// Stored hashed only.
+		assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM player_pairing_code WHERE tenant_id = ? "
+				+ "AND code_hash = ?", Integer.class, tenantId, param(first, "pair"))).isZero();
+
+		// The player pairs with it, then claims the launch: one click for the student.
+		TestPlayer player = new TestPlayer();
+		MvcResult paired = completePairing(param(first, "pair"), player.publicKey(), VERSION);
+		assertThat(status(paired)).isEqualTo(201);
+		player.installationId = UUID.fromString(json(paired).path("data").path("installationId").asString());
+		assertThat(status(exchange(player, codeOf(first)))).isEqualTo(200);
+		// The pairing code is one-time.
+		assertThat(status(completePairing(param(first, "pair"), new TestPlayer().publicKey(), VERSION)))
+			.isEqualTo(400);
+
+		// Paired now: the next launch carries no pairing code.
+		String second = json(play(lesson)).path("data").path("launch").path("url").asString();
+		assertThat(param(second, "pair")).isNull();
+
+		// Revoked while the player was closed: the next launch pairs again and plays.
+		jdbcTemplate.update("UPDATE player_installation SET status = 'REVOKED', revoked_at = now(), "
+				+ "revocation_source = 'STUDENT', revoke_reason = 'test' WHERE id = ?", player.installationId);
+		String afterRevoke = json(play(lesson)).path("data").path("launch").path("url").asString();
+		assertThat(param(afterRevoke, "pair")).isNotNull();
+		TestPlayer repaired = new TestPlayer();
+		MvcResult rePaired = completePairing(param(afterRevoke, "pair"), repaired.publicKey(), VERSION);
+		assertThat(status(rePaired)).isEqualTo(201);
+		repaired.installationId = UUID.fromString(json(rePaired).path("data").path("installationId").asString());
+		assertThat(status(exchange(repaired, codeOf(afterRevoke)))).isEqualTo(200);
 	}
 
 	@Test
@@ -629,12 +708,39 @@ class PlayerIntegrationTest extends MediaUploadTestSupport {
 	}
 
 	private static byte[] heartbeatBody() {
-		return ("{\"positionSeconds\":12,\"state\":\"PLAYING\",\"playerVersion\":\"" + VERSION + "\"}")
-			.getBytes(StandardCharsets.UTF_8);
+		return heartbeatBody(12, "PLAYING");
+	}
+
+	private static byte[] heartbeatBody(int positionSeconds, String state) {
+		return ("{\"positionSeconds\":" + positionSeconds + ",\"state\":\"" + state + "\",\"playerVersion\":\""
+				+ VERSION + "\"}").getBytes(StandardCharsets.UTF_8);
+	}
+
+	private MvcResult heartbeat(TestPlayer player, UUID sessionId, String token, int positionSeconds, String state) {
+		String path = "/api/v1/player/sessions/" + sessionId + "/heartbeat";
+		MockHttpServletRequestBuilder request = post(path).header("X-Player-Token", token);
+		return perform(player.sign(request, path, heartbeatBody(positionSeconds, state), Instant.now().getEpochSecond(),
+				TestPlayer.nonce()));
+	}
+
+	/** Moves the session's last heartbeat into the past, as if that much time had passed. */
+	private void backdateHeartbeat(UUID sessionId, int seconds) {
+		jdbcTemplate.update("UPDATE video_watch_session SET last_heartbeat_at = now() - (? * interval '1 second') "
+				+ "WHERE id = ?", seconds, sessionId);
 	}
 
 	private static String codeOf(String url) {
-		return url.substring(url.indexOf("code=") + "code=".length());
+		return param(url, "code");
+	}
+
+	/** A query parameter of an {@code aocplayer://} link, or null. */
+	private static String param(String url, String name) {
+		for (String pair : url.substring(url.indexOf('?') + 1).split("&")) {
+			if (pair.startsWith(name + "=")) {
+				return pair.substring(name.length() + 1);
+			}
+		}
+		return null;
 	}
 
 	private List<String> auditActions(UUID tenantId) {

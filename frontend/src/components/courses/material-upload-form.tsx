@@ -580,8 +580,9 @@ function VideoPolicyFields({
           <Input id={`${idPrefix}-max-views`} type="number" min={1} step={1} className="w-28" disabled={disabled} {...register("maxViewsPerStudent")} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-max-watch-duration`}>Max watch duration (seconds)</Label>
-          <Input id={`${idPrefix}-max-watch-duration`} type="number" min={1} step={1} className="w-32" disabled={disabled} {...register("maxWatchDurationSeconds")} />
+          <Label htmlFor={`${idPrefix}-max-watch-duration`}>Watch-time limit (minutes)</Label>
+          <Input id={`${idPrefix}-max-watch-duration`} type="number" min={1} step={1} className="w-32" disabled={disabled} {...register("watchTimeLimitMinutes")} />
+          <p className="text-xs text-muted-foreground">Empty: your institute&apos;s rule applies. Set: this limit applies instead.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`${idPrefix}-max-concurrent`}>Max concurrent sessions</Label>

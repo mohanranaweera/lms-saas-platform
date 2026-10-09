@@ -87,6 +87,10 @@ interface SecureVideoPlayerProps {
 
 type PlayerState = "loading" | "not-entitled" | "error" | "ready" | "revoked" | "token-invalid";
 
+/** `PLAYBACK_WATCH_LIMIT` (VIDEO Phase 12): the Student's watch time for this video is used up. */
+const WATCH_LIMIT_MESSAGE =
+  "You've used all the watch time allowed for this video. Ask your institute if you need more time.";
+
 export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired }: SecureVideoPlayerProps) {
   const issueSessionMutation = useIssuePlaybackSession();
   const progressMutation = useRecordPlaybackProgress();
@@ -142,6 +146,17 @@ export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired 
       } catch (error) {
         if (isApiClientError(error) && error.code === "NATIVE_PLAYER_REQUIRED" && onNativePlayerRequired) {
           onNativePlayerRequired();
+        } else if (isApiClientError(error) && error.code === "PLAYBACK_WATCH_LIMIT") {
+          // Covers a mid-playback refresh too: the session is over, so drop the media.
+          const el = videoRef.current;
+          if (el) {
+            el.pause();
+            el.removeAttribute("src");
+            el.load();
+          }
+          setIsPlaying(false);
+          setTerminalMessage(WATCH_LIMIT_MESSAGE);
+          setState("revoked");
         } else if (isApiClientError(error) && error.status === 404) {
           setState("not-entitled");
         } else {
@@ -243,6 +258,10 @@ export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired 
       if (isApiClientError(error)) {
         if (error.code === "POLICY_VIOLATION") {
           endTerminal("This viewing session has ended because a limit was reached.", "revoked");
+          return;
+        }
+        if (error.code === "PLAYBACK_WATCH_LIMIT") {
+          endTerminal(WATCH_LIMIT_MESSAGE, "revoked");
           return;
         }
         if (error.code === "SEEK_NOT_ALLOWED") {

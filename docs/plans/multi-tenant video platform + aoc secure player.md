@@ -3,10 +3,10 @@
 ```text
 Project:          Multi-Tenant Video Platform + AOC Secure Player
 Overall Status:   IN PROGRESS
-Current Phase:    11 — Watermark & Capture Protection
-Last Updated:     2026-10-08
-Current Branch:   feat/video-playback-engines
-Latest Migration: V77__player_installations_and_launch_codes.sql
+Current Phase:    12 — Watch-Time & Heartbeat
+Last Updated:     2026-10-09
+Current Branch:   feat/video-watch-time
+Latest Migration: V79__watch_time_accounting.sql
 Backend Build:    mvnw verify 2026-10-07: 2419 tests, 0 failures (Phase 8 backend)
 Frontend Build:   Phase 7 WEB player done 2026-10-07 (tsc clean, new Playwright spec 8/8)
 Player Build:     2026-10-08 (Phase 10) cargo test 45/45 incl. TPM, clippy -D warnings clean (dev + release feature)
@@ -26,8 +26,8 @@ Open Blockers:    none for Phase 9 dev builds; code-signing route + updater-key 
 | 8 | Device & Session Security | COMPLETE | 2026-10-07 | 2026-10-07 |
 | 9 | AOC Secure Player Foundation | COMPLETE | 2026-10-08 | 2026-10-08 |
 | 10 | Playback Engines | TESTED (commit pending) | 2026-10-08 | 2026-10-08 |
-| 11 | Watermark & Capture Protection | IN PROGRESS | 2026-10-08 | |
-| 12 | Watch-Time & Heartbeat | NOT STARTED | | |
+| 11 | Watermark & Capture Protection | COMPLETE | 2026-10-08 | 2026-10-09 |
+| 12 | Watch-Time & Heartbeat | IN PROGRESS | 2026-10-09 | |
 | 13 | Managed/Self-Hosted Streaming | NOT STARTED | | |
 | 14 | Security Hardening | NOT STARTED | | |
 | 15 | Integration & Production Readiness | NOT STARTED | | |
@@ -2424,4 +2424,92 @@ the recording-access rules (recordings are protected content).
 - **Security review:** no new migration, credential, endpoint, or WebView command. Capture is explicitly
   deterrence, not DRM; server entitlement and tenant context remain authoritative. Work is on
   `feat/video-content-protection`; no commit, push, production enablement or release has been performed.
+
+### Phase 12 — Watch-Time & Heartbeat
+
+**Before (2026-10-09, status → IN PROGRESS; branch `feat/video-watch-time`)**
+
+- **Objective:** replace client-authoritative heartbeat deltas with one server-authoritative accounting
+  rule shared by WEB and NATIVE: charge only bounded server elapsed time while `PLAYING`, ignore pauses
+  and rewinds for authorization, snapshot the tenant/student/video budget, return resume/remaining data,
+  and terminate exhausted or stale sessions without deleting history.
+- **Impact:** additive migration `V79__watch_time_accounting.sql` extends `video_watch_progress` with
+  authorized counters, resume position and budget snapshot, and extends `video_watch_session` with
+  heartbeat state/position. Existing endpoint paths remain stable; WEB progress and AOC heartbeat bodies
+  gain bounded state and responses gain server-derived resume/remaining fields. Tenant identity remains
+  trusted-context/session-derived; Redis remains non-authoritative.
+- **Backend implementation:** `WatchTimeService` centralizes budget calculation and wall-clock accounting;
+  row locking and tenant guards protect progress updates. `VideoWatchSessionCleanupService` expires stale
+  sessions and publishes the existing audit event path. Exhaustion uses `PLAYBACK_WATCH_LIMIT` for WEB and
+  `WATCH_TIME_EXHAUSTED` for the native `STOP` response. Existing token, device, enrollment/playability,
+  and anti-enumeration checks remain in front of accounting.
+- **Tests:** `WatchTimeServiceTest` covers pause, server elapsed accounting, position-ahead capping and
+  budget exhaustion. Backend compile/test-compile pass; targeted unit tests pass (4/4). Testcontainers
+  integration suites were attempted but are blocked in this environment because Docker is unavailable;
+  no integration assertions ran. Frontend/native-player contract consumers and E2E remain the next phase
+  step; no commit, push, deployment or production enablement has been performed.
+- **Native player + "pair again" (2026-10-09, during the Phase 12 manual run):**
+  - Found: the player still sent `positionSeconds: 0, state: IDLE`, so NATIVE playback was never
+    charged. Now the File and YouTube engines report position/state to Rust (`report_playback`,
+    live session only) and each heartbeat carries the latest report (`PLAYING` if playback ran since
+    the previous beat). YouTube state comes from the embed's `enablejsapi` messages (origin + source
+    checked); no YouTube script runs in the player window.
+  - Found: a device removed while the player was closed revoked its pairing, and the next launch
+    failed with the generic `PLAYBACK_LAUNCH_CODE_INVALID` ("Couldn't continue"). `POST
+    /playback/sessions` (NATIVE) now answers `409 PLAYER_NOT_PAIRED` when the Student has no ACTIVE
+    installation on the browser's device; the LMS shows "Pair the AOC Player" + "Try again".
+  - Found: `aocplayer://` was registered to the `tauri dev` exe, whose UI lives on Vite, so links
+    showed "127.0.0.1 refused to connect" whenever Vite was down. `npm run build:local` builds a
+    debug exe with the UI compiled in, copies it to `target/local-player/` and registers the scheme
+    there; dev-server builds (`tauri::is_dev()`) no longer register it.
+  - Tests: `PlayerIntegrationTest` 18/18 (new `aLaunchNeedsTheStudentsOwnActivePlayerOnThisDevice`),
+    `PlaybackAuthorizationServiceTest` 8/8, native `cargo test` 55 passed (2 new), fmt + clippy (incl.
+    `--features release`) clean, Playwright `aoc-player` + `student-youtube-playback` 26 passed.
+- **Review fixes (2026-10-09):**
+  - Rewatch was free: deltas were measured against the all-time furthest position. Now measured from
+    the session's previous heartbeat; `last_position_seconds` on progress is the latest (resume) point.
+  - Double counting: accounting committed in its own `REQUIRES_NEW` transaction. It now joins the
+    heartbeat transaction; the WEB refusal commits (`noRollbackFor`) with a same-transaction revoke.
+  - Speed: forward progress is capped at 2 x server elapsed (was 1 x), per the 2026-10-08 decision.
+  - First native interval was never charged: the exchange now sets `last_heartbeat_at`.
+  - Blocking: a used-up budget is refused at start (`requireRemaining` in `POST /playback/sessions`
+    and the legacy issue endpoint) with `409 PLAYBACK_WATCH_LIMIT` (was 403, which the UI showed as
+    "not available"). WEB player and lesson page show a terminal watch-time message; the AOC Player
+    explains `WATCH_TIME_EXHAUSTED`.
+  - Tests: `WatchTimeServiceTest` 8/8, `PlaybackAuthorizationServiceTest` 9/9,
+    `PlayerIntegrationTest` 19/19, `VideoPlaybackSessionIntegrationTest` 19/19; Playwright
+    `secure-video-player` + `aoc-player` + `student-youtube-playback` 31 passed.
+- **No pairing step + install fallback + mobile preparation (owner, 2026-10-09; ADR-025 Amendment 2):**
+  - Supersedes `PLAYER_NOT_PAIRED` above: a NATIVE launch for a device without an ACTIVE player
+    carries a pairing code (`aocplayer://play?code=…&pair=…`); the player pairs, then claims the
+    launch. Pairing-code issuing moved into `NativeLaunchService.issuePairingCode` (the pairing
+    page uses it too). The "Pair this computer" card is optional.
+  - Launcher: no claim after 12 s → "Install the AOC Player to watch this video" + "I've installed
+    it - play now"; a browser that saw a claim before says "didn't open" instead.
+  - Mobile: "Watch this video in the AOC app" + store link on Android/iOS once
+    `NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL` / `_IOS_URL` are set; otherwise the Windows message.
+    The app is still backlog (own amendment).
+  - Tests: `PlayerIntegrationTest` 19/19 (`aLaunchWithoutAPlayerOnThisDevicePairsAndPlaysInOneStep`),
+    `PlaybackAuthorizationServiceTest` 9/9; native `cargo test` 56 passed (parser + pair-then-play
+    + refused pairing), fmt + clippy (incl. release) clean; Playwright player specs 31 passed.
+- **Grant extra watch time (owner, 2026-10-09):** Tenant Admin → Students → Watch time tab lists used /
+  allowed time per video and "Add time" (minutes + required reason). `V80__video_watch_time_grant.sql`
+  (append-only, trigger, composite tenant FKs); allowed = budget snapshot + grants, time watched never
+  reduced; `ACCESS_EXPIRY` V / C/E; audit `video.watch_time_granted` with before/after. Chosen over a
+  "reset" so the record of what was watched is kept. API: `docs/api/video-access-management.md`
+  "Watch-time grants". Tests: `StudentWatchTimeIntegrationTest` 5/5, `WatchTimeServiceTest` 9/9,
+  regression `VideoPlaybackSessionIntegrationTest` 19/19 + `PlayerIntegrationTest` 19/19, Playwright
+  `student-watch-time.spec.ts` 5/5.
+- **Per-video limits (owner, 2026-10-09):** "instead of a global rule, add restrictions when adding a
+  video to a course". Decided: the limit is per video and **the video's own limit wins** over the
+  institute rule (higher or lower); the institute rule is the default. `GET/PUT
+  /videos/{id}/watch-time-limit` (same ownership gate as playback rules, audited, clears budget
+  snapshots so a change applies to everyone). UI: optional limit in the Media Library picker, "Edit
+  limit" on each attached lesson video, upload form in minutes. Also: Watch time tab shows file names
+  for untitled platform uploads and gets search + "Only used up". Tests:
+  `VideoWatchTimeLimitIntegrationTest` 3/3, `StudentWatchTimeIntegrationTest` 5/5,
+  `WatchTimeServiceTest` 11/11, `VideoPlaybackSessionIntegrationTest` 19/19, `PlayerIntegrationTest`
+  19/19; Playwright `lesson-media` 6/6, `student-watch-time` 6/6, material/player specs 105 passed
+  (2 failures in `route-groups.spec.ts` expect "Not yet implemented" placeholders on pages built since -
+  stale, unrelated).
 

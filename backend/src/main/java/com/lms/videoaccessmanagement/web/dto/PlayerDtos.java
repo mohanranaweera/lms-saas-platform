@@ -1,5 +1,6 @@
 package com.lms.videoaccessmanagement.web.dto;
 
+import com.lms.videoaccessmanagement.domain.PlaybackState;
 import com.lms.videoaccessmanagement.service.PlaybackDescriptor;
 import java.time.Instant;
 import java.util.UUID;
@@ -30,12 +31,13 @@ public final class PlayerDtos {
 	}
 
 	/** {@code POST /api/v1/player/sessions/{id}/heartbeat} (player, signed + token). */
-	public record HeartbeatRequest(Integer positionSeconds, String state, String playerVersion) {
+	public record HeartbeatRequest(Integer positionSeconds, PlaybackState state, String playerVersion) {
 	}
 
 	/** {@code action} is CONTINUE or STOP; on STOP the player tears playback down. */
 	public record HeartbeatResponse(String action, String reason, String playbackToken, Instant expiresAt,
-			Integer heartbeatIntervalSeconds, String mediaUrl) {
+			Integer heartbeatIntervalSeconds, String mediaUrl, Integer resumePositionSeconds,
+			Integer remainingWatchSeconds) {
 	}
 
 	/** Admin revocations; the reason is required and audited. */

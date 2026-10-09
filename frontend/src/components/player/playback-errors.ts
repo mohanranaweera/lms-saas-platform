@@ -32,6 +32,11 @@ export function playbackErrorMessage(error: unknown): PlaybackErrorCopy {
       return { message: "This video's channel isn't available right now.", retryable: false };
     case "NATIVE_PLAYER_UNAVAILABLE":
       return { message: "The AOC Player isn't available right now. Please try again later.", retryable: true };
+    case "PLAYBACK_WATCH_LIMIT":
+      return {
+        message: "You've used all the watch time allowed for this video. Ask your institute if you need more time.",
+        retryable: false,
+      };
     case "PLAYER_DEVICE_NOT_REGISTERED":
       return {
         message: "Sign out and sign in again on this device, then open the video in the AOC Player.",

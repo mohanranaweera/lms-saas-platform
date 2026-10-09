@@ -1,5 +1,5 @@
 import { controlBar } from "./controls";
-import type { Engine, EngineError, Media } from "./types";
+import type { Engine, EngineError, Media, PlaybackReport } from "./types";
 
 /** Forward jumps larger than this (seconds) are undone when seeking is off. */
 const SEEK_TOLERANCE_SECONDS = 2;
@@ -20,6 +20,7 @@ export function fileEngine(
   media: Extract<Media, { engine: "file" }>,
   title: string,
   onError: EngineError,
+  onPlayback: PlaybackReport,
 ): Engine {
   let currentUrl = media.url;
   let latestUrl = media.url;
@@ -54,6 +55,25 @@ export function fileEngine(
   video.addEventListener("timeupdate", () => {
     if (video.currentTime > 0) errors = 0;
   });
+
+  // Running only while frames advance: buffering, a pause or the end is PAUSED.
+  let stalled = false;
+  const report = () => {
+    if (destroyed) return;
+    const running = !video.paused && !video.ended && !stalled;
+    onPlayback(video.currentTime, running ? "PLAYING" : "PAUSED");
+  };
+  video.addEventListener("waiting", () => {
+    stalled = true;
+    report();
+  });
+  video.addEventListener("playing", () => {
+    stalled = false;
+    report();
+  });
+  for (const event of ["pause", "ended", "seeked", "timeupdate"]) {
+    video.addEventListener(event, report);
+  }
   video.addEventListener("error", () => {
     if (destroyed) return;
     errors += 1;

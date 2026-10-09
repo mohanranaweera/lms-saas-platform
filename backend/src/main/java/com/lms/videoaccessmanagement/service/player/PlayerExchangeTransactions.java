@@ -164,7 +164,7 @@ public class PlayerExchangeTransactions {
 		int heartbeatInterval = configurationService.effectiveSettings().heartbeatIntervalSeconds();
 		Instant expiresAt = now.plus(sessionWindow(heartbeatInterval));
 		if (sessions.activateNativeIfPending(session.getId(), code.getTenantId(), installation.getId(),
-				expiresAt) == 0) {
+				expiresAt, now) == 0) {
 			return Refused.because("session_not_pending");
 		}
 		code.consume(installation.getId(), now);

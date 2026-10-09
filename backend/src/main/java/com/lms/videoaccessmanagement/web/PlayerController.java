@@ -117,10 +117,11 @@ public class PlayerController {
 			@RequestHeader(name = TOKEN_HEADER, required = false) String token, HttpServletRequest request) {
 		PlayerDtos.HeartbeatRequest parsed = read(body, PlayerDtos.HeartbeatRequest.class);
 		PlayerSessionService.HeartbeatResult result = sessionService.heartbeat(sessionId, token,
-				signed(request, body), parsed == null ? null : parsed.playerVersion());
+				signed(request, body), parsed == null ? null : parsed.playerVersion(), parsed == null ? null : parsed.positionSeconds(),
+					parsed == null ? null : parsed.state());
 		return ResponseEntity.ok(ApiResponse.success(new PlayerDtos.HeartbeatResponse(result.action(),
 				result.reason(), result.playbackToken(), result.expiresAt(), result.heartbeatIntervalSeconds(),
-				result.mediaUrl())));
+				result.mediaUrl(), result.resumePositionSeconds(), result.remainingWatchSeconds())));
 	}
 
 	@PostMapping("/sessions/{sessionId}/end")

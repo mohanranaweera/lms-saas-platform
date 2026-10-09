@@ -1155,3 +1155,171 @@ async fn a_revoked_installation_is_forgotten_so_the_next_launch_asks_to_pair() {
         })
     );
 }
+
+#[tokio::test]
+async fn heartbeats_carry_the_reported_position_and_state() {
+    let f = fixture().await;
+    paired(&f);
+    let session_id = Uuid::new_v4();
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(exchange_body(session_id, "token-1", 60)),
+        )
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(
+            format!("/api/v1/player/sessions/{session_id}/heartbeat").as_str(),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(beat("CONTINUE", None, "token-1")))
+        .mount(&f.server)
+        .await;
+
+    f.player.handle_link(&play_link()).await;
+    // Played, then paused just before the beat: the beat still says PLAYING.
+    f.player
+        .report_playback(session_id, 41.2, PlaybackState::Playing);
+    f.player
+        .report_playback(session_id, 43.9, PlaybackState::Paused);
+    // Ignored: another session, or a position that isn't a sane number.
+    f.player
+        .report_playback(Uuid::new_v4(), 900.0, PlaybackState::Playing);
+    f.player
+        .report_playback(session_id, f64::NAN, PlaybackState::Playing);
+    f.player
+        .report_playback(session_id, -5.0, PlaybackState::Playing);
+
+    let mut bodies: Vec<Value> = Vec::new();
+    for _ in 0..100 {
+        bodies = f
+            .server
+            .received_requests()
+            .await
+            .unwrap()
+            .iter()
+            .filter(|r| r.url.path().ends_with("/heartbeat"))
+            .map(|r| serde_json::from_slice(&r.body).unwrap())
+            .collect();
+        if bodies.len() >= 2 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    assert!(
+        bodies.len() >= 2,
+        "expected two heartbeats, got {}",
+        bodies.len()
+    );
+    let version = env!("CARGO_PKG_VERSION");
+    assert_eq!(
+        bodies[0],
+        json!({ "positionSeconds": 43, "state": "PLAYING", "playerVersion": version })
+    );
+    // Nothing played since: the paused state is reported as it is.
+    assert_eq!(
+        bodies[1],
+        json!({ "positionSeconds": 43, "state": "PAUSED", "playerVersion": version })
+    );
+    f.player.end_by_student().await;
+}
+
+#[tokio::test]
+async fn reports_without_a_live_session_are_ignored() {
+    let f = fixture().await;
+    let stray = Uuid::new_v4();
+    f.player
+        .report_playback(stray, 10.0, PlaybackState::Playing);
+    assert_eq!(f.player.progress_for_beat(stray), (0, PlaybackState::Idle));
+}
+
+const PAIR_CODE: &str = "ZyXwVuTsRqPoNmLkJiHgFeDcBa9876543210_-ZyXwV";
+
+#[tokio::test]
+async fn a_play_link_with_a_pairing_code_pairs_then_plays_in_one_step() {
+    let f = fixture().await;
+    // Never paired on this computer.
+    let installation_id = Uuid::new_v4();
+    let session_id = Uuid::new_v4();
+    Mock::given(method("POST"))
+        .and(path("/api/v1/player/pairings/complete"))
+        .respond_with(
+            ResponseTemplate::new(201)
+                .set_body_json(envelope(json!({ "installationId": installation_id }))),
+        )
+        .expect(1)
+        .mount(&f.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(EXCHANGE))
+        .and(header(
+            INSTALLATION_HEADER,
+            installation_id.to_string().as_str(),
+        ))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(exchange_body(session_id, "token-1", 60)),
+        )
+        .expect(1)
+        .mount(&f.server)
+        .await;
+
+    f.player
+        .handle_link(&format!("aocplayer://play?code={CODE}&pair={PAIR_CODE}"))
+        .await;
+
+    assert!(matches!(f.views.last(), Some(View::Playing { .. })));
+    let requests = f.server.received_requests().await.unwrap();
+    // Pairing first, with the pairing code; then the exchange, with the launch code.
+    assert!(requests[0].url.path().ends_with("/pairings/complete"));
+    let pairing: Value = serde_json::from_slice(&requests[0].body).unwrap();
+    assert_eq!(pairing["pairingCode"], PAIR_CODE);
+    assert_eq!(requests[1].url.path(), EXCHANGE);
+    let exchange: Value = serde_json::from_slice(&requests[1].body).unwrap();
+    assert_eq!(exchange["launchCode"], CODE);
+    // The exchange is signed by the key created for this pairing.
+    let saved = InstallationStore::new(f.dir.clone()).load().unwrap();
+    assert_eq!(saved.installation_id, installation_id);
+    let verifying_key = *f
+        .keys
+        .keys
+        .lock()
+        .unwrap()
+        .get(&saved.key_name)
+        .unwrap()
+        .0
+        .verifying_key();
+    assert!(SignedBy(verifying_key).matches(&requests[1]));
+    f.player.end_by_student().await;
+}
+
+#[tokio::test]
+async fn a_refused_pairing_code_shows_the_error_and_claims_nothing() {
+    let f = fixture().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/player/pairings/complete"))
+        .respond_with(
+            ResponseTemplate::new(400).set_body_json(failure("PLAYER_PAIRING_CODE_INVALID")),
+        )
+        .mount(&f.server)
+        .await;
+
+    f.player
+        .handle_link(&format!("aocplayer://play?code={CODE}&pair={PAIR_CODE}"))
+        .await;
+
+    assert_eq!(
+        f.views.last(),
+        Some(View::Error {
+            code: "PLAYER_PAIRING_CODE_INVALID".into()
+        })
+    );
+    assert!(
+        f.server
+            .received_requests()
+            .await
+            .unwrap()
+            .iter()
+            .all(|r| r.url.path() != EXCHANGE)
+    );
+    assert!(InstallationStore::new(f.dir.clone()).load().is_none());
+}

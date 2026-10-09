@@ -49,9 +49,12 @@ public class PlaybackAuthorizationService {
 
 	private final NativeLaunchService nativeLaunchService;
 
+	private final WatchTimeService watchTimeService;
+
 	public PlaybackAuthorizationService(LessonMediaPlayability playability, AccessPolicyApi accessPolicyApi,
 			VideoFeatureFlags featureFlags, TenantVideoConfigurationService configurationService,
-			NativeLaunchService nativeLaunchService) {
+			NativeLaunchService nativeLaunchService, WatchTimeService watchTimeService) {
+		this.watchTimeService = watchTimeService;
 		this.playability = playability;
 		this.accessPolicyApi = accessPolicyApi;
 		this.featureFlags = featureFlags;
@@ -75,6 +78,8 @@ public class PlaybackAuthorizationService {
 		}
 		LessonMediaPlayability.Playable playable = playability.require(lessonMediaId,
 				courseId -> accessPolicyApi.requireStudentCourseAccess(courseId, LessonMediaPlayability::notFound));
+		// Phase 12: nothing starts once this Student's watch time is used up.
+		watchTimeService.requireRemaining(playable.asset().id(), AuthenticatedPrincipalHolder.get().userId());
 
 		if (settings.nativePlayerRequired()) {
 			NativeLaunchService.NativeLaunch launch = nativeLaunchService.start(playable.material().materialId(),

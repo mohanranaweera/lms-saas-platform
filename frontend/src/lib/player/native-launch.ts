@@ -25,7 +25,26 @@ export function isAocPlayerSupportedPlatform(userAgent: string): boolean {
   return /Windows NT/.test(userAgent) && !/Mobile|Phone|Tablet|ARM;/.test(userAgent);
 }
 
+export type MobilePlatform = "android" | "ios";
+
+/** Android or iOS (iPadOS reports itself as a Mac with touch). UX only. */
+export function mobilePlatform(userAgent: string, maxTouchPoints = 0): MobilePlatform | null {
+  if (/Android/.test(userAgent)) return "android";
+  if (/iPhone|iPad|iPod/.test(userAgent)) return "ios";
+  if (/Macintosh/.test(userAgent) && maxTouchPoints > 1) return "ios";
+  return null;
+}
+
 const subscribeNever = () => () => undefined;
+
+/** {@link mobilePlatform} for the current browser; `null` while rendering on the server. */
+export function useMobilePlatform(): MobilePlatform | null {
+  return useSyncExternalStore(
+    subscribeNever,
+    () => mobilePlatform(window.navigator.userAgent, window.navigator.maxTouchPoints),
+    () => null
+  );
+}
 
 /**
  * {@link isAocPlayerSupportedPlatform} for the current browser. `null` during
@@ -40,7 +59,8 @@ export function useAocPlayerSupported(): boolean | null {
   );
 }
 
-const ALLOWED = /^aocplayer:\/\/(play|pair)\?code=[A-Za-z0-9_-]{43}$/;
+// A play link may also carry a pairing code (ADR-025 Amendment 2).
+const ALLOWED = /^aocplayer:\/\/(pair\?code=[A-Za-z0-9_-]{43}|play\?code=[A-Za-z0-9_-]{43}(&pair=[A-Za-z0-9_-]{43})?)$/;
 
 export function openInAocPlayer(url: string): boolean {
   if (!ALLOWED.test(url)) {

@@ -20,6 +20,8 @@ import { VIDEO_ASSET_ID } from "./fixtures/video-mocks";
 const CODE = "A".repeat(43);
 const PAIR_URL = `aocplayer://pair?code=${CODE}`;
 const PLAY_URL = `aocplayer://play?code=${CODE}`;
+/** ADR-025 Amendment 2: a computer without a player gets a pairing code in the same link. */
+const PAIR_AND_PLAY_URL = `${PLAY_URL}&pair=${"Zy".repeat(21)}A`;
 const SESSION_ID = "5e550000-0000-0000-0000-000000000001";
 const MATERIAL_ID = "material-native-1";
 const STUDENT_PROFILE_ID = "11111111-1111-1111-1111-111111111111";
@@ -253,9 +255,9 @@ function lessonMedia(provider: "YOUTUBE" | "INTERNAL") {
   };
 }
 
-function nativeStart() {
+function nativeStart(url: string = PLAY_URL) {
   const expiresAt = new Date(Date.now() + 45_000).toISOString();
-  return { sessionId: SESSION_ID, channel: "NATIVE", expiresAt, descriptor: null, launch: { url: PLAY_URL, expiresAt } };
+  return { sessionId: SESSION_ID, channel: "NATIVE", expiresAt, descriptor: null, launch: { url, expiresAt } };
 }
 
 async function setupLesson(page: Page, provider: "YOUTUBE" | "INTERNAL") {
@@ -266,11 +268,11 @@ async function setupLesson(page: Page, provider: "YOUTUBE" | "INTERNAL") {
   });
 }
 
-async function mockStart(page: Page): Promise<unknown[]> {
+async function mockStart(page: Page, url: string = PLAY_URL): Promise<unknown[]> {
   const bodies: unknown[] = [];
   await page.route("**/api/v1/playback/sessions", (route: Route) => {
     bodies.push(route.request().postDataJSON());
-    return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(apiSuccess(nativeStart())) });
+    return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(apiSuccess(nativeStart(url))) });
   });
   return bodies;
 }
@@ -306,7 +308,37 @@ test.describe("lesson video in the AOC Player", () => {
     expect(bodies[0]).toEqual({ lessonMediaId: MATERIAL_ID });
   });
 
-  test("when the player never takes the link, the page says so and links to setup", async ({ page }) => {
+  test("when the player never takes the link on a new computer, the page offers the installer", async ({ page }) => {
+    const launched = await captureLaunches(page);
+    await page.clock.install();
+    await setupLesson(page, "YOUTUBE");
+    const bodies = await mockStart(page, PAIR_AND_PLAY_URL);
+    await mockLaunchStatus(page, () => ({ status: "PENDING_LAUNCH", exchanged: false }));
+
+    await page.goto(studentMaterialsUrl());
+    await page.getByRole("button", { name: "Open video" }).click();
+    await page.getByRole("button", { name: "Open in AOC Player" }).click();
+    // One link pairs and plays: no separate pairing step.
+    await expect.poll(launched).toEqual([PAIR_AND_PLAY_URL]);
+    await expect(page.getByText("Opening the AOC Player…")).toBeVisible();
+
+    await page.clock.fastForward(12_000);
+    const install = page.getByRole("listitem").getByRole("alert");
+    await expect(install).toContainText("Install the AOC Player to watch this video");
+    // No installer configured in this build: the help page is offered instead.
+    await expect(install.getByRole("link", { name: "AOC Player help" })).toHaveAttribute("href", "/student/player");
+
+    // After installing, one click asks for a fresh link and opens it.
+    const before = bodies.length;
+    await page.getByRole("button", { name: "I've installed it - play now" }).click();
+    await expect.poll(() => bodies.length).toBeGreaterThan(before);
+    await expect.poll(async () => (await launched()).length).toBe(2);
+  });
+
+  test("a browser that has used the player before says it didn't open instead of offering the installer", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => window.localStorage.setItem("aoc-player:seen", "1"));
     await captureLaunches(page);
     await setupLesson(page, "YOUTUBE");
     await mockStart(page);
@@ -318,7 +350,8 @@ test.describe("lesson video in the AOC Player", () => {
 
     const missed = page.getByRole("listitem").getByRole("alert");
     await expect(missed).toContainText("The AOC Player didn't open.");
-    await expect(missed.getByRole("link", { name: "Set up the AOC Player" })).toHaveAttribute("href", "/student/player");
+    await expect(missed).not.toContainText("Install the AOC Player");
+    await expect(missed.getByRole("link", { name: "AOC Player help" })).toHaveAttribute("href", "/student/player");
   });
 
   test("opening again asks for a fresh link instead of reusing a used one", async ({ page }) => {

@@ -62,7 +62,6 @@ public class PlayerPairingService {
 
 	private static final String WINDOWS = "WINDOWS";
 
-	private static final int MAX_PAIRING_TTL_SECONDS = 120;
 
 	private final PlayerPairingCodeRepository pairingCodes;
 
@@ -136,12 +135,9 @@ public class PlayerPairingService {
 		AuthenticatedPrincipal principal = requireStudent();
 		requireNativePlayerEnabled();
 		UUID deviceId = nativeLaunchService.requireCurrentDevice(principal);
-		Instant now = Instant.now();
-		Instant expiresAt = now.plusSeconds(Math.min(properties.getPairingCodeTtlSeconds(), MAX_PAIRING_TTL_SECONDS));
-		String code = codes.newCode();
-		pairingCodes.save(new PlayerPairingCode(tenantContext.getTenantId(), principal.userId(), deviceId,
-				codes.hash(code), now, expiresAt));
-		return new PairingStart("aocplayer://pair?code=" + code, expiresAt);
+		NativeLaunchService.IssuedPairingCode issued = nativeLaunchService.issuePairingCode(
+				tenantContext.getTenantId(), principal.userId(), deviceId, Instant.now());
+		return new PairingStart("aocplayer://pair?code=" + issued.code(), issued.expiresAt());
 	}
 
 	@Transactional(readOnly = true)

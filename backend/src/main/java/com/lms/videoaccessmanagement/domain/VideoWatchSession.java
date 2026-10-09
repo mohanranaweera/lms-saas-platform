@@ -64,6 +64,16 @@ public class VideoWatchSession extends BaseEntity implements TenantOwned {
 	@Column(name = "revoked_reason")
 	private VideoWatchSessionRevokedReason revokedReason;
 
+	@Column(name = "last_heartbeat_at")
+	private Instant lastHeartbeatAt;
+
+	@Column(name = "last_position_seconds", nullable = false)
+	private Integer lastPositionSeconds = 0;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "last_heartbeat_state", nullable = false)
+	private PlaybackState lastHeartbeatState = PlaybackState.IDLE;
+
 	@Column(name = "status", nullable = false)
 	private VideoWatchSessionStatus status;
 
@@ -173,6 +183,28 @@ public class VideoWatchSession extends BaseEntity implements TenantOwned {
 
 	public UUID getIssuedForDeviceId() {
 		return issuedForDeviceId;
+	}
+
+	public Instant getLastHeartbeatAt() {
+		return lastHeartbeatAt;
+	}
+
+	public int getLastPositionSeconds() {
+		return lastPositionSeconds;
+	}
+
+	public PlaybackState getLastHeartbeatState() {
+		return lastHeartbeatState;
+	}
+
+	public void initializeHeartbeat(Instant at, int positionSeconds, PlaybackState state) {
+		this.lastHeartbeatAt = at;
+		this.lastPositionSeconds = positionSeconds;
+		this.lastHeartbeatState = state;
+	}
+
+	public void recordHeartbeat(Instant at, int positionSeconds, PlaybackState state) {
+		initializeHeartbeat(at, positionSeconds, state);
 	}
 
 }

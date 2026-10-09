@@ -89,15 +89,21 @@ npm install
 npm run tauri dev          # debug build against http://localhost:8080
 ```
 
-`tauri dev` registers the `aocplayer` scheme for the current user, so the LMS "Pair" and
-"Open in AOC Player" buttons open this dev build. Point a dev build at another backend with
-`$env:AOC_API_ORIGIN = "https://…"` (and `$env:AOC_MEDIA_ORIGINS`) before building.
+For the LMS "Pair" and "Open in AOC Player" buttons, build the local player once (and again after
+changing the player):
 
-`tauri dev` loads the UI from Vite, so a link that starts the player while `tauri dev` is not
-running opens an empty window. For manual testing build the UI into the exe with
-`npx tauri build --debug --no-bundle` (still a debug build against `localhost`). Close the player
-before rebuilding: Windows cannot replace a running exe. Dev builds keep debug info only for this
-crate (`[profile.dev]`), so `src-tauri/target` stays around 3–4 GB.
+```powershell
+npm run build:local        # tauri build --debug --no-bundle, UI compiled in
+```
+
+It copies the exe to `src-tauri/target/local-player/` and registers the `aocplayer` scheme for the
+current user to that copy, so links work whether or not Vite / `tauri dev` is running (still a debug
+build against `localhost`). Close the player before rebuilding: Windows cannot replace a running
+exe. `tauri dev` builds load the UI from Vite and therefore do not register the scheme; a link still
+reaches a running `tauri dev` instance through the single-instance plugin. Keep `npm run dev` (or
+`npm run tauri dev`) running while testing UI changes. Point a dev build at another backend with
+`$env:AOC_API_ORIGIN = "https://…"` (and `$env:AOC_MEDIA_ORIGINS`) before building. Dev builds keep
+debug info only for this crate (`[profile.dev]`), so `src-tauri/target` stays around 3–4 GB.
 
 > Run cargo from PowerShell or cmd. In Git Bash, `/usr/bin/link` shadows the MSVC linker and builds
 > fail with `link: extra operand`.

@@ -144,11 +144,12 @@ const videoVariant = z.object({
     .optional()
     .refine((value) => !value || /^\d+$/.test(value), "Enter a whole number greater than 0.")
     .refine((value) => !value || Number(value) > 0, "Enter a whole number greater than 0."),
-  maxWatchDurationSeconds: z
+  /** VIDEO Phase 12: this video's own watch-time limit in minutes; it wins over the institute rule. */
+  watchTimeLimitMinutes: z
     .string()
     .optional()
-    .refine((value) => !value || /^\d+$/.test(value), "Enter a whole number of seconds greater than 0.")
-    .refine((value) => !value || Number(value) > 0, "Enter a whole number of seconds greater than 0."),
+    .refine((value) => !value || /^\d+$/.test(value), "Enter a whole number of minutes greater than 0.")
+    .refine((value) => !value || Number(value) > 0, "Enter a whole number of minutes greater than 0."),
   allowSeeking: z.boolean(),
   allowDownload: z.boolean(),
   watermarkEnabled: z.boolean(),
@@ -189,7 +190,7 @@ export function defaultValuesForKind(kind: MaterialFormKind): MaterialUploadForm
         accessStartAt: "",
         accessEndAt: "",
         maxViewsPerStudent: "",
-        maxWatchDurationSeconds: "",
+        watchTimeLimitMinutes: "",
         allowSeeking: true,
         allowDownload: false,
         watermarkEnabled: true,
@@ -256,10 +257,15 @@ export function toVideoPolicyRequest(values: VideoMaterialFormValues): VideoPlay
     accessStartAt: toOptionalIsoInstant(values.accessStartAt) ?? null,
     accessEndAt: toOptionalIsoInstant(values.accessEndAt) ?? null,
     maxViewsPerStudent: toOptionalInt(values.maxViewsPerStudent) ?? null,
-    maxWatchDurationSeconds: toOptionalInt(values.maxWatchDurationSeconds) ?? null,
+    maxWatchDurationSeconds: minutesToSeconds(toOptionalInt(values.watchTimeLimitMinutes)),
     allowSeeking: values.allowSeeking,
     allowDownload: values.allowDownload,
     watermarkEnabled: values.watermarkEnabled,
     maxConcurrentSessions: toOptionalInt(values.maxConcurrentSessions) ?? null,
   };
+}
+
+/** Minutes from a form to the API's seconds; empty stays empty. */
+function minutesToSeconds(minutes: number | null | undefined): number | null {
+  return minutes == null ? null : minutes * 60;
 }

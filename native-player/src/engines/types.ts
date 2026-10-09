@@ -18,3 +18,13 @@ export interface Engine {
 }
 
 export type EngineError = (message: string) => void;
+
+/** Mirrors `player::PlaybackState` in the Rust core. */
+export type PlaybackState = "PLAYING" | "PAUSED" | "IDLE";
+
+/**
+ * Where playback is and whether it is running (VIDEO Phase 12). Telemetry
+ * only: Rust sends it with the next heartbeat and the server decides what
+ * counts as watched.
+ */
+export type PlaybackReport = (positionSeconds: number, state: PlaybackState) => void;

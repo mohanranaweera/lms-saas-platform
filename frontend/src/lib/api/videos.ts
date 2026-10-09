@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/auth-context";
 
 /**
@@ -158,6 +158,8 @@ export function useIssuePlaybackSession() {
  *   session stays `ACTIVE`.
  * - `409 POLICY_VIOLATION` — the session was just revoked server-side; stop
  *   playback and show a terminal message.
+ * - `409 PLAYBACK_WATCH_LIMIT` — the Student's watch time for this video is
+ *   used up (Phase 12); the session was revoked, stop playback for good.
  * - `401 PLAYBACK_TOKEN_INVALID` — token/session no longer valid; stop
  *   playback and show a terminal message.
  */
@@ -196,5 +198,47 @@ export function useEndPlaybackSession() {
       authorizedFetch<null>("tenant", `${videosBasePath()}/playback-sessions/${watchSessionId}/end`, {
         method: "POST",
       }),
+  });
+}
+
+/**
+ * VIDEO Phase 12 - a video's own watch-time limit
+ * (`GET/PUT /videos/{id}/watch-time-limit`). When set it wins over the
+ * institute rule (higher or lower); `null` means the institute rule applies.
+ * Same permission as playback rules: the course's teacher or staff with
+ * Materials access. Seconds on the wire.
+ */
+export interface VideoWatchTimeLimit {
+  videoAssetId: string;
+  videoLimitSeconds: number | null;
+  instituteDefaultSeconds: number | null;
+  instituteDefaultKnown: boolean;
+  effectiveSeconds: number | null;
+}
+
+export const watchTimeLimitKeys = {
+  video: (videoAssetId: string) => ["videos", "watch-time-limit", videoAssetId] as const,
+};
+
+export function useVideoWatchTimeLimit(videoAssetId: string, enabled = true) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: watchTimeLimitKeys.video(videoAssetId),
+    queryFn: () =>
+      authorizedFetch<VideoWatchTimeLimit>("tenant", `${videosBasePath()}/${videoAssetId}/watch-time-limit`),
+    enabled,
+  });
+}
+
+export function useSetVideoWatchTimeLimit() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ videoAssetId, limitSeconds }: { videoAssetId: string; limitSeconds: number | null }) =>
+      authorizedFetch<VideoWatchTimeLimit>("tenant", `${videosBasePath()}/${videoAssetId}/watch-time-limit`, {
+        method: "PUT",
+        body: JSON.stringify({ limitSeconds }),
+      }),
+    onSuccess: (limit) => queryClient.setQueryData(watchTimeLimitKeys.video(limit.videoAssetId), limit),
   });
 }

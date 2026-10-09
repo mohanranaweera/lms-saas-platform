@@ -141,8 +141,8 @@ function InstallCard() {
           Install the AOC Player
         </CardTitle>
         <CardDescription>
-          For Windows 10 and 11. Install it once on this computer, then pair it
-          below.
+          For Windows 10 and 11. Install it once on this computer. The first
+          time you press Play on a lesson video, it sets itself up.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -223,12 +223,12 @@ function PairCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <MonitorSmartphone aria-hidden="true" className="size-4" />
-          Pair this computer
+          Pair this computer (optional)
         </CardTitle>
         <CardDescription>
-          With the AOC Player installed, choose &ldquo;Pair the AOC
-          Player&rdquo; and allow your browser to open it. Pairing again on this
-          computer replaces the previous player.
+          Not needed for watching: pressing Play pairs the player
+          automatically. Use this only to set it up ahead of time. Pairing
+          again on this computer replaces the previous player.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
