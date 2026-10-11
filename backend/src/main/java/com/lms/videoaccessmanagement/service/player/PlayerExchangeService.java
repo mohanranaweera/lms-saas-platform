@@ -1,6 +1,7 @@
 package com.lms.videoaccessmanagement.service.player;
 
 import com.lms.common.api.ApiErrorCodes;
+import com.lms.common.error.ApplicationException;
 import com.lms.common.error.PlayerRequestException;
 import com.lms.common.logging.ContactMasking;
 import com.lms.common.tenant.TenantContextHolder;
@@ -15,6 +16,7 @@ import com.lms.videoaccessmanagement.domain.TenantVideoSettings;
 import com.lms.videoaccessmanagement.domain.WatermarkField;
 import com.lms.videoaccessmanagement.service.LessonMediaPlayability;
 import com.lms.videoaccessmanagement.service.PlaybackDescriptor;
+import com.lms.videoaccessmanagement.service.VideoMetrics;
 import com.lms.videoaccessmanagement.service.PlaybackDescriptor.CaptureProtectionPolicy;
 import com.lms.videoaccessmanagement.service.PlaybackDescriptor.WatermarkPolicy;
 import com.lms.videoaccessmanagement.service.PlaybackDescriptor.WatermarkPolicy.Placement;
@@ -59,10 +61,12 @@ public class PlayerExchangeService {
 
 	private final StudentLookupApi studentLookupApi;
 
+	private final VideoMetrics metrics;
+
 	public PlayerExchangeService(PlayerExchangeTransactions transactions, PlayerCodes codes,
 			PlayerRateLimiter rateLimiter, VideoFeatureFlags featureFlags, PlaybackTokenService tokenService,
 			NativeLaunchService nativeLaunchService, TenantVideoConfigurationService configurationService,
-			UserProvisioningApi userProvisioningApi, StudentLookupApi studentLookupApi) {
+			UserProvisioningApi userProvisioningApi, StudentLookupApi studentLookupApi, VideoMetrics metrics) {
 		this.transactions = transactions;
 		this.codes = codes;
 		this.rateLimiter = rateLimiter;
@@ -72,6 +76,7 @@ public class PlayerExchangeService {
 		this.configurationService = configurationService;
 		this.userProvisioningApi = userProvisioningApi;
 		this.studentLookupApi = studentLookupApi;
+		this.metrics = metrics;
 	}
 
 	public record ExchangeRequest(String launchCode, String playerVersion, String platform) {
@@ -82,6 +87,17 @@ public class PlayerExchangeService {
 	}
 
 	public ExchangeResult exchange(String installationHeader, ExchangeRequest request,
+			PlayerRequestVerifier.SignedRequest signed, String clientIp) {
+		try {
+			return exchangeInternal(installationHeader, request, signed, clientIp);
+		}
+		catch (ApplicationException failure) {
+			metrics.playerExchangeDenied(failure.getErrorCode());
+			throw failure;
+		}
+	}
+
+	private ExchangeResult exchangeInternal(String installationHeader, ExchangeRequest request,
 			PlayerRequestVerifier.SignedRequest signed, String clientIp) {
 		if (!rateLimiter.tryAcquire("exchange:ip:" + clientIp, 30, Duration.ofMinutes(1))) {
 			throw rateLimited();
@@ -117,6 +133,7 @@ public class PlayerExchangeService {
 			String token = tokenService.issuePlayerToken(claimed.studentId(), claimed.tenantId(),
 					claimed.playable().asset().id(), claimed.sessionId(), claimed.installationId(), claimed.jti(),
 					Instant.now(), claimed.expiresAt());
+			metrics.playerExchangeSucceeded(claimed.playable().asset().provider());
 			return new ExchangeResult(claimed.sessionId(), token, claimed.expiresAt(),
 					claimed.heartbeatIntervalSeconds(), descriptor);
 		}

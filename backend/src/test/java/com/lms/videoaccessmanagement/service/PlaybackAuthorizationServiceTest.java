@@ -62,6 +62,8 @@ class PlaybackAuthorizationServiceTest {
 	private NativeLaunchService nativeLaunchService;
 	@Mock
 	private WatchTimeService watchTimeService;
+	@Mock
+	private VideoMetrics metrics;
 
 	private PlaybackAuthorizationService service;
 
@@ -70,7 +72,7 @@ class PlaybackAuthorizationServiceTest {
 		LessonMediaPlayability playability = new LessonMediaPlayability(materialLookupApi, videoAccessApi, tenantContext,
 				featureFlags, mediaConnectionApi);
 		service = new PlaybackAuthorizationService(playability, accessPolicyApi, featureFlags, configurationService,
-				nativeLaunchService, watchTimeService);
+				nativeLaunchService, watchTimeService, metrics);
 		lenient().when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		lenient().when(configurationService.effectiveSettings()).thenReturn(TenantVideoSettings.PLATFORM_DEFAULTS);
 	}

@@ -2835,3 +2835,25 @@ the recording-access rules (recordings are protected content).
 - Backend focused `PlayerCryptoTest`: 7 tests, 0 failures; includes rate-limit outage/null-counter and bridge-origin validation.
 - Native: `cargo fmt --check`, clippy with `-D warnings`, and `cargo test --lib` pass; frontend `npx tsc --noEmit` and `npm run lint` pass with 2 pre-existing warnings in untouched files.
 - Final required checks: focused DynTube/player integration regression, full backend `mvnw verify`, relevant Playwright bridge/player regression, dependency scans, security review, tenant-isolation review, and documentation/definition-of-done review.
+
+### Phase 15 — Integration & Production Readiness
+
+**Before (2026-10-11, status → IN PROGRESS; branch `feat/video-production-readiness`)**
+
+- **Owner decisions:** implement a Micrometer/Prometheus-compatible metrics registry; target a local Docker-backed staging-equivalent stack for real-backend E2E; include an ADR-gated staging topology implementation without any production deployment. DynTube remains disabled for real tenants until the non-whitelisted/untokenized playback probe fails and an authorized upload-to-playback flow passes.
+- **Goal:** verify the existing provider, web, AOC Player, watch-time, device/session, bridge, and tenant-isolation paths together under failure, concurrency, upgrade, deployment, and monitoring checks. This phase introduces no payment, enrollment, ledger, or new media-provider behavior.
+- **Backend started:** added bounded `VideoMetrics` counters/timers and optional Prometheus export. Labels are restricted to provider, operation, outcome, and allow-listed reason categories; tenant IDs, asset/session/user IDs, tokens, launch codes, IPs, keys, and arbitrary exception text are excluded.
+- **Readiness artifact:** `docs/planning/video-production-readiness-checklist.md` records the evidence matrix, supported-mode matrix, release blockers, and human-approval fields. No human approval is implied by this file.
+
+**Current evidence:**
+
+- Backend compile passes (`mvnw.cmd -DskipTests compile`).
+- Focused `VideoMetricsTest` and `PlaybackAuthorizationServiceTest` pass.
+- Full Testcontainers-backed `mvnw.cmd verify` is running; final count/result must be recorded before this phase is marked tested.
+- Native Phase 14 checks remain green from the preceding phase; final Phase 15 rerun is still required.
+
+**Open release blockers:**
+
+- DynTube external-origin/untokenized playback refusal and authorized upload-to-playback proof.
+- Accepted deployment-topology ADR, staging Dockerfiles/Compose/Nginx artifacts, synthetic two-tenant E2E, and upgrade/rollback rehearsal.
+- Production bridge configuration, Nginx launch-code redaction, storage lifecycle/CORS, release signing/updater-key custody, dependency audit, and human go-live approval.

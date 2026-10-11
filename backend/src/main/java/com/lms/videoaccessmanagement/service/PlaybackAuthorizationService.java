@@ -1,6 +1,7 @@
 package com.lms.videoaccessmanagement.service;
 
 import com.lms.common.api.ApiErrorCodes;
+import com.lms.common.error.ApplicationException;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.PlaybackNotAuthorizedException;
 import com.lms.common.error.PlayerRequestException;
@@ -48,15 +49,18 @@ public class PlaybackAuthorizationService {
 
 	private final WatchTimeService watchTimeService;
 
+	private final VideoMetrics metrics;
+
 	public PlaybackAuthorizationService(LessonMediaPlayability playability, AccessPolicyApi accessPolicyApi,
 			VideoFeatureFlags featureFlags, TenantVideoConfigurationService configurationService,
-			NativeLaunchService nativeLaunchService, WatchTimeService watchTimeService) {
+			NativeLaunchService nativeLaunchService, WatchTimeService watchTimeService, VideoMetrics metrics) {
 		this.watchTimeService = watchTimeService;
 		this.playability = playability;
 		this.accessPolicyApi = accessPolicyApi;
 		this.featureFlags = featureFlags;
 		this.configurationService = configurationService;
 		this.nativeLaunchService = nativeLaunchService;
+		this.metrics = metrics;
 	}
 
 	/** What {@code POST /api/v1/playback/sessions} answers: a WEB descriptor or a NATIVE launch. */
@@ -65,6 +69,16 @@ public class PlaybackAuthorizationService {
 	}
 
 	public PlaybackStart authorize(UUID lessonMediaId) {
+		try {
+			return authorizeInternal(lessonMediaId);
+		}
+		catch (ApplicationException failure) {
+			metrics.playbackDenied(failure.getErrorCode());
+			throw failure;
+		}
+	}
+
+	private PlaybackStart authorizeInternal(UUID lessonMediaId) {
 		if (!STUDENT_ROLE.equals(AuthenticatedPrincipalHolder.get().role())) {
 			throw new PlaybackNotAuthorizedException("You don't have access to this lesson.");
 		}
@@ -88,6 +102,7 @@ public class PlaybackAuthorizationService {
 		if (settings.nativePlayerRequired() || playable.playsOnlyInAocPlayer()) {
 			NativeLaunchService.NativeLaunch launch = nativeLaunchService.start(playable.material().materialId(),
 					playable.asset().id(), settings.launchCodeTtlSeconds());
+			metrics.playbackAuthorized(playable.asset().provider());
 			return new PlaybackStart(LaunchChannel.NATIVE, launch.sessionId(), launch.expiresAt(), null, launch);
 		}
 		throw new ConflictException("Internal WEB playback remains on the legacy video endpoint.");

@@ -42,7 +42,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+  endpoint:
+    prometheus:
+      access: read-only
+  prometheus:
+    metrics:
+      export:
+        enabled: ${VIDEO_PROMETHEUS_ENABLED:false}
 
 app:
   security:

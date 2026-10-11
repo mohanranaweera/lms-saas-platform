@@ -30,6 +30,7 @@ import com.lms.videoaccessmanagement.repository.VideoWatchSessionRepository;
 import com.lms.videoaccessmanagement.service.LessonMediaPlayability;
 import com.lms.videoaccessmanagement.service.PlaybackTokenService;
 import com.lms.videoaccessmanagement.service.WatchTimeService;
+import com.lms.videoaccessmanagement.service.VideoMetrics;
 import com.lms.videoaccessmanagement.service.TenantVideoConfigurationService;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -92,12 +93,15 @@ public class PlayerSessionService {
 
 	private final VideoAssetRepository videoAssetRepository;
 
+	private final VideoMetrics metrics;
+
 	public PlayerSessionService(PlaybackTokenService tokenService, VideoWatchSessionRepository sessions,
 			PlayerInstallationRepository installations, PlayerRequestVerifier verifier, PlayerSessionRevoker revoker,
 			LessonMediaPlayability playability, AccessPolicyApi accessPolicyApi,
 			TenantVideoConfigurationService configurationService, PlayerProperties properties,
 			NativeLaunchService nativeLaunchService, PermissionCheckService permissionCheckService,
-			AuditLogApi auditLogApi, WatchTimeService watchTimeService, VideoAssetRepository videoAssetRepository) {
+			AuditLogApi auditLogApi, WatchTimeService watchTimeService, VideoAssetRepository videoAssetRepository,
+			VideoMetrics metrics) {
 		this.tokenService = tokenService;
 		this.sessions = sessions;
 		this.installations = installations;
@@ -112,6 +116,7 @@ public class PlayerSessionService {
 		this.auditLogApi = auditLogApi;
 		this.watchTimeService = watchTimeService;
 		this.videoAssetRepository = videoAssetRepository;
+		this.metrics = metrics;
 	}
 
 	public record HeartbeatResult(String action, String reason, String playbackToken, Instant expiresAt,
@@ -139,6 +144,7 @@ public class PlayerSessionService {
 			PlayerInstallation installation = bound.installation();
 			Instant now = Instant.now();
 			if (session.getStatus() != VideoWatchSessionStatus.ACTIVE) {
+				metrics.heartbeat("stop");
 				return HeartbeatResult.stop(session.getRevokedReason() == null ? session.getStatus().name()
 						: session.getRevokedReason().name());
 			}
@@ -186,7 +192,8 @@ public class PlayerSessionService {
 					expiresAt);
 			String mediaUrl = playable.isYouTube() ? null
 					: nativeLaunchService.signMedia(session.getVideoAssetId()).url();
-			return new HeartbeatResult("CONTINUE", null, refreshed, expiresAt, interval, mediaUrl,
+			metrics.heartbeat("continue");
+				return new HeartbeatResult("CONTINUE", null, refreshed, expiresAt, interval, mediaUrl,
 					accounting.acceptedPositionSeconds(), accounting.remainingWatchSeconds());
 		}
 		finally {
