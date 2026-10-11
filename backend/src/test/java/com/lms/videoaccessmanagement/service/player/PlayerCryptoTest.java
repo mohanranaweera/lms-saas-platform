@@ -14,6 +14,7 @@ import java.security.spec.ECGenParameterSpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import com.lms.videoaccessmanagement.config.PlayerProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -70,6 +71,44 @@ class PlayerCryptoTest {
 		assertThat(verifier.verify(request("/p", now, "nonce-0123456789ab",
 				sign(keys, "POST", "/p", now, "nonce-0123456789ab", body), body), spki(keys), "inst"))
 			.contains("nonce_store_unavailable");
+	}
+
+	@Test
+	void unavailableRateLimitStoreFailsClosed() {
+		StringRedisTemplate redis = mock(StringRedisTemplate.class);
+		when(redis.opsForValue()).thenThrow(new IllegalStateException("redis down"));
+
+		assertThat(new PlayerRateLimiter(redis).tryAcquire("exchange:ip:test", 30, Duration.ofMinutes(1)))
+			.isFalse();
+	}
+
+	@Test
+	void missingRateLimitCounterFailsClosed() {
+		StringRedisTemplate redis = mock(StringRedisTemplate.class);
+		ValueOperations<String, String> values = mock(ValueOperations.class);
+		when(redis.opsForValue()).thenReturn(values);
+		when(values.increment(anyString())).thenReturn(null);
+
+		assertThat(new PlayerRateLimiter(redis).tryAcquire("exchange:ip:test", 30, Duration.ofMinutes(1)))
+			.isFalse();
+	}
+
+	@Test
+	void bridgeUrlValidationRejectsRedirectAndCredentialTargets() {
+		assertThat(PlayerProperties.isSafeDyntubeBridgeUrl(
+				"https://embed.example.test/embed/dyntube-bridge.html", false)).isTrue();
+		assertThat(PlayerProperties.isSafeDyntubeBridgeUrl(
+				"http://embed.lms.test:3000/embed/dyntube-bridge.html", false)).isFalse();
+		assertThat(PlayerProperties.isSafeDyntubeBridgeUrl(
+				"http://localhost:3000/embed/dyntube-bridge.html", true)).isTrue();
+		for (String unsafe : new String[] {
+				"https://embed.example.test/embed/dyntube-bridge.html?next=https://evil.test",
+				"https://user:secret@embed.example.test/embed/dyntube-bridge.html",
+				"https://embed.example.test/embed/other.html",
+				"javascript:alert(1)"
+		}) {
+			assertThat(PlayerProperties.isSafeDyntubeBridgeUrl(unsafe, true)).isFalse();
+		}
 	}
 
 	@Test

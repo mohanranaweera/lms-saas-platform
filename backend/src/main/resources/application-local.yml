@@ -74,6 +74,7 @@ app:
   player:
     launch-code-pepper: ${PLAYER_LAUNCH_CODE_PEPPER:local-dev-player-launch-code-pepper-not-for-production}
     dyntube-bridge-url: ${PLAYER_DYNTUBE_BRIDGE_URL:http://embed.lms.test:3000/embed/dyntube-bridge.html}
+    allow-insecure-bridge: true
   # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Local only.
   messaging:
     sandbox-enabled: true

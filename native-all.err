@@ -1,0 +1,3 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.07s
+     Running unittests src\lib.rs (src-tauri\target\debug\deps\aoc_player_lib-7bb33f826dc16ce3.exe)
+error: test failed, to rerun pass `--lib`

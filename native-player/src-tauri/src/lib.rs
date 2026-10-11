@@ -7,6 +7,7 @@ pub mod deep_link;
 pub mod installation;
 pub mod keystore;
 pub mod media;
+pub mod media_proxy;
 pub mod player;
 pub mod signing;
 
@@ -21,10 +22,30 @@ use tauri_plugin_deep_link::DeepLinkExt;
 
 use crate::api::ApiClient;
 use crate::installation::InstallationStore;
+use crate::media_proxy::NativeMediaProxy;
 use crate::player::{PlaybackState, Player, View, ViewSink};
 
 const MAIN_WINDOW: &str = "main";
 const VIEW_EVENT: &str = "player://view";
+
+fn proxy_error_response(error: crate::media_proxy::ProxyError) -> http::Response<Vec<u8>> {
+    let status = match error {
+        crate::media_proxy::ProxyError::SessionNotFound
+        | crate::media_proxy::ProxyError::SessionInactive => http::StatusCode::NOT_FOUND,
+        crate::media_proxy::ProxyError::InvalidRequest
+        | crate::media_proxy::ProxyError::InvalidUpstream
+        | crate::media_proxy::ProxyError::PrivateAddress
+        | crate::media_proxy::ProxyError::RedirectLimit
+        | crate::media_proxy::ProxyError::UnsupportedContentType => http::StatusCode::FORBIDDEN,
+        crate::media_proxy::ProxyError::ResponseTooLarge => http::StatusCode::PAYLOAD_TOO_LARGE,
+        crate::media_proxy::ProxyError::UpstreamUnavailable => http::StatusCode::BAD_GATEWAY,
+    };
+    http::Response::builder()
+        .status(status)
+        .header(http::header::CONTENT_TYPE, "text/plain")
+        .body(Vec::new())
+        .expect("static media proxy response is valid")
+}
 
 /// Pushes every view change to the UI.
 struct WindowSink(AppHandle);
@@ -77,6 +98,17 @@ pub fn run() {
 
     let app = builder
         .invoke_handler(tauri::generate_handler![get_state, report_playback])
+        .register_asynchronous_uri_scheme_protocol("aoc-media", |_ctx, request, responder| {
+            let app_handle = _ctx.app_handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let proxy = app_handle.state::<Arc<NativeMediaProxy>>();
+                let response = proxy
+                    .handle(request)
+                    .await
+                    .unwrap_or_else(proxy_error_response);
+                responder.respond(response);
+            });
+        })
         .setup(|app| {
             let origin = config::api_origin()?;
             let api = ApiClient::new(origin)?;
@@ -93,15 +125,20 @@ pub fn run() {
                     // lesson is hosted (ADR-025 Amendment 3).
                     .on_new_window(|_url, _features| NewWindowResponse::Deny)
                     .build()?;
-            let player = Player::with_capture_controller(
+            let media_origins = config::media_origins()?;
+            let media_proxy = NativeMediaProxy::new(media_origins.clone(), cfg!(debug_assertions))
+                .map_err(|error| format!("media proxy initialization failed: {error:?}"))?;
+            app.manage(Arc::clone(&media_proxy));
+            let player = Player::with_capture_controller_and_proxy(
                 api,
                 keystore::platform_store(),
                 store,
                 Arc::new(WindowSink(app.handle().clone())),
-                config::media_origins()?,
+                media_origins,
                 Arc::new(capture_protection::WindowController::<Wry>::new(
                     window.clone(),
                 )),
+                media_proxy,
             );
             app.manage(Arc::clone(&player));
 

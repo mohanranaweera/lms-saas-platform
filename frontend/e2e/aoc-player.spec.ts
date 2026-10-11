@@ -7,7 +7,7 @@ import {
   setupStudentMaterialsMocks,
   studentMaterialsUrl,
 } from "./fixtures/materials-mocks";
-import { VIDEO_ASSET_ID } from "./fixtures/video-mocks";
+import { VIDEO_ASSET_ID, makePlaybackSession } from "./fixtures/video-mocks";
 
 /**
  * VIDEO Phase 8 (ADR-025): AOC Player screens. No backend and no real player:
@@ -284,6 +284,32 @@ async function mockLaunchStatus(page: Page, status: () => { status: string; exch
 }
 
 test.describe("lesson video in the AOC Player", () => {
+  test("a DynTube embed response hands off to the native launcher", async ({ page }) => {
+    const launched = await captureLaunches(page);
+    await setupLesson(page, "INTERNAL");
+    await mockStart(page);
+    await mockJson(
+      page,
+      `**/v1/videos/${VIDEO_ASSET_ID}/playback-sessions`,
+      201,
+      apiSuccess({
+        ...makePlaybackSession({ mediaFormat: "EMBED", signedUrl: "", watchSessionId: "legacy-embed-session" }),
+      })
+    );
+    const claimed = false;
+    await mockLaunchStatus(page, () => ({ status: claimed ? "ACTIVE" : "PENDING_LAUNCH", exchanged: claimed }));
+
+    await page.goto(studentMaterialsUrl());
+    await page.getByRole("button", { name: "Open video" }).click();
+    await expect(page.getByText("Your institute plays lesson videos in the AOC Player app.")).toBeVisible();
+    await expect(page.getByText("This video plays in the AOC Player.")).toHaveCount(0);
+    await expect(page.locator("video")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Open in AOC Player" }).click();
+    await expect.poll(launched).toEqual([PLAY_URL]);
+    await expect(page.getByText("Opening the AOC Player…")).toBeVisible();
+  });
+
   test("a required player shows the launcher, opens the link from the click and confirms the player took it", async ({
     page,
   }) => {

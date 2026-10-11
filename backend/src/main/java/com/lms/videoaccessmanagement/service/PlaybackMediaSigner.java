@@ -106,7 +106,7 @@ public class PlaybackMediaSigner {
 		String key = asset.getProviderEmbedKey();
 		String bridgeUrl = playerProperties.getDyntubeBridgeUrl();
 		// The embed key arrives with the next status sync (V83); until then the video can't play.
-		if (key == null || bridgeUrl == null || !bridgeUrl.matches("^https?://\\S+$")) {
+		if (key == null || !playerProperties.hasSafeDyntubeBridgeUrl(playerProperties.isAllowInsecureBridge())) {
 			throw unavailable();
 		}
 		return new SignedMedia(null, clock.instant().plus(ttl), MediaFormat.EMBED,

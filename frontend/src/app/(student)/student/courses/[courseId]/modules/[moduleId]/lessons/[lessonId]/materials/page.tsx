@@ -361,6 +361,7 @@ function PlatformStorageVideo({ material, videoAssetId }: { material: MaterialRe
       videoAssetId={videoAssetId}
       title={material.title}
       onNativePlayerRequired={() => setNativeRequired(true)}
+      onEmbedRequiresNativePlayer={() => setNativeRequired(true)}
     />
   );
 }

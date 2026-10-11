@@ -106,6 +106,7 @@ app:
   player:
     launch-code-pepper: "test-only-player-launch-code-pepper-not-for-production"
     dyntube-bridge-url: "http://embed.lms.test:3000/embed/dyntube-bridge.html"
+    allow-insecure-bridge: true
   # Wave 10: the shared test profile does not exercise the plan-default device
   # limit (existing tests log the same account in repeatedly without a device
   # cookie, i.e. as new devices). Device-limit tests set explicit tenant or

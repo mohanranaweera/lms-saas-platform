@@ -91,6 +91,8 @@ interface SecureVideoPlayerProps {
    * (the institute requires the AOC Player), so the parent can show the launcher.
    */
   onNativePlayerRequired?: () => void;
+  /** VIDEO Phase 13c: DynTube EMBED is authorized by the native player only. */
+  onEmbedRequiresNativePlayer?: () => void;
 }
 
 type PlayerState = "loading" | "not-entitled" | "error" | "ready" | "revoked" | "token-invalid" | "key-refused";
@@ -109,7 +111,12 @@ const EMBED_ONLY_MESSAGE = "This video plays in the AOC Player. Open the lesson 
 const WATCH_LIMIT_MESSAGE =
   "You've used all the watch time allowed for this video. Ask your institute if you need more time.";
 
-export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired }: SecureVideoPlayerProps) {
+export function SecureVideoPlayer({
+  videoAssetId,
+  title,
+  onNativePlayerRequired,
+  onEmbedRequiresNativePlayer,
+}: SecureVideoPlayerProps) {
   const issueSessionMutation = useIssuePlaybackSession();
   const progressMutation = useRecordPlaybackProgress();
   const endSessionMutation = useEndPlaybackSession();
@@ -158,8 +165,18 @@ export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired 
         const nextSession = await issueSessionMutation.mutateAsync(videoAssetId);
         if (nextSession.mediaFormat === "EMBED") {
           detachStream();
-          setTerminalMessage(EMBED_ONLY_MESSAGE);
-          setState("revoked");
+          // EMBED is handed to the native flow. End the legacy browser session
+          // before unmounting this component so it cannot retain a concurrency
+          // slot while the AOC Player issues its own authorized session.
+          if (nextSession.watchSessionId) {
+            endSessionMutation.mutate(nextSession.watchSessionId, { onError: () => undefined });
+          }
+          if (onEmbedRequiresNativePlayer) {
+            onEmbedRequiresNativePlayer();
+          } else {
+            setTerminalMessage(EMBED_ONLY_MESSAGE);
+            setState("revoked");
+          }
           return;
         }
         setSession(nextSession);
@@ -219,7 +236,15 @@ export function SecureVideoPlayer({ videoAssetId, title, onNativePlayerRequired 
         }
       }
     },
-    [issueSessionMutation, videoAssetId, isPlaying, onNativePlayerRequired, detachStream]
+    [
+      issueSessionMutation,
+      videoAssetId,
+      isPlaying,
+      onNativePlayerRequired,
+      onEmbedRequiresNativePlayer,
+      endSessionMutation,
+      detachStream,
+    ]
   );
 
   // Initial session on mount — the canonical "fetch on mount" effect

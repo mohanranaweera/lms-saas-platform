@@ -25,6 +25,7 @@ use crate::deep_link::{self, DeepLink};
 use crate::installation::{Installation, InstallationStore};
 use crate::keystore::{self, InstallationKey, KeyError, KeyStore};
 use crate::media::Media;
+use crate::media_proxy::NativeMediaProxy;
 
 /// Bounds for the server's heartbeat interval.
 const MIN_INTERVAL: Duration = Duration::from_secs(1);
@@ -145,6 +146,8 @@ pub struct Player {
     sink: Arc<dyn ViewSink>,
     /// Origins a platform-hosted video file may come from (compiled in).
     media_origins: Vec<Url>,
+    /// Keeps upstream media URLs out of the WebView and enforces session binding.
+    media_proxy: Arc<NativeMediaProxy>,
     /// Links are handled one at a time.
     operations: AsyncMutex<()>,
     state: Mutex<State>,
@@ -180,6 +183,28 @@ impl Player {
         media_origins: Vec<Url>,
         capture: Arc<dyn Controller>,
     ) -> Arc<Self> {
+        let media_proxy = NativeMediaProxy::new(media_origins.clone(), cfg!(debug_assertions))
+            .expect("native media proxy client must be constructible");
+        Self::with_capture_controller_and_proxy(
+            api,
+            keys,
+            store,
+            sink,
+            media_origins,
+            capture,
+            media_proxy,
+        )
+    }
+
+    pub fn with_capture_controller_and_proxy(
+        api: ApiClient,
+        keys: Box<dyn KeyStore>,
+        store: InstallationStore,
+        sink: Arc<dyn ViewSink>,
+        media_origins: Vec<Url>,
+        capture: Arc<dyn Controller>,
+        media_proxy: Arc<NativeMediaProxy>,
+    ) -> Arc<Self> {
         let view = if store.load().is_some() {
             View::Ready
         } else {
@@ -191,6 +216,7 @@ impl Player {
             store,
             sink,
             media_origins,
+            media_proxy,
             operations: AsyncMutex::new(()),
             state: Mutex::new(State {
                 view,
@@ -398,7 +424,7 @@ impl Player {
                 };
                 exchange.descriptor.watermark = watermark;
                 let media = Media::from_descriptor(&exchange.descriptor, &self.media_origins);
-                if media == Media::Unsupported {
+                let Some(media) = self.media_proxy_media(exchange.session_id, media) else {
                     // Nothing this player may play: give the session back at once.
                     let _ = tokio::time::timeout(
                         END_TIMEOUT,
@@ -407,7 +433,7 @@ impl Player {
                     )
                     .await;
                     return self.show(error("MEDIA_UNAVAILABLE"));
-                }
+                };
                 let capture_status = self
                     .capture
                     .apply(exchange.descriptor.capture_protection.enabled);
@@ -424,6 +450,21 @@ impl Player {
                 self.start(key, exchange, media, capture_status)
             }
             Err(failure) => self.show(error_view(&failure)),
+        }
+    }
+
+    fn media_proxy_media(&self, session_id: Uuid, media: Media) -> Option<Media> {
+        match media {
+            Media::File { url, allow_seeking } => self
+                .media_proxy
+                .bind(session_id, &url)
+                .map(|url| Media::File { url, allow_seeking }),
+            // HLS playlists contain provider-hosted child URLs. Until the
+            // proxy rewrites those references, keep HLS on its existing
+            // compiled host/CSP path rather than proxying only the master.
+            Media::Hls { .. } => Some(media),
+            Media::Unsupported => None,
+            other => Some(other),
         }
     }
 
@@ -503,10 +544,21 @@ impl Player {
                             if let Some(seconds) = beat.heartbeat_interval_seconds {
                                 session.interval = clamp_interval(seconds);
                             }
-                            // A platform-hosted file gets a fresh signed URL each beat.
-                            let fresh = beat.media_url.as_deref().and_then(|url| {
-                                session.media.with_fresh_url(url, &self.media_origins)
-                            });
+                            // A platform-hosted file keeps its opaque WebView URL;
+                            // only Rust's session-bound upstream mapping is refreshed.
+                            let fresh = match (&session.media, beat.media_url.as_deref()) {
+                                (Media::File { .. }, Some(upstream)) => {
+                                    // A heartbeat carrying a foreign or malformed
+                                    // URL is ignored; the proxy keeps the last
+                                    // trusted upstream until a valid refresh arrives.
+                                    let _ = self.media_proxy.refresh(session.id, upstream);
+                                    None
+                                }
+                                (media, Some(upstream)) => {
+                                    media.with_fresh_url(upstream, &self.media_origins)
+                                }
+                                _ => None,
+                            };
                             if let Some(fresh) = fresh.filter(|fresh| *fresh != session.media) {
                                 session.media = fresh;
                                 self.show(playing_view(&session));
@@ -547,8 +599,9 @@ impl Player {
                 (cause == Cancel::User).then(|| "ENDED_BY_STUDENT".to_owned())
             }
         };
-        // Tear down: the token and descriptor die with this task, and the
-        // native window is no longer excluded from capture.
+        // Tear down: the token, descriptor and upstream media mapping die with
+        // this task, and the native window is no longer excluded from capture.
+        self.media_proxy.deactivate(session.id);
         self.capture.clear();
         {
             let mut progress = self.progress();

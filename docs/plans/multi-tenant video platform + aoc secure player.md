@@ -2798,3 +2798,40 @@ the recording-access rules (recordings are protected content).
   - Add `127.0.0.1 embed.lms.test` to the hosts file.
   - Whitelist `embed.lms.test` (dev) in the DynTube project.
   - Share a redacted `GET /videos/{id}` response showing `channelKey`.
+
+### Phase 14 — Security Hardening
+
+**Before (2026-10-11, status → IN PROGRESS; branch `fix/video-security-hardening`)**
+
+- **Objective:** harden the Phase 8–13 player and managed-stream surfaces against SSRF, URL/descriptor injection, replay/rate-limit abuse, bridge-origin confusion, and accidental secret exposure; implement the deferred NativeMediaProxy without adding a service or datastore.
+- **Scope:** native `aoc-media://` protocol proxy, backend player/descriptor boundary, DynTube bridge origin/CSP/postMessage validation, dependency/release configuration review, and required security/tenant regression tests.
+- **Guardrails:** no payment/ledger/enrollment activation changes, no new provider or DRM, no mobile player, no production enablement of DynTube before the ADR-026 hostile-origin whitelist gate passes, and no edits to applied migrations.
+
+**Implemented (2026-10-11, pending final review/commit):**
+
+- Native player:
+  - Added `NativeMediaProxy`, registered as a Tauri asynchronous `aoc-media` custom protocol. Progressive INTERNAL media now exposes only `aoc-media://session/<uuid>/media` to the WebView; signed upstream URLs remain in Rust memory.
+  - Proxy sessions are bound to the active playback session and are removed on STOP, expiry, revoke, end, or teardown. Heartbeats refresh the Rust-held signed URL without replacing the opaque UI URL.
+  - Redirects are disabled in the HTTP client and manually bounded to two hops with revalidation. Only `Range` and `Accept` are forwarded; credentials/cookies/authorization are not. Responses are capped at 16 MiB, restricted to media MIME types, and support only safe media statuses/ranges.
+  - Descriptor URLs are restricted to compiled media origins; release requires HTTPS and rejects private, loopback, link-local, CGNAT, and metadata IPs after DNS resolution. Loopback HTTP is permitted only for explicit debug builds. DynTube HLS remains on its existing compiled host/CSP path until child-playlist rewriting is implemented; DynTube EMBED remains compiled-bridge-only.
+  - Added URI/path, origin, key, private-address, MIME, opaque-URL, debug/release, and lifecycle regression tests. Native `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test --lib` pass (65 passed, 1 TPM test ignored).
+- Backend:
+  - Player rate limiting now fails closed when Redis is unavailable or returns no counter, matching nonce-store authentication behavior; focused tests cover outage/null-counter behavior.
+  - DynTube bridge descriptor configuration is validated as a clean credential-free `/embed/dyntube-bridge.html` URL; production permits HTTPS only, while local/test explicitly opt into loopback HTTP. Query, fragment, user-info, malformed path and unsafe scheme cases are rejected and tested.
+- Bridge:
+  - `EMBED_HOST` is normalized and rejected when malformed; production fails closed without a valid host and parent-origin configuration.
+  - Parent origins are normalized; production rejects wildcards, while development supports only the explicit local subdomain wildcard. Scheme, port, hostname-boundary and parsed-origin checks prevent sibling/suffix-domain confusion.
+  - Existing `no-store`, `nosniff`, strict referrer policy, nonce CSP, isolated DynTube `'unsafe-eval'`, `frame-ancestors`, and source/origin postMessage binding remain in force.
+
+**Impact:**
+
+- **Database:** none. No migration was needed; financial/enrollment/audit history is untouched.
+- **API:** no contract change. The opaque native media URL is internal to the player; backend descriptors remain additive-compatible and never accept a client media URL/tenant/host.
+- **Tenant/security:** tenant identity and entitlement remain server-authoritative. Proxy state is session-bound; bridge keys are still issued only after playability checks; existing cross-tenant/session negative tests remain required.
+- **Operational gates still open:** DynTube project must reject non-whitelisted origins (re-test from `example.com`) before any real tenant enablement; production `EMBED_HOST`, exact `EMBED_PARENT_ORIGINS`, `PLAYER_DYNTUBE_BRIDGE_URL`, compiled AOC bridge URL, Nginx launch-code redaction, release signing/updater-key custody, storage lifecycle/CORS, and dependency audit evidence remain Phase 15/release prerequisites.
+
+**Verification evidence:**
+
+- Backend focused `PlayerCryptoTest`: 7 tests, 0 failures; includes rate-limit outage/null-counter and bridge-origin validation.
+- Native: `cargo fmt --check`, clippy with `-D warnings`, and `cargo test --lib` pass; frontend `npx tsc --noEmit` and `npm run lint` pass with 2 pre-existing warnings in untouched files.
+- Final required checks: focused DynTube/player integration regression, full backend `mvnw verify`, relevant Playwright bridge/player regression, dependency scans, security review, tenant-isolation review, and documentation/definition-of-done review.

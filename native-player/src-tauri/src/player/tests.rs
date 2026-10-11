@@ -1036,7 +1036,13 @@ async fn a_platform_file_plays_and_gets_fresh_signed_urls_from_heartbeats() {
 
     f.player.handle_link(&play_link()).await;
     let playing = f.views.last().unwrap();
-    assert_eq!(file_url(&playing).as_deref(), Some(first.as_str()));
+    let opaque_url = file_url(&playing).expect("the UI receives an opaque proxy URL");
+    #[cfg(windows)]
+    assert!(opaque_url.starts_with("http://aoc-media.localhost/session/"));
+    #[cfg(not(windows))]
+    assert!(opaque_url.starts_with("aoc-media://localhost/session/"));
+    assert!(opaque_url.ends_with("/media"));
+    assert!(!opaque_url.contains("X-Amz-Signature"));
     assert!(matches!(
         playing,
         View::Playing {
@@ -1065,9 +1071,10 @@ async fn a_platform_file_plays_and_gets_fresh_signed_urls_from_heartbeats() {
         .collect();
     assert_eq!(
         urls,
-        vec![first.clone(), second.clone()],
-        "only allowed URLs reach the UI"
+        vec![opaque_url],
+        "heartbeats keep the same opaque URL in the UI"
     );
+    assert!(!urls.iter().any(|url| url.contains("X-Amz-Signature")));
 }
 
 #[tokio::test]

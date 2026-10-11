@@ -33,17 +33,45 @@ const DYNTUBE_SCRIPT = "https://embed.dyntube.com/v1.0/dyntube.js";
 
 function embedHost(): string | null {
   const configured = process.env.EMBED_HOST?.trim();
-  if (configured) return configured.toLowerCase();
-  return process.env.NODE_ENV === "production" ? null : DEV_EMBED_HOST;
+  const raw = configured || (process.env.NODE_ENV === "production" ? "" : DEV_EMBED_HOST);
+  if (!raw || raw.length > 256 || /[\s/@?#]/.test(raw)) return null;
+  try {
+    const url = new URL(`https://${raw}`);
+    if (url.pathname !== "/" || url.search || url.hash || url.username || url.password || !url.hostname) {
+      return null;
+    }
+    if (url.port && (!/^\d{1,5}$/.test(url.port) || Number(url.port) > 65535)) return null;
+    return `${url.hostname.toLowerCase()}${url.port ? `:${url.port}` : ""}`;
+  } catch {
+    return null;
+  }
 }
 
 function parentOrigins(): string[] {
   const configured = process.env.EMBED_PARENT_ORIGINS?.trim();
   const raw = configured || (process.env.NODE_ENV === "production" ? "" : DEV_PARENT_ORIGINS);
-  // Only plain origins or `*.` host wildcards: they go into a CSP header and a script.
+  // Production values must be exact origins. Development retains only the
+  // explicit local subdomain wildcard needed by the local tenant fixtures.
   return raw
     .split(/[\s,]+/)
-    .filter((origin) => /^https?:\/\/(\*\.)?[a-z0-9.-]+(:\d{1,5})?$/i.test(origin));
+    .map((origin) => normalizeOrigin(origin))
+    .filter((origin): origin is string => origin !== null);
+}
+
+function normalizeOrigin(raw: string): string | null {
+  if (!raw || raw.length > 256 || raw.includes("@") || raw.includes("#") || raw.includes("?")) return null;
+  const wildcard = raw.startsWith("http://*.") || raw.startsWith("https://*.");
+  const candidate = wildcard ? raw.replace("*.", "wildcard.") : raw;
+  try {
+    const url = new URL(candidate);
+    if (!url.hostname || url.username || url.password || url.pathname !== "/" || url.search || url.hash) return null;
+    if (url.port && (!/^\d{1,5}$/.test(url.port) || Number(url.port) > 65535)) return null;
+    if (wildcard && process.env.NODE_ENV === "production") return null;
+    const hostname = wildcard ? url.hostname.replace(/^wildcard\./, "") : url.hostname;
+    return wildcard ? `${url.protocol}//*.${hostname}${url.port ? `:${url.port}` : ""}` : url.origin;
+  } catch {
+    return null;
+  }
 }
 
 function nonce(): string {
@@ -115,13 +143,19 @@ function page(scriptNonce: string, origins: string[]): string {
   const SEEK_TOLERANCE_SECONDS = 2;
   const REPORT_EVERY_MS = 2000;
 
-  const allowed = (origin) => ALLOWED.some((pattern) => {
-    if (!pattern.includes("*.")) return origin === pattern;
-    const [scheme, rest] = pattern.split("://*.");
-    if (!origin.startsWith(scheme + "://")) return false;
-    const host = origin.slice(scheme.length + 3);
-    return host.endsWith("." + rest) && host.length > rest.length + 1;
-  });
+  const allowed = (origin) => {
+    let candidate;
+    try { candidate = new URL(origin); } catch { return false; }
+    return ALLOWED.some((pattern) => {
+      if (!pattern.includes("*.")) return origin === pattern;
+      let wildcard;
+      try { wildcard = new URL(pattern.replace("*.", "wildcard.")); } catch { return false; }
+      if (candidate.protocol !== wildcard.protocol || candidate.port !== wildcard.port) return false;
+      const suffix = wildcard.hostname.toLowerCase().replace(/^wildcard\./, "");
+      const host = candidate.hostname.toLowerCase();
+      return host.endsWith("." + suffix) && host.length > suffix.length + 1;
+    });
+  };
 
   let parentOrigin = null;
   let loaded = false;

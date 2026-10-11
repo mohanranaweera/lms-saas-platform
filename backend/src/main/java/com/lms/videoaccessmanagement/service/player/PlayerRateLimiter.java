@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
  * Fixed-window Redis counters for the AOC Player's unauthenticated endpoints
  * (VIDEO Phase 8, ADR-025 §4: per-IP and per-installation limits). Mirrors
  * identity's {@code AuthRateLimiter} (which is not part of that module's api
- * package): Redis is ephemeral state, and an outage fails OPEN - the codes are
- * 256-bit, single use and signature-bound, so the limit is defense in depth.
+ * package): Redis is ephemeral state, but this unauthenticated authentication
+ * path fails closed when the limiter is unavailable.
  */
 @Component
 public class PlayerRateLimiter {
@@ -33,14 +33,14 @@ public class PlayerRateLimiter {
 			if (count != null && count == 1L) {
 				redis.expire(PREFIX + key, window);
 			}
-			return count == null || count <= limit;
+			return count != null && count <= limit;
 		}
 		catch (RuntimeException ex) {
 			log.atWarn()
 				.setMessage("player.rate_limit_unavailable")
 				.addKeyValue("errorType", ex.getClass().getSimpleName())
 				.log();
-			return true;
+			return false;
 		}
 	}
 
