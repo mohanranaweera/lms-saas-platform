@@ -39,7 +39,16 @@ export interface ConnectionView {
    * Bunny only: `{ keyType: "ACCOUNT" }`. A connection saved before
    * MEDIA-INT-01A still carries its old `libraryId` (library-only key).
    */
-  settings: { keyType?: "ACCOUNT"; libraryId?: string; cdnHostname?: string; tokenAuthConfigured?: boolean } | null;
+  settings: {
+    keyType?: "ACCOUNT";
+    libraryId?: string;
+    cdnHostname?: string;
+    tokenAuthConfigured?: boolean;
+    /** DynTube (VIDEO Phase 13): where uploads go. */
+    projectId?: string | null;
+    /** DynTube (VIDEO Phase 13): a token security key is saved (the key itself is never returned). */
+    tokenSecurityKeyConfigured?: boolean;
+  } | null;
   secretConfigured: boolean;
   connectedAt: string;
   lastVerifiedAt: string | null;
@@ -277,11 +286,21 @@ export function useUpdateTeacherProviders() {
   );
 }
 
+/** VIDEO Phase 13 (ADR-026): blank fields keep the saved values; the token key is write-only. */
 export function useSaveDynTube() {
-  return useAdminMutation<{ apiKey?: string }, ConnectionView>((input) => [
-    "/v1/tenant-admin/integrations/dyntube",
-    { method: "PUT", body: JSON.stringify({ apiKey: blankToNull(input.apiKey) }) },
-  ]);
+  return useAdminMutation<{ apiKey?: string; tokenSecurityKey?: string; projectId?: string }, ConnectionView>(
+    (input) => [
+      "/v1/tenant-admin/integrations/dyntube",
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          apiKey: blankToNull(input.apiKey),
+          tokenSecurityKey: blankToNull(input.tokenSecurityKey),
+          projectId: blankToNull(input.projectId),
+        }),
+      },
+    ]
+  );
 }
 
 /** MEDIA-INT-01A: the Bunny.net account API key is the only input. */

@@ -1,0 +1,135 @@
+- generic [active] [ref=f11e1]:
+  - generic [ref=f11e3]:
+    - banner [ref=f11e4]:
+      - generic [ref=f11e5]:
+        - link "DynTube Docs" [ref=f11e7] [cursor=pointer]:
+          - /url: /
+          - img "DynTube" [ref=f11e8]
+          - generic [ref=f11e17]: Docs
+        - generic [ref=f11e19]:
+          - textbox "Search documentation..." [ref=f11e23]
+          - generic [ref=f11e24]: ⌘K
+        - generic [ref=f11e25]:
+          - link "API" [ref=f11e26] [cursor=pointer]:
+            - /url: /dev
+          - link "Dashboard" [ref=f11e31] [cursor=pointer]:
+            - /url: https://app.dyntube.com
+          - button "Switch to dark mode" [ref=f11e37] [cursor=pointer]
+    - generic [ref=f11e41]:
+      - complementary [ref=f11e42]:
+        - navigation [ref=f11e43]:
+          - generic [ref=f11e44]: Documentation
+          - link "Welcome to our Help Center" [ref=f11e49] [cursor=pointer]:
+            - /url: /docs
+          - button "Videos" [ref=f11e51] [cursor=pointer]
+          - generic [ref=f11e55]:
+            - button "Security" [ref=f11e56] [cursor=pointer]
+            - list [ref=f11e60]:
+              - listitem [ref=f11e61]:
+                - link "How to Secure Your Videos on DynTube" [ref=f11e62] [cursor=pointer]:
+                  - /url: /docs/security/how-to-secure-your-videos-on-dyntube
+              - listitem [ref=f11e63]:
+                - link "How to Add Login Protection to Videos" [ref=f11e64] [cursor=pointer]:
+                  - /url: /docs/security/how-to-add-login-protection-on-my-videos
+              - listitem [ref=f11e65]:
+                - link "How to Turn On Video Encryption" [ref=f11e66] [cursor=pointer]:
+                  - /url: /docs/security/how-to-turn-on-video-encryption
+              - listitem [ref=f11e67]:
+                - link "How to Create Plans & Subscriptions" [ref=f11e68] [cursor=pointer]:
+                  - /url: /docs/security/how-to-create-plans-and-subscriptions
+          - button "Channels" [ref=f11e70] [cursor=pointer]
+          - button "Projects" [ref=f11e75] [cursor=pointer]
+          - button "AI Features" [ref=f11e80] [cursor=pointer]
+          - button "TV Apps" [ref=f11e85] [cursor=pointer]
+          - button "Account" [ref=f11e90] [cursor=pointer]
+          - button "FAQs" [ref=f11e95] [cursor=pointer]
+          - button "Tips & Tricks" [ref=f11e100] [cursor=pointer]
+          - generic [ref=f11e104]:
+            - link "GitHub Samples" [ref=f11e105] [cursor=pointer]:
+              - /url: https://github.com/nicearma/dyntube-samples
+            - link "Support" [ref=f11e111] [cursor=pointer]:
+              - /url: /contact
+      - main [ref=f11e112]:
+        - navigation [ref=f11e114]:
+          - link "Home" [ref=f11e115] [cursor=pointer]:
+            - /url: /
+          - link "Docs" [ref=f11e118] [cursor=pointer]:
+            - /url: /docs
+          - link "Security" [ref=f11e121] [cursor=pointer]:
+            - /url: /docs/security
+          - generic [ref=f11e124]: How to secure your videos on dyntube
+        - generic [ref=f11e126]:
+          - heading "How to Secure Your Videos on DynTube" [level=1] [ref=f11e127]
+          - paragraph [ref=f11e128]: "DynTube offers multiple levels of protection to safeguard your videos against unauthorized downloads. Here are the security features available:"
+          - list [ref=f11e129]:
+            - listitem [ref=f11e130]: Domain Whitelisting
+            - listitem [ref=f11e131]: Subscriptions & Password Protection
+            - listitem [ref=f11e132]: Video Encryption
+            - listitem [ref=f11e133]: Extra Security
+            - listitem [ref=f11e134]: Token Authentication
+          - heading "Domain Whitelisting" [level=2] [ref=f11e135]
+          - paragraph [ref=f11e136]:
+            - text: You can
+            - link "whitelist domains in our dashboard" [ref=f11e137] [cursor=pointer]:
+              - /url: https://app.dyntube.com/#/account/settings
+            - text: . Once you add domains to the whitelist, only those domains will be permitted to serve your videos. If someone copies your embed code to a different domain, our system will display an error page.
+          - paragraph [ref=f11e138]:
+            - text: You can also add wildcards for directories on your domain. For example,
+            - code [ref=f11e139]: domain.com/account/*
+            - text: will allow any link under the "account" directory.
+          - heading "Video Encryption" [level=2] [ref=f11e142]
+          - paragraph [ref=f11e143]: This is our most powerful security feature. Video encryption secures your content using encryption keys. Encrypted videos will only play on whitelisted domains, and the decryption keys are only served to authorized domains.
+          - paragraph [ref=f11e144]: If someone attempts to download the encrypted video segments, they won't be able to play those files without the proper keys.
+          - heading "Extra Security" [level=2] [ref=f11e147]
+          - generic [ref=f11e148]:
+            - generic [ref=f11e149]: ℹ️
+            - paragraph [ref=f11e151]: This option may not be available on some Starter plans.
+          - paragraph [ref=f11e152]: Extra Security is a project or video-level setting that adds an additional layer of protection on top of video encryption. When enabled in the "Video Settings" of a project, videos become more secure and will only play in our proprietary video player. Third-party video players will not be able to play the content.
+          - heading "Token Authentication" [level=2] [ref=f11e153]
+          - paragraph [ref=f11e154]:
+            - text: The
+            - link "token authentication method" [ref=f11e155] [cursor=pointer]:
+              - /url: https://dev.dyntube.com/reference/developer-resources/token-authentication
+            - text: allows you to generate tokenized URLs to access your videos in any video player or native mobile app.
+          - paragraph [ref=f11e156]: "Tokenized URLs support the following restrictions:"
+          - list [ref=f11e157]:
+            - listitem [ref=f11e158]:
+              - strong [ref=f11e159]: "Geographic restrictions:"
+              - text: Limit playback to specific countries
+            - listitem [ref=f11e160]:
+              - strong [ref=f11e161]: "IP restrictions:"
+              - text: Restrict access to specific IP addresses
+            - listitem [ref=f11e162]:
+              - strong [ref=f11e163]: "View count limits:"
+              - text: Specify how many times a URL can be used (e.g., limit to 5 views)
+          - paragraph [ref=f11e164]: For example, if you set a tokenized URL to allow only 5 views, the video will be served 5 times before the URL becomes invalid.
+          - heading "Subscriptions & Password Protection" [level=2] [ref=f11e165]
+          - paragraph [ref=f11e166]: "DynTube allows you to create subscription-based access to your videos. You can create plans with different renewal periods:"
+          - list [ref=f11e167]:
+            - listitem [ref=f11e168]: Daily, weekly, monthly, or yearly subscriptions
+            - listitem [ref=f11e169]: Temporary access for a specific number of days
+          - paragraph [ref=f11e170]: Once you've created a plan, you can add videos or channels to it. Plans are then assigned to members (users), who receive login credentials to access the protected content.
+          - heading "Next Steps" [level=2] [ref=f11e171]
+          - list [ref=f11e172]:
+            - listitem [ref=f11e173]:
+              - link "How to Turn On Video Encryption" [ref=f11e174] [cursor=pointer]:
+                - /url: /docs/security/how-to-turn-on-video-encryption
+            - listitem [ref=f11e175]:
+              - link "How to Add Login Protection to Videos" [ref=f11e176] [cursor=pointer]:
+                - /url: /docs/security/how-to-add-login-protection-on-my-videos
+            - listitem [ref=f11e177]:
+              - link "Screen Recording & Download Prevention" [ref=f11e178] [cursor=pointer]:
+                - /url: /docs/faqs/screen-recording-and-download-prevention
+        - generic [ref=f11e179]:
+          - generic [ref=f11e181]:
+            - generic [ref=f11e182]: © 2026 DynTube. All rights reserved.
+            - generic [ref=f11e183]:
+              - link "Terms" [ref=f11e184] [cursor=pointer]:
+                - /url: /legal/terms
+              - link "Privacy" [ref=f11e185] [cursor=pointer]:
+                - /url: /legal/privacy
+              - link "Contact" [ref=f11e186] [cursor=pointer]:
+                - /url: /contact
+          - text: DYNTUBE
+  - alert [ref=f11e187]
+  - button "Open chat" [ref=f11e188] [cursor=pointer]

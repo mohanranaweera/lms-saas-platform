@@ -14,6 +14,7 @@ import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.MediaConnectionApi;
+import com.lms.integrationmanagement.api.MediaConnectionApi.ManagedHostSummary;
 import com.lms.integrationmanagement.api.MediaConnectionApi.VideoIntegrationSummary;
 import com.lms.integrationmanagement.api.MediaConnectionStatus;
 import com.lms.integrationmanagement.api.MediaProvider;
@@ -189,6 +190,19 @@ public class MediaUploadService {
 	 */
 	@Transactional(readOnly = true)
 	public UploadLimits limits(UUID integrationId) {
+		return limits(integrationId, null);
+	}
+
+	/**
+	 * VIDEO Phase 13: with {@code provider = DYNTUBE} the "channel" is the
+	 * institute's DynTube account and the platform switch is {@code
+	 * dyntube-upload}; otherwise the YouTube integration, as before.
+	 */
+	@Transactional(readOnly = true)
+	public UploadLimits limits(UUID integrationId, MediaAssetProvider provider) {
+		if (provider == MediaAssetProvider.DYNTUBE) {
+			return managedLimits();
+		}
 		UUID callerId = requireUploader();
 		Optional<VideoIntegrationSummary> channel = (integrationId == null) ? Optional.empty()
 				: Optional.of(requireLiveIntegration(integrationId));
@@ -211,6 +225,24 @@ public class MediaUploadService {
 				(disabledBy == null) ? null : disabledMessage(disabledBy));
 	}
 
+	private UploadLimits managedLimits() {
+		requireUploader();
+		Optional<ManagedHostSummary> host = connections.findManagedHost(MediaProvider.DYNTUBE)
+			.filter(ManagedHostSummary::selectedAsVideoHost);
+		ChannelState state = host.map(h -> (h.status() != MediaConnectionStatus.ACTIVE) ? ChannelState.EXPIRED
+				: h.projectConfigured() && h.tokenKeyConfigured() ? ChannelState.CONNECTED : ChannelState.NOT_CONNECTED)
+			.orElse(ChannelState.NOT_CONNECTED);
+		int used = usage.findForDay(UploadSchedule.quotaDay(clock.instant()))
+			.map(TenantVideoUsageDaily::getUploads)
+			.orElse(0);
+		UploadsDisabledBy disabledBy = !featureFlags.isDyntubeUpload() ? UploadsDisabledBy.PLATFORM
+				: configuration.effectiveSettings().uploadsEnabled() ? null : UploadsDisabledBy.INSTITUTE;
+		// DynTube edits stay in the LMS (ADR-026 Decision 5), so editing is always available.
+		return new UploadLimits(disabledBy == null, state, true, configuration.effectiveDailyUploadLimit(), used,
+				properties.getMaxFileSizeBytes(), properties.getPartSizeBytes(), new TreeSet<>(ALLOWED_MIME_TYPES), true,
+				null, disabledBy, (disabledBy == null) ? null : disabledMessage(disabledBy));
+	}
+
 	/**
 	 * Creates the asset and its staging upload; returns the first part URLs.
 	 * Checks, in order: who may upload, platform flag + tenant switch, the
@@ -219,6 +251,9 @@ public class MediaUploadService {
 	 */
 	public StartedUpload create(CreateUploadCommand command) {
 		UUID actorId = requireUploader();
+		if (command != null && command.provider() == MediaAssetProvider.DYNTUBE) {
+			return createManaged(actorId, command);
+		}
 		requireUploadsEnabled();
 		if (command == null || command.integrationId() == null) {
 			throw new FieldValidationException("Choose where to upload",
@@ -232,6 +267,51 @@ public class MediaUploadService {
 		VideoAsset newAsset = VideoAsset.createForProvider(tenantContext.getTenantId(), MediaAssetProvider.YOUTUBE,
 				integration.integrationId(), connectionId, valid.title(), valid.description(), valid.privacyStatus(), valid.fileName(),
 				valid.mimeType(), valid.sizeBytes(), actorId);
+		return startStaging(newAsset, connectionId, valid);
+	}
+
+	/**
+	 * VIDEO Phase 13 (ADR-026): an upload to the institute's DynTube account.
+	 * Same uploader rules, institute switch, validation, staging and daily
+	 * budget as YouTube; the platform switch is {@code
+	 * video.features.dyntube-upload}, and the account must be the chosen
+	 * video host, ACTIVE, with a project and token security key.
+	 */
+	private StartedUpload createManaged(UUID actorId, CreateUploadCommand command) {
+		if (!featureFlags.isDyntubeUpload()) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_UPLOADS_DISABLED, PLATFORM_UPLOADS_OFF);
+		}
+		if (!configuration.effectiveSettings().uploadsEnabled()) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_UPLOADS_DISABLED, INSTITUTE_UPLOADS_OFF);
+		}
+		UUID connectionId = requireUsableManagedHost();
+		CreateUploadCommand valid = validate(command);
+		VideoAsset newAsset = VideoAsset.createForProvider(tenantContext.getTenantId(), MediaAssetProvider.DYNTUBE,
+				null, connectionId, valid.title(), valid.description(), valid.privacyStatus(), valid.fileName(),
+				valid.mimeType(), valid.sizeBytes(), actorId);
+		return startStaging(newAsset, connectionId, valid);
+	}
+
+	private UUID requireUsableManagedHost() {
+		ManagedHostSummary host = connections.findManagedHost(MediaProvider.DYNTUBE)
+			.orElseThrow(() -> new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_NOT_CONNECTED,
+					"Connect DynTube in Settings → Integrations."));
+		if (!host.selectedAsVideoHost()) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_NOT_CONNECTED,
+					"Choose DynTube as your institute's video host in Settings → Integrations.");
+		}
+		if (host.status() != MediaConnectionStatus.ACTIVE) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_AUTH_EXPIRED,
+					"Update the DynTube account in Settings → Integrations.");
+		}
+		if (!host.projectConfigured() || !host.tokenKeyConfigured()) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PROVIDER_NOT_CONNECTED,
+					"Finish the DynTube setup in Settings → Integrations: add the token security key and choose a project.");
+		}
+		return host.connectionId();
+	}
+
+	private StartedUpload startStaging(VideoAsset newAsset, UUID connectionId, CreateUploadCommand valid) {
 		CreatedUpload created = store.createPending(newAsset, connectionId, configuration.effectiveDailyUploadLimit());
 		MediaUploadJob job = created.job();
 		StagingUpload upload;
@@ -307,6 +387,9 @@ public class MediaUploadService {
 	/** Re-queues a failed transfer whose staged file still exists (no new budget slot). */
 	public MediaAssetView retry(UUID assetId) {
 		VideoAsset asset = requireAccessibleAsset(assetId);
+		if (asset.getProvider() == MediaAssetProvider.DYNTUBE) {
+			return retryManaged(asset);
+		}
 		requireUploadsEnabled();
 		// VIDEO Phase 5d: the asset stays on its own integration, which must still be live and usable.
 		VideoIntegrationSummary integration = requireLiveIntegration(asset.getIntegrationId());
@@ -317,6 +400,18 @@ public class MediaUploadService {
 			.orElseThrow(() -> MediaUploadException
 				.stateConflict("The YouTube channel was changed since this upload started. Upload the file again."));
 		return store.retry(assetId, connectionId);
+	}
+
+	/** VIDEO Phase 13: a failed DynTube transfer re-queues on the institute's current DynTube account. */
+	private MediaAssetView retryManaged(VideoAsset asset) {
+		if (!featureFlags.isDyntubeUpload()) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_UPLOADS_DISABLED, PLATFORM_UPLOADS_OFF);
+		}
+		if (!configuration.effectiveSettings().uploadsEnabled()) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_UPLOADS_DISABLED, INSTITUTE_UPLOADS_OFF);
+		}
+		UUID connectionId = requireUsableManagedHost();
+		return store.retry(asset.getId(), connectionId);
 	}
 
 	// ------------------------------------------------------------------
@@ -414,8 +509,9 @@ public class MediaUploadService {
 		if (privacy == MediaPrivacyStatus.PUBLIC) {
 			errors.add(new FieldError("privacyStatus", "must be UNLISTED or PRIVATE"));
 		}
-		if (c.provider() != null && c.provider() != MediaAssetProvider.YOUTUBE) {
-			errors.add(new FieldError("provider", "must be YOUTUBE"));
+		if (c.provider() != null && c.provider() != MediaAssetProvider.YOUTUBE
+				&& c.provider() != MediaAssetProvider.DYNTUBE) {
+			errors.add(new FieldError("provider", "must be YOUTUBE or DYNTUBE"));
 		}
 		String fileName = trimToNull(c.fileName());
 		if (fileName == null || fileName.length() > MAX_FILENAME_LENGTH) {
@@ -430,7 +526,9 @@ public class MediaUploadService {
 		if (!errors.isEmpty()) {
 			throw new FieldValidationException("Invalid upload", errors);
 		}
-		return new CreateUploadCommand(title, description, privacy, MediaAssetProvider.YOUTUBE, fileName,
+		MediaAssetProvider provider = (c.provider() == MediaAssetProvider.DYNTUBE) ? MediaAssetProvider.DYNTUBE
+				: MediaAssetProvider.YOUTUBE;
+		return new CreateUploadCommand(title, description, privacy, provider, fileName,
 				c.mimeType(), c.sizeBytes(), c.integrationId());
 	}
 

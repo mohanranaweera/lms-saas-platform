@@ -1,8 +1,13 @@
 // Mirrors `media::Media` in the Rust core, which validates every reference
 // before it reaches the UI.
 export type Media =
-  | { engine: "youtube"; videoId: string }
+  | { engine: "youtube"; videoId: string; allowSeeking: boolean }
   | { engine: "file"; url: string; allowSeeking: boolean }
+  // VIDEO Phase 13 (ADR-026): a DynTube tokenized HLS playlist, checked by Rust.
+  | { engine: "hls"; url: string; allowSeeking: boolean }
+  // VIDEO Phase 13c (ADR-026 Amendment 1): DynTube's own player in the
+  // compiled-in bridge page; Rust checked the key and supplies the bridge URL.
+  | { engine: "embed"; key: string; bridgeUrl: string; allowSeeking: boolean }
   | { engine: "unsupported" };
 
 /**

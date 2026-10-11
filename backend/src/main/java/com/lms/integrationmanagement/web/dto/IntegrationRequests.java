@@ -25,11 +25,17 @@ public final class IntegrationRequests {
 
 	}
 
-	public record DynTubeAccountRequest(@Size(max = 512) String apiKey) {
+	/**
+	 * VIDEO Phase 13 (ADR-026): {@code tokenSecurityKey} (write-only, signed
+	 * playback) and {@code projectId} (upload target) are optional; blank
+	 * keeps the stored value.
+	 */
+	public record DynTubeAccountRequest(@Size(max = 512) String apiKey, @Size(max = 512) String tokenSecurityKey,
+			@Size(max = 64) String projectId) {
 
 		@Override
 		public String toString() {
-			return "DynTubeAccountRequest[apiKey=redacted]";
+			return "DynTubeAccountRequest[apiKey=redacted, tokenSecurityKey=redacted, projectId=" + projectId + "]";
 		}
 
 	}

@@ -233,14 +233,19 @@ function SecretInput({
   );
 }
 
+const DYNTUBE_FIELDS = ["apiKey", "tokenSecurityKey", "projectId"] as const;
+
 export function DynTubeSection({ connection, canManage }: { connection: ConnectionView | null; canManage: boolean }) {
   const mutation = useSaveDynTube();
-  const stored = connection?.status !== "DISCONNECTED" && Boolean(connection?.secretConfigured);
+  const live = connection?.status !== "DISCONNECTED";
+  const stored = live && Boolean(connection?.secretConfigured);
+  const tokenKeyStored = live && Boolean(connection?.settings?.tokenSecurityKeyConfigured);
+  const savedProject = live ? (connection?.settings?.projectId ?? "") : "";
   const [pageError, setPageError] = useState<{ message: string; code?: string } | null>(null);
   const [saved, setSaved] = useState(false);
   const { register, handleSubmit, setError, reset, formState: { errors } } = useForm<DynTubeFormValues>({
     resolver: zodResolver(dynTubeSchema),
-    defaultValues: { apiKey: "" },
+    values: { apiKey: "", tokenSecurityKey: "", projectId: savedProject },
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -251,15 +256,20 @@ export function DynTubeSection({ connection, canManage }: { connection: Connecti
       return;
     }
     try {
-      await mutation.mutateAsync(values);
+      const result = await mutation.mutateAsync(values);
       setSaved(true);
-      reset({ apiKey: "" });
+      reset({ apiKey: "", tokenSecurityKey: "", projectId: result.settings?.projectId ?? values.projectId });
     } catch (error) {
       if (isApiClientError(error)) {
-        const field = error.fieldErrors.find((fieldError) => fieldError.field === "apiKey");
-        if (field) {
-          setError("apiKey", { type: "server", message: field.message });
-        } else {
+        let matched = false;
+        for (const name of DYNTUBE_FIELDS) {
+          const field = error.fieldErrors.find((fieldError) => fieldError.field === name);
+          if (field) {
+            setError(name, { type: "server", message: field.message });
+            matched = true;
+          }
+        }
+        if (!matched) {
           setPageError({ message: error.message, code: error.code });
         }
         return;
@@ -274,10 +284,50 @@ export function DynTubeSection({ connection, canManage }: { connection: Connecti
         DynTube
       </h3>
       <AccountSummary connection={connection} />
+      {connection && live ? (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+          <dt className="text-muted-foreground">Token security key</dt>
+          <dd className="text-foreground">{tokenKeyStored ? "Saved (hidden)" : "Not set"}</dd>
+          <dt className="text-muted-foreground">Upload project</dt>
+          <dd className="break-all text-foreground">{savedProject || "Not chosen"}</dd>
+        </dl>
+      ) : null}
+      <p className="text-sm text-muted-foreground">
+        Lesson videos uploaded here play only through short-lived signed links. In DynTube, make sure your
+        project refuses unsigned playback, and keep &ldquo;Extra Security&rdquo; off - it only allows
+        DynTube&apos;s own player.
+      </p>
       {canManage ? (
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
           {pageError ? <ErrorState message={pageError.message} code={pageError.code} /> : null}
           <SecretInput id="dyntube-api-key" label="DynTube API key" stored={stored} error={errors.apiKey?.message} registration={register("apiKey")} />
+          <SecretInput
+            id="dyntube-token-key"
+            label="Token security key"
+            stored={tokenKeyStored}
+            hint="In DynTube: Projects → Global Settings → API keys. Used only to sign playback links; it is never shown again."
+            error={errors.tokenSecurityKey?.message}
+            registration={register("tokenSecurityKey")}
+          />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dyntube-project">Upload project ID</Label>
+            <Input
+              id="dyntube-project"
+              autoComplete="off"
+              placeholder="e.g. RyfsGebl7kKs6jyZeNmcQ"
+              aria-invalid={errors.projectId ? true : undefined}
+              aria-describedby={errors.projectId ? "dyntube-project-hint dyntube-project-error" : "dyntube-project-hint"}
+              {...register("projectId")}
+            />
+            <p id="dyntube-project-hint" className="text-xs text-muted-foreground">
+              The DynTube project new lesson videos go into. It must belong to this DynTube account.
+            </p>
+            {errors.projectId ? (
+              <p id="dyntube-project-error" role="alert" className="text-sm text-destructive">
+                {errors.projectId.message}
+              </p>
+            ) : null}
+          </div>
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={mutation.isPending} aria-busy={mutation.isPending}>
               {mutation.isPending ? "Checking with DynTube…" : stored ? "Save DynTube" : "Connect DynTube"}

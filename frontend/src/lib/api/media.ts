@@ -13,7 +13,8 @@ import type { PageResponse } from "@/lib/api/courses";
  * uploads; other staff need `MATERIALS`).
  */
 
-export type MediaAssetProvider = "INTERNAL" | "YOUTUBE";
+/** `DYNTUBE`: VIDEO Phase 13 managed streaming (ADR-026). */
+export type MediaAssetProvider = "INTERNAL" | "YOUTUBE" | "DYNTUBE";
 export type MediaPrivacyStatus = "PRIVATE" | "UNLISTED" | "PUBLIC";
 export type MediaProcessingStatus = "CREATED" | "UPLOADING" | "UPLOADED" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
 export type MediaUploadState =
@@ -90,10 +91,23 @@ export interface MediaTab {
   canUpload: boolean;
 }
 
+/** VIDEO Phase 13: the institute's managed streaming host (DynTube) as a Media Library tab. */
+export interface ManagedHostTab {
+  provider: "DYNTUBE";
+  name: string;
+  connected: boolean;
+  /** The caller may upload to it now (platform switch, video host, account set up). */
+  canUpload: boolean;
+  /** Short reason uploading is unavailable when `canUpload` is false; otherwise null. */
+  uploadBlockedReason: string | null;
+}
+
 /** VIDEO Phase 5d: the Media Library tabs; Uploads is always shown, Archived when `hasArchived`. */
 export interface MediaTabs {
   integrations: MediaTab[];
   hasArchived: boolean;
+  /** VIDEO Phase 13: shown while DynTube is the video host or the caller has DynTube videos. */
+  managedHost: ManagedHostTab | null;
 }
 
 export type MediaChannelState = "NOT_CONNECTED" | "CONNECTED" | "EXPIRED" | "DISABLED";
@@ -142,8 +156,10 @@ export interface StartUploadInput {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
-  /** VIDEO Phase 5d: the YouTube integration (tab) to upload to. */
-  integrationId: string;
+  /** VIDEO Phase 5d: the YouTube integration (tab) to upload to; omitted for DynTube. */
+  integrationId?: string;
+  /** VIDEO Phase 13: `DYNTUBE` uploads to the institute's DynTube account instead. */
+  provider?: "DYNTUBE";
 }
 
 export interface MediaListParams {
@@ -169,7 +185,8 @@ export const mediaKeys = {
   all: ["media"] as const,
   list: (params: MediaListParams) => [...mediaKeys.all, "list", params] as const,
   detail: (id: string) => [...mediaKeys.all, "detail", id] as const,
-  limits: (integrationId: string | null) => [...mediaKeys.all, "limits", integrationId ?? "none"] as const,
+  limits: (integrationId: string | null, provider?: "DYNTUBE") =>
+    [...mediaKeys.all, "limits", provider ?? integrationId ?? "none"] as const,
   tabs: () => [...mediaKeys.all, "tabs"] as const,
   lesson: (courseId: string, lessonId: string) => [...mediaKeys.all, "lesson", courseId, lessonId] as const,
 };
@@ -224,16 +241,21 @@ export function useMediaAsset(id: string) {
   });
 }
 
-/** VIDEO Phase 5d: limits and the state of one integration (the selected tab, or a video's own). */
-export function useMediaUploadLimits(integrationId: string | null, enabled = true) {
+/**
+ * VIDEO Phase 5d: limits and the state of one integration (the selected tab,
+ * or a video's own). VIDEO Phase 13: with `provider = "DYNTUBE"` the "channel"
+ * is the institute's DynTube account.
+ */
+export function useMediaUploadLimits(integrationId: string | null, enabled = true, provider?: "DYNTUBE") {
   const { authorizedFetch } = useAuth();
+  const path = provider
+    ? `${BASE}/upload-limits?provider=${provider}`
+    : integrationId
+      ? `${BASE}/upload-limits?integrationId=${encodeURIComponent(integrationId)}`
+      : `${BASE}/upload-limits`;
   return useQuery({
-    queryKey: mediaKeys.limits(integrationId),
-    queryFn: () =>
-      authorizedFetch<MediaUploadLimits>(
-        "tenant",
-        integrationId ? `${BASE}/upload-limits?integrationId=${encodeURIComponent(integrationId)}` : `${BASE}/upload-limits`
-      ),
+    queryKey: mediaKeys.limits(integrationId, provider),
+    queryFn: () => authorizedFetch<MediaUploadLimits>("tenant", path),
     enabled,
   });
 }

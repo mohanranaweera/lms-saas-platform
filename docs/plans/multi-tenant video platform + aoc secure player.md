@@ -863,7 +863,7 @@ test evidence and files changed.
 | 10 | Engines: YouTubeStandard (prod), Hls/Dash (behind flag), FutureProvider stub | — | web engine split | ✔ | — |
 | 11 | Watermark policy + layer, Windows capture affinity, capability reporting | ✔ | ✔ | ✔ | Q-006, Q-012 |
 | 12 | Heartbeat, server watch-time, resume, stale-session cleanup, periodic re-authorization | ✔ | ✔ | ✔ | — |
-| 13 | Managed provider (candidate Bunny Stream) + signed HLS/DASH + NativeMediaProxy | ✔ | ✔ | ✔ | Q-002 + ADR |
+| 13 | Managed provider: **DynTube** (Bunny later) + signed HLS, own hls.js player; NativeMediaProxy → 14 | ✔ | ✔ | ✔ | Q-002 ✔ + ADR-026 |
 | 14 | Security hardening reviews (all §30 areas), dependency review | review | review | review | — |
 | 15 | E2E, multi-tenant, failure, load, upgrade, deployment & monitoring review, metrics registry | ✔ | ✔ | ✔ | devops |
 
@@ -881,7 +881,7 @@ touch and link the approving ADR.
 ## 37. Files / modules expected to change
 
 **Docs:** this plan; `docs/adr/ADR-018-…` (Am. 2); `docs/adr/ADR-008-…` (amendment); new
-`ADR-025-native-secure-player.md`, `ADR-026-video-provider-abstraction.md` (VID-ADR-001/002/006);
+`ADR-025-native-secure-player.md`, a video provider abstraction ADR (VID-ADR-001/002/006; not yet written - next free number, since ADR-026 is managed streaming);
 `.claude/rules/architecture.md` (scoped worker exception); `docs/architecture/*` (video security,
 integrations, deployment, observability); `docs/api/{video-access-management,integrations}.md`.
 
@@ -923,7 +923,7 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 | VID-ADR-004 | 2026-10-04 | Upload via presigned S3 staging + background worker → YouTube resumable | No binary on request threads; server-side validation; bounded memory | Multipart through backend (brief §21); browser direct to YouTube session URI | Scoped architecture.md exception (worker only) | ACCEPTED (owner, B2, 2026-10-04) |
 | VID-ADR-005 | 2026-10-04 | Provider credentials stay in `media_provider_connection` ciphertext (AES-256-GCM+AAD) | Existing reviewed mechanism (ADR-018/019) | External vault/KMS | No new secret store; key rotation = TD-003 | PROPOSED |
 | VID-ADR-006 | 2026-10-04 | Feature flags = typed config properties + tenant config switches until Module D exists | No flag engine; repo pattern | Introduce Unleash/FF4J | No per-plan gating yet | PROPOSED |
-| VID-ADR-007 | 2026-10-04 | YouTube mode: no overlay on the player; watermark band outside it | YouTube RMF | Overlay anyway | Weaker attribution in YouTube mode | PROPOSED (Q-006 legal) |
+| VID-ADR-007 | 2026-10-04 | YouTube mode: no overlay on the player; watermark band outside it | YouTube RMF | Overlay anyway | Weaker attribution in YouTube mode | SUPERSEDED 2026-10-11 by ADR-025 Amendment 4 (owner chose overlay + hidden YouTube chrome, terms risk accepted) |
 | VID-ADR-008 | 2026-10-04 | One generic external launch-code error; detailed reason only in security logs | Avoid oracle for code probing | Brief's three distinct codes | Player shows one message | ACCEPTED (owner, B4, 2026-10-07) |
 | VID-ADR-009 | 2026-10-04 | Player authenticates with an installation keypair (proof-of-possession), never an LMS JWT | Deep-link hijack resistance; no long-lived bearer on disk | Bearer installation token | Pairing step required | ACCEPTED (owner, B4, 2026-10-07) |
 | VID-ADR-010 | 2026-10-04 | `YOUTUBE_CUSTOM` = interfaces + locked-off flag; no resolver code | No authorized arrangement; YouTube terms | Implement extraction | Future work needs ADR + provider authorization | ACCEPTED (brief mandate) |
@@ -934,7 +934,7 @@ lesson-media,student-playback,player-download}.spec.ts`, `e2e/fixtures/*-mocks.t
 | ID | Question | Recommendation | Blocks |
 |---|---|---|---|
 | ~~Q-001~~ | LessonMedia: reuse `Material(VIDEO)` or new `lesson_media` table? | **Resolved 2026-10-06: reuse existing tenant-scoped `Material(VIDEO)` rows** | — |
-| Q-002 | Which managed streaming provider? | Bunny Stream (already integrated), confirm after review | Phase 13 |
+| ~~Q-002~~ | Which managed streaming provider? | **Answered 2026-10-09 (owner): DynTube first, Bunny Stream later on the same core - ADR-026 (Accepted 2026-10-10)** | — |
 | Q-003 | May one YouTube channel be connected to two tenants? | No | Phase 3 |
 | Q-004 | Keep playing already-uploaded videos after disconnect? | Yes, LMS-gated | Phase 3 |
 | Q-005 | Under what authorized provider arrangement could `YOUTUBE_CUSTOM` be activated? | None today; owner/legal | — |
@@ -2513,3 +2513,288 @@ the recording-access rules (recordings are protected content).
   (2 failures in `route-groups.spec.ts` expect "Not yet implemented" placeholders on pages built since -
   stale, unrelated).
 
+### Phase 13 — Managed Streaming (DynTube first) + Self-Hosted interface
+
+**Before (2026-10-09, status → PLANNING; branch `feat/video-managed-streaming`; ADR-026 Accepted 2026-10-10)**
+
+- **Owner decisions (2026-10-09):**
+  - Q-002 → **DynTube first, Bunny later**.
+  - Self-hosted = **interface only**.
+  - **Own HLS player** (hls.js), not DynTube's embed.
+  - AOC Player transport **DIRECT**; NativeMediaProxy moves to Phase 14.
+  - The owner has a DynTube account for live verification.
+- **Objective:** an institute whose video host is DynTube can upload lesson video from the Media
+  Library. The video is processed by DynTube and plays only through short-lived, server-minted,
+  tokenized HLS URLs, in both the web player and the AOC Player. Overlay watermark, capture
+  protection and Phase 12 watch time apply exactly as for platform video.
+- **Phase 13 is split into two steps, each with its own gate:**
+  - **13a — Backend.** Provider, connection keys, upload adapter, status sync, signed-URL
+    playback, heartbeat renewal, flags, migration and tests. Built against a fake DynTube server.
+  - **13b — Frontend + AOC Player.** DynTube key/project form, upload destination, web hls.js
+    player, native `hls` engine with a CSP/allow-list, and E2E tests.
+  - Live DynTube verification (ADR-026 §Verification 1-6) happens between 13a and 13b. Contract
+    corrections land before 13b.
+- **Database impact:** `V81__managed_stream_dyntube.sql`.
+  - Widens `ck_video_asset_provider` to add `DYNTUBE` and the provider-shape CHECK (DynTube rows
+    need `provider_connection_id` and `provider_asset_id` once uploaded, and no
+    `storage_object_key`). Added `NOT VALID`, then validated.
+  - Widens any CHECK on `media_upload_job` that pins the provider.
+  - No new tables. No edits to V1–V80.
+  - The project id lives on the connection as non-secret configuration. The column vs the
+    existing integration settings is decided during implementation; neither holds a secret.
+- **API impact (additive):**
+  - `PUT /api/v1/tenant-admin/integrations/dyntube` gains `tokenSecurityKey` (write-only) and
+    `projectId`. The view gains `hasTokenSecurityKey` and `projectId`.
+  - Media upload create accepts destination `DYNTUBE`.
+  - `POST /api/v1/playback/sessions` (WEB) answers DynTube assets with a descriptor that carries
+    `hls: {manifestUrl, expiresAt}`. WEB heartbeat/progress responses return a renewed
+    `manifestUrl` before expiry.
+  - The native exchange and heartbeat carry the same object.
+  - `docs/api/video-access-management.md`, `docs/api/integrations.md` and
+    `docs/api/aoc-player.md` are updated.
+- **Security impact:**
+  - The token security key is sealed with the API key (AES-256-GCM + AAD) and never returned,
+    logged or audited.
+  - URLs are minted only after the full playability check (enrollment, device, watch time,
+    session ACTIVE), expire within 5 minutes, and stop being renewed on revoke, stop or
+    exhaustion.
+  - Only the fixed DynTube base URLs are called (no SSRF). Provider video keys are validated
+    before use.
+  - The AOC Player accepts `hls` media only for compiled-in DynTube hosts over HTTPS.
+  - Honest limit: if segments aren't token-protected, this is deterrence, not DRM.
+- **Tenant impact:**
+  - Every upload, sync, mint and renew goes through the asset's own tenant connection, loaded by
+    the tenant filter, with the composite `(tenant_id, provider_connection_id)` FK.
+  - No cross-tenant lookup and no webhook.
+  - Cross-tenant negative tests are added on media read, upload create, playback start and
+    heartbeat renew.
+- **Tests required:**
+  - `DynTubeUploadAdapterTest` and `DynTubeTokenSignerTest` against `FakeDynTubeServer`.
+  - Extended `MediaUploadIntegrationTest` (DynTube destination, retry, fatal, auth park).
+  - `MediaStatusSyncService` DynTube cases.
+  - `ManagedStreamPlaybackIntegrationTest`: WEB start, renew, refuse after revoke or
+    exhaustion, cross-tenant 404, flag off.
+  - `PlayerIntegrationTest` DynTube exchange.
+  - `TenantAdminIntegrationsIntegrationTest`: key write-only, project check, audit without
+    values.
+  - Migration check for the widened CHECKs.
+  - 13b: Vitest/Playwright for the key form, upload destination and the hls.js player (mocked
+    manifest); native `cargo test` for the media validator allow-list.
+- **Self-hosted:** stays reserved (`PlaybackMode.SELF_HOSTED`, locked flag); no code. Recorded as
+  ADR-026 §Alternatives.
+- **Out of scope:** Bunny adapter (next phase, ADR-018 amendment), NativeMediaProxy (Phase 14),
+  DRM, webhooks, upload-by-URL, deleting videos at DynTube.
+
+
+**13a — Backend (2026-10-10, status → BUILT; ADR-026 Accepted 2026-10-10)**
+
+- **Live verification (owner's DynTube account, read-only probe, keys never printed):**
+  - Token algorithm confirmed: `expires` is in **milliseconds**.
+  - Bad and expired tokens get 403. A request without a browser `User-Agent` gets an **empty 200**.
+  - Segments are AES-128 with their own CDN `md5`/`expires` signatures, valid for about 12 h.
+  - **The untokenized `/live/videos/{key}.m3u8` still plays.** This is now ADR-026 consequence 1:
+    both DynTube flags stay off in real environments until the project refuses it.
+  - Hosts: `api.dyntube.com` serves the master playlist; `cdn-s*.dyntube.net` serves variants,
+    segments and keys.
+  - Full results are in ADR-026 §Live verification.
+- **Integration module:**
+  - `DynTubeClient`: `GET /projects`, streamed multipart `POST {upload}/videos`, and
+    `GET /videos/{id}`. Fixed base URLs; every id and key is checked against the URL-safe pattern.
+  - `DynTubeTokenSigner`.
+  - `DynTubeStreamService` implements the whole-file upload, status sync and
+    `ManagedStreamPlaybackApi.signHlsUrl`. It always uses the tenant's current ACTIVE DynTube
+    row; a 401 marks that row NEEDS_RECONNECT.
+  - `VideoProviderUploadRouter` (`@Primary`) sends DynTube connections to the new service and
+    YouTube to the unchanged service.
+  - `PUT /integrations/dyntube` adds the write-only `tokenSecurityKey` and `projectId`. The project
+    must be one of the account's own. The project and a "token key configured" flag live in
+    `settings_json`; the key stays in the sealed credentials. The audit entry has no values.
+  - `MediaConnectionApi.findManagedHost`; the same-channel lookup now follows DynTube's current row.
+- **Video module:**
+  - `MediaAssetProvider.DYNTUBE` and its catalog capabilities (own player, signed, adaptive,
+    overlay; no DRM, no resumable upload).
+  - `managed-stream-playback` is unlocked and a new `dyntube-upload` flag is added (both default
+    off; env `VIDEO_MANAGED_STREAM_PLAYBACK_ENABLED` / `VIDEO_DYNTUBE_UPLOAD_ENABLED`).
+  - `POST /media` accepts `provider: DYNTUBE`, gated on: flag, institute switch, DynTube as video
+    host, ACTIVE account, project and token key.
+  - `UploadTransferWorker.transferWhole` streams the staged object in one ranged S3 GET with no
+    buffer and no disk. `architecture.md`'s scoped exception now names this path.
+  - Sync stores the playback key **before** READY.
+  - `PlaybackMediaSigner` (`FILE` | `HLS`) is used by web sessions, the native exchange and
+    heartbeats. Web sessions now sign **before** creating the session, so a refusal leaves no
+    orphan holding the concurrency slot.
+  - Lesson playability refuses DynTube while managed streaming is off. `mediaFormat` is added to
+    the web session response and the player descriptor.
+- **Migration:** `V81__managed_stream_dyntube.sql`.
+  - `ck_video_asset_provider` gains `DYNTUBE` (added NOT VALID, then validated).
+  - New `video_asset.provider_playback_key`, with a CHECK for the URL-safe charset; READY DynTube
+    rows require it and other providers must leave it null.
+- **Tests:**
+  - New: `DynTubeTokenSignerTest` 5/5 (vector computed independently with Node), and
+    `DynTubeUploadIntegrationTest` 11/11 covering keys (write-only, project check, audit), the
+    upload → READY flow with the key, processing failure, refusal gates, 415/503/401, cross-tenant
+    upload and playback, signed HLS (token recomputed in the test), flag-off and needing-reconnect
+    with no session created, and the teacher preview.
+  - `PlayerIntegrationTest` 20/20, including the new DynTube exchange + heartbeat renewal +
+    kill-switch test. `VideoProviderCatalogTest` 6/6 (managed streaming unlocked).
+  - The fake DynTube server reproduces the live-verified shapes.
+  - Regression: `MediaUploadIntegrationTest` 20/20, `VideoPlaybackSessionIntegrationTest` 19/19,
+    `PlaybackAuthorizationIntegrationTest` 12/12, `MediaLibrary*` 22/22,
+    `TenantAdminIntegrationsIntegrationTest` 7/7.
+  - Full `mvnw verify` (2026-10-10): **2464 tests, 0 failures/errors/skips, BUILD SUCCESS**.
+  - After the full run, two review fixes landed. A failed DynTube upload can now be retried on
+    the institute's DynTube account (it used to look up a YouTube integration and answer 404).
+    Renaming a DynTube video stays in the LMS, so a DynTube account problem never blocks it.
+    Re-run: `DynTubeUploadIntegrationTest` 12/12 (new edit test), `MediaUploadIntegrationTest`
+    20/20, `MediaLibraryManagementIntegrationTest` 12/12.
+- **Not yet:** 13b covers the Tenant Admin DynTube form (token key + project picker), the upload
+  destination in the Media Library, the web hls.js player, and the native `hls` engine with the
+  CSP and allow-list for `api.dyntube.com` + `*.dyntube.net`.
+
+**13b — Frontend + AOC Player (2026-10-10, status → BUILT)**
+
+- **API mismatch found and fixed additively (backend, reported here):** the Media Library had no
+  way to show or upload to DynTube.
+  - `GET /media/channels` gains `managedHost`.
+  - `GET /media/upload-limits` accepts `provider=DYNTUBE`.
+  - Contract in `docs/api/video-access-management.md`. Covered by `DynTubeUploadIntegrationTest`
+    (now 13/13, including the tab/limits test).
+- **Web (`frontend/`):**
+  - **Tenant Admin → Integrations → DynTube:** the write-only "Token security key" (shown as
+    "Saved (hidden)"), the "Upload project ID" (server field errors land on it), a note to make the
+    DynTube project refuse unsigned playback and keep "Extra Security" off, and a summary of the
+    key and project.
+  - **Media Library:** a DynTube tab (default when present) listing `provider=DYNTUBE`.
+    `MediaUploadPanel` takes an `UploadDestination` (YouTube integration | DynTube). DynTube
+    uploads send `provider: DYNTUBE` with no channel or privacy, and the blocked reasons and links
+    point to Integrations.
+  - **Lesson player:** `SecureVideoPlayer` plays `mediaFormat: HLS` sessions with hls.js (loaded
+    on demand, `components/courses/hls-source.ts`), with Safari native HLS as the fallback. The
+    3-minute session refresh renews the token but keeps a running stream. A fatal stream error
+    goes through the existing bounded re-issue. A generation counter drops superseded attaches,
+    and teardown always destroys hls.js.
+- **AOC Player (`native-player/`):**
+  - `Media::Hls` with `checked_hls_url` (HTTPS `api.dyntube.com`, the tokens path, the key
+    charset, no credentials, port or fragment). A `DYNTUBE` descriptor without `mediaFormat: HLS`
+    is refused.
+  - `engines/hls.ts` (hls.js without a worker) has the same controls, seek deterrent, overlay
+    watermark and playback reports as the file engine. It reloads from a fresher heartbeat URL
+    only after a fatal error.
+  - CSP: `connect-src` adds `https://api.dyntube.com` and `https://*.dyntube.net`; `media-src`
+    adds `blob:`.
+- **Tests:**
+  - Playwright: `media-library` + `tenant-admin-integrations` + `secure-video-player` 52/52
+    (5 new: the DynTube tab and upload body, the not-set-up reason, the write-only token key with
+    the project field error, and HLS loaded via hls.js as a `blob:` source). Regression of 8 video
+    and material specs: 79/79.
+  - `tsc` clean; ESLint 0 errors (2 pre-existing warnings).
+  - Native: `cargo test` 59/59 (3 new HLS tests), `cargo fmt`, and clippy `-D warnings` with and
+    without `--features release` all clean; `npm run build` passes (bundle 606 kB with hls.js).
+  - Backend regression: 114/114 across the DynTube, player, upload, library, integrations and
+    playback suites.
+- **Still to do (owner):**
+  1. Make the DynTube project refuse unsigned playback, then re-run the probe.
+  2. Do a live run: Integrations (keys + project) → video host DynTube → upload → wait for READY →
+     attach to a lesson → play in the browser and in the AOC Player (`npm run build:local` in
+     `native-player/`). Both flags must be on locally: `VIDEO_DYNTUBE_UPLOAD_ENABLED=true` and
+     `VIDEO_MANAGED_STREAM_PLAYBACK_ENABLED=true`.
+  3. Check the upload size limit at that first real upload.
+
+**13c — DynTube player via an LMS bridge page (2026-10-11, status → BUILT for the AOC Player; ADR-026 Amendment 1, owner-approved)**
+
+- **Built (2026-10-11), owner chose to build before the whitelist gate (see ADR-026):**
+  - Backend: `V83__video_asset_provider_embed_key.sql` (not V82, which was taken), `channelKey`
+    parsed at status sync, a one-time backfill of READY DynTube rows, `PlaybackMediaSigner`
+    DYNTUBE → `EMBED` (needs the flag, an ACTIVE account, the embed key and
+    `app.player.dyntube-bridge-url`), `embed {provider, key, bridgeUrl}` on the web session and
+    the native descriptor, and DynTube lessons launch only in the AOC Player
+    (`Playable.playsOnlyInAocPlayer`).
+  - Bridge: a Next route handler, `src/app/embed/dyntube-bridge.html/route.ts` (not a static
+    `public/` file), served only when Host = `EMBED_HOST` (dev `embed.lms.test:3000`), with a
+    nonce CSP and `frame-ancestors` from `EMBED_PARENT_ORIGINS`.
+  - AOC Player: `Media::Embed` (compiled-in `AOC_EMBED_BRIDGE_URL`, the server's `bridgeUrl` is
+    ignored), `engines/embed.ts`, `frame-src` adds the dev embed origin, and the overlay
+    watermark over the frame.
+  - Not built: the web `SecureVideoPlayer` embed (it shows "plays in the AOC Player"), and the
+    "token key no longer required for uploads" relaxation.
+
+- **Why:** the live run showed DynTube serves AES keys only to its own player on whitelisted
+  domains (Video Encryption / Extra Security), so our hls.js players get 400 on the key. The owner
+  chose to keep DynTube's protections on and embed DynTube's player instead.
+- **Goal:** DynTube lesson video plays in DynTube's own player inside our web lesson player and the
+  AOC Player. Phase 12 watch time, resume, seek deterrent, overlay watermark, capture protection
+  and server-side stop keep working.
+- **Design:**
+  - A static bridge page on a dedicated embed origin runs DynTube's JS embed and relays the
+    player's state to its parent over origin-checked postMessage.
+  - Each tenant whitelists only the embed origin at DynTube.
+  - Full design in ADR-026 Amendment 1.
+- **Order (gated):**
+  1. Owner verification (Amendment 1 §Owner verification 1-3).
+  2. Backend.
+  3. Bridge page + web player.
+  4. AOC Player.
+  5. Reviews + docs.
+- **Files affected:**
+  - Backend:
+    - `V82__video_asset_provider_embed_key.sql`
+    - `VideoAsset` (`providerEmbedKey`)
+    - `DynTubeClient` (parse `channelKey` from upload and `GET /videos/{id}`)
+    - `DynTubeStreamService` and `VideoProviderUploadApi` (`Complete` / `ProviderVideoStatus` carry
+      the embed key)
+    - `MediaUploadStore` / status sync (store the key, backfill existing rows)
+    - `PlaybackMediaSigner` (DYNTUBE → `EMBED`)
+    - `PlaybackDescriptor`, `PlaybackSessionView` and the web DTOs (`embed`)
+    - `VideoProviderCatalog` (DynTube: provider player, no custom player)
+    - `MediaAssetService.uploadBlockedReason` and `MediaUploadService.requireUsableManagedHost` (the
+      token key no longer required)
+    - video config properties (`video.embed-origin`, `video.embed-bridge-path`)
+  - Frontend:
+    - `public/embed/dyntube-bridge.html` + `dyntube-bridge.js`, served on the embed host only
+      (a `next.config` header with the bridge CSP, and `frame-ancestors`)
+    - `components/courses/embed-source.ts` (the parent side of the protocol)
+    - `SecureVideoPlayer` (EMBED branch)
+    - `lib/api/videos.ts` types
+  - Native:
+    - `media.rs` (`Media::Embed` + the compiled-in bridge URL)
+    - `engines/embed.ts`, `engines/index.ts`, `types.ts`
+    - `tauri.conf.json` (`frame-src` adds the embed origin)
+  - Docs:
+    - `docs/api/video-access-management.md` and `docs/api/aoc-player.md` (`mediaFormat: EMBED`)
+    - The integrations note: whitelist the embed origin; Extra Security may stay on
+    - This plan and ADR-026.
+- **Database impact:**
+  - One new migration, V82, adding nullable `video_asset.provider_embed_key VARCHAR(64)`.
+  - A CHECK enforces the URL-safe charset, and `provider = 'DYNTUBE' OR provider_embed_key IS NULL`.
+  - No backfill SQL: status sync fills existing DynTube rows.
+  - No edits to V1–V81.
+- **API impact (additive):**
+  - Web session and native descriptor: `mediaFormat` gains `EMBED`, with
+    `embed: {provider, key, bridgeUrl}`. For EMBED, `signedUrl` is null.
+  - `managedHost.uploadBlockedReason` no longer names the token key.
+  - `PUT /integrations/dyntube`: `tokenSecurityKey` stays optional and accepted (unchanged shape).
+- **Security impact:**
+  - DynTube protections stay on. Its third-party script is confined to the embed origin: no LMS
+    session, and no Tauri IPC in the AOC Player.
+  - The bridge accepts commands only from allowed parent origins. `frame-ancestors` limits who can
+    frame it.
+  - The AOC Player frames only the compiled-in bridge URL.
+  - The key is issued only after the full playability check.
+  - Honest limit: the embed key isn't per-session (ADR-026 Amendment 1).
+- **Tenant impact:**
+  - The key is read from the tenant-filtered asset row; no cross-tenant path.
+  - Cross-tenant 404 tests for the EMBED descriptor (web session, native exchange, heartbeat).
+- **Tests required:**
+  - Backend: `DynTubeUploadIntegrationTest` (embed key stored at upload and at sync; EMBED
+    descriptor; no key → not playable; cross-tenant 404; uploads without a token key);
+    `PlayerIntegrationTest` (DynTube exchange/heartbeat EMBED); `VideoProviderCatalogTest`; and
+    the V82 migration CHECKs.
+  - Frontend Playwright: a mocked bridge iframe drives `state` messages, then progress is posted;
+    messages from a wrong origin are ignored; STOP tears down the iframe; the watermark is drawn
+    over the iframe; the bridge refuses a non-allowed parent.
+  - Native: `cargo test` for `Media::Embed` (key charset, bridge URL compiled in, no server URL
+    framed); `tsc`; `npm run build:local`; a manual AOC run.
+- **Owner prerequisites:**
+  - Add `127.0.0.1 embed.lms.test` to the hosts file.
+  - Whitelist `embed.lms.test` (dev) in the DynTube project.
+  - Share a redacted `GET /videos/{id}` response showing `channelKey`.

@@ -88,14 +88,10 @@ pub fn run() {
                     .min_inner_size(640.0, 400.0)
                     .center()
                     .on_navigation(is_bundled_ui)
-                    // No pop-up windows. YouTube's own links ("Watch on YouTube")
-                    // open in the system browser instead.
-                    .on_new_window(|url, _features| {
-                        if media::is_youtube_page(&url) {
-                            open_in_browser(&url);
-                        }
-                        NewWindowResponse::Deny
-                    })
+                    // No pop-up windows, and nothing opens outside the player: a
+                    // YouTube link ("Watch on YouTube") must not reveal where a
+                    // lesson is hosted (ADR-025 Amendment 3).
+                    .on_new_window(|_url, _features| NewWindowResponse::Deny)
                     .build()?;
             let player = Player::with_capture_controller(
                 api,
@@ -177,23 +173,6 @@ fn forwarded_deep_links(args: &[String]) -> impl Iterator<Item = &str> {
     args.iter()
         .map(String::as_str)
         .filter(|arg| arg.starts_with("aocplayer://"))
-}
-
-/// Hands an already-validated https YouTube page to the default browser.
-fn open_in_browser(url: &url::Url) {
-    #[cfg(windows)]
-    {
-        use windows::Win32::UI::Shell::ShellExecuteW;
-        use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-        use windows::core::{HSTRING, w};
-        let target = HSTRING::from(url.as_str());
-        // SAFETY: plain Win32 call with owned, NUL-terminated wide strings.
-        unsafe {
-            ShellExecuteW(None, w!("open"), &target, None, None, SW_SHOWNORMAL);
-        }
-    }
-    #[cfg(not(windows))]
-    let _ = url;
 }
 
 /// The window may only show the bundled UI (ADR-025 §1 navigation allow-list).

@@ -14,10 +14,14 @@ import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.MediaConnectionApi;
+import com.lms.integrationmanagement.api.MediaConnectionApi.ManagedHostSummary;
 import com.lms.integrationmanagement.api.MediaConnectionApi.VideoIntegrationSummary;
+import com.lms.integrationmanagement.api.MediaConnectionStatus;
+import com.lms.integrationmanagement.api.MediaProvider;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi.UploadFailure;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi.UploadMetadata;
+import com.lms.videoaccessmanagement.config.VideoFeatureFlags;
 import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
 import com.lms.videoaccessmanagement.domain.MediaPrivacyStatus;
 import com.lms.videoaccessmanagement.domain.MediaUploadJob;
@@ -29,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -89,10 +94,12 @@ public class MediaAssetService {
 
 	private final VideoProviderUploadApi providerUploads;
 
+	private final VideoFeatureFlags featureFlags;
+
 	public MediaAssetService(VideoAssetRepository videoAssetRepository, MediaUploadJobRepository jobRepository,
 			PermissionCheckService permissionCheckService, MediaAssetViews mediaAssetViews,
 			MediaAssetLifecycleService lifecycle, MaterialLookupApi materialLookupApi, MediaConnectionApi connections,
-			VideoProviderUploadApi providerUploads) {
+			VideoProviderUploadApi providerUploads, VideoFeatureFlags featureFlags) {
 		this.videoAssetRepository = videoAssetRepository;
 		this.jobRepository = jobRepository;
 		this.permissionCheckService = permissionCheckService;
@@ -101,6 +108,7 @@ public class MediaAssetService {
 		this.materialLookupApi = materialLookupApi;
 		this.connections = connections;
 		this.providerUploads = providerUploads;
+		this.featureFlags = featureFlags;
 	}
 
 	@Transactional(readOnly = true)
@@ -168,7 +176,56 @@ public class MediaAssetService {
 			tabs.add(new MediaTab(id, integration.name(), integration.connectionId() != null,
 					allowed && integration.usable()));
 		}
-		return new MediaTabs(tabs, hasArchived);
+		return new MediaTabs(tabs, hasArchived, managedHostTab(visible, teacher || staffCanUpload));
+	}
+
+	/**
+	 * VIDEO Phase 13 (ADR-026): the DynTube tab - shown while DynTube is the
+	 * institute's video host, or while the caller can see DynTube videos (so
+	 * they stay manageable after the host changes). Uploading needs the
+	 * platform switch and a fully set-up, ACTIVE account.
+	 */
+	private ManagedHostTab managedHostTab(Specification<VideoAsset> visible, boolean mayUpload) {
+		Optional<ManagedHostSummary> host = connections.findManagedHost(MediaProvider.DYNTUBE);
+		boolean selected = host.map(ManagedHostSummary::selectedAsVideoHost).orElse(false);
+		boolean hasVideos = videoAssetRepository.exists(
+				visible.and((root, q, cb) -> cb.equal(root.get("provider"), MediaAssetProvider.DYNTUBE)));
+		if (!selected && !hasVideos) {
+			return null;
+		}
+		boolean connected = host.map(h -> h.status() == MediaConnectionStatus.ACTIVE).orElse(false);
+		String blockedReason = uploadBlockedReason(host, mayUpload, selected, connected);
+		return new ManagedHostTab(MediaAssetProvider.DYNTUBE, "DynTube", connected, blockedReason == null,
+				blockedReason);
+	}
+
+	/**
+	 * Why the caller can't upload to DynTube now, or {@code null} when they
+	 * can. The first unmet condition wins, in the order a Tenant Admin would
+	 * fix them; no account detail beyond what the Integrations page shows.
+	 */
+	private String uploadBlockedReason(Optional<ManagedHostSummary> host, boolean mayUpload, boolean selected,
+			boolean connected) {
+		if (!mayUpload) {
+			return "You don't have permission to upload videos.";
+		}
+		if (!featureFlags.isDyntubeUpload()) {
+			return "Uploads to DynTube are switched off on this platform.";
+		}
+		if (!selected) {
+			return "DynTube isn't your institute's video host. An institute admin can choose it in Settings → Integrations.";
+		}
+		if (!connected) {
+			return "The DynTube account needs attention. An institute admin can update it in Settings → Integrations.";
+		}
+		ManagedHostSummary summary = host.orElseThrow();
+		if (!summary.projectConfigured()) {
+			return "No DynTube project is chosen yet. An institute admin can choose one in Settings → Integrations.";
+		}
+		if (!summary.tokenKeyConfigured()) {
+			return "The DynTube token security key is missing. An institute admin can add it in Settings → Integrations.";
+		}
+		return null;
 	}
 
 	private List<UUID> deletedIntegrationIds() {
@@ -201,9 +258,11 @@ public class MediaAssetService {
 		if (asset.getProvider() != MediaAssetProvider.INTERNAL) {
 			if (asset.getStatus() == VideoAssetStatus.UPLOADING || asset.getStatus() == VideoAssetStatus.UPLOADED) {
 				throw MediaUploadException
-					.stateConflict("This video is being sent to YouTube. Edit it once the upload has finished.");
+					.stateConflict("This video is still being uploaded. Edit it once the upload has finished.");
 			}
-			if (asset.getProviderAssetId() != null) {
+			// YouTube edits sync to the channel (ADR-018 Amendment 3); DynTube edits stay in the
+			// LMS (ADR-026 Decision 5), so a DynTube account problem never blocks renaming a video.
+			if (asset.getProvider() == MediaAssetProvider.YOUTUBE && asset.getProviderAssetId() != null) {
 				pushToProvider(asset, merged);
 			}
 		}
@@ -371,7 +430,18 @@ public class MediaAssetService {
 	 * VIDEO Phase 5d: the Media Library tabs. The Uploads tab (platform storage)
 	 * is always shown; {@code hasArchived} adds the Archived tab.
 	 */
-	public record MediaTabs(List<MediaTab> integrations, boolean hasArchived) {
+	public record MediaTabs(List<MediaTab> integrations, boolean hasArchived, ManagedHostTab managedHost) {
+
+	}
+
+	/**
+	 * VIDEO Phase 13: the managed streaming host's tab (DynTube), or {@code null}.
+	 *
+	 * @param canUpload the caller may upload to it now
+	 * @param uploadBlockedReason why not, when {@code canUpload} is false; otherwise {@code null}
+	 */
+	public record ManagedHostTab(MediaAssetProvider provider, String name, boolean connected, boolean canUpload,
+			String uploadBlockedReason) {
 
 	}
 

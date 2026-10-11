@@ -46,6 +46,29 @@ public interface MediaConnectionApi {
 	 */
 	Optional<UUID> currentConnectionForSameChannel(UUID connectionId);
 
+	/**
+	 * VIDEO Phase 13 (ADR-026): the institute's managed streaming account
+	 * (DynTube today) - its current (non-DISCONNECTED) connection, if any.
+	 * Empty for other providers.
+	 */
+	Optional<ManagedHostSummary> findManagedHost(MediaProvider provider);
+
+	/**
+	 * @param selectedAsVideoHost the institute chose this provider as its video host
+	 * @param projectConfigured a target project is set
+	 * @param tokenKeyConfigured the token security key is stored (signed playback possible)
+	 */
+	record ManagedHostSummary(UUID connectionId, MediaConnectionStatus status, boolean selectedAsVideoHost,
+			boolean projectConfigured, boolean tokenKeyConfigured) {
+
+		/** Whether uploads and playback may use this account now. */
+		public boolean usable() {
+			return status == MediaConnectionStatus.ACTIVE && selectedAsVideoHost && projectConfigured
+					&& tokenKeyConfigured;
+		}
+
+	}
+
 	/** @param accountType Zoom {@code BASIC}/{@code LICENSED}; {@code null} for other providers */
 	record TeacherConnectionSummary(UUID connectionId, MediaConnectionStatus status, String accountType) {
 

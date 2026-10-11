@@ -105,8 +105,56 @@ test.describe("Tenant Admin integrations", () => {
     await page.getByLabel("DynTube API key").fill("test-dyntube-key");
     await page.getByRole("button", { name: "Connect DynTube" }).click();
     await expect(page.getByText("DynTube account saved.")).toBeVisible();
-    expect(sentBody).toEqual({ apiKey: "test-dyntube-key" });
+    // VIDEO Phase 13: blank token key / project are sent as null ("keep what is saved").
+    expect(sentBody).toEqual({ apiKey: "test-dyntube-key", tokenSecurityKey: null, projectId: null });
     await expect(page.getByLabel("DynTube API key")).toHaveValue("");
+  });
+
+  test("the DynTube token key is write-only and a project the account doesn't own is shown on its field", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    const dyntube = connection({
+      id: "conn-dyn",
+      provider: "DYNTUBE",
+      accountLabel: "DynTube",
+      settings: { projectId: "RyfsGebl7kKs6jyZeNmcQ", tokenSecurityKeyConfigured: true },
+    });
+    await mockOverview(page, { dyntube, videoHost: "DYNTUBE" });
+    const sent: unknown[] = [];
+    await page.route("**/v1/tenant-admin/integrations/dyntube", async (route) => {
+      const body = route.request().postDataJSON() as { projectId: string | null };
+      sent.push(body);
+      if (body.projectId === "projNotMine000001") {
+        await fulfillJson(
+          route,
+          400,
+          apiError("VALIDATION_ERROR", "Invalid", [
+            { field: "projectId", message: "is not a project of this DynTube account" },
+          ])
+        );
+        return;
+      }
+      await fulfillJson(route, 200, apiSuccess(dyntube));
+    });
+
+    await page.goto("/tenant-admin/settings/integrations");
+    const region = page.getByRole("region", { name: "DynTube" });
+    await expect(region.getByText("Saved (hidden)")).toHaveCount(2);
+    await expect(region.getByLabel("Token security key")).toHaveValue("");
+    await expect(region.getByLabel("Upload project ID")).toHaveValue("RyfsGebl7kKs6jyZeNmcQ");
+
+    await region.getByLabel("Upload project ID").fill("projNotMine000001");
+    await region.getByRole("button", { name: "Save DynTube" }).click();
+    await expect(region.getByText("is not a project of this DynTube account")).toBeVisible();
+
+    await region.getByLabel("Token security key").fill("new-token-key");
+    await region.getByLabel("Upload project ID").fill("RyfsGebl7kKs6jyZeNmcQ");
+    await region.getByRole("button", { name: "Save DynTube" }).click();
+    await expect(region.getByText("DynTube account saved.")).toBeVisible();
+    expect(sent.at(-1)).toEqual({ apiKey: null, tokenSecurityKey: "new-token-key", projectId: "RyfsGebl7kKs6jyZeNmcQ" });
+    await expect(region.getByLabel("Token security key")).toHaveValue("");
+    await expect(page.getByText("new-token-key")).toHaveCount(0);
   });
 
   test("Bunny.net needs only the account API key", async ({ page }) => {

@@ -142,3 +142,61 @@ test.describe("secure video player — policy violation heartbeat", () => {
     await expect(page.locator("video")).toBeVisible();
   });
 });
+
+test.describe("secure video player — DynTube HLS (VIDEO Phase 13)", () => {
+  const PLAYLIST = "https://api.dyntube.test/v1/live/videos/tokens/dtKey000001.m3u8?token=signed&expires=1";
+
+  test("an HLS session loads its signed playlist through hls.js, not as a file URL", async ({ page }) => {
+    await openVideoMaterial(page);
+    await setupVideoMocks(page, { playbackSession: { mediaFormat: "HLS", signedUrl: PLAYLIST } });
+    const playlistRequests: string[] = [];
+    await page.route("https://api.dyntube.test/**", async (route) => {
+      playlistRequests.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        headers: { "Content-Type": "application/vnd.apple.mpegurl", "Access-Control-Allow-Origin": "*" },
+        body: "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXT-X-ENDLIST\n",
+      });
+    });
+
+    await page.goto(studentMaterialsUrl());
+    await page.getByRole("button", { name: "Open video" }).click();
+
+    await expect.poll(() => playlistRequests.length).toBeGreaterThan(0);
+    expect(playlistRequests[0]).toBe(PLAYLIST);
+    // hls.js feeds the element through Media Source Extensions: its src is a blob URL, never the playlist.
+    await expect.poll(() => page.locator("video").evaluate((el: HTMLVideoElement) => el.src)).toMatch(/^blob:/);
+    await expect(page.getByText("student-1", { exact: false })).toBeVisible();
+  });
+
+  test("a decryption key the host refuses ends in a clear message instead of a retry loop", async ({ page }) => {
+    await openVideoMaterial(page);
+    await setupVideoMocks(page, { playbackSession: { mediaFormat: "HLS", signedUrl: PLAYLIST } });
+    const cors = { "Access-Control-Allow-Origin": "*" };
+    await page.route("https://api.dyntube.test/**", async (route) => {
+      const url = route.request().url();
+      if (url.includes("/hls-key/")) {
+        await route.fulfill({ status: 400, headers: { ...cors, "Content-Type": "application/problem+json" }, body: "{}" });
+      } else if (url.includes(".m3u8")) {
+        await route.fulfill({
+          status: 200,
+          headers: { ...cors, "Content-Type": "application/vnd.apple.mpegurl" },
+          body:
+            "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:6\n" +
+            '#EXT-X-KEY:METHOD=AES-128,URI="https://api.dyntube.test/v1/live/videos/hls-key/k/dtKey000001"\n' +
+            "#EXTINF:6,\nhttps://api.dyntube.test/seg0.ts\n#EXT-X-ENDLIST\n",
+        });
+      } else {
+        await route.fulfill({ status: 200, headers: { ...cors, "Content-Type": "video/MP2T" }, body: "" });
+      }
+    });
+
+    await page.goto(studentMaterialsUrl());
+    await page.getByRole("button", { name: "Open video" }).click();
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: "The video host refused to unlock this video" })
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+});

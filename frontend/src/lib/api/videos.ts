@@ -75,6 +75,15 @@ export interface PlaybackSessionResponse {
   watermarkText: string | null;
   allowSeeking: boolean;
   allowDownload: boolean;
+  /**
+   * VIDEO Phase 13: how to load `signedUrl` - `FILE` (one progressive file,
+   * platform storage) or `HLS` (a tokenized DynTube playlist, played with
+   * hls.js). Absent from older backends: treat as `FILE`. `EMBED` (Phase 13c,
+   * ADR-026 Amendment 1): DynTube's own player through the bridge page; no
+   * `signedUrl`. The web player doesn't embed it yet - it plays in the AOC Player.
+   */
+  mediaFormat?: "FILE" | "HLS" | "EMBED";
+  embed?: { provider: string; key: string; bridgeUrl: string } | null;
 }
 
 /** Mirrors `PlaybackProgressRequest`. */

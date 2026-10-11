@@ -1,3 +1,4 @@
+import "./harden";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { createEngine, type Engine, type Media, type PlaybackReport, type PlaybackState } from "./engines";
@@ -102,7 +103,9 @@ function stopWatermark(): void {
 
 function startWatermark(policy: WatermarkPolicy, media: Media): void {
   stopWatermark();
-  if (!policy.enabled || policy.placement !== "OVERLAY" || media.engine !== "file" || !policy.text) return;
+  if (!policy.enabled || policy.placement !== "OVERLAY" || !policy.text) return;
+  // YouTube since ADR-025 Amendment 4; DynTube's embed since ADR-026 Amendment 1.
+  if (media.engine === "unsupported") return;
   const mark = document.createElement("span");
   mark.className = "stage-watermark";
   mark.textContent = policy.text;

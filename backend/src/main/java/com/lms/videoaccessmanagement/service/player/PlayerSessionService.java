@@ -185,7 +185,7 @@ public class PlayerSessionService {
 					session.getVideoAssetId(), session.getId(), installation.getId(), session.getPlaybackJti(), now,
 					expiresAt);
 			String mediaUrl = playable.isYouTube() ? null
-					: nativeLaunchService.signInternalMedia(session.getVideoAssetId()).url();
+					: nativeLaunchService.signMedia(session.getVideoAssetId()).url();
 			return new HeartbeatResult("CONTINUE", null, refreshed, expiresAt, interval, mediaUrl,
 					accounting.acceptedPositionSeconds(), accounting.remainingWatchSeconds());
 		}

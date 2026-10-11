@@ -7,8 +7,18 @@ import { z } from "zod";
  * in the form and re-enforced by the backend.
  */
 
+/**
+ * VIDEO Phase 13 (ADR-026): the token security key signs playback links
+ * (write-only, blank keeps the saved one); the project is where uploads go.
+ */
 export const dynTubeSchema = z.object({
   apiKey: z.string().max(512, "API key must be 512 characters or fewer."),
+  tokenSecurityKey: z.string().max(512, "Token security key must be 512 characters or fewer."),
+  projectId: z
+    .string()
+    .trim()
+    .max(64, "Project ID must be 64 characters or fewer.")
+    .refine((value) => value === "" || /^[A-Za-z0-9_-]{6,64}$/.test(value), "Enter the project ID shown in DynTube."),
 });
 
 export type DynTubeFormValues = z.infer<typeof dynTubeSchema>;

@@ -191,6 +191,23 @@ above), then in order:
    playback token (`PlaybackTokenService.TOKEN_TTL`), and mints a short-lived signed
    storage URL from `ObjectStorageApi` with the same TTL.
 
+**VIDEO Phase 13 (ADR-026): DynTube videos** use this same endpoint. The signed URL is a
+tokenized HLS master playlist (`mediaFormat: "HLS"`), computed locally from the institute's
+stored token security key (DynTube is never called on the play path), with the same 3-minute
+expiry. The URL is signed **before** the session is created: if it can't be signed
+(`video.features.managed-stream-playback` off, or the DynTube account is not ACTIVE / has no
+token key), the request fails `409` and no session, view count or concurrency slot is used.
+YouTube assets still answer `409` here (they play through `POST /api/v1/playback/sessions`).
+
+**VIDEO Phase 13c (ADR-026 Amendment 1): DynTube now answers `mediaFormat: "EMBED"`**, because
+DynTube serves its AES keys only to its own player. `signedUrl` is `null` and
+`embed: {provider: "DYNTUBE", key, bridgeUrl}` names DynTube's JS-embed key (`channelKey`, stored
+at status sync) and the bridge page (`app.player.dyntube-bridge-url`). It still needs
+`video.features.managed-stream-playback` and an ACTIVE DynTube account, but no token key; a
+video whose embed key hasn't been synced yet answers `409`. Students reach DynTube lessons
+through `POST /api/v1/playback/sessions`, which launches them only in the AOC Player; the web
+player shows "plays in the AOC Player" for an `EMBED` session (e.g. a teacher preview).
+
 **Success — `201`** (`ApiResponse<PlaybackSessionResponse>`):
 
 ```jsonc
@@ -204,7 +221,9 @@ above), then in order:
   "allowDownload": false,
   "heartbeatIntervalSeconds": 20,                 // null for Teacher preview
   "resumePositionSeconds": 0,                     // null for Teacher preview
-  "remainingWatchSeconds": null                  // null when unlimited or Teacher preview
+  "remainingWatchSeconds": null,                 // null when unlimited or Teacher preview
+  "mediaFormat": "FILE",                          // FILE (platform storage) | HLS | EMBED (DynTube, Phase 13c)
+  "embed": null                                   // EMBED only: {provider, key, bridgeUrl}
 }
 ```
 
@@ -507,6 +526,23 @@ For whoever may upload (Student → `403`):
 Since VIDEO Phase 5b, `upload-limits` also returns `canUpload` (false for a teacher who is not on
 the institute channel's allowed-teachers list) and `notAllowedReason`.
 
+Since VIDEO Phase 13 (ADR-026; additive, raised as an API mismatch during 13b frontend work):
+- `GET /api/v1/media/channels` adds `"managedHost": { "provider": "DYNTUBE", "name": "DynTube",
+  "connected": bool, "canUpload": bool } | null`. It is present while DynTube is the institute's
+  video host, or while the caller can see DynTube videos (so they stay manageable after the host
+  changes). `canUpload` requires all of: an uploader role, DynTube as the video host,
+  `video.features.dyntube-upload`, and an ACTIVE account with a project and token key.
+  Additive: `"uploadBlockedReason": string | null` - when `canUpload` is false, one short
+  sentence naming the first unmet condition (permission, platform switch, video host, account
+  status, project, token key); `null` when uploading is possible. The Media Library shows it in
+  place of the Upload button.
+- `GET /api/v1/media?provider=DYNTUBE` lists the DynTube tab.
+- `GET /api/v1/media/upload-limits?provider=DYNTUBE` returns the same shape. `channel` reflects
+  the DynTube account: `NOT_CONNECTED` (none, not the video host, or project/token key missing),
+  `CONNECTED`, or `EXPIRED` (needs reconnecting). `uploadsDisabledBy = PLATFORM` means the
+  `dyntube-upload` flag is off. `editingEnabled` is always true, because DynTube edits stay in the
+  LMS.
+
 Since VIDEO Phase 5d (named YouTube integrations - Media Library tabs):
 - `GET /api/v1/media/channels` → `{ "integrations": [ { "integrationId", "name", "connected",
   "canUpload" } ], "hasArchived": bool }` - the tabs the caller sees. Staff with `MATERIALS` VIEW:
@@ -607,13 +643,38 @@ Video bytes never pass through a request thread.
 | request fields | `400 VALIDATION_ERROR` (all field errors at once) |
 | daily budget (`tenant_video_configuration.daily_upload_limit`, default 20 per Pacific day, Q-014) | `429 UPLOAD_QUOTA_EXCEEDED` |
 
+### DynTube destination — VIDEO Phase 13 (ADR-026)
+
+`POST /media` with `"provider": "DYNTUBE"` (no `integrationId`) uploads into the institute's
+DynTube account instead of a YouTube integration. Same roles, validation, staging, `complete`,
+cancel and daily budget. Different gates:
+
+| Check | Failure |
+|---|---|
+| platform flag `video.features.dyntube-upload` (`VIDEO_DYNTUBE_UPLOAD_ENABLED`, default off) | `409 VIDEO_UPLOADS_DISABLED` |
+| tenant `uploadsEnabled` | `409 VIDEO_UPLOADS_DISABLED` |
+| a DynTube account, chosen as the institute's `videoHost` | `409 VIDEO_PROVIDER_NOT_CONNECTED` |
+| the account is ACTIVE | `409 VIDEO_PROVIDER_AUTH_EXPIRED` |
+| a project and a token security key are set | `409 VIDEO_PROVIDER_NOT_CONNECTED` |
+
+DynTube has no resumable upload: the worker streams the staged object to DynTube as **one**
+request (no buffering, no disk) and a failure retries the whole file. Status sync polls
+`GET /videos/{id}` (at most 10 videos per pass; DynTube's API is rate-limited). The asset becomes
+`READY` only when DynTube has published it **and** given its playback key, which is stored
+(`video_asset.provider_playback_key`, V81) and never returned by any API. Title/description edits
+stay in the LMS; LMS delete is a soft delete only (the video stays in DynTube).
+
+Playback needs `video.features.managed-stream-playback` (`VIDEO_MANAGED_STREAM_PLAYBACK_ENABLED`,
+default off). **Keep both DynTube flags off in any real environment until the DynTube project
+refuses untokenized playback** (ADR-026 consequence 1).
+
 ### `POST /media`
 
 ```jsonc
 { "title": "Lesson 1",               // required, ≤ 100 chars, no < or >
   "description": "…",                // optional, ≤ 5000 chars, no < or >
   "privacyStatus": "UNLISTED",       // UNLISTED | PRIVATE (default: tenant defaultPrivacyStatus); PUBLIC → 400
-  "provider": "YOUTUBE",             // optional; anything else → 400
+  "provider": "YOUTUBE",             // optional; YOUTUBE | DYNTUBE (Phase 13), anything else → 400
   "fileName": "lesson-1.mp4",        // required, ≤ 255
   "mimeType": "video/mp4",           // video/mp4 | video/webm | video/quicktime
   "sizeBytes": 734003200 }           // 1 … video.upload.max-file-size-bytes (default 10 GiB)

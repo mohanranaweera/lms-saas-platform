@@ -217,8 +217,21 @@ Existing connections are not disconnected; they are just unused while the provid
 
 ### `PUT /api/v1/tenant-admin/integrations/dyntube`
 
-Body: `{ "apiKey": "…" }`. `apiKey` is optional when a DynTube key is already stored (blank keeps
-it), required otherwise, and ≤512 characters.
+Body: `{ "apiKey": "…", "tokenSecurityKey": "…", "projectId": "…" }` (the last two added in VIDEO
+Phase 13, ADR-026; additive).
+
+- `apiKey`: optional when a DynTube key is already stored (blank keeps it), required otherwise,
+  ≤512 characters.
+- `tokenSecurityKey`: optional, **write-only**, ≤512 characters. DynTube dashboard → Projects →
+  Global Settings → API keys. Needed to sign playback URLs. Blank keeps the stored one. It is
+  sealed together with the API key and never returned, logged or audited.
+- `projectId`: optional, the DynTube project new uploads go into. It must be one of the account's
+  own projects (checked with `GET /projects`); otherwise `400` with fieldErrors
+  `[{field:"projectId"}]`. Blank keeps the stored one.
+
+`ConnectionView.settings` for DynTube is `{ "projectId": "…" | null,
+"tokenSecurityKeyConfigured": true|false }`. Uploads and signed playback need both (and
+`videoHost = DYNTUBE` for uploads).
 
 - `200` → `ConnectionView`.
 - `400 VALIDATION_ERROR`.

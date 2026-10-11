@@ -21,6 +21,14 @@ public class VideoProviderCatalog {
 	private static final VideoProviderCapabilities YOUTUBE_CAPABILITIES = new VideoProviderCapabilities(
 			true, true, true, true, false, false, false, false, true, true, true, true, false, false);
 
+	/**
+	 * DynTube (ADR-026): our own player over tokenized HLS, overlay watermark,
+	 * server-side revocation bounded by the token TTL. No DRM (segments are
+	 * AES-128 with CDN-signed URLs), no resumable upload, no provider player.
+	 */
+	private static final VideoProviderCapabilities DYNTUBE_CAPABILITIES = new VideoProviderCapabilities(
+			true, false, true, true, true, true, false, false, false, true, true, true, true, true);
+
 	private final VideoFeatureFlags featureFlags;
 
 	public VideoProviderCatalog(VideoFeatureFlags featureFlags) {
@@ -31,6 +39,7 @@ public class VideoProviderCatalog {
 		return switch (provider) {
 			case INTERNAL -> INTERNAL_CAPABILITIES;
 			case YOUTUBE -> YOUTUBE_CAPABILITIES;
+			case DYNTUBE -> DYNTUBE_CAPABILITIES;
 		};
 	}
 
@@ -39,6 +48,7 @@ public class VideoProviderCatalog {
 		return switch (provider) {
 			case INTERNAL -> List.of(PlaybackMode.INTERNAL_SIGNED_URL);
 			case YOUTUBE -> List.of(PlaybackMode.YOUTUBE_STANDARD, PlaybackMode.YOUTUBE_CUSTOM);
+			case DYNTUBE -> List.of(PlaybackMode.MANAGED_STREAM);
 		};
 	}
 

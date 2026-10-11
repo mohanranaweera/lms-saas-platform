@@ -113,7 +113,9 @@ public class LessonMediaService {
 		Material material = findVideoMaterial(lessonId, lessonMediaId);
 		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
 		UUID mediaAssetId = material.getVideoAssetId();
-		materialRepository.delete(material);
+		// Keep the row: video_watch_session history references it (V77 FK).
+		// The video asset stays in the media library (V82).
+		material.markRemoved(actorId, java.time.Instant.now());
 		auditLogApi.record(new AuditLogEntry(actorId, "lesson_media.detached", "material", lessonMediaId, null,
 				Map.of("lessonId", lessonId, "courseId", ownership.courseId(), "mediaAssetId", mediaAssetId,
 						"title", material.getTitle())));

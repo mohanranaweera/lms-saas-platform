@@ -1,8 +1,10 @@
 package com.lms.integrationmanagement.api;
 
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Uploading to, and reading processing status from, a tenant's video
@@ -33,6 +35,29 @@ public interface VideoProviderUploadApi {
 
 	/** Best-effort cancellation of an unfinished session; never throws. */
 	void cancelSession(UUID connectionId, String sessionHandle);
+
+	/**
+	 * VIDEO Phase 13: whether the connection's provider takes uploads in
+	 * resumable chunks ({@link #startSession}/{@link #uploadChunk}) or only
+	 * as one whole-file request ({@link #uploadWhole}).
+	 */
+	default boolean supportsResumableUpload(UUID connectionId) {
+		return true;
+	}
+
+	/**
+	 * VIDEO Phase 13 (ADR-026): sends the whole file in one streamed request
+	 * - for providers without resumable uploads (DynTube). {@code content}
+	 * opens a fresh stream over the staged object for each attempt and is
+	 * read once, without buffering the file in memory.
+	 *
+	 * @throws UploadFailure on any provider failure; a retry sends the whole
+	 * file again
+	 */
+	default Complete uploadWhole(UUID connectionId, UploadMetadata metadata, long totalBytes, String contentType,
+			Supplier<InputStream> content) {
+		throw new UploadFailure(UploadFailure.Kind.FATAL, "This channel does not support whole-file uploads.");
+	}
 
 	/**
 	 * VIDEO Phase 5: changes the video's title / description / privacy on the
@@ -66,8 +91,30 @@ public interface VideoProviderUploadApi {
 
 	}
 
+	/**
+	 * @param playbackKey VIDEO Phase 13: the provider's key used to sign
+	 * playback URLs (DynTube {@code key}); {@code null} for providers that
+	 * play through their own player (YouTube). Never returned by an API.
+	 * @param embedKey VIDEO Phase 13c: the provider's player embed key
+	 * (DynTube {@code channelKey}, ADR-026 Amendment 1); {@code null} otherwise
+	 */
 	record ProviderVideoStatus(String providerVideoId, ProcessingState state, String failureReason,
-			Integer durationSeconds, String thumbnailUrl) {
+			Integer durationSeconds, String thumbnailUrl, String playbackKey, String embedKey) {
+
+		public ProviderVideoStatus(String providerVideoId, ProcessingState state, String failureReason,
+				Integer durationSeconds, String thumbnailUrl, String playbackKey) {
+			this(providerVideoId, state, failureReason, durationSeconds, thumbnailUrl, playbackKey, null);
+		}
+
+		public ProviderVideoStatus(String providerVideoId, ProcessingState state, String failureReason,
+				Integer durationSeconds, String thumbnailUrl) {
+			this(providerVideoId, state, failureReason, durationSeconds, thumbnailUrl, null, null);
+		}
+
+		@Override
+		public String toString() {
+			return "ProviderVideoStatus[providerVideoId=" + providerVideoId + ", state=" + state + "]";
+		}
 
 	}
 

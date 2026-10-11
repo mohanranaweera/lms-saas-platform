@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.lms.integrationmanagement.media.FakeDynTube;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.coursemanagement.course.web.dto.CourseLessonResponse;
 import com.lms.coursemanagement.course.web.dto.CourseModuleResponse;
@@ -110,7 +111,7 @@ class PlayerIntegrationTest extends MediaUploadTestSupport {
 		assertThat(exchange.path("descriptor").path("watermark").path("enabled").asBoolean()).isTrue();
 		assertThat(exchange.path("descriptor").path("watermark").path("text").asString())
 				.isEqualTo("Student ID: " + lesson.studentId().toString().substring(0, 8));
-		assertThat(exchange.path("descriptor").path("watermark").path("placement").asString()).isEqualTo("OUTSIDE_PLAYER");
+		assertThat(exchange.path("descriptor").path("watermark").path("placement").asString()).isEqualTo("OVERLAY");
 		assertThat(exchange.path("descriptor").path("captureProtection").path("enabled").asBoolean()).isTrue();
 		assertThat(exchange.path("descriptor").path("captureProtection").path("required").asBoolean()).isFalse();
 		String token = exchange.path("playbackToken").asString();
@@ -568,6 +569,74 @@ class PlayerIntegrationTest extends MediaUploadTestSupport {
 	}
 
 	// ------------------------------------------------------------------
+	// VIDEO Phase 13: DynTube managed streaming (ADR-026)
+	// ------------------------------------------------------------------
+
+	@Test
+	void aDynTubeLessonExchangesAnEmbedDescriptorAndHeartbeatsCarryNoMediaUrl() {
+		featureFlags.setDyntubeUpload(true);
+		featureFlags.setManagedStreamPlayback(true);
+		try {
+			Lesson lesson = dynTubeNativeLesson("pl-dyntube");
+			String key = DYNTUBE.video(lesson.videoId()).key();
+			TestPlayer player = pair(lesson.ctx());
+
+			MvcResult exchanged = exchange(player, codeOf(json(play(lesson)).path("data").path("launch").path("url")
+				.asString()));
+
+			// ADR-026 Amendment 1: DynTube's own player through the bridge, not our HLS.
+			assertThat(status(exchanged)).isEqualTo(200);
+			JsonNode data = json(exchanged).path("data");
+			JsonNode descriptor = data.path("descriptor");
+			assertThat(descriptor.path("provider").asString()).isEqualTo("DYNTUBE");
+			assertThat(descriptor.path("mediaFormat").asString()).isEqualTo("EMBED");
+			assertThat(descriptor.path("providerVideoId").isNull()).isTrue();
+			assertThat(descriptor.path("signedUrl").isNull()).isTrue();
+			assertThat(descriptor.path("embed").path("provider").asString()).isEqualTo("DYNTUBE");
+			assertThat(descriptor.path("embed").path("key").asString()).isEqualTo(FakeDynTube.embedKeyOf(lesson.videoId()));
+			assertThat(descriptor.path("watermark").path("placement").asString()).isEqualTo("OVERLAY");
+			assertThat(rawContent(exchanged)).doesNotContain(TOKEN_KEY).doesNotContain(key);
+
+			UUID sessionId = UUID.fromString(data.path("sessionId").asString());
+			JsonNode beat = json(heartbeat(player, sessionId, data.path("playbackToken").asString())).path("data");
+			assertThat(beat.path("action").asString()).isEqualTo("CONTINUE");
+			assertThat(beat.path("mediaUrl").isNull()).isTrue();
+
+			// Switching managed streaming off stops new launches.
+			featureFlags.setManagedStreamPlayback(false);
+			MvcResult refused = play(lesson);
+			assertThat(status(refused)).isEqualTo(409);
+			assertThat(errorCode(refused)).isEqualTo("VIDEO_PLAYBACK_DISABLED");
+		}
+		finally {
+			featureFlags.setDyntubeUpload(false);
+			featureFlags.setManagedStreamPlayback(false);
+		}
+	}
+
+	@Test
+	@Tag("cross-tenant")
+	void anotherTenantsStudentCannotLaunchADynTubeLesson() {
+		featureFlags.setDyntubeUpload(true);
+		featureFlags.setManagedStreamPlayback(true);
+		try {
+			Lesson a = dynTubeNativeLesson("pl-dt-iso-a");
+			Lesson b = dynTubeNativeLesson("pl-dt-iso-b");
+
+			MvcResult result = perform(authenticated(post(PLAYBACK).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"lessonMediaId\":\"" + a.lessonMediaId() + "\"}"), b.ctx().host(),
+					b.ctx().studentToken()));
+
+			assertThat(status(result)).isEqualTo(404);
+			assertThat(rawContent(result)).doesNotContain(FakeDynTube.embedKeyOf(a.videoId()));
+		}
+		finally {
+			featureFlags.setDyntubeUpload(false);
+			featureFlags.setManagedStreamPlayback(false);
+		}
+	}
+
+	// ------------------------------------------------------------------
 	// Helpers
 	// ------------------------------------------------------------------
 
@@ -600,6 +669,28 @@ class PlayerIntegrationTest extends MediaUploadTestSupport {
 		jdbcTemplate.update("INSERT INTO student_profile (id, tenant_id, user_id, name, created_at, updated_at) "
 				+ "VALUES (?, ?, ?, 'Student', now(), now())", studentProfileId, ctx.tenant().getId(), studentId);
 		return new Lesson(ctx, studentId, studentProfileId, course.id(), lesson.id(), assetId, videoId, lessonMediaId);
+	}
+
+	/** Like {@link #nativeLesson} but the lesson video is a READY DynTube asset (VIDEO Phase 13). */
+	private Lesson dynTubeNativeLesson(String prefix) {
+		Ctx ctx = dynTubeTenant(prefix);
+		UUID assetId = readyDynTubeAsset(ctx);
+		CourseResponse course = createCourseOrFail(ctx.host(), ctx.teacherToken(),
+				newCourseRequest(uniqueSlug(prefix), ctx.teacherId(), CourseStatus.PUBLIC));
+		CourseModuleResponse module = createModuleOrFail(ctx.host(), ctx.teacherToken(), course.id(), "Module 1", 1);
+		CourseLessonResponse lesson = createLessonOrFail(ctx.host(), ctx.teacherToken(), course.id(), module.id(),
+				"Lesson 1", 1);
+		UUID lessonMediaId = attach(ctx, course.id(), lesson.id(), assetId, 1);
+		enrollStudentOrFail(ctx.host(), ctx.studentToken(), course.id());
+		requireNativePlayer(ctx.tenant().getId());
+		UUID studentId = jdbcTemplate.queryForObject(
+				"SELECT id FROM tenant_user WHERE tenant_id = ? AND email = 'student@example.test'", UUID.class,
+				ctx.tenant().getId());
+		UUID studentProfileId = UUID.randomUUID();
+		jdbcTemplate.update("INSERT INTO student_profile (id, tenant_id, user_id, name, created_at, updated_at) "
+				+ "VALUES (?, ?, ?, 'Student', now(), now())", studentProfileId, ctx.tenant().getId(), studentId);
+		return new Lesson(ctx, studentId, studentProfileId, course.id(), lesson.id(), assetId,
+				providerAssetId(assetId), lessonMediaId);
 	}
 
 	private void requireNativePlayer(UUID tenantId) {

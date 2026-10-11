@@ -305,3 +305,81 @@ Approved by the owner while planning Phase 8.
    message otherwise. The mobile app itself (platforms, store signing, mobile key storage, app
    links, capture limits per OS, `player_installation.platform` values) still needs its own
    amendment, as recorded in Amendment 1. The device check stays UX only.
+
+## Amendment 3 (2026-10-11): YouTube lessons only in the AOC Player, behind our controls
+
+**Accepted (2026-10-11)** by the project owner. It replaces the Phase 7/10 rule "YouTube plays
+in the official embed with nothing changed (Required Minimum Functionality); WEB when the
+institute doesn't require the player".
+
+**Why:** the embed's "Watch on YouTube", title and channel links let a student open an unlisted
+lesson on youtube.com. In the AOC Player those links even opened the system browser. The owner's
+requirement: a student must not be shown where a lesson is hosted.
+
+**Decision**
+
+1. **Server.** `POST /api/v1/playback/sessions` answers every YouTube LessonMedia with a NATIVE
+   launch, even when the institute doesn't require the AOC Player.
+   - The browser never receives the video id.
+   - With the platform's native-player flag off, the answer is `409 NATIVE_PLAYER_UNAVAILABLE`,
+     never a downgrade.
+   - The response shape is unchanged (`channel: NATIVE`); the existing web launcher handles it.
+2. **AOC Player.**
+   - The embed loads with `controls=0&disablekb=1&fs=0&iv_load_policy=3` (documented
+     parameters).
+   - It is not clickable or focusable (`pointer-events: none`, `tabIndex = -1`), and its sandbox
+     drops `allow-popups`.
+   - Our control bar drives it through the IFrame API messages, including the institute's seek
+     rule.
+   - Rust refuses every new window. Nothing opens in the system browser any more.
+3. **Watermark:** unchanged for YouTube (the band below the video).
+
+**Consequences**
+
+- **Honest limit:**
+  - YouTube's title and logo can still flash inside the embed.
+  - The video id is still the only secret. A determined user can sniff it from the player's
+    network traffic.
+  - This is deterrence, not protection. Content that must be protected belongs on platform
+    storage or a managed host.
+- **Terms risk (owner-accepted):** hiding YouTube's controls and blocking its links is a grey
+  area under YouTube's API Services terms. YouTube may restrict embeds for the channel.
+- **Reach:** students without the AOC Player (non-Windows, mobile) can't watch YouTube lessons.
+  They see the existing "use a Windows computer" notice.
+- **Still to do:**
+  - The student lesson-media list still includes `provider` (`"YOUTUBE"`), visible in a
+    browser's developer tools. Replacing it with a provider-neutral field is an API-contract
+    change for its own step.
+  - Staff screens keep their YouTube links.
+
+## Amendment 4 (2026-10-11): YouTube chrome hidden, watermark over the video
+
+**Accepted (2026-10-11)** by the project owner, who was told the risk below and accepted it. It
+replaces Amendment 3 item 3 and the "watermark band outside the player" rule for YouTube
+(plan constraint C4, VID-ADR-007).
+
+**Why:** students still saw YouTube's title bar, "Watch on YouTube" and share/link buttons (not
+clickable, but they reveal where the lesson is hosted), and the watermark sat in a band below the
+player, where a screen recording of the video area leaves it out.
+
+**Decision** (AOC Player only; YouTube lessons never play in a browser, Amendment 3):
+
+1. **Chrome clipped.** The embed is drawn taller than its visible surface (`--youtube-chrome`, 72px
+   top and bottom, `overflow: hidden`), so YouTube's title bar and its bottom buttons fall outside
+   the visible area.
+2. **Start and end screens covered.** The click layer turns opaque black whenever the embed is
+   not playing, paused or buffering (unstarted, cued, ended), hiding YouTube's title, logo and
+   end-screen suggestions. If the embed never reports its state, the cover is lifted rather than
+   leaving a black box.
+3. **Watermark over the video.** The exchange descriptor sends `placement: OVERLAY` for YouTube
+   too, and the player draws the same moving watermark it uses for file/HLS media.
+
+**Consequences**
+
+- **Terms risk (owner-accepted):** YouTube's Required Minimum Functionality forbids overlays on
+  the player and obscuring its branding. YouTube may restrict embeds for the channel or revoke the
+  platform's API client, which would stop YouTube uploads and connections for every tenant.
+- **Cropping:** when the player window is narrower than 16:9, up to 72px of the video's top and
+  bottom edges are clipped as well.
+- **Still deterrence, not protection:** the video id remains sniffable from network traffic.
+  Content that must be protected belongs on platform storage or a managed host.

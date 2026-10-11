@@ -64,6 +64,9 @@ public final class FakeMediaProviderServer {
 
 	private final FakeYouTubeUploads youtube = new FakeYouTubeUploads();
 
+	/** VIDEO Phase 13: DynTube management + upload API (ADR-026). */
+	private final FakeDynTube dyntube = new FakeDynTube();
+
 	/** A fake Bunny library, owned by one account key. */
 	public record FakeBunnyLibrary(long id, String name, long pullZoneId, String ownerKey) {
 
@@ -115,6 +118,7 @@ public final class FakeMediaProviderServer {
 		rejectRefresh = false;
 		rejectGoogleRefresh = false;
 		youtube.reset();
+		dyntube.reset();
 		bunnyLibraries.clear();
 		failBunnyCreate = false;
 		googleScope = DEFAULT_GOOGLE_SCOPE;
@@ -172,6 +176,10 @@ public final class FakeMediaProviderServer {
 		return youtube;
 	}
 
+	public FakeDynTube dyntube() {
+		return dyntube;
+	}
+
 	public List<Recorded> requests() {
 		return List.copyOf(requests);
 	}
@@ -189,8 +197,10 @@ public final class FakeMediaProviderServer {
 			raw = in.readAllBytes();
 		}
 		boolean youtubeUpload = youtube.handles(path);
+		boolean dyntubeUpload = method.equals("POST") && path.equals("/videos");
 		// Upload chunks are binary: record their size only.
-		String body = youtubeUpload ? "<" + raw.length + " bytes>" : new String(raw, StandardCharsets.UTF_8);
+		String body = (youtubeUpload || dyntubeUpload) ? "<" + raw.length + " bytes>"
+				: new String(raw, StandardCharsets.UTF_8);
 		String authorization = exchange.getRequestHeaders().getFirst("Authorization");
 		String accessKey = exchange.getRequestHeaders().getFirst("AccessKey");
 		requests.add(new Recorded(method, path, query, authorization, accessKey, body));
@@ -261,9 +271,9 @@ public final class FakeMediaProviderServer {
 		else if (method.equals("GET") && path.equals("/me")) {
 			respond(exchange, 200, "{\"uri\":\"/users/777\",\"name\":\"Vimeo Teacher\"}");
 		}
-		else if (method.equals("GET") && path.equals("/projects")) {
-			boolean ok = ("Bearer " + GOOD_DYNTUBE_KEY).equals(authorization);
-			respond(exchange, ok ? 200 : 401, ok ? "[]" : "{\"message\":\"unauthorized\"}");
+		else if (FakeDynTube.handles(path)) {
+			Object[] answer = dyntube.handle(method, path, authorization, raw);
+			respond(exchange, (Integer) answer[0], (String) answer[1]);
 		}
 		else if (path.equals("/videolibrary") || path.startsWith("/videolibrary/")) {
 			handleBunnyAccountApi(exchange, method, path, query, accessKey, body);

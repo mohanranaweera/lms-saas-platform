@@ -73,10 +73,25 @@ pub struct Descriptor {
     pub watermark_text: Option<String>,
     #[serde(default)]
     pub allow_seeking: bool,
+    /// VIDEO Phase 13: `FILE` or `HLS` - how `signed_url` is loaded.
+    #[serde(default)]
+    pub media_format: Option<String>,
     #[serde(default)]
     pub watermark: WatermarkPolicy,
     #[serde(default)]
     pub capture_protection: CaptureProtectionPolicy,
+    /// VIDEO Phase 13c: set when `media_format` is `EMBED`.
+    #[serde(default)]
+    pub embed: Option<EmbedSource>,
+}
+
+/// The host player to embed (ADR-026 Amendment 1). The server also sends a
+/// `bridgeUrl`; it is ignored: only the compiled-in bridge is ever framed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmbedSource {
+    pub provider: String,
+    pub key: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

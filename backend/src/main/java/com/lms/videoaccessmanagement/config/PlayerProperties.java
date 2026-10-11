@@ -19,6 +19,17 @@ public class PlayerProperties {
 
 	private int pairingCodeTtlSeconds = 90;
 
+	/** VIDEO Phase 13c: the DynTube bridge page URL (ADR-026 Amendment 1); blank fails closed. */
+	private String dyntubeBridgeUrl = "";
+
+	public String getDyntubeBridgeUrl() {
+		return dyntubeBridgeUrl;
+	}
+
+	public void setDyntubeBridgeUrl(String dyntubeBridgeUrl) {
+		this.dyntubeBridgeUrl = dyntubeBridgeUrl;
+	}
+
 	public String getLaunchCodePepper() {
 		return launchCodePepper;
 	}

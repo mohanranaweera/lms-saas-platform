@@ -12,9 +12,7 @@ import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.PermissionAction;
-import com.lms.integrationmanagement.api.ObjectStorageApi;
-import com.lms.integrationmanagement.api.SignedDownloadUrl;
-import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
+import com.lms.videoaccessmanagement.service.PlaybackMediaSigner.SignedMedia;
 import com.lms.videoaccessmanagement.domain.PlaybackState;
 import com.lms.videoaccessmanagement.domain.VideoAsset;
 import com.lms.videoaccessmanagement.domain.VideoPlaybackPolicy;
@@ -73,7 +71,7 @@ public class VideoPlaybackSessionService {
 
 	private final VideoWatchProgressRepository videoWatchProgressRepository;
 
-	private final ObjectStorageApi objectStorageApi;
+	private final PlaybackMediaSigner mediaSigner;
 
 	private final PlaybackTokenService playbackTokenService;
 
@@ -90,7 +88,7 @@ public class VideoPlaybackSessionService {
 	public VideoPlaybackSessionService(VideoAccessGuard videoAccessGuard, VideoAssetRepository videoAssetRepository,
 			VideoPlaybackPolicyRepository videoPlaybackPolicyRepository,
 			VideoWatchSessionRepository videoWatchSessionRepository,
-			VideoWatchProgressRepository videoWatchProgressRepository, ObjectStorageApi objectStorageApi,
+			VideoWatchProgressRepository videoWatchProgressRepository, PlaybackMediaSigner mediaSigner,
 			PlaybackTokenService playbackTokenService, PlaybackSessionCacheService playbackSessionCacheService,
 			VideoWatchSessionRevocationRecorder revocationRecorder, TenantContext tenantContext,
 			TenantVideoConfigurationService configurationService, WatchTimeService watchTimeService) {
@@ -99,7 +97,7 @@ public class VideoPlaybackSessionService {
 		this.videoPlaybackPolicyRepository = videoPlaybackPolicyRepository;
 		this.videoWatchSessionRepository = videoWatchSessionRepository;
 		this.videoWatchProgressRepository = videoWatchProgressRepository;
-		this.objectStorageApi = objectStorageApi;
+		this.mediaSigner = mediaSigner;
 		this.playbackTokenService = playbackTokenService;
 		this.playbackSessionCacheService = playbackSessionCacheService;
 		this.revocationRecorder = revocationRecorder;
@@ -110,14 +108,14 @@ public class VideoPlaybackSessionService {
 
 	/**
 	 * Deliberately NOT {@code @Transactional} at the top level - calls
-	 * {@link ObjectStorageApi#generateSignedDownloadUrl}, an outbound
-	 * dependency, per {@code .claude/rules/backend.md}'s "never span a
-	 * transaction across an outbound call" rule. The DB-only portion (policy
+	 * {@link PlaybackMediaSigner#sign} (object-storage presigning / DynTube
+	 * token signing behind integration APIs), per {@code .claude/rules/backend.md}'s
+	 * "never span a transaction across an outbound call" rule. The DB-only portion (policy
 	 * checks, concurrency supersede, session creation, view-count increment)
 	 * inside {@link #issueStudentSession} runs as a sequence of individually
 	 * self-transactional repository calls (mirroring {@code
-	 * MaterialService#createMaterial}'s identical non-transactional shape),
-	 * which complete BEFORE the outbound signed-URL call at the end of that
+	 * MaterialService#createMaterial}'s identical non-transactional shape);
+	 * since Phase 13 the URL is signed just BEFORE the session is created, outside any transaction of that
 	 * method.
 	 */
 	public PlaybackSessionView issuePlaybackSession(UUID videoAssetId, String deviceFingerprintHash) {
@@ -125,10 +123,10 @@ public class VideoPlaybackSessionService {
 
 		VideoAsset asset = videoAssetRepository.findById(videoAssetId)
 			.orElseThrow(() -> new NotFoundException("Video not found"));
-		// VIDEO Phase 7: only platform-storage assets have an object to sign. Externally
-		// hosted (YouTube) assets play through POST /api/v1/playback/sessions; refuse them
-		// here before any session, view count or signing happens.
-		if (asset.getProvider() != MediaAssetProvider.INTERNAL) {
+		// VIDEO Phase 7/13: only assets our own player loads from a signed URL (platform
+		// storage, DynTube HLS) play here. Provider-player assets (YouTube) play through
+		// POST /api/v1/playback/sessions; refuse them before any session, view count or signing.
+		if (!PlaybackMediaSigner.signsFor(asset)) {
 			throw new ConflictException("This video plays through the lesson player.");
 		}
 
@@ -148,9 +146,9 @@ public class VideoPlaybackSessionService {
 	}
 
 	private PlaybackSessionView issueTeacherPreviewSession(VideoAsset asset) {
-		SignedDownloadUrl signed = objectStorageApi.generateSignedDownloadUrl(asset.getStorageObjectKey(),
-				PlaybackTokenService.TOKEN_TTL);
-		return new PlaybackSessionView(null, null, signed.url(), signed.expiresAt(), null, true, true, null, null, null);
+		SignedMedia signed = mediaSigner.sign(asset, PlaybackTokenService.TOKEN_TTL);
+		return new PlaybackSessionView(null, null, signed.url(), signed.expiresAt(), null, true, true, null, null, null,
+				signed.format().name(), signed.embed());
 	}
 
 	private PlaybackSessionView issueStudentSession(VideoAsset asset, String deviceFingerprintHash) {
@@ -180,6 +178,11 @@ public class VideoPlaybackSessionService {
 			}
 		}
 
+		// Signed before any session exists: a host that cannot sign right now (VIDEO Phase 13
+		// managed streaming switched off, account keys removed) must not leave an orphaned
+		// ACTIVE session holding the concurrency slot. Signing is local - no network call.
+		SignedMedia signed = mediaSigner.sign(asset, PlaybackTokenService.TOKEN_TTL);
+
 		supersedeOldestSessionIfAtCap(tenantId, videoAssetId, studentId, policy.maxConcurrentSessions(), now);
 
 		UUID watchSessionId;
@@ -205,8 +208,6 @@ public class VideoPlaybackSessionService {
 
 		String token = playbackTokenService.issue(studentId, tenantId, videoAssetId, watchSessionId, jti, now,
 				expiresAt);
-		SignedDownloadUrl signed = objectStorageApi.generateSignedDownloadUrl(asset.getStorageObjectKey(),
-				PlaybackTokenService.TOKEN_TTL);
 		String watermarkText = policy.watermarkEnabled() ? (studentId + " · " + tenantId) : null;
 
 		VideoWatchProgress progress = videoWatchProgressRepository.findByVideoAssetIdAndStudentId(videoAssetId, studentId)
@@ -214,7 +215,7 @@ public class VideoPlaybackSessionService {
 		Integer remaining = watchTimeService.allowance(asset, studentId).remainingSeconds();
 		return new PlaybackSessionView(watchSessionId, token, signed.url(), signed.expiresAt(), watermarkText,
 				policy.allowSeeking(), policy.allowDownload(), configurationService.effectiveSettings().heartbeatIntervalSeconds(),
-				progress.getLastPositionSeconds(), remaining);
+				progress.getLastPositionSeconds(), remaining, signed.format().name(), signed.embed());
 	}
 
 	/**

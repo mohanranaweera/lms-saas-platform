@@ -397,7 +397,8 @@ async fn signed_exchange_then_heartbeats_until_the_server_says_stop() {
             watermark: crate::api::WatermarkPolicy::default(),
             capture_status: crate::capture_protection::CaptureStatus::NotRequested,
             media: Media::Youtube {
-                video_id: "dQw4w9WgXcQ".into()
+                video_id: "dQw4w9WgXcQ".into(),
+                allow_seeking: true
             },
         })
     );

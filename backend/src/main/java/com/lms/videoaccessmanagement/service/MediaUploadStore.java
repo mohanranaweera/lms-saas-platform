@@ -3,9 +3,11 @@ package com.lms.videoaccessmanagement.service;
 import com.lms.common.error.MediaUploadException;
 import com.lms.common.error.NotFoundException;
 import com.lms.integrationmanagement.api.MediaStagingApi;
+import com.lms.integrationmanagement.api.VideoProviderUploadApi.ProcessingState;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi.ProviderVideoStatus;
 import com.lms.integrationmanagement.api.VideoProviderUploadApi.UploadFailure;
 import com.lms.videoaccessmanagement.config.VideoUploadProperties;
+import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
 import com.lms.videoaccessmanagement.domain.MediaUploadJob;
 import com.lms.videoaccessmanagement.domain.MediaUploadJobStatus;
 import com.lms.videoaccessmanagement.domain.VideoAsset;
@@ -391,8 +393,35 @@ public class MediaUploadStore {
 			return;
 		}
 		Instant now = clock.instant();
+		if (asset.needsEmbedKey()) {
+			// VIDEO Phase 13c (V83): an already-READY DynTube video only gets its
+			// embed key; its status is never changed by this backfill.
+			if (status.state() == ProcessingState.READY && status.embedKey() != null) {
+				asset.assignEmbedKey(status.embedKey());
+				asset.recordFinalSync(now, status.durationSeconds(), status.thumbnailUrl());
+			}
+			else if (status.state() == ProcessingState.READY || status.state() == ProcessingState.PROCESSING) {
+				asset.recordPendingSyncCheck(now, UploadSchedule.nextSync(now, asset.getSyncFailureCount()));
+			}
+			else {
+				asset.scheduleSync(null);
+			}
+			return;
+		}
 		switch (status.state()) {
 			case READY -> {
+				// VIDEO Phase 13: a managed-stream asset is only playable with its playback key,
+				// stored before READY (ck_video_asset_playback_key).
+				if (asset.getProvider() == MediaAssetProvider.DYNTUBE) {
+					// Phase 13c: DynTube's player also needs the embed key.
+					if (status.playbackKey() == null || status.embedKey() == null) {
+						asset.recordPendingSyncCheck(now, UploadSchedule.nextSync(now, asset.getSyncFailureCount()));
+						return;
+					}
+					asset.assignPlaybackKey(status.playbackKey());
+					asset.assignEmbedKey(status.embedKey());
+					assets.saveAndFlush(asset);
+				}
 				lifecycle.transition(assetId, VideoAssetStatus.READY, null);
 				asset.recordFinalSync(now, status.durationSeconds(), status.thumbnailUrl());
 			}
@@ -406,7 +435,7 @@ public class MediaUploadStore {
 				}
 				if (asset.getSyncFailureCount() + 1 >= MAX_PROCESSING_CHECKS) {
 					lifecycle.transition(assetId, VideoAssetStatus.FAILED,
-							"YouTube is taking too long to process this video.");
+							"The video host is taking too long to process this video.");
 					asset.recordFinalSync(now, status.durationSeconds(), status.thumbnailUrl());
 				}
 				else {
@@ -455,7 +484,8 @@ public class MediaUploadStore {
 	}
 
 	private static boolean isSyncing(VideoAsset asset) {
-		return asset.getStatus() == VideoAssetStatus.UPLOADED || asset.getStatus() == VideoAssetStatus.PROCESSING;
+		return asset.getStatus() == VideoAssetStatus.UPLOADED || asset.getStatus() == VideoAssetStatus.PROCESSING
+				|| asset.needsEmbedKey();
 	}
 
 	private static String describe(MediaUploadJob job) {

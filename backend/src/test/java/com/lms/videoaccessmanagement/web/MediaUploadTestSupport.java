@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import com.lms.identityaccessservice.domain.Role;
 import com.lms.integrationmanagement.api.MediaProvider;
+import com.lms.integrationmanagement.media.FakeDynTube;
+import com.lms.integrationmanagement.media.FakeMediaProviderServer;
 import com.lms.integrationmanagement.media.FakeYouTubeUploads;
 import com.lms.integrationmanagement.media.FakeYouTubeUploads.Failure;
 import com.lms.integrationmanagement.media.MediaIntegrationTestSupport;
@@ -48,6 +51,14 @@ abstract class MediaUploadTestSupport extends MediaIntegrationTestSupport {
 	protected static final int PART = 256 * 1024;
 
 	protected static final FakeYouTubeUploads YOUTUBE = PROVIDERS.youtube();
+
+	/** VIDEO Phase 13: the fake DynTube API (ADR-026). */
+	protected static final FakeDynTube DYNTUBE = PROVIDERS.dyntube();
+
+	protected static final String INTEGRATIONS = "/api/v1/tenant-admin/integrations";
+
+	/** The DynTube token security key the fixtures save; it must never appear in a response. */
+	protected static final String TOKEN_KEY = "token-security-key-never-shown";
 
 	@Autowired
 	protected UploadTransferWorker worker;
@@ -298,6 +309,71 @@ abstract class MediaUploadTestSupport extends MediaIntegrationTestSupport {
 				VALUES (?, ?, 'YOUTUBE', 'UNLISTED', ?, false, true, 0.25, 30, 'STUDENT_DISPLAY_ID', true, false, 1,
 				    'NONE', 45, 20, ?, now(), now())
 				""", UUID.randomUUID(), tenantId, uploadsEnabled, dailyLimit);
+	}
+
+	// ------------------------------------------------------------------
+	// VIDEO Phase 13: DynTube (ADR-026)
+	// ------------------------------------------------------------------
+
+	/** A tenant whose video host is a fully set-up DynTube account. */
+	protected Ctx dynTubeTenant(String prefix) {
+		Ctx ctx = seedUploadTenant(prefix, null);
+		MvcResult saved = saveDynTube(ctx, FakeMediaProviderServer.GOOD_DYNTUBE_KEY, TOKEN_KEY,
+				FakeDynTube.GOOD_PROJECT);
+		if (status(saved) != 200) {
+			throw new IllegalStateException("DynTube save failed: " + rawContent(saved));
+		}
+		selectVideoHost(ctx, "DYNTUBE");
+		return ctx;
+	}
+
+	protected UUID stageAndQueueDynTube(Ctx ctx, byte[] video) {
+		JsonNode data = json(create(ctx.host(), ctx.teacherToken(), dynTubeBody("Video", video.length))).path("data");
+		UUID assetId = assetIdOf(data);
+		MvcResult completed = complete(ctx.host(), ctx.teacherToken(), assetId, putParts(data, video));
+		if (status(completed) != 202) {
+			throw new IllegalStateException("complete failed: " + rawContent(completed));
+		}
+		return assetId;
+	}
+
+	protected static Map<String, Object> dynTubeBody(String title, long size) {
+		Map<String, Object> body = new HashMap<>(body(title, size));
+		body.put("provider", "DYNTUBE");
+		return body;
+	}
+
+	protected MvcResult saveDynTube(Ctx ctx, String apiKey, String tokenKey, String projectId) {
+		Map<String, Object> request = new HashMap<>();
+		request.put("apiKey", apiKey);
+		request.put("tokenSecurityKey", tokenKey);
+		request.put("projectId", projectId);
+		return perform(authenticated(put(INTEGRATIONS + "/dyntube").contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(request)), ctx.host(), ctx.adminToken()));
+	}
+
+	protected void selectVideoHost(Ctx ctx, String host) {
+		MvcResult result = perform(authenticated(put(INTEGRATIONS + "/video-host")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"videoHost\":\"" + host + "\"}"), ctx.host(), ctx.adminToken()));
+		if (status(result) != 200) {
+			throw new IllegalStateException("video host failed: " + rawContent(result));
+		}
+	}
+
+	/** A DynTube video uploaded, published at DynTube and synced to READY (with its playback key). */
+	protected UUID readyDynTubeAsset(Ctx ctx) {
+		UUID assetId = stageAndQueueDynTube(ctx, mp4(PART));
+		if (worker.drain(5) != 1) {
+			throw new IllegalStateException("DynTube transfer did not run");
+		}
+		DYNTUBE.publish(providerAssetId(assetId));
+		makeSyncDue(ctx.tenant().getId());
+		statusSync.syncDue();
+		if (!"READY".equals(assetStatus(assetId))) {
+			throw new IllegalStateException("DynTube asset not READY: " + assetStatus(assetId));
+		}
+		return assetId;
 	}
 
 }

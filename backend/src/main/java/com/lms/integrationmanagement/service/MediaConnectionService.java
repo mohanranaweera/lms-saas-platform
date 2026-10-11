@@ -21,6 +21,7 @@ import com.lms.integrationmanagement.domain.MediaProviderConnection;
 import com.lms.integrationmanagement.domain.TenantMediaIntegrationSettings;
 import com.lms.integrationmanagement.domain.VideoHost;
 import com.lms.integrationmanagement.gateway.media.BunnyAccountClient;
+import com.lms.integrationmanagement.gateway.media.DynTubeClient;
 import com.lms.integrationmanagement.gateway.media.MediaProviderException;
 import com.lms.integrationmanagement.gateway.media.OAuthProviderClient;
 import com.lms.integrationmanagement.gateway.media.ProviderIdentity;
@@ -117,13 +118,16 @@ public class MediaConnectionService {
 
 	private final ClassSessionLookupApi classSessionLookupApi;
 
+	private final DynTubeStreamService dynTube;
+
 	public MediaConnectionService(MediaProviderConnectionRepository repository, MediaConnectionStore store,
 			MediaConnectionViews views, MediaCredentialsCodec codec, MediaTokenService tokenService,
 			OAuthConnectFlowService connectFlow, TenantMediaSettingsService settingsService,
 			TenantVideoHostClient videoHostClient, BunnyAccountClient bunnyAccountClient,
 			BunnyLibraryService bunnyLibraryService, List<OAuthProviderClient> clients,
 			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi, TenantContext tenantContext,
-			TeacherLookupApi teacherLookupApi, ClassSessionLookupApi classSessionLookupApi) {
+			TeacherLookupApi teacherLookupApi, ClassSessionLookupApi classSessionLookupApi,
+			DynTubeStreamService dynTube) {
 		this.repository = repository;
 		this.store = store;
 		this.views = views;
@@ -140,6 +144,7 @@ public class MediaConnectionService {
 		this.tenantContext = tenantContext;
 		this.teacherLookupApi = teacherLookupApi;
 		this.classSessionLookupApi = classSessionLookupApi;
+		this.dynTube = dynTube;
 	}
 
 	// ------------------------------------------------------------------
@@ -217,32 +222,63 @@ public class MediaConnectionService {
 		return teacherProvidersView(saved);
 	}
 
-	public ConnectionView saveDynTube(String apiKey) {
+	/**
+	 * The tenant's DynTube account. VIDEO Phase 13 (ADR-026) adds the
+	 * write-only {@code tokenSecurityKey} (signed playback) and the target
+	 * {@code projectId}, which must be one of the account's own projects.
+	 * Blank fields keep the stored value; any change creates a new
+	 * connection row (the old one is kept, disconnected).
+	 */
+	public ConnectionView saveDynTube(String apiKey, String tokenSecurityKey, String projectId) {
 		permissionCheckService.requirePermission(DomainArea.INTEGRATIONS, PermissionAction.CREATE_EDIT);
 		requireCodec();
 		boolean newKey = hasText(apiKey);
+		boolean newTokenKey = hasText(tokenSecurityKey);
+		String newProject = hasText(projectId) ? projectId.trim() : null;
 		if (newKey && apiKey.trim().length() > MAX_KEY_LENGTH) {
 			throw invalid("apiKey", "must be at most " + MAX_KEY_LENGTH + " characters");
+		}
+		if (newTokenKey && tokenSecurityKey.trim().length() > MAX_KEY_LENGTH) {
+			throw invalid("tokenSecurityKey", "must be at most " + MAX_KEY_LENGTH + " characters");
+		}
+		if (newProject != null && !DynTubeClient.ID_PATTERN.matcher(newProject).matches()) {
+			throw invalid("projectId", "is not a valid DynTube project id");
 		}
 		MediaProviderConnection current = repository.findCurrentForTenant(MediaProvider.DYNTUBE).orElse(null);
 		if (!newKey && current == null) {
 			throw invalid("apiKey", "is required");
 		}
-		if (!newKey && current.isActive()) {
+		String storedProject = (current == null) ? null : dynTube.projectId(current).orElse(null);
+		boolean projectChanged = newProject != null && !newProject.equals(storedProject);
+		if (!newKey && !newTokenKey && !projectChanged && current.isActive()) {
 			return views.toView(current);
 		}
-		String key = newKey ? apiKey.trim() : codec.open(current).apiKey();
-		ProviderIdentity identity;
+		StoredCredentials stored = (current == null) ? null : codec.open(current);
+		String key = newKey ? apiKey.trim() : stored.apiKey();
+		String tokenKey = newTokenKey ? tokenSecurityKey.trim() : (stored == null ? null : stored.tokenAuthKey());
+		String project = (newProject != null) ? newProject : storedProject;
 		try {
-			identity = videoHostClient.verifyDynTube(key);
+			if (project != null && !videoHostClient.dynTubeProjectIds(key).contains(project)) {
+				throw invalid("projectId", "is not a project of this DynTube account");
+			}
+			if (project == null) {
+				videoHostClient.verifyDynTube(key);
+			}
 		}
 		catch (MediaProviderException ex) {
 			throw credentialFailure(ex, "DynTube", "apiKey");
 		}
 		return views.toView(store.saveTenantConnection(tenantContext.getTenantId(), IntegrationActors.currentUserId(),
-				MediaProvider.DYNTUBE, identity,
-				codec.seal(StoredCredentials.apiKey(key, null), tenantCredentialContext(MediaProvider.DYNTUBE)), null,
-				newKey));
+				MediaProvider.DYNTUBE, new ProviderIdentity(null, "DynTube", null),
+				codec.seal(StoredCredentials.apiKey(key, tokenKey), tenantCredentialContext(MediaProvider.DYNTUBE)),
+				dynTubeSettings(project, hasText(tokenKey)), newKey || newTokenKey));
+	}
+
+	/** Non-secret settings shown on the card; the project id is validated (URL-safe charset only). */
+	private static String dynTubeSettings(String projectId, boolean tokenKeyConfigured) {
+		String project = (projectId == null) ? "null" : "\"" + projectId + "\"";
+		return "{\"" + DynTubeStreamService.SETTING_PROJECT_ID + "\":" + project + ",\""
+				+ DynTubeStreamService.SETTING_TOKEN_KEY_CONFIGURED + "\":" + tokenKeyConfigured + "}";
 	}
 
 	/**

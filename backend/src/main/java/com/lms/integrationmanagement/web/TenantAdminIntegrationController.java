@@ -64,7 +64,8 @@ public class TenantAdminIntegrationController {
 
 	@PutMapping("/dyntube")
 	public ResponseEntity<ApiResponse<ConnectionView>> saveDynTube(@Valid @RequestBody DynTubeAccountRequest request) {
-		return ResponseEntity.ok(ApiResponse.success(service.saveDynTube(request.apiKey())));
+		return ResponseEntity.ok(ApiResponse.success(service.saveDynTube(request.apiKey(), request.tokenSecurityKey(),
+				request.projectId())));
 	}
 
 	@PutMapping("/bunny")

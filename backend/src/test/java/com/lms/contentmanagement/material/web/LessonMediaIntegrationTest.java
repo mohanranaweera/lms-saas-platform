@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class LessonMediaIntegrationTest extends VideoAccessManagementTestSupport {
 
 	private record Fixture(Tenant tenant, String host, String teacherToken, String studentToken, UUID courseId,
-			UUID moduleId, UUID lessonId, TenantUser teacher) {
+			UUID moduleId, UUID lessonId, TenantUser teacher, UUID studentId) {
 	}
 
 	@Test
@@ -105,6 +105,69 @@ class LessonMediaIntegrationTest extends VideoAccessManagementTestSupport {
 			.isEqualTo(HttpStatus.FORBIDDEN);
 	}
 
+	@Test
+	void aPlayedVideoCanBeRemovedFromTheLessonKeepingTheAssetAndWatchHistoryAndCanBeReattached() {
+		Fixture fixture = fixture("lesson-media-played");
+		VideoAssetResponse asset = uploadVideo(fixture.host(), fixture.teacherToken(), "played.mp4");
+		UUID materialId = attach(fixture, asset.id(), "Played video", 1).getBody().data().id();
+		UUID watchSessionId = seedWatchSession(fixture, asset.id(), materialId);
+
+		// Used to fail with 409 CONFLICT (fk_video_watch_session_material).
+		assertThat(detach(fixture, materialId).getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		assertThat(listed(fixture)).isEmpty();
+		assertThat(listed(fixture, fixture.studentToken())).isEmpty();
+		assertThat(getMedia(fixture.host(), fixture.teacherToken(), asset.id()).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(jdbcTemplate.queryForObject("SELECT material_id FROM video_watch_session WHERE id = ?", UUID.class,
+				watchSessionId)).isEqualTo(materialId);
+		assertThat(detach(fixture, materialId).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+		// The lesson stays editable: same video, same position.
+		assertThat(attach(fixture, asset.id(), "Played video", 1).getStatusCode()).isEqualTo(HttpStatus.CREATED);
+	}
+
+	@Test
+	void aPlayedVideoCanBeRemovedThroughTheMaterialsEndpoint() {
+		Fixture fixture = fixture("lesson-media-played-material");
+		VideoAssetResponse asset = uploadVideo(fixture.host(), fixture.teacherToken(), "played-material.mp4");
+		UUID materialId = attach(fixture, asset.id(), null, 1).getBody().data().id();
+		seedWatchSession(fixture, asset.id(), materialId);
+
+		HttpResult<Void> deleted = parseSingle(perform(authenticated(
+				delete("/api/v1/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}/materials/{materialId}",
+						fixture.courseId(), fixture.moduleId(), fixture.lessonId(), materialId),
+				fixture.host(), fixture.teacherToken())), Void.class);
+
+		assertThat(deleted.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(listed(fixture)).isEmpty();
+		assertThat(getMedia(fixture.host(), fixture.teacherToken(), asset.id()).getStatusCode()).isEqualTo(HttpStatus.OK);
+	}
+
+	@Tag("cross-tenant")
+	@Test
+	void anotherTenantCannotRemoveALessonVideo() {
+		Fixture a = fixture("lesson-media-rm-iso-a");
+		Fixture b = fixture("lesson-media-rm-iso-b");
+		VideoAssetResponse asset = uploadVideo(a.host(), a.teacherToken(), "keep.mp4");
+		UUID materialId = attach(a, asset.id(), null, 1).getBody().data().id();
+
+		HttpResult<Void> foreign = parseSingle(perform(authenticated(
+				delete("/api/v1/courses/{courseId}/lessons/{lessonId}/media/{mediaId}", a.courseId(), a.lessonId(),
+						materialId),
+				b.host(), b.teacherToken())), Void.class);
+
+		assertThat(foreign.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(listed(a)).extracting(LessonMediaResponse::id).containsExactly(materialId);
+	}
+
+	private UUID seedWatchSession(Fixture fixture, UUID assetId, UUID materialId) {
+		UUID id = UUID.randomUUID();
+		jdbcTemplate.update("INSERT INTO video_watch_session (id, tenant_id, video_asset_id, student_id, material_id, "
+				+ "playback_jti, issued_at, expires_at, status) VALUES (?, ?, ?, ?, ?, ?, now(), now(), 'ENDED')", id,
+				fixture.tenant().getId(), assetId, fixture.studentId(), materialId, UUID.randomUUID());
+		return id;
+	}
+
 	private Fixture fixture(String prefix) {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain(prefix));
 		TenantUser teacher = seedTenantUser(tenant.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
@@ -117,7 +180,8 @@ class LessonMediaIntegrationTest extends VideoAccessManagementTestSupport {
 		CourseModuleResponse module = createModuleOrFail(host, teacherToken, course.id(), "Module 1", 1);
 		CourseLessonResponse lesson = createLessonOrFail(host, teacherToken, course.id(), module.id(), "Lesson 1", 1);
 		enrollStudentOrFail(host, studentToken, course.id());
-		return new Fixture(tenant, host, teacherToken, studentToken, course.id(), module.id(), lesson.id(), teacher);
+		return new Fixture(tenant, host, teacherToken, studentToken, course.id(), module.id(), lesson.id(), teacher,
+				student.getId());
 	}
 
 	private VideoAssetResponse uploadVideo(String host, String token, String filename) {

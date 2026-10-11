@@ -1,0 +1,192 @@
+- generic [active] [ref=f12e1]:
+  - generic [ref=f12e3]:
+    - banner [ref=f12e4]:
+      - generic [ref=f12e5]:
+        - link "DynTube Docs" [ref=f12e7] [cursor=pointer]:
+          - /url: /
+          - img "DynTube" [ref=f12e8]
+          - generic [ref=f12e17]: Docs
+        - generic [ref=f12e19]:
+          - textbox "Search documentation..." [ref=f12e23]
+          - generic [ref=f12e24]: ⌘K
+        - generic [ref=f12e25]:
+          - link "API" [ref=f12e26] [cursor=pointer]:
+            - /url: /dev
+          - link "Dashboard" [ref=f12e31] [cursor=pointer]:
+            - /url: https://app.dyntube.com
+          - button "Switch to dark mode" [ref=f12e37] [cursor=pointer]
+    - generic [ref=f12e41]:
+      - complementary [ref=f12e42]:
+        - navigation [ref=f12e43]:
+          - generic [ref=f12e44]: Documentation
+          - link "Welcome to our Help Center" [ref=f12e49] [cursor=pointer]:
+            - /url: /docs
+          - button "Videos" [ref=f12e51] [cursor=pointer]
+          - button "Security" [ref=f12e56] [cursor=pointer]
+          - button "Channels" [ref=f12e61] [cursor=pointer]
+          - button "Projects" [ref=f12e66] [cursor=pointer]
+          - button "AI Features" [ref=f12e71] [cursor=pointer]
+          - button "TV Apps" [ref=f12e76] [cursor=pointer]
+          - button "Account" [ref=f12e81] [cursor=pointer]
+          - button "FAQs" [ref=f12e86] [cursor=pointer]
+          - generic [ref=f12e90]:
+            - button "Tips & Tricks" [ref=f12e91] [cursor=pointer]
+            - list [ref=f12e95]:
+              - listitem [ref=f12e96]:
+                - link "Embed Videos Using the New Video Player" [ref=f12e97] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+              - listitem [ref=f12e98]:
+                - link "How to Make a Rounded Big Play Button" [ref=f12e99] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-make-rounded-big-play-button
+              - listitem [ref=f12e100]:
+                - link "How to Embed DynTube Videos in LearnDash" [ref=f12e101] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-learndash
+              - listitem [ref=f12e102]:
+                - link "How to Embed DynTube Videos in Patreon" [ref=f12e103] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-patreon
+              - listitem [ref=f12e104]:
+                - link "How to Embed DynTube Video Channel in WordPress/LearnDash" [ref=f12e105] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-video-channel-in-wordpress-learndash
+              - listitem [ref=f12e106]:
+                - link "How to Add Dynamic Watermark to the Video Player" [ref=f12e107] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-add-dynamic-watermark-to-the-video-player
+              - listitem [ref=f12e108]:
+                - link "Control Video Player Using URL Parameters" [ref=f12e109] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/control-video-player-using-url
+              - listitem [ref=f12e110]:
+                - link "How to Use Your Own Videos as Ads" [ref=f12e111] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-use-your-own-videos-as-ads
+              - listitem [ref=f12e112]:
+                - link "How to Embed DynTube Player in Next.js" [ref=f12e113] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-player-in-next.js
+              - listitem [ref=f12e114]:
+                - link "How to Embed DynTube Player in React" [ref=f12e115] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-the-dyntube-player-in-react
+              - listitem [ref=f12e116]:
+                - link "How to Embed Videos & Channels Dynamically" [ref=f12e117] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-videos-and-channels-dynamically
+          - generic [ref=f12e118]:
+            - link "GitHub Samples" [ref=f12e119] [cursor=pointer]:
+              - /url: https://github.com/nicearma/dyntube-samples
+            - link "Support" [ref=f12e125] [cursor=pointer]:
+              - /url: /contact
+      - main [ref=f12e126]:
+        - navigation [ref=f12e128]:
+          - link "Home" [ref=f12e129] [cursor=pointer]:
+            - /url: /
+          - link "Docs" [ref=f12e132] [cursor=pointer]:
+            - /url: /docs
+          - link "Tips and tricks" [ref=f12e135] [cursor=pointer]:
+            - /url: /docs/tips-and-tricks
+          - generic [ref=f12e138]: Embed videos using the new video player
+        - generic [ref=f12e140]:
+          - heading "Embed Videos Using the New Video Player" [level=1] [ref=f12e141]
+          - paragraph [ref=f12e142]:
+            - text: You can use our updated video player by changing the domain name in your iframe source URL from
+            - code [ref=f12e143]: videos.dyntube.com
+            - text: to
+            - code [ref=f12e144]: player.dyntube.com
+            - text: .
+          - heading "Updating Iframe Embed Code" [level=2] [ref=f12e145]
+          - paragraph [ref=f12e146]: "Here's an example of the original embed code:"
+          - generic [ref=f12e148]:
+            - generic [ref=f12e149]:
+              - generic [ref=f12e150]: "1"
+              - generic [ref=f12e151]: <!-- No changes to style tag -->
+            - generic [ref=f12e152]:
+              - generic [ref=f12e153]: "2"
+              - generic [ref=f12e154]: "<style>.dyntube-iframe-container{position:relative;width:100%;overflow:hidden;padding-top:57.25%}.dyntube-responsive-iframe{position:absolute;top:0;left:0;bottom:0;right:0;width:100%;height:100%;border:none}</style>"
+            - generic [ref=f12e155]:
+              - generic [ref=f12e156]: "3"
+              - generic [ref=f12e157]: <!-- Original iframe src -->
+            - generic [ref=f12e158]:
+              - generic [ref=f12e159]: "4"
+              - generic [ref=f12e160]: <div class="dyntube-iframe-container">
+            - generic [ref=f12e161]:
+              - generic [ref=f12e162]: "5"
+              - generic [ref=f12e163]: <iframe class="dyntube-responsive-iframe" allow="autoplay; fullscreen" webkitallowfullscreen mozallowfullscreen allowfullscreen
+            - generic [ref=f12e164]:
+              - generic [ref=f12e165]: "6"
+              - generic [ref=f12e166]: src="https://videos.dyntube.com/iframes/kt0q5A6uFQ" title="Caminandes">
+            - generic [ref=f12e167]:
+              - generic [ref=f12e168]: "7"
+              - generic [ref=f12e169]: </iframe>
+            - generic [ref=f12e170]:
+              - generic [ref=f12e171]: "8"
+              - generic [ref=f12e172]: </div>
+          - paragraph [ref=f12e173]: "Updated to use the new player:"
+          - generic [ref=f12e175]:
+            - generic [ref=f12e176]:
+              - generic [ref=f12e177]: "1"
+              - generic [ref=f12e178]: <!-- No changes to style tag -->
+            - generic [ref=f12e179]:
+              - generic [ref=f12e180]: "2"
+              - generic [ref=f12e181]: "<style>.dyntube-iframe-container{position:relative;width:100%;overflow:hidden;padding-top:57.25%}.dyntube-responsive-iframe{position:absolute;top:0;left:0;bottom:0;right:0;width:100%;height:100%;border:none}</style>"
+            - generic [ref=f12e182]:
+              - generic [ref=f12e183]: "3"
+              - generic [ref=f12e184]: <!-- Updated iframe src -->
+            - generic [ref=f12e185]:
+              - generic [ref=f12e186]: "4"
+              - generic [ref=f12e187]: <div class="dyntube-iframe-container">
+            - generic [ref=f12e188]:
+              - generic [ref=f12e189]: "5"
+              - generic [ref=f12e190]: <iframe class="dyntube-responsive-iframe" allow="autoplay; fullscreen" webkitallowfullscreen mozallowfullscreen allowfullscreen
+            - generic [ref=f12e191]:
+              - generic [ref=f12e192]: "6"
+              - generic [ref=f12e193]: src="https://player.dyntube.com/iframes/kt0q5A6uFQ" title="Caminandes">
+            - generic [ref=f12e194]:
+              - generic [ref=f12e195]: "7"
+              - generic [ref=f12e196]: </iframe>
+            - generic [ref=f12e197]:
+              - generic [ref=f12e198]: "8"
+              - generic [ref=f12e199]: </div>
+          - heading "Using the New Player for Private Links" [level=2] [ref=f12e200]
+          - paragraph [ref=f12e201]:
+            - text: You can also update private video links to use the new player. Change the domain from
+            - code [ref=f12e202]: videos.dyntube.com
+            - text: to
+            - code [ref=f12e203]: player.dyntube.com
+            - text: .
+          - paragraph [ref=f12e204]:
+            - strong [ref=f12e205]: "Original link:"
+          - generic [ref=f12e208]:
+            - generic [ref=f12e209]: "1"
+            - generic [ref=f12e210]: https://videos.dyntube.com/iframes/4w4tiWSA
+          - paragraph [ref=f12e211]:
+            - strong [ref=f12e212]: "Updated link:"
+          - generic [ref=f12e215]:
+            - generic [ref=f12e216]: "1"
+            - generic [ref=f12e217]: https://player.dyntube.com/iframes/4w4tiWSA
+          - heading "Creating Player Links via API" [level=2] [ref=f12e218]
+          - paragraph [ref=f12e219]:
+            - text: If you need to dynamically generate iframe URLs through code, use the
+            - code [ref=f12e220]: IframeLink
+            - text: "field returned when fetching a video via the API:"
+          - generic [ref=f12e223]:
+            - generic [ref=f12e224]: "1"
+            - generic [ref=f12e225]: https://player.dyntube.com/iframes/[IFRAMELINK_VALUE]
+          - heading "Before You Start" [level=2] [ref=f12e226]
+          - paragraph [ref=f12e227]: These guides assume you already have a published DynTube video or channel and can access its embed code from the dashboard.
+          - heading "Related Articles" [level=2] [ref=f12e228]
+          - list [ref=f12e229]:
+            - listitem [ref=f12e230]:
+              - link "How to Upload & Embed Videos" [ref=f12e231] [cursor=pointer]:
+                - /url: /docs/videos/how-to-upload-and-embed-videos
+            - listitem [ref=f12e232]:
+              - link "Embed Videos Using the New Video Player" [ref=f12e233] [cursor=pointer]:
+                - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+            - listitem [ref=f12e234]:
+              - link "Developer Resources" [ref=f12e235] [cursor=pointer]:
+                - /url: /dev/developer-resources
+        - generic [ref=f12e236]:
+          - generic [ref=f12e238]:
+            - generic [ref=f12e239]: © 2026 DynTube. All rights reserved.
+            - generic [ref=f12e240]:
+              - link "Terms" [ref=f12e241] [cursor=pointer]:
+                - /url: /legal/terms
+              - link "Privacy" [ref=f12e242] [cursor=pointer]:
+                - /url: /legal/privacy
+              - link "Contact" [ref=f12e243] [cursor=pointer]:
+                - /url: /contact
+          - text: DYNTUBE
+  - alert [ref=f12e244]

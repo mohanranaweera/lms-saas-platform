@@ -4,7 +4,7 @@ import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.error.PlayerRequestException;
 import com.lms.common.logging.ContactMasking;
 import com.lms.common.tenant.TenantContextHolder;
-import com.lms.integrationmanagement.api.SignedDownloadUrl;
+import com.lms.videoaccessmanagement.service.PlaybackMediaSigner.SignedMedia;
 import com.lms.usermanagement.api.StudentContact;
 import com.lms.usermanagement.api.StudentLookupApi;
 import com.lms.videoaccessmanagement.config.VideoFeatureFlags;
@@ -128,22 +128,23 @@ public class PlayerExchangeService {
 	private PlaybackDescriptor descriptorFor(PlayerExchangeTransactions.Claimed claimed) {
 		LessonMediaPlayability.Playable playable = claimed.playable();
 		TenantVideoSettings settings = configurationService.effectiveSettings();
-		WatermarkPolicy watermark = watermarkFor(settings, claimed, playable.isYouTube());
+		WatermarkPolicy watermark = watermarkFor(settings, claimed);
 		CaptureProtectionPolicy capture = captureProtectionFor(settings);
 		if (playable.isYouTube()) {
 			return new PlaybackDescriptor(claimed.sessionId(), MediaAssetProvider.YOUTUBE,
 					playable.asset().providerAssetId(), null, claimed.expiresAt(), playable.asset().title(),
 					playable.asset().durationSeconds(), watermark.text(), true, false, watermark, capture);
 		}
-		SignedDownloadUrl media = nativeLaunchService.signInternalMedia(playable.asset().id());
-		return new PlaybackDescriptor(claimed.sessionId(), MediaAssetProvider.INTERNAL, null, media.url(),
-				media.expiresAt(), playable.asset().title(), playable.asset().durationSeconds(), watermark.text(), true,
-				false, watermark, capture);
+		SignedMedia media = nativeLaunchService.signMedia(playable.asset().id());
+		return new PlaybackDescriptor(claimed.sessionId(), MediaAssetProvider.valueOf(playable.asset().provider()),
+				null, media.url(), media.expiresAt(), playable.asset().title(), playable.asset().durationSeconds(),
+				watermark.text(), true, false, watermark, capture, media.format().name(), media.embed());
 	}
 
 	private WatermarkPolicy watermarkFor(TenantVideoSettings settings,
-			PlayerExchangeTransactions.Claimed claimed, boolean youtube) {
-		Placement placement = youtube ? Placement.OUTSIDE_PLAYER : Placement.OVERLAY;
+			PlayerExchangeTransactions.Claimed claimed) {
+		// ADR-025 Amendment 4: YouTube gets the overlay too (owner-accepted terms risk).
+		Placement placement = Placement.OVERLAY;
 		boolean enabled = settings.watermarkEnabled() && featureFlags.isDynamicWatermark();
 		if (!enabled) {
 			return new WatermarkPolicy(false, null, null, 0, placement);

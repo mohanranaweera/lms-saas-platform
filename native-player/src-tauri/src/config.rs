@@ -74,6 +74,40 @@ pub fn parse_origins(raw: &str, allow_loopback_http: bool) -> Result<Vec<Url>, C
         .collect()
 }
 
+/// Debug builds frame the dev bridge unless `AOC_EMBED_BRIDGE_URL` says otherwise.
+const DEBUG_DEFAULT_EMBED_BRIDGE_URL: &str = "http://embed.lms.test:3000/embed/dyntube-bridge.html";
+
+/// The DynTube bridge page (VIDEO Phase 13c, ADR-026 Amendment 1), compiled
+/// in from `AOC_EMBED_BRIDGE_URL`. The player frames only this page; the
+/// server's `bridgeUrl` is never used. A release build without one can't play
+/// embedded video.
+pub fn embed_bridge_url() -> Result<Url, ConfigError> {
+    let raw = option_env!("AOC_EMBED_BRIDGE_URL").or(if cfg!(debug_assertions) {
+        Some(DEBUG_DEFAULT_EMBED_BRIDGE_URL)
+    } else {
+        None
+    });
+    parse_bridge_url(raw.ok_or(ConfigError::Missing)?, cfg!(debug_assertions))
+}
+
+/// An `.html` page over https (or http in debug builds), with no credentials,
+/// query or fragment.
+pub fn parse_bridge_url(raw: &str, allow_http: bool) -> Result<Url, ConfigError> {
+    let url = Url::parse(raw.trim()).map_err(|_| ConfigError::Invalid)?;
+    let scheme_ok = url.scheme() == "https" || (allow_http && url.scheme() == "http");
+    let clean = url.username().is_empty()
+        && url.password().is_none()
+        && url.query().is_none()
+        && url.fragment().is_none()
+        && url.host_str().is_some()
+        && url.path().ends_with(".html");
+    if scheme_ok && clean {
+        Ok(url)
+    } else {
+        Err(ConfigError::Invalid)
+    }
+}
+
 /// Whether plain HTTP may be used at all (debug builds against loopback).
 pub fn allows_http(origin: &Url) -> bool {
     origin.scheme() == "http"

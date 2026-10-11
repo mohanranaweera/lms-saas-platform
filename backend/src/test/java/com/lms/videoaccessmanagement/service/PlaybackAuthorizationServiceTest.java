@@ -89,24 +89,42 @@ class PlaybackAuthorizationServiceTest {
 	}
 
 	@Test
-	void readyYoutubeAssetProducesOnlyAWebYoutubeDescriptor() {
+	void aYoutubeLessonAlwaysGetsANativeLaunchAndNeverItsVideoId() {
 		UUID studentId = UUID.randomUUID();
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
+		// PLATFORM_DEFAULTS: the institute does not require the AOC Player.
 		when(materialLookupApi.resolveLessonMediaForPlayback(MATERIAL_ID)).thenReturn(Optional.of(context(MaterialVisibility.VISIBLE)));
 		when(videoAccessApi.getDetails(ASSET_ID, TENANT_ID)).thenReturn(Optional.of(
 				new VideoAssetDetails(ASSET_ID, "READY", "YOUTUBE", "Lesson", 120, null, "youtube-video-123", null)));
 		when(featureFlags.isPlaybackModeEnabled(com.lms.videoaccessmanagement.domain.PlaybackMode.YOUTUBE_STANDARD))
 				.thenReturn(true);
+		when(featureFlags.isNativePlayer()).thenReturn(true);
+		UUID sessionId = UUID.randomUUID();
+		when(nativeLaunchService.start(MATERIAL_ID, ASSET_ID, TenantVideoSettings.PLATFORM_DEFAULTS.launchCodeTtlSeconds()))
+			.thenReturn(new NativeLaunchService.NativeLaunch(sessionId, "aocplayer://play?code=x",
+					java.time.Instant.now().plusSeconds(45)));
 
 		PlaybackAuthorizationService.PlaybackStart start = service.authorize(MATERIAL_ID);
-		assertThat(start.channel()).isEqualTo(LaunchChannel.WEB);
-		assertThat(start.launch()).isNull();
-		PlaybackDescriptor descriptor = start.descriptor();
 
-		assertThat(descriptor.provider()).isEqualTo(MediaAssetProvider.YOUTUBE);
-		assertThat(descriptor.providerVideoId()).isEqualTo("youtube-video-123");
-		assertThat(descriptor.signedUrl()).isNull();
-		assertThat(descriptor.allowDownload()).isFalse();
+		assertThat(start.channel()).isEqualTo(LaunchChannel.NATIVE);
+		assertThat(start.descriptor()).isNull();
+		assertThat(start.sessionId()).isEqualTo(sessionId);
+		assertThat(start.launch().url()).doesNotContain("youtube-video-123");
+	}
+
+	@Test
+	void aYoutubeLessonIsRefusedWhileTheNativePlayerIsSwitchedOff() {
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "STUDENT", UUID.randomUUID()));
+		when(materialLookupApi.resolveLessonMediaForPlayback(MATERIAL_ID)).thenReturn(Optional.of(context(MaterialVisibility.VISIBLE)));
+		when(videoAccessApi.getDetails(ASSET_ID, TENANT_ID)).thenReturn(Optional.of(
+				new VideoAssetDetails(ASSET_ID, "READY", "YOUTUBE", "Lesson", 120, null, "youtube-video-123", null)));
+		when(featureFlags.isPlaybackModeEnabled(com.lms.videoaccessmanagement.domain.PlaybackMode.YOUTUBE_STANDARD))
+				.thenReturn(true);
+		when(featureFlags.isNativePlayer()).thenReturn(false);
+
+		assertThatThrownBy(() -> service.authorize(MATERIAL_ID)).isInstanceOf(PlayerRequestException.class)
+			.hasFieldOrPropertyWithValue("errorCode", "NATIVE_PLAYER_UNAVAILABLE");
+		verifyNoInteractions(nativeLaunchService);
 	}
 
 	@Test

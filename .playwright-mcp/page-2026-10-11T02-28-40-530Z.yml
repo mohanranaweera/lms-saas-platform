@@ -1,0 +1,160 @@
+- generic [active] [ref=f14e1]:
+  - generic [ref=f14e3]:
+    - banner [ref=f14e4]:
+      - generic [ref=f14e5]:
+        - link "DynTube Docs" [ref=f14e7] [cursor=pointer]:
+          - /url: /
+          - img "DynTube" [ref=f14e8]
+          - generic [ref=f14e17]: Docs
+        - generic [ref=f14e19]:
+          - textbox "Search documentation..." [ref=f14e23]
+          - generic [ref=f14e24]: ⌘K
+        - generic [ref=f14e25]:
+          - link "API" [ref=f14e26] [cursor=pointer]:
+            - /url: /dev
+          - link "Dashboard" [ref=f14e31] [cursor=pointer]:
+            - /url: https://app.dyntube.com
+          - button "Switch to dark mode" [ref=f14e37] [cursor=pointer]
+    - generic [ref=f14e41]:
+      - complementary [ref=f14e42]:
+        - navigation [ref=f14e43]:
+          - generic [ref=f14e44]: Documentation
+          - link "Welcome to our Help Center" [ref=f14e49] [cursor=pointer]:
+            - /url: /docs
+          - button "Videos" [ref=f14e51] [cursor=pointer]
+          - button "Security" [ref=f14e56] [cursor=pointer]
+          - button "Channels" [ref=f14e61] [cursor=pointer]
+          - button "Projects" [ref=f14e66] [cursor=pointer]
+          - button "AI Features" [ref=f14e71] [cursor=pointer]
+          - button "TV Apps" [ref=f14e76] [cursor=pointer]
+          - button "Account" [ref=f14e81] [cursor=pointer]
+          - button "FAQs" [ref=f14e86] [cursor=pointer]
+          - generic [ref=f14e90]:
+            - button "Tips & Tricks" [ref=f14e91] [cursor=pointer]
+            - list [ref=f14e95]:
+              - listitem [ref=f14e96]:
+                - link "Embed Videos Using the New Video Player" [ref=f14e97] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+              - listitem [ref=f14e98]:
+                - link "How to Make a Rounded Big Play Button" [ref=f14e99] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-make-rounded-big-play-button
+              - listitem [ref=f14e100]:
+                - link "How to Embed DynTube Videos in LearnDash" [ref=f14e101] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-learndash
+              - listitem [ref=f14e102]:
+                - link "How to Embed DynTube Videos in Patreon" [ref=f14e103] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-patreon
+              - listitem [ref=f14e104]:
+                - link "How to Embed DynTube Video Channel in WordPress/LearnDash" [ref=f14e105] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-video-channel-in-wordpress-learndash
+              - listitem [ref=f14e106]:
+                - link "How to Add Dynamic Watermark to the Video Player" [ref=f14e107] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-add-dynamic-watermark-to-the-video-player
+              - listitem [ref=f14e108]:
+                - link "Control Video Player Using URL Parameters" [ref=f14e109] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/control-video-player-using-url
+              - listitem [ref=f14e110]:
+                - link "How to Use Your Own Videos as Ads" [ref=f14e111] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-use-your-own-videos-as-ads
+              - listitem [ref=f14e112]:
+                - link "How to Embed DynTube Player in Next.js" [ref=f14e113] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-player-in-next.js
+              - listitem [ref=f14e114]:
+                - link "How to Embed DynTube Player in React" [ref=f14e115] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-the-dyntube-player-in-react
+              - listitem [ref=f14e116]:
+                - link "How to Embed Videos & Channels Dynamically" [ref=f14e117] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-videos-and-channels-dynamically
+          - generic [ref=f14e118]:
+            - link "GitHub Samples" [ref=f14e119] [cursor=pointer]:
+              - /url: https://github.com/nicearma/dyntube-samples
+            - link "Support" [ref=f14e125] [cursor=pointer]:
+              - /url: /contact
+      - main [ref=f14e126]:
+        - navigation [ref=f14e128]:
+          - link "Home" [ref=f14e129] [cursor=pointer]:
+            - /url: /
+          - link "Docs" [ref=f14e132] [cursor=pointer]:
+            - /url: /docs
+          - link "Tips and tricks" [ref=f14e135] [cursor=pointer]:
+            - /url: /docs/tips-and-tricks
+          - generic [ref=f14e138]: Control video player using url
+        - generic [ref=f14e140]:
+          - heading "Control Video Player Using URL Parameters" [level=1] [ref=f14e141]
+          - paragraph [ref=f14e142]: You can control video player behavior by adding query parameters to the video URL. This allows you to customize playback without modifying embed code.
+          - heading "Examples" [level=2] [ref=f14e143]
+          - heading "Video Starts at 9 Seconds and Ends at 12" [level=3] [ref=f14e144]
+          - generic [ref=f14e147]:
+            - generic [ref=f14e148]: "1"
+            - generic [ref=f14e149]: https://play.dyntube.io/videos/4w4tiWQzUO7xuaS1LiGSA?muted=false&autoplay=true&start=9&end=12&loop=true&volume=10
+          - heading "Video Auto-plays Muted with Hidden Controls" [level=3] [ref=f14e150]
+          - generic [ref=f14e153]:
+            - generic [ref=f14e154]: "1"
+            - generic [ref=f14e155]: https://play.dyntube.io/videos/4w4tiWQzUO7xuaS1LiGSA?muted=true&autoplay=true&start=9&end=12&loop=true&controls=hidden
+          - heading "Available Parameters" [level=2] [ref=f14e156]
+          - table [ref=f14e158]:
+            - rowgroup [ref=f14e159]:
+              - row [ref=f14e160]:
+                - columnheader "Parameter" [ref=f14e161]
+                - columnheader "Type" [ref=f14e162]
+                - columnheader "Description" [ref=f14e163]
+            - rowgroup [ref=f14e164]:
+              - row [ref=f14e165]:
+                - cell "muted" [ref=f14e166]
+                - cell "Boolean" [ref=f14e167]
+                - cell "Whether the video should be muted" [ref=f14e168]
+              - row [ref=f14e169]:
+                - cell "autoplay" [ref=f14e170]
+                - cell "Boolean" [ref=f14e171]
+                - cell [ref=f14e172]:
+                  - text: Auto-play the video. Most browsers require
+                  - code [ref=f14e173]: muted=true
+                  - text: for autoplay to work
+              - row [ref=f14e174]:
+                - cell "start" [ref=f14e175]
+                - cell "Float" [ref=f14e176]
+                - cell "Timestamp in seconds where playback begins" [ref=f14e177]
+              - row [ref=f14e178]:
+                - cell "end" [ref=f14e179]
+                - cell "Float" [ref=f14e180]
+                - cell "Timestamp in seconds where playback ends" [ref=f14e181]
+              - row [ref=f14e182]:
+                - cell "loop" [ref=f14e183]
+                - cell "Boolean" [ref=f14e184]
+                - cell "Restart the video when it ends" [ref=f14e185]
+              - row [ref=f14e186]:
+                - cell "controls" [ref=f14e187]
+                - cell "String" [ref=f14e188]
+                - cell [ref=f14e189]:
+                  - text: Set to
+                  - code [ref=f14e190]: hidden
+                  - text: to hide player controls
+              - row [ref=f14e191]:
+                - cell "volume" [ref=f14e192]
+                - cell "Number" [ref=f14e193]
+                - cell "Volume level from 1 to 10" [ref=f14e194]
+          - heading "Before You Start" [level=2] [ref=f14e195]
+          - paragraph [ref=f14e196]: These guides assume you already have a published DynTube video or channel and can access its embed code from the dashboard.
+          - heading "Related Articles" [level=2] [ref=f14e197]
+          - list [ref=f14e198]:
+            - listitem [ref=f14e199]:
+              - link "How to Upload & Embed Videos" [ref=f14e200] [cursor=pointer]:
+                - /url: /docs/videos/how-to-upload-and-embed-videos
+            - listitem [ref=f14e201]:
+              - link "Embed Videos Using the New Video Player" [ref=f14e202] [cursor=pointer]:
+                - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+            - listitem [ref=f14e203]:
+              - link "Developer Resources" [ref=f14e204] [cursor=pointer]:
+                - /url: /dev/developer-resources
+        - generic [ref=f14e205]:
+          - generic [ref=f14e207]:
+            - generic [ref=f14e208]: © 2026 DynTube. All rights reserved.
+            - generic [ref=f14e209]:
+              - link "Terms" [ref=f14e210] [cursor=pointer]:
+                - /url: /legal/terms
+              - link "Privacy" [ref=f14e211] [cursor=pointer]:
+                - /url: /legal/privacy
+              - link "Contact" [ref=f14e212] [cursor=pointer]:
+                - /url: /contact
+          - text: DYNTUBE
+  - alert [ref=f14e213]

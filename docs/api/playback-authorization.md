@@ -23,6 +23,12 @@ The server resolves tenant, LessonMedia, lesson/course ownership, enrollment/pay
 visibility, availability window, asset status, provider integration state, and the platform playback
 flag. Tenant and role are never accepted from the request body.
 
+> **Since 2026-10-11 (ADR-025 Amendment 3):** YouTube LessonMedia always answers
+> `channel: "NATIVE"` with a `launch`, even when the institute doesn't require the AOC Player. A
+> browser never receives the YouTube video id. With the platform's native-player flag off, the
+> answer is `409 NATIVE_PLAYER_UNAVAILABLE`. The WEB YouTube descriptor below is no longer issued;
+> it's kept here for history.
+
 Success (`201`). Phase 8 added `channel` (`WEB` | `NATIVE`) and `launch`. WEB:
 
 ```json

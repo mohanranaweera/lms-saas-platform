@@ -12,11 +12,14 @@ import org.springframework.stereotype.Component;
  * the tenant video configuration (Phase 3), and a platform switch that is off
  * always wins.
  *
- * <p>{@code youtube-custom-playback}, {@code managed-stream-playback} and
- * {@code self-hosted-playback} are <b>locked</b>: no implementation (and, for
- * YouTube custom playback, no authorized provider arrangement) exists, so
- * enabling one fails application startup instead of silently doing nothing.
- * Unlock each only in the phase/ADR that ships it.
+ * <p>{@code youtube-custom-playback} and {@code self-hosted-playback} are
+ * <b>locked</b>: no implementation (and, for YouTube custom playback, no
+ * authorized provider arrangement) exists, so enabling one fails application
+ * startup instead of silently doing nothing. Unlock each only in the
+ * phase/ADR that ships it. {@code managed-stream-playback} was unlocked in
+ * Phase 13 (ADR-026, DynTube); it and {@code dyntube-upload} default to off,
+ * and must stay off in real environments until the DynTube project refuses
+ * untokenized playback (ADR-026 consequence 1).
  */
 @Component
 @ConfigurationProperties(prefix = "video.features")
@@ -29,6 +32,8 @@ public class VideoFeatureFlags {
 	private boolean youtubeCustomPlayback;
 
 	private boolean managedStreamPlayback;
+
+	private boolean dyntubeUpload;
 
 	private boolean selfHostedPlayback;
 
@@ -43,10 +48,6 @@ public class VideoFeatureFlags {
 		if (youtubeCustomPlayback) {
 			throw new IllegalStateException("video.features.youtube-custom-playback cannot be enabled: "
 					+ "it requires an authorized provider arrangement and an approved ADR (VID-ADR-010)");
-		}
-		if (managedStreamPlayback) {
-			throw new IllegalStateException(
-					"video.features.managed-stream-playback cannot be enabled before Phase 13 ships a provider");
 		}
 		if (selfHostedPlayback) {
 			throw new IllegalStateException(
@@ -95,6 +96,14 @@ public class VideoFeatureFlags {
 
 	public void setManagedStreamPlayback(boolean managedStreamPlayback) {
 		this.managedStreamPlayback = managedStreamPlayback;
+	}
+
+	public boolean isDyntubeUpload() {
+		return dyntubeUpload;
+	}
+
+	public void setDyntubeUpload(boolean dyntubeUpload) {
+		this.dyntubeUpload = dyntubeUpload;
 	}
 
 	public boolean isSelfHostedPlayback() {

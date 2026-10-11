@@ -8,10 +8,8 @@ import com.lms.enrollmentmanagement.api.AccessPolicyApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.videoaccessmanagement.config.VideoFeatureFlags;
 import com.lms.videoaccessmanagement.domain.LaunchChannel;
-import com.lms.videoaccessmanagement.domain.MediaAssetProvider;
 import com.lms.videoaccessmanagement.domain.TenantVideoSettings;
 import com.lms.videoaccessmanagement.service.player.NativeLaunchService;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -22,20 +20,19 @@ import org.springframework.stereotype.Service;
  * NATIVE). One playability rule ({@link LessonMediaPlayability}) for both.
  *
  * <ul>
- * <li>Tenant does not require the native player: WEB. YouTube gets a
- * descriptor with the provider video id; INTERNAL stays on the legacy
+ * <li>YouTube always plays in the native player (ADR-025 Amendment 3): a
+ * PENDING_LAUNCH session and a one-time {@code aocplayer://play} link. The
+ * browser never receives the provider video id.</li>
+ * <li>Otherwise, tenant requires it (Q-009) and the platform flag is on:
+ * NATIVE as above, for INTERNAL and managed media alike.</li>
+ * <li>Tenant does not require it: INTERNAL stays on the legacy
  * {@code /api/v1/videos} signed-URL endpoint (409 here).</li>
- * <li>Tenant requires it (Q-009) and the platform flag is on: NATIVE - a
- * PENDING_LAUNCH session and a one-time {@code aocplayer://play} link, for
- * YouTube and INTERNAL alike. Never a WEB descriptor.</li>
- * <li>Tenant requires it but the platform switched the player off: refused
+ * <li>The native player is needed but the platform switched it off: refused
  * (ADR-025 Amendment 1 item 3), never downgraded to WEB.</li>
  * </ul>
  */
 @Service
 public class PlaybackAuthorizationService {
-
-	private static final Duration WEB_DESCRIPTOR_TTL = Duration.ofMinutes(5);
 
 	private static final String STUDENT_ROLE = "STUDENT";
 
@@ -81,19 +78,19 @@ public class PlaybackAuthorizationService {
 		// Phase 12: nothing starts once this Student's watch time is used up.
 		watchTimeService.requireRemaining(playable.asset().id(), AuthenticatedPrincipalHolder.get().userId());
 
-		if (settings.nativePlayerRequired()) {
+		// YouTube lessons play only in the AOC Player (ADR-025 Amendment 3): a browser
+		// would hand the Student the video id and YouTube's own links to the video.
+		// DynTube lessons too (ADR-026 Amendment 1): its player runs in our bridge there.
+		if (playable.playsOnlyInAocPlayer() && !featureFlags.isNativePlayer()) {
+			throw new PlayerRequestException(HttpStatus.CONFLICT, ApiErrorCodes.NATIVE_PLAYER_UNAVAILABLE,
+					"The AOC Player isn't available right now.");
+		}
+		if (settings.nativePlayerRequired() || playable.playsOnlyInAocPlayer()) {
 			NativeLaunchService.NativeLaunch launch = nativeLaunchService.start(playable.material().materialId(),
 					playable.asset().id(), settings.launchCodeTtlSeconds());
 			return new PlaybackStart(LaunchChannel.NATIVE, launch.sessionId(), launch.expiresAt(), null, launch);
 		}
-		if (!playable.isYouTube()) {
-			throw new ConflictException("Internal WEB playback remains on the legacy video endpoint.");
-		}
-		Instant expiresAt = Instant.now().plus(WEB_DESCRIPTOR_TTL);
-		PlaybackDescriptor descriptor = new PlaybackDescriptor(null, MediaAssetProvider.YOUTUBE,
-				playable.asset().providerAssetId(), null, expiresAt, playable.asset().title(),
-				playable.asset().durationSeconds(), null, true, false);
-		return new PlaybackStart(LaunchChannel.WEB, null, expiresAt, descriptor, null);
+		throw new ConflictException("Internal WEB playback remains on the legacy video endpoint.");
 	}
 
 }

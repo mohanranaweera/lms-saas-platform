@@ -47,7 +47,8 @@ public class MediaIntegrationProperties {
 	private final OAuthProvider vimeo = new OAuthProvider("https://api.vimeo.com", "https://api.vimeo.com",
 			"https://api.vimeo.com");
 
-	private final ApiProvider dyntube = new ApiProvider("https://api.dyntube.com/v1");
+	private final DynTubeProvider dyntube = new DynTubeProvider("https://api.dyntube.com/v1",
+			"https://upload.dyntube.com/v1");
 
 	private final BunnyProvider bunny = new BunnyProvider("https://video.bunnycdn.com", "https://api.bunny.net");
 
@@ -98,7 +99,7 @@ public class MediaIntegrationProperties {
 		return vimeo;
 	}
 
-	public ApiProvider getDyntube() {
+	public DynTubeProvider getDyntube() {
 		return dyntube;
 	}
 
@@ -199,6 +200,30 @@ public class MediaIntegrationProperties {
 
 		public void setApiBaseUrl(String apiBaseUrl) {
 			this.apiBaseUrl = apiBaseUrl;
+		}
+
+	}
+
+	/**
+	 * DynTube (VIDEO Phase 13, ADR-026): {@code api-base-url} is the
+	 * management API (also the host of tokenized playlists), {@code
+	 * upload-base-url} the separate binary upload host.
+	 */
+	public static class DynTubeProvider extends ApiProvider {
+
+		private String uploadBaseUrl;
+
+		DynTubeProvider(String apiBaseUrl, String uploadBaseUrl) {
+			super(apiBaseUrl);
+			this.uploadBaseUrl = uploadBaseUrl;
+		}
+
+		public String getUploadBaseUrl() {
+			return uploadBaseUrl;
+		}
+
+		public void setUploadBaseUrl(String uploadBaseUrl) {
+			this.uploadBaseUrl = uploadBaseUrl;
 		}
 
 	}

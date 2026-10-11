@@ -56,6 +56,14 @@ public class VideoAsset extends Auditable implements TenantOwned {
 	@Column(name = "thumbnail_url")
 	private String thumbnailUrl;
 
+	/** VIDEO Phase 13: DynTube's playback key (V81); never returned by an API. */
+	@Column(name = "provider_playback_key", length = 64)
+	private String providerPlaybackKey;
+
+	/** VIDEO Phase 13c: DynTube's player embed key (V83, ADR-026 Amendment 1). */
+	@Column(name = "provider_embed_key", length = 64)
+	private String providerEmbedKey;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "privacy_status")
 	private MediaPrivacyStatus privacyStatus;
@@ -217,6 +225,48 @@ public class VideoAsset extends Auditable implements TenantOwned {
 	}
 
 	/** A final status from the provider: stop syncing and keep its metadata. */
+	/**
+	 * VIDEO Phase 13: stores the managed-stream playback key the provider
+	 * gave once the video was published. Only for DynTube assets; the key
+	 * must be URL-safe (it goes into a URL path).
+	 */
+	public void assignPlaybackKey(String playbackKey) {
+		if (provider != MediaAssetProvider.DYNTUBE) {
+			throw new IllegalStateException("Only managed-stream assets have a playback key");
+		}
+		if (playbackKey == null || !playbackKey.matches("^[A-Za-z0-9_-]{6,64}$")) {
+			throw new IllegalArgumentException("Invalid playback key");
+		}
+		this.providerPlaybackKey = playbackKey;
+	}
+
+	public String getProviderPlaybackKey() {
+		return providerPlaybackKey;
+	}
+
+	/**
+	 * VIDEO Phase 13c: stores DynTube's JS-embed key ({@code channelKey}).
+	 * Only for DynTube assets; URL-safe charset (V83 CHECKs).
+	 */
+	public void assignEmbedKey(String embedKey) {
+		if (provider != MediaAssetProvider.DYNTUBE) {
+			throw new IllegalStateException("Only DynTube assets have an embed key");
+		}
+		if (embedKey == null || !embedKey.matches("^[A-Za-z0-9_-]{6,64}$")) {
+			throw new IllegalArgumentException("Invalid embed key");
+		}
+		this.providerEmbedKey = embedKey;
+	}
+
+	public String getProviderEmbedKey() {
+		return providerEmbedKey;
+	}
+
+	/** A READY DynTube asset still waiting for its embed key (V83 backfill). */
+	public boolean needsEmbedKey() {
+		return provider == MediaAssetProvider.DYNTUBE && status == VideoAssetStatus.READY && providerEmbedKey == null;
+	}
+
 	public void recordFinalSync(Instant checkedAt, Integer durationSeconds, String thumbnailUrl) {
 		this.lastSyncedAt = checkedAt;
 		this.nextSyncAt = null;

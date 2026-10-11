@@ -367,12 +367,23 @@ public class MaterialService {
 				ownership.moduleId(), ownership.courseId(), material.getTitle(), material.getMimeType(),
 				material.getStorageObjectKey(), material.getUploadedBy(), deletedBy, Instant.now());
 
-		materialRepository.delete(material);
+		if (material.isVideo()) {
+			// Played videos are referenced by video_watch_session (V77 FK) - take
+			// the video off the lesson but keep the row and its history (V82).
+			material.markRemoved(deletedBy, event.deletedAt());
+		}
+		else {
+			materialRepository.delete(material);
+		}
 		eventPublisher.publishEvent(event);
 	}
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void onMaterialDeleted(MaterialDeletedEvent event) {
+		if (event.storageObjectKey() == null) {
+			// Videos/links/notes have no stored object to delete.
+			return;
+		}
 		try {
 			objectStorageApi.delete(event.storageObjectKey());
 		}

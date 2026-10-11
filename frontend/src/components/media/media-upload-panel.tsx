@@ -36,7 +36,7 @@ const selectClass =
 const EMPTY: MediaUploadFormValues = { title: "", description: "", privacyStatus: "UNLISTED", file: null };
 
 /** Why uploading is not possible right now, from the server's limits (or null). */
-function blockedReason(limits: MediaUploadLimits): string | null {
+function blockedReason(limits: MediaUploadLimits, host: "YouTube" | "DynTube"): string | null {
   if (!limits.canUpload) {
     return limits.notAllowedReason ?? "Your institute hasn't given you access to upload videos. Ask your institute admin.";
   }
@@ -46,8 +46,12 @@ function blockedReason(limits: MediaUploadLimits): string | null {
       ? "Video uploads aren't enabled on this platform yet. Contact platform support."
       : "Video uploads are switched off for your institute.";
   }
-  if (limits.channel === "NOT_CONNECTED") return "Your institute hasn't connected a YouTube channel yet.";
-  if (limits.channel === "EXPIRED") return "YouTube needs to be reconnected before videos can be uploaded.";
+  if (limits.channel === "NOT_CONNECTED") {
+    return host === "DynTube"
+      ? "Your institute hasn't finished setting up DynTube yet."
+      : "Your institute hasn't connected a YouTube channel yet.";
+  }
+  if (limits.channel === "EXPIRED") return `${host} needs to be reconnected before videos can be uploaded.`;
   if (limits.channel === "DISABLED") return "Video uploads were switched off by the platform for your institute.";
   if (limits.usedToday >= limits.dailyLimit) {
     return `Your institute has used today's ${limits.dailyLimit} uploads. Try again tomorrow.`;
@@ -55,27 +59,34 @@ function blockedReason(limits: MediaUploadLimits): string | null {
   return null;
 }
 
+/** Where an upload goes: a YouTube integration (tab) or the institute's DynTube account (VIDEO Phase 13). */
+export type UploadDestination =
+  | { kind: "youtube"; integrationId: string; name: string }
+  | { kind: "dyntube" };
+
 /**
- * Upload a video to the institute's YouTube channel (VIDEO Phases 4-5). The
- * file goes from this browser straight to temporary storage in parts; the
- * server checks it and sends it on to YouTube in the background, so the page
- * can be closed once "Upload received" shows. Every rule (type, size, daily
- * limit, who may upload) is enforced again by the server.
+ * Upload a video to the institute's YouTube channel (VIDEO Phases 4-5) or,
+ * from Phase 13, its DynTube account. The file goes from this browser straight
+ * to temporary storage in parts; the server checks it and sends it on in the
+ * background, so the page can be closed once "Upload received" shows. Every
+ * rule (type, size, daily limit, who may upload) is enforced again by the
+ * server.
  */
 export function MediaUploadPanel({
-  integrationId,
-  integrationName,
+  destination,
   settingsHref,
   onClose,
 }: {
-  /** VIDEO Phase 5d: the YouTube integration (selected tab) the video is uploaded to. */
-  integrationId: string;
-  integrationName: string;
-  /** Where the YouTube channel is managed, shown to those who may manage it. */
+  destination: UploadDestination;
+  /** Where the channel / account is managed, shown to those who may manage it. */
   settingsHref?: string;
   onClose: () => void;
 }) {
-  const limitsQuery = useMediaUploadLimits(integrationId);
+  const limitsQuery = useMediaUploadLimits(
+    destination.kind === "youtube" ? destination.integrationId : null,
+    true,
+    destination.kind === "dyntube" ? "DYNTUBE" : undefined
+  );
 
   if (limitsQuery.isPending) {
     return (
@@ -96,25 +107,17 @@ export function MediaUploadPanel({
     );
   }
   return (
-    <UploadForm
-      limits={limitsQuery.data}
-      integrationId={integrationId}
-      integrationName={integrationName}
-      settingsHref={settingsHref}
-      onClose={onClose}
-    />
+    <UploadForm limits={limitsQuery.data} destination={destination} settingsHref={settingsHref} onClose={onClose} />
   );
 }
 
 function UploadForm({
   limits,
-  integrationId,
-  integrationName,
+  destination,
   settingsHref,
   onClose,
 }: {
-  integrationId: string;
-  integrationName: string;
+  destination: UploadDestination;
   limits: MediaUploadLimits;
   settingsHref?: string;
   onClose: () => void;
@@ -139,7 +142,8 @@ function UploadForm({
   const assetIdRef = useRef<string | null>(null);
 
   const busy = phase.kind === "uploading" || phase.kind === "finishing";
-  const blocked = blockedReason(limits);
+  const host = destination.kind === "dyntube" ? "DynTube" : "YouTube";
+  const blocked = blockedReason(limits, host);
   const disabled = busy || Boolean(blocked);
 
   useEffect(() => {
@@ -171,10 +175,11 @@ function UploadForm({
     setPhase({ kind: "uploading", sent: 0, total: file.size });
     try {
       const started = await api.start({
-        integrationId,
+        ...(destination.kind === "youtube"
+          ? { integrationId: destination.integrationId, privacyStatus: values.privacyStatus }
+          : { provider: "DYNTUBE" as const }),
         title: values.title.trim(),
         description: values.description.trim() || undefined,
-        privacyStatus: values.privacyStatus,
         fileName: file.name,
         mimeType: file.type,
         sizeBytes: file.size,
@@ -228,7 +233,7 @@ function UploadForm({
         <Alert role="status">
           <CheckCircle2 aria-hidden="true" />
           <AlertDescription>
-            Upload received. &ldquo;{phase.asset.title}&rdquo; is being sent to YouTube. You can leave this page; its
+            Upload received. &ldquo;{phase.asset.title}&rdquo; is being sent to {host}. You can leave this page; its
             status updates in the library.
           </AlertDescription>
         </Alert>
@@ -261,7 +266,9 @@ function UploadForm({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-base font-medium text-foreground">Upload a video</h2>
-          <p className="text-sm text-muted-foreground">To YouTube · {integrationName}</p>
+          <p className="text-sm text-muted-foreground">
+            {destination.kind === "youtube" ? `To YouTube · ${destination.name}` : "To DynTube"}
+          </p>
         </div>
         <p className="text-sm text-muted-foreground">
           {limits.usedToday} of {limits.dailyLimit} uploads used today · up to {formatBytes(limits.maxFileSizeBytes)}
@@ -275,7 +282,7 @@ function UploadForm({
             {blocked}{" "}
             {settingsHref && (limits.channel === "NOT_CONNECTED" || limits.channel === "EXPIRED") ? (
               <Link href={settingsHref} className="font-medium underline">
-                Open video providers
+                {destination.kind === "dyntube" ? "Open integrations" : "Open video providers"}
               </Link>
             ) : null}
           </AlertDescription>
@@ -316,6 +323,7 @@ function UploadForm({
         ) : null}
       </div>
 
+      {destination.kind === "youtube" ? (
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={ids.privacy}>Visibility on YouTube</Label>
         <select
@@ -332,6 +340,12 @@ function UploadForm({
           Students watch through the LMS. An unlisted video can still be opened on YouTube by anyone who has its link.
         </p>
       </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Students watch through the LMS with short-lived signed links. DynTube processes the video before it can be
+          added to a lesson.
+        </p>
+      )}
 
       <Controller
         control={control}

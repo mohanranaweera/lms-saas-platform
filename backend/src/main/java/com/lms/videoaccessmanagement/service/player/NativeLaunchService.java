@@ -7,8 +7,8 @@ import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DeviceAccessApi;
-import com.lms.integrationmanagement.api.ObjectStorageApi;
-import com.lms.integrationmanagement.api.SignedDownloadUrl;
+import com.lms.videoaccessmanagement.service.PlaybackMediaSigner;
+import com.lms.videoaccessmanagement.service.PlaybackMediaSigner.SignedMedia;
 import com.lms.videoaccessmanagement.config.PlayerProperties;
 import com.lms.videoaccessmanagement.domain.LaunchChannel;
 import com.lms.videoaccessmanagement.domain.PlaybackLaunchCode;
@@ -61,7 +61,7 @@ public class NativeLaunchService {
 
 	private final VideoAssetRepository videoAssets;
 
-	private final ObjectStorageApi objectStorageApi;
+	private final PlaybackMediaSigner mediaSigner;
 
 	private final PlayerInstallationRepository installations;
 
@@ -71,7 +71,7 @@ public class NativeLaunchService {
 
 	public NativeLaunchService(VideoWatchSessionRepository sessions, PlaybackLaunchCodeRepository launchCodes,
 			PlayerSessionRevoker revoker, PlayerCodes codes, DeviceAccessApi deviceAccessApi,
-			TenantContext tenantContext, VideoAssetRepository videoAssets, ObjectStorageApi objectStorageApi,
+			TenantContext tenantContext, VideoAssetRepository videoAssets, PlaybackMediaSigner mediaSigner,
 			PlayerInstallationRepository installations, PlayerPairingCodeRepository pairingCodes,
 			PlayerProperties properties) {
 		this.installations = installations;
@@ -84,7 +84,7 @@ public class NativeLaunchService {
 		this.deviceAccessApi = deviceAccessApi;
 		this.tenantContext = tenantContext;
 		this.videoAssets = videoAssets;
-		this.objectStorageApi = objectStorageApi;
+		this.mediaSigner = mediaSigner;
 	}
 
 	public record NativeLaunch(UUID sessionId, String url, Instant expiresAt) {
@@ -134,13 +134,14 @@ public class NativeLaunchService {
 	}
 
 	/**
-	 * A short-lived signed URL for a platform-storage (INTERNAL) asset, for the
-	 * AOC Player. Presigning is a local signature, not a network call.
+	 * A short-lived signed media URL for the AOC Player: a presigned object
+	 * URL for platform storage, a tokenized HLS playlist for DynTube (VIDEO
+	 * Phase 13). Both are local signatures, not network calls.
 	 */
-	public SignedDownloadUrl signInternalMedia(UUID videoAssetId) {
+	public SignedMedia signMedia(UUID videoAssetId) {
 		VideoAsset asset = videoAssets.findById(videoAssetId)
 			.orElseThrow(() -> new NotFoundException("Lesson media not found"));
-		return objectStorageApi.generateSignedDownloadUrl(asset.getStorageObjectKey(), INTERNAL_MEDIA_URL_TTL);
+		return mediaSigner.sign(asset, INTERNAL_MEDIA_URL_TTL);
 	}
 
 	/** The ACTIVE ADR-022 device behind the caller's browser session (409 when there is none). */

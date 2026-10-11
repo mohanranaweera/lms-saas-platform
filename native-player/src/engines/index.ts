@@ -1,4 +1,6 @@
+import { embedEngine } from "./embed";
 import { fileEngine } from "./file";
+import { hlsEngine } from "./hls";
 import type { Engine, EngineError, Media, PlaybackReport } from "./types";
 import { youtubeEngine } from "./youtube";
 
@@ -17,9 +19,13 @@ export function createEngine(
 ): Engine {
   switch (media.engine) {
     case "youtube":
-      return youtubeEngine(stage, media.videoId, title, onError, onPlayback);
+      return youtubeEngine(stage, media, title, onError, onPlayback);
     case "file":
       return fileEngine(stage, media, title, onError, onPlayback);
+    case "hls":
+      return hlsEngine(stage, media, title, onError, onPlayback);
+    case "embed":
+      return embedEngine(stage, media, title, onError, onPlayback);
     case "unsupported":
       onError("This video can't be played in the AOC Player.");
       stage.replaceChildren();

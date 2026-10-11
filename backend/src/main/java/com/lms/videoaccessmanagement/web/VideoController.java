@@ -141,7 +141,10 @@ public class VideoController {
 	private static PlaybackSessionResponse toSessionResponse(PlaybackSessionView view) {
 		return new PlaybackSessionResponse(view.watchSessionId(), view.playbackToken(), view.signedUrl(),
 				view.expiresAt(), view.watermarkText(), view.allowSeeking(), view.allowDownload(),
-					view.heartbeatIntervalSeconds(), view.resumePositionSeconds(), view.remainingWatchSeconds());
+					view.heartbeatIntervalSeconds(), view.resumePositionSeconds(), view.remainingWatchSeconds(),
+				view.mediaFormat(), view.embed() == null ? null
+						: new PlaybackSessionResponse.EmbedResponse(view.embed().provider(), view.embed().key(),
+								view.embed().bridgeUrl()));
 	}
 
 }

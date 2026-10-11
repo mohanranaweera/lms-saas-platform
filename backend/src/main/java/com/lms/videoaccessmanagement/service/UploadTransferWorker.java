@@ -27,8 +27,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Streams one staged upload to YouTube (VIDEO Phase 4, plan §13). This is
- * the ONLY code allowed to move video bytes through the JVM (VID-ADR-004,
+ * Streams one staged upload to the video provider - YouTube (VIDEO Phase 4,
+ * plan §13) or, as one whole-file request, DynTube (Phase 13, ADR-026). This
+ * is the ONLY code allowed to move video bytes through the JVM (VID-ADR-004,
  * the B2 exception to architecture.md): it runs on the upload executor or a
  * test thread - never a request thread - reads the staging object in ranged
  * GETs into one reusable buffer of {@code chunk-size-bytes}, and never
@@ -133,6 +134,10 @@ public class UploadTransferWorker {
 
 	private void transfer(ClaimedJob job) {
 		long total = job.bytesTotal();
+		if (!providerUploads.supportsResumableUpload(job.connectionId())) {
+			transferWhole(job, total);
+			return;
+		}
 		String session = job.sessionHandle();
 		long offset;
 		if (session == null) {
@@ -181,6 +186,24 @@ public class UploadTransferWorker {
 			return;
 		}
 		throw new UploadFailure(Kind.RETRYABLE, "YouTube did not confirm the upload. It will be retried.");
+	}
+
+	/**
+	 * VIDEO Phase 13 (ADR-026): providers without resumable uploads
+	 * (DynTube) get the whole staged object as one streamed request - the
+	 * bytes flow from one ranged S3 GET into the request body, never into a
+	 * buffer or onto disk. An interruption retries the whole file.
+	 */
+	private void transferWhole(ClaimedJob job, long total) {
+		if (!store.recordProgress(job.jobId(), 0)) {
+			return;
+		}
+		Complete complete = providerUploads.uploadWhole(job.connectionId(),
+				new UploadMetadata(job.title(), job.description(), job.privacyStatus()), total, job.contentType(),
+				() -> staging.openRange(job.stagingObjectKey(), 0, total - 1));
+		if (store.recordProgress(job.jobId(), total)) {
+			finish(job, complete.providerVideoId());
+		}
 	}
 
 	private void finish(ClaimedJob job, String providerVideoId) {

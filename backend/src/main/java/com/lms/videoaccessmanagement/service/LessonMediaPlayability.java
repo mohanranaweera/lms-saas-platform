@@ -58,6 +58,14 @@ public class LessonMediaPlayability {
 			return "YOUTUBE".equals(asset.provider());
 		}
 
+		/**
+		 * YouTube (ADR-025 Amendment 3) and DynTube (ADR-026 Amendment 1) lessons
+		 * play only in the AOC Player: the web player has no DynTube embed yet.
+		 */
+		public boolean playsOnlyInAocPlayer() {
+			return isYouTube() || "DYNTUBE".equals(asset.provider());
+		}
+
 	}
 
 	/**
@@ -81,6 +89,12 @@ public class LessonMediaPlayability {
 		}
 		if ("YOUTUBE".equals(asset.provider())) {
 			requireYouTubePlayable(asset);
+		}
+		// VIDEO Phase 13 (ADR-026): managed streaming stays off until the platform switches it on.
+		if ("DYNTUBE".equals(asset.provider())
+				&& !featureFlags.isPlaybackModeEnabled(PlaybackMode.MANAGED_STREAM)) {
+			throw new ProviderConflictException(ApiErrorCodes.VIDEO_PLAYBACK_DISABLED,
+					"This video can't be played right now.");
 		}
 		return new Playable(material, asset);
 	}

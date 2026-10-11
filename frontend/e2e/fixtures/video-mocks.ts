@@ -48,6 +48,8 @@ export interface PlaybackSessionRecord {
   watermarkText: string | null;
   allowSeeking: boolean;
   allowDownload: boolean;
+  /** VIDEO Phase 13: `HLS` for a DynTube session; absent = a file URL. */
+  mediaFormat?: "FILE" | "HLS";
 }
 
 export function makePlaybackSession(overrides: Partial<PlaybackSessionRecord> = {}): PlaybackSessionRecord {

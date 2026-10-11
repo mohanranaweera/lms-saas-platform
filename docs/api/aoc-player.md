@@ -60,7 +60,14 @@ A refused attempt does not consume the code. Audited `player.paired`.
 
 Body `{launchCode, playerVersion, platform}` →
 `200 {sessionId, playbackToken, expiresAt, heartbeatIntervalSeconds, descriptor}`.
-`descriptor.provider` is `YOUTUBE` (`providerVideoId`) or `INTERNAL` (`signedUrl`, ~3 min).
+`descriptor.provider` is `YOUTUBE` (`providerVideoId`), `INTERNAL` (`signedUrl`, ~3 min) or, from
+VIDEO Phase 13 (ADR-026), `DYNTUBE` (`signedUrl` = a tokenized HLS master playlist on
+`api.dyntube.com`, ~3 min). The additive `descriptor.mediaFormat` says how to load `signedUrl`:
+`FILE` (one progressive file) or `HLS` (hls.js; variant playlists and segments come from
+`cdn-s*.dyntube.net` with their own CDN signatures). It is `null` for YouTube. A player that does
+not know `HLS` must show its "can't be played here" state, never fall back to anything else.
+Heartbeat `mediaUrl` is a fresh URL of the same format; an HLS engine that has already loaded the
+playlist keeps playing and only uses it to reload after an error.
 The additive `descriptor.watermark` policy is `{enabled, text, opacity, movementIntervalSeconds,
 placement}`. The server builds `text` from the tenant-selected fields using bounded attribution;
 `text` is newline-delimited with one labeled row per selected attribute:
@@ -227,6 +234,25 @@ No endpoint or field changed; the player now uses the exchange `descriptor` and 
   server stays authoritative). An enabled `watermark` with `placement=OVERLAY` moves through bounded
   positions inside the stage at the configured interval. Each `CONTINUE` heartbeat's `mediaUrl` is
   validated the same way and used when the current URL expires; a URL on any other origin is ignored.
+- `provider: DYNTUBE` with `mediaFormat: HLS` (VIDEO Phase 13, ADR-026) → `signedUrl` is played
+  with the `hls` engine (hls.js, no worker) only if it is
+  `https://api.dyntube.com/v1/live/videos/tokens/<key>.m3u8…`: HTTPS, the compiled-in host
+  (`media.rs` `HLS_PLAYLIST_HOSTS`), default port, a 6-64 character URL-safe key, and no
+  credentials or fragment. A `DYNTUBE` descriptor without `mediaFormat: HLS` is refused. The
+  WebView CSP allows only `https://api.dyntube.com` and `https://*.dyntube.net` in `connect-src`,
+  and `blob:` in `media-src` (Media Source Extensions). Same control bar, seek deterrent, overlay
+  watermark and capture protection as `INTERNAL`. A heartbeat `mediaUrl` (validated the same way)
+  is used only to reload after a fatal stream error, never to restart a running stream.
+- `provider: DYNTUBE` with `mediaFormat: EMBED` (VIDEO Phase 13c, ADR-026 Amendment 1; what the
+  server sends today) → `embed.key` (6-64 URL-safe characters) is played with the `embed` engine:
+  DynTube's own player inside the bridge page compiled in as `AOC_EMBED_BRIDGE_URL` (debug default
+  `http://embed.lms.test:3000/embed/dyntube-bridge.html`; a release build without one refuses).
+  `embed.bridgeUrl` from the server is ignored. The frame is cross-origin with
+  `sandbox="allow-scripts allow-same-origin"` (no pop-ups); the key is posted to the bridge's
+  origin once it loads, and only `state` / `error` messages from that origin and window are read
+  (position and PLAYING/PAUSED for heartbeats). DynTube's controls are used; the bridge applies
+  the seek rule. `frame-src` adds the embed origin. The overlay watermark is drawn over the frame.
+  Heartbeat `mediaUrl` is `null` for EMBED.
 - Any other provider, or a reference that fails validation: the player calls `/end` at once and
   shows "this video can't be played here" (`MEDIA_UNAVAILABLE`, player-side only).
 - Deploy note: the player build for an environment must list that environment's storage/CDN

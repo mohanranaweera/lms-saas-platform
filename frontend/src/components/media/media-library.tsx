@@ -2,10 +2,11 @@
 
 import { useDeferredValue, useId, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Film, Link2, UploadCloud } from "lucide-react";
+import { ExternalLink, Film, Info, Link2, UploadCloud } from "lucide-react";
 import {
   useMediaList,
   useMediaTabs,
+  type ManagedHostTab,
   type MediaAsset,
   type MediaProcessingStatus,
   type MediaTab,
@@ -22,6 +23,9 @@ import { MediaStatusBadge } from "./media-status-badge";
 import { MediaUploadPanel } from "./media-upload-panel";
 
 const PAGE_SIZE = 24;
+
+/** VIDEO Phase 13: where a Tenant Admin sets up the DynTube account. */
+const DYNTUBE_SETTINGS_HREF = "/tenant-admin/settings/integrations";
 
 const STATUS_OPTIONS: { value: "" | MediaProcessingStatus; label: string }[] = [
   { value: "", label: "All statuses" },
@@ -131,7 +135,7 @@ function MediaCardBody({ asset }: { asset: MediaAsset }) {
   );
 }
 
-type TabKey = "uploads" | "archived" | `integration:${string}`;
+type TabKey = "uploads" | "archived" | "dyntube" | `integration:${string}`;
 
 /**
  * The Media Library shared by the Tenant Admin and Teacher pages (VIDEO
@@ -172,13 +176,16 @@ export function MediaLibrary({
       >
         {(tabs) => {
           const first = tabs.integrations[0];
-          const active: TabKey = selected ?? (first ? `integration:${first.integrationId}` : "uploads");
+          const managed = tabs.managedHost;
+          const active: TabKey =
+            selected ?? (managed ? "dyntube" : first ? `integration:${first.integrationId}` : "uploads");
           const panel = (key: TabKey) =>
             key === active ? (
               <MediaTabPanel
                 key={key}
                 tabKey={key}
                 tab={tabs.integrations.find((t) => `integration:${t.integrationId}` === key) ?? null}
+                managed={key === "dyntube" ? managed : null}
                 basePath={basePath}
                 dashboardHref={dashboardHref}
                 canUpload={canUpload}
@@ -186,6 +193,19 @@ export function MediaLibrary({
               />
             ) : null;
           const items = [
+            ...(managed
+              ? [
+                  {
+                    value: "dyntube" as TabKey,
+                    label: managed.name,
+                    badge: !managed.connected ? (
+                      <Badge variant="outline" className="text-xs">
+                        Not connected
+                      </Badge>
+                    ) : undefined,
+                  },
+                ]
+              : []),
             ...tabs.integrations.map((tab) => ({
               value: `integration:${tab.integrationId}` as TabKey,
               label: tab.name,
@@ -200,7 +220,7 @@ export function MediaLibrary({
           ].map((item) => ({ ...item, content: panel(item.value) }));
           return (
             <div className="flex flex-col gap-3">
-              {tabs.integrations.length === 0 && settingsHref ? (
+              {tabs.integrations.length === 0 && !managed && settingsHref ? (
                 <p className="text-sm text-muted-foreground">
                   No YouTube integration yet.{" "}
                   <Link href={settingsHref} className="font-medium underline">
@@ -223,10 +243,15 @@ export function MediaLibrary({
   );
 }
 
-/** One tab: its videos with search / status filters, and uploading to it when it is a YouTube integration. */
+/**
+ * One tab: its videos with search / status filters, and uploading to it when
+ * it is a YouTube integration or (VIDEO Phase 13) the institute's DynTube
+ * account.
+ */
 function MediaTabPanel({
   tabKey,
   tab,
+  managed,
   basePath,
   dashboardHref,
   canUpload,
@@ -234,6 +259,7 @@ function MediaTabPanel({
 }: {
   tabKey: TabKey;
   tab: MediaTab | null;
+  managed: ManagedHostTab | null;
   basePath: string;
   dashboardHref: string;
   canUpload: boolean;
@@ -251,11 +277,16 @@ function MediaTabPanel({
     page,
     size: PAGE_SIZE,
     integrationId: tab?.integrationId,
-    provider: tabKey === "uploads" ? "INTERNAL" : undefined,
+    provider: tabKey === "uploads" ? "INTERNAL" : tabKey === "dyntube" ? "DYNTUBE" : undefined,
     archived: tabKey === "archived",
   });
   const filtered = Boolean(deferredSearch.trim() || status);
-  const uploadHere = canUpload && tab !== null;
+  const uploadHere = canUpload && (tab !== null || Boolean(managed?.canUpload));
+  // VIDEO Phase 13: the DynTube tab says why there's no Upload button instead of hiding it silently.
+  const uploadBlockedReason =
+    managed && !uploadHere
+      ? (managed.uploadBlockedReason ?? "You don't have permission to upload videos.")
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -263,7 +294,9 @@ function MediaTabPanel({
         <p className="text-sm text-muted-foreground">
           {tab
             ? `Videos on the "${tab.name}" YouTube channel.`
-            : tabKey === "uploads"
+            : managed
+              ? "Videos hosted on your institute's DynTube account. Students play them through short-lived signed links."
+              : tabKey === "uploads"
               ? "Videos stored in your institute's own storage on this platform. To upload a new video, choose a YouTube tab."
               : "Videos from YouTube integrations that were removed. They stay on YouTube and in the lessons that use them."}
         </p>
@@ -273,14 +306,32 @@ function MediaTabPanel({
             Upload video
           </Button>
         ) : null}
+        {uploadBlockedReason ? (
+          <p
+            role="note"
+            className="flex max-w-md items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+          >
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="font-medium text-foreground">Uploading is unavailable.</span> {uploadBlockedReason}{" "}
+              {settingsHref ? (
+                <Link href={DYNTUBE_SETTINGS_HREF} className="font-medium underline">
+                  Open integrations
+                </Link>
+              ) : null}
+            </span>
+          </p>
+        ) : null}
       </div>
 
-      {uploadHere && showUpload && tab ? (
+      {uploadHere && showUpload ? (
         <div className="max-w-2xl">
           <MediaUploadPanel
-            integrationId={tab.integrationId}
-            integrationName={tab.name}
-            settingsHref={settingsHref}
+            destination={
+              tab ? { kind: "youtube", integrationId: tab.integrationId, name: tab.name } : { kind: "dyntube" }
+            }
+            // DynTube is set up under Settings → Integrations (only shown to those who manage settings).
+            settingsHref={tab ? settingsHref : settingsHref ? DYNTUBE_SETTINGS_HREF : undefined}
             onClose={() => setShowUpload(false)}
           />
         </div>
@@ -340,7 +391,15 @@ function MediaTabPanel({
                   },
                 },
               }
-            : tab
+            : managed
+              ? {
+                  title: "No DynTube videos yet",
+                  description: uploadHere
+                    ? "Upload a lesson video to send it to DynTube."
+                    : "Videos uploaded to DynTube will appear here.",
+                  action: uploadHere ? { label: "Upload video", onClick: () => setShowUpload(true) } : undefined,
+                }
+              : tab
               ? {
                   title: "No videos on this channel yet",
                   description: uploadHere

@@ -594,3 +594,95 @@ test.describe("Media detail", () => {
     await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
   });
 });
+
+test.describe("DynTube (VIDEO Phase 13, ADR-026)", () => {
+  const DYNTUBE_TAB = {
+    provider: "DYNTUBE",
+    name: "DynTube",
+    connected: true,
+    canUpload: true,
+    uploadBlockedReason: null as string | null,
+  };
+
+  test("the DynTube tab lists DynTube videos and an upload goes to DynTube without a channel or privacy", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    const calls = await mockMedia(page, {
+      tabs: { integrations: [], managedHost: DYNTUBE_TAB },
+      list: [],
+      start: startedUpload(1),
+      complete: { status: 202, body: apiSuccess(asset({ provider: "DYNTUBE", processingStatus: "UPLOADING" })) },
+    });
+    await mockStaging(page);
+    const listRequest = page.waitForRequest((r) => /\/v1\/media\?.*provider=DYNTUBE/.test(r.url()));
+    const limitsRequest = page.waitForRequest((r) => /\/v1\/media\/upload-limits\?provider=DYNTUBE/.test(r.url()));
+
+    await page.goto("/teacher/media");
+    await expect(page.getByRole("tab", { name: "DynTube" })).toHaveAttribute("aria-selected", "true");
+    await listRequest;
+    await expect(page.getByText("No DynTube videos yet")).toBeVisible();
+
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await limitsRequest;
+    await expect(uploadForm(page).getByText("To DynTube")).toBeVisible();
+    await expect(page.getByLabel("Visibility on YouTube")).toHaveCount(0);
+    await page.getByLabel("Title").fill("Organic chemistry 1");
+    await chooseVideo(page, 8);
+    await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
+
+    await expect(page.getByText(/is being sent to DynTube/)).toBeVisible();
+    const start = calls.find((c) => c.method === "POST" && c.path === "");
+    expect(start?.body).toEqual({
+      provider: "DYNTUBE",
+      title: "Organic chemistry 1",
+      fileName: "lesson.mp4",
+      mimeType: "video/mp4",
+      sizeBytes: 8,
+    });
+  });
+
+  test("uploading to DynTube is blocked with the reason when the account isn't set up", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN", "admin-1");
+    await mockMedia(page, {
+      tabs: { integrations: [], managedHost: { ...DYNTUBE_TAB, canUpload: true } },
+      list: [],
+      limits: { channel: "NOT_CONNECTED" },
+    });
+
+    await page.goto("/tenant-admin/media");
+    await page.getByRole("button", { name: "Upload video" }).first().click();
+
+    await expect(page.getByText("Your institute hasn't finished setting up DynTube yet.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open integrations" })).toHaveAttribute(
+      "href",
+      "/tenant-admin/settings/integrations"
+    );
+    await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
+  });
+
+  test("the DynTube tab shows the server's reason instead of an Upload button when uploading is unavailable", async ({
+    page,
+  }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    await mockMedia(page, {
+      tabs: {
+        integrations: [],
+        managedHost: {
+          ...DYNTUBE_TAB,
+          canUpload: false,
+          uploadBlockedReason: "No DynTube project is chosen yet. An institute admin can choose one in Settings → Integrations.",
+        },
+      },
+      list: [],
+    });
+
+    await page.goto("/teacher/media");
+
+    await expect(page.getByRole("note")).toContainText("Uploading is unavailable.");
+    await expect(page.getByRole("note")).toContainText("No DynTube project is chosen yet.");
+    await expect(page.getByRole("button", { name: "Upload video" })).toHaveCount(0);
+    // Teachers can't open institute settings, so no link is offered.
+    await expect(page.getByRole("link", { name: "Open integrations" })).toHaveCount(0);
+  });
+});

@@ -34,7 +34,9 @@ public interface VideoAssetRepository extends TenantAwareRepository<VideoAsset, 
 			SELECT id AS "id", tenant_id AS "tenantId", provider_connection_id AS "providerConnectionId",
 			       provider_asset_id AS "providerAssetId"
 			FROM video_asset
-			WHERE status IN ('UPLOADED', 'PROCESSING') AND next_sync_at IS NOT NULL AND next_sync_at <= :now
+			WHERE (status IN ('UPLOADED', 'PROCESSING')
+			       OR (status = 'READY' AND provider = 'DYNTUBE' AND provider_embed_key IS NULL))
+			  AND next_sync_at IS NOT NULL AND next_sync_at <= :now
 			  AND provider_asset_id IS NOT NULL
 			ORDER BY next_sync_at
 			LIMIT :limit

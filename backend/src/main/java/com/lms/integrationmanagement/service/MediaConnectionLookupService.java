@@ -7,6 +7,7 @@ import com.lms.integrationmanagement.domain.ConnectionScope;
 import com.lms.integrationmanagement.domain.MediaProviderConnection;
 import com.lms.integrationmanagement.domain.TenantMediaIntegration;
 import com.lms.integrationmanagement.domain.TenantMediaIntegrationTeacher;
+import com.lms.integrationmanagement.domain.VideoHost;
 import com.lms.integrationmanagement.gateway.media.YouTubeOAuthClient;
 import com.lms.integrationmanagement.repository.MediaProviderConnectionRepository;
 import com.lms.integrationmanagement.repository.TenantMediaIntegrationRepository;
@@ -33,13 +34,16 @@ public class MediaConnectionLookupService implements MediaConnectionApi {
 
 	private final TenantMediaIntegrationTeacherRepository integrationTeachers;
 
+	private final DynTubeStreamService dynTube;
+
 	public MediaConnectionLookupService(MediaProviderConnectionRepository repository,
 			TenantMediaSettingsService settingsService, TenantMediaIntegrationRepository integrations,
-			TenantMediaIntegrationTeacherRepository integrationTeachers) {
+			TenantMediaIntegrationTeacherRepository integrationTeachers, DynTubeStreamService dynTube) {
 		this.repository = repository;
 		this.settingsService = settingsService;
 		this.integrations = integrations;
 		this.integrationTeachers = integrationTeachers;
+		this.dynTube = dynTube;
 	}
 
 	@Override
@@ -81,6 +85,18 @@ public class MediaConnectionLookupService implements MediaConnectionApi {
 		return allowed.isEmpty() || allowed.stream().anyMatch(row -> row.getTeacherUserId().equals(teacherUserId));
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<ManagedHostSummary> findManagedHost(MediaProvider provider) {
+		if (provider != MediaProvider.DYNTUBE) {
+			return Optional.empty();
+		}
+		boolean selected = settingsService.current().getVideoHost() == VideoHost.DYNTUBE;
+		return repository.findCurrentForTenant(MediaProvider.DYNTUBE)
+			.map(connection -> new ManagedHostSummary(connection.getId(), connection.getStatus(), selected,
+					dynTube.projectId(connection).isPresent(), dynTube.tokenSecurityKeyConfigured(connection)));
+	}
+
 	private VideoIntegrationSummary summary(TenantMediaIntegration integration) {
 		Optional<MediaProviderConnection> live = repository.findCurrentForIntegration(integration.getId());
 		boolean platformDisabled = repository.findAllForIntegration(integration.getId())
@@ -100,6 +116,12 @@ public class MediaConnectionLookupService implements MediaConnectionApi {
 		Optional<MediaProviderConnection> original = repository.findById(connectionId);
 		if (original.isEmpty() || original.get().getScope() != ConnectionScope.TENANT) {
 			return Optional.empty();
+		}
+		// VIDEO Phase 13: DynTube is one account per tenant - continue on its current ACTIVE row.
+		if (original.get().getProvider() == MediaProvider.DYNTUBE) {
+			return repository.findCurrentForTenant(MediaProvider.DYNTUBE)
+				.filter(MediaProviderConnection::isActive)
+				.map(MediaProviderConnection::getId);
 		}
 		if (original.get().getIntegrationId() == null) {
 			return Optional.empty();

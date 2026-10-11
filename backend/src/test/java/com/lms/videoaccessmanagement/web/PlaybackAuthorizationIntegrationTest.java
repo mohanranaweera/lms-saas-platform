@@ -33,24 +33,42 @@ class PlaybackAuthorizationIntegrationTest extends MediaUploadTestSupport {
 	}
 
 	@Test
-	void anEnrolledStudentGetsAYouTubeWebDescriptorWithOnlyTheVideoId() {
+	void anEnrolledStudentGetsAnAocPlayerLaunchAndNeverTheYouTubeVideoId() {
 		Lesson lesson = youTubeLesson("pb-ok", true);
 		withYouTubePlayback(true, () -> {
+			// The institute does not require the AOC Player; YouTube lessons still use it (ADR-025 Amendment 3).
 			MvcResult result = play(lesson.ctx().host(), lesson.ctx().studentToken(), lesson.lessonMediaId());
 
 			assertThat(status(result)).isEqualTo(201);
 			JsonNode data = json(result).path("data");
-			assertThat(data.path("expiresAt").asString()).isNotBlank();
-			JsonNode descriptor = data.path("descriptor");
-			assertThat(descriptor.path("provider").asString()).isEqualTo("YOUTUBE");
-			assertThat(descriptor.path("providerVideoId").asString()).isEqualTo(lesson.videoId());
-			assertThat(descriptor.path("signedUrl").isNull()).isTrue();
-			assertThat(descriptor.path("allowDownload").asBoolean()).isFalse();
+			assertThat(data.path("channel").asString()).isEqualTo("NATIVE");
+			assertThat(data.path("descriptor").isNull()).isTrue();
+			assertThat(data.path("launch").path("url").asString()).startsWith("aocplayer://play?code=");
 			String raw = rawContent(result);
-			assertThat(raw).doesNotContain(accessTokenOf(lesson.ctx().tenant().getId()))
+			assertThat(raw).doesNotContain(lesson.videoId())
+				.doesNotContain("youtube")
+				.doesNotContain(accessTokenOf(lesson.ctx().tenant().getId()))
 				.doesNotContain(lesson.assetId().toString())
 				.doesNotContain("integrationId")
 				.doesNotContain("connection");
+		});
+	}
+
+	@Test
+	void youTubeLessonsAreRefusedNotDowngradedWhileTheAocPlayerIsSwitchedOff() {
+		Lesson lesson = youTubeLesson("pb-native-off", true);
+		withYouTubePlayback(true, () -> {
+			boolean previous = featureFlags.isNativePlayer();
+			featureFlags.setNativePlayer(false);
+			try {
+				MvcResult result = play(lesson.ctx().host(), lesson.ctx().studentToken(), lesson.lessonMediaId());
+				assertThat(status(result)).isEqualTo(409);
+				assertThat(errorCode(result)).isEqualTo("NATIVE_PLAYER_UNAVAILABLE");
+				assertThat(rawContent(result)).doesNotContain(lesson.videoId());
+			}
+			finally {
+				featureFlags.setNativePlayer(previous);
+			}
 		});
 	}
 
@@ -249,14 +267,18 @@ class PlaybackAuthorizationIntegrationTest extends MediaUploadTestSupport {
 			.content("{\"lessonMediaId\":\"" + lessonMediaId + "\"}"), host, token));
 	}
 
+	/** YouTube standard playback set as asked; the AOC Player on, since YouTube lessons need it. */
 	private void withYouTubePlayback(boolean enabled, Runnable body) {
 		boolean previous = featureFlags.isPlaybackModeEnabled(PlaybackMode.YOUTUBE_STANDARD);
+		boolean previousNative = featureFlags.isNativePlayer();
 		featureFlags.setYoutubeStandardPlayback(enabled);
+		featureFlags.setNativePlayer(true);
 		try {
 			body.run();
 		}
 		finally {
 			featureFlags.setYoutubeStandardPlayback(previous);
+			featureFlags.setNativePlayer(previousNative);
 		}
 	}
 

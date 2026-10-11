@@ -172,6 +172,11 @@ video:
     youtube-upload: ${VIDEO_YOUTUBE_UPLOAD_ENABLED:false}
     youtube-standard-playback: ${VIDEO_YOUTUBE_STANDARD_PLAYBACK_ENABLED:false}
     native-player: ${VIDEO_NATIVE_PLAYER_ENABLED:false}
+    # VIDEO Phase 13 (ADR-026): DynTube managed streaming. Keep both off in any real
+    # environment until the DynTube project refuses untokenized playback (ADR-026
+    # consequence 1) - the tokenized URL alone does not protect the account's videos.
+    managed-stream-playback: ${VIDEO_MANAGED_STREAM_PLAYBACK_ENABLED:false}
+    dyntube-upload: ${VIDEO_DYNTUBE_UPLOAD_ENABLED:false}
     dynamic-watermark: ${VIDEO_DYNAMIC_WATERMARK_ENABLED:true}
     capture-protection: ${VIDEO_CAPTURE_PROTECTION_ENABLED:true}
   # VIDEO Phase 4 upload pipeline (VideoUploadProperties, plan §13).
@@ -200,6 +205,10 @@ app:
     launch-code-pepper: ${PLAYER_LAUNCH_CODE_PEPPER:}
     min-version: ${PLAYER_MIN_VERSION:0.1.0}
     pairing-code-ttl-seconds: 90
+    # VIDEO Phase 13c (ADR-026 Amendment 1): the DynTube bridge page on the
+    # dedicated embed origin (never a tenant LMS origin). Empty = DynTube lessons
+    # can't play (fail closed).
+    dyntube-bridge-url: ${PLAYER_DYNTUBE_BRIDGE_URL:}
   # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Never
   # enabled outside local/test - with it off and no real vendor adapter, the
   # SMS/WhatsApp channels are unavailable (fail closed).

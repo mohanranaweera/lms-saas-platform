@@ -57,10 +57,6 @@ class VideoProviderCatalogTest {
 		assertThatThrownBy(custom::validateLockedFlags).isInstanceOf(IllegalStateException.class)
 			.hasMessageContaining("youtube-custom-playback");
 
-		VideoFeatureFlags managed = new VideoFeatureFlags();
-		managed.setManagedStreamPlayback(true);
-		assertThatThrownBy(managed::validateLockedFlags).isInstanceOf(IllegalStateException.class);
-
 		VideoFeatureFlags selfHosted = new VideoFeatureFlags();
 		selfHosted.setSelfHostedPlayback(true);
 		assertThatThrownBy(selfHosted::validateLockedFlags).isInstanceOf(IllegalStateException.class);
@@ -69,6 +65,34 @@ class VideoProviderCatalogTest {
 		defaults.setYoutubeUpload(true);
 		defaults.setYoutubeStandardPlayback(true);
 		defaults.validateLockedFlags();
+	}
+
+	@Test
+	void managedStreamingIsUnlockedByAdr026ButOffByDefault() {
+		VideoFeatureFlags flags = new VideoFeatureFlags();
+		VideoProviderCatalog catalog = new VideoProviderCatalog(flags);
+		assertThat(catalog.enabledPlaybackModes(MediaAssetProvider.DYNTUBE)).isEmpty();
+		assertThat(flags.isDyntubeUpload()).isFalse();
+
+		flags.setManagedStreamPlayback(true);
+		flags.validateLockedFlags();
+		assertThat(catalog.enabledPlaybackModes(MediaAssetProvider.DYNTUBE))
+			.containsExactly(PlaybackMode.MANAGED_STREAM);
+	}
+
+	@Test
+	void dyntubeIsOurOwnPlayerWithOverlayAndRevocationButNoDrmOrResumableUpload() {
+		var dyntube = new VideoProviderCatalog(new VideoFeatureFlags()).capabilities(MediaAssetProvider.DYNTUBE);
+
+		assertThat(dyntube.supportsCustomPlayer()).isTrue();
+		assertThat(dyntube.supportsSignedPlayback()).isTrue();
+		assertThat(dyntube.supportsAdaptiveStreaming()).isTrue();
+		assertThat(dyntube.supportsOverlayWatermark()).isTrue();
+		assertThat(dyntube.supportsServerSideRevocation()).isTrue();
+		assertThat(dyntube.supportsProviderPlayer()).isFalse();
+		assertThat(dyntube.supportsDrm()).isFalse();
+		assertThat(dyntube.supportsResumableUpload()).isFalse();
+		assertThat(dyntube.supportsNativeProxy()).isFalse();
 	}
 
 }

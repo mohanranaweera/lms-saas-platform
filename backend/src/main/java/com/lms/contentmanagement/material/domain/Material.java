@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * A single learning material (Wave 5, V50/V51 extend MVP-009's V16 shape),
@@ -33,6 +34,9 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "material")
+// V82: a VIDEO/RECORDING removed from its lesson is kept (watch sessions
+// reference it) but hidden from every query - see markRemoved.
+@SQLRestriction("removed_at IS NULL")
 public class Material extends Auditable implements TenantOwned {
 
 	@Column(name = "tenant_id", nullable = false, updatable = false)
@@ -91,6 +95,12 @@ public class Material extends Auditable implements TenantOwned {
 
 	@Column(name = "uploaded_by", nullable = false, updatable = false)
 	private UUID uploadedBy;
+
+	@Column(name = "removed_at")
+	private Instant removedAt;
+
+	@Column(name = "removed_by")
+	private UUID removedBy;
 
 	protected Material() {
 	}
@@ -264,6 +274,28 @@ public class Material extends Auditable implements TenantOwned {
 
 	public UUID getUploadedBy() {
 		return uploadedBy;
+	}
+
+	public Instant getRemovedAt() {
+		return removedAt;
+	}
+
+	public boolean isVideo() {
+		return materialType == MaterialType.VIDEO || materialType == MaterialType.RECORDING;
+	}
+
+	/**
+	 * Takes a VIDEO/RECORDING off its lesson without deleting the row - its
+	 * {@code video_watch_session} history (V77 FK) must survive, and the video
+	 * asset stays in the media library. Once flushed, the row is invisible to
+	 * every query via the class-level {@code @SQLRestriction} (V82).
+	 */
+	public void markRemoved(UUID actorId, Instant at) {
+		if (!isVideo()) {
+			throw new IllegalStateException("Only video materials are soft-removed");
+		}
+		this.removedBy = actorId;
+		this.removedAt = at;
 	}
 
 }

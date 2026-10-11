@@ -13,9 +13,9 @@
     "windows": [],
     "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost; media-src 'self' http://localhost:9000 http://127.0.0.1:9000; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-      "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost ws://127.0.0.1:1430; media-src 'self' http://localhost:9000 http://127.0.0.1:9000; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-      "freezePrototype": true
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost https://api.dyntube.com https://*.dyntube.net; media-src 'self' blob: http://localhost:9000 http://127.0.0.1:9000; frame-src https://www.youtube-nocookie.com http://embed.lms.test:3000; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost https://api.dyntube.com https://*.dyntube.net ws://127.0.0.1:1430; media-src 'self' blob: http://localhost:9000 http://127.0.0.1:9000; frame-src https://www.youtube-nocookie.com http://embed.lms.test:3000; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "freezePrototype": false
     }
   },
   "bundle": {

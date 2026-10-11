@@ -67,6 +67,7 @@ public abstract class MediaIntegrationTestSupport extends LiveClassManagementTes
 			registry.add("integrations.media." + provider + ".api-base-url", () -> base);
 		}
 		registry.add("integrations.media.dyntube.api-base-url", () -> base);
+		registry.add("integrations.media.dyntube.upload-base-url", () -> base);
 		registry.add("integrations.media.bunny.api-base-url", () -> base);
 		registry.add("integrations.media.bunny.account-api-base-url", () -> base);
 	}

@@ -91,8 +91,9 @@ public class MediaController {
 	@GetMapping("/upload-limits")
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResponse<UploadLimits>> uploadLimits(
-			@RequestParam(required = false) UUID integrationId) {
-		return ResponseEntity.ok(ApiResponse.success(mediaUploadService.limits(integrationId)));
+			@RequestParam(required = false) UUID integrationId,
+			@RequestParam(required = false) MediaAssetProvider provider) {
+		return ResponseEntity.ok(ApiResponse.success(mediaUploadService.limits(integrationId, provider)));
 	}
 
 	/** VIDEO Phase 5d: the Media Library tabs the caller sees. */

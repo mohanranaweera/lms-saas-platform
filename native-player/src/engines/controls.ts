@@ -1,15 +1,33 @@
 /**
- * Control bar for the file engine (Phase 10): play/pause, back 10 s, a
- * scrubber only when the institute allows seeking, time, mute + volume,
- * speed and fullscreen, plus keyboard shortcuts. Forward jumps stay blocked
- * when seeking is off (the engine also undoes them); rewinding is always fine.
+ * Control bar for every engine (Phase 10; YouTube since ADR-025 Amendment 3):
+ * play/pause, back 10 s, a scrubber only when the institute allows seeking,
+ * time, mute + volume, speed and fullscreen, plus keyboard shortcuts. Forward
+ * jumps stay blocked when seeking is off (the engine also undoes them);
+ * rewinding is always fine.
  */
 
 const SKIP_SECONDS = 10;
 const VOLUME_STEP = 0.1;
 export const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
-export function controlBar(video: HTMLVideoElement, fullscreenTarget: HTMLElement, allowSeeking: boolean): HTMLElement {
+/**
+ * What the control bar drives: a `<video>`, or an adapter with the same
+ * members and events (`play`, `pause`, `timeupdate`, `durationchange`,
+ * `volumechange`, `click`) - the YouTube engine's.
+ */
+export interface ControllableMedia {
+  readonly paused: boolean;
+  currentTime: number;
+  readonly duration: number;
+  muted: boolean;
+  volume: number;
+  playbackRate: number;
+  play(): Promise<void>;
+  pause(): void;
+  addEventListener(type: string, listener: () => void): void;
+}
+
+export function controlBar(video: ControllableMedia, fullscreenTarget: HTMLElement, allowSeeking: boolean): HTMLElement {
   const bar = document.createElement("div");
   bar.className = "file-controls";
 
@@ -98,7 +116,7 @@ export function controlBar(video: HTMLVideoElement, fullscreenTarget: HTMLElemen
   return bar;
 }
 
-function shortcut(key: string, video: HTMLVideoElement, target: HTMLElement, allowSeeking: boolean): boolean {
+function shortcut(key: string, video: ControllableMedia, target: HTMLElement, allowSeeking: boolean): boolean {
   switch (key) {
     case " ":
     case "k":
@@ -130,12 +148,12 @@ function shortcut(key: string, video: HTMLVideoElement, target: HTMLElement, all
   }
 }
 
-function togglePlay(video: HTMLVideoElement) {
+function togglePlay(video: ControllableMedia) {
   if (video.paused) void video.play().catch(() => undefined);
   else video.pause();
 }
 
-function skip(video: HTMLVideoElement, seconds: number, allowSeeking: boolean) {
+function skip(video: ControllableMedia, seconds: number, allowSeeking: boolean) {
   if (seconds > 0 && !allowSeeking) return;
   const end = Number.isFinite(video.duration) ? video.duration : Infinity;
   video.currentTime = Math.min(end, Math.max(0, video.currentTime + seconds));

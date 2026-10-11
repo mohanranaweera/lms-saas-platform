@@ -101,6 +101,10 @@ change-controlled items already listed in root `CLAUDE.md`):
     thread), holds at most one chunk per active transfer, is capped per tenant and
     globally, and never writes bytes to local disk. Browsers still upload directly to
     S3 staging via presigned URLs. No other code path may stream media through the app.
+    ADR-026 (VIDEO Phase 13, owner-approved 2026-10-10) extends this same worker to
+    DynTube, which has no resumable upload: the worker streams the staged object to
+    DynTube as one request body straight from a ranged S3 GET (no buffering of the
+    file, no disk), under the same background-only and concurrency rules.
 - **All application instances must be stateless.** No in-memory session data, no
   in-JVM caches that are assumed to be authoritative, no local file storage for anything
   tenant data depends on. This is required so the backend can run multiple horizontally

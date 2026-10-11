@@ -13,6 +13,12 @@ public enum MediaAssetProvider {
 	INTERNAL,
 
 	/** The tenant's own YouTube channel, via its tenant provider connection. */
-	YOUTUBE
+	YOUTUBE,
+
+	/**
+	 * VIDEO Phase 13 (ADR-026): the tenant's DynTube account - managed
+	 * streaming, played as tokenized HLS in our own players.
+	 */
+	DYNTUBE
 
 }
