@@ -64,7 +64,7 @@ class CourseLookupApiResolvedCheckoutAmountTest {
 
 	private CourseLookupApiImpl impl() {
 		return new CourseLookupApiImpl(courseRepository, courseModuleRepository, courseLessonRepository,
-				billingConfigurationRepository, billingPeriodRepository, tenantConfigApi);
+				billingConfigurationRepository, billingPeriodRepository, tenantConfigApi, null, null);
 	}
 
 	@Test

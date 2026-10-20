@@ -227,3 +227,7 @@ A/L stream, Mobile) and kept only for older clients.
 Consumed by `(auth)/register`'s frontend form before rendering any field — see
 `docs/api/user-management.md`'s "Public student self-registration" section for how the
 registration endpoints themselves use these same eight properties server-side.
+
+## Clearing optional keys
+
+Sending JSON `null` for a key with no default that is not required (e.g. PAYMENT bank keys, VIDEO player links, GENERAL support_email/phone, BRANDING colours/urls) deletes the tenant's value (audited `tenant_config.cleared`); null for required or defaulted keys returns 400. See `docs/specs/klass-enrollment-payment-workflows.md` for the PAYMENT keys `facility_fee_mode`, `facility_fee_amount`, `bank_name`, `bank_branch`, `bank_account_holder`, `bank_account_number` and VIDEO keys `player_android_url`, `player_ios_url` (https only) added in 2026-10.

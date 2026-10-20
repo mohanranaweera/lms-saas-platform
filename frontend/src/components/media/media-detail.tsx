@@ -326,6 +326,10 @@ function MediaDetailBody({
   const canRetry = asset.processingStatus === "FAILED" && asset.uploadProgress?.state === "FAILED";
   const sending = asset.processingStatus === "UPLOADING" || asset.processingStatus === "UPLOADED";
   const duration = formatDuration(asset.durationSeconds);
+  // Klass gaps round 2 (R2-D2): teachers see every institute video but change only their own.
+  // Server-computed hints; the backend re-checks every edit / delete.
+  const canEditAsset = canManage && asset.canEdit !== false;
+  const canDeleteAsset = canManage && asset.canDelete !== false;
 
   return (
     <div className="flex flex-col gap-6">
@@ -396,7 +400,7 @@ function MediaDetailBody({
         </Alert>
       ) : null}
 
-      {canManage && editing ? (
+      {canEditAsset && editing ? (
         <EditForm
           asset={asset}
           editingEnabled={limits.data?.editingEnabled ?? true}
@@ -409,8 +413,9 @@ function MediaDetailBody({
         />
       ) : null}
 
-      {canManage && !editing ? (
+      {(canEditAsset || canDeleteAsset) && !editing ? (
         <div className="flex flex-wrap gap-2">
+          {canEditAsset ? (
           <Button
             type="button"
             variant="outline"
@@ -422,7 +427,8 @@ function MediaDetailBody({
           >
             Edit details
           </Button>
-          {live ? (
+          ) : null}
+          {canEditAsset && live ? (
             <Button
               type="button"
               variant="outline"
@@ -433,7 +439,7 @@ function MediaDetailBody({
               {cancel.isPending ? "Cancelling…" : "Cancel upload"}
             </Button>
           ) : null}
-          {canRetry ? (
+          {canEditAsset && canRetry ? (
             <Button
               type="button"
               disabled={retry.isPending}
@@ -443,13 +449,18 @@ function MediaDetailBody({
               {retry.isPending ? "Retrying…" : "Retry upload"}
             </Button>
           ) : null}
-          {!live && !asset.attached ? <DeleteMediaDialog asset={asset} listHref={listHref} /> : null}
+          {canDeleteAsset && !live && !asset.attached ? <DeleteMediaDialog asset={asset} listHref={listHref} /> : null}
         </div>
       ) : null}
-      {canManage && sending ? (
+      {canEditAsset && sending ? (
         <p className="text-sm text-muted-foreground">Details can be edited once the video has reached YouTube.</p>
       ) : null}
-      {canManage && asset.attached ? (
+      {canManage && !canEditAsset && !canDeleteAsset ? (
+        <p className="text-sm text-muted-foreground" data-testid="media-video-view-only-note">
+          You can view and attach this video. Only the person who uploaded it or an institute admin can change it.
+        </p>
+      ) : null}
+      {canDeleteAsset && asset.attached ? (
         <p className="text-sm text-muted-foreground">
           This video is used in a lesson. Remove it from the lesson before deleting it.
         </p>

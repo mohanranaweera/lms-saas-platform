@@ -62,6 +62,13 @@ export interface MediaAsset {
   integrationId: string | null;
   /** VIDEO Phase 6: number of distinct lessons using this asset. */
   attachedLessonCount: number;
+  /**
+   * Klass gaps round 2 (R2-D2): server-computed for the caller - teachers see
+   * every institute video but may edit / delete only their own. UI hint only;
+   * the backend re-checks every change. Optional for older responses.
+   */
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export type LessonMediaVisibility = "VISIBLE" | "HIDDEN";
@@ -261,11 +268,12 @@ export function useMediaUploadLimits(integrationId: string | null, enabled = tru
 }
 
 /** VIDEO Phase 5d: the tabs the caller sees (decided by the server per role and teacher list). */
-export function useMediaTabs() {
+export function useMediaTabs(enabled = true) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: mediaKeys.tabs(),
     queryFn: () => authorizedFetch<MediaTabs>("tenant", `${BASE}/channels`),
+    enabled,
   });
 }
 
@@ -290,17 +298,17 @@ export interface UpdateLessonMediaInput {
   visibility: LessonMediaVisibility;
 }
 
-export function useAttachLessonMedia(courseId: string, lessonId: string) {
+export function useAttachLessonMedia(courseId: string, lessonId: string = "") {
   const { authorizedFetch } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: AttachLessonMediaInput) =>
-      authorizedFetch<LessonMedia>("tenant", lessonMediaPath(courseId, lessonId), {
+    mutationFn: ({ targetLessonId, ...input }: AttachLessonMediaInput & { targetLessonId?: string }) =>
+      authorizedFetch<LessonMedia>("tenant", lessonMediaPath(courseId, targetLessonId ?? lessonId), {
         method: "POST",
         body: JSON.stringify(input),
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: mediaKeys.lesson(courseId, lessonId) });
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.lesson(courseId, input.targetLessonId ?? lessonId) });
       void queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "list"] });
     },
   });

@@ -171,7 +171,8 @@ public class MediaController {
 				(view.uploadProgress() == null) ? null
 						: new UploadProgressResponse(view.uploadProgress().state(), view.uploadProgress().bytesSent(),
 								view.uploadProgress().totalBytes(), view.uploadProgress().message()),
-				view.attached(), view.attachedLessonCount(), view.youtubeUrl(), view.integrationId());
+				view.attached(), view.attachedLessonCount(), view.youtubeUrl(), view.integrationId(), view.canEdit(),
+				view.canDelete());
 	}
 
 	private static UploadInstructionsResponse toResponse(UploadInstructions instructions) {

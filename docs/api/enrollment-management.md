@@ -464,3 +464,7 @@ enrollment row. Audit `enrollment.access_extended` on the enrollment and the stu
 - Not enrolled / expired keep each domain's existing anti-enumeration `404`.
 - Material and video availability windows are evaluated by `AccessPolicyApi`
   (`MATERIAL_NOT_YET_AVAILABLE`/`MATERIAL_EXPIRED`, video `POLICY_VIOLATION` - unchanged codes).
+
+## Klass parity additions (2026-10, ADR-028)
+
+The Klass course-management and free-enrollment/lesson-entitlement endpoints added on branch `feat/klass-course-enrollment-parity` are specified in `docs/plans/klass-enrollment-payment-parity.md` §4 (contract) with implemented behaviour in `docs/specs/klass-course-management-workflows.md` and `docs/specs/klass-enrollment-payment-workflows.md`. All changes are additive except the deliberate behaviour changes recorded there (D19, D22, D23, D24 and security fix L4: non-participant students receive 404 for non-PUBLIC courses).

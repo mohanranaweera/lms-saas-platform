@@ -39,7 +39,12 @@ public class StudentOrder extends Auditable implements TenantOwned {
 	@Column(name = "student_id", nullable = false, updatable = false)
 	private UUID studentId;
 
-	@Column(name = "course_id", nullable = false, updatable = false)
+	/**
+	 * The single course of the order. V90: {@code null} only for a
+	 * multi-course payment-composer (line) order - each line then carries its
+	 * own {@code course_id} (V90 {@code ck_student_order_course_or_lines}).
+	 */
+	@Column(name = "course_id", updatable = false)
 	private UUID courseId;
 
 	@Column(name = "amount", nullable = false, updatable = false, precision = 12, scale = 2)
@@ -77,7 +82,87 @@ public class StudentOrder extends Auditable implements TenantOwned {
 	@Column(name = "idempotency_key", updatable = false)
 	private UUID idempotencyKey;
 
+	/**
+	 * KLASS-T4c (V87, D06/D07) fee snapshot of a payment-composer (line) order:
+	 * all three amounts set together (with {@code amount = subtotal + fee -
+	 * discount}, V87 {@code ck_student_order_fee_snapshot}) or all {@code null}
+	 * for a legacy single-amount order. Never changed after insert.
+	 */
+	@Column(name = "subtotal_amount", updatable = false, precision = 12, scale = 2)
+	private BigDecimal subtotalAmount;
+
+	@Column(name = "facility_fee_amount", updatable = false, precision = 12, scale = 2)
+	private BigDecimal facilityFeeAmount;
+
+	@Column(name = "discount_amount", updatable = false, precision = 12, scale = 2)
+	private BigDecimal discountAmount;
+
+	/** e.g. {@code PER_LINE:100.00} / {@code PER_ORDER:200.00} / {@code NONE}; {@code null} for legacy orders. */
+	@Column(name = "fee_policy_snapshot", updatable = false, length = 100)
+	private String feePolicySnapshot;
+
+	/** V90: total postage of a line order ({@code null} for legacy and pre-V90 line orders). */
+	@Column(name = "postage_amount", updatable = false, precision = 12, scale = 2)
+	private BigDecimal postageAmount;
+
+	/** V90 delivery snapshot (set only when postage was selected); never changed after insert. */
+	@Column(name = "delivery_recipient_name", updatable = false, length = 255)
+	private String deliveryRecipientName;
+
+	@Column(name = "delivery_address_line", updatable = false, length = 255)
+	private String deliveryAddressLine;
+
+	@Column(name = "delivery_city", updatable = false, length = 100)
+	private String deliveryCity;
+
+	@Column(name = "delivery_phone", updatable = false, length = 30)
+	private String deliveryPhone;
+
 	protected StudentOrder() {
+	}
+
+	/**
+	 * KLASS-T4c: a payment-composer order (one course, many lines). {@code
+	 * amount} is derived here as {@code subtotal + facilityFee - discount} so it
+	 * can never disagree with the snapshot.
+	 */
+	public static StudentOrder forLines(UUID tenantId, UUID studentId, UUID courseId, String currency,
+			BigDecimal subtotal, BigDecimal facilityFee, BigDecimal discount, String feePolicySnapshot,
+			UUID idempotencyKey) {
+		return forLines(tenantId, studentId, courseId, currency, subtotal, facilityFee, null, discount,
+				feePolicySnapshot, idempotencyKey, null);
+	}
+
+	/**
+	 * V90: a payment-composer order over one or more courses ({@code courseId}
+	 * {@code null} when it spans several). {@code amount = subtotal +
+	 * facilityFee + postage - discount} (V90 {@code
+	 * ck_student_order_fee_snapshot}); {@code delivery} is the address snapshot
+	 * ({@code null} when no postage was selected).
+	 */
+	public static StudentOrder forLines(UUID tenantId, UUID studentId, UUID courseId, String currency,
+			BigDecimal subtotal, BigDecimal facilityFee, BigDecimal postage, BigDecimal discount,
+			String feePolicySnapshot, UUID idempotencyKey, DeliverySnapshot delivery) {
+		BigDecimal amount = subtotal.add(facilityFee).add(postage == null ? BigDecimal.ZERO : postage)
+			.subtract(discount);
+		StudentOrder order = new StudentOrder(tenantId, studentId, courseId, amount, currency, null, idempotencyKey);
+		order.subtotalAmount = subtotal;
+		order.facilityFeeAmount = facilityFee;
+		order.postageAmount = postage;
+		order.discountAmount = discount;
+		order.feePolicySnapshot = feePolicySnapshot;
+		if (delivery != null) {
+			order.deliveryRecipientName = delivery.recipientName();
+			order.deliveryAddressLine = delivery.addressLine();
+			order.deliveryCity = delivery.city();
+			order.deliveryPhone = delivery.phone();
+		}
+		return order;
+	}
+
+	/** V90 delivery address snapshot of an order with postage (copied from the student's billing address). */
+	public record DeliverySnapshot(String recipientName, String addressLine, String city, String phone) {
+
 	}
 
 	public StudentOrder(UUID tenantId, UUID studentId, UUID courseId, BigDecimal amount, String currency) {
@@ -137,6 +222,40 @@ public class StudentOrder extends Auditable implements TenantOwned {
 
 	public UUID getIdempotencyKey() {
 		return idempotencyKey;
+	}
+
+	public BigDecimal getSubtotalAmount() {
+		return subtotalAmount;
+	}
+
+	public BigDecimal getFacilityFeeAmount() {
+		return facilityFeeAmount;
+	}
+
+	public BigDecimal getDiscountAmount() {
+		return discountAmount;
+	}
+
+	public String getFeePolicySnapshot() {
+		return feePolicySnapshot;
+	}
+
+	public BigDecimal getPostageAmount() {
+		return postageAmount;
+	}
+
+	/** The delivery snapshot, or {@code null} when the order has none (no postage / legacy). */
+	public DeliverySnapshot getDelivery() {
+		if (deliveryAddressLine == null && deliveryCity == null && deliveryRecipientName == null
+				&& deliveryPhone == null) {
+			return null;
+		}
+		return new DeliverySnapshot(deliveryRecipientName, deliveryAddressLine, deliveryCity, deliveryPhone);
+	}
+
+	/** {@code true} for a payment-composer order (fee snapshot present), {@code false} for a legacy order. */
+	public boolean isLineOrder() {
+		return subtotalAmount != null;
 	}
 
 	/**

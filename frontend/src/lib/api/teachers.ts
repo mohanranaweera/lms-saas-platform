@@ -25,6 +25,8 @@ export type TeacherAccountStatus = "ACTIVE" | "SUSPENDED";
 /** Mirrors `TeacherResponse` exactly (backend `.../teacher/web/dto/TeacherResponse.java`). */
 export interface Teacher {
   id: string;
+  /** The teacher's user account id — what course teacher assignment (`teacherIds`) expects. */
+  userId: string;
   name: string;
   email: string;
   approvalStatus: TeacherApprovalStatus;
@@ -52,11 +54,12 @@ const teacherKey = (id: string) => ["teachers", id] as const;
  * `.claude/rules/ui-ux.md` §1's Teacher-role restriction, which does not apply
  * to this admin-side view).
  */
-export function useTeachers() {
+export function useTeachers(options?: { enabled?: boolean }) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: TEACHERS_KEY,
     queryFn: () => authorizedFetch<Teacher[]>("tenant", "/v1/teachers"),
+    enabled: options?.enabled ?? true,
   });
 }
 

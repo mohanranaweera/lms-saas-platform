@@ -3,11 +3,13 @@ package com.lms.paymentmanagement.payment.service;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
+import com.lms.enrollmentmanagement.api.EntitlementGrantApi;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.paymentmanagement.api.PaymentConfirmationApi;
 import com.lms.paymentmanagement.api.PaymentConfirmedEvent;
 import com.lms.paymentmanagement.api.PaymentRejectedEvent;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.domain.PaymentStatus;
@@ -81,9 +83,16 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private final StudentOrderLineRepository studentOrderLineRepository;
+
+	private final EntitlementGrantApi entitlementGrantApi;
+
 	public PaymentConfirmationService(PaymentRepository paymentRepository,
 			StudentOrderRepository studentOrderRepository, LedgerEntryApi ledgerEntryApi,
-			EnrollmentActivationApi enrollmentActivationApi, ApplicationEventPublisher eventPublisher) {
+			EnrollmentActivationApi enrollmentActivationApi, ApplicationEventPublisher eventPublisher,
+			StudentOrderLineRepository studentOrderLineRepository, EntitlementGrantApi entitlementGrantApi) {
+		this.studentOrderLineRepository = studentOrderLineRepository;
+		this.entitlementGrantApi = entitlementGrantApi;
 		this.paymentRepository = paymentRepository;
 		this.studentOrderRepository = studentOrderRepository;
 		this.ledgerEntryApi = ledgerEntryApi;
@@ -116,41 +125,52 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 				payment.confirm(confirmedAt);
 				paymentRepository.save(payment);
 				ledgerEntryApi.recordPaymentConfirmed(order.getId(), payment.getId(), payment.getAmount());
-				// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
-				// activateOrReactivateFromConfirmedPayment owns the
-				// resolve-access-state-and-branch decision that used to be
-				// duplicated here (NEVER_ENROLLED -> activate, else ->
-				// reactivate - see its javadoc). Safe against the
-				// payment-status idempotency guard above (this branch only
-				// ever runs once per payment, since a retried webhook for an
-				// already-CONFIRMED payment returns early before reaching
-				// here).
-				try {
-					enrollmentActivationApi.activateOrReactivateFromConfirmedPayment(payment.getId(), order.getId(),
-							order.getStudentId(), order.getCourseId());
+				// KLASS-T4c (ADR-028, D06): a payment-composer order (it has lines)
+				// grants one content entitlement per line in THIS transaction,
+				// deliberately outside the swallowed-refusal catch below - a grant
+				// failure rolls the confirmation and its ledger entry back (the
+				// gateway retries). Line orders never activate a legacy
+				// course-wide enrollment; line-less orders keep the existing path.
+				if (studentOrderLineRepository.existsByOrderId(order.getId())) {
+					entitlementGrantApi.grantForConfirmedPayment(payment.getId(), order.getId());
 				}
-				catch (IllegalStateException ex) {
-					// Bug fix (MVP-012 review): a refusal from either branch (no
-					// current enrollment / no APPROVED reactivation request
-					// linked to THIS order for the reactivation branch - see
-					// EnrollmentActivationApi#activateOrReactivateFromConfirmedPayment's
-					// javadoc) must NOT roll back this payment's own CONFIRMED
-					// transition or its ledger entry, per plan §13: "Activation
-					// refused, payment stays CONFIRMED, no enrollment change -
-					// logged as an ops-visible inconsistency, not silently
-					// swallowed." Deliberately catches ONLY IllegalStateException
-					// from THIS specific call - never widened to swallow an
-					// unrelated failure.
-					log.atWarn()
-						.setMessage("enrollment.reactivation_refused")
-						.addKeyValue("actor", WEBHOOK_SYSTEM_ACTOR)
-						.addKeyValue("tenantId", payment.getTenantId())
-						.addKeyValue("paymentId", payment.getId())
-						.addKeyValue("orderId", order.getId())
-						.addKeyValue("studentId", order.getStudentId())
-						.addKeyValue("courseId", order.getCourseId())
-						.addKeyValue("reason", ex.getMessage())
-						.log();
+				else {
+					// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
+					// activateOrReactivateFromConfirmedPayment owns the
+					// resolve-access-state-and-branch decision that used to be
+					// duplicated here (NEVER_ENROLLED -> activate, else ->
+					// reactivate - see its javadoc). Safe against the
+					// payment-status idempotency guard above (this branch only
+					// ever runs once per payment, since a retried webhook for an
+					// already-CONFIRMED payment returns early before reaching
+					// here).
+					try {
+						enrollmentActivationApi.activateOrReactivateFromConfirmedPayment(payment.getId(), order.getId(),
+								order.getStudentId(), order.getCourseId());
+					}
+					catch (IllegalStateException ex) {
+						// Bug fix (MVP-012 review): a refusal from either branch (no
+						// current enrollment / no APPROVED reactivation request
+						// linked to THIS order for the reactivation branch - see
+						// EnrollmentActivationApi#activateOrReactivateFromConfirmedPayment's
+						// javadoc) must NOT roll back this payment's own CONFIRMED
+						// transition or its ledger entry, per plan §13: "Activation
+						// refused, payment stays CONFIRMED, no enrollment change -
+						// logged as an ops-visible inconsistency, not silently
+						// swallowed." Deliberately catches ONLY IllegalStateException
+						// from THIS specific call - never widened to swallow an
+						// unrelated failure.
+						log.atWarn()
+							.setMessage("enrollment.reactivation_refused")
+							.addKeyValue("actor", WEBHOOK_SYSTEM_ACTOR)
+							.addKeyValue("tenantId", payment.getTenantId())
+							.addKeyValue("paymentId", payment.getId())
+							.addKeyValue("orderId", order.getId())
+							.addKeyValue("studentId", order.getStudentId())
+							.addKeyValue("courseId", order.getCourseId())
+							.addKeyValue("reason", ex.getMessage())
+							.log();
+					}
 				}
 				eventPublisher.publishEvent(new PaymentConfirmedEvent(payment.getTenantId(), payment.getId(),
 						order.getId(), previousStatus, PaymentStatus.CONFIRMED, confirmedAt, order.getStudentId(),

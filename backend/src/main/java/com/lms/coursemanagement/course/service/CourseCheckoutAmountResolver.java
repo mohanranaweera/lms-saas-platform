@@ -73,6 +73,11 @@ class CourseCheckoutAmountResolver {
 				case ONE_TIME -> resolved.put(course.getId(), new CheckoutAmount(course.getPrice(),
 						tenantConfigApi.resolveDefaultCurrency(course.getTenantId()), null, false, false));
 				case MONTHLY, SESSION, CUSTOM -> needsBillingLookup.add(course);
+				// KLASS-T4a (D09): no whole-course amount - sold per module, or
+				// stored-only models with no offer engine. Absent = "not purchasable
+				// as a whole course", never a silent $0.
+				case DAILY, MODULE, INSTALLMENT -> {
+				}
 			}
 		}
 		if (needsBillingLookup.isEmpty()) {

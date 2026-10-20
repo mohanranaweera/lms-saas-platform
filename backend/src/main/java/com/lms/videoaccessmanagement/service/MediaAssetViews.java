@@ -40,7 +40,7 @@ public class MediaAssetViews {
 				asset.getProviderFailureReason(), asset.getUploadedBy(), asset.getCreatedAt(),
 				providerCatalog.capabilities(asset.getProvider()),
 				providerCatalog.enabledPlaybackModes(asset.getProvider()), progress, attachedLessonCount > 0,
-				attachedLessonCount, youtubeUrl(asset), asset.getIntegrationId());
+				attachedLessonCount, youtubeUrl(asset), asset.getIntegrationId(), true, true);
 	}
 
 	/**

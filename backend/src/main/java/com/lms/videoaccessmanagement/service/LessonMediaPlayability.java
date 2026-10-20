@@ -15,7 +15,7 @@ import com.lms.videoaccessmanagement.config.VideoFeatureFlags;
 import com.lms.videoaccessmanagement.domain.PlaybackMode;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.springframework.stereotype.Component;
 
 /**
@@ -69,13 +69,14 @@ public class LessonMediaPlayability {
 	}
 
 	/**
-	 * @param requireCourseAccess throws when the student may not open the
-	 * course (receives the course id).
+	 * @param requireLessonAccess throws when the student may not open the
+	 * lesson (receives the course id and the lesson id) - KLASS-T4b: the single
+	 * lesson access evaluator, never a course-wide check.
 	 */
-	public Playable require(UUID lessonMediaId, Consumer<UUID> requireCourseAccess) {
+	public Playable require(UUID lessonMediaId, BiConsumer<UUID, UUID> requireLessonAccess) {
 		LessonMediaPlaybackContext material = materialLookupApi.resolveLessonMediaForPlayback(lessonMediaId)
 			.orElseThrow(LessonMediaPlayability::notFound);
-		requireCourseAccess.accept(material.courseId());
+		requireLessonAccess.accept(material.courseId(), material.lessonId());
 		if (material.visibility() != MaterialVisibility.VISIBLE) {
 			throw notFound();
 		}

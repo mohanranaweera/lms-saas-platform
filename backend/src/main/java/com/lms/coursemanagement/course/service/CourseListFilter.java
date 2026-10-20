@@ -20,9 +20,20 @@ import java.util.UUID;
  * other than widening the read within the caller's own already-resolved
  * tenant/ownership scope - it cannot itself grant visibility into another
  * tenant's or another teacher's courses.
+ *
+ * <p>KLASS-T4a: {@code archived} ({@code true} = archived only, {@code false}
+ * = active only) takes precedence over {@code includeArchived} when set;
+ * {@code search} matches the course name or primary teacher name,
+ * case-insensitively, within the same tenant/ownership scope.
  */
-public record CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived) {
+public record CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived,
+		Boolean archived, String search) {
 
-	public static final CourseListFilter EMPTY = new CourseListFilter(null, null, null, false);
+	public static final CourseListFilter EMPTY = new CourseListFilter(null, null, null, false, null, null);
+
+	/** Pre-KLASS shape. */
+	public CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived) {
+		this(status, category, teacherId, includeArchived, null, null);
+	}
 
 }

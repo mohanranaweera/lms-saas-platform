@@ -14,6 +14,7 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.OnlinePaymentOption;
 import com.lms.integrationmanagement.api.PaymentGatewayAccountApi;
+import com.lms.integrationmanagement.config.PaymentGatewayProperties;
 import com.lms.integrationmanagement.domain.GatewayDisabledBy;
 import com.lms.integrationmanagement.domain.GatewayMode;
 import com.lms.integrationmanagement.domain.GatewayProvider;
@@ -70,10 +71,13 @@ public class PaymentGatewayAccountService implements PaymentGatewayAccountApi {
 
 	private final TenantLookupApi tenantLookupApi;
 
+	private final PaymentGatewayProperties gatewayProperties;
+
 	public PaymentGatewayAccountService(TenantPaymentGatewayAccountRepository repository,
 			CredentialCipher credentialCipher, PayHereGatewayAdapter payHereAdapter,
 			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi, TenantContext tenantContext,
-			TenantLookupApi tenantLookupApi) {
+			TenantLookupApi tenantLookupApi, PaymentGatewayProperties gatewayProperties) {
+		this.gatewayProperties = gatewayProperties;
 		this.repository = repository;
 		this.credentialCipher = credentialCipher;
 		this.payHereAdapter = payHereAdapter;
@@ -219,6 +223,18 @@ public class PaymentGatewayAccountService implements PaymentGatewayAccountApi {
 		}
 		return repository.findActive(GatewayProvider.PAYHERE)
 			.map(account -> new OnlinePaymentOption(account.getProvider().name(), account.getMode().name()));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public boolean isOnlinePaymentAvailable() {
+		// Same routing as PaymentGatewayRouter: an ACTIVE account always wins
+		// (usable only while PayHere is operational); the fake fallback only
+		// applies when there is no active account.
+		if (repository.findActive(GatewayProvider.PAYHERE).isPresent()) {
+			return payHereAdapter.isOperational();
+		}
+		return gatewayProperties.isFakeFallbackEnabled();
 	}
 
 	private <T> T asPlatformAdminFor(UUID tenantId, Supplier<T> work) {

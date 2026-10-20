@@ -21,6 +21,9 @@ import java.util.UUID;
  * confirmedGatewayReference} are non-null only when a CONFIRMED payment
  * exists for this order - PAY-2/PAY-3's own invariant is at most one
  * CONFIRMED payment per order, so this is never ambiguous.
+ *
+ * <p>V90: {@code courseId} is {@code null} for a multi-course payment-composer
+ * order (its lines carry the courses) - consumers must not assume it is set.
  */
 public record OrderPaymentDetail(UUID orderId, UUID studentId, UUID courseId, UUID billingPeriodId,
 		BigDecimal orderAmount, String orderCurrency, boolean hasPendingPayment, boolean hasRejectedPayment,

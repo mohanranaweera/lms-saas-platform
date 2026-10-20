@@ -10,7 +10,9 @@ import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
+import com.lms.enrollmentmanagement.domain.CourseParticipationSource;
 import com.lms.enrollmentmanagement.domain.Enrollment;
+import com.lms.enrollmentmanagement.repository.CourseParticipationRepository;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -74,10 +76,13 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 
 	private final StudentLookupApi studentLookupApi;
 
+	private final CourseParticipationRepository participationRepository;
+
 	public EnrollmentActivationService(EnrollmentRepository enrollmentRepository, PaymentStatusApi paymentStatusApi,
 			SlipStatusApi slipStatusApi, CourseLookupApi courseLookupApi, TenantContext tenantContext,
 			ReactivationTransactionService reactivationTransactionService, EnrollmentAccessApi enrollmentAccessApi,
-			AuditLogApi auditLogApi, PermissionCheckService permissionCheckService, StudentLookupApi studentLookupApi) {
+			AuditLogApi auditLogApi, PermissionCheckService permissionCheckService, StudentLookupApi studentLookupApi,
+			CourseParticipationRepository participationRepository) {
 		this.enrollmentRepository = enrollmentRepository;
 		this.paymentStatusApi = paymentStatusApi;
 		this.slipStatusApi = slipStatusApi;
@@ -88,16 +93,23 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 		this.auditLogApi = auditLogApi;
 		this.permissionCheckService = permissionCheckService;
 		this.studentLookupApi = studentLookupApi;
+		this.participationRepository = participationRepository;
 	}
 
 	@Override
 	@Transactional
 	public void activateFromConfirmedPayment(UUID paymentId, UUID studentId, UUID courseId) {
+		activateFromConfirmedPayment(paymentId, studentId, courseId, CourseParticipationSource.PAID_ACTIVATION);
+	}
+
+	private void activateFromConfirmedPayment(UUID paymentId, UUID studentId, UUID courseId,
+			CourseParticipationSource participationSource) {
 		if (!paymentStatusApi.isConfirmedForCurrentTenant(paymentId)) {
 			throw new IllegalStateException(
 					"Refusing to activate enrollment: payment " + paymentId + " is not a CONFIRMED payment in the "
 							+ "current tenant context - independent re-verification failed");
 		}
+		upsertParticipation(studentId, courseId, participationSource);
 		if (enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId)) {
 			// Already activated (e.g. a retried webhook for the same
 			// payment, or a genuinely repeated activation attempt) - a
@@ -127,6 +139,7 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 					"Refusing to activate enrollment: slip " + slipId + " is not an APPROVED payment slip in the "
 							+ "current tenant context - independent re-verification failed");
 		}
+		upsertParticipation(studentId, courseId, CourseParticipationSource.PAID_ACTIVATION);
 		if (enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId)) {
 			// Already activated (e.g. a retried approval call, or a
 			// genuinely repeated activation attempt) - a no-op, per
@@ -164,11 +177,18 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 	 */
 	@Override
 	public void reactivateFromConfirmedPayment(UUID paymentId, UUID orderId, UUID studentId, UUID courseId) {
+		reactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId,
+				CourseParticipationSource.PAID_ACTIVATION);
+	}
+
+	private void reactivateFromConfirmedPayment(UUID paymentId, UUID orderId, UUID studentId, UUID courseId,
+			CourseParticipationSource participationSource) {
 		if (!paymentStatusApi.isConfirmedForCurrentTenant(paymentId)) {
 			throw new IllegalStateException(
 					"Refusing to reactivate enrollment: payment " + paymentId + " is not a CONFIRMED payment in the "
 							+ "current tenant context - independent re-verification failed");
 		}
+		upsertParticipation(studentId, courseId, participationSource);
 		Instant accessExpiresAt = computeAccessExpiresAt(courseId, Instant.now());
 		reactivationTransactionService.reactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId,
 				accessExpiresAt);
@@ -182,6 +202,7 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 					"Refusing to reactivate enrollment: slip " + slipId + " is not an APPROVED payment slip in the "
 							+ "current tenant context - independent re-verification failed");
 		}
+		upsertParticipation(studentId, courseId, CourseParticipationSource.PAID_ACTIVATION);
 		Instant accessExpiresAt = computeAccessExpiresAt(courseId, Instant.now());
 		reactivationTransactionService.reactivateFromApprovedSlip(slipId, orderId, studentId, courseId,
 				accessExpiresAt);
@@ -193,13 +214,30 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 	@Override
 	public void activateOrReactivateFromConfirmedPayment(UUID paymentId, UUID orderId, UUID studentId,
 			UUID courseId) {
+		activateOrReactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId,
+				CourseParticipationSource.PAID_ACTIVATION);
+	}
+
+	private void activateOrReactivateFromConfirmedPayment(UUID paymentId, UUID orderId, UUID studentId,
+			UUID courseId, CourseParticipationSource participationSource) {
 		EnrollmentAccessStateType accessState = enrollmentAccessApi.resolveAccessState(studentId, courseId).state();
 		if (accessState == EnrollmentAccessStateType.NEVER_ENROLLED) {
-			activateFromConfirmedPayment(paymentId, studentId, courseId);
+			activateFromConfirmedPayment(paymentId, studentId, courseId, participationSource);
 		}
 		else {
-			reactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId);
+			reactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId, participationSource);
 		}
+	}
+
+	/**
+	 * KLASS-T4b (D01, ADR-028): every paid/staff activation also makes the
+	 * student a free participant of the course, in the SAME transaction as the
+	 * activation, after the evidence was re-verified. Idempotent ({@code ON
+	 * CONFLICT DO NOTHING}) - an existing participation keeps its original
+	 * source and date; it can never fail the activation.
+	 */
+	private void upsertParticipation(UUID studentId, UUID courseId, CourseParticipationSource source) {
+		participationRepository.insertIfAbsent(studentId, courseId, source, Instant.now());
 	}
 
 	/**
@@ -222,7 +260,8 @@ public class EnrollmentActivationService implements EnrollmentActivationApi {
 	@Override
 	@Transactional
 	public void fromApprovedManualEvidence(UUID paymentId, UUID orderId, UUID studentId, UUID courseId) {
-		activateOrReactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId);
+		activateOrReactivateFromConfirmedPayment(paymentId, orderId, studentId, courseId,
+				CourseParticipationSource.STAFF_GRANT);
 	}
 
 	/**

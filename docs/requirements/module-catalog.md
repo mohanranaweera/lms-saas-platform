@@ -269,7 +269,7 @@ floor requirement for all tenant-owned data in that domain.
 | content-management | Cross-tenant test on material upload/list/delete; upload-validation test (MIME/size/ownership); protected-content access must reject cross-tenant and cross-role ID-guessing. |
 | video-access-management | Token-expiry test AND cross-tenant/cross-session replay test; concurrent-session-blocking test using real Redis. |
 | live-class-management | Cross-tenant test on schedule/join-URL generation and recording attachment; join-URL must not be guessable/reusable across tenants. |
-| enrollment-management | Activation test proving enrollment activates only from a persisted, verified payment/approval record, never from request payload; cross-tenant test on enrollment read/list. |
+| enrollment-management | Free-enrollment test (no order/payment, idempotent, survives payment failure — ADR-028) and paid-entitlement test proving lesson access is granted only from a persisted, verified payment/approval record, never from request payload; cross-tenant test on enrollment read/list. |
 | payment-management | Idempotency test (ledger/enrollment state unchanged on repeated webhook/approval); payment-slip duplicate-detection test (reference number + image hash); cross-tenant test on order/payment read/list/dashboard. |
 | ledger-settlement-management | Idempotency test on settlement run (no duplicate payout entries on re-run for an already-settled period/tenant); append-only enforcement test (no update/delete path exposed); cross-tenant test on ledger/settlement read/export. |
 | attendance-management | Cross-tenant test on attendance marking/read and Zoom-sync ingestion. |

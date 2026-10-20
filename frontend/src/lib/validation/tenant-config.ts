@@ -133,3 +133,57 @@ export function toChangedConfigEntries<T extends Record<string, string>>(
   }
   return changes;
 }
+
+// ---------------------------------------------------------------------------
+// PAYMENT domain - facility fee (multi-course checkout, V90)
+// ---------------------------------------------------------------------------
+
+export const FACILITY_FEE_MODES = ["NONE", "PER_COURSE", "PER_LINE", "PER_ORDER"] as const;
+export type FacilityFeeMode = (typeof FACILITY_FEE_MODES)[number];
+
+const FACILITY_FEE_AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
+
+/**
+ * Mirrors `ConfigPropertyRegistry#paymentProperties`: `facility_fee_mode` is
+ * one of the four modes; `facility_fee_amount` is a JSON number >= 0 with at
+ * most 2 decimals. "0" is a real value (no fee), never "empty". UX only - the
+ * backend re-validates the `PUT`.
+ */
+export const facilityFeeConfigSchema = z.object({
+  facility_fee_mode: z.enum(FACILITY_FEE_MODES, { message: "Choose how the facility fee is charged" }),
+  facility_fee_amount: z
+    .string()
+    .refine((value) => value.trim().length > 0, { message: "Enter an amount (0 for no fee)" })
+    .refine((value) => value.trim().length === 0 || FACILITY_FEE_AMOUNT_PATTERN.test(value.trim()), {
+      message: "Enter an amount of 0 or more with up to 2 decimals",
+    }),
+});
+
+export type FacilityFeeConfigFormValues = z.infer<typeof facilityFeeConfigSchema>;
+
+/** Current (persisted or default) values of the two keys, as form strings. */
+export function facilityFeeFormValues(properties: { key: string; value: unknown; defaultValue: unknown }[]): FacilityFeeConfigFormValues {
+  const read = (key: string) => {
+    const property = properties.find((entry) => entry.key === key);
+    if (!property) return undefined;
+    return property.value ?? property.defaultValue;
+  };
+  const mode = String(read("facility_fee_mode") ?? "NONE");
+  const amount = Number(read("facility_fee_amount") ?? 0);
+  return {
+    facility_fee_mode: (FACILITY_FEE_MODES as readonly string[]).includes(mode) ? (mode as FacilityFeeMode) : "NONE",
+    facility_fee_amount: Number.isFinite(amount) ? amount.toFixed(2) : "0.00",
+  };
+}
+
+/** The `PUT /tenant-config/PAYMENT` body: only changed keys; the amount as a JSON number (2 dp). */
+export function toFacilityFeeChanges(
+  values: FacilityFeeConfigFormValues,
+  current: FacilityFeeConfigFormValues
+): Record<string, unknown> {
+  const changes: Record<string, unknown> = {};
+  if (values.facility_fee_mode !== current.facility_fee_mode) changes.facility_fee_mode = values.facility_fee_mode;
+  const amount = Number(Number(values.facility_fee_amount.trim()).toFixed(2));
+  if (amount !== Number(current.facility_fee_amount)) changes.facility_fee_amount = amount;
+  return changes;
+}

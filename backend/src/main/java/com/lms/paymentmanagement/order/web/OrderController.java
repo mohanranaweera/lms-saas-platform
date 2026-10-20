@@ -141,7 +141,9 @@ public class OrderController {
 					.stream()
 					.map(f -> new PaymentSlipFlagResponse(f.id(), f.flagType(), f.detectedAt()))
 					.toList(),
-				view.studentEmail(), view.reviewerEmail(), view.orderAmount(), view.orderCurrency());
+				view.studentEmail(), view.reviewerEmail(), view.orderAmount(), view.orderCurrency(), view.orderLines(),
+				view.orderSubtotal(), view.orderFacilityFee(), view.orderDiscount(), view.orderPostage(),
+				view.orderDelivery());
 	}
 
 }

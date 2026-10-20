@@ -17,13 +17,15 @@ import java.util.UUID;
  *
  * @param uploadProgress the latest upload to the provider (VIDEO Phase 5), or {@code null}
  * @param attached a lesson material uses this media (it cannot be deleted)
+ * @param canEdit R2-D2 (additive): the caller may rename / edit / change settings
+ * @param canDelete R2-D2 (additive): the caller may delete (attached media still 409)
  */
 public record MediaAssetResponse(UUID id, MediaAssetProvider provider, String title, String description,
 		String thumbnailUrl, Integer durationSeconds, MediaPrivacyStatus privacyStatus,
 		VideoAssetStatus processingStatus, String failureReason, UUID uploadedBy, Instant createdAt,
 		VideoProviderCapabilities capabilities, List<PlaybackMode> enabledPlaybackModes,
 		UploadProgressResponse uploadProgress, boolean attached, int attachedLessonCount, String youtubeUrl,
-		UUID integrationId) {
+		UUID integrationId, boolean canEdit, boolean canDelete) {
 
 	/** @param message client-safe reason for a paused / parked / failed upload */
 	public record UploadProgressResponse(MediaUploadJobStatus state, long bytesSent, long totalBytes,

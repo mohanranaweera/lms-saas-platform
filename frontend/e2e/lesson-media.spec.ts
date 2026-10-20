@@ -116,6 +116,10 @@ async function setupCourseEditorMocks(
     await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify(apiError("NOT_FOUND", "Not mocked")) });
   });
 
+  // The picker's Source filter reads the Media Library tabs.
+  await page.route(/\/api(?:\/api)?\/v1\/media\/channels$/, async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess({ integrations: [], managedHost: null, hasArchived: false })) });
+  });
   await page.route(/\/api(?:\/api)?\/v1\/media\?/, async (route: Route) => {
     const response = options.media ?? [mediaAsset()];
     if (Array.isArray(response)) {
@@ -169,9 +173,9 @@ test.describe("Lesson Media integration", () => {
 
     await page.goto(editorUrl());
     await page.getByRole("button", { name: "Choose from Media Library" }).click();
-    await expect(page.getByRole("heading", { name: "Choose lesson video" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Choose session video" })).toBeVisible();
     await expect(page.getByText("Algebra lesson")).toBeVisible();
-    await expect(page.getByText("Processing")).toHaveCount(0);
+    await expect(page.getByText("Processing", { exact: true })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Add" }).click();
     await expect(page.getByText("Media Library videos")).toBeVisible();
@@ -214,7 +218,7 @@ test.describe("Lesson Media integration", () => {
 
     await page.goto(editorUrl());
     await page.getByRole("button", { name: "Choose from Media Library" }).click();
-    const limitField = page.getByLabel(/Watch-time limit for the video you add/);
+    const limitField = page.getByLabel(/Shared video watch-time limit/);
     await limitField.fill("0");
     await expect(page.getByText("Enter whole minutes between 1 and 60000, or leave it empty.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Add" })).toBeDisabled();

@@ -10,6 +10,7 @@ import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
 import com.lms.enrollmentmanagement.api.ReactivationLinkingApi;
+import com.lms.paymentmanagement.checkout.service.CheckoutItemException;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -32,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -276,6 +278,16 @@ public class OrderService {
 						"Reactivation approval is required before you can re-order this course");
 			}
 			isReactivation = true;
+		}
+		if (!isReactivation && courseLookupApi.findCatalogInfo(courseId)
+			.map(info -> "MONTHLY".equals(info.pricingModel()))
+			.orElse(false)) {
+			// KLASS-T8b (D23, payment review M-1): a legacy course-wide order would
+			// cover EVERY billing month for one month's price. MONTHLY courses are
+			// sold per month through the payment composer; ADR-013 reactivation
+			// orders and existing legacy MONTHLY enrollments are unaffected.
+			throw new CheckoutItemException(HttpStatus.CONFLICT, CheckoutItemException.USE_PAYMENT_COMPOSER,
+					"Monthly class fees are paid per month - choose the months to pay for in the payment composer");
 		}
 
 		StudentOrder order = new StudentOrder(tenantContext.getTenantId(), principal.userId(), courseId, amount,

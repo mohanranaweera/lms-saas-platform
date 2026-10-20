@@ -2,7 +2,10 @@ package com.lms.videoaccessmanagement.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.ConflictException;
@@ -29,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
 /**
@@ -47,21 +51,142 @@ class MediaLibraryIntegrationTest extends VideoAccessManagementTestSupport {
 	// Visibility inside a tenant
 	// ------------------------------------------------------------------
 
+	/**
+	 * R2-D2 (owner decision 2026-10-14) replaces the earlier
+	 * "teacherSeesOnlyOwnUploadsWhileTenantAdminSeesTheWholeLibrary": teachers
+	 * now see (list + get) every institute video so they can attach any of
+	 * them, but rename / delete stay owner-or-admin - another teacher's video
+	 * is still a 404 for those actions, and the response tells the caller what
+	 * they may do ({@code canEdit}/{@code canDelete}).
+	 */
 	@Test
-	void teacherSeesOnlyOwnUploadsWhileTenantAdminSeesTheWholeLibrary() {
+	void teacherSeesEveryInstituteVideoButManagesOnlyTheirOwn() {
 		VideoFixture f = seedVideoFixture("media-visibility");
 		seedTenantUser(f.tenant().getId(), "teacher2@example.test", RAW_PASSWORD, Role.TEACHER);
 		String teacher2Token = loginAndGetToken(f.host(), "teacher2@example.test");
 		VideoAssetResponse otherUpload = uploadVideoOrFail(f.host(), teacher2Token, mp4File("other.mp4"));
 
-		assertThat(ids(listMediaOrFail(f.host(), f.teacherToken(), ""))).containsExactly(f.videoAssetId());
-		assertThat(ids(listMediaOrFail(f.host(), teacher2Token, ""))).containsExactly(otherUpload.id());
+		assertThat(ids(listMediaOrFail(f.host(), f.teacherToken(), "")))
+			.containsExactlyInAnyOrder(f.videoAssetId(), otherUpload.id());
+		assertThat(ids(listMediaOrFail(f.host(), teacher2Token, "")))
+			.containsExactlyInAnyOrder(f.videoAssetId(), otherUpload.id());
 		assertThat(ids(listMediaOrFail(f.host(), f.adminToken(), "")))
 			.containsExactlyInAnyOrder(f.videoAssetId(), otherUpload.id());
 
-		// Another teacher's asset in the same tenant is not visible by id either.
-		assertThat(getMedia(f.host(), teacher2Token, f.videoAssetId()).getStatusCode())
+		// Visible by id, but flagged read-only for the non-owner teacher.
+		HttpResult<MediaAssetResponse> othersVideo = getMedia(f.host(), teacher2Token, f.videoAssetId());
+		assertThat(othersVideo.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(othersVideo.getBody().data().canEdit()).isFalse();
+		assertThat(othersVideo.getBody().data().canDelete()).isFalse();
+		MediaAssetResponse ownVideo = getMedia(f.host(), teacher2Token, otherUpload.id()).getBody().data();
+		assertThat(ownVideo.canEdit()).isTrue();
+		assertThat(ownVideo.canDelete()).isTrue();
+		MediaAssetResponse asAdmin = getMedia(f.host(), f.adminToken(), otherUpload.id()).getBody().data();
+		assertThat(asAdmin.canEdit()).isTrue();
+		assertThat(asAdmin.canDelete()).isTrue();
+
+		// Rename / delete of another teacher's video stay 404 (owner-or-admin).
+		MvcResult rename = perform(authenticated(patch("/api/v1/media/{id}", otherUpload.id())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"title\":\"hijacked\"}"), f.host(), f.teacherToken()));
+		assertThat(rename.getResponse().getStatus()).isEqualTo(404);
+		MvcResult deleteOthers = perform(
+				authenticated(delete("/api/v1/media/{id}", otherUpload.id()), f.host(), f.teacherToken()));
+		assertThat(deleteOthers.getResponse().getStatus()).isEqualTo(404);
+		assertThat(getMedia(f.host(), f.adminToken(), otherUpload.id()).getBody().data().title())
+			.isEqualTo("other.mp4");
+
+		// The owner still can.
+		MvcResult deleteOwn = perform(
+				authenticated(delete("/api/v1/media/{id}", otherUpload.id()), f.host(), teacher2Token));
+		assertThat(deleteOwn.getResponse().getStatus()).isEqualTo(200);
+		assertThat(ids(listMediaOrFail(f.host(), f.teacherToken(), ""))).containsExactly(f.videoAssetId());
+	}
+
+	/** R2-D2: a teacher may attach another teacher's video to a lesson of their own course. */
+	@Test
+	void teacherCanAttachAnotherTeachersVideoToTheirOwnLesson() {
+		VideoFixture f = seedVideoFixture("media-attach-other");
+		var teacher2 = seedTenantUser(f.tenant().getId(), "teacher2@example.test", RAW_PASSWORD, Role.TEACHER);
+		String teacher2Token = loginAndGetToken(f.host(), "teacher2@example.test");
+		var course = createCourseOrFail(f.host(), f.adminToken(),
+				newCourseRequest(uniqueSlug("media-attach-other"), teacher2.getId(),
+						com.lms.coursemanagement.course.domain.CourseStatus.PUBLIC));
+		var module = createModuleOrFail(f.host(), f.adminToken(), course.id(), "Module 1", 1);
+		var lesson = createLessonOrFail(f.host(), f.adminToken(), course.id(), module.id(), "Lesson 1", 1);
+
+		var attached = createMaterialRaw(f.host(), teacher2Token, course.id(), module.id(), lesson.id(),
+				"Borrowed video", com.lms.contentmanagement.material.domain.MaterialType.VIDEO, null, null, null,
+				f.videoAssetId(), null, null, null, null);
+
+		assertThat(attached.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		assertThat(getMedia(f.host(), teacher2Token, f.videoAssetId()).getBody().data().attachedLessonCount())
+			.isEqualTo(2);
+	}
+
+	/**
+	 * R2-D2: now that a teacher can see another teacher's (unattached) video,
+	 * its playback policy must still be owner-or-admin - the pre-attach
+	 * "any teacher" window is limited to the uploader.
+	 */
+	@Test
+	void teacherCannotChangeThePolicyOfAnotherTeachersUnattachedVideo() {
+		VideoFixture f = seedVideoFixture("media-policy-owner");
+		seedTenantUser(f.tenant().getId(), "teacher2@example.test", RAW_PASSWORD, Role.TEACHER);
+		String teacher2Token = loginAndGetToken(f.host(), "teacher2@example.test");
+		VideoAssetResponse unattached = uploadVideoOrFail(f.host(), teacher2Token, mp4File("mine.mp4"));
+		var request = new com.lms.videoaccessmanagement.web.dto.VideoPlaybackPolicyRequest(null, null, 3, null,
+				true, false, true, null);
+
+		assertThat(upsertPolicy(f.host(), f.teacherToken(), unattached.id(), request).getStatusCode())
 			.isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(upsertPolicy(f.host(), teacher2Token, unattached.id(), request).getStatusCode())
+			.isEqualTo(HttpStatus.OK);
+		assertThat(upsertPolicy(f.host(), f.adminToken(), unattached.id(), request).getStatusCode())
+			.isEqualTo(HttpStatus.OK);
+	}
+
+	@Test
+	void attachingAnotherTeachersVideoDoesNotGrantPolicyAuthority() {
+		VideoFixture f = seedVideoFixture("media-policy-attach");
+		var borrower = seedTenantUser(f.tenant().getId(), "borrower@example.test", RAW_PASSWORD, Role.TEACHER);
+		String borrowerToken = loginAndGetToken(f.host(), "borrower@example.test");
+		var course = createCourseOrFail(f.host(), f.adminToken(),
+				newCourseRequest(uniqueSlug("borrower-course"), borrower.getId(),
+						com.lms.coursemanagement.course.domain.CourseStatus.PUBLIC));
+		var module = createModuleOrFail(f.host(), f.adminToken(), course.id(), "Module", 1);
+		var lesson = createLessonOrFail(f.host(), f.adminToken(), course.id(), module.id(), "Lesson", 1);
+		var video = uploadVideoOrFail(f.host(), f.teacherToken(), mp4File("shared-unattached.mp4"));
+		var policy = new com.lms.videoaccessmanagement.web.dto.VideoPlaybackPolicyRequest(null, null, 3, null,
+				true, false, true, null);
+		upsertPolicyOrFail(f.host(), f.teacherToken(), video.id(), policy);
+		var attached = createMaterialRaw(f.host(), borrowerToken, course.id(), module.id(), lesson.id(),
+				"Borrowed", com.lms.contentmanagement.material.domain.MaterialType.VIDEO, null, null, null,
+				video.id(), null, null, null, null);
+		assertThat(attached.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		var before = jdbcTemplate.queryForMap("SELECT max_views_per_student, allow_download, watermark_enabled, "
+				+ "max_watch_duration_seconds FROM video_playback_policy WHERE video_asset_id = ?", video.id());
+		var weakened = new com.lms.videoaccessmanagement.web.dto.VideoPlaybackPolicyRequest(null, null, null,
+				null, true, true, false, null);
+
+		assertThat(upsertPolicy(f.host(), borrowerToken, video.id(), weakened).getStatusCode())
+			.isEqualTo(HttpStatus.NOT_FOUND);
+		MvcResult limit = perform(authenticated(put("/api/v1/videos/{id}/watch-time-limit", video.id())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"limitSeconds\":600}"), f.host(), borrowerToken));
+		assertThat(limit.getResponse().getStatus()).isEqualTo(404);
+		assertThat(jdbcTemplate.queryForMap("SELECT max_views_per_student, allow_download, watermark_enabled, "
+				+ "max_watch_duration_seconds FROM video_playback_policy WHERE video_asset_id = ?", video.id()))
+			.isEqualTo(before);
+		// Retain the existing all-attached-courses safeguard even for the uploader.
+		assertThat(upsertPolicy(f.host(), f.teacherToken(), video.id(), policy).getStatusCode())
+			.isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(upsertPolicy(f.host(), f.adminToken(), video.id(), policy).getStatusCode())
+			.isEqualTo(HttpStatus.OK);
+		assertThat(deleteMaterial(f.host(), borrowerToken, course.id(), module.id(), lesson.id(),
+				attached.getBody().data().id()).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(upsertPolicy(f.host(), f.teacherToken(), video.id(), policy).getStatusCode())
+			.isEqualTo(HttpStatus.OK);
 	}
 
 	@Test

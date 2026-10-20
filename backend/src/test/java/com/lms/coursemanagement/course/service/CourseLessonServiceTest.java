@@ -56,7 +56,9 @@ class CourseLessonServiceTest {
 	@BeforeEach
 	void setUp() {
 		courseLessonService = new CourseLessonService(courseRepository, courseModuleRepository,
-				courseLessonRepository, courseAccessGuard);
+				courseLessonRepository, courseAccessGuard,
+				org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class),
+				org.mockito.Mockito.mock(com.lms.tenantmanagement.api.TenantConfigApi.class));
 	}
 
 	@Test

@@ -5,9 +5,9 @@ export function StudentNav({ onNavigate }: { onNavigate?: () => void }) {
   const items: NavItem[] = [
     { label: "Dashboard", href: "/student/dashboard" },
     { label: "My Courses", href: "/student/courses" },
-    // In-portal catalog (the public /courses page drops the portal shell);
-    // the only place a Student starts a new purchase.
-    { label: "Browse Courses", href: "/student/browse" },
+    // Klass catalog's Available view (free enrollment, ADR-028); the old
+    // /student/browse route only redirects here.
+    { label: "Available Courses", href: "/student/courses?view=available" },
     { label: "My Attendance", href: "/student/attendance" },
     { label: "Exams", href: "/student/exams" },
     { label: "Payments", href: "/student/payments/history" },

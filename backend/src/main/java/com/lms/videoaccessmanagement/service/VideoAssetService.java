@@ -31,7 +31,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
@@ -64,13 +63,12 @@ import org.springframework.web.multipart.MultipartFile;
  * IDOR here, not an unavoidable ordering constraint: it would let Teacher B
  * silently strip Teacher A's watermark/download/view-limit protections off a
  * video Teacher B doesn't own. {@link #requirePolicyAuthorization} resolves
- * ownership via {@link MaterialLookupApi#resolveVideoAssetOwnership}
+ * ownership via {@link MaterialLookupApi#resolveVideoAssetOwnerships}
  * (mirroring {@code
  * videoaccessmanagement.support.VideoAccessGuard#requireEntitlement}'s
- * Teacher-ownership check) and falls back to the loose upload-time gate ONLY
- * when the asset isn't yet attached to any material (nothing to check
- * ownership against yet - the same "no owner resolvable" window {@link
- * #upload} operates in).
+ * Teacher-ownership check). Teacher/TA callers must also own the upload,
+ * whether or not it is attached; attaching a shared institute video grants
+ * no authority to change its global protections.
  *
  * <p><b>Upload failure handling (documented design decision):</b> {@link
  * ObjectStorageApi#store} is synchronous - it either returns a real {@link
@@ -223,20 +221,23 @@ public class VideoAssetService {
 	 * whose resolved owning course they teach; staff still delegates to the
 	 * flat {@code MATERIALS}/{@code CREATE_EDIT} grant (ownership doesn't
 	 * apply to staff, same as every other guard in this codebase). If the
-	 * asset isn't attached to any material yet, there is nothing to resolve
-	 * ownership from - falls back to {@link #requireUploadOrPolicyAuthorization}
-	 * for that narrow pre-attach window only.
+	 * asset isn't attached yet, uploader ownership is still mandatory for
+	 * Teacher/TA callers. Every attached course must also belong to that caller.
 	 */
 	void requirePolicyAuthorization(UUID videoAssetId) {
-		Optional<MaterialVideoOwnership> ownership = materialLookupApi.resolveVideoAssetOwnership(videoAssetId);
-		if (ownership.isEmpty()) {
-			requireUploadOrPolicyAuthorization();
-			return;
-		}
+		List<MaterialVideoOwnership> ownerships = materialLookupApi.resolveVideoAssetOwnerships(videoAssetId);
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
-			if (!ownership.get().teacherId().equals(principal.userId())) {
+			// Keep SEC L3: global policy changes require ownership of every attached course.
+			if (ownerships.stream().anyMatch(ownership -> !ownership.teacherId().equals(principal.userId()))) {
 				throw new AccessDeniedException("You do not have permission to perform this action");
+			}
+			// R2-SEC-H1: attaching an institute video must never confer uploader authority.
+			boolean ownUpload = videoAssetRepository.findById(videoAssetId)
+				.map(asset -> principal.userId().equals(asset.getUploadedBy()))
+				.orElse(false);
+			if (!ownUpload) {
+				throw new NotFoundException("Video asset not found");
 			}
 			return;
 		}

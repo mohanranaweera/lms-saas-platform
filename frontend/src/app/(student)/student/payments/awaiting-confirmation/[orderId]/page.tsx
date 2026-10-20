@@ -89,9 +89,12 @@ export default function AwaitingConfirmationPage() {
           }
 
           if (paymentStatus.status === "REJECTED") {
-            const retryHref = orderQuery.data
-              ? `/student/checkout/${orderQuery.data.courseId}`
-              : "/courses";
+            // A multi-course order has no single course to retry; send the student to My Courses.
+            const retryHref = !orderQuery.data
+              ? "/courses"
+              : orderQuery.data.courseId
+                ? `/student/checkout/${orderQuery.data.courseId}`
+                : "/student/courses";
             return (
               <Alert role="alert" variant="destructive">
                 <XCircle aria-hidden="true" />

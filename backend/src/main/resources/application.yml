@@ -287,6 +287,10 @@ app:
       # allow-list in ContentSniffer are this implementation's own default,
       # flagged for confirmation, not a ratified business decision.
       max-file-size-bytes: 26214400
+    library:
+      # Klass gaps round 2 (R2-D3): the institute media file library accepts
+      # the same types and size as lesson materials (25 MB).
+      max-file-size-bytes: ${app.content.material.max-file-size-bytes}
   mail:
     # MVP-018 email notifications - the one email-sending property Spring
     # Boot's spring.mail.* auto-configuration doesn't provide: the From

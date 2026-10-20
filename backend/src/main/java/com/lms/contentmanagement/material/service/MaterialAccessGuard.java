@@ -1,10 +1,15 @@
 package com.lms.contentmanagement.material.service;
 
+import com.lms.common.error.DeviceNotAuthorizedException;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
 import com.lms.enrollmentmanagement.api.AccessPolicyApi;
 import com.lms.enrollmentmanagement.api.ContentAvailability;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
+import com.lms.enrollmentmanagement.api.LessonAccessDecision;
+import com.lms.enrollmentmanagement.api.LessonAccessStatus;
+import java.util.List;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -82,11 +87,14 @@ public class MaterialAccessGuard {
 
 	private final AccessPolicyApi accessPolicyApi;
 
+	private final LessonAccessApi lessonAccessApi;
+
 	public MaterialAccessGuard(CourseLookupApi courseLookupApi, PermissionCheckService permissionCheckService,
-			AccessPolicyApi accessPolicyApi) {
+			AccessPolicyApi accessPolicyApi, LessonAccessApi lessonAccessApi) {
 		this.courseLookupApi = courseLookupApi;
 		this.permissionCheckService = permissionCheckService;
 		this.accessPolicyApi = accessPolicyApi;
+		this.lessonAccessApi = lessonAccessApi;
 	}
 
 	public LessonOwnership requireLessonAccess(UUID courseId, UUID moduleId, UUID lessonId, PermissionAction action) {
@@ -121,14 +129,55 @@ public class MaterialAccessGuard {
 			if (action != PermissionAction.VIEW || !ownership.courseOpenToEnrolledStudents()) {
 				throw new NotFoundException("Lesson not found");
 			}
-			// Wave 10: entitlement, expiry/extension/grace and course device limit - one central decision.
-			accessPolicyApi.requireStudentCourseAccess(ownership.courseId(),
-					() -> new NotFoundException("Lesson not found"));
+			// KLASS-T4b (ADR-028): listing/metadata needs participation only (free
+			// participants may see titles); not-enrolled/unavailable stay a 404 and
+			// an unauthorized device a 403. Payment/window are decided per resource
+			// (requireLessonContentAccess / isLessonContentAllowedForStudent).
+			LessonAccessDecision decision = lessonAccessApi
+				.evaluate(ownership.courseId(), List.of(ownership.lessonId()))
+				.get(ownership.lessonId());
+			if (decision.status() == LessonAccessStatus.UNAVAILABLE
+					|| decision.status() == LessonAccessStatus.NOT_ENROLLED) {
+				throw new NotFoundException("Lesson not found");
+			}
+			if (decision.status() == LessonAccessStatus.DEVICE_NOT_AUTHORIZED) {
+				throw new DeviceNotAuthorizedException(
+						"This course can only be opened on a limited number of devices, and this device is not one of them.");
+			}
 			return ownership;
 		}
 
 		permissionCheckService.requirePermission(DomainArea.MATERIALS, action);
 		return ownership;
+	}
+
+	/**
+	 * KLASS-T4b: the protected-content gate (download / external link) - for a
+	 * Student the single lesson evaluator must answer ALLOWED (not enrolled /
+	 * unavailable = 404, device = 403, payment/window = 403 {@code {code,
+	 * access}}); staff/teachers keep the plain VIEW rule.
+	 */
+	public LessonOwnership requireLessonContentAccess(UUID courseId, UUID moduleId, UUID lessonId) {
+		LessonOwnership ownership = requireLessonAccess(courseId, moduleId, lessonId, PermissionAction.VIEW);
+		if (isStudent()) {
+			lessonAccessApi.requireLessonAccess(ownership.courseId(), ownership.lessonId(),
+					() -> new NotFoundException("Lesson not found"));
+		}
+		return ownership;
+	}
+
+	/**
+	 * KLASS-T4b: {@code true} when the caller is a Student whose lesson is not
+	 * ALLOWED by the lesson evaluator - the protected fields (external URL,
+	 * note content) of the lesson's materials must then be stripped. Titles and
+	 * metadata stay listable for every participant; non-students never redact.
+	 */
+	public boolean mustRedactLessonContent(UUID courseId, UUID lessonId) {
+		if (!isStudent()) {
+			return false;
+		}
+		LessonAccessDecision decision = lessonAccessApi.evaluate(courseId, List.of(lessonId)).get(lessonId);
+		return decision == null || !decision.allowed();
 	}
 
 	/** Wave 10: the material availability window, decided by the central {@link AccessPolicyApi}. */

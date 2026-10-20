@@ -5,6 +5,7 @@ import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
@@ -16,7 +17,10 @@ import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
+import com.lms.enrollmentmanagement.api.EntitlementGrantApi;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
+import com.lms.paymentmanagement.order.domain.StudentOrderLine;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.repository.PaymentRepository;
@@ -28,6 +32,7 @@ import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
 import com.lms.paymentmanagement.support.PaymentDomainAccessGuard;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -110,12 +115,23 @@ public class SlipReviewService {
 
 	private final LedgerEntryApi ledgerEntryApi;
 
+	private final StudentOrderLineRepository studentOrderLineRepository;
+
+	private final EntitlementGrantApi entitlementGrantApi;
+
+	private final CourseLookupApi courseLookupApi;
+
 	public SlipReviewService(PaymentSlipRepository paymentSlipRepository,
 			PaymentSlipFlagRepository paymentSlipFlagRepository, StudentOrderRepository studentOrderRepository,
 			ObjectStorageApi slipStorageApi, PaymentDomainAccessGuard accessGuard,
 			EnrollmentActivationApi enrollmentActivationApi, AuditLogApi auditLogApi,
 			PermissionCheckService permissionCheckService, UserProvisioningApi userProvisioningApi,
-			TenantContext tenantContext, PaymentRepository paymentRepository, LedgerEntryApi ledgerEntryApi) {
+			TenantContext tenantContext, PaymentRepository paymentRepository, LedgerEntryApi ledgerEntryApi,
+			StudentOrderLineRepository studentOrderLineRepository, EntitlementGrantApi entitlementGrantApi,
+			CourseLookupApi courseLookupApi) {
+		this.courseLookupApi = courseLookupApi;
+		this.studentOrderLineRepository = studentOrderLineRepository;
+		this.entitlementGrantApi = entitlementGrantApi;
 		this.paymentSlipRepository = paymentSlipRepository;
 		this.paymentSlipFlagRepository = paymentSlipFlagRepository;
 		this.studentOrderRepository = studentOrderRepository;
@@ -147,7 +163,8 @@ public class SlipReviewService {
 		List<PaymentSlip> slips = page.getContent();
 		Map<UUID, StudentOrder> ordersById = loadOrdersById(slips);
 		Map<UUID, TenantUserSummary> usersById = loadUsersById(slips);
-		return page.map(slip -> toView(slip, ordersById, usersById));
+		Map<UUID, List<PaymentSlipOrderLine>> linesByOrderId = loadLinesByOrderId(ordersById.keySet());
+		return page.map(slip -> toView(slip, ordersById, usersById, linesByOrderId));
 	}
 
 	/** Owner student OR staff {@code VIEW} (plan §10/§15) - see {@link PaymentDomainAccessGuard}. */
@@ -255,41 +272,52 @@ public class SlipReviewService {
 		payment = paymentRepository.save(payment);
 		ledgerEntryApi.recordPaymentConfirmed(order.getId(), payment.getId(), payment.getAmount());
 
-		// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
-		// activateOrReactivateFromApprovedSlip owns the
-		// resolve-access-state-and-branch decision that used to be
-		// duplicated here - mirrors PaymentConfirmationService's identical
-		// call site, see that class's javadoc for the full rationale.
-		try {
-			enrollmentActivationApi.activateOrReactivateFromApprovedSlip(slip.getId(), order.getId(),
-					slip.getStudentId(), order.getCourseId());
+		// KLASS-T4c (ADR-028, D06): a payment-composer order (it has lines)
+		// grants one content entitlement per line, in THIS transaction and
+		// deliberately outside the swallowed-refusal catch below - a grant
+		// failure rolls the approval, payment and ledger entry back. It never
+		// activates a legacy course-wide enrollment. A line-less (legacy)
+		// order keeps the existing enrollment activation unchanged.
+		if (studentOrderLineRepository.existsByOrderId(order.getId())) {
+			entitlementGrantApi.grantForApprovedSlip(slip.getId(), order.getId(), payment.getId());
 		}
-		catch (IllegalStateException ex) {
-			// Bug fix (MVP-012 review): mirrors PaymentConfirmationService's
-			// identical activation/reactivation-refusal handling - see that
-			// class's comment at the equivalent call site for the full
-			// rationale. Must NOT roll back this slip's own APPROVED
-			// transition or its audit log entry.
-			//
-			// Deliberately does NOT add a "tenantId" key here (finding L7):
-			// this method always runs inside an authenticated, tenant-resolved
-			// request, so CorrelationIdFilter has already put tenantId into
-			// MDC, which the structured logging format includes automatically
-			// - an explicit addKeyValue("tenantId", ...) here previously
-			// collided with that MDC-supplied key ("The name 'tenantId' has
-			// already been written"). Contrast PaymentConfirmationService's
-			// sibling warn call, which DOES need an explicit tenantId key,
-			// since its webhook request path never goes through the
-			// authenticated filter chain that populates MDC.
-			log.atWarn()
-				.setMessage("enrollment.reactivation_refused")
-				.addKeyValue("actor", "slip-review:" + principal.userId())
-				.addKeyValue("slipId", slip.getId())
-				.addKeyValue("orderId", order.getId())
-				.addKeyValue("studentId", slip.getStudentId())
-				.addKeyValue("courseId", order.getCourseId())
-				.addKeyValue("reason", ex.getMessage())
-				.log();
+		else {
+			// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
+			// activateOrReactivateFromApprovedSlip owns the
+			// resolve-access-state-and-branch decision that used to be
+			// duplicated here - mirrors PaymentConfirmationService's identical
+			// call site, see that class's javadoc for the full rationale.
+			try {
+				enrollmentActivationApi.activateOrReactivateFromApprovedSlip(slip.getId(), order.getId(),
+						slip.getStudentId(), order.getCourseId());
+			}
+			catch (IllegalStateException ex) {
+				// Bug fix (MVP-012 review): mirrors PaymentConfirmationService's
+				// identical activation/reactivation-refusal handling - see that
+				// class's comment at the equivalent call site for the full
+				// rationale. Must NOT roll back this slip's own APPROVED
+				// transition or its audit log entry.
+				//
+				// Deliberately does NOT add a "tenantId" key here (finding L7):
+				// this method always runs inside an authenticated, tenant-resolved
+				// request, so CorrelationIdFilter has already put tenantId into
+				// MDC, which the structured logging format includes automatically
+				// - an explicit addKeyValue("tenantId", ...) here previously
+				// collided with that MDC-supplied key ("The name 'tenantId' has
+				// already been written"). Contrast PaymentConfirmationService's
+				// sibling warn call, which DOES need an explicit tenantId key,
+				// since its webhook request path never goes through the
+				// authenticated filter chain that populates MDC.
+				log.atWarn()
+					.setMessage("enrollment.reactivation_refused")
+					.addKeyValue("actor", "slip-review:" + principal.userId())
+					.addKeyValue("slipId", slip.getId())
+					.addKeyValue("orderId", order.getId())
+					.addKeyValue("studentId", slip.getStudentId())
+					.addKeyValue("courseId", order.getCourseId())
+					.addKeyValue("reason", ex.getMessage())
+					.log();
+			}
 		}
 
 		if (hasFlags) {
@@ -350,26 +378,67 @@ public class SlipReviewService {
 	private PaymentSlipView toView(PaymentSlip slip, List<PaymentSlipFlag> flags, StudentOrder order) {
 		Map<UUID, TenantUserSummary> usersById = loadUsersById(List.of(slip));
 		List<PaymentSlipFlagView> flagViews = flags.stream().map(SlipReviewService::toFlagView).toList();
-		return buildView(slip, flagViews, order, usersById);
+		List<PaymentSlipOrderLine> lines = order == null ? List.of()
+				: loadLinesByOrderId(Set.of(order.getId())).getOrDefault(order.getId(), List.of());
+		return buildView(slip, flagViews, order, usersById, lines);
 	}
 
 	private PaymentSlipView toView(PaymentSlip slip, Map<UUID, StudentOrder> ordersById,
-			Map<UUID, TenantUserSummary> usersById) {
+			Map<UUID, TenantUserSummary> usersById, Map<UUID, List<PaymentSlipOrderLine>> linesByOrderId) {
 		List<PaymentSlipFlagView> flagViews = paymentSlipFlagRepository.findAllBySlipId(slip.getId())
 			.stream()
 			.map(SlipReviewService::toFlagView)
 			.toList();
-		return buildView(slip, flagViews, ordersById.get(slip.getOrderId()), usersById);
+		return buildView(slip, flagViews, ordersById.get(slip.getOrderId()), usersById,
+				linesByOrderId.getOrDefault(slip.getOrderId(), List.of()));
 	}
 
-	private static PaymentSlipView buildView(PaymentSlip slip, List<PaymentSlipFlagView> flagViews,
-			StudentOrder order, Map<UUID, TenantUserSummary> usersById) {
+	static PaymentSlipView buildView(PaymentSlip slip, List<PaymentSlipFlagView> flagViews, StudentOrder order,
+			Map<UUID, TenantUserSummary> usersById, List<PaymentSlipOrderLine> orderLines) {
 		String studentEmail = emailOf(slip.getStudentId(), usersById);
 		String reviewerEmail = (slip.getReviewerId() == null) ? null : emailOf(slip.getReviewerId(), usersById);
 		return new PaymentSlipView(slip.getId(), slip.getOrderId(), slip.getStudentId(), slip.getReferenceNumber(),
 				slip.getStatus(), slip.getSubmittedAt(), slip.getReviewerId(), slip.getReviewedAt(), flagViews,
 				studentEmail, reviewerEmail, order != null ? order.getAmount() : null,
-				order != null ? order.getCurrency() : null);
+				order != null ? order.getCurrency() : null, orderLines,
+				order != null ? order.getSubtotalAmount() : null, order != null ? order.getFacilityFeeAmount() : null,
+				order != null ? order.getDiscountAmount() : null, order != null ? order.getPostageAmount() : null,
+				deliveryOf(order));
+	}
+
+	/** V90: the order's delivery snapshot for the reviewer, or {@code null}. */
+	static PaymentSlipDelivery deliveryOf(StudentOrder order) {
+		StudentOrder.DeliverySnapshot delivery = order == null ? null : order.getDelivery();
+		return delivery == null ? null
+				: new PaymentSlipDelivery(delivery.recipientName(), delivery.addressLine(), delivery.city(),
+						delivery.phone());
+	}
+
+	/** One batched, tenant-scoped read of the lines of every order on the page. */
+	private Map<UUID, List<PaymentSlipOrderLine>> loadLinesByOrderId(Set<UUID> orderIds) {
+		List<StudentOrderLine> lines = studentOrderLineRepository.findAllByOrderIdIn(orderIds);
+		Set<UUID> courseIds = new HashSet<>();
+		lines.forEach(line -> courseIds.add(line.getCourseId()));
+		// One batched, tenant-scoped title read for every course on the page.
+		Map<UUID, String> titles = new HashMap<>();
+		if (!courseIds.isEmpty()) {
+			courseLookupApi.getCourseSummaries(courseIds).forEach(summary -> titles.put(summary.id(), summary.name()));
+		}
+		Map<UUID, List<PaymentSlipOrderLine>> result = new HashMap<>();
+		for (StudentOrderLine line : lines) {
+			result.computeIfAbsent(line.getOrderId(), key -> new ArrayList<>()).add(toLineView(line, titles));
+		}
+		return result;
+	}
+
+	static PaymentSlipOrderLine toLineView(StudentOrderLine line) {
+		return toLineView(line, Map.of());
+	}
+
+	static PaymentSlipOrderLine toLineView(StudentOrderLine line, Map<UUID, String> courseTitles) {
+		return new PaymentSlipOrderLine(line.getLineNo(), line.getScope(), line.getLabel(), line.getUnitAmount(),
+				line.getFacilityFeeAmount(), line.getLineTotal(), line.getCourseId(),
+				courseTitles.get(line.getCourseId()));
 	}
 
 	private static String emailOf(UUID userId, Map<UUID, TenantUserSummary> usersById) {

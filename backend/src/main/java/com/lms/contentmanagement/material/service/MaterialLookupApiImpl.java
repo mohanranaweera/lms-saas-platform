@@ -6,7 +6,9 @@ import com.lms.contentmanagement.material.domain.Material;
 import com.lms.contentmanagement.material.repository.MaterialRepository;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -65,6 +67,18 @@ class MaterialLookupApiImpl implements MaterialLookupApi {
 
 	@Override
 	@Transactional(readOnly = true)
+	public java.util.List<com.lms.contentmanagement.api.LessonMaterialSummary> findStudentVisibleLessonMaterials(
+			UUID lessonId) {
+		return materialRepository.findByLessonId(lessonId)
+			.stream()
+			.filter(material -> material.getVisibility() == com.lms.contentmanagement.material.domain.MaterialVisibility.VISIBLE)
+			.map(material -> new com.lms.contentmanagement.api.LessonMaterialSummary(material.getId(),
+					material.getTitle(), material.getMaterialType().name()))
+			.toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public Optional<com.lms.contentmanagement.api.LessonMediaPlaybackContext> resolveLessonMediaForPlayback(UUID lessonMediaId) {
 		return materialRepository.findById(lessonMediaId)
 			.filter(material -> material.getMaterialType() == com.lms.contentmanagement.material.domain.MaterialType.VIDEO
@@ -76,18 +90,18 @@ class MaterialLookupApiImpl implements MaterialLookupApi {
 	}
 
 	@Override
-	public Optional<MaterialVideoOwnership> resolveVideoAssetOwnership(UUID videoAssetId) {
-		Optional<Material> materialOpt = materialRepository.findByVideoAssetId(videoAssetId);
-		if (materialOpt.isEmpty()) {
-			return Optional.empty();
+	public List<MaterialVideoOwnership> resolveVideoAssetOwnerships(UUID videoAssetId) {
+		List<MaterialVideoOwnership> result = new ArrayList<>();
+		for (Material material : materialRepository.findAllByVideoAssetId(videoAssetId)) {
+			if (material.getLessonId() == null) {
+				continue;
+			}
+			Optional<LessonOwnership> ownershipOpt = courseLookupApi.resolveLessonOwnership(material.getLessonId());
+			ownershipOpt.ifPresent(ownership -> result.add(new MaterialVideoOwnership(material.getId(),
+					ownership.courseId(), ownership.teacherId(), ownership.courseOpenToEnrolledStudents(),
+					material.getLessonId())));
 		}
-		Material material = materialOpt.get();
-		if (material.getLessonId() == null) {
-			return Optional.empty();
-		}
-		Optional<LessonOwnership> ownershipOpt = courseLookupApi.resolveLessonOwnership(material.getLessonId());
-		return ownershipOpt.map(ownership -> new MaterialVideoOwnership(material.getId(), ownership.courseId(),
-				ownership.teacherId(), ownership.courseOpenToEnrolledStudents()));
+		return List.copyOf(result);
 	}
 
 }

@@ -11,6 +11,8 @@ import com.lms.common.error.PayloadTooLargeException;
 import com.lms.common.error.UnsupportedMediaTypeException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.contentmanagement.api.MaterialDeletedEvent;
+import com.lms.contentmanagement.library.domain.MediaFile;
+import com.lms.contentmanagement.library.service.MediaFileService;
 import com.lms.contentmanagement.material.domain.Material;
 import com.lms.contentmanagement.material.domain.MaterialType;
 import com.lms.contentmanagement.material.domain.MaterialVisibility;
@@ -39,6 +41,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -93,9 +98,14 @@ public class MaterialService {
 
 	private final long maxFileSizeBytes;
 
+	private final MediaFileService mediaFileService;
+
+	private final TransactionTemplate transactionTemplate;
+
 	public MaterialService(MaterialRepository materialRepository, MaterialAccessGuard materialAccessGuard,
 			ObjectStorageApi objectStorageApi, VideoAccessApi videoAccessApi, ApplicationEventPublisher eventPublisher,
-			TenantContext tenantContext, @Value("${app.content.material.max-file-size-bytes}") long maxFileSizeBytes) {
+			TenantContext tenantContext, @Value("${app.content.material.max-file-size-bytes}") long maxFileSizeBytes,
+			MediaFileService mediaFileService, PlatformTransactionManager transactionManager) {
 		this.materialRepository = materialRepository;
 		this.materialAccessGuard = materialAccessGuard;
 		this.objectStorageApi = objectStorageApi;
@@ -103,6 +113,8 @@ public class MaterialService {
 		this.eventPublisher = eventPublisher;
 		this.tenantContext = tenantContext;
 		this.maxFileSizeBytes = maxFileSizeBytes;
+		this.mediaFileService = mediaFileService;
+		this.transactionTemplate = new TransactionTemplate(transactionManager);
 	}
 
 	@Transactional(readOnly = true)
@@ -111,6 +123,11 @@ public class MaterialService {
 		List<Material> materials = materialRepository.findByLessonId(lessonId);
 		if (materialAccessGuard.isStudent()) {
 			materials = materials.stream().filter(m -> m.getVisibility() == MaterialVisibility.VISIBLE).toList();
+			// KLASS-T4b (ADR-028): a participant without paid coverage sees titles
+			// only - never the external URL or note content.
+			if (materialAccessGuard.mustRedactLessonContent(courseId, lessonId)) {
+				return materials.stream().map(MaterialService::toView).map(MaterialService::redacted).toList();
+			}
 		}
 		return materials.stream().map(MaterialService::toView).toList();
 	}
@@ -118,7 +135,21 @@ public class MaterialService {
 	@Transactional(readOnly = true)
 	public MaterialView getMaterial(UUID courseId, UUID moduleId, UUID lessonId, UUID materialId) {
 		materialAccessGuard.requireLessonAccess(courseId, moduleId, lessonId, PermissionAction.VIEW);
-		return toView(loadMaterial(lessonId, materialId, materialAccessGuard.isStudent()));
+		MaterialView view = toView(loadMaterial(lessonId, materialId, materialAccessGuard.isStudent()));
+		if (materialAccessGuard.isStudent() && materialAccessGuard.mustRedactLessonContent(courseId,
+				lessonId)) {
+			return redacted(view);
+		}
+		return view;
+	}
+
+	/** Strips the protected payload fields (KLASS-T4b): external URL and note content. */
+	static MaterialView redacted(MaterialView view) {
+		return new MaterialView(view.id(), view.lessonId(), view.sessionId(), view.materialType(), view.title(),
+				view.originalFilename(), view.mimeType(), view.sizeBytes(), null, null, view.videoAssetId(),
+				view.sequence(), view.visibility(), view.maxDownloads(), view.downloadCount(),
+				view.availableFromAt(), view.expiryAt(), view.uploadedBy(), view.createdAt(), view.updatedAt(),
+				view.mediaFileId());
 	}
 
 	/**
@@ -146,7 +177,8 @@ public class MaterialService {
 	 * response shape.
 	 */
 	public SignedDownloadUrl getDownloadUrl(UUID courseId, UUID moduleId, UUID lessonId, UUID materialId) {
-		materialAccessGuard.requireLessonAccess(courseId, moduleId, lessonId, PermissionAction.VIEW);
+		// KLASS-T4b: the protected leaf - the lesson evaluator must answer ALLOWED for a Student.
+		materialAccessGuard.requireLessonContentAccess(courseId, moduleId, lessonId);
 		Material material = loadMaterial(lessonId, materialId, materialAccessGuard.isStudent());
 
 		if (material.getMaterialType() == MaterialType.NOTE || material.getMaterialType() == MaterialType.VIDEO
@@ -165,12 +197,19 @@ public class MaterialService {
 			return new SignedDownloadUrl(material.getExternalUrl(), null);
 		}
 
+		// R2-T3: a library-backed material has no key of its own - it reads the
+		// shared library file's key (same tenant; gone if the file was deleted).
+		// Resolved BEFORE the download is counted.
+		String objectKey = material.getMediaFileId() == null ? material.getStorageObjectKey()
+				: mediaFileService.findLiveObjectKey(material.getMediaFileId())
+					.orElseThrow(() -> new NotFoundException("Material not found"));
+
 		UUID tenantId = tenantContext.getTenantId();
 		int updated = materialRepository.incrementDownloadCountIfUnderLimit(materialId, tenantId);
 		if (updated == 0) {
 			throw new MaterialDownloadLimitReachedException("This material's download limit has been reached");
 		}
-		return objectStorageApi.generateSignedDownloadUrl(material.getStorageObjectKey(), DOWNLOAD_URL_TTL);
+		return objectStorageApi.generateSignedDownloadUrl(objectKey, DOWNLOAD_URL_TTL);
 	}
 
 	/**
@@ -184,6 +223,10 @@ public class MaterialService {
 	public MaterialView createMaterial(MaterialCreateCommand command) {
 		materialAccessGuard.requireLessonAccess(command.courseId(), command.moduleId(), command.lessonId(),
 				PermissionAction.CREATE_EDIT);
+
+		if (command.mediaFileId() != null) {
+			return createLibraryBackedMaterial(command);
+		}
 
 		MaterialType materialType = command.materialType() == null ? MaterialType.OTHER : command.materialType();
 		validateFieldsForType(materialType, command);
@@ -232,6 +275,70 @@ public class MaterialService {
 
 		material = materialRepository.save(material);
 		return toView(material);
+	}
+
+	/**
+	 * R2-T3: attaches an institute library file to the lesson without copying
+	 * bytes. The material type follows the file's sniffed content type; display
+	 * metadata is copied; {@code storage_object_key} stays {@code null}. The
+	 * library row is locked for the duration of the insert so a concurrent
+	 * library delete cannot remove a file that is being attached. Unknown,
+	 * other-tenant and deleted files are 404; a second live attachment of the
+	 * same file to the same lesson is 409.
+	 */
+	private MaterialView createLibraryBackedMaterial(MaterialCreateCommand command) {
+		List<FieldError> errors = new ArrayList<>();
+		if (command.file() != null && !command.file().isEmpty()) {
+			errors.add(new FieldError("file", "Send either a file or mediaFileId, not both"));
+		}
+		if (command.materialType() != null && !isFileType(command.materialType())) {
+			errors.add(new FieldError("materialType",
+					"mediaFileId can only back a file material (PDF, IMAGE, DOCUMENT or OTHER)"));
+		}
+		if (!errors.isEmpty()) {
+			throw new FieldValidationException("Invalid library file attachment", errors);
+		}
+		UUID tenantId = tenantContext.getTenantId();
+		UUID actorId = currentUserId();
+		Material saved;
+		try {
+			saved = transactionTemplate.execute(status -> {
+				MediaFile file = mediaFileService.lockLiveForAttach(command.mediaFileId());
+				if (materialRepository.existsByLessonIdAndMediaFileId(command.lessonId(), file.getId())) {
+					throw new ConflictException("This file is already attached to the lesson.");
+				}
+				int nextSequence = materialRepository.findMaxSequenceByLessonId(command.lessonId()) + 1;
+				Material material = Material.libraryFile(tenantId, command.lessonId(), command.sessionId(),
+						materialTypeFor(file.getContentType()), command.title(), file.getId(),
+						file.getOriginalFilename(), file.getContentType(), file.getSizeBytes(), nextSequence,
+						command.maxDownloads(), command.availableFromAt(), command.expiryAt(), actorId);
+				return materialRepository.saveAndFlush(material);
+			});
+		}
+		catch (DataIntegrityViolationException e) {
+			// uq_material_lesson_media_file (or a concurrent sequence collision).
+			throw new ConflictException("This file is already attached to the lesson.");
+		}
+		return toView(saved);
+	}
+
+	private static boolean isFileType(MaterialType type) {
+		return type == MaterialType.PDF || type == MaterialType.IMAGE || type == MaterialType.DOCUMENT
+				|| type == MaterialType.OTHER;
+	}
+
+	/** R2-T3: PDF -> PDF, image/* -> IMAGE, UTF-8 text -> DOCUMENT (the sniffed library type decides). */
+	static MaterialType materialTypeFor(String contentType) {
+		if ("application/pdf".equals(contentType)) {
+			return MaterialType.PDF;
+		}
+		if (contentType != null && contentType.startsWith("image/")) {
+			return MaterialType.IMAGE;
+		}
+		if ("text/plain".equals(contentType)) {
+			return MaterialType.DOCUMENT;
+		}
+		return MaterialType.OTHER;
 	}
 
 	private static UUID currentUserId() {
@@ -381,7 +488,9 @@ public class MaterialService {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void onMaterialDeleted(MaterialDeletedEvent event) {
 		if (event.storageObjectKey() == null) {
-			// Videos/links/notes have no stored object to delete.
+			// Videos/links/notes have no stored object to delete - and neither
+			// does a library-backed file material (R2-T3): its bytes belong to
+			// the shared media_file and must NEVER be deleted with the material.
 			return;
 		}
 		try {
@@ -463,7 +572,7 @@ public class MaterialService {
 				material.getNoteContent(), material.getVideoAssetId(), material.getSequence(),
 				material.getVisibility(), material.getMaxDownloads(), material.getDownloadCount(),
 				material.getAvailableFromAt(), material.getExpiryAt(), material.getUploadedBy(),
-				material.getCreatedAt(), material.getUpdatedAt());
+				material.getCreatedAt(), material.getUpdatedAt(), material.getMediaFileId());
 	}
 
 }

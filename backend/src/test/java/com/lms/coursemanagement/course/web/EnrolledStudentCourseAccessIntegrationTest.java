@@ -47,23 +47,35 @@ class EnrolledStudentCourseAccessIntegrationTest extends ContentManagementTestSu
 		Fixture f = enrolledStudentInPrivateCourse("enrolled-draft");
 		setCourseStatus(f.courseId, "DRAFT");
 
-		assertThat(getCourse(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-		assertThat(listModules(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+		// KLASS-T8b SEC L4: a course the student may not see is 404, never 403.
+		assertThat(getCourse(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(listModules(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
 		assertThat(listMaterials(f.host, f.studentToken, f.courseId, f.moduleId, f.lessonId).getStatusCode())
 			.isEqualTo(HttpStatus.NOT_FOUND);
 	}
 
+	/**
+	 * KLASS-T4b (ADR-028): a lapsed paid window no longer removes the student
+	 * from the course - they stay a participant (paid activation upserts
+	 * participation; V86 backfilled legacy rows) and may browse metadata, but
+	 * the protected leaf (download) is refused with 403 PAYMENT_REQUIRED.
+	 * Before ADR-028 every read here was denied.
+	 */
 	@Test
-	void studentWhoseAccessWindowHasLapsedIsDenied() {
+	void studentWhoseAccessWindowHasLapsedStillBrowsesButCannotOpenProtectedContent() {
 		Fixture f = enrolledStudentInPrivateCourse("enrolled-expired");
 		jdbcTemplate.update(
 				"UPDATE enrollment SET access_expires_at = now() - interval '1 minute' WHERE course_id = ? AND superseded_at IS NULL",
 				f.courseId);
 
-		assertThat(getCourse(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-		assertThat(listModules(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-		assertThat(listMaterials(f.host, f.studentToken, f.courseId, f.moduleId, f.lessonId).getStatusCode())
-			.isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(getCourse(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(listModules(f.host, f.studentToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.OK);
+		HttpResult<List<MaterialResponse>> materials = listMaterials(f.host, f.studentToken, f.courseId, f.moduleId,
+				f.lessonId);
+		assertThat(materials.getStatusCode()).isEqualTo(HttpStatus.OK);
+		UUID materialId = materials.getBody().data().get(0).id();
+		assertThat(getDownloadUrl(f.host, f.studentToken, f.courseId, f.moduleId, f.lessonId, materialId)
+			.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 	}
 
 	@Test
@@ -72,10 +84,11 @@ class EnrolledStudentCourseAccessIntegrationTest extends ContentManagementTestSu
 		seedActiveStudent(f.tenantId, "other-student@example.test");
 		String otherToken = loginAndGetToken(f.host, "other-student@example.test");
 
-		assertThat(getCourse(f.host, otherToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-		assertThat(listModules(f.host, otherToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+		// KLASS-T8b SEC L4: a non-participant of a PRIVATE course gets 404, never 403.
+		assertThat(getCourse(f.host, otherToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(listModules(f.host, otherToken, f.courseId).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
 		assertThat(listLessons(f.host, otherToken, f.courseId, f.moduleId).getStatusCode())
-			.isEqualTo(HttpStatus.FORBIDDEN);
+			.isEqualTo(HttpStatus.NOT_FOUND);
 	}
 
 	@Test

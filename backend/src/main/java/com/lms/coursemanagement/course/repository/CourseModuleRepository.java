@@ -40,4 +40,18 @@ public interface CourseModuleRepository extends TenantAwareRepository<CourseModu
 				cb.equal(root.get("sequence"), sequence), cb.notEqual(root.get("id"), excludedId)));
 	}
 
+	/** KLASS-T4a: next free sequence for appending a module when the client omits it. */
+	default int nextSequence(UUID courseId) {
+		return findByCourseId(courseId).stream().mapToInt(CourseModule::getSequence).max().orElse(0) + 1;
+	}
+
+	/** KLASS-T4a: modules of several courses in (course, sequence) order. */
+	default List<CourseModule> findByCourseIdsOrdered(java.util.Collection<UUID> courseIds) {
+		if (courseIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("courseId").in(courseIds),
+				Sort.by(Sort.Direction.ASC, "courseId").and(Sort.by(Sort.Direction.ASC, "sequence")));
+	}
+
 }

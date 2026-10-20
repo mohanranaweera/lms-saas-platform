@@ -86,6 +86,46 @@ public class Course extends Auditable implements TenantOwned {
 	@Column(name = "archived_at")
 	private Instant archivedAt;
 
+	/**
+	 * {@code course.registration_enabled} (V85, D15) - blocks NEW participation
+	 * only; never revokes existing participation or paid access.
+	 */
+	@Column(name = "registration_enabled", nullable = false)
+	private boolean registrationEnabled = true;
+
+	/**
+	 * {@code course.enrollment_fee} (V85) - informational metadata only
+	 * (ADR-028 consequence 6): never charged, never read by checkout.
+	 */
+	@Column(name = "enrollment_fee", nullable = false, precision = 12, scale = 2)
+	private BigDecimal enrollmentFee = BigDecimal.ZERO;
+
+	/** {@code course.cover_image_object_key} (V85) - tenant-scoped object storage key, never exposed. */
+	@Column(name = "cover_image_object_key", length = 512)
+	private String coverImageObjectKey;
+
+	@Column(name = "whatsapp_invite_url", length = 500)
+	private String whatsappInviteUrl;
+
+	@Column(name = "telegram_invite_url", length = 500)
+	private String telegramInviteUrl;
+
+	/** {@code course.display_order} (V85) - admin list order; {@code null} sorts last. */
+	@Column(name = "display_order")
+	private Integer displayOrder;
+
+	/**
+	 * {@code course.facility_fee_override} (V90) - {@code null} = inherit the
+	 * tenant default facility fee; {@code 0} = explicitly no fee. Read by the
+	 * payment composer only through {@code CourseCatalogInfo}.
+	 */
+	@Column(name = "facility_fee_override", precision = 12, scale = 2)
+	private BigDecimal facilityFeeOverride;
+
+	/** {@code course.postage_fee} (V90) - charged once per order when the student selects postage; 0 = free. */
+	@Column(name = "postage_fee", nullable = false, precision = 12, scale = 2)
+	private BigDecimal postageFee = BigDecimal.ZERO;
+
 	protected Course() {
 	}
 
@@ -286,6 +326,70 @@ public class Course extends Auditable implements TenantOwned {
 	 */
 	public void unarchive() {
 		this.archivedAt = null;
+	}
+
+	public boolean isRegistrationEnabled() {
+		return registrationEnabled;
+	}
+
+	public void setRegistrationEnabled(boolean registrationEnabled) {
+		this.registrationEnabled = registrationEnabled;
+	}
+
+	public BigDecimal getEnrollmentFee() {
+		return enrollmentFee;
+	}
+
+	public void setEnrollmentFee(BigDecimal enrollmentFee) {
+		this.enrollmentFee = enrollmentFee == null ? BigDecimal.ZERO : enrollmentFee;
+	}
+
+	public BigDecimal getFacilityFeeOverride() {
+		return facilityFeeOverride;
+	}
+
+	public void setFacilityFeeOverride(BigDecimal facilityFeeOverride) {
+		this.facilityFeeOverride = facilityFeeOverride;
+	}
+
+	public BigDecimal getPostageFee() {
+		return postageFee;
+	}
+
+	public void setPostageFee(BigDecimal postageFee) {
+		this.postageFee = postageFee == null ? BigDecimal.ZERO : postageFee;
+	}
+
+	public String getCoverImageObjectKey() {
+		return coverImageObjectKey;
+	}
+
+	public void setCoverImageObjectKey(String coverImageObjectKey) {
+		this.coverImageObjectKey = coverImageObjectKey;
+	}
+
+	public String getWhatsappInviteUrl() {
+		return whatsappInviteUrl;
+	}
+
+	public void setWhatsappInviteUrl(String whatsappInviteUrl) {
+		this.whatsappInviteUrl = whatsappInviteUrl;
+	}
+
+	public String getTelegramInviteUrl() {
+		return telegramInviteUrl;
+	}
+
+	public void setTelegramInviteUrl(String telegramInviteUrl) {
+		this.telegramInviteUrl = telegramInviteUrl;
+	}
+
+	public Integer getDisplayOrder() {
+		return displayOrder;
+	}
+
+	public void setDisplayOrder(Integer displayOrder) {
+		this.displayOrder = displayOrder;
 	}
 
 }

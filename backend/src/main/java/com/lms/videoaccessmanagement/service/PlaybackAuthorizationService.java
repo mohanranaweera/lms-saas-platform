@@ -5,7 +5,7 @@ import com.lms.common.error.ApplicationException;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.PlaybackNotAuthorizedException;
 import com.lms.common.error.PlayerRequestException;
-import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.videoaccessmanagement.config.VideoFeatureFlags;
 import com.lms.videoaccessmanagement.domain.LaunchChannel;
@@ -39,7 +39,7 @@ public class PlaybackAuthorizationService {
 
 	private final LessonMediaPlayability playability;
 
-	private final AccessPolicyApi accessPolicyApi;
+	private final LessonAccessApi lessonAccessApi;
 
 	private final VideoFeatureFlags featureFlags;
 
@@ -51,12 +51,12 @@ public class PlaybackAuthorizationService {
 
 	private final VideoMetrics metrics;
 
-	public PlaybackAuthorizationService(LessonMediaPlayability playability, AccessPolicyApi accessPolicyApi,
+	public PlaybackAuthorizationService(LessonMediaPlayability playability, LessonAccessApi lessonAccessApi,
 			VideoFeatureFlags featureFlags, TenantVideoConfigurationService configurationService,
 			NativeLaunchService nativeLaunchService, WatchTimeService watchTimeService, VideoMetrics metrics) {
 		this.watchTimeService = watchTimeService;
 		this.playability = playability;
-		this.accessPolicyApi = accessPolicyApi;
+		this.lessonAccessApi = lessonAccessApi;
 		this.featureFlags = featureFlags;
 		this.configurationService = configurationService;
 		this.nativeLaunchService = nativeLaunchService;
@@ -88,7 +88,8 @@ public class PlaybackAuthorizationService {
 					"The AOC Player isn't available right now.");
 		}
 		LessonMediaPlayability.Playable playable = playability.require(lessonMediaId,
-				courseId -> accessPolicyApi.requireStudentCourseAccess(courseId, LessonMediaPlayability::notFound));
+				(courseId, lessonId) -> lessonAccessApi.requireLessonAccess(courseId, lessonId,
+						LessonMediaPlayability::notFound));
 		// Phase 12: nothing starts once this Student's watch time is used up.
 		watchTimeService.requireRemaining(playable.asset().id(), AuthenticatedPrincipalHolder.get().userId());
 

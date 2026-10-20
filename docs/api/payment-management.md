@@ -542,3 +542,7 @@ platform's own matched `payment` row (via `PaymentRepository`'s one deliberate, 
 cross-tenant-lookup bypass, `findByGatewayReferenceAcrossTenants`), never from any field
 in the webhook payload — the payload structurally carries no tenant claim at all. See
 `docs/adr/ADR-011-webhook-tenant-resolution-carve-out.md`.
+
+## Klass parity additions (2026-10, ADR-028)
+
+The Klass course-management and free-enrollment/lesson-entitlement endpoints added on branch `feat/klass-course-enrollment-parity` are specified in `docs/plans/klass-enrollment-payment-parity.md` §4 (contract) with implemented behaviour in `docs/specs/klass-course-management-workflows.md` and `docs/specs/klass-enrollment-payment-workflows.md`. All changes are additive except the deliberate behaviour changes recorded there (D19, D22, D23, D24 and security fix L4: non-participant students receive 404 for non-PUBLIC courses).

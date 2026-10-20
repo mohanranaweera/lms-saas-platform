@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
@@ -53,7 +54,9 @@ class CourseAccessGuardTest {
 
 	@BeforeEach
 	void setUp() {
-		guard = new CourseAccessGuard(permissionCheckService, AccessPolicyTestDouble.backedBy(enrollmentAccessApi));
+		var accessPolicy = AccessPolicyTestDouble.backedBy(enrollmentAccessApi);
+		guard = new CourseAccessGuard(permissionCheckService, accessPolicy,
+				com.lms.enrollmentmanagement.support.LessonAccessTestDouble.backedBy(accessPolicy));
 	}
 
 	@AfterEach
@@ -140,11 +143,9 @@ class CourseAccessGuardTest {
 		UUID studentId = UUID.randomUUID();
 		Course course = courseWithStatus(CourseStatus.DRAFT);
 		asStudent(studentId);
-		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
-			.requirePermission(DomainArea.COURSES, PermissionAction.VIEW);
 
 		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.VIEW))
-			.isInstanceOf(AccessDeniedException.class);
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
 		verifyNoInteractions(enrollmentAccessApi);
 	}
 
@@ -153,13 +154,11 @@ class CourseAccessGuardTest {
 		UUID studentId = UUID.randomUUID();
 		Course course = courseWithStatus(CourseStatus.PRIVATE);
 		asStudent(studentId);
-		when(enrollmentAccessApi.resolveAccessState(studentId, course.getId()))
+		org.mockito.Mockito.lenient().when(enrollmentAccessApi.resolveAccessState(studentId, course.getId()))
 			.thenReturn(EnrollmentAccessState.expired(UUID.randomUUID(), Instant.now().minusSeconds(60), true));
-		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
-			.requirePermission(DomainArea.COURSES, PermissionAction.VIEW);
 
 		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.VIEW))
-			.isInstanceOf(AccessDeniedException.class);
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
 	}
 
 	@Test
@@ -167,13 +166,11 @@ class CourseAccessGuardTest {
 		UUID studentId = UUID.randomUUID();
 		Course course = courseWithStatus(CourseStatus.PRIVATE);
 		asStudent(studentId);
-		when(enrollmentAccessApi.resolveAccessState(studentId, course.getId()))
+		org.mockito.Mockito.lenient().when(enrollmentAccessApi.resolveAccessState(studentId, course.getId()))
 			.thenReturn(EnrollmentAccessState.neverEnrolled());
-		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
-			.requirePermission(DomainArea.COURSES, PermissionAction.VIEW);
 
 		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.VIEW))
-			.isInstanceOf(AccessDeniedException.class);
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
 	}
 
 	@Test
@@ -181,11 +178,9 @@ class CourseAccessGuardTest {
 		UUID studentId = UUID.randomUUID();
 		Course course = courseWithStatus(CourseStatus.PRIVATE);
 		asStudent(studentId);
-		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
-			.requirePermission(DomainArea.COURSES, PermissionAction.CREATE_EDIT);
 
 		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.CREATE_EDIT))
-			.isInstanceOf(AccessDeniedException.class);
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
 		verifyNoInteractions(enrollmentAccessApi);
 	}
 

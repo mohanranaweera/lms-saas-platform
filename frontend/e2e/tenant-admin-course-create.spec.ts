@@ -29,6 +29,8 @@ async function loginAsTenantAdmin(page: Page) {
   await mockJson(page, "**/v1/students", 200, apiSuccess([]));
   await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([]));
   await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
+  await mockJson(page, "**/v1/teachers", 200, apiSuccess([]));
+  await mockJson(page, "**/v1/course-tags", 200, apiSuccess([]));
   await page.goto("/login");
   await page.getByLabel("Email").fill("admin@example.com");
   await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple");
@@ -67,6 +69,27 @@ function createdCourseFixture(overrides: Partial<Record<string, unknown>> = {}) 
   };
 }
 
+/** R2: the Overview's Klass edit form reads these `CourseResponse` fields. */
+function createdKlassCourseFixture(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    ...createdCourseFixture(overrides),
+    teachers: [{ id: TEACHER_ID, name: "Teacher Nine", primary: true }],
+    tags: [],
+    linkedCourses: [],
+    priceDisplay: null,
+    enrollmentFee: "0.00",
+    paymentValidDays: null,
+    commissionRate: null,
+    whatsappInviteUrl: null,
+    telegramInviteUrl: null,
+    coverImageUrl: null,
+    registrationEnabled: true,
+    displayOrder: null,
+    timezone: "Asia/Colombo",
+    ...overrides,
+  };
+}
+
 async function fillThroughToTeacherStep(
   page: Page,
   options: { pricingModelOptionLabel?: string; price?: string } = {}
@@ -95,11 +118,18 @@ async function fillThroughToTeacherStep(
 }
 
 test.describe("tenant admin course create — staff variant", () => {
-  test("has a Teacher ID step and the create form is reachable from the course list", async ({ page }) => {
+  // KLASS (EP-C01): the course list now creates through the in-page "Add
+  // course" modal; the legacy multi-step form stays reachable at /new.
+  test("course creation is reachable from the course list (Add course modal), and the legacy /new form still renders", async ({
+    page,
+  }) => {
     await loginAsTenantAdmin(page);
     await page.getByRole("link", { name: "Courses" }).click();
-    await page.getByRole("link", { name: "New course" }).first().click();
+    await page.getByTestId("courses-add-course").click();
+    await expect(page.getByTestId("add-course-dialog").getByRole("heading", { name: "Add New Course" })).toBeVisible();
+    await page.getByTestId("add-course-cancel").click();
 
+    await page.goto("/tenant-admin/courses/new");
     await expect(page).toHaveURL(/\/tenant-admin\/courses\/new$/);
     await expect(page.getByRole("heading", { name: "Create a course" })).toBeVisible();
   });
@@ -121,7 +151,7 @@ test.describe("tenant admin course create — staff variant", () => {
         body: JSON.stringify(apiSuccess(createdCourseFixture({ price: 49.99 }))),
       });
     });
-    await mockJson(page, `**/v1/courses/${NEW_COURSE_ID}`, 200, apiSuccess(createdCourseFixture({ price: 49.99 })));
+    await mockJson(page, `**/v1/courses/${NEW_COURSE_ID}`, 200, apiSuccess(createdKlassCourseFixture({ price: 49.99 })));
 
     await fillThroughToTeacherStep(page, { price: "49.99" });
     await page.locator("#course-create-teacherId").fill(TEACHER_ID);
@@ -168,7 +198,7 @@ test.describe("tenant admin course create — staff variant", () => {
         body: JSON.stringify(apiSuccess(createdCourseFixture({ pricingModel: "FREE" }))),
       });
     });
-    await mockJson(page, `**/v1/courses/${NEW_COURSE_ID}`, 200, apiSuccess(createdCourseFixture({ pricingModel: "FREE" })));
+    await mockJson(page, `**/v1/courses/${NEW_COURSE_ID}`, 200, apiSuccess(createdKlassCourseFixture({ pricingModel: "FREE" })));
 
     await fillThroughToTeacherStep(page, { pricingModelOptionLabel: "Free" });
     // Price input must not even be rendered for a non-ONE_TIME model.
@@ -221,6 +251,12 @@ test.describe("tenant admin course create — staff variant", () => {
     await expect(goToCourseLink).toHaveAttribute("href", `/tenant-admin/courses/${NEW_COURSE_ID}/billing`);
     // Did not silently navigate away as if nothing went wrong.
     await expect(page).toHaveURL(/\/tenant-admin\/courses\/new$/);
+
+    // R2-D5: /billing (Fees & Billing) was removed and now redirects to the course Overview.
+    await mockJson(page, `**/v1/courses/${NEW_COURSE_ID}`, 200, apiSuccess(createdKlassCourseFixture({ pricingModel: "MONTHLY" })));
+    await goToCourseLink.click();
+    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${NEW_COURSE_ID}$`));
+    await expect(page.getByTestId("edit-course-name")).toHaveValue("Intro to Chemistry");
   });
 
   test("a 403 on submit surfaces inline, without a full-page permission-denied takeover (course creation is a pure POST, no GET to fail up front)", async ({

@@ -51,8 +51,9 @@ class AccessPolicyIntegrationTest extends ContentManagementTestSupport {
 		Instant originalExpiry = storedExpiry(f.enrollmentId());
 		assertThat(getAccessState(f.host(), f.studentToken(), f.course().id()).getBody().data().state())
 			.isEqualTo(EnrollmentAccessStateType.EXPIRED);
-		assertThat(listMaterials(f.host(), f.studentToken(), f.course().id(), content.moduleId(), content.lessonId())
-			.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		// KLASS-T4b (ADR-028): the expired student stays a participant - titles
+		// are listable, the protected link is withheld.
+		assertThat(readingUrl(f, content)).isNull();
 		assertThat(roster(f).getBody().data()).noneMatch(entry -> entry.userId().equals(f.student().getId()));
 
 		Instant newExpiry = Instant.now().plus(Duration.ofDays(10)).truncatedTo(ChronoUnit.SECONDS);
@@ -67,8 +68,7 @@ class AccessPolicyIntegrationTest extends ContentManagementTestSupport {
 			.data();
 		assertThat(state.state()).isEqualTo(EnrollmentAccessStateType.ACTIVE);
 		assertThat(state.accessExpiresAt()).isEqualTo(newExpiry);
-		assertThat(listMaterials(f.host(), f.studentToken(), f.course().id(), content.moduleId(), content.lessonId())
-			.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(readingUrl(f, content)).isEqualTo(READING_URL);
 		assertThat(roster(f).getBody().data()).anyMatch(entry -> entry.userId().equals(f.student().getId()));
 
 		HttpResult<List<AccessExtensionView>> history = parseList(
@@ -147,16 +147,14 @@ class AccessPolicyIntegrationTest extends ContentManagementTestSupport {
 		assertThat(inGrace.state()).isEqualTo(EnrollmentAccessStateType.ACTIVE);
 		assertThat(inGrace.inGracePeriod()).isTrue();
 		assertThat(inGrace.accessEndsAt()).isEqualTo(expiry.plus(Duration.ofDays(3)));
-		assertThat(listMaterials(f.host(), f.studentToken(), f.course().id(), content.moduleId(), content.lessonId())
-			.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(readingUrl(f, content)).isEqualTo(READING_URL);
 
 		HttpResult<CourseAccessPolicyView> courseOverride = putCoursePolicy(f.host(), f.adminToken(),
 				f.course().id(), 0, null);
 		assertThat(courseOverride.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(getAccessState(f.host(), f.studentToken(), f.course().id()).getBody().data().state())
 			.isEqualTo(EnrollmentAccessStateType.EXPIRED);
-		assertThat(listMaterials(f.host(), f.studentToken(), f.course().id(), content.moduleId(), content.lessonId())
-			.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(readingUrl(f, content)).isNull();
 
 		HttpResult<List<CourseAccessPolicyView>> listed = parseList(
 				perform(authenticated(get("/api/v1/access-policy/courses"), f.host(), f.adminToken())),
@@ -232,14 +230,29 @@ class AccessPolicyIntegrationTest extends ContentManagementTestSupport {
 
 	// ---- helpers ----
 
+	private static final String READING_URL = "https://example.test/reading";
+
 	private Content seedContent(ExpiredEnrollmentFixture f) {
 		String teacherToken = loginAndGetToken(f.host(), "teacher@example.test");
 		CourseModuleResponse module = createModuleOrFail(f.host(), teacherToken, f.course().id(), "Module 1", 1);
 		CourseLessonResponse lesson = createLessonOrFail(f.host(), teacherToken, f.course().id(), module.id(),
 				"Lesson 1", 1);
 		createLinkMaterialOrFail(f.host(), teacherToken, f.course().id(), module.id(), lesson.id(), "Reading",
-				"https://example.test/reading");
+				READING_URL);
 		return new Content(module.id(), lesson.id());
+	}
+
+	/**
+	 * The student-visible link of the seeded material: present while the
+	 * access window (extension/grace) covers the lesson, {@code null} (redacted
+	 * by the lesson evaluator, KLASS-T4b) once it does not. The listing itself
+	 * stays 200 for the (participating) student either way.
+	 */
+	private String readingUrl(ExpiredEnrollmentFixture f, Content content) {
+		var listed = listMaterials(f.host(), f.studentToken(), f.course().id(), content.moduleId(),
+				content.lessonId());
+		assertThat(listed.getStatusCode()).isEqualTo(HttpStatus.OK);
+		return listed.getBody().data().get(0).externalUrl();
 	}
 
 	private void seedProfile(ExpiredEnrollmentFixture f) {

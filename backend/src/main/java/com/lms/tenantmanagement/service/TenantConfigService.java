@@ -87,7 +87,9 @@ public class TenantConfigService implements TenantConfigApi {
 	 * all-or-nothing: if any key is unknown ({@link UnknownConfigKeyException})
 	 * or any value fails its property's validator ({@link
 	 * InvalidConfigValueException}), nothing in the batch is persisted. On
-	 * success, every changed key's upsert AND its {@link AuditLogApi#record}
+	 * success, every changed key's upsert (or, for a {@code null} value on a
+	 * {@link ConfigPropertyDefinition#clearable() clearable} property, the
+	 * deletion of its override row) AND its {@link AuditLogApi#record}
 	 * call happen inside this one {@code @Transactional} method, so an audit
 	 * write never commits without its corresponding config change (or vice
 	 * versa).
@@ -115,14 +117,17 @@ public class TenantConfigService implements TenantConfigApi {
 		for (Map.Entry<String, Object> change : changes.entrySet()) {
 			String key = change.getKey();
 			Object value = change.getValue();
+			ConfigPropertyDefinition definition = definitionsByKey.get(key);
 			if (value == null) {
-				// No "clear a value" support this wave - see class javadoc
-				// deviation note in the task report; a NOT NULL jsonb column
-				// has no clean "unset" representation without one.
-				valueErrors.add(new FieldError(key, "Value must not be null"));
+				// KLASS-T8d: null clears an optional (no default, not required)
+				// property - its override row is deleted below. A property with
+				// a default or a required one cannot be cleared (no
+				// reset-to-default semantic exists).
+				if (!definition.clearable()) {
+					valueErrors.add(new FieldError(key, "Value must not be null"));
+				}
 				continue;
 			}
-			ConfigPropertyDefinition definition = definitionsByKey.get(key);
 			if (!definition.validator().test(value, changes)) {
 				valueErrors.add(new FieldError(key, "Invalid value for '" + key + "'"));
 			}
@@ -143,10 +148,19 @@ public class TenantConfigService implements TenantConfigApi {
 			String key = change.getKey();
 			Object newValue = change.getValue();
 			ConfigPropertyDefinition definition = definitionsByKey.get(key);
-			String serialized = serialize(newValue);
-
-			TenantConfigEntry saved;
 			Optional<TenantConfigEntry> existing = repository.findByConfigDomainAndConfigKey(domain.name(), key);
+
+			if (newValue == null) {
+				// Validated above as clearable. tenant_config_entry is mutable
+				// current state (V36), not financial/audit history, so deleting
+				// the override row is the correct "unset". Nothing persisted =
+				// nothing to clear = no audit entry (no change happened).
+				existing.ifPresent(entry -> clearEntry(domain, key, definition, entry, actorId));
+				continue;
+			}
+
+			String serialized = serialize(newValue);
+			TenantConfigEntry saved;
 			if (existing.isPresent()) {
 				existing.get().updateValue(serialized);
 				saved = repository.save(existing.get());
@@ -176,6 +190,30 @@ public class TenantConfigService implements TenantConfigApi {
 		}
 
 		return getDomain(domain);
+	}
+
+	/**
+	 * Deletes one tenant's override row (via the tenant-asserting batch delete
+	 * - the row was already loaded through the tenant-scoped finder) and
+	 * records a {@code tenant_config.cleared} audit entry in the same
+	 * transaction, with the prior value as {@code before} (omitted for a
+	 * sensitive property).
+	 */
+	private void clearEntry(ConfigDomain domain, String key, ConfigPropertyDefinition definition,
+			TenantConfigEntry entry, UUID actorId) {
+		Object beforeValue = definition.sensitive() ? null : deserialize(entry.getValue());
+		UUID entryId = entry.getId();
+		repository.deleteAllInBatch(List.of(entry));
+
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("domain", domain.name());
+		metadata.put("key", key);
+		if (beforeValue != null) {
+			metadata.put("before", beforeValue);
+		}
+		metadata.put("cleared", true);
+		auditLogApi.record(new AuditLogEntry(actorId, "tenant_config.cleared", "tenant_config_entry", entryId, null,
+				metadata));
 	}
 
 	@Override

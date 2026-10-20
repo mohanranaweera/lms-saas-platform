@@ -6,6 +6,7 @@ import com.lms.integrationmanagement.api.GatewayCheckoutRequest;
 import com.lms.integrationmanagement.api.GatewayPayer;
 import com.lms.integrationmanagement.api.PaymentGatewayApi;
 import com.lms.integrationmanagement.api.PaymentGatewayInitiation;
+import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.service.OrderService;
 import com.lms.paymentmanagement.payment.domain.Payment;
@@ -42,8 +43,12 @@ public class PaymentInitiationService {
 
 	private final StudentLookupApi studentLookupApi;
 
+	private final CheckoutComposerService checkoutComposerService;
+
 	public PaymentInitiationService(OrderService orderService, PaymentWriteService paymentWriteService,
-			PaymentGatewayApi paymentGatewayApi, CourseLookupApi courseLookupApi, StudentLookupApi studentLookupApi) {
+			PaymentGatewayApi paymentGatewayApi, CourseLookupApi courseLookupApi, StudentLookupApi studentLookupApi,
+			CheckoutComposerService checkoutComposerService) {
+		this.checkoutComposerService = checkoutComposerService;
 		this.orderService = orderService;
 		this.paymentWriteService = paymentWriteService;
 		this.paymentGatewayApi = paymentGatewayApi;
@@ -69,6 +74,10 @@ public class PaymentInitiationService {
 	public PaymentInitiationView initiatePayment(UUID orderId, UUID idempotencyKey) {
 		// Read-only, tenant/owner-checked, its own short transaction.
 		StudentOrder order = orderService.loadOrderOwnedByCurrentStudent(orderId);
+		// KLASS-T4c: a line order whose items were meanwhile paid / are awaiting
+		// payment in another order is refused (409) before any payment row or
+		// gateway call - a guard against paying twice. No-op for legacy orders.
+		checkoutComposerService.requireLineOrderStillPayable(order);
 
 		// PAY-GW-01: amount/currency are the order's stored snapshot; item
 		// description and payer details are read server-side for the hosted
@@ -102,8 +111,20 @@ public class PaymentInitiationService {
 	}
 
 
+	/**
+	 * Gateway item description: the course title; for a V90 multi-course line
+	 * order (no single {@code courseId}) "N courses".
+	 */
 	private String itemDescription(StudentOrder order) {
-		return courseLookupApi.getCourseSummaries(Set.of(order.getCourseId()))
+		UUID courseId = order.getCourseId();
+		if (courseId == null) {
+			Set<UUID> courseIds = checkoutComposerService.lineCourseIds(order);
+			if (courseIds.size() != 1) {
+				return courseIds.size() + " courses";
+			}
+			courseId = courseIds.iterator().next();
+		}
+		return courseLookupApi.getCourseSummaries(Set.of(courseId))
 			.stream()
 			.findFirst()
 			.map(CourseSummary::name)

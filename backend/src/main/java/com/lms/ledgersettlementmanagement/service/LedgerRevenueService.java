@@ -5,7 +5,7 @@ import com.lms.ledgersettlementmanagement.api.LedgerRevenueEntry;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntry;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntryType;
 import com.lms.ledgersettlementmanagement.repository.LedgerEntryRepository;
-import com.lms.paymentmanagement.api.OrderPaymentDetail;
+import com.lms.paymentmanagement.api.OrderRevenueBasis;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import java.time.Instant;
 import java.util.HashMap;
@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Wave 7 (§4) - implements {@link LedgerRevenueApi}. Reads ledger rows through
  * the tenant-scoped {@link LedgerEntryRepository#findAllCreatedBetween} and
- * resolves {@code orderId -> courseId} with ONE batched {@link
- * PaymentStatusApi#findOrderPaymentDetails} call, mirroring {@code
+ * resolves each order's ADR-029 allocation inputs with ONE batched {@link
+ * PaymentStatusApi#findOrderRevenueBases} call (see {@link RevenueAllocator}), mirroring {@code
  * LedgerViewEnrichmentService}'s batching discipline. Read-only: this class
  * never writes, updates, or deletes a ledger row.
  */
@@ -46,15 +46,25 @@ public class LedgerRevenueService implements LedgerRevenueApi {
 			return List.of();
 		}
 		List<UUID> orderIds = entries.stream().map(LedgerEntry::getOrderId).distinct().toList();
-		Map<UUID, UUID> courseIdByOrderId = new HashMap<>();
-		for (OrderPaymentDetail detail : paymentStatusApi.findOrderPaymentDetails(orderIds)) {
-			courseIdByOrderId.put(detail.orderId(), detail.courseId());
+		// ADR-029: one batched read of every order's immutable allocation inputs.
+		Map<UUID, OrderRevenueBasis> basisByOrderId = new HashMap<>();
+		for (OrderRevenueBasis basis : paymentStatusApi.findOrderRevenueBases(orderIds)) {
+			basisByOrderId.put(basis.orderId(), basis);
 		}
-		return entries.stream()
-			.map(entry -> new LedgerRevenueEntry(entry.getId(), entry.getOrderId(),
-					entry.getEntryType() == LedgerEntryType.REFUND, entry.getAmount(), entry.getCreatedAt(),
-					courseIdByOrderId.get(entry.getOrderId())))
-			.toList();
+		return entries.stream().map(entry -> {
+			OrderRevenueBasis basis = basisByOrderId.get(entry.getOrderId());
+			UUID courseId = basis == null ? null : singleCourse(basis);
+			return new LedgerRevenueEntry(entry.getId(), entry.getOrderId(),
+					entry.getEntryType() == LedgerEntryType.REFUND, entry.getAmount(), entry.getCreatedAt(), courseId,
+					RevenueAllocator.allocate(entry.getAmount(), basis));
+		}).toList();
+	}
+
+	private static UUID singleCourse(OrderRevenueBasis basis) {
+		if (!basis.lineOrder()) {
+			return basis.legacyCourseId();
+		}
+		return basis.courseShares().size() == 1 ? basis.courseShares().keySet().iterator().next() : null;
 	}
 
 }

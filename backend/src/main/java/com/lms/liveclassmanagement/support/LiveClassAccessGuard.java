@@ -3,6 +3,7 @@ package com.lms.liveclassmanagement.support;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -55,11 +56,14 @@ public class LiveClassAccessGuard {
 
 	private final PermissionCheckService permissionCheckService;
 
+	private final LessonAccessApi lessonAccessApi;
+
 	public LiveClassAccessGuard(CourseLookupApi courseLookupApi, AccessPolicyApi accessPolicyApi,
-			PermissionCheckService permissionCheckService) {
+			PermissionCheckService permissionCheckService, LessonAccessApi lessonAccessApi) {
 		this.courseLookupApi = courseLookupApi;
 		this.accessPolicyApi = accessPolicyApi;
 		this.permissionCheckService = permissionCheckService;
+		this.lessonAccessApi = lessonAccessApi;
 	}
 
 	/**
@@ -98,7 +102,15 @@ public class LiveClassAccessGuard {
 			return;
 		}
 		if (STUDENT_ROLE.equals(principal.role())) {
-			// Wave 10: entitlement, expiry/extension/grace and course device limit - one central decision.
+			if (session.getLessonId() != null) {
+				// KLASS-T4b (ADR-028): a session attached to a lesson is a protected
+				// leaf of that lesson - the single lesson evaluator decides
+				// (participation, device, lesson window, payment).
+				lessonAccessApi.requireLessonAccess(session.getCourseId(), session.getLessonId(),
+						() -> new NotFoundException("Class session not found"));
+				return;
+			}
+			// No lesson: legacy course-wide rule (entitlement, expiry/extension/grace, device).
 			accessPolicyApi.requireStudentCourseAccess(session.getCourseId(),
 					() -> new NotFoundException("Class session not found"));
 			return;

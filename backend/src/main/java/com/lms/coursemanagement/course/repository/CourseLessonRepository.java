@@ -40,4 +40,18 @@ public interface CourseLessonRepository extends TenantAwareRepository<CourseLess
 				cb.equal(root.get("sequence"), sequence), cb.notEqual(root.get("id"), excludedId)));
 	}
 
+	/** KLASS-T4a: next free sequence for appending a lesson when the client omits it. */
+	default int nextSequence(UUID moduleId) {
+		return findByModuleId(moduleId).stream().mapToInt(CourseLesson::getSequence).max().orElse(0) + 1;
+	}
+
+	/** KLASS-T4a: lessons of several modules in (module, sequence) order. */
+	default List<CourseLesson> findByModuleIdsOrdered(java.util.Collection<UUID> moduleIds) {
+		if (moduleIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("moduleId").in(moduleIds),
+				Sort.by(Sort.Direction.ASC, "moduleId").and(Sort.by(Sort.Direction.ASC, "sequence")));
+	}
+
 }

@@ -35,4 +35,11 @@ public interface ClassSessionLookupApi {
 	 */
 	long countUpcomingSessionsHostedBy(UUID providerConnectionId);
 
+	/**
+	 * KLASS-T4b: every session of the caller's tenant attached to {@code
+	 * lessonId} ({@code class_session.lesson_id}), by scheduled start. No
+	 * authorization - the lesson launch has already evaluated lesson access.
+	 */
+	java.util.List<ClassSessionSummary> findByLessonId(UUID lessonId);
+
 }

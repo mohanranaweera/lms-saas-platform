@@ -18,6 +18,8 @@ export interface ApiError {
   message: string;
   /** Always an array, never null. */
   fieldErrors: FieldError[];
+  /** Optional error-specific machine-readable payload (e.g. the fresh quote of a 409 `QUOTE_CHANGED`); absent otherwise. */
+  details?: Record<string, unknown> | null;
 }
 
 export interface ApiResponse<T> {

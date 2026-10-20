@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useId, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Film, Info, Link2, UploadCloud } from "lucide-react";
+import { ExternalLink, Eye, Film, Info, Link2, Plus } from "lucide-react";
 import {
   useMediaList,
   useMediaTabs,
@@ -21,6 +21,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs } from "@/components/ui/tabs";
 import { MediaStatusBadge } from "./media-status-badge";
 import { MediaUploadPanel } from "./media-upload-panel";
+import { MediaFilesPanel } from "./media-files-panel";
+import { MediaLibrarySummary } from "./media-library-summary";
+import { MediaDialog } from "./media-dialog";
 
 const PAGE_SIZE = 24;
 
@@ -113,6 +116,12 @@ function MediaCardBody({ asset }: { asset: MediaAsset }) {
             {asset.privacyStatus ? (
               <Badge variant="outline">{asset.privacyStatus === "PRIVATE" ? "Private" : "Unlisted"}</Badge>
             ) : null}
+            {asset.canEdit === false && asset.canDelete === false ? (
+              <Badge variant="outline" data-testid="media-video-view-only">
+                <Eye aria-hidden="true" />
+                View only
+              </Badge>
+            ) : null}
           </div>
           {transferring ? (
             <div
@@ -139,11 +148,13 @@ type TabKey = "uploads" | "archived" | "dyntube" | `integration:${string}`;
 
 /**
  * The Media Library shared by the Tenant Admin and Teacher pages (VIDEO
- * Phases 5 / 5d). Tabs follow where videos are hosted, like Klass: one per
- * YouTube integration, "Uploads" for the platform's own storage and, when
- * any exist, "Archived" for videos of deleted integrations. Which tabs and
- * videos appear is decided by the server: a Teacher gets their own uploads
- * and the integrations they may use; staff with `MATERIALS` everything.
+ * Phases 5 / 5d, Klass gaps round 2 G1). Klass layout: a summary card, then
+ * "Uploads" first (documents/images and internal videos, independently
+ * paginated under All types), then one tab per video
+ * host (DynTube, each YouTube integration) and, when any exist, "Archived".
+ * Which tabs, files and videos appear - and which may be renamed or deleted -
+ * is decided by the server (R2-D1/R2-D2: the library is institute-wide;
+ * teachers change only their own uploads).
  */
 export function MediaLibrary({
   basePath,
@@ -161,6 +172,7 @@ export function MediaLibrary({
 }) {
   const tabsQuery = useMediaTabs();
   const [selected, setSelected] = useState<TabKey | null>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
 
   return (
     <div className="flex flex-col gap-6">
@@ -175,15 +187,35 @@ export function MediaLibrary({
         permissionDenied={{ dashboardHref }}
       >
         {(tabs) => {
-          const first = tabs.integrations[0];
           const managed = tabs.managedHost;
-          const active: TabKey =
-            selected ?? (managed ? "dyntube" : first ? `integration:${first.integrationId}` : "uploads");
+          const active: TabKey = selected ?? "uploads";
           const panel = (key: TabKey) =>
-            key === active ? (
+            key === "uploads" ? (
+              active === "uploads" ? (
+                <MediaFilesPanel
+                  dashboardHref={dashboardHref}
+                  canUpload={canUpload}
+                  onBusyChange={setUploadBusy}
+                  videos={({ search, onClearSearch }) => (
+                    <MediaTabPanel
+                      uploadsSearch={search}
+                      onClearUploadsSearch={onClearSearch}
+                      tabKey="uploads"
+                      tab={null}
+                      managed={null}
+                      basePath={basePath}
+                      dashboardHref={dashboardHref}
+                      canUpload={canUpload}
+                      settingsHref={settingsHref}
+                    />
+                  )}
+                />
+              ) : null
+            ) : key === active ? (
               <MediaTabPanel
                 key={key}
                 tabKey={key}
+                onBusyChange={setUploadBusy}
                 tab={tabs.integrations.find((t) => `integration:${t.integrationId}` === key) ?? null}
                 managed={key === "dyntube" ? managed : null}
                 basePath={basePath}
@@ -193,6 +225,7 @@ export function MediaLibrary({
               />
             ) : null;
           const items = [
+            { value: "uploads" as TabKey, label: "Uploads" },
             ...(managed
               ? [
                   {
@@ -215,25 +248,26 @@ export function MediaLibrary({
                 </Badge>
               ) : undefined,
             })),
-            { value: "uploads" as TabKey, label: "Uploads" },
             ...(tabs.hasArchived ? [{ value: "archived" as TabKey, label: "Archived" }] : []),
           ].map((item) => ({ ...item, content: panel(item.value) }));
           return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
+              <MediaLibrarySummary />
+              {uploadBusy ? <p role="status" className="text-sm text-muted-foreground">Upload in progress. Finish or cancel it before switching tabs.</p> : null}
               {tabs.integrations.length === 0 && !managed && settingsHref ? (
                 <p className="text-sm text-muted-foreground">
                   No YouTube integration yet.{" "}
                   <Link href={settingsHref} className="font-medium underline">
                     Add one in Video providers
                   </Link>{" "}
-                  to upload videos.
+                  for YouTube uploads. Internal storage uploads are available in Uploads.
                 </p>
               ) : null}
               <Tabs
-                aria-label="Where videos are hosted"
+                aria-label="Media sources"
                 items={items}
                 value={active}
-                onValueChange={(value) => setSelected(value as TabKey)}
+                onValueChange={(value) => { if (!uploadBusy) setSelected(value as TabKey); }}
               />
             </div>
           );
@@ -252,12 +286,18 @@ function MediaTabPanel({
   tabKey,
   tab,
   managed,
+  onBusyChange,
   basePath,
   dashboardHref,
   canUpload,
   settingsHref,
+  uploadsSearch,
+  onClearUploadsSearch,
 }: {
+  uploadsSearch?: string;
+  onClearUploadsSearch?: () => void;
   tabKey: TabKey;
+  onBusyChange?: (busy: boolean) => void;
   tab: MediaTab | null;
   managed: ManagedHostTab | null;
   basePath: string;
@@ -270,7 +310,13 @@ function MediaTabPanel({
   const [status, setStatus] = useState<"" | MediaProcessingStatus>("");
   const [page, setPage] = useState(0);
   const [showUpload, setShowUpload] = useState(false);
-  const deferredSearch = useDeferredValue(search);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const deferredSearch = useDeferredValue(uploadsSearch ?? search);
+  const [pagedFilters, setPagedFilters] = useState({ search: deferredSearch, status });
+  if (pagedFilters.search !== deferredSearch || pagedFilters.status !== status) {
+    setPagedFilters({ search: deferredSearch, status });
+    setPage(0);
+  }
   const query = useMediaList({
     q: deferredSearch,
     status: status || undefined,
@@ -280,6 +326,17 @@ function MediaTabPanel({
     provider: tabKey === "uploads" ? "INTERNAL" : tabKey === "dyntube" ? "DYNTUBE" : undefined,
     archived: tabKey === "archived",
   });
+  if (query.data && query.data.page === page && page > 0 && query.data.content.length === 0) {
+    setPage(Math.max(0, Math.min(page - 1, query.data.totalPages - 1)));
+  }
+  const handleUploadOpenChange = (open: boolean) => {
+    if (!open && uploadBusy) return;
+    setShowUpload(open);
+  };
+  const handleBusyChange = (busy: boolean) => {
+    setUploadBusy(busy);
+    onBusyChange?.(busy);
+  };
   const filtered = Boolean(deferredSearch.trim() || status);
   const uploadHere = canUpload && (tab !== null || Boolean(managed?.canUpload));
   // VIDEO Phase 13: the DynTube tab says why there's no Upload button instead of hiding it silently.
@@ -297,13 +354,13 @@ function MediaTabPanel({
             : managed
               ? "Videos hosted on your institute's DynTube account. Students play them through short-lived signed links."
               : tabKey === "uploads"
-              ? "Videos stored in your institute's own storage on this platform. To upload a new video, choose a YouTube tab."
+              ? "Videos stored in your institute's own storage on this platform. Use New media to upload a video to tenant internal storage (up to 25 MiB)."
               : "Videos from YouTube integrations that were removed. They stay on YouTube and in the lessons that use them."}
         </p>
-        {uploadHere && !showUpload ? (
+        {uploadHere ? (
           <Button type="button" onClick={() => setShowUpload(true)}>
-            <UploadCloud aria-hidden="true" />
-            Upload video
+            <Plus aria-hidden="true" />
+            New media
           </Button>
         ) : null}
         {uploadBlockedReason ? (
@@ -325,20 +382,29 @@ function MediaTabPanel({
       </div>
 
       {uploadHere && showUpload ? (
-        <div className="max-w-2xl">
+        <MediaDialog
+          open
+          onOpenChange={handleUploadOpenChange}
+          title="New media"
+          description={tab ? `Upload a video to ${tab.name} on YouTube.` : "Upload a video to your institute's DynTube account."}
+          testId="media-provider-upload-dialog"
+          className="sm:max-w-2xl"
+          footer={null}
+        >
           <MediaUploadPanel
             destination={
               tab ? { kind: "youtube", integrationId: tab.integrationId, name: tab.name } : { kind: "dyntube" }
             }
             // DynTube is set up under Settings → Integrations (only shown to those who manage settings).
             settingsHref={tab ? settingsHref : settingsHref ? DYNTUBE_SETTINGS_HREF : undefined}
-            onClose={() => setShowUpload(false)}
+            onBusyChange={handleBusyChange}
+            onClose={() => handleUploadOpenChange(false)}
           />
-        </div>
+        </MediaDialog>
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem]">
-        <div className="flex flex-col gap-1.5">
+        {uploadsSearch === undefined ? <div className="flex flex-col gap-1.5">
           <Label htmlFor={ids.search}>Search</Label>
           <Input
             id={ids.search}
@@ -350,9 +416,9 @@ function MediaTabPanel({
               setPage(0);
             }}
           />
-        </div>
+        </div> : null}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={ids.status}>Status</Label>
+          <Label htmlFor={ids.status}>{tabKey === "uploads" ? "Video status" : "Status"}</Label>
           <select
             id={ids.status}
             value={status}
@@ -386,6 +452,7 @@ function MediaTabPanel({
                   label: "Clear filters",
                   onClick: () => {
                     setSearch("");
+                    onClearUploadsSearch?.();
                     setStatus("");
                     setPage(0);
                   },
@@ -420,13 +487,16 @@ function MediaTabPanel({
       >
         {(data) => (
           <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              {data.totalElements} {data.totalElements === 1 ? "video" : "videos"}
+            </p>
             <ul aria-label="Media" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {data.content.map((asset) => (
                 <MediaCard key={asset.id} asset={asset} href={`${basePath}/${asset.id}`} />
               ))}
             </ul>
             {data.totalPages > 1 ? (
-              <nav aria-label="Pages" className="flex items-center justify-between gap-2">
+              <nav aria-label="Video pages" className="flex items-center justify-between gap-2">
                 <Button type="button" variant="outline" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
                   Previous
                 </Button>

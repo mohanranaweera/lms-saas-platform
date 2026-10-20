@@ -21,6 +21,7 @@ interface ModuleRecord {
   courseId: string;
   title: string;
   sequence: number;
+  price: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,36 +31,61 @@ interface LessonRecord {
   moduleId: string;
   title: string;
   sequence: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  resourceType: string | null;
+  paymentType: "COVERED_BY_CLASS_FEES" | "PAID" | "FREE";
+  price: string | null;
+  description: string | null;
+  lessonLabel: string | null;
+  billingYear: number | null;
+  billingMonth: number | null;
+  expired: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+type PatchBody = { title: string; sequence: number; [key: string]: unknown };
+
 interface MockState {
   modules: ModuleRecord[];
   lessonsByModule: Map<string, LessonRecord[]>;
-  patchCalls: Array<{ kind: "module" | "lesson"; id: string; body: { title: string; sequence: number } }>;
+  patchCalls: Array<{ kind: "module" | "lesson"; id: string; body: PatchBody }>;
+  moduleOrderCalls: string[][];
+  lessonOrderCalls: Array<{ moduleId: string; lessonIds: string[] }>;
 }
 
 interface MockOptions {
-  /**
-   * When set, the *first* PATCH call to this module id fails with a 409
-   * (simulating step 2 or 3 of the reorder dance colliding), instead of
-   * being applied — used to prove the UI surfaces a single error and still
-   * refetches the list afterward.
-   */
-  failFirstModulePatch?: { moduleId: string; status: number; code: string; message: string };
+  failModuleReorder?: { status: number; code: string; message: string };
 }
 
 function nowIso(): string {
   return new Date().toISOString();
 }
 
-function makeModule(id: string, title: string, sequence: number): ModuleRecord {
-  return { id, courseId: COURSE_ID, title, sequence, createdAt: nowIso(), updatedAt: nowIso() };
+function makeModule(id: string, title: string, sequence: number, price: string | null = null): ModuleRecord {
+  return { id, courseId: COURSE_ID, title, sequence, price, createdAt: nowIso(), updatedAt: nowIso() };
 }
 
 function makeLesson(id: string, moduleId: string, title: string, sequence: number): LessonRecord {
-  return { id, moduleId, title, sequence, createdAt: nowIso(), updatedAt: nowIso() };
+  return {
+    id,
+    moduleId,
+    title,
+    sequence,
+    startsAt: null,
+    endsAt: null,
+    resourceType: null,
+    paymentType: "COVERED_BY_CLASS_FEES",
+    price: null,
+    description: null,
+    lessonLabel: null,
+    billingYear: null,
+    billingMonth: null,
+    expired: false,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
 }
 
 /**
@@ -93,6 +119,23 @@ function courseResponseBody() {
     accessDurationDays: null,
     enrollmentRule: null,
     status: "DRAFT",
+    pricingModel: "ONE_TIME",
+    archivedAt: null,
+    resolvedAmount: 1999,
+    currency: "USD",
+    requiresManualQuote: false,
+    registrationEnabled: true,
+    enrollmentFee: null,
+    coverImageUrl: null,
+    whatsappInviteUrl: null,
+    telegramInviteUrl: null,
+    paymentValidDays: null,
+    commissionRate: null,
+    teachers: [{ id: "teacher-1", name: "Teacher One", primary: true }],
+    tags: [],
+    linkedCourses: [],
+    displayOrder: null,
+    priceDisplay: { amount: 1999, currency: "USD", period: null },
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -110,7 +153,8 @@ async function setupCourseMocks(
     id: string;
     title: string;
     sequence: number;
-    lessons?: Array<{ id: string; title: string; sequence: number }>;
+    price?: string | null;
+    lessons?: Array<{ id: string; title: string; sequence: number } & Partial<LessonRecord>>;
   }>,
   options: MockOptions = {}
 ): Promise<MockState> {
@@ -118,22 +162,46 @@ async function setupCourseMocks(
   await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
 
   const state: MockState = {
-    modules: initialModules.map((m) => makeModule(m.id, m.title, m.sequence)),
+    modules: initialModules.map((m) => makeModule(m.id, m.title, m.sequence, m.price ?? null)),
     lessonsByModule: new Map(
       initialModules.map((m) => [
         m.id,
-        (m.lessons ?? []).map((l) => makeLesson(l.id, m.id, l.title, l.sequence)),
+        (m.lessons ?? []).map((l) => ({ ...makeLesson(l.id, m.id, l.title, l.sequence), ...l, moduleId: m.id })),
       ])
     ),
     patchCalls: [],
+    moduleOrderCalls: [],
+    lessonOrderCalls: [],
   };
 
-  const failedOnce = new Set<string>();
+  await mockJson(page, "**/v1/tenant-config/GENERAL", 200, apiSuccess([]));
+  await page.route("**/api/v1/courses/*/modules/*/lessons/*/materials", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([])) });
+  });
+  await page.route("**/api/v1/courses/*/lessons/*/media", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([])) });
+  });
 
   await page.route("**/api/v1/courses/**", async (route) => {
     const request = route.request();
     const method = request.method();
     const path = new URL(request.url()).pathname;
+
+    if (path.endsWith("/api/v1/courses/lesson-resource-types") && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(apiSuccess([
+          { type: "DOCUMENT", label: "Document", support: "INTEGRATED", help: "Choose a document.", liveClass: false },
+          { type: "SECURE_VIDEO", label: "Player Video", support: "INTEGRATED", help: "Choose a ready video.", liveClass: false },
+          { type: "IMAGE", label: "Image", support: "INTEGRATED", help: "Choose an image.", liveClass: false },
+          { type: "VIDEO_LINK", label: "Video Link", support: "LINK_ONLY", help: "Paste an https link.", liveClass: false },
+          { type: "ZOOM_MEETING", label: "Zoom Meeting", support: "INTEGRATED", help: "Zoom integration required.", liveClass: true },
+          { type: "ZOOM_RECORDING", label: "Zoom Recording", support: "UNSUPPORTED", help: "Not available yet.", liveClass: false },
+        ])),
+      });
+      return;
+    }
 
     // Handles the plain course-detail fetch (`useCourse`) too — this
     // catch-all is registered once per test and is the only mock for
@@ -145,6 +213,26 @@ async function setupCourseMocks(
         contentType: "application/json",
         body: JSON.stringify(apiSuccess(courseResponseBody())),
       });
+      return;
+    }
+
+    const moduleOrderMatch = path.match(/\/api\/v1\/courses\/[^/]+\/modules\/order$/);
+    if (moduleOrderMatch && method === "PUT") {
+      const body = request.postDataJSON() as { moduleIds: string[] };
+      state.moduleOrderCalls.push(body.moduleIds);
+      if (options.failModuleReorder) {
+        await route.fulfill({
+          status: options.failModuleReorder.status,
+          contentType: "application/json",
+          body: JSON.stringify(apiError(options.failModuleReorder.code, options.failModuleReorder.message)),
+        });
+        return;
+      }
+      state.modules = body.moduleIds.map((id, index) => {
+        const item = state.modules.find((module) => module.id === id)!;
+        return { ...item, sequence: index + 1, updatedAt: nowIso() };
+      });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(state.modules)) });
       return;
     }
 
@@ -176,27 +264,14 @@ async function setupCourseMocks(
     if (moduleItemMatch) {
       const moduleId = moduleItemMatch[1];
       if (method === "PATCH") {
-        const body = request.postDataJSON() as { title: string; sequence: number };
+        const body = request.postDataJSON() as PatchBody;
         state.patchCalls.push({ kind: "module", id: moduleId, body });
-
-        if (
-          options.failFirstModulePatch?.moduleId === moduleId &&
-          !failedOnce.has(moduleId)
-        ) {
-          failedOnce.add(moduleId);
-          const fail = options.failFirstModulePatch;
-          await route.fulfill({
-            status: fail.status,
-            contentType: "application/json",
-            body: JSON.stringify(apiError(fail.code, fail.message)),
-          });
-          return;
-        }
 
         const target = state.modules.find((m) => m.id === moduleId);
         if (target) {
           target.title = body.title;
           target.sequence = body.sequence;
+          target.price = typeof body.price === "string" ? body.price : null;
           target.updatedAt = nowIso();
         }
         await route.fulfill({
@@ -218,6 +293,18 @@ async function setupCourseMocks(
       }
     }
 
+    const lessonOrderMatch = path.match(/\/api\/v1\/courses\/[^/]+\/modules\/([^/]+)\/lessons\/order$/);
+    if (lessonOrderMatch && method === "PUT") {
+      const moduleId = lessonOrderMatch[1];
+      const { lessonIds } = request.postDataJSON() as { lessonIds: string[] };
+      state.lessonOrderCalls.push({ moduleId, lessonIds });
+      const lessons = state.lessonsByModule.get(moduleId) ?? [];
+      const ordered = lessonIds.map((id, index) => ({ ...lessons.find((lesson) => lesson.id === id)!, sequence: index + 1 }));
+      state.lessonsByModule.set(moduleId, ordered);
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(ordered)) });
+      return;
+    }
+
     const lessonsMatch = path.match(/\/api\/v1\/courses\/[^/]+\/modules\/([^/]+)\/lessons$/);
     if (lessonsMatch) {
       const moduleId = lessonsMatch[1];
@@ -231,8 +318,8 @@ async function setupCourseMocks(
         return;
       }
       if (method === "POST") {
-        const body = request.postDataJSON() as { title: string; sequence: number };
-        const created = makeLesson(`lesson-new-${lessons.length + 1}`, moduleId, body.title, body.sequence);
+        const body = request.postDataJSON() as PatchBody;
+        const created = { ...makeLesson(`lesson-new-${lessons.length + 1}`, moduleId, body.title, body.sequence), ...body } as LessonRecord;
         lessons.push(created);
         state.lessonsByModule.set(moduleId, lessons);
         await route.fulfill({
@@ -250,14 +337,10 @@ async function setupCourseMocks(
       const lessonId = lessonItemMatch[2];
       const lessons = state.lessonsByModule.get(moduleId) ?? [];
       if (method === "PATCH") {
-        const body = request.postDataJSON() as { title: string; sequence: number };
+        const body = request.postDataJSON() as PatchBody;
         state.patchCalls.push({ kind: "lesson", id: lessonId, body });
         const target = lessons.find((l) => l.id === lessonId);
-        if (target) {
-          target.title = body.title;
-          target.sequence = body.sequence;
-          target.updatedAt = nowIso();
-        }
+        if (target) Object.assign(target, body, { updatedAt: nowIso() });
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -289,7 +372,7 @@ async function setupCourseMocks(
   return state;
 }
 
-test.describe("module & lesson editor — loading, empty, and sorting", () => {
+test.describe("module & session editor — loading, empty, and sorting", () => {
   test("shows a loading state before modules resolve", async ({ page }) => {
     const token = fakeJwt({ role: "TEACHER" });
     await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
@@ -320,14 +403,14 @@ test.describe("module & lesson editor — loading, empty, and sorting", () => {
     await expect(page.getByLabel("Module title")).toBeVisible();
   });
 
-  test("shows contextual empty-state copy for a module with zero lessons, naming the module", async ({
+  test("shows contextual empty-state copy for a module with zero sessions, naming the module", async ({
     page,
   }) => {
     await setupCourseMocks(page, [{ id: "module-1", title: "Cell Biology", sequence: 1, lessons: [] }]);
     await page.goto(`/teacher/courses/${COURSE_ID}/modules`);
 
-    await expect(page.getByText("No lessons yet")).toBeVisible();
-    await expect(page.getByText('Add the first lesson to "Cell Biology"', { exact: false })).toBeVisible();
+    await expect(page.getByText("No sessions yet")).toBeVisible();
+    await expect(page.getByText('Add the first session to "Cell Biology"', { exact: false })).toBeVisible();
   });
 
   test("renders modules sorted by sequence even though the backend returns them unordered", async ({
@@ -348,7 +431,7 @@ test.describe("module & lesson editor — loading, empty, and sorting", () => {
   });
 });
 
-test.describe("module & lesson editor — add and rename", () => {
+test.describe("module & session editor — add and rename", () => {
   test("adding a module computes sequence as (max existing + 1), never a user-entered value", async ({
     page,
   }) => {
@@ -383,10 +466,10 @@ test.describe("module & lesson editor — add and rename", () => {
 
     await expect(titleInput).toHaveValue("Cell Biology Basics");
     const patch = state.patchCalls.find((c) => c.kind === "module" && c.id === "module-a");
-    expect(patch?.body).toEqual({ title: "Cell Biology Basics", sequence: 1 });
+    expect(patch?.body).toEqual({ title: "Cell Biology Basics", sequence: 1, price: null });
   });
 
-  test("adding a lesson computes its sequence within that module only", async ({ page }) => {
+  test("adding a session uses the full form and computes sequence within that module", async ({ page }) => {
     const state = await setupCourseMocks(page, [
       {
         id: "module-a",
@@ -397,22 +480,76 @@ test.describe("module & lesson editor — add and rename", () => {
     ]);
     await page.goto(`/teacher/courses/${COURSE_ID}/modules`);
 
-    // Scoped for the same reason as the "Add module" test above — the
-    // existing lesson row reuses the same "Lesson title" label.
-    const addLessonSection = page.getByRole("heading", { name: "Add lesson" }).locator("..");
-    await addLessonSection.getByLabel("Lesson title").fill("Cell membranes");
-    await addLessonSection.getByRole("button", { name: "Add lesson" }).click();
+    await page.getByRole("button", { name: "Add session" }).click();
+    const dialog = page.getByTestId("session-form-dialog");
+    await dialog.getByTestId("session-form-name").fill("Cell membranes");
+    await dialog.getByTestId("session-form-from-date").fill("2026-10-17");
+    await dialog.getByTestId("session-form-from-time").fill("10:00");
+    await dialog.getByTestId("session-form-resource-type").selectOption("VIDEO_LINK");
+    await dialog.getByTestId("session-form-payment-type").selectOption("FREE");
+    await dialog.getByTestId("session-form-submit").click();
 
-    expect(await titleInputValues(page, "Lesson title")).toContain("Cell membranes");
-    const lessons = state.lessonsByModule.get("module-a") ?? [];
-    expect(lessons.find((l) => l.title === "Cell membranes")?.sequence).toBe(2);
+    await expect(dialog).toBeHidden();
+    expect(await titleInputValues(page, "Session title")).toContain("Cell membranes");
+    const sessions = state.lessonsByModule.get("module-a") ?? [];
+    expect(sessions.find((item) => item.title === "Cell membranes")?.sequence).toBe(2);
   });
 });
 
-test.describe("module & lesson editor — safe reorder dance", () => {
-  test("moving a module down performs the 3-step temp-sequence dance, not a direct 2-call swap", async ({
-    page,
-  }) => {
+test.describe("module & session editor — metadata preservation", () => {
+  test("inline session rename retains availability, payment and billing metadata", async ({ page }) => {
+    const state = await setupCourseMocks(page, [{
+      id: "module-a", title: "Cell Biology", sequence: 1,
+      lessons: [{
+        id: "lesson-1", title: "Paid class", sequence: 1,
+        startsAt: "2026-10-07T10:00:23.123Z", endsAt: "2026-10-31T17:59:45.678Z",
+        resourceType: "VIDEO_LINK", paymentType: "PAID", price: "245.50",
+        description: "Existing description", lessonLabel: "Unit 5", billingYear: 2026, billingMonth: 10,
+      }],
+    }]);
+    const original = { ...state.lessonsByModule.get("module-a")![0] };
+    await page.goto(`/teacher/courses/${COURSE_ID}/modules`);
+    const sessionInput = page.getByLabel("Session title", { exact: true });
+    await sessionInput.fill("Renamed class");
+    await sessionInput.locator("xpath=ancestor::form").getByRole("button", { name: "Save", exact: true }).click();
+    await expect(sessionInput).toHaveValue("Renamed class");
+    expect(state.patchCalls.find((call) => call.kind === "lesson")?.body).toEqual({
+      title: "Renamed class", sequence: 1,
+      startsAt: original.startsAt, endsAt: original.endsAt,
+      resourceType: original.resourceType, paymentType: original.paymentType, price: original.price,
+      description: original.description, lessonLabel: original.lessonLabel,
+      billingYear: original.billingYear, billingMonth: original.billingMonth,
+    });
+  });
+
+  test("session order uses PUT and does not replace metadata; module rename retains price", async ({ page }) => {
+    const state = await setupCourseMocks(page, [{
+      id: "module-a", title: "Priced module", sequence: 1, price: "1200.00",
+      lessons: [
+        { id: "lesson-1", title: "First", sequence: 1, startsAt: "2026-10-07T10:00:00Z", resourceType: "VIDEO_LINK", paymentType: "PAID", price: "100.00" },
+        { id: "lesson-2", title: "Second", sequence: 2, endsAt: "2026-12-31T23:59:00Z" },
+      ],
+    }]);
+    const original = state.lessonsByModule.get("module-a")!.map((item) => ({ ...item }));
+    await page.goto(`/teacher/courses/${COURSE_ID}/modules`);
+    await page.getByRole("button", { name: 'Move "First" down' }).click();
+    await expect(page.getByLabel("Session title", { exact: true }).first()).toHaveValue("Second");
+    expect(state.lessonOrderCalls).toEqual([{ moduleId: "module-a", lessonIds: ["lesson-2", "lesson-1"] }]);
+    expect(state.patchCalls).toHaveLength(0);
+    for (const item of original) {
+      const stored = state.lessonsByModule.get("module-a")!.find((candidate) => candidate.id === item.id)!;
+      expect({ ...stored, sequence: item.sequence }).toEqual(item);
+    }
+    const input = page.getByLabel("Module title", { exact: true }).first();
+    await input.fill("Renamed priced module");
+    await input.locator("xpath=ancestor::form").getByRole("button", { name: "Save", exact: true }).click();
+    await expect.poll(() => state.patchCalls.length).toBe(1);
+    expect(state.patchCalls[0].body).toEqual({ title: "Renamed priced module", sequence: 1, price: "1200.00" });
+  });
+});
+
+test.describe("module & session editor — atomic reorder", () => {
+  test("moving a module down uses the dedicated order endpoint", async ({ page }) => {
     const state = await setupCourseMocks(page, [
       { id: "module-a", title: "Cell Biology", sequence: 1 },
       { id: "module-b", title: "Ecology", sequence: 2 },
@@ -421,31 +558,11 @@ test.describe("module & lesson editor — safe reorder dance", () => {
 
     await page.getByRole("button", { name: 'Move "Cell Biology" down' }).click();
 
-    // After the whole dance + refetch, the visible order has swapped.
     const titleInputs = page.getByLabel("Module title", { exact: true });
     await expect(titleInputs.nth(0)).toHaveValue("Ecology");
     await expect(titleInputs.nth(1)).toHaveValue("Cell Biology");
-
-    // Exactly 3 sequential PATCH calls: mover -> temp, displaced -> mover's
-    // old slot, mover -> displaced's old slot. Never a 2-call direct swap
-    // (which would 409 against the still-held target sequence).
-    const moduleCalls = state.patchCalls.filter((c) => c.kind === "module");
-    expect(moduleCalls).toHaveLength(3);
-    expect(moduleCalls[0]).toEqual({
-      kind: "module",
-      id: "module-a",
-      body: { title: "Cell Biology", sequence: 1002 },
-    });
-    expect(moduleCalls[1]).toEqual({
-      kind: "module",
-      id: "module-b",
-      body: { title: "Ecology", sequence: 1 },
-    });
-    expect(moduleCalls[2]).toEqual({
-      kind: "module",
-      id: "module-a",
-      body: { title: "Cell Biology", sequence: 2 },
-    });
+    expect(state.moduleOrderCalls).toEqual([["module-b", "module-a"]]);
+    expect(state.patchCalls.filter((call) => call.kind === "module")).toHaveLength(0);
   });
 
   test("Move Up is disabled on the first item and Move Down is disabled on the last item", async ({
@@ -479,7 +596,7 @@ test.describe("module & lesson editor — safe reorder dance", () => {
     await expect(titleInputs.nth(0)).toHaveValue("Ecology");
   });
 
-  test("a failed reorder step surfaces a single error and still refetches the list", async ({ page }) => {
+  test("a failed atomic reorder surfaces one error and keeps server order", async ({ page }) => {
     await setupCourseMocks(
       page,
       [
@@ -487,11 +604,10 @@ test.describe("module & lesson editor — safe reorder dance", () => {
         { id: "module-b", title: "Ecology", sequence: 2 },
       ],
       {
-        failFirstModulePatch: {
-          moduleId: "module-b",
+        failModuleReorder: {
           status: 409,
           code: "CONFLICT",
-          message: "Sequence already in use for this course.",
+          message: "Module order could not be saved.",
         },
       }
     );
@@ -499,25 +615,15 @@ test.describe("module & lesson editor — safe reorder dance", () => {
     await page.goto(`/teacher/courses/${COURSE_ID}/modules`);
     await page.getByRole("button", { name: 'Move "Cell Biology" down' }).click();
 
-    await expect(
-      page.getByRole("alert").filter({ hasText: "Sequence already in use for this course." })
-    ).toBeVisible();
-
-    // Step 1 (park the mover on a temp sequence) already succeeded before
-    // step 2 (the 409 above) failed, so the refetched list reflects that
-    // real, transiently "off by one" server state — "Cell Biology" is now
-    // parked on the highest sequence and sorts last. The important behavior
-    // under test is that the UI reflects real server state (not stale local
-    // state) and re-enables controls instead of leaving them stuck disabled.
+    await expect(page.getByRole("alert").filter({ hasText: "Module order could not be saved." })).toBeVisible();
     const titleInputs = page.getByLabel("Module title", { exact: true });
-    await expect(titleInputs.nth(0)).toHaveValue("Ecology");
-    await expect(titleInputs.nth(1)).toHaveValue("Cell Biology");
-    await expect(page.getByRole("button", { name: 'Move "Cell Biology" up' })).toBeEnabled();
-    await expect(page.getByRole("button", { name: 'Move "Cell Biology" down' })).toBeDisabled();
+    await expect(titleInputs.nth(0)).toHaveValue("Cell Biology");
+    await expect(titleInputs.nth(1)).toHaveValue("Ecology");
+    await expect(page.getByRole("button", { name: 'Move "Cell Biology" down' })).toBeEnabled();
   });
 });
 
-test.describe("module & lesson editor — delete", () => {
+test.describe("module & session editor — delete", () => {
   test("delete requires confirmation naming the module, and removes it on confirm", async ({ page }) => {
     await setupCourseMocks(page, [{ id: "module-a", title: "Cell Biology", sequence: 1 }]);
     await page.goto(`/teacher/courses/${COURSE_ID}/modules`);
@@ -544,7 +650,7 @@ test.describe("module & lesson editor — delete", () => {
   });
 });
 
-test.describe("module & lesson editor — errors and permissions", () => {
+test.describe("module & session editor — errors and permissions", () => {
   test("a permission-denied (403) response on the modules fetch renders the shared permission-denied state", async ({
     page,
   }) => {
@@ -582,7 +688,7 @@ test.describe("module & lesson editor — errors and permissions", () => {
   });
 });
 
-test.describe("module & lesson editor — navigation", () => {
+test.describe("module & session editor — navigation", () => {
   test("has a Back to course link to the edit page", async ({ page }) => {
     await setupCourseMocks(page, []);
     await page.goto(`/teacher/courses/${COURSE_ID}/modules`);

@@ -1,11 +1,13 @@
 package com.lms.coursemanagement.course.service;
 
 import com.lms.common.error.DeviceNotAuthorizedException;
+import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.enrollmentmanagement.api.AccessOutcome;
 import com.lms.enrollmentmanagement.api.AccessPolicyApi;
 import com.lms.enrollmentmanagement.api.CourseAccessDecision;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -55,9 +57,13 @@ public class CourseAccessGuard {
 
 	private final AccessPolicyApi accessPolicyApi;
 
-	public CourseAccessGuard(PermissionCheckService permissionCheckService, AccessPolicyApi accessPolicyApi) {
+	private final LessonAccessApi lessonAccessApi;
+
+	public CourseAccessGuard(PermissionCheckService permissionCheckService, AccessPolicyApi accessPolicyApi,
+			LessonAccessApi lessonAccessApi) {
 		this.permissionCheckService = permissionCheckService;
 		this.accessPolicyApi = accessPolicyApi;
+		this.lessonAccessApi = lessonAccessApi;
 	}
 
 	public void requireCourseAccess(Course course, PermissionAction action) {
@@ -87,8 +93,37 @@ public class CourseAccessGuard {
 			// with no explicit grant.
 			return;
 		}
-		if (action == PermissionAction.VIEW && STUDENT_ROLE.equals(principal.role())
-				&& course.getStatus() != CourseStatus.DRAFT) {
+		if (STUDENT_ROLE.equals(principal.role())) {
+			requireStudentCourseAccess(principal, course, action);
+			return;
+		}
+		permissionCheckService.requirePermission(DomainArea.COURSES, action);
+	}
+
+	/**
+	 * KLASS-T8b SEC M1: the calling Student participates in {@code courseId}
+	 * (directly, via a current legacy enrollment, or via a parent course linking
+	 * it) - decides whether participant-only course fields (invite links,
+	 * non-PUBLIC linked courses) are shown.
+	 */
+	public boolean isCallerParticipant(java.util.UUID courseId) {
+		return lessonAccessApi.isCallerParticipant(courseId);
+	}
+
+	/**
+	 * KLASS-T8b SEC L4: a Student who may not see a non-{@code PUBLIC} course
+	 * (DRAFT, or PRIVATE without participation) gets {@code 404} - never a
+	 * {@code 403} that confirms the course exists (same rule as the content
+	 * tree, D22). A visible course still runs the flat matrix check for any
+	 * non-VIEW action (which a Student never holds - 403).
+	 */
+	private void requireStudentCourseAccess(AuthenticatedPrincipal principal, Course course,
+			PermissionAction action) {
+		boolean isPublic = course.getStatus() == CourseStatus.PUBLIC;
+		if (course.getStatus() == CourseStatus.DRAFT) {
+			throw new NotFoundException("Course not found");
+		}
+		if (action == PermissionAction.VIEW) {
 			// Wave 10: the central access decision (expiry, extension, grace, course device limit).
 			CourseAccessDecision decision = accessPolicyApi.evaluateStudentCourseAccess(principal.userId(),
 					course.getId());
@@ -99,6 +134,16 @@ public class CourseAccessGuard {
 				throw new DeviceNotAuthorizedException(
 						"This course can only be opened on a limited number of devices, and this device is not one of them.");
 			}
+			// KLASS-T4b (ADR-028): a free participant (or a participant of a parent
+			// course linking this one) may browse the course metadata - modules,
+			// lesson titles, schedules. Protected leaves are guarded per lesson.
+			if (lessonAccessApi.isCallerParticipant(course.getId())) {
+				return;
+			}
+			throw new NotFoundException("Course not found"); // non-PUBLIC, not visible to this Student
+		}
+		if (!isPublic && !lessonAccessApi.isCallerParticipant(course.getId())) {
+			throw new NotFoundException("Course not found");
 		}
 		permissionCheckService.requirePermission(DomainArea.COURSES, action);
 	}

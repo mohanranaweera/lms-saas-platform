@@ -5,7 +5,7 @@ import jakarta.persistence.Converter;
 
 /**
  * Maps {@link CoursePricingModel} to/from the DB values ('FREE'/'ONE_TIME'/
- * 'MONTHLY'/'SESSION'/'CUSTOM' - V37's {@code ck_course_pricing_model} CHECK
+ * 'MONTHLY'/'SESSION'/'CUSTOM'/'DAILY'/'MODULE'/'INSTALLMENT' - V85's {@code ck_course_pricing_model} CHECK
  * constraint), mirroring {@link CourseStatusConverter}'s exact shape and
  * rationale.
  */

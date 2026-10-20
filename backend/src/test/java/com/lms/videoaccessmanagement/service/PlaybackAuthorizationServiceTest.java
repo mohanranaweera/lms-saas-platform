@@ -12,7 +12,7 @@ import com.lms.common.tenant.TenantContext;
 import com.lms.contentmanagement.api.LessonMediaPlaybackContext;
 import com.lms.contentmanagement.api.MaterialLookupApi;
 import com.lms.contentmanagement.material.domain.MaterialVisibility;
-import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.videoaccessmanagement.api.VideoAccessApi;
@@ -49,7 +49,7 @@ class PlaybackAuthorizationServiceTest {
 	@Mock
 	private VideoAccessApi videoAccessApi;
 	@Mock
-	private AccessPolicyApi accessPolicyApi;
+	private LessonAccessApi lessonAccessApi;
 	@Mock
 	private TenantContext tenantContext;
 	@Mock
@@ -71,7 +71,7 @@ class PlaybackAuthorizationServiceTest {
 	void setUp() {
 		LessonMediaPlayability playability = new LessonMediaPlayability(materialLookupApi, videoAccessApi, tenantContext,
 				featureFlags, mediaConnectionApi);
-		service = new PlaybackAuthorizationService(playability, accessPolicyApi, featureFlags, configurationService,
+		service = new PlaybackAuthorizationService(playability, lessonAccessApi, featureFlags, configurationService,
 				nativeLaunchService, watchTimeService, metrics);
 		lenient().when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		lenient().when(configurationService.effectiveSettings()).thenReturn(TenantVideoSettings.PLATFORM_DEFAULTS);
@@ -112,6 +112,24 @@ class PlaybackAuthorizationServiceTest {
 		assertThat(start.descriptor()).isNull();
 		assertThat(start.sessionId()).isEqualTo(sessionId);
 		assertThat(start.launch().url()).doesNotContain("youtube-video-123");
+	}
+
+	@Test
+	void lessonPlaybackIsDecidedByTheLessonEvaluatorForThatLesson() {
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "STUDENT", UUID.randomUUID()));
+		when(materialLookupApi.resolveLessonMediaForPlayback(MATERIAL_ID)).thenReturn(Optional.of(context(MaterialVisibility.VISIBLE)));
+		when(lessonAccessApi.requireLessonAccess(org.mockito.ArgumentMatchers.eq(COURSE_ID),
+				org.mockito.ArgumentMatchers.eq(LESSON_ID), org.mockito.ArgumentMatchers.any()))
+			.thenThrow(new com.lms.enrollmentmanagement.api.LessonAccessDeniedException(
+					new com.lms.enrollmentmanagement.api.LessonAccessDecision(LESSON_ID, COURSE_ID,
+							com.lms.enrollmentmanagement.api.LessonAccessStatus.PAYMENT_REQUIRED,
+							com.lms.enrollmentmanagement.api.LessonAccessDecision.Availability.ALWAYS,
+							com.lms.enrollmentmanagement.api.LessonAccessDecision.Payment.REQUIRED, null)));
+
+		assertThatThrownBy(() -> service.authorize(MATERIAL_ID))
+			.isInstanceOf(com.lms.enrollmentmanagement.api.LessonAccessDeniedException.class)
+			.hasFieldOrPropertyWithValue("errorCode", "PAYMENT_REQUIRED");
+		verifyNoInteractions(nativeLaunchService);
 	}
 
 	@Test

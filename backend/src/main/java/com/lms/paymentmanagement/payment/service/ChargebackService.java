@@ -4,6 +4,7 @@ import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
+import com.lms.enrollmentmanagement.api.EntitlementGrantApi;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.paymentmanagement.api.GatewayPaymentSnapshot;
 import com.lms.paymentmanagement.api.PaymentChargebackApi;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -48,8 +50,12 @@ public class ChargebackService implements PaymentChargebackApi {
 
 	private final EnrollmentActivationApi enrollmentActivationApi;
 
+	private final EntitlementGrantApi entitlementGrantApi;
+
 	public ChargebackService(PaymentRepository paymentRepository, PaymentRefundRepository paymentRefundRepository,
-			LedgerEntryApi ledgerEntryApi, EnrollmentActivationApi enrollmentActivationApi) {
+			LedgerEntryApi ledgerEntryApi, EnrollmentActivationApi enrollmentActivationApi,
+			EntitlementGrantApi entitlementGrantApi) {
+		this.entitlementGrantApi = entitlementGrantApi;
 		this.paymentRepository = paymentRepository;
 		this.paymentRefundRepository = paymentRefundRepository;
 		this.ledgerEntryApi = ledgerEntryApi;
@@ -87,14 +93,20 @@ public class ChargebackService implements PaymentChargebackApi {
 			Map<String, Object> metadata = new LinkedHashMap<>();
 			metadata.put("externalReference", externalReference);
 			metadata.put("chargebackAmount", remaining.max(BigDecimal.ZERO).toPlainString());
+			UUID refundId = null;
 			if (remaining.signum() > 0) {
 				PaymentRefund refund = paymentRefundRepository.save(PaymentRefund.chargeback(payment.getTenantId(),
 						payment.getId(), remaining, CHARGEBACK_REASON, externalReference));
 				ledgerEntryApi.recordRefund(payment.getOrderId(), payment.getId(), remaining);
+				refundId = refund.getId();
 				metadata.put("refundId", refund.getId().toString());
 			}
 			boolean revoked = enrollmentActivationApi.revokeActivatedByPayment(payment.getId(), REVOKE_REASON);
 			metadata.put("enrollmentRevoked", revoked);
+			// KLASS-T4c (D08): also revoke the content entitlements this payment
+			// granted (revoke columns only). Free participation is untouched.
+			int entitlementsRevoked = entitlementGrantApi.revokeForChargeback(payment.getId(), refundId);
+			metadata.put("entitlementsRevoked", entitlementsRevoked);
 
 			// No audit_log row: it requires a real user actor (V33 trigger).
 			// Durable record = the CHARGEBACK refund row + REFUND ledger entry
@@ -109,6 +121,7 @@ public class ChargebackService implements PaymentChargebackApi {
 				.addKeyValue("orderId", payment.getOrderId())
 				.addKeyValue("chargebackAmount", remaining)
 				.addKeyValue("enrollmentRevoked", revoked)
+				.addKeyValue("entitlementsRevoked", entitlementsRevoked)
 				.log();
 		}
 		finally {

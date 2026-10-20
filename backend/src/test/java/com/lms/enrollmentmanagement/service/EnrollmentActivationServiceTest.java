@@ -100,13 +100,16 @@ class EnrollmentActivationServiceTest {
 	@Mock
 	private StudentLookupApi studentLookupApi;
 
+	@Mock
+	private com.lms.enrollmentmanagement.repository.CourseParticipationRepository participationRepository;
+
 	private EnrollmentActivationService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new EnrollmentActivationService(enrollmentRepository, paymentStatusApi, slipStatusApi,
 				courseLookupApi, tenantContext, reactivationTransactionService, enrollmentAccessApi, auditLogApi,
-				permissionCheckService, studentLookupApi);
+				permissionCheckService, studentLookupApi, participationRepository);
 		when(courseLookupApi.getAccessDurationDays(COURSE_ID)).thenReturn(Optional.empty());
 	}
 
@@ -410,6 +413,35 @@ class EnrollmentActivationServiceTest {
 		ArgumentCaptor<Enrollment> captor = ArgumentCaptor.forClass(Enrollment.class);
 		verify(enrollmentRepository, times(1)).save(captor.capture());
 		assertThat(captor.getValue().getActivatingPaymentId()).isEqualTo(PAYMENT_ID);
+		// KLASS-T4b (D01): a staff grant also makes the student a participant.
+		verify(participationRepository).insertIfAbsent(org.mockito.ArgumentMatchers.eq(STUDENT_ID),
+				org.mockito.ArgumentMatchers.eq(COURSE_ID),
+				org.mockito.ArgumentMatchers.eq(com.lms.enrollmentmanagement.domain.CourseParticipationSource.STAFF_GRANT),
+				any());
+	}
+
+	@Test
+	void confirmedPaymentActivationAlsoUpsertsPaidParticipation() {
+		when(paymentStatusApi.isConfirmedForCurrentTenant(PAYMENT_ID)).thenReturn(true);
+		when(enrollmentRepository.existsByStudentIdAndCourseId(STUDENT_ID, COURSE_ID)).thenReturn(true);
+
+		service.activateFromConfirmedPayment(PAYMENT_ID, STUDENT_ID, COURSE_ID);
+
+		verify(participationRepository).insertIfAbsent(org.mockito.ArgumentMatchers.eq(STUDENT_ID),
+				org.mockito.ArgumentMatchers.eq(COURSE_ID),
+				org.mockito.ArgumentMatchers.eq(
+						com.lms.enrollmentmanagement.domain.CourseParticipationSource.PAID_ACTIVATION),
+				any());
+	}
+
+	@Test
+	void refusedActivationNeverCreatesAParticipation() {
+		when(paymentStatusApi.isConfirmedForCurrentTenant(PAYMENT_ID)).thenReturn(false);
+
+		assertThatThrownBy(() -> service.activateFromConfirmedPayment(PAYMENT_ID, STUDENT_ID, COURSE_ID))
+			.isInstanceOf(IllegalStateException.class);
+
+		verify(participationRepository, never()).insertIfAbsent(any(), any(), any(), any());
 	}
 
 	@Test

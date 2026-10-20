@@ -55,8 +55,9 @@ class MaterialAccessGuardTest {
 
 	@BeforeEach
 	void setUp() {
-		guard = new MaterialAccessGuard(courseLookupApi, permissionCheckService,
-				AccessPolicyTestDouble.backedBy(enrollmentAccessApi));
+		var accessPolicy = AccessPolicyTestDouble.backedBy(enrollmentAccessApi);
+		guard = new MaterialAccessGuard(courseLookupApi, permissionCheckService, accessPolicy,
+				com.lms.enrollmentmanagement.support.LessonAccessTestDouble.backedBy(accessPolicy));
 	}
 
 	@AfterEach

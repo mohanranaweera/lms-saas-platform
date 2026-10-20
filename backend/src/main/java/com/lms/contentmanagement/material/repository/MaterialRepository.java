@@ -70,10 +70,15 @@ public interface MaterialRepository extends TenantAwareRepository<Material, UUID
 	 * idx_material_tenant_video_asset} index) - "which Material references
 	 * this video asset". Structurally tenant-scoped like every other {@code
 	 * default} finder here (the inherited {@code Specification}-backed
-	 * {@code findOne}).
+	 * {@code findAll}). KLASS-T8b SEC L3: a Media Library asset may be
+	 * attached to several lessons, so this returns EVERY referencing material
+	 * (ordered by id) - never a single-result {@code findOne}, which would fail
+	 * (or silently pick one attachment) for a shared asset.
 	 */
-	default Optional<Material> findByVideoAssetId(UUID videoAssetId) {
-		return findOne((root, query, cb) -> cb.equal(root.get("videoAssetId"), videoAssetId));
+	default List<Material> findAllByVideoAssetId(UUID videoAssetId) {
+		return findAll((root, query, cb) -> cb.equal(root.get("videoAssetId"), videoAssetId)).stream()
+			.sorted(java.util.Comparator.comparing(Material::getId))
+			.toList();
 	}
 
 	/** VIDEO Phase 5: materials referencing any of {@code videoAssetIds} (tenant-scoped). */
@@ -112,6 +117,41 @@ public interface MaterialRepository extends TenantAwareRepository<Material, UUID
 		}
 		java.util.Map<UUID, Integer> counts = new java.util.HashMap<>();
 		lessonIdsByAsset.forEach((assetId, lessonIds) -> counts.put(assetId, lessonIds.size()));
+		return counts;
+	}
+
+	/**
+	 * R2-T3: is library file {@code mediaFileId} already attached (live) to
+	 * {@code lessonId}? Mirrors {@code uq_material_lesson_media_file}.
+	 */
+	default boolean existsByLessonIdAndMediaFileId(UUID lessonId, UUID mediaFileId) {
+		return exists((root, query, cb) -> cb.and(cb.equal(root.get("lessonId"), lessonId),
+				cb.equal(root.get("mediaFileId"), mediaFileId)));
+	}
+
+	/** R2-T3: live materials backed by library file {@code mediaFileId} (delete -> 409 MEDIA_ATTACHED). */
+	default long countByMediaFileId(UUID mediaFileId) {
+		return count((root, query, cb) -> cb.equal(root.get("mediaFileId"), mediaFileId));
+	}
+
+	/**
+	 * R2-T3: number of distinct lessons each library file is attached to
+	 * (live materials only), for the library's {@code attachedLessonCount}.
+	 * Files with no attachment are absent from the map.
+	 */
+	default java.util.Map<UUID, Integer> countLessonAttachmentsByMediaFileIds(Collection<UUID> mediaFileIds) {
+		if (mediaFileIds.isEmpty()) {
+			return java.util.Map.of();
+		}
+		java.util.Map<UUID, java.util.Set<UUID>> lessonsByFile = new java.util.HashMap<>();
+		for (Material material : findAll((root, query, cb) -> root.get("mediaFileId").in(mediaFileIds))) {
+			if (material.getLessonId() != null) {
+				lessonsByFile.computeIfAbsent(material.getMediaFileId(), ignored -> new java.util.HashSet<>())
+					.add(material.getLessonId());
+			}
+		}
+		java.util.Map<UUID, Integer> counts = new java.util.HashMap<>();
+		lessonsByFile.forEach((fileId, lessons) -> counts.put(fileId, lessons.size()));
 		return counts;
 	}
 

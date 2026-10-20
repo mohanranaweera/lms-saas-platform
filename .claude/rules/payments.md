@@ -17,8 +17,12 @@ request explicit approval before writing code.
 - A `Payment` row is immutable once it reaches a terminal state
   (`CONFIRMED`, `REJECTED`, `REFUNDED`). Corrections happen via new rows
   (see §3), never `UPDATE` on a terminal payment.
-- Enrollment activation code must read payment/ledger state, never order
+- Paid-entitlement activation code (lesson/session/period access, and legacy
+  payment-activated course access) must read payment/ledger state, never order
   state. An `Order` being `PLACED` or `PENDING` is not activation evidence.
+  Enrollment itself is free and payment-independent (ADR-028): it is created by
+  an authenticated backend enrollment operation and is never cancelled by a
+  pending, failed, rejected or expired payment.
 
 ## 2. Manual Payment Slip Workflow
 
@@ -29,8 +33,8 @@ payments. Do not collapse it into a generic "payment status" enum.
 - Transitions are one-directional. There is no `APPROVED -> SUBMITTED` or
   silent re-open; a reversal of an approved slip is a new ledger entry
   (refund/correction), not a state rollback on the slip.
-- `SUBMITTED` slips must never trigger enrollment activation by themselves.
-  Activation only follows the `APPROVED` transition, performed by an
+- `SUBMITTED` slips must never grant a paid entitlement by themselves.
+  Entitlement activation only follows the `APPROVED` transition, performed by an
   authorized reviewer/staff action, recorded with reviewer identity and
   timestamp.
 - Payment history and the admin payment dashboard must be derived from
@@ -102,7 +106,8 @@ payments. Do not collapse it into a generic "payment status" enum.
 
 If a task would require any of the following, stop and ask for explicit
 approval before implementing:
-- A new way for enrollment to activate.
+- A new way for a paid entitlement to activate (free, payment-independent
+  enrollment itself is approved by ADR-028).
 - Any mutation or deletion path touching ledger or terminal payment rows.
 - Skipping or bypassing duplicate/suspicious slip checks.
 - Recomputing historical settlement amounts from live rate config.
@@ -142,14 +147,14 @@ collection is not built; bank-slip remains available to every tenant.
   payload's `merchant_id` must never be used to pick the tenant. Any failure = reject,
   no state change, security log entry.
 - **Status handling.** Only `status_code = 2` with a verified signature confirms a
-  payment (existing idempotent confirmation → `PAYMENT_CONFIRMED` + enrollment
-  activation). `-1`/`-2` reject a PENDING payment. `0` changes nothing. The return page
+  payment (existing idempotent confirmation → `PAYMENT_CONFIRMED` + paid-entitlement
+  grant). `-1`/`-2` reject a PENDING payment. `0` changes nothing. The return page
   never activates anything (§1 still applies).
 - **Chargebacks (`-3`) revoke access.** Record a `payment_refund` row with
   `source = CHARGEBACK` and the gateway's reference in `external_reference` (unique per
   tenant → a repeat is a no-op); its existing `REFUND` ledger entry reverses the
-  original. The CONFIRMED payment row is never modified. Revoke only the current
-  enrollment that payment activated. Do not add a new ledger entry type for this.
+  original. The CONFIRMED payment row is never modified. Revoke only the paid access that
+  payment granted (never the free enrollment itself, ADR-028). Do not add a new ledger entry type for this.
 - **Who collected the money.** `payment.collected_by = TENANT` (+ `gateway_account_id`)
   marks funds paid into the tenant's own account. The platform takes **no commission**
   on these: any platform-level settlement or commission computation must exclude them.

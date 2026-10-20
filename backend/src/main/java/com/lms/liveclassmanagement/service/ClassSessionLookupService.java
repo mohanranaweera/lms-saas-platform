@@ -6,6 +6,7 @@ import com.lms.liveclassmanagement.domain.ClassSession;
 import com.lms.liveclassmanagement.repository.ClassSessionRepository;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +48,17 @@ public class ClassSessionLookupService implements ClassSessionLookupApi {
 			.stream()
 			.map(ClassSessionLookupService::toSummary)
 			.collect(Collectors.toMap(ClassSessionSummary::id, Function.identity()));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ClassSessionSummary> findByLessonId(UUID lessonId) {
+		return classSessionRepository
+			.findAll((root, query, cb) -> cb.equal(root.get("lessonId"), lessonId),
+					org.springframework.data.domain.Sort.by("scheduledStart", "id"))
+			.stream()
+			.map(ClassSessionLookupService::toSummary)
+			.toList();
 	}
 
 	private static ClassSessionSummary toSummary(ClassSession session) {

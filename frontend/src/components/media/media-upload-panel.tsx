@@ -76,11 +76,23 @@ export function MediaUploadPanel({
   destination,
   settingsHref,
   onClose,
+  initialFile,
+  initialTitle,
+  onBusyChange,
+  onReceived,
+  onFileChange,
+  onTitleChange,
 }: {
   destination: UploadDestination;
   /** Where the channel / account is managed, shown to those who may manage it. */
   settingsHref?: string;
   onClose: () => void;
+  initialFile?: File;
+  initialTitle?: string;
+  onBusyChange?: (busy: boolean) => void;
+  onReceived?: (asset: MediaAsset) => void;
+  onFileChange?: (file: File | null) => void;
+  onTitleChange?: (title: string) => void;
 }) {
   const limitsQuery = useMediaUploadLimits(
     destination.kind === "youtube" ? destination.integrationId : null,
@@ -107,7 +119,18 @@ export function MediaUploadPanel({
     );
   }
   return (
-    <UploadForm limits={limitsQuery.data} destination={destination} settingsHref={settingsHref} onClose={onClose} />
+    <UploadForm
+      limits={limitsQuery.data}
+      destination={destination}
+      settingsHref={settingsHref}
+      onClose={onClose}
+      initialFile={initialFile}
+      initialTitle={initialTitle}
+      onBusyChange={onBusyChange}
+      onReceived={onReceived}
+      onFileChange={onFileChange}
+      onTitleChange={onTitleChange}
+    />
   );
 }
 
@@ -116,11 +139,23 @@ function UploadForm({
   destination,
   settingsHref,
   onClose,
+  initialFile,
+  initialTitle,
+  onBusyChange,
+  onReceived,
+  onFileChange,
+  onTitleChange,
 }: {
   destination: UploadDestination;
   limits: MediaUploadLimits;
   settingsHref?: string;
   onClose: () => void;
+  initialFile?: File;
+  initialTitle?: string;
+  onBusyChange?: (busy: boolean) => void;
+  onReceived?: (asset: MediaAsset) => void;
+  onFileChange?: (file: File | null) => void;
+  onTitleChange?: (title: string) => void;
 }) {
   const api = useMediaUploadApi();
   const queryClient = useQueryClient();
@@ -136,7 +171,10 @@ function UploadForm({
     reset,
     setError,
     formState: { errors },
-  } = useForm<MediaUploadFormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });
+  } = useForm<MediaUploadFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { ...EMPTY, file: initialFile ?? null, title: initialTitle ?? "" },
+  });
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const abortRef = useRef<AbortController | null>(null);
   const assetIdRef = useRef<string | null>(null);
@@ -172,6 +210,7 @@ function UploadForm({
     if (!file) return;
     const controller = new AbortController();
     abortRef.current = controller;
+    onBusyChange?.(true);
     setPhase({ kind: "uploading", sent: 0, total: file.size });
     try {
       const started = await api.start({
@@ -198,6 +237,7 @@ function UploadForm({
       const asset = await api.complete(started.mediaAsset.id, parts);
       assetIdRef.current = null;
       setPhase({ kind: "done", asset });
+      onReceived?.(asset);
     } catch (error) {
       if (error instanceof UploadAbortedError) {
         await cancelOnServer();
@@ -223,6 +263,7 @@ function UploadForm({
       });
     } finally {
       abortRef.current = null;
+      onBusyChange?.(false);
       void queryClient.invalidateQueries({ queryKey: mediaKeys.all });
     }
   };
@@ -243,6 +284,8 @@ function UploadForm({
             onClick={() => {
               reset(EMPTY);
               setPhase({ kind: "idle" });
+              onTitleChange?.("");
+              onFileChange?.(null);
             }}
           >
             Upload another video
@@ -297,7 +340,7 @@ function UploadForm({
           disabled={disabled}
           aria-invalid={Boolean(errors.title)}
           aria-describedby={errors.title ? `${ids.title}-error` : undefined}
-          {...register("title")}
+          {...register("title", { onChange: (event) => onTitleChange?.(event.target.value) })}
         />
         {errors.title ? (
           <p id={`${ids.title}-error`} className="text-sm text-destructive">
@@ -359,7 +402,11 @@ function UploadForm({
               accept={limits.allowedMimeTypes.join(",")}
               disabled={disabled}
               onBlur={field.onBlur}
-              onChange={(e) => field.onChange(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                field.onChange(file);
+                onFileChange?.(file);
+              }}
               aria-invalid={Boolean(fieldState.error)}
               aria-describedby={fieldState.error ? `${ids.file}-error` : undefined}
               className="text-sm file:mr-3 file:rounded-md file:border file:border-border file:bg-muted file:px-3 file:py-1 file:text-sm"

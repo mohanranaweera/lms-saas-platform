@@ -12,11 +12,13 @@ import com.lms.ledgersettlementmanagement.api.PaymentMethod;
 import com.lms.ledgersettlementmanagement.api.PaymentOperationalState;
 import com.lms.ledgersettlementmanagement.service.CoursePaymentSummaryView.CoursePaymentSummaryBucket;
 import com.lms.paymentmanagement.api.OrderPaymentDetail;
+import com.lms.paymentmanagement.api.OrderRevenueBasis;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.usermanagement.api.StudentLookupApi;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -159,11 +161,15 @@ public class LedgerQueryService {
 			.findOrderPaymentDetails(outstandingOrderIds)
 			.stream()
 			.collect(Collectors.toMap(OrderPaymentDetail::orderId, d -> d));
-		Set<UUID> courseIds = detailsByOrderId.values().stream().map(OrderPaymentDetail::courseId).collect(
+		Set<UUID> courseIds = detailsByOrderId.values().stream().map(OrderPaymentDetail::courseId)
+			// V90: a multi-course line order has no single course.
+			.filter(java.util.Objects::nonNull).collect(
 				Collectors.toSet());
 		Map<UUID, String> courseTitlesByCourseId = courseLookupApi.getCourseSummaries(courseIds)
 			.stream()
 			.collect(Collectors.toMap(CourseSummary::id, CourseSummary::name));
+
+		Map<UUID, String> multiCourseTitles = MultiCourseOrderTitles.of(paymentStatusApi, detailsByOrderId.values());
 
 		List<OutstandingOrderView> views = new ArrayList<>();
 		for (UUID orderId : outstandingOrderIds) {
@@ -171,8 +177,10 @@ public class LedgerQueryService {
 			if (detail == null) {
 				continue;
 			}
-			views.add(new OutstandingOrderView(orderId, detail.studentId(), detail.courseId(),
-					courseTitlesByCourseId.get(detail.courseId()), detail.orderAmount(), detail.orderCurrency(),
+			String courseTitle = detail.courseId() == null ? multiCourseTitles.get(orderId)
+					: courseTitlesByCourseId.get(detail.courseId());
+			views.add(new OutstandingOrderView(orderId, detail.studentId(), detail.courseId(), courseTitle,
+					detail.orderAmount(), detail.orderCurrency(),
 					statesByOrderId.get(orderId)));
 		}
 		return paginate(views, pageable);
@@ -197,6 +205,17 @@ public class LedgerQueryService {
 		Map<UUID, OrderPaymentDetail> detailsByOrderId = paymentStatusApi.findOrderPaymentDetails(orderIds)
 			.stream()
 			.collect(Collectors.toMap(OrderPaymentDetail::orderId, d -> d));
+		// ADR-029: a line order counts with THIS course's share (its line
+		// totals; postage and other courses' lines excluded); a legacy order
+		// with its full amount.
+		Map<UUID, BigDecimal> courseAmountByOrderId = new HashMap<>();
+		for (OrderRevenueBasis basis : paymentStatusApi.findOrderRevenueBases(orderIds)) {
+			BigDecimal share = basis.lineOrder() ? basis.courseShares().get(courseId)
+					: (courseId.equals(basis.legacyCourseId()) ? basis.orderAmount() : null);
+			if (share != null) {
+				courseAmountByOrderId.put(basis.orderId(), share);
+			}
+		}
 		String courseTitle = courseLookupApi.getCourseSummaries(Set.of(courseId))
 			.stream()
 			.findFirst()
@@ -219,7 +238,8 @@ public class LedgerQueryService {
 			// order's bucket amount is therefore its full original order
 			// value, never reduced by however much was actually refunded -
 			// do not read this as "amount still owed back to the student".
-			amountsByState.merge(state, detail.orderAmount(), BigDecimal::add);
+			amountsByState.merge(state, courseAmountByOrderId.getOrDefault(orderId, detail.orderAmount()),
+					BigDecimal::add);
 		}
 
 		List<CoursePaymentSummaryBucket> buckets = new ArrayList<>();

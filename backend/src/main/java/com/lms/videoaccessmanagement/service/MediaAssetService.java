@@ -51,8 +51,10 @@ import org.springframework.transaction.annotation.Transactional;
  * scopes to the authenticated tenant - no tenant id is ever taken from the
  * request. On top of that, visibility inside the tenant:
  * <ul>
- * <li>Teacher / Teacher Assistant: their own uploads only (Q-010; Phase 6
- * widens this to media attached to their courses).</li>
+ * <li>Teacher / Teacher Assistant: every institute video (R2-D2, owner
+ * decision 2026-10-14 - widens the earlier "own uploads + media attached to
+ * their courses"), so they can find and attach any of them; editing and
+ * deleting stay limited to their own uploads.</li>
  * <li>Everyone else needs {@code MATERIALS} (Q-011): VIEW to list, CREATE_EDIT
  * to edit, DELETE to delete. A Student has none of these and gets 403.</li>
  * </ul>
@@ -142,8 +144,9 @@ public class MediaAssetService {
 		Map<UUID, MediaUploadJob> jobs = jobRepository.findLatestForAssets(ids);
 		Map<UUID, Integer> attachmentCounts = java.util.Optional
 			.ofNullable(materialLookupApi.countLessonAttachments(ids)).orElse(Map.of());
-		return page.map(asset -> mediaAssetViews.toView(asset, jobs.get(asset.getId()),
-				attachmentCounts.getOrDefault(asset.getId(), 0)));
+		CallerRights rights = callerRights();
+		return page.map(asset -> rights.apply(mediaAssetViews.toView(asset, jobs.get(asset.getId()),
+				attachmentCounts.getOrDefault(asset.getId(), 0))));
 	}
 
 	/**
@@ -293,8 +296,8 @@ public class MediaAssetService {
 		Map<UUID, Integer> counts = java.util.Optional
 			.ofNullable(materialLookupApi.countLessonAttachments(Set.of(asset.getId()))).orElse(Map.of());
 		int attachedLessonCount = counts.getOrDefault(asset.getId(), 0);
-		return mediaAssetViews.toView(asset, jobRepository.findLatestForAsset(asset.getId()).orElse(null),
-				attachedLessonCount);
+		return callerRights().apply(mediaAssetViews.toView(asset,
+				jobRepository.findLatestForAsset(asset.getId()).orElse(null), attachedLessonCount));
 	}
 
 	private void pushToProvider(VideoAsset asset, MediaAssetUpdate merged) {
@@ -373,20 +376,41 @@ public class MediaAssetService {
 		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
 			UUID userId = principal.userId();
 			if (action != PermissionAction.VIEW) {
+				// Rename / delete / settings: own uploads only; anyone else's is a 404.
 				return (root, q, cb) -> cb.equal(root.get("uploadedBy"), userId);
 			}
-			Set<UUID> attachedToCourses = java.util.Optional
-				.ofNullable(materialLookupApi.findVideoAssetIdsForTeacher(userId)).orElse(Set.of());
-			return (root, q, cb) -> {
-				var isUploader = cb.equal(root.get("uploadedBy"), userId);
-				if (attachedToCourses.isEmpty()) {
-					return isUploader;
-				}
-				return cb.or(isUploader, root.get("id").in(attachedToCourses));
-			};
+			// R2-D2: teachers see every institute video (tenant scope is structural).
+			return (root, q, cb) -> cb.conjunction();
 		}
 		permissionCheckService.requirePermission(DomainArea.MATERIALS, action);
 		return (root, q, cb) -> cb.conjunction();
+	}
+
+	/**
+	 * R2-D2: what the caller may do with a listed asset - computed once per
+	 * request. A teacher manages only their own uploads (and only then sees
+	 * the unlisted YouTube link); other staff follow their MATERIALS grants.
+	 */
+	private CallerRights callerRights() {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
+			return new CallerRights(principal.userId(), false, false);
+		}
+		return new CallerRights(null,
+				permissionCheckService.hasPermission(DomainArea.MATERIALS, PermissionAction.CREATE_EDIT),
+				permissionCheckService.hasPermission(DomainArea.MATERIALS, PermissionAction.DELETE));
+	}
+
+	private record CallerRights(UUID teacherUserId, boolean staffCanEdit, boolean staffCanDelete) {
+
+		MediaAssetView apply(MediaAssetView view) {
+			if (teacherUserId != null) {
+				boolean owner = teacherUserId.equals(view.uploadedBy());
+				return view.forCaller(owner, owner, owner);
+			}
+			return view.forCaller(staffCanEdit, staffCanDelete, true);
+		}
+
 	}
 
 	private static Specification<VideoAsset> notDeleted() {

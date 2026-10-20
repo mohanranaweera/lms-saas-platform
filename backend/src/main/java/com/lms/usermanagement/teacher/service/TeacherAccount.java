@@ -18,6 +18,6 @@ import java.util.UUID;
  * controller boundary, and never carries a password/hash field.
  */
 public record TeacherAccount(UUID id, String name, String email, String approvalStatus, String accountStatus,
-		UUID approvedBy, Instant approvedAt) {
+		UUID approvedBy, Instant approvedAt, UUID userId) {
 
 }

@@ -54,7 +54,10 @@ class BillingHistoryIntegrityIntegrationTest extends PaymentManagementTestSuppor
 
 		CourseResponse course = createCourseOrFail(host, adminToken,
 				newCourseRequest(uniqueSlug("bill-history"), teacher.getId(), CourseStatus.PUBLIC));
-		changePricingModel(host, adminToken, course.id(), CoursePricingModel.MONTHLY);
+		// KLASS-T8b (D23): a MONTHLY course no longer takes legacy course-wide
+		// orders (409 USE_PAYMENT_COMPOSER), so the billing-period snapshot is
+		// proven on SESSION pricing, which resolves the same course_billing_period.
+		changePricingModel(host, adminToken, course.id(), CoursePricingModel.SESSION);
 		createOrUpdateBillingConfiguration(host, adminToken, course.id(), null, "USD", false);
 
 		// Period X (the ONLY, thus "current open", period at order-creation

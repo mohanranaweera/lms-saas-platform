@@ -88,6 +88,12 @@ interface Captured {
 /** One router for `/v1/media…`; records every call so tests can assert what was sent. */
 async function mockMedia(page: Page, mock: MediaMock): Promise<Captured[]> {
   const calls: Captured[] = [];
+  await page.route(/\/v1\/media-files(\/|\?|$)/, async (route) => {
+    const summary = new URL(route.request().url()).pathname.endsWith("/summary");
+    return fulfillJson(route, 200, summary
+      ? apiSuccess({ documents: 0, images: 0, other: 0, total: 0 })
+      : apiPageSuccess([]));
+  });
   await page.route(/\/v1\/media(\/|\?|$)/, async (route: Route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^.*\/v1\/media/, "");
@@ -99,9 +105,20 @@ async function mockMedia(page: Page, mock: MediaMock): Promise<Captured[]> {
 
     if (method === "GET" && path === "") {
       const list = mock.list ?? [];
-      return Array.isArray(list)
-        ? fulfillJson(route, 200, apiPageSuccess(list))
-        : fulfillJson(route, list.status, list.body);
+      if (!Array.isArray(list)) return fulfillJson(route, list.status, list.body);
+      const params = new URL(request.url()).searchParams;
+      const filtered = list.filter((item) => {
+        const media = item as ReturnType<typeof asset>;
+        return (!params.get("provider") || media.provider === params.get("provider")) &&
+          (!params.get("integrationId") || media.integrationId === params.get("integrationId")) &&
+          (!params.get("status") || media.processingStatus === params.get("status")) &&
+          media.title.toLowerCase().includes((params.get("q") ?? "").toLowerCase());
+      });
+      const pageIndex = Number(params.get("page") ?? 0);
+      const size = Number(params.get("size") ?? 24);
+      return fulfillJson(route, 200, apiPageSuccess(filtered.slice(pageIndex * size, (pageIndex + 1) * size), {
+        page: pageIndex, size, totalElements: filtered.length, totalPages: Math.ceil(filtered.length / size),
+      }));
     }
     if (method === "GET" && path === "/upload-limits") return fulfillJson(route, 200, apiSuccess(limits(mock.limits)));
     if (method === "GET" && path === "/channels") return fulfillJson(route, 200, apiSuccess(tabs(mock.tabs)));
@@ -196,6 +213,7 @@ test.describe("Media Library list", () => {
     });
 
     await page.goto("/tenant-admin/media");
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
 
     await expect(page.getByRole("heading", { name: "Media Library" })).toBeVisible();
     const items = page.getByRole("list", { name: "Media" }).getByRole("listitem");
@@ -217,6 +235,7 @@ test.describe("Media Library list", () => {
     await mockMedia(page, { list: [] });
 
     await page.goto("/tenant-admin/media");
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
     await expect(page.getByText("No videos on this channel yet")).toBeVisible();
 
     await page.getByLabel("Status").selectOption("FAILED");
@@ -230,9 +249,98 @@ test.describe("Media Library list", () => {
     await mockMedia(page, { list: { status: 403, body: apiError("FORBIDDEN", "Forbidden") } });
 
     await page.goto("/tenant-admin/media");
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
 
     await expect(page.getByText("You don't have permission to view this.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Upload video" })).toHaveCount(0);
+  });
+});
+
+test.describe("Consistent media dialogs and pagination", () => {
+  const providerTabs = {
+    integrations: [
+      { integrationId: "int-1", name: "Channel one", connected: true, canUpload: true },
+      { integrationId: "int-2", name: "Channel two", connected: true, canUpload: true },
+    ],
+    managedHost: { provider: "DYNTUBE", name: "DynTube", connected: true, canUpload: true, uploadBlockedReason: null },
+    hasArchived: true,
+  };
+
+  test("New media opens the same responsive dialog shell for all four destinations", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockMedia(page, { tabs: providerTabs, list: [] });
+    await page.goto("/tenant-admin/media");
+    for (const name of ["Uploads", "DynTube", "Channel one", "Channel two"]) {
+      await page.getByRole("tab", { name, exact: true }).click();
+      const trigger = page.getByRole("button", { name: "New media", exact: true }).first();
+      await trigger.click();
+      const dialog = page.getByRole("dialog", { name: "New media", exact: true });
+      await expect(dialog).toBeVisible();
+      await page.keyboard.press("Shift+Tab");
+      await expect.poll(() => dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+      if (name !== "Uploads") await expect(dialog.getByRole("form", { name: "Upload a video" })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "New media", exact: true }).first().click();
+    const bounds = await page.getByRole("dialog", { name: "New media", exact: true }).boundingBox();
+    expect(bounds?.width).toBe(390);
+    expect(bounds?.x).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.keyboard.press("Escape");
+    await page.getByRole("tab", { name: "Archived", exact: true }).click();
+    await expect(page.getByRole("button", { name: "New media", exact: true })).toHaveCount(0);
+  });
+
+  for (const destination of ["DynTube", "Channel one", "Channel two"]) {
+    test(`${destination} videos use server pagination and reset on search and status`, async ({ page }) => {
+      await mockTenantSession(page, "TENANT_ADMIN");
+      const provider = destination === "DynTube" ? "DYNTUBE" : "YOUTUBE";
+      const integrationId = destination === "DynTube" ? null : destination === "Channel one" ? "int-1" : "int-2";
+      await mockMedia(page, { tabs: providerTabs, list: Array.from({ length: 25 }, (_, i) => asset({ id: `paged-${i}`, title: `Paged video ${i}`, provider, integrationId })) });
+      await page.goto("/tenant-admin/media");
+      await page.getByRole("tab", { name: destination, exact: true }).click();
+      const pages = page.getByRole("navigation", { name: "Video pages" });
+      await expect(page.getByRole("list", { name: "Media", exact: true }).getByRole("listitem")).toHaveCount(24);
+      await pages.getByRole("button", { name: "Next" }).click();
+      await expect(pages).toContainText("Page 2 of 2");
+      await expect(pages.getByRole("button", { name: "Next" })).toBeDisabled();
+      await page.getByLabel("Search", { exact: true }).fill("Paged video 24");
+      await expect(pages).toHaveCount(0);
+      await expect(page.getByRole("list", { name: "Media", exact: true }).getByRole("listitem")).toHaveCount(1);
+      await page.getByLabel("Status", { exact: true }).selectOption("FAILED");
+      await expect(page.getByText("No media matches", { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Clear filters" }).click();
+      await expect(pages).toContainText("Page 1 of 2");
+    });
+  }
+
+  test("a pending provider upload cannot be dismissed; success releases the dialog", async ({ page }) => {
+    await mockTenantSession(page, "TEACHER", "teacher-1");
+    await mockMedia(page, { list: [], start: startedUpload(1), complete: { status: 202, body: apiSuccess(asset({ processingStatus: "UPLOADING" })) } });
+    await mockStaging(page);
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(/\/v1\/media\/media-1\/upload\/complete$/, async (route) => { await gate; await route.fallback(); });
+    await page.goto("/teacher/media");
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media", exact: true }).first().click();
+    await page.getByLabel("Title").fill("Pending video");
+    await chooseVideo(page, 8);
+    await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
+    await expect(page.getByText("Checking the file…", { exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "New media", exact: true })).toBeVisible();
+    await expect(uploadForm(page).getByRole("button", { name: "Cancel upload" })).toBeDisabled();
+    release?.();
+    await expect(page.getByText(/Upload received/)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "New media", exact: true })).toHaveCount(0);
+    await page.getByRole("tab", { name: "Uploads", exact: true }).click();
+    await expect(page.getByRole("tab", { name: "Uploads", exact: true })).toHaveAttribute("aria-selected", "true");
   });
 });
 
@@ -249,7 +357,8 @@ test.describe("Uploading", () => {
     const puts = await mockStaging(page);
 
     await page.goto("/teacher/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
     await expect(page.getByText("2 of 20 uploads used today", { exact: false })).toBeVisible();
     await page.getByLabel("Title").fill("Algebra lesson 1");
     await page.getByLabel("Description (optional)").fill("Linear equations");
@@ -294,7 +403,8 @@ test.describe("Uploading", () => {
     await mockStaging(page);
 
     await page.goto("/teacher/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
     await page.getByLabel("Title").fill("Not really a video");
     await chooseVideo(page, 8);
     await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
@@ -308,7 +418,8 @@ test.describe("Uploading", () => {
     const calls = await mockMedia(page, { list: [], limits: { maxFileSizeBytes: 100 } });
 
     await page.goto("/teacher/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
     await chooseVideo(page, 50, "application/pdf", "notes.pdf");
     await uploadForm(page).getByRole("button", { name: "Upload video" }).click();
     await expect(page.getByText("Enter a title.")).toBeVisible();
@@ -326,7 +437,8 @@ test.describe("Uploading", () => {
     await mockMedia(page, { list: [], limits: { channel: "NOT_CONNECTED" } });
 
     await page.goto("/tenant-admin/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
 
     await expect(page.getByText("Your institute hasn't connected a YouTube channel yet.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Open video providers" })).toHaveAttribute(
@@ -341,7 +453,8 @@ test.describe("Uploading", () => {
     await mockMedia(page, { list: [], limits: { usedToday: 20 } });
 
     await page.goto("/teacher/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
 
     await expect(page.getByText("Your institute has used today's 20 uploads. Try again tomorrow.")).toBeVisible();
     await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
@@ -359,7 +472,8 @@ test.describe("Uploading", () => {
     });
 
     await page.goto("/tenant-admin/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
 
     await expect(page.getByText("Video uploads aren't enabled on this platform yet. Contact platform support.")).toBeVisible();
     await expect(page.getByText(/switched off for your institute/)).toHaveCount(0);
@@ -376,6 +490,7 @@ test.describe("Uploading", () => {
     });
 
     await page.goto("/teacher/media");
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
 
     const youtubeLink = page.getByRole("link", { name: "Algebra lesson 1 - open on YouTube (new tab)" });
     await expect(youtubeLink).toHaveAttribute("href", "https://www.youtube.com/watch?v=yt-abc");
@@ -400,13 +515,15 @@ test.describe("Uploading", () => {
     });
 
     await page.goto("/teacher/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "Institute YouTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
 
     await expect(
       page.getByText("Your institute hasn't given you access to upload videos. Ask your institute admin.")
     ).toBeVisible();
     await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
-    // Their existing videos are still listed.
+    // Close the modal to return to their existing videos.
+    await page.keyboard.press("Escape");
     await expect(page.getByText("Algebra lesson 1")).toBeVisible();
     expect(calls.some((c) => c.method === "POST")).toBe(false);
   });
@@ -428,13 +545,14 @@ test.describe("Media Library tabs (Phase 5d)", () => {
 
     await page.goto("/tenant-admin/media");
 
-    const tablist = page.getByRole("tablist", { name: "Where videos are hosted" });
-    await expect(tablist.getByRole("tab")).toHaveText(["AOC YT", "ScienceNot connected", "Uploads", "Archived"]);
-    await expect(tablist.getByRole("tab", { name: "AOC YT" })).toHaveAttribute("aria-selected", "true");
+    const tablist = page.getByRole("tablist", { name: "Media sources" });
+    await expect(tablist.getByRole("tab")).toHaveText(["Uploads", "AOC YT", "ScienceNot connected", "Archived"]);
+    await expect(tablist.getByRole("tab", { name: "Uploads" })).toHaveAttribute("aria-selected", "true");
     await expect.poll(() => calls.some((c) => c.method === "GET" && c.path === "")).toBe(true);
 
     await tablist.getByRole("tab", { name: "Uploads" }).click();
-    await expect(page.getByText(/To upload a new video, choose a YouTube tab/)).toBeVisible();
+    await page.getByTestId("media-files-type").selectOption("VIDEO");
+    await expect(page.getByText(/Use New media to upload a video to tenant internal storage/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Upload video" })).toHaveCount(0);
     await tablist.getByRole("tab", { name: "Archived" }).click();
     await expect(page.getByText(/YouTube integrations that were removed/)).toBeVisible();
@@ -461,10 +579,13 @@ test.describe("Media Library tabs (Phase 5d)", () => {
 
     await page.goto("/teacher/media");
     await page.getByRole("tab", { name: "Science" }).click();
-    await page.getByRole("tabpanel").getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tabpanel").getByRole("button", { name: "New media" }).first().click();
 
+    await expect(page.getByTestId("media-provider-upload-dialog")).toBeVisible();
     await expect(page.getByText("To YouTube · Science")).toBeVisible();
+    await page.keyboard.press("Escape");
     await page.getByRole("tab", { name: "Uploads" }).click();
+    await page.getByTestId("media-files-type").selectOption("VIDEO");
     await expect.poll(() => requested.some((q) => q.includes("integrationId=int-2"))).toBe(true);
     await expect.poll(() => requested.some((q) => q.includes("provider=INTERNAL"))).toBe(true);
   });
@@ -619,11 +740,12 @@ test.describe("DynTube (VIDEO Phase 13, ADR-026)", () => {
     const limitsRequest = page.waitForRequest((r) => /\/v1\/media\/upload-limits\?provider=DYNTUBE/.test(r.url()));
 
     await page.goto("/teacher/media");
+    await page.getByRole("tab", { name: "DynTube" }).click();
     await expect(page.getByRole("tab", { name: "DynTube" })).toHaveAttribute("aria-selected", "true");
     await listRequest;
     await expect(page.getByText("No DynTube videos yet")).toBeVisible();
 
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("button", { name: "New media" }).first().click();
     await limitsRequest;
     await expect(uploadForm(page).getByText("To DynTube")).toBeVisible();
     await expect(page.getByLabel("Visibility on YouTube")).toHaveCount(0);
@@ -651,7 +773,8 @@ test.describe("DynTube (VIDEO Phase 13, ADR-026)", () => {
     });
 
     await page.goto("/tenant-admin/media");
-    await page.getByRole("button", { name: "Upload video" }).first().click();
+    await page.getByRole("tab", { name: "DynTube" }).click();
+    await page.getByRole("button", { name: "New media" }).first().click();
 
     await expect(page.getByText("Your institute hasn't finished setting up DynTube yet.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Open integrations" })).toHaveAttribute(
@@ -678,6 +801,7 @@ test.describe("DynTube (VIDEO Phase 13, ADR-026)", () => {
     });
 
     await page.goto("/teacher/media");
+    await page.getByRole("tab", { name: "DynTube" }).click();
 
     await expect(page.getByRole("note")).toContainText("Uploading is unavailable.");
     await expect(page.getByRole("note")).toContainText("No DynTube project is chosen yet.");

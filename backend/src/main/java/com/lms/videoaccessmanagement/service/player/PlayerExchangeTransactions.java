@@ -4,7 +4,7 @@ import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.error.ApplicationException;
 import com.lms.common.tenant.TenantContextHolder;
-import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.videoaccessmanagement.config.PlayerProperties;
 import com.lms.videoaccessmanagement.domain.PlaybackLaunchCode;
 import com.lms.videoaccessmanagement.domain.PlayerInstallation;
@@ -53,7 +53,7 @@ public class PlayerExchangeTransactions {
 
 	private final LessonMediaPlayability playability;
 
-	private final AccessPolicyApi accessPolicyApi;
+	private final LessonAccessApi lessonAccessApi;
 
 	private final PlayerSessionRevoker revoker;
 
@@ -64,7 +64,7 @@ public class PlayerExchangeTransactions {
 	public PlayerExchangeTransactions(PlaybackLaunchCodeRepository launchCodes,
 			PlayerInstallationRepository installations, VideoWatchSessionRepository sessions,
 			PlayerRequestVerifier verifier, PlayerProperties properties, LessonMediaPlayability playability,
-			AccessPolicyApi accessPolicyApi, PlayerSessionRevoker revoker,
+			LessonAccessApi lessonAccessApi, PlayerSessionRevoker revoker,
 			TenantVideoConfigurationService configurationService, AuditLogApi auditLogApi) {
 		this.launchCodes = launchCodes;
 		this.installations = installations;
@@ -72,7 +72,7 @@ public class PlayerExchangeTransactions {
 		this.verifier = verifier;
 		this.properties = properties;
 		this.playability = playability;
-		this.accessPolicyApi = accessPolicyApi;
+		this.lessonAccessApi = lessonAccessApi;
 		this.revoker = revoker;
 		this.configurationService = configurationService;
 		this.auditLogApi = auditLogApi;
@@ -146,8 +146,8 @@ public class PlayerExchangeTransactions {
 		LessonMediaPlayability.Playable playable;
 		try {
 			playable = playability.require(session.getMaterialId(),
-					courseId -> accessPolicyApi.requireStudentCourseAccessOnDevice(code.getStudentId(), courseId,
-							code.getIssuedForDeviceId(), LessonMediaPlayability::notFound));
+					(courseId, lessonId) -> lessonAccessApi.requireLessonAccessOnDevice(code.getStudentId(), courseId,
+							lessonId, code.getIssuedForDeviceId(), LessonMediaPlayability::notFound));
 		}
 		catch (ApplicationException denied) {
 			revoker.revoke(session, VideoWatchSessionRevokedReason.ACCESS_REVOKED, now);

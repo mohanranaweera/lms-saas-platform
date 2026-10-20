@@ -83,12 +83,19 @@ class MaterialServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private com.lms.contentmanagement.library.service.MediaFileService mediaFileService;
+
+	@Mock
+	private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
 	private MaterialService materialService;
 
 	@BeforeEach
 	void setUp() {
 		materialService = new MaterialService(materialRepository, materialAccessGuard, objectStorageApi,
-				videoAccessApi, eventPublisher, tenantContext, MAX_FILE_SIZE_BYTES);
+				videoAccessApi, eventPublisher, tenantContext, MAX_FILE_SIZE_BYTES, mediaFileService,
+				transactionManager);
 	}
 
 	@AfterEach
@@ -439,6 +446,34 @@ class MaterialServiceTest {
 		doThrow(new RuntimeException("object storage unavailable")).when(objectStorageApi).delete("storage-key-xyz");
 
 		assertThatCode(() -> materialService.onMaterialDeleted(event)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * R2-T3 CRITICAL: a library-backed material carries no storage key of its
+	 * own; deleting it must never touch object storage (the shared library
+	 * object belongs to media_file).
+	 */
+	@Test
+	void deletingALibraryBackedMaterialNeverDeletesAnyStorageObject() {
+		UUID lessonId = UUID.randomUUID();
+		Material libraryMaterial = Material.libraryFile(TENANT_ID, lessonId, null,
+				com.lms.contentmanagement.material.domain.MaterialType.PDF, "Shared", UUID.randomUUID(), "shared.pdf",
+				"application/pdf", 10L, 1, null, null, null, UUID.randomUUID());
+		assertThat(libraryMaterial.getStorageObjectKey()).isNull();
+
+		materialService.onMaterialDeleted(materialDeletedEventFixture(null));
+
+		verifyNoInteractions(objectStorageApi);
+	}
+
+	@Test
+	void libraryMaterialTypeFollowsTheSniffedContentType() {
+		assertThat(MaterialService.materialTypeFor("application/pdf"))
+			.isEqualTo(com.lms.contentmanagement.material.domain.MaterialType.PDF);
+		assertThat(MaterialService.materialTypeFor("image/png"))
+			.isEqualTo(com.lms.contentmanagement.material.domain.MaterialType.IMAGE);
+		assertThat(MaterialService.materialTypeFor("text/plain"))
+			.isEqualTo(com.lms.contentmanagement.material.domain.MaterialType.DOCUMENT);
 	}
 
 	// ------------------------------------------------------------------

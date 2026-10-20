@@ -30,6 +30,27 @@ import java.util.UUID;
 public record PaymentSlipView(UUID id, UUID orderId, UUID studentId, String referenceNumber,
 		PaymentSlipStatus status, Instant submittedAt, UUID reviewerId, Instant reviewedAt,
 		List<PaymentSlipFlagView> flags, String studentEmail, String reviewerEmail, BigDecimal orderAmount,
-		String orderCurrency) {
+		String orderCurrency, List<PaymentSlipOrderLine> orderLines, BigDecimal orderSubtotal,
+		BigDecimal orderFacilityFee, BigDecimal orderDiscount, BigDecimal orderPostage,
+		PaymentSlipDelivery orderDelivery) {
+
+	/** Pre-V90 shape (no postage / delivery snapshot). */
+	public PaymentSlipView(UUID id, UUID orderId, UUID studentId, String referenceNumber, PaymentSlipStatus status,
+			Instant submittedAt, UUID reviewerId, Instant reviewedAt, List<PaymentSlipFlagView> flags,
+			String studentEmail, String reviewerEmail, BigDecimal orderAmount, String orderCurrency,
+			List<PaymentSlipOrderLine> orderLines, BigDecimal orderSubtotal, BigDecimal orderFacilityFee,
+			BigDecimal orderDiscount) {
+		this(id, orderId, studentId, referenceNumber, status, submittedAt, reviewerId, reviewedAt, flags, studentEmail,
+				reviewerEmail, orderAmount, orderCurrency, orderLines, orderSubtotal, orderFacilityFee, orderDiscount,
+				null, null);
+	}
+
+	/** Pre-KLASS-T4c shape (no order lines / fee snapshot). */
+	public PaymentSlipView(UUID id, UUID orderId, UUID studentId, String referenceNumber, PaymentSlipStatus status,
+			Instant submittedAt, UUID reviewerId, Instant reviewedAt, List<PaymentSlipFlagView> flags,
+			String studentEmail, String reviewerEmail, BigDecimal orderAmount, String orderCurrency) {
+		this(id, orderId, studentId, referenceNumber, status, submittedAt, reviewerId, reviewedAt, flags, studentEmail,
+				reviewerEmail, orderAmount, orderCurrency, List.of(), null, null, null, null, null);
+	}
 
 }

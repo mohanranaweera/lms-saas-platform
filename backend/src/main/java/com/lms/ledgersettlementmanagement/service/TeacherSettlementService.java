@@ -15,6 +15,7 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
+import com.lms.ledgersettlementmanagement.api.LedgerRevenueAllocation;
 import com.lms.ledgersettlementmanagement.api.LedgerRevenueApi;
 import com.lms.ledgersettlementmanagement.api.LedgerRevenueEntry;
 import com.lms.ledgersettlementmanagement.domain.TeacherRevenueShareRate;
@@ -70,7 +71,8 @@ import org.springframework.transaction.annotation.Transactional;
  * compute platform commission or gateway fees; split payments.
  *
  * <p>Idempotency is schema-enforced (V55): one REGULAR row per (teacher,
- * period) and one settlement item per ledger entry, ever. The pre-checks here
+ * period) and - since V91 / ADR-029 - one settlement item per (ledger entry,
+ * course) allocation, ever. The pre-checks here
  * are friendly 409s; a concurrent race still hits the constraints, which the
  * global handler maps to 409 with the whole transaction rolled back.
  *
@@ -201,26 +203,30 @@ public class TeacherSettlementService {
 							"a different rate takes effect inside this period - settle each rate's dates separately")));
 		}
 
-		List<LedgerRevenueEntry> candidates = teacherEntries(teacherId,
+		// ADR-029: settle per (ledger entry, course) allocation - a multi-course
+		// payment contributes only this teacher's courses' shares; postage is
+		// never allocated. A settled allocation is never settled again (V91).
+		List<Allocation> candidates = teacherAllocations(teacherId,
 				ledgerRevenueApi.findRevenueEntries(periodStart.atStartOfDay(zone).toInstant(),
 						periodEnd.plusDays(1).atStartOfDay(zone).toInstant()));
-		Set<UUID> alreadySettled = itemRepository
-			.findSettledLedgerEntryIds(candidates.stream().map(LedgerRevenueEntry::entryId).toList());
-		List<LedgerRevenueEntry> entries = candidates.stream()
-			.filter(entry -> !alreadySettled.contains(entry.entryId()))
+		Set<String> alreadySettled = itemRepository
+			.findSettledAllocationKeys(candidates.stream().map(Allocation::entryId).distinct().toList());
+		List<Allocation> allocations = candidates.stream()
+			.filter(allocation -> !alreadySettled
+				.contains(TeacherSettlementItemRepository.allocationKey(allocation.entryId(), allocation.courseId())))
 			.toList();
-		if (entries.isEmpty()) {
+		if (allocations.isEmpty()) {
 			throw new ConflictException("There are no unsettled ledger entries for this teacher in this period");
 		}
 
 		BigDecimal gross = BigDecimal.ZERO.setScale(2);
 		BigDecimal refunds = BigDecimal.ZERO.setScale(2);
-		for (LedgerRevenueEntry entry : entries) {
-			if (entry.amount().signum() > 0) {
-				gross = gross.add(entry.amount());
+		for (Allocation allocation : allocations) {
+			if (allocation.amount().signum() > 0) {
+				gross = gross.add(allocation.amount());
 			}
 			else {
-				refunds = refunds.add(entry.amount().abs());
+				refunds = refunds.add(allocation.amount().abs());
 			}
 		}
 		BigDecimal shareAmount = shareOf(gross.subtract(refunds), rate.getSharePercent());
@@ -230,10 +236,11 @@ public class TeacherSettlementService {
 				rate.getSharePercent(), rate.getId(), shareAmount,
 				tenantConfigApi.resolveDefaultCurrency(tenantContext.getTenantId()), actorId,
 				Instant.now()));
-		itemRepository.saveAllAndFlush(entries.stream()
-			.map(entry -> new TeacherSettlementItem(tenantContext.getTenantId(), settlement.getId(), entry.entryId(),
-					entry.courseId(), entry.amount()))
+		itemRepository.saveAllAndFlush(allocations.stream()
+			.map(allocation -> new TeacherSettlementItem(tenantContext.getTenantId(), settlement.getId(),
+					allocation.entryId(), allocation.courseId(), allocation.amount()))
 			.toList());
+		long entryCount = allocations.stream().map(Allocation::entryId).distinct().count();
 
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("teacherId", teacherId.toString());
@@ -243,7 +250,8 @@ public class TeacherSettlementService {
 		metadata.put("refundAmount", refunds.toPlainString());
 		metadata.put("sharePercent", rate.getSharePercent().toPlainString());
 		metadata.put("shareAmount", shareAmount.toPlainString());
-		metadata.put("ledgerEntryCount", entries.size());
+		metadata.put("ledgerEntryCount", entryCount);
+		metadata.put("allocationCount", allocations.size());
 		auditLogApi.record(new AuditLogEntry(actorId, "teacher_settlement.calculated", TARGET_SETTLEMENT,
 				settlement.getId(), null, metadata));
 		return detailOf(settlement);
@@ -315,20 +323,29 @@ public class TeacherSettlementService {
 	// Internals.
 	// ------------------------------------------------------------------
 
-	/** Ledger entries for courses currently taught by {@code teacherId}, excluding zero-amount rows. */
-	private List<LedgerRevenueEntry> teacherEntries(UUID teacherId, List<LedgerRevenueEntry> entries) {
-		Set<UUID> courseIds = entries.stream()
-			.map(LedgerRevenueEntry::courseId)
-			.filter(Objects::nonNull)
-			.collect(Collectors.toSet());
-		if (courseIds.isEmpty()) {
+	/** One (ledger entry, course) share, ADR-029. */
+	record Allocation(UUID entryId, UUID courseId, BigDecimal amount) {
+
+	}
+
+	/**
+	 * Non-zero allocations to courses currently taught by {@code teacherId}.
+	 */
+	private List<Allocation> teacherAllocations(UUID teacherId, List<LedgerRevenueEntry> entries) {
+		List<Allocation> all = new ArrayList<>();
+		for (LedgerRevenueEntry entry : entries) {
+			for (LedgerRevenueAllocation allocation : entry.allocations()) {
+				if (allocation.courseId() != null && allocation.amount().signum() != 0) {
+					all.add(new Allocation(entry.entryId(), allocation.courseId(), allocation.amount()));
+				}
+			}
+		}
+		if (all.isEmpty()) {
 			return List.of();
 		}
+		Set<UUID> courseIds = all.stream().map(Allocation::courseId).collect(Collectors.toSet());
 		Map<UUID, UUID> teacherByCourse = courseLookupApi.getTeacherIdsByCourseId(courseIds);
-		return entries.stream()
-			.filter(entry -> entry.courseId() != null && teacherId.equals(teacherByCourse.get(entry.courseId())))
-			.filter(entry -> entry.amount().signum() != 0)
-			.toList();
+		return all.stream().filter(allocation -> teacherId.equals(teacherByCourse.get(allocation.courseId()))).toList();
 	}
 
 	static BigDecimal shareOf(BigDecimal net, BigDecimal sharePercent) {

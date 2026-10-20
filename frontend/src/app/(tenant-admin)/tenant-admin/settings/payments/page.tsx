@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { FacilityFeeSection } from "./facility-fee-section";
 
 /**
  * Tenant Admin → Online Payments (PAY-GW-01 / ADR-017). Connects the
@@ -44,6 +45,10 @@ import {
  * backend enforces `PAYMENT_GATEWAY` on every call regardless of what this
  * page shows. A platform switch-off is shown as such and blocks editing
  * (only a Platform Admin can undo it).
+ *
+ * The Facility fee section below (multi-course checkout, V90) has its own
+ * data source (tenant config `PAYMENT`) and its own loading/error/permission
+ * states, independent of the PayHere account read.
  */
 export default function OnlinePaymentsSettingsPage() {
   const { session } = useAuth();
@@ -68,6 +73,8 @@ export default function OnlinePaymentsSettingsPage() {
       >
         {(accounts) => <OnlinePaymentsBody account={accounts[0] ?? null} canManage={canManage} />}
       </QueryStateBoundary>
+
+      <FacilityFeeSection />
     </div>
   );
 }

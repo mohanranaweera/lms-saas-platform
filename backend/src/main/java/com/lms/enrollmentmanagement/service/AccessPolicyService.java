@@ -119,6 +119,42 @@ public class AccessPolicyService implements AccessPolicyApi {
 				window.accessEndsAt(), window.inGracePeriod(Instant.now()), false);
 	}
 
+	/**
+	 * KLASS-T4b (ADR-028 consequence 5): the legacy course-wide PAID access of
+	 * a pre-existing / payment-activated {@code enrollment}, WITHOUT the device
+	 * dimension - {@code ALLOWED} (inside the extended/grace window), {@code
+	 * EXPIRED} (a current row whose window ended) or {@code NOT_ENROLLED} (no
+	 * current row). Same entitlement/window resolution as {@link
+	 * #evaluateStudentCourseAccess}; the lesson access evaluator applies the
+	 * device check itself, once, for legacy and entitlement access alike.
+	 */
+	public AccessOutcome evaluateLegacyCoverage(UUID studentId, UUID courseId) {
+		EnrollmentAccessState state = enrollmentExpiryService.resolveAccessState(studentId, courseId);
+		return switch (state.state()) {
+			case NEVER_ENROLLED -> AccessOutcome.NOT_ENROLLED;
+			case EXPIRED -> AccessOutcome.EXPIRED;
+			case ACTIVE -> AccessOutcome.ALLOWED;
+		};
+	}
+
+	/**
+	 * KLASS-T4b: the course-level device rule, extracted unchanged so the
+	 * lesson access evaluator applies it to entitlement-based access too.
+	 * {@code deviceId == null} = the caller's own session device (no session,
+	 * or another student = nothing to check, exactly as before); an explicit
+	 * {@code deviceId} (AOC Player) must be authorized - a missing/revoked
+	 * device denies.
+	 */
+	public boolean isDeviceAuthorizedForCourse(UUID studentId, UUID courseId, UUID deviceId) {
+		if (deviceId == null) {
+			return isCurrentDeviceAuthorized(studentId, courseId);
+		}
+		Integer courseMaxDevices = coursePolicyRepository.findByCourseId(courseId)
+			.map(CourseAccessPolicy::getMaxDevices)
+			.orElse(null);
+		return deviceAccessApi.isDeviceAuthorized(studentId, deviceId, courseMaxDevices);
+	}
+
 	@Override
 	public ContentAvailability evaluateContentWindow(Instant availableFrom, Instant availableUntil) {
 		Instant now = Instant.now();

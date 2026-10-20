@@ -45,4 +45,11 @@ public interface VideoAccessApi {
 	 */
 	Map<UUID, VideoAssetDetails> getDetailsBatch(Collection<UUID> videoAssetIds, UUID tenantId);
 
+	/**
+	 * KLASS-T4b: whether the caller's tenant requires lesson video to play in
+	 * the native AOC Player (tenant video configuration, platform default when
+	 * unset). Tenant from {@code TenantContext}.
+	 */
+	boolean isNativePlayerRequired();
+
 }

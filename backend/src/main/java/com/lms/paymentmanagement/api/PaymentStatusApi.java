@@ -1,6 +1,8 @@
 package com.lms.paymentmanagement.api;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -65,7 +67,8 @@ public interface PaymentStatusApi {
 
 	/**
 	 * Wave 6 (§4) - every order id for {@code courseId} within the current
-	 * tenant context, used by {@code GET /api/v1/ledger/courses/{courseId}/
+	 * tenant context (ADR-029: legacy orders placed for it AND line orders with
+	 * at least one line for it), used by {@code GET /api/v1/ledger/courses/{courseId}/
 	 * summary}. A {@code courseId} that does not resolve to a course with
 	 * any orders in the caller's own tenant (nonexistent, cross-tenant, or
 	 * simply never ordered) returns an empty list - never distinguishable
@@ -75,5 +78,42 @@ public interface PaymentStatusApi {
 	 * -enumeration).
 	 */
 	List<UUID> findOrderIdsForCourse(UUID courseId);
+
+	/**
+	 * ADR-029 batched read: one {@link OrderRevenueBasis} per id in {@code
+	 * orderIds} that resolves to an order of the current tenant (unknown /
+	 * cross-tenant ids are absent). Read-only; used by ledger revenue
+	 * allocation.
+	 */
+	List<OrderRevenueBasis> findOrderRevenueBases(Collection<UUID> orderIds);
+
+	/**
+	 * KLASS-T4b (D04/D05, ADR-028): the {@code coverage_key}s (V86/V87 format
+	 * {@code MONTHLY:<courseId>:<yyyy>-<mm>} / {@code MODULE:<moduleId>} /
+	 * {@code LESSON:<lessonId>}) of {@code studentId}'s order lines for {@code
+	 * courseId} whose order is still awaiting payment evidence - a {@code
+	 * PENDING} payment, or a {@code SUBMITTED}/{@code UNDER_REVIEW} slip. (An
+	 * entitlement only follows confirmation/approval, and the evaluator checks
+	 * active coverage before pending, so no join to enrollment-management's
+	 * {@code content_entitlement} is needed here.) Read side of the lesson access
+	 * evaluator's {@code PAYMENT_PENDING} status only; grants nothing. Tenant
+	 * from {@link com.lms.common.tenant.TenantContext}; empty for an unknown or
+	 * cross-tenant course/student.
+	 */
+	Set<String> findPendingCoverageKeys(UUID studentId, UUID courseId);
+
+	/**
+	 * KLASS-T4c: {@code true} only if {@code paymentId} exists in the current
+	 * tenant context, belongs to {@code orderId} and is {@code CONFIRMED} -
+	 * the grant path's independent re-verification (never trusting the
+	 * caller's claim).
+	 */
+	boolean isConfirmedForOrder(UUID paymentId, UUID orderId);
+
+	/**
+	 * KLASS-T4c: the lines of {@code orderId} in line order; empty for a legacy
+	 * (line-less) order and for an unknown / cross-tenant order id.
+	 */
+	List<OrderLineSnapshot> findOrderLines(UUID orderId);
 
 }

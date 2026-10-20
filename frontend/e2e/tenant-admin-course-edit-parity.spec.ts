@@ -28,6 +28,18 @@ function course() {
     resolvedAmount: 100,
     currency: "USD",
     requiresManualQuote: false,
+    registrationEnabled: true,
+    enrollmentFee: null,
+    coverImageUrl: null,
+    whatsappInviteUrl: null,
+    telegramInviteUrl: null,
+    paymentValidDays: null,
+    commissionRate: null,
+    teachers: [{ id: "teacher-other", name: "Teacher Other", primary: true }],
+    tags: [],
+    linkedCourses: [],
+    displayOrder: null,
+    priceDisplay: { amount: 100, currency: "USD", period: null },
   };
 }
 
@@ -58,14 +70,23 @@ async function setupAdminCourse(page: import("@playwright/test").Page) {
 }
 
 test.describe("Tenant Admin course edit parity", () => {
-  test("Tenant Admin can open Modules & lessons for another teacher's course", async ({ page }) => {
+  test("Tenant Admin can open Modules & sessions for another teacher's course", async ({ page }) => {
     await setupAdminCourse(page);
     await page.goto(`/tenant-admin/courses/${COURSE_ID}`);
-    await page.getByRole("link", { name: "Modules & lessons" }).click();
-    await expect(page.getByRole("heading", { name: "Modules & lessons" })).toBeVisible();
-    await expect(page.getByText("Module 1")).toBeVisible();
-    await expect(page.getByText("Lesson 1")).toBeVisible();
+    await page.getByRole("link", { name: "Modules & sessions" }).click();
+    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${COURSE_ID}/content$`));
+    await expect(page.getByRole("heading", { name: "Modules & sessions" })).toBeVisible();
+    // The editor renders titles as editable fields: the admin can edit another teacher's course.
+    await expect(page.getByRole("textbox", { name: "Module title" }).first()).toHaveValue("Module 1");
+    await expect(page.getByRole("textbox", { name: "Session title" }).first()).toHaveValue("Lesson 1");
+    await expect(page.getByRole("link", { name: "Back to modules" })).toHaveAttribute(
+      "href",
+      `/tenant-admin/courses/${COURSE_ID}/modules`
+    );
     await expect(page.getByRole("button", { name: "Choose from Media Library" })).toBeVisible();
+
+    await page.goto(`/tenant-admin/courses/${COURSE_ID}/content#session-${LESSON_ID}`);
+    await expect(page.locator(`#session-${LESSON_ID}`)).toBeFocused();
   });
 
   test("Tenant Admin course workspace exposes roster and course live-class scheduling", async ({ page }) => {
@@ -80,11 +101,16 @@ test.describe("Tenant Admin course edit parity", () => {
     await page.goto(`/tenant-admin/courses/${COURSE_ID}`);
     await page.getByRole("link", { name: "Roster" }).click();
     await expect(page.getByRole("heading", { name: "Roster" })).toBeVisible();
-    await expect(page.getByText("Student One")).toBeVisible();
+    // The roster renders a table plus a (small-screen) card list; assert the table cell.
+    await expect(page.getByRole("cell", { name: "Student One" })).toBeVisible();
 
-    await page.getByRole("link", { name: "Sessions" }).click();
-    await expect(page.getByRole("button", { name: "Schedule live class" })).toBeVisible();
-    await page.getByRole("button", { name: "Schedule live class" }).click();
+    // The roster is a standalone page (no workspace tab nav): return to the course first.
+    await page.getByRole("link", { name: "Back to course" }).click();
+    await page.getByRole("navigation", { name: "Course sections" }).getByRole("link", { name: "Live classes", exact: true }).click();
+    // Rendered as a link styled as a button (Button render={<Link/>}).
+    await expect(page.getByRole("link", { name: "Schedule live class" })).toBeVisible();
+    await page.getByRole("link", { name: "Schedule live class" }).click();
+    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${COURSE_ID}/live-classes/new$`));
     await expect(page.getByRole("heading", { name: "Schedule a live class" })).toBeVisible();
   });
 });

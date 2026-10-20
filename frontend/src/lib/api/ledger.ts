@@ -80,7 +80,8 @@ export interface LedgerDashboardParams {
 export interface OutstandingOrderResponse {
   orderId: string;
   studentId: string;
-  courseId: string;
+  /** `null` for a multi-course order. */
+  courseId: string | null;
   courseTitle: string | null;
   amount: number;
   currency: string;

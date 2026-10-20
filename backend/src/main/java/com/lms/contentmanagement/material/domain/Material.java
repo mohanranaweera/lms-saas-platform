@@ -102,7 +102,35 @@ public class Material extends Auditable implements TenantOwned {
 	@Column(name = "removed_by")
 	private UUID removedBy;
 
+	/**
+	 * R2-T3 (V88): set when this file-type material is backed by a shared
+	 * institute library file ({@code media_file}) instead of its own stored
+	 * object - {@link #storageObjectKey} is then always {@code null}
+	 * ({@code ck_material_media_file_shape}), so deleting this material can
+	 * never delete the shared library object.
+	 */
+	@Column(name = "media_file_id", updatable = false)
+	private UUID mediaFileId;
+
 	protected Material() {
+	}
+
+	/**
+	 * R2-T3: a PDF/IMAGE/DOCUMENT/OTHER material backed by library file
+	 * {@code mediaFileId}. Display metadata (filename, MIME type, size) is
+	 * copied from the library file; no storage object key is stored.
+	 */
+	public static Material libraryFile(UUID tenantId, UUID lessonId, UUID sessionId, MaterialType materialType,
+			String title, UUID mediaFileId, String originalFilename, String mimeType, Long sizeBytes,
+			Integer sequence, Integer maxDownloads, Instant availableFromAt, Instant expiryAt, UUID uploadedBy) {
+		Material material = new Material(tenantId, lessonId, sessionId, materialType, title, originalFilename, null,
+				mimeType, sizeBytes, null, null, null, sequence, maxDownloads, availableFromAt, expiryAt, uploadedBy);
+		material.mediaFileId = mediaFileId;
+		return material;
+	}
+
+	public UUID getMediaFileId() {
+		return mediaFileId;
 	}
 
 	/**

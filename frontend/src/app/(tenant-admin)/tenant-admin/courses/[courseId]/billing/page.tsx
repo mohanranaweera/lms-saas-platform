@@ -1,26 +1,16 @@
-"use client";
-
-import { useParams } from "next/navigation";
-import { CourseWorkspaceShell } from "@/components/courses/course-workspace-shell";
-import { CourseBillingPanel } from "@/components/courses/course-billing-panel";
+import { redirect } from "next/navigation";
 
 /**
- * Tenant Admin course workspace — Fees & Billing tab (Wave 2). Content is
- * entirely driven by `course.pricingModel` — see `CourseBillingPanel`'s doc
- * comment for the per-model breakdown (`FREE`/`ONE_TIME`/`MONTHLY`/
- * `SESSION`/`CUSTOM`).
+ * Former Fees & Billing tab. Removed by R2-D5: payment type and fee are edited
+ * in the course edit form on the Overview tab, and a monthly fee change keeps
+ * recording billing-period history server-side. The route stays reachable for
+ * old links/bookmarks and lands on the course Overview.
  */
-export default function TenantAdminCourseBillingPage() {
-  const params = useParams<{ courseId: string }>();
-  const courseId = params.courseId;
-
-  return (
-    <CourseWorkspaceShell
-      courseId={courseId}
-      basePath={`/tenant-admin/courses/${courseId}`}
-      dashboardHref="/tenant-admin/dashboard"
-    >
-      {(course) => <CourseBillingPanel courseId={courseId} course={course} />}
-    </CourseWorkspaceShell>
-  );
+export default async function TenantAdminCourseBillingPage({
+  params,
+}: {
+  params: Promise<{ courseId: string }>;
+}) {
+  const { courseId } = await params;
+  redirect(`/tenant-admin/courses/${encodeURIComponent(courseId)}`);
 }

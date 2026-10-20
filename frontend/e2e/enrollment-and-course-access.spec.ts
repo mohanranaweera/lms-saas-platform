@@ -88,81 +88,251 @@ const STUDENT_RECORD = {
 // `EnrollmentCrossTenantIntegrationTest#myCourseSummariesNeverContainsAnotherTenantsRowsEvenForAnIdenticallyNamedCourse`,
 // which proves the identical property against a real, two-tenant-seeded
 // Postgres database rather than a mocked one.
+// KLASS update (ADR-028, plan §4.2, KLASS-T5b): "My Courses" is now the
+// Enrolled / Available catalog read from `GET /api/v1/enrollments/my/catalog`
+// (server-scoped to this student and tenant). The card-grid presentation tests
+// below keep their original intents on that new source: server-provided
+// names (never a per-card `courses/{id}` lookup), graceful failure, the
+// contextual empty state, permission-denied, loading, responsive columns and
+// keyboard order. Per-card "Lifetime access"/"Active" badges were removed by
+// design (participation never expires; validity is per paid entitlement, D10).
+function catalogCourse(courseId: string, title: string, overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    courseId,
+    title,
+    teacherName: "Teacher One",
+    coverImageUrl: null,
+    priceDisplay: { amount: "4500.00", currency: "LKR", period: "MONTH" },
+    pricingModel: "MONTHLY",
+    tags: [],
+    enrolled: true,
+    registrationEnabled: true,
+    ...overrides,
+  };
+}
+
+function catalogPage(rows: unknown[]) {
+  return apiSuccess({ content: rows, page: 0, size: 20, totalElements: rows.length, totalPages: 1 });
+}
+
+async function mockCatalogBasics(page: Page) {
+  await mockJson(page, "**/api/v1/course-tags", 200, apiSuccess([]));
+}
+
 test.describe("student — My Courses (card grid, MVP-013 SDASH-2)", () => {
-  test("with no matching course summary, renders the short course id fragment fallback — never a direct courses/{id} lookup", async ({
+  test("renders the server-provided course title, teacher and price — never a direct courses/{id} lookup per card", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
-    const enrollment = makeEnrollment();
-    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    // Summary read succeeds but returns no row for this course id — the
-    // graceful-degradation ("omitted, not a 500") case per plan §13.
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
-
+    await mockCatalogBasics(page);
+    const course = catalogCourse("course-12345678-abcd", "Intro to Testing");
+    await mockJson(page, "**/api/v1/enrollments/my/catalog*", 200, catalogPage([course]));
     let courseLookupCalled = false;
-    await page.route(`**/api/v1/courses/${enrollment.courseId}`, async (route) => {
+    await page.route(`**/api/v1/courses/${course.courseId}`, async (route) => {
       courseLookupCalled = true;
       await route.fulfill({ status: 403, contentType: "application/json", body: "{}" });
     });
 
     await page.goto("/student/courses");
 
-    const grid = page.getByRole("list", { name: "My enrolled courses" });
-    await expect(grid.getByText(`Course #${enrollment.courseId.slice(0, 8)}`)).toBeVisible();
-    await expect(grid.getByText("Active")).toBeVisible();
+    const grid = page.getByRole("list", { name: "Enrolled Courses" });
+    const card = grid.getByTestId("catalog-course-card");
+    await expect(card.getByTestId("catalog-course-title")).toHaveText("Intro to Testing");
+    await expect(card.getByText("Teacher One")).toBeVisible();
+    await expect(card.getByTestId("course-price-badge")).toBeVisible();
+    await expect(card.getByRole("link", { name: "Open course Intro to Testing" })).toBeVisible();
     expect(courseLookupCalled).toBe(false);
   });
 
-  test("renders the real course name and category from GET /api/v1/enrollments/my/courses, not a shortId fragment", async ({
+  test("only the requested view's courses render: Enrolled and Available are separate server reads", async ({ page }) => {
+    await mockTenantSession(page, "STUDENT");
+    await mockCatalogBasics(page);
+    const views: string[] = [];
+    await page.route("**/api/v1/enrollments/my/catalog*", async (route) => {
+      const view = new URL(route.request().url()).searchParams.get("view") ?? "";
+      views.push(view);
+      const rows =
+        view === "AVAILABLE"
+          ? [catalogCourse("course-available-1", "Open Chemistry", { enrolled: false })]
+          : [catalogCourse("course-enrolled-1", "My Biology")];
+      await fulfillJson(route, 200, catalogPage(rows));
+    });
+
+    await page.goto("/student/courses");
+    await expect(page.getByRole("list", { name: "Enrolled Courses" }).getByText("My Biology")).toBeVisible();
+    await expect(page.getByText("Open Chemistry")).toHaveCount(0);
+
+    await page.getByTestId("catalog-view-available").click();
+    await expect(page.getByRole("list", { name: "Available Courses" }).getByText("Open Chemistry")).toBeVisible();
+    await expect(page.getByText("My Biology")).toHaveCount(0);
+    expect(views).toEqual(expect.arrayContaining(["ENROLLED", "AVAILABLE"]));
+  });
+
+  test("a failed catalog read degrades gracefully — a retryable error, the page (heading, view switch) not blanked", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
-    const enrollment = makeEnrollment();
-    const summary = makeCourseSummary({ id: enrollment.courseId });
-    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([summary]));
+    await mockCatalogBasics(page);
+    await mockJson(page, "**/api/v1/enrollments/my/catalog*", 500, apiError("INTERNAL_ERROR", "Something went wrong."));
 
     await page.goto("/student/courses");
 
-    const grid = page.getByRole("list", { name: "My enrolled courses" });
-    await expect(grid.getByText(summary.name)).toBeVisible();
-    await expect(grid.getByText(summary.category)).toBeVisible();
-    await expect(grid.getByText(`Course #${enrollment.courseId.slice(0, 8)}`)).toHaveCount(0);
+    await expect(page.getByTestId("catalog-heading")).toBeVisible();
+    await expect(page.getByTestId("catalog-view-available")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 
-  test("a failed course-summary read degrades gracefully — the enrollment row still renders with the shortId fallback, page not blanked", async ({
-    page,
-  }) => {
+  test("zero enrolled courses shows the true empty state with a CTA to Available Courses", async ({ page }) => {
     await mockTenantSession(page, "STUDENT");
-    const enrollment = makeEnrollment();
-    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
+    await mockCatalogBasics(page);
+    await mockJson(page, "**/api/v1/enrollments/my/catalog*", 200, catalogPage([]));
+
+    await page.goto("/student/courses");
+
+    await expect(page.getByText("You haven't enrolled in any courses yet")).toBeVisible();
+    const cta = page.getByRole("button", { name: "See available courses" });
+    await expect(cta).toBeVisible();
+    await cta.click();
+    await expect(page).toHaveURL(/\/student\/courses\?view=available$/);
+  });
+
+  test("a 403 on the catalog fetch renders PermissionDeniedState, not a crash", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN");
+    await mockCatalogBasics(page);
     await mockJson(
       page,
-      "**/api/v1/enrollments/my/courses",
-      500,
-      apiError("INTERNAL_ERROR", "Something went wrong.")
+      "**/api/v1/enrollments/my/catalog*",
+      403,
+      apiError("FORBIDDEN", "You do not have permission to view this.")
     );
 
     await page.goto("/student/courses");
 
-    const grid = page.getByRole("list", { name: "My enrolled courses" });
-    await expect(grid.getByText(`Course #${enrollment.courseId.slice(0, 8)}`)).toBeVisible();
-    await expect(grid.getByText("Active")).toBeVisible();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "You don't have permission to view this." })
+    ).toBeVisible();
   });
 
-  test("a null accessExpiresAt on an ACTIVE row renders 'Lifetime access'", async ({ page }) => {
+  test("shows the loading label while the fetch is in flight, then renders the card grid", async ({ page }) => {
     await mockTenantSession(page, "STUDENT");
-    const enrollment = makeEnrollment({ accessExpiresAt: null, state: "ACTIVE" });
-    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([enrollment]));
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
+    await mockCatalogBasics(page);
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/v1/enrollments/my/catalog*", async (route) => {
+      await gate;
+      await fulfillJson(route, 200, catalogPage([catalogCourse("course-12345678-abcd", "Intro to Testing")]));
+    });
 
     await page.goto("/student/courses");
 
-    await expect(page.getByRole("list", { name: "My enrolled courses" }).getByText("Lifetime access")).toBeVisible();
+    await expect(page.getByText("Loading courses…").first()).toBeVisible();
+    release?.();
+
+    await expect(page.getByRole("list", { name: "Enrolled Courses" }).getByText("Intro to Testing")).toBeVisible();
+    await expect(page.getByTestId("catalog-grid")).toHaveAttribute("aria-busy", "false");
+  });
+
+  test("renders as a single-column list below sm and a multi-column grid at lg", async ({ page }) => {
+    await mockTenantSession(page, "STUDENT");
+    await mockCatalogBasics(page);
+    await mockJson(
+      page,
+      "**/api/v1/enrollments/my/catalog*",
+      200,
+      catalogPage([catalogCourse("course-a11111111111", "Course A"), catalogCourse("course-b22222222222", "Course B")])
+    );
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/student/courses");
+    const grid = page.getByRole("list", { name: "Enrolled Courses" });
+    await expect(grid).toHaveClass(/grid-cols-1/);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(grid).toHaveClass(/lg:grid-cols-3/);
+  });
+
+  test("actually lays out 1/2/3/4 columns at sm/md/lg/xl widths — a real computed-layout assertion, not just CSS class presence", async ({
+    page,
+  }) => {
+    // Reads the browser's computed `grid-template-columns` track count at each
+    // breakpoint (MVP-013 plan §18), now including the catalog's xl:4 step.
+    await mockTenantSession(page, "STUDENT");
+    await mockCatalogBasics(page);
+    await mockJson(
+      page,
+      "**/api/v1/enrollments/my/catalog*",
+      200,
+      catalogPage([
+        catalogCourse("course-geo-aaaaaaaaaa", "Geo A"),
+        catalogCourse("course-geo-bbbbbbbbbb", "Geo B"),
+        catalogCourse("course-geo-cccccccccc", "Geo C"),
+        catalogCourse("course-geo-dddddddddd", "Geo D"),
+      ])
+    );
+
+    await page.goto("/student/courses");
+    const grid = page.getByRole("list", { name: "Enrolled Courses" });
+    await expect(grid.getByTestId("catalog-course-card")).toHaveCount(4);
+
+    async function columnCount() {
+      return grid.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length);
+    }
+
+    await page.setViewportSize({ width: 375, height: 900 });
+    await expect.poll(columnCount).toBe(1);
+    await page.setViewportSize({ width: 700, height: 900 });
+    await expect.poll(columnCount).toBe(2);
+    await page.setViewportSize({ width: 1100, height: 900 });
+    await expect.poll(columnCount).toBe(3);
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await expect.poll(columnCount).toBe(4);
+  });
+
+  test("keyboard Tab traversal reaches each card CTA across multiple cards, in DOM order", async ({ page }) => {
+    // A real Tab traversal across three enrolled cards' "Open course" CTAs.
+    // (The keyboard path to the reactivation CTA is covered by the
+    // "accessibility — keyboard-only completion" block below.)
+    await mockTenantSession(page, "STUDENT");
+    await mockCatalogBasics(page);
+    await mockJson(
+      page,
+      "**/api/v1/enrollments/my/catalog*",
+      200,
+      catalogPage([
+        catalogCourse("course-kb-grid-aaaaaa", "Keyboard A"),
+        catalogCourse("course-kb-grid-bbbbbb", "Keyboard B"),
+        catalogCourse("course-kb-grid-cccccc", "Keyboard C"),
+      ])
+    );
+
+    await page.goto("/student/courses");
+    const grid = page.getByRole("list", { name: "Enrolled Courses" });
+
+    const first = grid.getByRole("link", { name: "Open course Keyboard A" });
+    await first.focus();
+    await expect(first).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(grid.getByRole("link", { name: "Open course Keyboard B" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(grid.getByRole("link", { name: "Open course Keyboard C" })).toBeFocused();
+  });
+});
+
+// Legacy paid-access renewal (ADR-013) entry point for EXPIRED legacy
+// enrollments, kept with their original assertions: My Courses again lists
+// expired legacy enrollments in an "Expired paid access" section with the
+// per-enrollment Reactivate / Proceed-to-checkout CTA (restored after the
+// KLASS-T6 report), so the no-premature-CTA / no-duplicate-submission intents
+// still apply unchanged.
+test.describe("student — My Courses reactivation entry (legacy expired enrollments)", () => {
+  // Keep these mock-only tests hermetic: the page also reads the KLASS catalog
+  // and tags. Unmocked, those calls reach whatever backend is running and, with
+  // the fake JWT, render an unrelated permission-denied panel.
+  test.beforeEach(async ({ page }) => {
+    await mockCatalogBasics(page);
+    await mockJson(page, "**/api/v1/enrollments/my/catalog*", 200, catalogPage([]));
   });
 
   test("an EXPIRED row with canRequestReactivation shows a Reactivate link to the reactivation screen", async ({
@@ -276,203 +446,6 @@ test.describe("student — My Courses (card grid, MVP-013 SDASH-2)", () => {
     await expect(grid.getByRole("link", { name: /Reactivate/ })).toBeVisible();
     await expect(page.getByText("Something went wrong", { exact: false })).toHaveCount(0);
     await expect(page.getByText("permission", { exact: false })).toHaveCount(0);
-  });
-
-  test("zero enrollments shows the true empty state with a catalog CTA", async ({ page }) => {
-    await mockTenantSession(page, "STUDENT");
-    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess([]));
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
-
-    await page.goto("/student/courses");
-
-    await expect(page.getByText("You have no active enrollments yet")).toBeVisible();
-    const cta = page.getByRole("button", { name: "Browse courses" });
-    await expect(cta).toBeVisible();
-    await cta.click();
-    await expect(page).toHaveURL("/courses");
-  });
-
-  test("a 403 on the enrollments fetch renders PermissionDeniedState, not a crash", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-    await mockJson(
-      page,
-      "**/api/v1/enrollments/my",
-      403,
-      apiError("FORBIDDEN", "You do not have permission to view this.")
-    );
-    await mockJson(
-      page,
-      "**/api/v1/reactivation-requests/my*",
-      403,
-      apiError("FORBIDDEN", "You do not have permission to view this.")
-    );
-    await mockJson(
-      page,
-      "**/api/v1/enrollments/my/courses",
-      403,
-      apiError("FORBIDDEN", "You do not have permission to view this.")
-    );
-
-    await page.goto("/student/courses");
-
-    await expect(
-      page.getByRole("alert").filter({ hasText: "You don't have permission to view this." })
-    ).toBeVisible();
-  });
-
-  test("shows the loading label while the fetch is in flight, then renders the card grid", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "STUDENT");
-    const enrollment = makeEnrollment();
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
-
-    let release: (() => void) | undefined;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route("**/api/v1/enrollments/my", async (route) => {
-      await gate;
-      await fulfillJson(route, 200, apiSuccess([enrollment]));
-    });
-
-    await page.goto("/student/courses");
-
-    await expect(page.getByText("Loading your courses…")).toBeVisible();
-    release?.();
-
-    await expect(
-      page.getByRole("list", { name: "My enrolled courses" }).getByText(`Course #${enrollment.courseId.slice(0, 8)}`)
-    ).toBeVisible();
-    await expect(page.getByText("Loading your courses…")).toHaveCount(0);
-  });
-
-  test("renders as a single-column list below sm and a multi-column grid at lg", async ({ page }) => {
-    await mockTenantSession(page, "STUDENT");
-    const enrollments = [
-      makeEnrollment({ enrollmentId: "enrollment-a", courseId: "course-a11111111111" }),
-      makeEnrollment({ enrollmentId: "enrollment-b", courseId: "course-b22222222222" }),
-    ];
-    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess(enrollments));
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
-
-    await page.setViewportSize({ width: 375, height: 800 });
-    await page.goto("/student/courses");
-    const grid = page.getByRole("list", { name: "My enrolled courses" });
-    await expect(grid).toHaveClass(/grid-cols-1/);
-
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await expect(grid).toHaveClass(/lg:grid-cols-3/);
-  });
-
-  test("actually lays out 1/2/3 columns at sm/md/lg widths — a real computed-layout assertion, not just CSS class presence", async ({
-    page,
-  }) => {
-    // The sibling test above only proves the `grid-cols-*` class strings are
-    // present in the DOM, which is presence, not proof of the resulting
-    // layout (a typo'd/overridden Tailwind class could still "pass" that
-    // assertion). This test reads the browser's actual computed
-    // `grid-template-columns` track count at each breakpoint instead, per
-    // plan §18's explicit "actual layout/column-count assertion, not just
-    // DOM presence" requirement.
-    await mockTenantSession(page, "STUDENT");
-    const enrollments = [
-      makeEnrollment({ enrollmentId: "geo-a", courseId: "course-geo-aaaaaaaaaa" }),
-      makeEnrollment({ enrollmentId: "geo-b", courseId: "course-geo-bbbbbbbbbb" }),
-      makeEnrollment({ enrollmentId: "geo-c", courseId: "course-geo-cccccccccc" }),
-    ];
-    await mockJson(page, "**/api/v1/enrollments/my", 200, apiSuccess(enrollments));
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
-
-    await page.goto("/student/courses");
-    const grid = page.getByRole("list", { name: "My enrolled courses" });
-    await expect(grid.getByRole("listitem")).toHaveCount(3);
-
-    async function columnCount() {
-      return grid.evaluate(
-        (el) => getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length
-      );
-    }
-
-    // Below `sm` (375px): single column.
-    await page.setViewportSize({ width: 375, height: 900 });
-    await expect.poll(columnCount).toBe(1);
-
-    // Within `sm`/`md` (700px — at/above the 640px `sm` breakpoint, below
-    // the 1024px `lg` breakpoint): 2 columns.
-    await page.setViewportSize({ width: 700, height: 900 });
-    await expect.poll(columnCount).toBe(2);
-
-    // At `lg` (1280px) and above: 3 columns.
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await expect.poll(columnCount).toBe(3);
-  });
-
-  test("keyboard Tab traversal reaches each card CTA across multiple cards, in DOM order", async ({
-    page,
-  }) => {
-    // The existing keyboard tests in this file directly `.focus()` a single,
-    // already-known CTA — that proves the CTA itself is focusable, but not
-    // that a keyboard-only user can actually *reach* it by tabbing through
-    // the grid. This test performs a real `Tab` traversal across three
-    // cards (one Reactivate CTA, one ACTIVE card's "Open course" CTA, one
-    // "already requested" CTA), proving Tab order flows correctly through
-    // the card grid rather than getting stuck or skipping unpredictably.
-    await mockTenantSession(page, "STUDENT");
-    const enrollmentA = makeEnrollment({
-      enrollmentId: "kb-grid-a",
-      courseId: "course-kb-grid-aaaaaa",
-      state: "EXPIRED",
-      canRequestReactivation: true,
-      accessExpiresAt: new Date().toISOString(),
-    });
-    const enrollmentB = makeEnrollment({
-      enrollmentId: "kb-grid-b",
-      courseId: "course-kb-grid-bbbbbb",
-      state: "ACTIVE",
-    });
-    const enrollmentC = makeEnrollment({
-      enrollmentId: "kb-grid-c",
-      courseId: "course-kb-grid-cccccc",
-      state: "EXPIRED",
-      canRequestReactivation: false,
-      accessExpiresAt: new Date().toISOString(),
-    });
-    await mockJson(
-      page,
-      "**/api/v1/enrollments/my",
-      200,
-      apiSuccess([enrollmentA, enrollmentB, enrollmentC])
-    );
-    await mockJson(page, "**/api/v1/reactivation-requests/my*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/enrollments/my/courses", 200, apiSuccess([]));
-
-    await page.goto("/student/courses");
-    const grid = page.getByRole("list", { name: "My enrolled courses" });
-
-    const firstCta = grid.getByRole("link", {
-      name: `Reactivate Course #${enrollmentA.courseId.slice(0, 8)}`,
-    });
-    await firstCta.focus();
-    await expect(firstCta).toBeFocused();
-
-    // enrollmentB is ACTIVE, so its card's "Open course" link is the next
-    // Tab stop, then card C's CTA — Tab order follows the grid's DOM order.
-    await page.keyboard.press("Tab");
-    await expect(
-      grid.getByRole("link", { name: `Open course Course #${enrollmentB.courseId.slice(0, 8)}` })
-    ).toBeFocused();
-    await page.keyboard.press("Tab");
-    const thirdCta = grid.getByRole("link", {
-      name: `Reactivation already requested for Course #${enrollmentC.courseId.slice(0, 8)}`,
-    });
-    await expect(thirdCta).toBeFocused();
   });
 });
 

@@ -130,8 +130,14 @@ class VideoIntegrationsIntegrationTest extends MediaUploadTestSupport {
 		JsonNode teacher2Tabs = json(perform(authenticated(get(MEDIA + "/channels"), ctx.host(), ctx.teacher2Token())))
 			.path("data")
 			.path("integrations");
-		assertThat(teacher2Tabs.findValuesAsString("integrationId")).containsExactly(main.toString());
+		// R2-D2 (2026-10-14): teachers see every institute video, so a card holding
+		// another teacher's video is listed for teacher2 too - read-only (no upload),
+		// so that video can still be browsed and attached. Previously teacher2 saw
+		// only the main card because Teacher One's video was invisible to them.
+		assertThat(teacher2Tabs.findValuesAsString("integrationId")).containsExactly(main.toString(),
+				restricted.toString());
 		assertThat(teacher2Tabs.path(0).path("canUpload").asBoolean()).isTrue();
+		assertThat(teacher2Tabs.path(1).path("canUpload").asBoolean()).isFalse();
 		JsonNode teacher1Tabs = json(perform(authenticated(get(MEDIA + "/channels"), ctx.host(), ctx.teacherToken())))
 			.path("data")
 			.path("integrations");

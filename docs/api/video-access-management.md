@@ -50,24 +50,14 @@ tenant/ownership check runs"), not a gap.
 
 ### 2. Policy upsert (`PUT /videos/{id}/policy`) — as-fixed, ownership-aware gate
 
-`VideoAssetService#requirePolicyAuthorization` resolves the video asset's owning
-`Material` via `MaterialLookupApi#resolveVideoAssetOwnership`:
+`VideoAssetService#requirePolicyAuthorization` resolves every attached lesson's ownership through `MaterialLookupApi#resolveVideoAssetOwnerships` and reads the uploader through the tenant-scoped video repository:
 
-- **If the asset is already attached to a `Material`** (the normal case for any asset a
-  Student could ever reach): a Teacher/TA may upsert the policy **only if they own the
-  resolved course** (`ownership.teacherId()` must equal the caller's own user id) —
-  `403 FORBIDDEN` otherwise. Staff still uses the flat `MATERIALS`/`CREATE_EDIT` grant
-  (ownership doesn't apply to staff, matching every other guard in this codebase).
-- **If the asset is not yet attached to any `Material`** (the narrow pre-attach window
-  right after upload): there is nothing to resolve ownership from yet, so this falls
-  back to the same loose gate as upload (§1 above) — any Teacher/TA in the tenant, or
-  staff with `MATERIALS`/`CREATE_EDIT`.
-- This is a security-review fix, not the original shipped behavior: the loose
-  upload-time gate was initially reused for policy upsert unconditionally, which was a
-  genuine intra-tenant IDOR — Teacher B could silently strip Teacher A's
-  watermark/download/view-limit protections off a video Teacher B doesn't own. The
-  as-fixed behavior above is what ships. **Do not assume the loose gate applies once a
-  video is attached to a Material** — it only ever applies in the pre-attach window.
+- A Teacher/TA must own **every attached course**; otherwise 403. They must **also be the video's uploader**, whether attached or not; an otherwise eligible non-uploader receives 404. Attachment of an institute video grants no settings authority.
+- These checks are conjunctive: even the uploader cannot change the global policy while another teacher's course uses the video. This preserves the prior shared-asset protection rule (SEC L3).
+- Staff continues to require `MATERIALS/CREATE_EDIT`. Cross-tenant assets remain not found.
+- The same gate protects watch-time-limit reads/writes. No request/response shape changed.
+
+This conservative R2-SEC-H1 tightening was explicitly owner-approved on 2026-10-16. The regression first reproduced borrower policy mutation returning 200, then verifies denial and unchanged protection values after a borrower attaches an initially unattached video. See `docs/qa/klass-round2-acceptance.md`. The loose upload gate is never sufficient authorization for settings, including before attachment.
 
 ### 3. Playback (`POST /videos/{id}/playback-sessions` and all `/playback-sessions/{id}/...` endpoints) — `VideoAccessGuard`
 
@@ -126,7 +116,7 @@ A freshly-uploaded asset is **not yet attachable to a Material for real use** un
 is referenced as a `videoAssetId` on `POST .../materials` (see
 `docs/api/content-management.md`) — until then it has no course/enrollment entitlement
 resolvable against it, so `VideoAccessGuard` (playback) rejects it with `404` for every
-role except the loose pre-attach policy-upsert window (§2 above).
+role. Policy mutation has its separate uploader-plus-all-courses gate (§2 above), including before attachment.
 
 ### `PUT /videos/{id}/policy`
 

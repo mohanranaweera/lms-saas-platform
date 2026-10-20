@@ -16,7 +16,17 @@ import java.util.UUID;
  * @param teacherId the course's assigned teacher id.
  * @param courseOpenToEnrolledStudents whether the course is currently
  * {@code PUBLIC} or {@code PRIVATE} (not {@code DRAFT}).
+ * @param lessonId KLASS-T4b: the material's lesson (student access is decided
+ * per lesson by the lesson access evaluator); {@code null} only for callers
+ * built without it (legacy course-wide rule).
  */
-public record MaterialVideoOwnership(UUID materialId, UUID courseId, UUID teacherId, boolean courseOpenToEnrolledStudents) {
+public record MaterialVideoOwnership(UUID materialId, UUID courseId, UUID teacherId,
+		boolean courseOpenToEnrolledStudents, UUID lessonId) {
+
+	/** Pre-KLASS shape (no lesson): student access falls back to the legacy course-wide rule. */
+	public MaterialVideoOwnership(UUID materialId, UUID courseId, UUID teacherId,
+			boolean courseOpenToEnrolledStudents) {
+		this(materialId, courseId, teacherId, courseOpenToEnrolledStudents, null);
+	}
 
 }

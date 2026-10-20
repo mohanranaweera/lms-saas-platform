@@ -1,6 +1,7 @@
 package com.lms.integrationmanagement.storage;
 
 import com.lms.common.error.ServiceUnavailableException;
+import com.lms.integrationmanagement.api.DownloadOverrides;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
@@ -8,6 +9,7 @@ import com.lms.integrationmanagement.api.StoredObject;
 import com.lms.integrationmanagement.config.ObjectStorageProperties;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
@@ -114,6 +116,43 @@ public class S3ObjectStorageApi implements ObjectStorageApi {
 			GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
 				.signatureDuration(ttl)
 				.getObjectRequest(getObjectRequest)
+				.build();
+			PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
+			Instant expiresAt = Instant.now().plus(ttl);
+			return new SignedDownloadUrl(presigned.url().toString(), expiresAt);
+		}
+		catch (SdkException e) {
+			throw new ServiceUnavailableException(UNAVAILABLE_MESSAGE);
+		}
+	}
+
+	/**
+	 * Presigned GET carrying S3 {@code response-content-type} / {@code
+	 * response-content-disposition} query overrides. These are included in
+	 * the SigV4 signature, so they cannot be altered by the URL holder;
+	 * S3/MinIO only honour them on signed requests, which this always is.
+	 * Header values arrive already validated/sanitised by {@link
+	 * DownloadOverrides}.
+	 */
+	@Override
+	public SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl, DownloadOverrides overrides) {
+		Objects.requireNonNull(objectKey, "objectKey");
+		Objects.requireNonNull(ttl, "ttl");
+		Objects.requireNonNull(overrides, "overrides");
+		if (ttl.isZero() || ttl.isNegative()) {
+			throw new IllegalArgumentException("ttl must be positive");
+		}
+		try {
+			GetObjectRequest.Builder getObjectRequest = GetObjectRequest.builder()
+				.bucket(bucket)
+				.key(objectKey)
+				.responseContentDisposition(overrides.contentDispositionHeaderValue());
+			if (overrides.contentType() != null) {
+				getObjectRequest.responseContentType(overrides.contentType());
+			}
+			GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+				.signatureDuration(ttl)
+				.getObjectRequest(getObjectRequest.build())
 				.build();
 			PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
 			Instant expiresAt = Instant.now().plus(ttl);
