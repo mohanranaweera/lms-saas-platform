@@ -69,6 +69,12 @@ results), `—` = no access. This is a starting matrix for IA/navigation purpose
 | Payment gateway (PAY-GW-01) | V/C/E | V | — | — | — | — | — | V |
 | Integrations (MEDIA-INT-01) | V/C/E | — | — | — | — | — | — | V |
 | Communications (Wave 11, ADR-023) | V/C/E | — | — | V/C/E | — | — | — | V |
+| Discounts (DISC-01) | V/C/E | V | — | V | — | — | — | V |
+
+Discounts (DISC-01, owner decision 2026-10-21): tenant discount rules (advance payment,
+bundle amount off, bundle free course, discount code). C/E = create, edit, toggle and
+archive rules - Tenant Admin only. V = list/read rules; a V-only caller sees discount codes
+masked. Holding Payments / slips C/E does not grant Discounts C/E.
 
 Communications (Wave 11, ADR-023, product-owner decision 2026-10-01): broadcasts,
 broadcast templates, delivery logs and the student Notifications tab. C/E = send

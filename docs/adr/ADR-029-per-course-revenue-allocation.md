@@ -49,3 +49,22 @@ ledger amount that settlement sums into teacher gross.
   course's share as amount.
 - Adds a derived, reproducible allocation step; inputs are immutable snapshots, so allocations are
   stable after rate/config changes.
+
+## Addendum A1: Discounts (accepted 2026-10-21)
+
+Accepted by the project owner after the payment-ledger review of the Klass discount module
+(`docs/plans/klass-discount-module.md`, spec §6). The allocation formula above is **unchanged**:
+a course's share is still the sum of its `student_order_line.line_total` (unit + line facility fee
+− discount). What is new is that `discount_amount` is no longer always 0, so:
+
+- a Bundle Amount Off, Advance Payment or Discount Code discount reduces the share of each course it
+  was allocated to (the per-line allocation stored at order time), and the course's teacher is
+  settled on that net share;
+- a free reward line (Bundle Free Course) has `line_total = 0`, so its course's teacher receives no
+  share for those months;
+- refunds and chargebacks keep following decision 3 (pro rata to the same net shares).
+
+The institute absorbs the discount; it is never charged to a course outside the lines it was allocated
+to. Allocations remain reproducible from the immutable order-line and `student_order_discount`
+snapshots, so editing or archiving a discount rule never changes a historical share. Covered by
+`DiscountHardeningIntegrationTest.settlementSharesFollowTheNetLineTotalOfDiscountedAndRewardLines`.
