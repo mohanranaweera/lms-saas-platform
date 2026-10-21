@@ -109,6 +109,14 @@ export interface EnrollmentHistoryEntryResponse {
   revokedAt: string | null;
   revokeReason: string | null;
   reactivatedFromEnrollmentId: string | null;
+  /** Wave 10: the paid window end moved by any manual extension (null = lifetime). */
+  effectiveExpiresAt: string | null;
+  /** Wave 10: `effectiveExpiresAt` plus the grace period - when access actually stops. */
+  accessEndsAt: string | null;
+  /** Wave 10: true when a manual extension moved the expiry. */
+  extended: boolean;
+  /** Wave 10: the backend access decision for this row right now (current and inside its window). */
+  accessActive: boolean;
 }
 
 /** Mirrors `RevokeEnrollmentRequest` — `reason` is mandatory, non-blank (ADR-016 decision 2). */

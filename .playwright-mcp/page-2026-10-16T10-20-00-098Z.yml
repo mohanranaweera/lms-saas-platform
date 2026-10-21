@@ -1,0 +1,83 @@
+- generic [active] [ref=f5e1]:
+  - button "Open Next.js Dev Tools" [ref=f5e11] [cursor=pointer]
+  - alert [ref=f5e15]: LMS Platform
+  - generic [ref=f5e17]:
+    - banner [ref=f5e18]:
+      - generic [ref=f5e19]:
+        - button "Open navigation menu" [ref=f5e133]
+        - generic [ref=f5e21]: Tenant Admin
+      - generic [ref=f5e22]:
+        - link "Change password" [ref=f5e134] [cursor=pointer]:
+          - /url: /change-password
+        - button "Sign out" [ref=f5e135]
+    - main [ref=f5e26]:
+      - generic [ref=f5e136]:
+        - generic [ref=f5e137]:
+          - heading "Media Library" [level=1] [ref=f5e138]
+          - paragraph [ref=f5e139]: Every document, image and lesson video your institute has uploaded.
+        - generic [ref=f5e140]:
+          - region [ref=f5e141]:
+            - paragraph [ref=f5e142]: Media library
+            - heading "10 items" [level=2] [ref=f5e143]
+            - paragraph [ref=f5e144]: Everything this institute can attach to a session
+            - list "Item counts by type" [ref=f5e145]:
+              - listitem [ref=f5e146]: 8 videos
+              - listitem [ref=f5e150]: 1 document
+              - listitem [ref=f5e154]: 1 image
+              - listitem [ref=f5e160]: Updated 3:45 PM
+          - generic [ref=f5e165]:
+            - tablist "Media sources" [ref=f5e166]:
+              - tab "Uploads" [ref=f5e167]
+              - tab "DynTube" [selected] [ref=f5e168]
+              - tab "Active Youtube Connection" [ref=f5e169]
+              - tab "Youtube Integration Two" [ref=f5e170]
+              - tab "An another youtube Not connected" [ref=f5e171]:
+                - text: An another youtube
+                - generic [ref=f5e172]: Not connected
+            - tabpanel "DynTube" [ref=f5e220]:
+              - generic [ref=f5e221]:
+                - paragraph [ref=f5e223]: Videos hosted on your institute's DynTube account. Students play them through short-lived signed links.
+                - form "Upload a video" [ref=f5e246]:
+                  - generic [ref=f5e247]:
+                    - generic [ref=f5e248]:
+                      - heading "Upload a video" [level=2] [ref=f5e249]
+                      - paragraph [ref=f5e250]: To DynTube
+                    - paragraph [ref=f5e251]: 0 of 20 uploads used today · up to 10 GB
+                  - generic [ref=f5e252]:
+                    - generic [ref=f5e253]: Title
+                    - textbox "Title" [ref=f5e254]
+                  - generic [ref=f5e255]:
+                    - generic [ref=f5e256]: Description (optional)
+                    - textbox "Description (optional)" [ref=f5e257]
+                  - paragraph [ref=f5e258]: Students watch through the LMS with short-lived signed links. DynTube processes the video before it can be added to a lesson.
+                  - generic [ref=f5e259]:
+                    - generic [ref=f5e260]: Video file
+                    - button "Video file" [ref=f5e261]
+                  - generic [ref=f5e262]:
+                    - button "Upload video" [ref=f5e263]
+                    - button "Close" [ref=f5e264]
+                - generic [ref=f5e225]:
+                  - generic [ref=f5e226]:
+                    - generic [ref=f5e227]: Search
+                    - searchbox "Search" [ref=f5e228]
+                  - generic [ref=f5e229]:
+                    - generic [ref=f5e230]: Status
+                    - combobox "Status" [ref=f5e231]:
+                      - option "All statuses" [selected]
+                      - option "Ready"
+                      - option "Processing"
+                      - option "Uploading"
+                      - option "Waiting for the file"
+                      - option "Failed"
+                - list "Media" [ref=f5e233]:
+                  - listitem [ref=f5e234]:
+                    - link "0:38 DYNTube Ready In a lesson Unlisted Added Oct 10, 2026, 3:08 PM" [ref=f5e235] [cursor=pointer]:
+                      - /url: /tenant-admin/media/01a1252d-5e61-70f2-8c2f-a5c36702c979
+                      - generic [ref=f5e236]: 0:38
+                      - generic [ref=f5e238]:
+                        - generic [ref=f5e239]: DYNTube
+                        - generic [ref=f5e240]:
+                          - generic [ref=f5e241]: Ready
+                          - generic [ref=f5e242]: In a lesson
+                          - generic [ref=f5e243]: Unlisted
+                        - generic [ref=f5e244]: Added Oct 10, 2026, 3:08 PM

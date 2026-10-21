@@ -38,4 +38,10 @@ public interface SlipStatusApi {
 	 */
 	List<OrderSlipDetail> findOrderSlipDetails(List<UUID> orderIds);
 
+	/**
+	 * KLASS-T4c: {@code true} only if {@code slipId} exists in the current
+	 * tenant context, is evidence for {@code orderId} and is {@code APPROVED}.
+	 */
+	boolean isApprovedForOrder(UUID slipId, UUID orderId);
+
 }

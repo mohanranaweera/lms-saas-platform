@@ -1,0 +1,16 @@
+Source: Course - Front End.mp4
+Screenshots preserve original resolution. Timestamps are from recording start.
+
+00:00 - 01_Enrolled_Course_Cards_000s.png
+00:12 - 02_Biology_Search_Results_012s.png
+00:20 - 03_Course_Header_And_Month_Folders_020s.png
+00:22 - 04_Exams_Empty_State_022s.png
+00:23 - 05_Upcoming_Live_Classes_023s.png
+00:24 - 06_Tute_Delivery_Empty_State_024s.png
+00:32 - 07_Expanded_Month_And_Modules_032s.png
+00:37 - 08_Unpaid_Live_Sessions_037s.png
+00:40 - 09_Payment_Method_Choice_040s.png
+00:48 - 10_Online_Gateway_Checkout_048s.png
+00:52 - 11_Bank_Slip_Upload_Form_052s.png
+01:04 - 12_Paid_Month_Recording_064s.png
+01:08 - 13_External_Player_Handoff_068s.png

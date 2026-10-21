@@ -110,7 +110,7 @@ public class OrderController {
 		PaymentInitiationView view = paymentInitiationService.initiatePayment(id, idempotencyKey);
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse.success(new PaymentInitiationResponse(view.paymentId(), view.orderId(), view.status(),
-					view.gatewayReference(), view.redirectTarget())));
+					view.gatewayReference(), view.redirectTarget(), view.formAction(), view.formFields())));
 	}
 
 	/**
@@ -141,7 +141,9 @@ public class OrderController {
 					.stream()
 					.map(f -> new PaymentSlipFlagResponse(f.id(), f.flagType(), f.detectedAt()))
 					.toList(),
-				view.studentEmail(), view.reviewerEmail(), view.orderAmount(), view.orderCurrency());
+				view.studentEmail(), view.reviewerEmail(), view.orderAmount(), view.orderCurrency(), view.orderLines(),
+				view.orderSubtotal(), view.orderFacilityFee(), view.orderDiscount(), view.orderPostage(),
+				view.orderDelivery());
 	}
 
 }

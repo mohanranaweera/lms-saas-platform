@@ -49,7 +49,6 @@ export function CourseWorkspaceShell({
               <CourseStatusBadge status={course.status} />
               <CoursePricingModelBadge pricingModel={course.pricingModel} />
             </div>
-            <p className="text-sm text-muted-foreground">{course.slug}</p>
             {course.archivedAt ? (
               <Alert>
                 <Archive aria-hidden="true" />

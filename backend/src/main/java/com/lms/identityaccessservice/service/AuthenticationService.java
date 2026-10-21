@@ -51,19 +51,37 @@ public class AuthenticationService {
 
 	private final TenantContext tenantContext;
 
+	private final DeviceRegistrationService deviceRegistrationService;
+
 	public AuthenticationService(TenantUserRepository tenantUserRepository,
 			DeviceSessionRepository deviceSessionRepository, PasswordEncoder passwordEncoder,
-			TokenService tokenService, SessionProperties sessionProperties, TenantContext tenantContext) {
+			TokenService tokenService, SessionProperties sessionProperties, TenantContext tenantContext,
+			DeviceRegistrationService deviceRegistrationService) {
 		this.tenantUserRepository = tenantUserRepository;
 		this.deviceSessionRepository = deviceSessionRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.tokenService = tokenService;
 		this.sessionProperties = sessionProperties;
 		this.tenantContext = tenantContext;
+		this.deviceRegistrationService = deviceRegistrationService;
 	}
 
+	/**
+	 * Client signals the device binding needs (Wave 10): the raw {@code
+	 * lms_device_id} cookie value (null on a first visit), and the User-Agent/IP
+	 * used only for the display label and last-seen IP - never as identity.
+	 */
+	public record DeviceContext(String rawDeviceToken, String userAgent, String ipAddress) {
+	}
+
+	/**
+	 * Wave 10: once the credential checks pass, the login is bound to a
+	 * server-issued device ({@link DeviceRegistrationService#bindAtLogin}); a
+	 * student over the device limit is refused here with {@code 403
+	 * DEVICE_LIMIT_REACHED} in the same transaction, so nothing is persisted.
+	 */
 	@Transactional
-	public LoginResult login(String email, String rawPassword, String deviceIdentifierHash) {
+	public LoginResult login(String email, String rawPassword, DeviceContext device) {
 		Optional<TenantUser> userOpt = tenantUserRepository.findByEmail(email);
 		String hashToVerify = userOpt.map(TenantUser::getPasswordHash).orElse(DUMMY_HASH);
 		boolean passwordMatches = passwordEncoder.matches(rawPassword, hashToVerify);
@@ -72,20 +90,26 @@ public class AuthenticationService {
 			throw new InvalidCredentialsException();
 		}
 		TenantUser user = userOpt.get();
+		if (user.getStatus() == AccountStatus.INVITED) {
+			// ADR-020: indistinguishable from a wrong password (no account-state disclosure).
+			throw new InvalidCredentialsException();
+		}
 		if (user.getStatus() == AccountStatus.SUSPENDED) {
 			throw new UserSuspendedException();
 		}
 
 		var tenantId = tenantContext.getTenantId();
 		Instant now = Instant.now();
+		DeviceRegistrationService.DeviceBinding binding = deviceRegistrationService.bindAtLogin(user,
+				device.rawDeviceToken(), device.userAgent(), device.ipAddress());
 		String rawRefreshToken = tokenService.generateOpaqueRefreshToken();
 		DeviceSession session = new DeviceSession(tenantId, user.getId(), tokenService.hashRefreshToken(rawRefreshToken),
-				deviceIdentifierHash, now, now.plus(sessionProperties.getRefreshTokenTtl()));
+				binding.tokenHash(), now, now.plus(sessionProperties.getRefreshTokenTtl()), binding.deviceId());
 		session = deviceSessionRepository.save(session);
 
 		String accessToken = tokenService.issueTenantAccessToken(user.getId(), tenantId, user.getRole(), session.getId());
 		return new LoginResult(accessToken, tokenService.accessTokenTtl(), session.getId(), rawRefreshToken,
-				sessionProperties.getRefreshTokenTtl(), user.isMustChangePassword());
+				sessionProperties.getRefreshTokenTtl(), user.isMustChangePassword(), binding.rawToken());
 	}
 
 }

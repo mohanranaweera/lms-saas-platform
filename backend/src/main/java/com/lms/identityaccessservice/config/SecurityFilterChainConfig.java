@@ -167,6 +167,14 @@ public class SecurityFilterChainConfig {
 							"/api/v1/students/register/otp/send", "/api/v1/students/register/otp/verify")
 					.permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
+				// AUTH-PWD-01 / ADR-020: one-time account-setup / reset links and
+				// forgot password. Anonymous by nature; the tenant is still
+				// resolved from the host by TenantResolutionFilter, the link's
+				// own token authorises the change, and each is rate-limited.
+				authorize
+					.requestMatchers(HttpMethod.POST, "/api/v1/auth/password-tokens/verify",
+							"/api/v1/auth/password-tokens/complete", "/api/v1/auth/password-reset/request")
+					.permitAll();
 				authorize
 					.requestMatchers(HttpMethod.POST, "/api/v1/platform-admin/auth/login",
 							"/api/v1/platform-admin/auth/refresh")
@@ -182,6 +190,26 @@ public class SecurityFilterChainConfig {
 				// per .claude/rules/security.md and
 				// .claude/rules/payments.md's webhook-verification rules.
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/integrations/webhooks/**").permitAll();
+				// MSG-PROV-01 / ADR-024 V8: Meta's webhook subscription
+				// handshake is a GET on the same per-tenant callback URL. It
+				// changes nothing; MetaWhatsAppWebhookService echoes the
+				// challenge only for a known key and matching verify token.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/integrations/webhooks/meta-whatsapp/*").permitAll();
+				// MEDIA-INT-01 / ADR-018 §3: the single OAuth redirect URI the
+				// Zoom/Google/Vimeo apps send the teacher's browser back to. It
+				// carries no session/JWT; OAuthConnectFlowService trusts only
+				// the single-use Redis state, never the request, to decide the
+				// tenant and teacher.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/integrations/oauth/*/callback").permitAll();
+				// VIDEO Phase 8 / ADR-025 Amendment 1: the AOC Player has no LMS
+				// login. These four EXACT endpoints (never a wildcard) authenticate
+				// by a one-time code (pairing, exchange) or by the aud=aoc-player
+				// token plus the installation's ECDSA signature (heartbeat, end);
+				// the tenant comes only from a server-held row. The player's other
+				// endpoints (/pairings, /installations) stay JWT-authenticated.
+				authorize.requestMatchers(HttpMethod.POST, "/api/v1/player/pairings/complete", "/api/v1/player/exchange",
+						"/api/v1/player/sessions/{sessionId}/heartbeat", "/api/v1/player/sessions/{sessionId}/end")
+					.permitAll();
 				authorize.anyRequest().authenticated();
 			})
 			.addFilterBefore(tenantResolutionFilter, UsernamePasswordAuthenticationFilter.class)
@@ -214,7 +242,9 @@ public class SecurityFilterChainConfig {
 	 */
 	private CorsConfigurationSource localCorsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://demo.lms.test:3000"));
+		// Every local tenant subdomain (demo, academy, ...), not just demo - a newly
+		// registered tenant must work locally too (AUTH-PWD-01 invitation links).
+		configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "http://*.lms.test:3000"));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("Content-Type", "Authorization"));
 		configuration.setAllowCredentials(true);

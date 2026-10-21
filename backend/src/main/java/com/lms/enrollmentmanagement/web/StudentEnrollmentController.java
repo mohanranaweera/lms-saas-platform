@@ -48,7 +48,8 @@ public class StudentEnrollmentController {
 	private static EnrollmentHistoryEntryResponse toResponse(EnrollmentHistoryEntryView view) {
 		return new EnrollmentHistoryEntryResponse(view.enrollmentId(), view.courseId(), view.current(),
 				view.activatedAt(), view.accessExpiresAt(), view.supersededAt(), view.revokedAt(),
-				view.revokeReason(), view.reactivatedFromEnrollmentId());
+				view.revokeReason(), view.reactivatedFromEnrollmentId(), view.effectiveExpiresAt(), view.accessEndsAt(),
+				view.extended(), view.accessActive());
 	}
 
 }

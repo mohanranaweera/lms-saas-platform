@@ -2,6 +2,8 @@ package com.lms.identityaccessservice.repository;
 
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.identityaccessservice.domain.DeviceSession;
+import com.lms.identityaccessservice.domain.SessionStatus;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,6 +19,18 @@ import java.util.UUID;
  * silently succeeding.
  */
 public interface DeviceSessionRepository extends TenantAwareRepository<DeviceSession, UUID> {
+
+	/** A user's still-active sessions (AUTH-PWD-01: revoked when the password is set or changed). */
+	default List<DeviceSession> findActiveForUser(UUID userId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("userId"), userId),
+				cb.equal(root.get("status"), SessionStatus.ACTIVE)));
+	}
+
+	/** Wave 10: the still-active sessions running on one device (revoked together with the device). */
+	default List<DeviceSession> findActiveForDevice(UUID deviceId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("deviceId"), deviceId),
+				cb.equal(root.get("status"), SessionStatus.ACTIVE)));
+	}
 
 	default Optional<DeviceSession> findByRefreshTokenHash(String refreshTokenHash) {
 		return findOne((root, query, cb) -> cb.equal(root.get("refreshTokenHash"), refreshTokenHash));

@@ -66,6 +66,14 @@ export default function TenantAdminLiveClassDetailPage() {
               <p className="text-sm text-muted-foreground">
                 {formatDateTime(classSession.scheduledStart)} – {formatDateTime(classSession.scheduledEnd)}
               </p>
+              {classSession.status === "SCHEDULED" ? (
+                <Link
+                  href={`/tenant-admin/live-classes/${classSession.id}/edit`}
+                  className="inline-flex w-fit items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  Edit live class
+                </Link>
+              ) : null}
               {classSession.providerStatus === "FAILED" && classSession.providerFailureReason ? (
                 <Alert>
                   <AlertDescription>

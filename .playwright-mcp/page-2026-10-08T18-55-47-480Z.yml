@@ -1,0 +1,73 @@
+- generic [active] [ref=f11e1]:
+  - button "Open Next.js Dev Tools" [ref=f11e11] [cursor=pointer]
+  - alert [ref=f11e15]
+  - generic [ref=f11e16]:
+    - complementary [ref=f11e17]:
+      - generic [ref=f11e18]: Student Portal
+      - navigation "Primary" [ref=f11e19]:
+        - list [ref=f11e20]:
+          - listitem [ref=f11e21]:
+            - link "Dashboard" [ref=f11e22] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f11e23]:
+            - link "My Courses" [ref=f11e24] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f11e25]:
+            - link "Browse Courses" [ref=f11e26] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=f11e27]:
+            - link "My Attendance" [ref=f11e28] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f11e29]:
+            - link "Exams" [ref=f11e30] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f11e31]:
+            - link "Payments" [ref=f11e32] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f11e33]:
+            - link "Reactivation" [ref=f11e34] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f11e35]:
+            - link [ref=f11e36] [cursor=pointer]:
+              - /url: /student/notifications
+              - text: Notifications
+              - generic "1 unread notification" [ref=f11e37]:
+                - generic [aria-hidden] [ref=f11e38]: "1"
+          - listitem [ref=f11e39]:
+            - link "My Devices" [ref=f11e40] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=f11e41]:
+            - link "AOC Player" [ref=f11e42] [cursor=pointer]:
+              - /url: /student/player
+          - listitem [ref=f11e43]:
+            - link "Profile" [ref=f11e44] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f11e45]:
+      - banner [ref=f11e46]:
+        - generic [ref=f11e47]:
+          - link "Change password" [ref=f11e48] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f11e50]
+      - main [ref=f11e51]:
+        - generic [ref=f11e52]:
+          - navigation "Breadcrumb" [ref=f11e53]:
+            - link "← Back to course" [ref=f11e54] [cursor=pointer]:
+              - /url: /student/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c
+          - generic [ref=f11e55]:
+            - heading "Lesson materials" [level=1] [ref=f11e56]
+            - paragraph [ref=f11e57]: Files your teacher has shared for this lesson.
+          - list [ref=f11e58]:
+            - listitem [ref=f11e59]:
+              - generic [ref=f11e61]:
+                - generic [ref=f11e62]:
+                  - paragraph [ref=f11e63]: 63794 - No issue found.mp4
+                  - generic [ref=f11e64]: Video
+                - paragraph [ref=f11e65]: ·
+              - generic [ref=f11e66]:
+                - button "Open video" [expanded] [ref=f11e67]
+                - generic [ref=f11e72]:
+                  - paragraph [ref=f11e73]:
+                    - text: Your institute plays lesson videos in the AOC Player app.
+                    - generic [ref=f11e74]: “63794 - No issue found.mp4” opens in the player on this computer.
+                  - status
+                  - button "Open in AOC Player" [ref=f11e76]

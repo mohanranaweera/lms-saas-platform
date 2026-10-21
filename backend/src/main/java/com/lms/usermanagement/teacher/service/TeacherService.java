@@ -129,7 +129,7 @@ public class TeacherService {
 		// same AccountStatus#name() convention TenantUserSummary#status()
 		// uses elsewhere in this class (no extra read needed to know this).
 		return new TeacherAccount(profile.getId(), name, provisioned.email(), profile.getApprovalStatus().name(),
-				"SUSPENDED", null, null);
+				"SUSPENDED", null, null, profile.getUserId());
 	}
 
 	/**
@@ -342,7 +342,7 @@ public class TeacherService {
 		}
 		return new TeacherAccount(profile.getId(), profile.getName(), summary.email(),
 				profile.getApprovalStatus().name(), summary.status(), profile.getApprovedBy(),
-				profile.getApprovedAt());
+				profile.getApprovedAt(), profile.getUserId());
 	}
 
 }

@@ -159,8 +159,8 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(FieldValidationException.class)
 	public ResponseEntity<ApiResponse<Void>> handleFieldValidation(FieldValidationException ex) {
-		return ResponseEntity.badRequest()
-			.body(ApiResponse.error(ApiError.validation(ex.getMessage(), ex.getFieldErrors())));
+		return ResponseEntity.status(ex.getHttpStatus())
+			.body(ApiResponse.error(new ApiError(ex.getErrorCode(), ex.getMessage(), ex.getFieldErrors())));
 	}
 
 	/**
@@ -187,7 +187,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ApplicationException.class)
 	public ResponseEntity<ApiResponse<Void>> handleApplicationException(ApplicationException ex) {
 		return ResponseEntity.status(ex.getHttpStatus())
-			.body(ApiResponse.error(ApiError.of(ex.getErrorCode(), ex.getMessage())));
+			.body(ApiResponse.error(new ApiError(ex.getErrorCode(), ex.getMessage(), List.of(), ex.getDetails())));
 	}
 
 	@ExceptionHandler(DataIntegrityViolationException.class)

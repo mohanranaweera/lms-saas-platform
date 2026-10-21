@@ -29,14 +29,14 @@ backend's module/tenancy architecture.
 
 | System | Owned/called by | Nature of interaction |
 |---|---|---|
-| **Zoom (or equivalent live-class provider)** | `live-class-management`, via `integration-management` | Create/manage meetings, generate join URLs, sync attendance, manage cloud recordings. Named explicitly in source requirements — kept as-is. |
+| **Zoom** | `live-class-management`, via `integration-management` | Live classes are Zoom meetings on **each teacher's own Zoom account**, connected by the teacher via OAuth (ADR-018, MEDIA-INT-01). Meetings use registration, so every student gets a personal join link (licensed host account required). Webhooks: meeting events and app deauthorization. |
 | **SMS provider** (generic — no vendor selected) | `notification-management`, via `integration-management` | Outbound transactional SMS (payment reminders, class reminders, device-limit alerts). |
 | **WhatsApp Business API** | `notification-management`, via `integration-management` | Outbound templated WhatsApp notifications; template approval workflow is provider-governed. |
 | **Email / SMTP provider** (generic — no vendor selected) | `notification-management`, via `integration-management` | Transactional and templated email (receipts, reminders, credential resets). |
 | **Payment gateway** (generic — no vendor selected) | `payment-management`, via `integration-management` | Payment initiation, confirmation callbacks/webhooks. Selection is an open question — see below. |
 | **Object storage** (generic — no vendor selected) | `content-management`, via `integration-management` | Storage of non-video materials (PDFs, images, notes) as signed-URL-accessed objects, not served through the app server. |
-| **Secure video hosting / video storage provider** (generic — no vendor selected) | `video-access-management`, `content-management`, via `integration-management` | Storage and secure signed playback of course video content; source-of-truth for video binaries lives outside the application VPS. |
-| **YouTube / Vimeo** | `content-management` / `live-class-management` (attach-only) | Attaching externally hosted videos as course material; platform does not host this content. |
+| **Secure video hosting — DynTube / Bunny.net Stream** (ADR-018) | `video-access-management`, `content-management`, via `integration-management` | One tenant-wide account each, configured by the Tenant Admin with API keys; the tenant picks one as its active video host. Keys are verified and stored in MEDIA-INT-01; uploading/playback through them is MEDIA-INT-03. Bunny.net is connected with an account API key and each teacher gets their own library in it (MEDIA-INT-01A). |
+| **YouTube / Vimeo** | `content-management` / `live-class-management`, via `integration-management` | **Each teacher's own account**, connected via OAuth (ADR-018). MEDIA-INT-01 connects the accounts; picking/uploading videos is MEDIA-INT-02 and live streaming MEDIA-INT-04. Content on these platforms is exempt from the secure-playback token rules (ADR-018 §6). |
 
 Per `.claude/rules/architecture.md`, all of the above are integrated through
 `integration-management`'s `api` interfaces — no other domain embeds a provider SDK or

@@ -11,6 +11,6 @@ Rules:
 - TypeScript, React, Tailwind CSS, shadcn/ui, npm only.
 - The frontend must never contain business-authoritative security logic — backend authorization remains mandatory regardless of what the UI hides or shows.
 - Every page must implement: loading state, empty state, error state, permission-denied state where applicable, responsive behavior, and accessible form labels.
-- Never activate enrollment from a frontend success page — activation is a backend-confirmed event only.
+- Enrollment is a free, backend-confirmed action (show enrolled state only after the server confirms it). Paid lesson/session access is a separate backend-granted entitlement: a payment return/success page only refreshes status and never unlocks content or enrolls anyone (ADR-028).
 - Do not modify the `backend/` directory unless the task explicitly says full-stack implementation is authorized. If a needed change requires a backend/API change, report the mismatch instead of changing the backend yourself.
 - Add or update Playwright tests for the flows you implement.

@@ -33,6 +33,8 @@ import com.lms.paymentmanagement.slip.domain.PaymentSlipFlag;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipFlagRepository;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
 import com.lms.paymentmanagement.support.PaymentDomainAccessGuard;
+import com.lms.enrollmentmanagement.api.EntitlementGrantApi;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -100,13 +102,26 @@ class SlipReviewServiceTest {
 	@Mock
 	private LedgerEntryApi ledgerEntryApi;
 
+	@Mock
+	private StudentOrderLineRepository studentOrderLineRepository;
+
+	@Mock
+	private EntitlementGrantApi entitlementGrantApi;
+
+	@Mock
+	private com.lms.coursemanagement.api.CourseLookupApi courseLookupApi;
+
+	@Mock
+	private com.lms.paymentmanagement.discount.service.DiscountRedemptionService discountRedemptionService;
+
 	private SlipReviewService slipReviewService;
 
 	@BeforeEach
 	void setUp() {
 		slipReviewService = new SlipReviewService(paymentSlipRepository, paymentSlipFlagRepository,
 				studentOrderRepository, slipStorageApi, accessGuard, enrollmentActivationApi, auditLogApi,
-				permissionCheckService, userProvisioningApi, tenantContext, paymentRepository, ledgerEntryApi);
+				permissionCheckService, userProvisioningApi, tenantContext, paymentRepository, ledgerEntryApi,
+				studentOrderLineRepository, entitlementGrantApi, courseLookupApi, discountRedemptionService);
 	}
 
 	@AfterEach

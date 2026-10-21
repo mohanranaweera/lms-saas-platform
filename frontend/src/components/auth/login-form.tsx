@@ -68,6 +68,12 @@ export function LoginForm({
   const mutation = useMutation<LoginResult, unknown, LoginFormValues>({
     mutationFn: (values) => login(kind, values),
     onSuccess: (result) => {
+      // AUTH-PWD-01: a temporary password must be replaced first (the backend
+      // refuses everything else with 403 PASSWORD_CHANGE_REQUIRED anyway).
+      if (kind === "tenant" && result.mustChangePassword) {
+        router.push("/change-password");
+        return;
+      }
       const target = resolveDashboardPath(result.role);
       if (target) {
         router.push(target);
@@ -107,7 +113,9 @@ export function LoginForm({
         {apiError ? (
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
-            <AlertTitle>Sign-in failed</AlertTitle>
+            <AlertTitle>
+              {apiError.code === "DEVICE_LIMIT_REACHED" ? "Device limit reached" : "Sign-in failed"}
+            </AlertTitle>
             {/* Backend copy only — never invent a more specific message than
                 `error.message` here (docs/api/identity-access-service.md: the
                 same generic text covers INVALID_CREDENTIALS / TENANT_UNAVAILABLE
@@ -180,6 +188,11 @@ export function LoginForm({
               <p id="login-password-error" className="text-xs text-destructive">
                 {errors.password.message}
               </p>
+            ) : null}
+            {kind === "tenant" ? (
+              <Link href="/forgot-password" className="self-end text-xs font-medium text-muted-foreground hover:text-foreground hover:underline">
+                Forgot password?
+              </Link>
             ) : null}
           </div>
 

@@ -108,10 +108,11 @@ public class MaterialController {
 			@RequestParam(value = "sessionId", required = false) UUID sessionId,
 			@RequestParam(value = "maxDownloads", required = false) Integer maxDownloads,
 			@RequestParam(value = "availableFromAt", required = false) String availableFromAt,
-			@RequestParam(value = "expiryAt", required = false) String expiryAt) {
+			@RequestParam(value = "expiryAt", required = false) String expiryAt,
+			@RequestParam(value = "mediaFileId", required = false) UUID mediaFileId) {
 		MaterialCreateCommand command = new MaterialCreateCommand(courseId, moduleId, lessonId, title, materialType,
 				file, externalUrl, noteContent, videoAssetId, sessionId, maxDownloads,
-				parseInstant("availableFromAt", availableFromAt), parseInstant("expiryAt", expiryAt));
+				parseInstant("availableFromAt", availableFromAt), parseInstant("expiryAt", expiryAt), mediaFileId);
 		MaterialView view = materialService.createMaterial(command);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(view)));
 	}
@@ -159,7 +160,8 @@ public class MaterialController {
 		return new MaterialResponse(view.id(), view.lessonId(), view.sessionId(), view.materialType(), view.title(),
 				view.originalFilename(), view.mimeType(), view.sizeBytes(), view.externalUrl(), view.noteContent(),
 				view.videoAssetId(), view.sequence(), view.visibility(), view.maxDownloads(), view.downloadCount(),
-				view.availableFromAt(), view.expiryAt(), view.uploadedBy(), view.createdAt(), view.updatedAt());
+				view.availableFromAt(), view.expiryAt(), view.uploadedBy(), view.createdAt(), view.updatedAt(),
+				view.mediaFileId());
 	}
 
 }

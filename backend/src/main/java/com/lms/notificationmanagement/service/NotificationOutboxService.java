@@ -1,5 +1,8 @@
 package com.lms.notificationmanagement.service;
 
+import org.springframework.scheduling.annotation.Async;
+import com.lms.identityaccessservice.api.PasswordEmailRequestedEvent;
+import com.lms.identityaccessservice.api.PasswordTokenPurpose;
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.notificationmanagement.domain.NotificationEventType;
 import com.lms.notificationmanagement.domain.NotificationOutbox;
@@ -48,6 +51,8 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 public class NotificationOutboxService {
 
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(NotificationOutboxService.class);
+
 	private final NotificationOutboxRepository notificationOutboxRepository;
 
 	private final ObjectMapper objectMapper;
@@ -65,7 +70,8 @@ public class NotificationOutboxService {
 		variables.put("amount", event.amount());
 		variables.put("currency", event.currency());
 		variables.put("paymentId", event.paymentId().toString());
-		insertOutboxRow(event.tenantId(), NotificationEventType.PAYMENT_CONFIRMED, event.studentId(), variables);
+		insertOutboxRow(event.tenantId(), NotificationEventType.PAYMENT_CONFIRMED, event.studentId(), variables,
+				"PAYMENT_CONFIRMED:" + event.paymentId());
 	}
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -75,7 +81,8 @@ public class NotificationOutboxService {
 		variables.put("amount", event.amount());
 		variables.put("currency", event.currency());
 		variables.put("paymentId", event.paymentId().toString());
-		insertOutboxRow(event.tenantId(), NotificationEventType.PAYMENT_REJECTED, event.studentId(), variables);
+		insertOutboxRow(event.tenantId(), NotificationEventType.PAYMENT_REJECTED, event.studentId(), variables,
+				"PAYMENT_REJECTED:" + event.paymentId());
 	}
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -85,11 +92,28 @@ public class NotificationOutboxService {
 		variables.put("amount", event.amount());
 		variables.put("reason", event.reason());
 		variables.put("paymentId", event.paymentId().toString());
-		insertOutboxRow(event.tenantId(), NotificationEventType.PAYMENT_REFUNDED, event.studentId(), variables);
+		insertOutboxRow(event.tenantId(), NotificationEventType.PAYMENT_REFUNDED, event.studentId(), variables,
+				"PAYMENT_REFUNDED:" + event.refundId());
+	}
+
+	/**
+	 * AUTH-PWD-01 / ADR-020: an account-setup or reset email. Async, so forgot
+	 * password answers in the same time whether or not an account exists
+	 * (security review L-1). The outbox row holds NO token (MVP-018's rule) - the dispatcher issues a fresh one at
+	 * send time.
+	 */
+	@Async
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void onPasswordEmailRequested(PasswordEmailRequestedEvent event) {
+		NotificationEventType type = (event.purpose() == PasswordTokenPurpose.ACCOUNT_SETUP)
+				? NotificationEventType.ACCOUNT_SETUP_INVITE : NotificationEventType.PASSWORD_RESET;
+		// No dedupe key: each forgot-password / invite request is its own event.
+		insertOutboxRow(event.tenantId(), type, event.userId(), new LinkedHashMap<>(), null);
 	}
 
 	private void insertOutboxRow(java.util.UUID tenantId, NotificationEventType eventType,
-			java.util.UUID recipientUserId, Map<String, Object> variables) {
+			java.util.UUID recipientUserId, Map<String, Object> variables, String dedupeKey) {
 		// Fail loud rather than insert a row with no resolvable recipient
 		// (plan §12) - the NOT NULL DB constraint is the backstop, but a
 		// constraint violation surfacing as a generic 500 from inside an
@@ -101,9 +125,20 @@ public class NotificationOutboxService {
 		}
 		try {
 			TenantContextHolder.set(tenantId);
+			// Wave 11 duplicate-event guard: a re-delivered event for the same
+			// payment/refund is a no-op. The partial unique index on
+			// (tenant_id, dedupe_key) (V68) backstops a concurrent race.
+			if (dedupeKey != null && notificationOutboxRepository.existsByDedupeKey(dedupeKey)) {
+				log.atInfo()
+					.setMessage("notification.duplicate_event_ignored")
+					.addKeyValue("tenantId", tenantId)
+					.addKeyValue("eventType", eventType)
+					.log();
+				return;
+			}
 			String payload = objectMapper.writeValueAsString(variables);
 			NotificationOutbox outbox = new NotificationOutbox(tenantId, eventType, recipientUserId, payload,
-					Instant.now());
+					Instant.now(), dedupeKey);
 			notificationOutboxRepository.save(outbox);
 		}
 		finally {

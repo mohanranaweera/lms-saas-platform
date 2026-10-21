@@ -115,7 +115,7 @@ public class TeacherController {
 
 	private static TeacherResponse toResponse(TeacherAccount account) {
 		return new TeacherResponse(account.id(), account.name(), account.email(), account.approvalStatus(),
-				account.accountStatus(), account.approvedBy(), account.approvedAt());
+				account.accountStatus(), account.approvedBy(), account.approvedAt(), account.userId());
 	}
 
 	private static TeacherActivityResponse toActivityResponse(AuditActivityEntry entry) {

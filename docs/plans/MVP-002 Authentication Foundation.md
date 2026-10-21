@@ -380,3 +380,6 @@ None of the following are resolved by this plan — each requires explicit confi
 - **Risk R6** (tenant_id trusted from client input) — highest-likelihood risk for this wave per the risk register; mitigated by the DTO-level review check in §14, but remains the single most important thing to verify in code review.
 - **Risk R13** (device-auth MVP/Phase-2 scope mismatch) — mitigated by this plan's explicit out-of-scope list (§6); a future reviewer should treat the absence of device-limit logic as correct scoping, not a defect.
 - **"Remember me" checkbox** — no backend session-persistence policy exists for it anywhere in the source documents. Recommend removing it from the login form entirely for this module rather than shipping a non-functional checkbox that implies a capability that isn't real; flagged as a UX call needing confirmation, not decided unilaterally here.
+
+
+> **2026-09-30:** the deferred Forgot / Reset Password (and change password) are delivered by AUTH-PWD-01 - see `docs/plans/AUTH-PWD-01 Tenant Admin Invitation and Password Management.md` and ADR-020.

@@ -2,6 +2,8 @@ package com.lms.coursemanagement.course.repository;
 
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import java.util.Collection;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -61,6 +63,43 @@ public final class CourseSpecifications {
 			return Specification.unrestricted();
 		}
 		return (root, query, cb) -> cb.isNull(root.get("archivedAt"));
+	}
+
+	/**
+	 * KLASS-T4a: the admin ACTIVE/ARCHIVED tabs. {@code true} = archived only,
+	 * {@code false} = not archived only, {@code null} = no restriction (the
+	 * caller then applies {@link #excludeArchivedUnless}).
+	 */
+	public static Specification<Course> archived(Boolean archived) {
+		if (archived == null) {
+			return Specification.unrestricted();
+		}
+		return archived ? (root, query, cb) -> cb.isNotNull(root.get("archivedAt"))
+				: (root, query, cb) -> cb.isNull(root.get("archivedAt"));
+	}
+
+	/**
+	 * KLASS-T4a: case-insensitive "contains" on the course name, OR the
+	 * course's primary teacher being one of {@code teacherIdsMatchingName}
+	 * (resolved by the service from the tenant's own teacher directory).
+	 * {@code %}/{@code _}/{@code \} in {@code search} are matched literally.
+	 */
+	public static Specification<Course> search(String search, Collection<UUID> teacherIdsMatchingName) {
+		if (search == null || search.isBlank()) {
+			return Specification.unrestricted();
+		}
+		String pattern = "%" + escapeLike(search.strip().toLowerCase(Locale.ROOT)) + "%";
+		return (root, query, cb) -> {
+			var nameMatch = cb.like(cb.lower(root.get("name")), pattern, '\\');
+			if (teacherIdsMatchingName == null || teacherIdsMatchingName.isEmpty()) {
+				return nameMatch;
+			}
+			return cb.or(nameMatch, root.get("teacherId").in(teacherIdsMatchingName));
+		};
+	}
+
+	static String escapeLike(String value) {
+		return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}
 
 }

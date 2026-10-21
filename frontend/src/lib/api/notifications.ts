@@ -42,7 +42,57 @@ export const notificationKeys = {
   listAll: () => [...notificationKeys.all, "list"] as const,
   list: (params?: NotificationListParams) => [...notificationKeys.listAll(), params ?? {}] as const,
   unreadCount: () => [...notificationKeys.all, "unread-count"] as const,
+  preferences: () => [...notificationKeys.all, "preferences"] as const,
 };
+
+/**
+ * Wave 11 - mirrors `PreferenceView`: the caller's own consent for broadcast
+ * messages per channel. WhatsApp is off until the user opts in
+ * (`explicitOptInRequired`). Payment and account emails are not affected.
+ */
+export interface NotificationPreference {
+  channel: "EMAIL" | "SMS" | "WHATSAPP";
+  optedIn: boolean;
+  explicitOptInRequired: boolean;
+}
+
+/** `GET /api/v1/notifications/preferences` - self-scoped server-side. */
+export function useNotificationPreferences() {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: notificationKeys.preferences(),
+    queryFn: () => authorizedFetch<NotificationPreference[]>("tenant", "/v1/notifications/preferences"),
+  });
+}
+
+/** `PUT /api/v1/notifications/preferences` - body `{ "SMS": false, ... }`, self-scoped. */
+export function useUpdateNotificationPreferences() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (changes: Partial<Record<NotificationPreference["channel"], boolean>>) =>
+      authorizedFetch<NotificationPreference[]>("tenant", "/v1/notifications/preferences", {
+        method: "PUT",
+        body: JSON.stringify(changes),
+      }),
+    onSuccess: (preferences) => {
+      queryClient.setQueryData(notificationKeys.preferences(), preferences);
+    },
+  });
+}
+
+/** `POST /api/v1/notifications/read-all` - marks only the caller's own notifications read. */
+export function useMarkAllNotificationsRead() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => authorizedFetch<{ updated: number }>("tenant", "/v1/notifications/read-all", { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.listAll() });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount() });
+    },
+  });
+}
 
 function buildNotificationListQuery(params?: NotificationListParams): string {
   const search = new URLSearchParams();

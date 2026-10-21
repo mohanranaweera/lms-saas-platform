@@ -1,6 +1,7 @@
 package com.lms.tenantmanagement.config;
 
 import com.lms.tenantmanagement.api.ConfigDomain;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.ZoneId;
@@ -56,7 +57,73 @@ public class ConfigPropertyRegistry {
 		registry.put(ConfigDomain.GENERAL, generalProperties());
 		registry.put(ConfigDomain.BRANDING, brandingProperties());
 		registry.put(ConfigDomain.STUDENT, studentProperties());
+		registry.put(ConfigDomain.VIDEO, videoProperties());
+		registry.put(ConfigDomain.PAYMENT, paymentProperties());
 		return Map.copyOf(registry);
+	}
+
+	/** Facility fee modes (KLASS-T4c, D07). */
+	public static final List<String> FACILITY_FEE_MODES = com.lms.tenantmanagement.api.FacilityFeeSettings.MODES;
+
+	/** Upper bound for a facility fee amount (NUMERIC(12,2) headroom; not a business limit). */
+	private static final BigDecimal MAX_FACILITY_FEE = new BigDecimal("1000000");
+
+	/**
+	 * KLASS-T4c (D07/D16): payment composer configuration. {@code
+	 * facility_fee_mode} NONE|PER_COURSE|PER_LINE|PER_ORDER (default NONE) and {@code
+	 * facility_fee_amount} (a JSON number &gt;= 0 with at most 2 decimals,
+	 * default 0) are snapshotted onto each composer order. The four bank-slip
+	 * display fields have no default ({@code null} = not configured) - they are
+	 * shown to students on the slip tab only, never used to route money.
+	 */
+	private static List<ConfigPropertyDefinition> paymentProperties() {
+		return List.of(
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "facility_fee_mode", ConfigValueType.STRING, "NONE",
+						(value, batch) -> value instanceof String s && FACILITY_FEE_MODES.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "facility_fee_amount", ConfigValueType.NUMBER, 0,
+						(value, batch) -> isValidFeeAmount(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_name", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_branch", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_account_holder", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_account_number", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText));
+	}
+
+	private static boolean isShortText(Object value, Map<String, Object> batch) {
+		return value instanceof String s && !s.isBlank() && s.length() <= MAX_TEXT_LENGTH;
+	}
+
+	/** A JSON number (never a string) {@code >= 0}, at most 2 decimals, below {@link #MAX_FACILITY_FEE}. */
+	static boolean isValidFeeAmount(Object value) {
+		if (!(value instanceof Number number)) {
+			return false;
+		}
+		try {
+			BigDecimal amount = new BigDecimal(number.toString()).stripTrailingZeros();
+			return amount.signum() >= 0 && amount.scale() <= 2 && amount.compareTo(MAX_FACILITY_FEE) < 0;
+		}
+		catch (NumberFormatException ex) {
+			return false;
+		}
+	}
+
+	/**
+	 * KLASS-T4b (D16): the AOC Player app store links shown to a student whose
+	 * lesson must play in the native player. Optional {@code https://} URLs only
+	 * (SEC L6: a store link is shown to students verbatim), no default
+	 * ({@code null} = not configured; the lesson launch returns {@code null}).
+	 */
+	private static List<ConfigPropertyDefinition> videoProperties() {
+		return List.of(
+				ConfigPropertyDefinition.of(ConfigDomain.VIDEO, "player_android_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isValidHttpsUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.VIDEO, "player_ios_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isValidHttpsUrl(s)));
 	}
 
 	/**
@@ -69,6 +136,12 @@ public class ConfigPropertyRegistry {
 	 * validated only for type (mirrors how a boolean-typed property is
 	 * validated nowhere else yet in this registry, so this is the first
 	 * simple {@code instanceof Boolean} validator here).
+	 *
+	 * <p><b>Deprecated (STU-PROF-01):</b> the five {@code require_*} flags are
+	 * superseded by the per-field {@code student_profile_field_setting} rows
+	 * ({@code StudentProfileFieldConfigService}). They are only read as the
+	 * default required-ness for a tenant that has never saved its student
+	 * profile field settings; kept registered so existing values stay valid.
 	 */
 	private static List<ConfigPropertyDefinition> studentProperties() {
 		return List.of(
@@ -98,8 +171,9 @@ public class ConfigPropertyRegistry {
 		return List.of(
 				// Required, no default - GET with no row set surfaces null/absent
 				// rather than throwing (see TenantConfigService#getDomain); PUT
-				// rejects a blank/missing value.
-				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "institute_name", ConfigValueType.STRING, null,
+				// rejects a blank/missing value, and (KLASS-T8d) a null - it is
+				// never clearable once set.
+				ConfigPropertyDefinition.requiredOf(ConfigDomain.GENERAL, "institute_name", ConfigValueType.STRING,
 						(value, batch) -> value instanceof String s && !s.isBlank() && s.length() <= MAX_TEXT_LENGTH),
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "support_email", ConfigValueType.STRING, null,
 						(value, batch) -> value instanceof String s && s.length() <= MAX_TEXT_LENGTH
@@ -146,6 +220,11 @@ public class ConfigPropertyRegistry {
 			return WcagContrast.ratio(primary, secondary) >= MIN_AA_CONTRAST_RATIO;
 		}
 		return true;
+	}
+
+	/** Absolute {@code https://} URL with a host (no {@code http}, no other scheme). */
+	private static boolean isValidHttpsUrl(String value) {
+		return isValidHttpUrl(value) && value.regionMatches(true, 0, "https://", 0, 8);
 	}
 
 	private static boolean isValidHttpUrl(String value) {

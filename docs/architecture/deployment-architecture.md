@@ -112,10 +112,26 @@ ADR when a decision is needed:
 - **CI/CD pipeline tooling** -- no specific CI/CD system is selected. The release
   process described in section 5 is conceptual; the actual pipeline implementation is
   unspecified.
-- **Domain/DNS provider and certificate management approach** -- needed for both the
-  platform's own domain and tenant custom-domain support (source requirements, module
-  2, "Custom domain"), but no provider or automation approach (e.g. how TLS certs are
-  provisioned per tenant custom domain) is decided here.
+- **Domain/DNS provider and certificate management approach** -- **partly decided by ADR-021
+  (accepted 2026-09-30):** tenant custom domains are verified by DNS (CNAME to
+  `CUSTOM_DOMAIN_CNAME_TARGET` plus a TXT code) and resolved by the backend from the request host.
+  Phase 1 is built. **Still open (ADR-021 phase 2):** automatic TLS for custom domains. The
+  recommended option is Caddy on-demand TLS with an internal "is this domain allowed" check, with
+  Cloudflare for SaaS and a cloud load balancer as alternatives, confirmed once the hosting
+  provider is chosen. Until then a custom domain needs a certificate provisioned by hand.
+  What the edge must do for tenant sites (platform subdomains and custom domains alike):
+  - accept any host (a catch-all `server_name`) and pass it on (`Host $host` or
+    `X-Forwarded-Host $host`);
+  - route `/api/` to the backend (`127.0.0.1:8080`) and everything else to the frontend;
+  - set `PLATFORM_DOMAIN` and `CUSTOM_DOMAIN_CNAME_TARGET` on the backend (Compose already passes
+    both).
+
+  Build the frontend with `NEXT_PUBLIC_API_BASE_URL=/api`, the default.
+  `NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL` (https) points Students at the signed AOC Player
+  installer; leave it unset until a player release has been published (ADR-025 §7).
+  `NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL` / `NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL` (https) point
+  phones and tablets at the AOC mobile app's store pages; unset until the app is published
+  (ADR-025 Amendment 2).
 - **Managed vs. self-hosted PostgreSQL/Redis in staging/production** -- this document
   shows them as Compose services for topology purposes; whether production actually
   runs them as managed cloud services (with Docker Compose used only for
@@ -123,10 +139,12 @@ ADR when a decision is needed:
 - **Horizontal scaling automation** -- whether replica count is managed manually via
   Compose scale, or via an orchestrator with autoscaling, is not decided; Docker
   Compose alone does not provide autoscaling.
-- **Secrets management mechanism** for production credentials (distinct from the
-  application-level credential vault concept in `integration-architecture.md`, which
-  is about tenant/provider credentials -- this is about how the platform's own
-  deployment secrets, e.g. DB passwords, are supplied to containers).
+- ~~**Secrets management mechanism**~~ -- **decided by ADR-019 (accepted 2026-09-30):**
+  Docker Compose secrets mounted at `/run/secrets/<NAME>` and read by Spring Boot's
+  `configtree` import under a new `prod` profile that refuses to start on missing or
+  dev-only critical secrets. Non-secret configuration stays in Compose `environment:`.
+  (Distinct from the application-level credential vault in `integration-architecture.md`,
+  which covers tenant/provider credentials stored encrypted in the database.)
 
 Any of the above being decided in a way that changes "production deployment strategy"
 is a change-controlled area per root `CLAUDE.md` and requires an ADR.

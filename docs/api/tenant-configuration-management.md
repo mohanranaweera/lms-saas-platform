@@ -78,6 +78,56 @@ matching this registry's existing "safe, unsurprising default" convention. See
 `docs/api/user-management.md`'s "Public student self-registration" section for the full
 registration-endpoint contract these properties gate.
 
+**Deprecated (STU-PROF-01):** the five `require_*` properties are superseded by the
+per-field student profile field settings below. They are read only as the default
+required-ness for a tenant that has never saved its field settings; once a tenant saves,
+they are ignored for that tenant. They stay registered so existing values remain valid.
+
+## Student profile field settings (STU-PROF-01)
+
+A platform-defined catalogue of student profile fields (`StudentProfileField`): Email and
+Full name (locked — always collected), Birthday, Profession, Special talent, Mobile number,
+Fixed telephone, WhatsApp number, Telegram number, Tute delivery phone 1/2, Address line
+1/2, City, Postal code, Country, NIC number, Passport number, Driving licence number
+(the three identity numbers are `sensitive`), School, Grade, A/L stream, A/L year,
+University, Learning medium, Guardian (name + phone), Has siblings, Referral code. For
+each non-locked field a tenant sets:
+
+- `enabled` — students have this field (shown on their profile page, and to staff);
+- `required` — students must fill it in (implies `enabled`);
+- `collectAtRegistration` — also asked on the public registration form (implies `enabled`).
+
+Stored in `student_profile_field_setting` (V59, one row per tenant per field). A tenant with
+no rows gets defaults that reproduce pre-STU-PROF-01 behaviour: Guardian/School/Grade/
+A/L stream/Mobile enabled and asked at registration (required per their legacy
+`require_*` flag), Address line 1 and City enabled on the profile only, everything else off.
+Disabling a field never deletes students' stored values.
+
+### `GET /api/v1/tenant-config/student-profile-fields`
+
+`BRANDING_SETTINGS`/`VIEW` (Tenant Admin, Read-only Auditor). **`200`**:
+
+```jsonc
+{ "fields": [
+    { "key": "NIC_NUMBER", "label": "NIC number", "group": "IDENTITY", "type": "TEXT",
+      "maxLength": 20, "sensitive": true, "locked": false,
+      "enabled": true, "required": false, "collectAtRegistration": false }
+] }
+```
+
+Always the full catalogue, in display order, locked rows included (display only).
+
+### `PUT /api/v1/tenant-config/student-profile-fields`
+
+`BRANDING_SETTINGS`/`CREATE_EDIT` (Tenant Admin only). Body:
+`{ "fields": [ { "key", "enabled", "required", "collectAtRegistration" } ] }` — rows not
+listed keep their current settings; the save writes a row for every non-locked field,
+all-or-nothing. **`200`** → same shape as `GET`. `400 VALIDATION_ERROR`
+(`field = "fields[i].key"`/`"fields[i].enabled"`) for an unknown, duplicate or locked key,
+or `required`/`collectAtRegistration` without `enabled`. `403` for any other role. Writes one
+`student_profile_fields.updated` audit entry (target `tenant`) listing each changed field's
+before/after flags. Last write wins (no optimistic lock in v1).
+
 ## Auth requirements and authorization model
 
 Every endpoint except the public branding read requires a valid
@@ -145,8 +195,9 @@ before a prospective student fills out anything, whether registration is open an
 fields/steps to render — display/form-shape information, not a privileged settings read,
 so it deliberately bypasses `TenantConfigController`'s domain-level permission gate).
 
-Returns only the eight `STUDENT`-domain registration-relevant properties above — never
-the full generic `tenant-config` property-list mechanism:
+Returns only the three registration-flow `STUDENT` properties, the five legacy per-field
+`require*` booleans and the fields asked at registration — never the full generic
+`tenant-config` property list or the tenant's full field configuration:
 
 ```jsonc
 {
@@ -159,11 +210,24 @@ the full generic `tenant-config` property-list mechanism:
     "requireSchool": false,
     "requireGrade": false,
     "requireStream": false,
-    "requireMobile": false
+    "requireMobile": false,
+    "registrationFields": [   // STU-PROF-01 (additive)
+      { "key": "MOBILE", "label": "Mobile number", "group": "CONTACT", "type": "PHONE",
+        "maxLength": 50, "required": false }
+    ]
   }
 }
 ```
 
+`registrationFields` lists the non-locked fields with `collectAtRegistration = true`, in
+display order. Since STU-PROF-01 the five `require*` booleans are derived from the student
+profile field settings (`required` AND `collectAtRegistration` of Guardian, School, Grade,
+A/L stream, Mobile) and kept only for older clients.
+
 Consumed by `(auth)/register`'s frontend form before rendering any field — see
 `docs/api/user-management.md`'s "Public student self-registration" section for how the
 registration endpoints themselves use these same eight properties server-side.
+
+## Clearing optional keys
+
+Sending JSON `null` for a key with no default that is not required (e.g. PAYMENT bank keys, VIDEO player links, GENERAL support_email/phone, BRANDING colours/urls) deletes the tenant's value (audited `tenant_config.cleared`); null for required or defaulted keys returns 400. See `docs/specs/klass-enrollment-payment-workflows.md` for the PAYMENT keys `facility_fee_mode`, `facility_fee_amount`, `bank_name`, `bank_branch`, `bank_account_holder`, `bank_account_number` and VIDEO keys `player_android_url`, `player_ios_url` (https only) added in 2026-10.

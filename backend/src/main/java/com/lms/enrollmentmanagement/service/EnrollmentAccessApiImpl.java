@@ -5,7 +5,9 @@ import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
 import com.lms.enrollmentmanagement.repository.ReactivationRequestRepository;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,11 +30,15 @@ public class EnrollmentAccessApiImpl implements EnrollmentAccessApi {
 
 	private final ReactivationRequestRepository reactivationRequestRepository;
 
+	private final AccessWindowCalculator accessWindowCalculator;
+
 	public EnrollmentAccessApiImpl(EnrollmentExpiryService enrollmentExpiryService,
-			EnrollmentRepository enrollmentRepository, ReactivationRequestRepository reactivationRequestRepository) {
+			EnrollmentRepository enrollmentRepository, ReactivationRequestRepository reactivationRequestRepository,
+			AccessWindowCalculator accessWindowCalculator) {
 		this.enrollmentExpiryService = enrollmentExpiryService;
 		this.enrollmentRepository = enrollmentRepository;
 		this.reactivationRequestRepository = reactivationRequestRepository;
+		this.accessWindowCalculator = accessWindowCalculator;
 	}
 
 	@Override
@@ -54,16 +60,31 @@ public class EnrollmentAccessApiImpl implements EnrollmentAccessApi {
 	@Override
 	@Transactional(readOnly = true)
 	public List<UUID> listCurrentlyEnrolledStudentIds(UUID courseId) {
-		return enrollmentRepository.findAllCurrentByCourseId(courseId).stream().map(Enrollment::getStudentId).toList();
+		return currentlyActive(enrollmentRepository.findAllLineageCurrentByCourseId(courseId)).stream()
+			.map(Enrollment::getStudentId)
+			.toList();
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public Set<UUID> listCurrentlyEnrolledCourseIds(UUID studentId) {
-		return enrollmentRepository.findAllCurrentlyEnrolledByStudentId(studentId)
-			.stream()
+		return currentlyActive(enrollmentRepository.findAllCurrentByStudentId(studentId)).stream()
 			.map(Enrollment::getCourseId)
 			.collect(Collectors.toSet());
+	}
+
+	/**
+	 * Wave 10: "currently enrolled" uses the same extension + grace window as
+	 * {@code resolveAccessState} ({@link AccessWindowCalculator}), not a
+	 * separate SQL expiry predicate.
+	 */
+	private List<Enrollment> currentlyActive(List<Enrollment> lineageCurrent) {
+		Instant now = Instant.now();
+		Map<UUID, AccessWindowCalculator.AccessWindow> windows = accessWindowCalculator.windowsFor(lineageCurrent);
+		return lineageCurrent.stream()
+			.filter(enrollment -> accessWindowCalculator.isCurrentlyActive(enrollment, windows.get(enrollment.getId()),
+					now))
+			.toList();
 	}
 
 }

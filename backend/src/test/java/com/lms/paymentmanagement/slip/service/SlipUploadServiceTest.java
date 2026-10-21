@@ -23,6 +23,8 @@ import com.lms.paymentmanagement.order.service.OrderService;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipFlagRepository;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
+import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -76,12 +78,22 @@ class SlipUploadServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private CheckoutComposerService checkoutComposerService;
+
+	@Mock
+	private StudentOrderLineRepository studentOrderLineRepository;
+
+	@Mock
+	private SlipWriteService slipWriteService;
+
 	private SlipUploadService slipUploadService;
 
 	@BeforeEach
 	void setUp() {
 		slipUploadService = new SlipUploadService(orderService, paymentSlipRepository, paymentSlipFlagRepository,
-				slipStorageApi, slipDuplicateCheckService, userProvisioningApi, tenantContext, MAX_FILE_SIZE_BYTES);
+				slipStorageApi, slipDuplicateCheckService, userProvisioningApi, tenantContext, MAX_FILE_SIZE_BYTES,
+				checkoutComposerService, studentOrderLineRepository, slipWriteService);
 	}
 
 	@Test
@@ -96,8 +108,8 @@ class SlipUploadServiceTest {
 		when(slipStorageApi.store(any(StoreObjectCommand.class)))
 			.thenReturn(new StoredObject("object-key-123", 123L));
 		AtomicReference<PaymentSlip> savedSlip = new AtomicReference<>();
-		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenAnswer(invocation -> {
-			PaymentSlip slip = invocation.getArgument(0);
+		when(slipWriteService.saveNewSlip(any(), any(PaymentSlip.class))).thenAnswer(invocation -> {
+			PaymentSlip slip = invocation.getArgument(1);
 			ReflectionTestUtils.setField(slip, "id", UUID.randomUUID());
 			savedSlip.set(slip);
 			return slip;
@@ -112,7 +124,7 @@ class SlipUploadServiceTest {
 		assertThat(view.studentId()).isEqualTo(studentId);
 		verify(orderService).loadOrderOwnedByCurrentStudent(orderId);
 		verify(slipStorageApi, times(1)).store(any(StoreObjectCommand.class));
-		verify(paymentSlipRepository, times(1)).save(any(PaymentSlip.class));
+		verify(slipWriteService, times(1)).saveNewSlip(any(), any(PaymentSlip.class));
 		verify(slipDuplicateCheckService, times(1)).runChecksAndAdvance(savedSlip.get().getId());
 	}
 
@@ -139,7 +151,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(PayloadTooLargeException.class);
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -153,7 +165,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(UnsupportedMediaTypeException.class);
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -180,7 +192,7 @@ class SlipUploadServiceTest {
 			.hasMessage("You already have a payment slip under review for this order");
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -195,7 +207,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(AccessDeniedException.class);
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -214,7 +226,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(RuntimeException.class)
 			.hasMessage("storage unavailable");
 
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -239,7 +251,7 @@ class SlipUploadServiceTest {
 			.thenReturn(new StoredObject("object-key-orphan-candidate", 123L));
 		DataIntegrityViolationException saveFailure = new DataIntegrityViolationException(
 				"duplicate key value violates unique constraint \"uq_payment_slip_tenant_order_active\"");
-		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenThrow(saveFailure);
+		when(slipWriteService.saveNewSlip(any(), any(PaymentSlip.class))).thenThrow(saveFailure);
 		MockMultipartFile file = new MockMultipartFile("file", "slip.pdf", "application/pdf", validPdfBytes());
 
 		assertThatThrownBy(() -> slipUploadService.uploadSlip(orderId, "REF-ORPHAN", file))

@@ -29,4 +29,17 @@ public interface ClassSessionLookupApi {
 	 */
 	Map<UUID, ClassSessionSummary> getSessionSummaries(Collection<UUID> sessionIds);
 
+	/**
+	 * MEDIA-INT-01: how many not-yet-ended SCHEDULED/LIVE sessions in the
+	 * current tenant are hosted on this provider connection.
+	 */
+	long countUpcomingSessionsHostedBy(UUID providerConnectionId);
+
+	/**
+	 * KLASS-T4b: every session of the caller's tenant attached to {@code
+	 * lessonId} ({@code class_session.lesson_id}), by scheduled start. No
+	 * authorization - the lesson launch has already evaluated lesson access.
+	 */
+	java.util.List<ClassSessionSummary> findByLessonId(UUID lessonId);
+
 }

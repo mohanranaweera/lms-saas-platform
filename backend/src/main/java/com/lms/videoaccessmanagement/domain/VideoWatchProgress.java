@@ -45,6 +45,15 @@ public class VideoWatchProgress extends TimestampedEntity implements TenantOwned
 	@Column(name = "furthest_position_seconds", nullable = false)
 	private Integer furthestPositionSeconds;
 
+	@Column(name = "authorized_watch_seconds", nullable = false)
+	private Integer authorizedWatchSeconds;
+
+	@Column(name = "last_position_seconds", nullable = false)
+	private Integer lastPositionSeconds;
+
+	@Column(name = "watch_budget_seconds_snapshot")
+	private Integer watchBudgetSecondsSnapshot;
+
 	@Column(name = "last_watched_at")
 	private Instant lastWatchedAt;
 
@@ -58,11 +67,20 @@ public class VideoWatchProgress extends TimestampedEntity implements TenantOwned
 		this.viewsCount = 0;
 		this.totalWatchedSeconds = 0;
 		this.furthestPositionSeconds = 0;
+		this.authorizedWatchSeconds = 0;
+		this.lastPositionSeconds = 0;
 	}
 
-	public void recordHeartbeat(int watchedDeltaSeconds, int newFurthestPositionSeconds, Instant now) {
+	public void setWatchBudgetSecondsSnapshot(Integer watchBudgetSecondsSnapshot) {
+		this.watchBudgetSecondsSnapshot = watchBudgetSecondsSnapshot;
+	}
+
+	public void recordAuthorizedHeartbeat(int watchedDeltaSeconds, int newPositionSeconds, Instant now) {
+		this.authorizedWatchSeconds += watchedDeltaSeconds;
 		this.totalWatchedSeconds += watchedDeltaSeconds;
-		this.furthestPositionSeconds = Math.max(this.furthestPositionSeconds, newFurthestPositionSeconds);
+		// Resume point: where the Student last was, not the furthest point.
+		this.lastPositionSeconds = newPositionSeconds;
+		this.furthestPositionSeconds = Math.max(this.furthestPositionSeconds, newPositionSeconds);
 		this.lastWatchedAt = now;
 	}
 
@@ -94,6 +112,18 @@ public class VideoWatchProgress extends TimestampedEntity implements TenantOwned
 
 	public Integer getFurthestPositionSeconds() {
 		return furthestPositionSeconds;
+	}
+
+	public Integer getAuthorizedWatchSeconds() {
+		return authorizedWatchSeconds;
+	}
+
+	public Integer getLastPositionSeconds() {
+		return lastPositionSeconds;
+	}
+
+	public Integer getWatchBudgetSecondsSnapshot() {
+		return watchBudgetSecondsSnapshot;
 	}
 
 	public Instant getLastWatchedAt() {

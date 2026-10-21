@@ -382,6 +382,46 @@ Data-model conventions that follow from this list:
   email, payment gateway, object storage config) exclusively; other domains do not
   create their own tables for third-party credentials — they call `integration-
   management`'s `api` interfaces.
+  - MEDIA-INT-01 (V60): `media_provider_connection` (teacher Zoom/YouTube/Vimeo and tenant
+    DynTube/Bunny accounts; `tenant_id` NOT NULL, owner composite-FK'd to `tenant_user`,
+    provider/scope CHECK, one live row per teacher+provider / tenant+provider via partial
+    unique indexes, encrypted credentials wiped on disconnect, rows never deleted) and
+    `tenant_media_integration_settings` (one row per tenant). `class_session.provider_connection_id`
+    is composite-FK'd into `media_provider_connection (tenant_id, id)`. The only non-tenant-leading
+    index is the Zoom-deauthorization lookup `(provider, external_account_id)` (ADR-018 §5).
+  - Wave 11 (V66–V68, ADR-023): `tenant_messaging_account` (SMS/WhatsApp provider account,
+    encrypted credentials, one ACTIVE per tenant+channel, never deleted);
+    `communication_template` (archive-only, WhatsApp approval CHECKs); `broadcast`
+    (append-only via trigger, `UNIQUE (tenant_id, client_request_id)`);
+    `notification_delivery` (`UNIQUE (tenant_id, broadcast_id, recipient_user_id, channel)` as
+    the duplicate-send guard, lifecycle CHECK, composite FKs to broadcast / tenant_user /
+    tenant_messaging_account; the only non-tenant-leading indexes are the dispatcher's partial
+    `PENDING`/`SENDING` indexes, mirroring the outbox); `notification_channel_preference`.
+    `notification_outbox` gains `attempt_count`, `next_attempt_at` and a per-tenant partial
+    unique `dedupe_key`.
+  - MEDIA-INT-01A (V61, ADR-018 Amendment 1): `bunny_teacher_library` - one Bunny Stream
+    library per teacher inside the tenant's Bunny account. `tenant_id` NOT NULL; composite FKs
+    `(tenant_id, teacher_user_id)` -> `tenant_user` and `(tenant_id, connection_id)` ->
+    `media_provider_connection`; status `PROVISIONING | ACTIVE | FAILED` (CHECK, ACTIVE needs
+    `bunny_library_id`); partial unique indexes: one live (PROVISIONING/ACTIVE) row per
+    teacher, and one ACTIVE row per Bunny library id, both per tenant; index
+    `(tenant_id, teacher_user_id, created_at)`. Holds no secret. Rows are never deleted - a
+    failed attempt stays as history and a retry inserts a new row. New BUNNY connection rows
+    store `settings_json = {"keyType":"ACCOUNT"}`; V60's comment about library id / CDN
+    hostname describes legacy rows only.
+- **identity-access-service AUTH-PWD-01 (V62, ADR-020):**
+  - `password_token`: one-time account-setup / reset tokens. `tenant_id` NOT NULL; composite FK `(tenant_id, user_id)` -> `tenant_user`; only the SHA-256 is stored (`CHAR(64)`, unique); `used_at` / `invalidated_at` are mutually exclusive; index `(tenant_id, user_id, purpose, created_at)`; never deleted.
+  - `tenant_user.status` gains `invited`, and there's a new column `password_changed_at`.
+  - `notification_outbox.event_type` gains `ACCOUNT_SETUP_INVITE` and `PASSWORD_RESET`.
+- **tenant-management TEN-DOM-01 (V63, ADR-021):**
+  - `tenant.custom_domains_enabled BOOLEAN NOT NULL DEFAULT false`: the Platform Admin switch.
+  - `tenant_custom_domain`: `tenant_id` NOT NULL FK; `hostname` lower case (CHECK); status
+    `PENDING_VERIFICATION | ACTIVE | DNS_BROKEN | SUSPENDED | REMOVED` (CHECK); `ACTIVE` needs
+    `verified_at`; `is_primary` only while `ACTIVE`/`DNS_BROKEN`; `SUSPENDED` needs
+    `suspended_reason`.
+  - Partial unique indexes: `hostname` among non-`REMOVED` rows (**platform-wide on purpose**, as
+    a hostname can serve only one tenant), and one primary per tenant. Index `(tenant_id, status)`.
+  - Never deleted: removal is status `REMOVED`, which frees the hostname.
 - **Audit, notification, and reporting tables are event-consumers' own tables,** not
   shared tables written directly by the domains that trigger them — e.g. a price change
   in `course-management` publishes a domain event; `audit-log-management` persists its
@@ -408,10 +448,14 @@ MVP-006), and `teacher_profile` (V18, MVP-007) all follow every rule in §1/§2 
 (composite tenant-scoped index, `UNIQUE(tenant_id, ...)`, composite FK preventing
 cross-tenant linkage — see each migration file's own header comment for the concrete
 reasoning), but none has been backfilled into the catalog format §7 introduces.
-`student_profile`'s column set is additionally still provisional pending the
-guardian/school/grade/stream field-list decision (`docs/requirements/open-decisions.md`
-§15) — its current, real, up-to-date column contract lives in
-`docs/api/user-management.md` and the migration file itself, not here. If/when these three
+`student_profile`'s field list was settled by STU-PROF-01 (V59): a fixed, code-defined
+catalogue of optional profile columns (birthday, phones, address, identity numbers,
+education, guardian, …), all nullable, whose per-tenant enabled/required/asked-at-
+registration settings live in the tenant-owned `student_profile_field_setting` table
+(`tenant_id NOT NULL` FK, `UNIQUE (tenant_id, field_key)` as its tenant-leading index,
+CHECKs that `required`/`collect_at_registration` imply `enabled`). Required-ness is enforced
+in the API layer, never by a global NOT NULL. The column contract lives in
+`docs/api/user-management.md` and the migration files, not here. If/when these three
 tables are backfilled into the §7-style catalog, do it together, not one at a time.
 
 ## 7. course-management tables (MVP-008)

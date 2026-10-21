@@ -39,9 +39,10 @@ tenant's data, and code review will not reliably catch it at scale.
 - A transaction should wrap one business operation, not a request/response cycle and not a
   single SQL statement in isolation.
 - Operations that must be atomic and therefore share one transaction:
-  - Verified payment confirmation together with enrollment activation (payment-management +
-    enrollment-management) — a confirmed payment must never leave enrollment unactivated, and
-    enrollment must never activate without a persisted, confirmed payment record.
+  - Verified payment confirmation together with the paid-entitlement grant it produces
+    (payment-management + enrollment-management) — a confirmed payment must never leave its
+    entitlement ungranted, and a paid entitlement must never exist without a persisted, confirmed
+    payment or approved slip. Free enrollment (ADR-028) needs no payment and is its own operation.
   - Ledger entry creation together with the settlement/status change it records
     (ledger-settlement-management).
   - Device registration together with the login-activity/audit record that logs it
@@ -101,9 +102,10 @@ is bypassable by a future bug or a direct data fix:
   (e.g. a payment `status` column constrained to a fixed enum set; `amount > 0`; a settlement
   cannot reference a payment that isn't in a confirmed state — enforce via FK plus service-layer
   guard, and cover with tests). Money columns must use fixed-precision types (`NUMERIC`), never
-  floating point. Enrollment activation must have a FK/NOT NULL trail back to the specific
-  confirmed payment or approved manual-payment-evidence row that authorized it — activation
-  cannot exist as a bare boolean flag with no linkage to what justified it.
+  floating point. A paid entitlement (and legacy payment-activated enrollment access) must have a FK/NOT NULL
+  trail back to the specific confirmed payment or approved manual-payment-evidence row that
+  authorized it — it cannot exist as a bare boolean flag. Free enrollment (ADR-028) carries no
+  payment link by design.
 - Device authentication: enforce the "one active device slot per (tenant, student, slot)"
   invariant with a unique constraint (e.g. `UNIQUE (tenant_id, student_id, device_slot)`) rather
   than relying on the service layer to count devices correctly before inserting; device removal

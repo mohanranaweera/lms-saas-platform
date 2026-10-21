@@ -230,20 +230,29 @@ Once tutor/tenant settlement is reached (source requirements §12, Phase 2):
   again to reactivate" reads as three distinct, timestamped facts, not one edited
   record.
 
-## 8. Phase 3 / Phase 4 — Forward Look (not yet designed in detail)
+## 8. Phase 3 (accepted, PayHere) / Phase 4 — Forward Look
 
 The following are confirmed as future roadmap direction but are **explicitly not
 designed at the schema/API level yet**. They are recorded here so future work starts
 from the right constraints, not as a spec to implement against today.
 
-- **Phase 3 — Tenant-specific payment accounts.** Each tenant will eventually
-  configure its own payment account/routing so that a student's payment for Tenant A's
-  course is routed toward Tenant A's account rather than only ever landing in one
-  platform-wide collection point. Open design questions include: how tenant payment
-  account configuration is validated/secured, how it interacts with the still-active
-  Phase 1/2 centralized-collection flow during migration, and what happens to
-  in-flight orders when a tenant's payment account configuration changes. None of
-  this should be scaffolded into Phase 1 tables preemptively.
+- **Phase 3 — Tenant-specific payment accounts — ACCEPTED for PayHere (ADR-017,
+  2026-09-26; plan `docs/plans/PAY-GW-01 Tenant Payment Gateway (PayHere).md`).**
+  - A tenant connects its own PayHere merchant account
+    (`tenant_payment_gateway_account`, secret AES-256-GCM encrypted). Online payments
+    are routed by `PaymentGatewayRouter` to that account; without an ACTIVE account,
+    online payment is refused and bank-slip remains.
+  - `payment.collected_by = TENANT` (+ `gateway_account_id`) marks funds paid straight
+    into the tenant's account. The platform takes **no commission** on these; any
+    platform-level settlement/commission logic must exclude them.
+  - PayHere notifications are resolved to the payment by its opaque gateway reference
+    (ADR-011 carve-out), verified with **that payment's tenant's** secret, and checked
+    against the stored merchant id, amount and currency before any state change.
+  - Chargebacks (`status_code = -3`) write a `payment_refund` row (`source =
+    CHARGEBACK`) whose existing `REFUND` ledger entry reverses the original, and revoke
+    the enrollment that payment activated. No new ledger entry type.
+  - A Platform Admin can switch a tenant's online payments off; only a Platform Admin
+    can switch them back on. Payments already in flight still verify.
 - **Phase 4 — Split payments, gated on gateway support.** Marketplace-style split
   disbursement (platform commission automatically separated from tutor/tenant payout
   at the gateway level) is only in scope **if and when the actual gateway selected

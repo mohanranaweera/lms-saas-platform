@@ -47,6 +47,9 @@ public class LedgerViewEnrichmentService {
 
 	private static final String SLIP_PREFIX = "SLIP-";
 
+	/** ADR-030: {@code ManualPaymentService#record}. */
+	private static final String MANUAL_RECEIPT_PREFIX = "MANUAL-";
+
 	private final PaymentStatusApi paymentStatusApi;
 
 	private final SlipStatusApi slipStatusApi;
@@ -82,10 +85,15 @@ public class LedgerViewEnrichmentService {
 		Set<UUID> courseIds = paymentDetailsByOrderId.values()
 			.stream()
 			.map(OrderPaymentDetail::courseId)
+			// V90: a multi-course line order has no single course.
+			.filter(java.util.Objects::nonNull)
 			.collect(Collectors.toSet());
 		Map<UUID, String> courseTitlesByCourseId = courseLookupApi.getCourseSummaries(courseIds)
 			.stream()
 			.collect(Collectors.toMap(CourseSummary::id, CourseSummary::name));
+
+		Map<UUID, String> multiCourseTitles = MultiCourseOrderTitles.of(paymentStatusApi,
+				paymentDetailsByOrderId.values());
 
 		Map<UUID, PaymentOperationalState> operationalStatesByOrderId = paymentOperationalStateService
 			.resolveForOrders(orderIds);
@@ -103,7 +111,9 @@ public class LedgerViewEnrichmentService {
 			PaymentMethod method = deriveMethod(paymentDetail.confirmedGatewayReference());
 			String reference = (method == PaymentMethod.MANUAL_SLIP && slipDetail != null)
 					? slipDetail.approvedReferenceNumber() : paymentDetail.confirmedGatewayReference();
-			return view.withEnrichment(paymentDetail.courseId(), courseTitlesByCourseId.get(paymentDetail.courseId()),
+			String courseTitle = paymentDetail.courseId() == null ? multiCourseTitles.get(view.orderId())
+					: courseTitlesByCourseId.get(paymentDetail.courseId());
+			return view.withEnrichment(paymentDetail.courseId(), courseTitle,
 					paymentDetail.billingPeriodId(), operationalStatesByOrderId.get(view.orderId()), method,
 					reference);
 		}).toList();
@@ -121,6 +131,9 @@ public class LedgerViewEnrichmentService {
 		}
 		if (gatewayReference.startsWith(SLIP_PREFIX)) {
 			return PaymentMethod.MANUAL_SLIP;
+		}
+		if (gatewayReference.startsWith(MANUAL_RECEIPT_PREFIX)) {
+			return PaymentMethod.MANUAL_RECEIPT;
 		}
 		return PaymentMethod.GATEWAY;
 	}

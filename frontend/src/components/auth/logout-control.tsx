@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { isApiClientError } from "@/lib/api/error";
 import {
@@ -39,7 +40,7 @@ function loginPathFor(kind: PrincipalKind): string {
   return kind === "platform-admin" ? "/platform-admin/login" : "/login";
 }
 
-export function LogoutControl({
+function LogoutButton({
   kind,
   portalLabel,
   requireConfirmation = false,
@@ -132,6 +133,24 @@ export function LogoutControl({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+/**
+ * Header account actions. Tenant portals also get "Change password"
+ * (AUTH-PWD-01); Platform Admin accounts are out of that module's scope.
+ */
+export function LogoutControl(props: LogoutControlProps) {
+  if (props.kind !== "tenant") {
+    return <LogoutButton {...props} />;
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <Link href="/change-password" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        Change password
+      </Link>
+      <LogoutButton {...props} />
     </div>
   );
 }

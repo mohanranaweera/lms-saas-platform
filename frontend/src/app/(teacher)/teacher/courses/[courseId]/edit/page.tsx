@@ -6,9 +6,8 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { CourseEditForm } from "@/components/courses/course-edit-form";
 import { CourseVisibilityControl } from "@/components/courses/course-visibility-control";
-import { CourseBillingPanel } from "@/components/courses/course-billing-panel";
+import { CourseEditDetailsForm } from "@/components/courses/admin/course-edit-details-form";
 import { CourseArchiveControl } from "@/components/courses/course-archive-control";
 import { CourseCloneAction } from "@/components/courses/course-clone-action";
 import { useCourse } from "@/lib/api/courses";
@@ -23,10 +22,11 @@ import { useCourse } from "@/lib/api/courses";
  * stays, with Wave 2's new capabilities appended as additional sections
  * rather than moved into new tab routes.
  *
- * `CourseBillingPanel` replaces the old standalone `CoursePriceChangeForm`
- * here — it renders that exact same form for `ONE_TIME` (unchanged
- * behavior) and additionally handles `FREE`/`MONTHLY`/`SESSION`/`CUSTOM`
- * (pricing-model control, billing configuration, billing-period history).
+ * Course details use the shared `CourseEditDetailsForm` (G3): payment type
+ * and fee, enrollment fee, additional settings, tags, links and cover. The
+ * teacher list is read-only here (the server refuses teacher-list changes
+ * from a Teacher). The old Fees & Billing panel is no longer shown (R2-D5);
+ * a monthly fee change still records billing-period history server-side.
  */
 export default function EditCoursePage() {
   const params = useParams<{ courseId: string }>();
@@ -41,8 +41,8 @@ export default function EditCoursePage() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">Edit course</h1>
           <p className="text-sm text-muted-foreground">
-            Update this course&apos;s details. Visibility, pricing, and billing have their own
-            dedicated actions below.
+            Update this course&apos;s details, payment type and fees. Visibility, archiving and
+            cloning have their own actions below.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -73,9 +73,8 @@ export default function EditCoursePage() {
       >
         {(course) => (
           <div className="flex flex-col gap-6">
-            <CourseEditForm key={course.id} courseId={course.id} course={course} />
+            <CourseEditDetailsForm courseId={course.id} portal="teacher" dashboardHref="/teacher/dashboard" />
             <CourseVisibilityControl courseId={course.id} course={course} />
-            <CourseBillingPanel courseId={course.id} course={course} />
             <div className="grid gap-4 sm:grid-cols-2">
               <CourseArchiveControl courseId={course.id} course={course} />
               <CourseCloneAction

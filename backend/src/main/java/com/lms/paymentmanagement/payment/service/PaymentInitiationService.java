@@ -1,11 +1,19 @@
 package com.lms.paymentmanagement.payment.service;
 
+import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.coursemanagement.api.CourseSummary;
+import com.lms.integrationmanagement.api.GatewayCheckoutRequest;
+import com.lms.integrationmanagement.api.GatewayPayer;
 import com.lms.integrationmanagement.api.PaymentGatewayApi;
 import com.lms.integrationmanagement.api.PaymentGatewayInitiation;
+import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.service.OrderService;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.domain.PaymentStatus;
+import com.lms.usermanagement.api.StudentContact;
+import com.lms.usermanagement.api.StudentLookupApi;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -31,11 +39,21 @@ public class PaymentInitiationService {
 
 	private final PaymentGatewayApi paymentGatewayApi;
 
+	private final CourseLookupApi courseLookupApi;
+
+	private final StudentLookupApi studentLookupApi;
+
+	private final CheckoutComposerService checkoutComposerService;
+
 	public PaymentInitiationService(OrderService orderService, PaymentWriteService paymentWriteService,
-			PaymentGatewayApi paymentGatewayApi) {
+			PaymentGatewayApi paymentGatewayApi, CourseLookupApi courseLookupApi, StudentLookupApi studentLookupApi,
+			CheckoutComposerService checkoutComposerService) {
+		this.checkoutComposerService = checkoutComposerService;
 		this.orderService = orderService;
 		this.paymentWriteService = paymentWriteService;
 		this.paymentGatewayApi = paymentGatewayApi;
+		this.courseLookupApi = courseLookupApi;
+		this.studentLookupApi = studentLookupApi;
 	}
 
 	public PaymentInitiationView initiatePayment(UUID orderId) {
@@ -56,6 +74,19 @@ public class PaymentInitiationService {
 	public PaymentInitiationView initiatePayment(UUID orderId, UUID idempotencyKey) {
 		// Read-only, tenant/owner-checked, its own short transaction.
 		StudentOrder order = orderService.loadOrderOwnedByCurrentStudent(orderId);
+		// KLASS-T4c: a line order whose items were meanwhile paid / are awaiting
+		// payment in another order is refused (409) before any payment row or
+		// gateway call - a guard against paying twice. No-op for legacy orders.
+		checkoutComposerService.requireLineOrderStillPayable(order);
+
+		// PAY-GW-01: amount/currency are the order's stored snapshot; item
+		// description and payer details are read server-side for the hosted
+		// checkout page - nothing here comes from the request. Validated
+		// before any payment row exists (e.g. PayHere needs an address), so a
+		// refused checkout never leaves an orphaned PENDING payment.
+		GatewayCheckoutRequest checkout = new GatewayCheckoutRequest(order.getId(), order.getTenantId(),
+				order.getAmount(), order.getCurrency(), itemDescription(order), payer(order));
+		paymentGatewayApi.validateCheckout(checkout);
 
 		// Transaction 1: persist PENDING (or replay an existing row), commit.
 		PaymentWriteService.PendingPaymentResult pendingResult = paymentWriteService.createPendingPayment(
@@ -67,16 +98,50 @@ public class PaymentInitiationService {
 		}
 		Payment pending = pendingResult.payment();
 
-		// No open transaction here - the (fake, but architecturally-treated
-		// -as-external) gateway call.
-		PaymentGatewayInitiation initiation = paymentGatewayApi.initiatePayment(order.getId(), order.getTenantId(),
-				order.getAmount(), order.getCurrency());
+		// No open transaction here - the gateway call.
+		PaymentGatewayInitiation initiation = paymentGatewayApi.initiateCheckout(checkout);
 
-		// Transaction 2: persist the returned reference, commit.
-		paymentWriteService.assignGatewayReference(pending.getId(), initiation.reference());
+		// Transaction 2: persist the returned reference (and, PAY-GW-01, the
+		// collecting account), commit.
+		paymentWriteService.assignGatewayRouting(pending.getId(), initiation.reference(),
+				initiation.gatewayAccountId(), initiation.collectedBy());
 
 		return new PaymentInitiationView(pending.getId(), order.getId(), PaymentStatus.PENDING, initiation.reference(),
-				initiation.redirectTarget());
+				initiation.redirectTarget(), initiation.formAction(), initiation.formFields());
+	}
+
+
+	/**
+	 * Gateway item description: the course title; for a V90 multi-course line
+	 * order (no single {@code courseId}) "N courses".
+	 */
+	private String itemDescription(StudentOrder order) {
+		UUID courseId = order.getCourseId();
+		if (courseId == null) {
+			Set<UUID> courseIds = checkoutComposerService.lineCourseIds(order);
+			if (courseIds.size() != 1) {
+				return courseIds.size() + " courses";
+			}
+			courseId = courseIds.iterator().next();
+		}
+		return courseLookupApi.getCourseSummaries(Set.of(courseId))
+			.stream()
+			.findFirst()
+			.map(CourseSummary::name)
+			.orElse("Course enrollment");
+	}
+
+	private GatewayPayer payer(StudentOrder order) {
+		return studentLookupApi.findContact(order.getStudentId()).map(PaymentInitiationService::toPayer).orElse(null);
+	}
+
+	private static GatewayPayer toPayer(StudentContact contact) {
+		String name = (contact.name() == null) ? "" : contact.name().trim();
+		int split = name.indexOf(' ');
+		String first = (split > 0) ? name.substring(0, split) : name;
+		String last = (split > 0) ? name.substring(split + 1).trim() : null;
+		return new GatewayPayer(first.isEmpty() ? null : first, last, contact.email(), contact.mobile(),
+				contact.addressLine(), contact.city());
 	}
 
 }

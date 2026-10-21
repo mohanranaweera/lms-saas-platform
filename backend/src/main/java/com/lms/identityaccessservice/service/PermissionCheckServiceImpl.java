@@ -155,7 +155,23 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// Wave 4 (PAR-19-03) - full grant, mirrors this role's pattern
 			// elsewhere in the matrix.
 			.grant(DomainArea.LIVE_CLASSES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-					PermissionAction.DELETE, PermissionAction.APPROVE)));
+					PermissionAction.DELETE, PermissionAction.APPROVE)
+			// PAY-GW-01 / ADR-017 - only the Tenant Admin may configure the
+			// tenant's own merchant account.
+			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+			// MEDIA-INT-01 / ADR-018 - only the Tenant Admin configures the
+			// tenant's media/meeting provider integrations.
+			.grant(DomainArea.INTEGRATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+			// TEN-DOM-01 / ADR-021 - only the Tenant Admin manages custom domains.
+			.grant(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+			// Wave 11 (decision D2) - broadcasts, templates, delivery logs.
+			.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+			// DISC-01 (owner decision 2026-10-21) - only the Tenant Admin
+			// creates / edits / toggles / archives discount rules.
+			.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+			// ADR-030 (F1) - only the Tenant Admin issues / revokes Free Cards.
+			.grant(DomainArea.FREE_CARDS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+					PermissionAction.DELETE)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
 			.grant(DomainArea.COURSES, PermissionAction.VIEW)
@@ -168,7 +184,13 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// granularity.
 			.grant(DomainArea.ACCESS_EXPIRY, PermissionAction.VIEW)
 			// "V (own-area actions)"
-			.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)));
+			.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
+			// PAY-GW-01 - status only (enabled/mode), never the secret.
+			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)
+			// DISC-01 - view rules (codes masked), never edit them.
+			.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW)
+			// ADR-030 (F1) - view Free Cards; recording payments never implies issuing them.
+			.grant(DomainArea.FREE_CARDS, PermissionAction.VIEW)));
 
 		matrix.put(Role.COURSE_COORDINATOR,
 				roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
@@ -196,7 +218,14 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 					.grant(DomainArea.DEVICES, PermissionAction.VIEW)
 					.grant(DomainArea.ACCESS_EXPIRY, PermissionAction.VIEW)
 					.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
-					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)));
+					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+					// Wave 11 (decision D2) - Student Support sends broadcasts
+					// and manages broadcast templates.
+					.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+					// DISC-01 - view rules (codes masked), never edit them.
+					.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW)
+					// ADR-030 (F1) - view Free Cards only.
+					.grant(DomainArea.FREE_CARDS, PermissionAction.VIEW)));
 
 		matrix.put(Role.CONTENT_MANAGER,
 				roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
@@ -232,7 +261,13 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 					// "V (full)"
 					.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
 					.grant(DomainArea.BRANDING_SETTINGS, PermissionAction.VIEW)
-					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW)));
+					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW)
+					.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)
+					.grant(DomainArea.INTEGRATIONS, PermissionAction.VIEW)
+					.grant(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW)
+					.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW)
+					.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW)
+					.grant(DomainArea.FREE_CARDS, PermissionAction.VIEW)));
 
 		return Map.copyOf(matrix);
 	}

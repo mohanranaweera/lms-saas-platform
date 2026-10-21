@@ -6,17 +6,17 @@ import { CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingState } from "@/components/states/loading-state";
 import { CourseWorkspaceShell } from "@/components/courses/course-workspace-shell";
-import { CourseEditForm } from "@/components/courses/course-edit-form";
+import { CourseEditDetailsForm } from "@/components/courses/admin/course-edit-details-form";
 
 /**
  * Tenant Admin course workspace — Overview tab (`tenant-admin/courses/[courseId]`,
  * the workspace's index route). Wave 2 restructured this page from a single
- * flat "everything" screen into a tabbed workspace (`CourseWorkspaceShell`) —
- * Overview now holds only the structural course-details edit form
- * (`CourseEditForm`, unchanged); publish/unpublish, teacher reassignment,
- * archive/unarchive, clone, and delete moved to the Settings tab, and
- * price/pricing-model/billing-configuration controls moved to the Fees &
- * Billing tab — see those routes.
+ * flat "everything" screen into a tabbed workspace (`CourseWorkspaceShell`).
+ * Overview holds the course edit form (`CourseEditDetailsForm`, G2/G3/G4:
+ * mirrors Add New Course — teachers with primary, payment type and fee,
+ * enrollment fee, additional settings, tags, links, cover). The Fees &
+ * Billing tab was removed (R2-D5); publish/unpublish, archive/unarchive,
+ * clone and delete stay on the Settings tab.
  *
  * `?created=1`/`?cloned=1` are one-time, purely-informational confirmations
  * appended by `course-create-form.tsx`'s and `CourseCloneAction`'s redirects
@@ -56,7 +56,11 @@ function TenantAdminCourseOverviewPageContent() {
                 </AlertDescription>
               </Alert>
             ) : null}
-            <CourseEditForm key={course.id} courseId={course.id} course={course} />
+            <CourseEditDetailsForm
+              courseId={course.id}
+              portal="tenant-admin"
+              dashboardHref="/tenant-admin/dashboard"
+            />
           </div>
         )}
       </CourseWorkspaceShell>

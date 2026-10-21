@@ -39,9 +39,9 @@ export default function CourseModulesPage() {
           Back to course
         </Link>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Modules & lessons</h1>
+          <h1 className="text-xl font-semibold text-foreground">Modules & sessions</h1>
           <p className="text-sm text-muted-foreground">
-            Structure this course into modules, each holding its own ordered list of lessons.
+            Structure this course into modules, each holding its own ordered list of sessions.
           </p>
         </div>
       </div>

@@ -144,7 +144,7 @@ export interface StudentRegistrationPolicyOverrides {
   requireMobile?: boolean;
 }
 
-export const DEFAULT_STUDENT_REGISTRATION_POLICY: Required<StudentRegistrationPolicyOverrides> = {
+const DEFAULT_STUDENT_REGISTRATION_FLAGS: Required<StudentRegistrationPolicyOverrides> = {
   publicRegistrationEnabled: true,
   approvalRequired: false,
   otpRequired: false,
@@ -153,6 +153,53 @@ export const DEFAULT_STUDENT_REGISTRATION_POLICY: Required<StudentRegistrationPo
   requireGrade: false,
   requireStream: false,
   requireMobile: false,
+};
+
+/** One entry of the policy's `registrationFields` (STU-PROF-01). */
+export interface RegistrationFieldMock {
+  key: string;
+  label: string;
+  group: string;
+  type: string;
+  maxLength: number;
+  required: boolean;
+}
+
+/**
+ * The `registrationFields` the backend returns for a tenant that has never
+ * saved its student field settings: the five legacy registration fields,
+ * each required per its legacy `require*` flag (STU-PROF-01 defaults).
+ */
+export function legacyRegistrationFields(
+  flags: Required<StudentRegistrationPolicyOverrides>
+): RegistrationFieldMock[] {
+  return [
+    { key: "MOBILE", label: "Mobile number", group: "CONTACT", type: "PHONE", maxLength: 50, required: flags.requireMobile },
+    { key: "SCHOOL", label: "School", group: "EDUCATION", type: "TEXT", maxLength: 255, required: flags.requireSchool },
+    { key: "GRADE", label: "Grade", group: "EDUCATION", type: "TEXT", maxLength: 50, required: flags.requireGrade },
+    {
+      key: "AL_STREAM",
+      label: "A/L stream",
+      group: "EDUCATION",
+      type: "TEXT",
+      maxLength: 50,
+      required: flags.requireStream,
+    },
+    {
+      key: "GUARDIAN",
+      label: "Guardian",
+      group: "FAMILY",
+      type: "GUARDIAN",
+      maxLength: 255,
+      required: flags.requireGuardianInfo,
+    },
+  ];
+}
+
+/** The full default policy body: registration open, nothing required, the five legacy fields asked. */
+export const DEFAULT_STUDENT_REGISTRATION_POLICY = {
+  ...DEFAULT_STUDENT_REGISTRATION_FLAGS,
+  registrationFields: legacyRegistrationFields(DEFAULT_STUDENT_REGISTRATION_FLAGS),
 };
 
 /**
@@ -167,12 +214,14 @@ export const DEFAULT_STUDENT_REGISTRATION_POLICY: Required<StudentRegistrationPo
  */
 export async function mockStudentRegistrationPolicy(
   page: Page,
-  overrides: StudentRegistrationPolicyOverrides = {}
+  overrides: StudentRegistrationPolicyOverrides & { registrationFields?: RegistrationFieldMock[] } = {}
 ): Promise<void> {
+  const { registrationFields, ...flagOverrides } = overrides;
+  const flags = { ...DEFAULT_STUDENT_REGISTRATION_FLAGS, ...flagOverrides };
   await mockJson(
     page,
     "**/v1/public/tenant-config/student-registration-policy",
     200,
-    apiSuccess({ ...DEFAULT_STUDENT_REGISTRATION_POLICY, ...overrides })
+    apiSuccess({ ...flags, registrationFields: registrationFields ?? legacyRegistrationFields(flags) })
   );
 }

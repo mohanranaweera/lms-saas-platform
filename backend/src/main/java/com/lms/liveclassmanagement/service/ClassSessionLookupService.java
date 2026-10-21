@@ -4,7 +4,9 @@ import com.lms.liveclassmanagement.api.ClassSessionLookupApi;
 import com.lms.liveclassmanagement.api.ClassSessionSummary;
 import com.lms.liveclassmanagement.domain.ClassSession;
 import com.lms.liveclassmanagement.repository.ClassSessionRepository;
+import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -48,10 +50,27 @@ public class ClassSessionLookupService implements ClassSessionLookupApi {
 			.collect(Collectors.toMap(ClassSessionSummary::id, Function.identity()));
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<ClassSessionSummary> findByLessonId(UUID lessonId) {
+		return classSessionRepository
+			.findAll((root, query, cb) -> cb.equal(root.get("lessonId"), lessonId),
+					org.springframework.data.domain.Sort.by("scheduledStart", "id"))
+			.stream()
+			.map(ClassSessionLookupService::toSummary)
+			.toList();
+	}
+
 	private static ClassSessionSummary toSummary(ClassSession session) {
 		return new ClassSessionSummary(session.getId(), session.getCourseId(), session.getTeacherId(),
 				session.getLessonId(), session.getTitle(), session.getScheduledStart(), session.getScheduledEnd(),
 				session.getStatus().name());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public long countUpcomingSessionsHostedBy(UUID providerConnectionId) {
+		return classSessionRepository.countUpcomingHostedBy(providerConnectionId, Instant.now());
 	}
 
 }

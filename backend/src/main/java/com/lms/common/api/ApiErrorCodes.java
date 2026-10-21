@@ -79,12 +79,138 @@ public final class ApiErrorCodes {
 	 */
 	public static final String POLICY_VIOLATION = "POLICY_VIOLATION";
 
+	/** VIDEO Phase 12 - the server-authoritative watch-time budget was exhausted. */
+	public static final String PLAYBACK_WATCH_LIMIT = "PLAYBACK_WATCH_LIMIT";
+
 	/**
 	 * Wave 5 (PAR-20-01/PAR-20-02) - the supplied video playback token failed
 	 * signature/expiry/{@code jti}-to-session validation, or the session it
 	 * names is no longer {@code ACTIVE}.
 	 */
 	public static final String PLAYBACK_TOKEN_INVALID = "PLAYBACK_TOKEN_INVALID";
+
+	/** MEDIA-INT-01 - the tenant admin has switched this teacher-level provider off. */
+	public static final String PROVIDER_DISABLED_BY_TENANT = "PROVIDER_DISABLED_BY_TENANT";
+
+	/** MEDIA-INT-01 - the required provider connection is missing or not ACTIVE. */
+	public static final String PROVIDER_NOT_CONNECTED = "PROVIDER_NOT_CONNECTED";
+
+	/** MEDIA-INT-01 - the connected Zoom account is Basic (free); a licensed account is required. */
+	public static final String PROVIDER_LICENSE_REQUIRED = "PROVIDER_LICENSE_REQUIRED";
+
+	/** MEDIA-INT-01 - the connection needs to be reconnected (token revoked/expired or scope missing). */
+	public static final String PROVIDER_RECONNECT_REQUIRED = "PROVIDER_RECONNECT_REQUIRED";
+
+	/** MEDIA-INT-01 - the provider rejected the supplied API credentials. */
+	public static final String PROVIDER_CREDENTIALS_INVALID = "PROVIDER_CREDENTIALS_INVALID";
+
+	/** VIDEO Phase 3 - the YouTube channel is already the live video channel of another tenant (V71). */
+	public static final String VIDEO_PROVIDER_CHANNEL_IN_USE = "VIDEO_PROVIDER_CHANNEL_IN_USE";
+
+	/** VIDEO Phase 3 - confirming would replace the tenant's current, different channel without {@code replaceChannel=true}. */
+	public static final String VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED = "VIDEO_PROVIDER_CHANNEL_REPLACEMENT_UNCONFIRMED";
+
+	/** VIDEO Phase 4 (TD-008) - a Platform Admin switched the tenant's video channel off. */
+	public static final String VIDEO_PROVIDER_DISABLED_BY_PLATFORM = "VIDEO_PROVIDER_DISABLED_BY_PLATFORM";
+
+	/** VIDEO Phase 4 - the tenant has no connected video channel to upload to. */
+	public static final String VIDEO_PROVIDER_NOT_CONNECTED = "VIDEO_PROVIDER_NOT_CONNECTED";
+
+	/** VIDEO Phase 4 - the tenant's video channel must be reconnected before uploading. */
+	public static final String VIDEO_PROVIDER_AUTH_EXPIRED = "VIDEO_PROVIDER_AUTH_EXPIRED";
+
+	/** VIDEO Phase 4 - video uploads are switched off (platform flag or tenant setting). */
+	public static final String VIDEO_UPLOADS_DISABLED = "VIDEO_UPLOADS_DISABLED";
+
+	/** VIDEO Phase 4 - the tenant's daily upload budget is used up (Q-014). */
+	public static final String UPLOAD_QUOTA_EXCEEDED = "UPLOAD_QUOTA_EXCEEDED";
+
+	/** VIDEO Phase 4 - the uploaded file failed server-side validation (size or content type). */
+	public static final String MEDIA_UPLOAD_FAILED = "MEDIA_UPLOAD_FAILED";
+
+	/** VIDEO Phase 5 - the tenant channel was connected without the edit scope (ADR-018 Amendment 3); reconnect. */
+	public static final String VIDEO_PROVIDER_SCOPE_MISSING = "VIDEO_PROVIDER_SCOPE_MISSING";
+
+	/** VIDEO Phase 5b - this teacher is not on the institute channel's allowed-teachers list. */
+	public static final String VIDEO_UPLOAD_NOT_ALLOWED = "VIDEO_UPLOAD_NOT_ALLOWED";
+
+	/** VIDEO Phase 5d - the institute already has the maximum number of video integrations. */
+	public static final String VIDEO_INTEGRATION_LIMIT = "VIDEO_INTEGRATION_LIMIT";
+
+	/** VIDEO Phase 5d - another live integration of this institute already has this name. */
+	public static final String VIDEO_INTEGRATION_NAME_TAKEN = "VIDEO_INTEGRATION_NAME_TAKEN";
+
+	/** VIDEO Phase 5 - the media is used by a lesson material and cannot be deleted. */
+	public static final String MEDIA_ATTACHED = "MEDIA_ATTACHED";
+
+	/** VIDEO Phase 6 - a media asset must finish processing before lesson attachment. */
+	public static final String MEDIA_NOT_READY = "MEDIA_NOT_READY";
+
+	/** VIDEO Phase 7 - the requested playback cannot be authorized for the lesson. */
+	public static final String PLAYBACK_NOT_AUTHORIZED = "PLAYBACK_NOT_AUTHORIZED";
+
+	/** VIDEO Phase 7 - the requested playback provider is not enabled for WEB playback. */
+	public static final String VIDEO_PLAYBACK_DISABLED = "VIDEO_PLAYBACK_DISABLED";
+
+	/** VIDEO Phase 8 - any failed launch-code exchange (one generic code; detail in the security log only). */
+	public static final String PLAYBACK_LAUNCH_CODE_INVALID = "PLAYBACK_LAUNCH_CODE_INVALID";
+
+	/** VIDEO Phase 8 - any failed pairing completion (generic). */
+	public static final String PLAYER_PAIRING_CODE_INVALID = "PLAYER_PAIRING_CODE_INVALID";
+
+	/** VIDEO Phase 8 - the AOC Player is older than {@code app.player.min-version}. */
+	public static final String PLAYER_VERSION_UNSUPPORTED = "PLAYER_VERSION_UNSUPPORTED";
+
+	/** VIDEO Phase 8 - a player heartbeat/end with a missing, invalid or expired token/signature. */
+	public static final String PLAYBACK_SESSION_EXPIRED = "PLAYBACK_SESSION_EXPIRED";
+
+	/** VIDEO Phase 8 - the tenant requires the AOC Player but the platform has it switched off. */
+	public static final String NATIVE_PLAYER_UNAVAILABLE = "NATIVE_PLAYER_UNAVAILABLE";
+
+	/** VIDEO Phase 8 - the tenant requires the AOC Player; this browser endpoint refuses Students. */
+	public static final String NATIVE_PLAYER_REQUIRED = "NATIVE_PLAYER_REQUIRED";
+
+	/** VIDEO Phase 8 - the browser session has no active registered device to pair or launch on. */
+	public static final String PLAYER_DEVICE_NOT_REGISTERED = "PLAYER_DEVICE_NOT_REGISTERED";
+
+	/** VIDEO Phase 8 - too many player pairing/exchange attempts. */
+	public static final String PLAYER_RATE_LIMITED = "PLAYER_RATE_LIMITED";
+
+	/** VIDEO Phase 4 - the upload is not in a state that allows this action. */
+	public static final String MEDIA_UPLOAD_STATE_CONFLICT = "MEDIA_UPLOAD_STATE_CONFLICT";
+
+	/** AUTH-PWD-01: an account-setup / password-reset link is invalid, expired, used or from another tenant. */
+	public static final String TOKEN_INVALID = "TOKEN_INVALID";
+
+	/** AUTH-PWD-01: the account must change its password before doing anything else. */
+	public static final String PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED";
+
+	/** Too many attempts in a time window - try again later. */
+	public static final String TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS";
+
+	/** TEN-DOM-01: custom domains are switched off for this tenant (a Platform Admin enables them). */
+	public static final String CUSTOM_DOMAINS_DISABLED = "CUSTOM_DOMAINS_DISABLED";
+
+	/** TEN-DOM-01: the hostname is already claimed (by this or another tenant). */
+	public static final String CUSTOM_DOMAIN_TAKEN = "CUSTOM_DOMAIN_TAKEN";
+
+	/** TEN-DOM-01: the tenant already holds the maximum number of custom domains. */
+	public static final String CUSTOM_DOMAIN_LIMIT_REACHED = "CUSTOM_DOMAIN_LIMIT_REACHED";
+
+	/** Wave 10 - a login from a new device when the student's device slots are all taken (or cooling down). */
+	public static final String DEVICE_LIMIT_REACHED = "DEVICE_LIMIT_REACHED";
+
+	/** Wave 10 - the current device is not one of the devices a course-level device limit authorizes. */
+	public static final String DEVICE_NOT_AUTHORIZED = "DEVICE_NOT_AUTHORIZED";
+
+	/** Wave 10 - the tenant has not enabled student self-service device management. */
+	public static final String DEVICE_SELF_SERVICE_DISABLED = "DEVICE_SELF_SERVICE_DISABLED";
+
+	/** Wave 11 - a broadcast asked for SMS/WhatsApp but the tenant has no usable provider for it. */
+	public static final String CHANNEL_NOT_AVAILABLE = "CHANNEL_NOT_AVAILABLE";
+
+	/** Wave 11 - the requested messaging provider adapter is not enabled in this environment. */
+	public static final String MESSAGING_PROVIDER_NOT_AVAILABLE = "MESSAGING_PROVIDER_NOT_AVAILABLE";
 
 	private ApiErrorCodes() {
 	}

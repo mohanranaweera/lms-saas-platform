@@ -49,7 +49,11 @@ assumed.
 - **Secrets/credentials** (database passwords, integration credentials in the
   credential vault -- see `integration-architecture.md`) require their own
   backup/recovery approach as part of whatever secrets management mechanism is
-  selected (see `deployment-architecture.md`, open questions).
+  selected (see `deployment-architecture.md`, open questions). **Decided by ADR-019
+  Decision 5:** per-environment values; the two encryption keys
+  (`MEDIA_CREDENTIALS_ENCRYPTION_KEY`, `PAYMENT_CREDENTIALS_ENCRYPTION_KEY`) are backed up
+  offline or in a restricted password manager, because losing them makes the encrypted
+  tenant/teacher credentials unreadable; other secrets can be reissued at their source.
 
 ## 4. Flyway migration history retention
 

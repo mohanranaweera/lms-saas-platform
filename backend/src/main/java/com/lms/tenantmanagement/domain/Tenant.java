@@ -55,6 +55,10 @@ public class Tenant extends Auditable {
 	@Column(name = "contact_phone")
 	private String contactPhone;
 
+	/** TEN-DOM-01 / ADR-021: Platform Admin switch; off = the tenant's custom domains don't resolve. */
+	@Column(name = "custom_domains_enabled", nullable = false)
+	private boolean customDomainsEnabled;
+
 	/** For Hibernate only. */
 	protected Tenant() {
 	}
@@ -126,6 +130,14 @@ public class Tenant extends Auditable {
 	 * {@code #activate()}'s exact style: public, narrow, state-mutating, no
 	 * validation of its own.
 	 */
+	public boolean isCustomDomainsEnabled() {
+		return customDomainsEnabled;
+	}
+
+	public void setCustomDomainsEnabled(boolean customDomainsEnabled) {
+		this.customDomainsEnabled = customDomainsEnabled;
+	}
+
 	public void applyStatusTransition(TenantStatus next) {
 		this.status = next;
 	}

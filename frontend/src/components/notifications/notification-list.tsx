@@ -9,6 +9,7 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
 import { LiveRegion } from "@/components/ui/live-region";
 import {
+  useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotifications,
   type NotificationResponse,
@@ -62,6 +63,7 @@ export function NotificationList({ heading, description, emptyState, dashboardHr
   const [page, setPage] = useState(0);
   const query = useNotifications({ page, size: PAGE_SIZE });
   const markReadMutation = useMarkNotificationRead();
+  const markAllMutation = useMarkAllNotificationsRead();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState("");
 
@@ -138,9 +140,30 @@ export function NotificationList({ heading, description, emptyState, dashboardHr
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">{heading}</h1>
-        <p className="text-sm text-muted-foreground">{description}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">{heading}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        {query.data?.content.some((notification) => notification.readAt === null) ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={markAllMutation.isPending}
+            onClick={() => {
+              setMutationError("");
+              markAllMutation.mutate(undefined, {
+                onError: (error) =>
+                  setMutationError(
+                    isApiClientError(error) ? error.message : "Could not mark notifications as read. Please try again."
+                  ),
+              });
+            }}
+          >
+            {markAllMutation.isPending ? "Marking…" : "Mark all as read"}
+          </Button>
+        ) : null}
       </div>
 
       {query.status === "pending" ? (

@@ -1,4 +1,4 @@
-﻿spring:
+spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/lms_dev}
     username: ${DB_USERNAME:lms_app}
@@ -36,6 +36,11 @@
 
 server:
   port: ${BACKEND_PORT:8080}
+  # TEN-DOM-01: the frontend calls /api on each site's own address and the Next
+  # dev server proxies it here, passing the site's host in X-Forwarded-Host.
+  # Tomcat trusts that header only from its internal-proxy ranges (loopback,
+  # private), same as prod behind Nginx.
+  forward-headers-strategy: native
 
 management:
   endpoints:
@@ -58,7 +63,29 @@ object-storage:
   access-key: ${OBJECT_STORAGE_ACCESS_KEY:${MINIO_ROOT_USER:lms_minio}}
   secret-key: ${OBJECT_STORAGE_SECRET_KEY:${MINIO_ROOT_PASSWORD:change_this_local_password}}
 
+video:
+  # Local testing only: allow tenants configured for the AOC Player to issue
+  # native launch links. The base/default profile remains fail-closed.
+  features:
+    native-player: true
+
 app:
+  # VIDEO Phase 8: local-only pepper for player pairing/launch-code HMACs.
+  player:
+    launch-code-pepper: ${PLAYER_LAUNCH_CODE_PEPPER:local-dev-player-launch-code-pepper-not-for-production}
+    dyntube-bridge-url: ${PLAYER_DYNTUBE_BRIDGE_URL:http://embed.lms.test:3000/embed/dyntube-bridge.html}
+    allow-insecure-bridge: true
+  # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Local only.
+  messaging:
+    sandbox-enabled: true
+  public:
+    tenant-url-template: ${TENANT_URL_TEMPLATE:http://{subdomain}.lms.test:3000}
+  # TEN-DOM-01: local custom domains. accept-all skips DNS, so any hostname
+  # you map in the hosts file (e.g. learn.abc.test -> 127.0.0.1) verifies.
+  custom-domains:
+    platform-domain: ${PLATFORM_DOMAIN:lms.test}
+    cname-target: ${CUSTOM_DOMAIN_CNAME_TARGET:tenants.lms.test}
+    verification-mode: accept-all
   security:
     jwt:
       # Never a real secret in this file - JWT_SECRET must be set via a real
@@ -67,3 +94,33 @@ app:
       # 256-bit key length so local startup never silently falls back to a
       # weak key.
       secret: ${JWT_SECRET:dev-only-placeholder-secret-change-me-before-any-real-deployment-32bytes+}
+
+video-playback:
+  token:
+    # Same clearly-fake, dev-only placeholder pattern as app.security.jwt
+    # above, but a DISTINCT value (PlaybackTokenService must never share the
+    # login-token secret). Without it, local video playback always 503s.
+    # Non-local environments keep application.yml's empty, fail-closed
+    # default and must set VIDEO_PLAYBACK_TOKEN_SECRET via a real env var.
+    secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:dev-only-video-playback-placeholder-change-me-32bytes+}
+
+payment:
+  gateway:
+    # Local only: keep the pre-PAY-GW-01 fake gateway when a tenant has no
+    # PayHere account configured.
+    fake-fallback-enabled: true
+  credentials:
+    # Clearly-fake, dev-only key (Base64 of "dev-only-payment-cred-key-32byte").
+    encryption-key: ${PAYMENT_CREDENTIALS_ENCRYPTION_KEY:ZGV2LW9ubHktcGF5bWVudC1jcmVkLWtleS0zMmJ5dGU=}
+  payhere:
+    # PayHere cannot call localhost - set PAYHERE_NOTIFY_URL to a public
+    # tunnel (e.g. ngrok) URL ending in /api/v1/integrations/webhooks/payhere
+    # to test with PayHere sandbox credentials.
+    notify-url: ${PAYHERE_NOTIFY_URL:}
+    return-url-template: ${PAYHERE_RETURN_URL_TEMPLATE:http://{subdomain}.lms.test:3000}
+
+integrations:
+  media:
+    # Clearly-fake, dev-only key (Base64 of "dev-only-media-cred-key-32bytes!").
+    # Without it every provider connect fails closed with 503 SERVICE_UNAVAILABLE.
+    encryption-key: ${MEDIA_CREDENTIALS_ENCRYPTION_KEY:ZGV2LW9ubHktbWVkaWEtY3JlZC1rZXktMzJieXRlcyE=}

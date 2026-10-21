@@ -1,0 +1,183 @@
+- generic [active] [ref=f15e1]:
+  - generic [ref=f15e3]:
+    - banner [ref=f15e4]:
+      - generic [ref=f15e5]:
+        - link "DynTube Docs" [ref=f15e7] [cursor=pointer]:
+          - /url: /
+          - img "DynTube" [ref=f15e8]
+          - generic [ref=f15e17]: Docs
+        - generic [ref=f15e19]:
+          - textbox "Search documentation..." [ref=f15e23]
+          - generic [ref=f15e24]: ⌘K
+        - generic [ref=f15e25]:
+          - link "API" [ref=f15e26] [cursor=pointer]:
+            - /url: /dev
+          - link "Dashboard" [ref=f15e31] [cursor=pointer]:
+            - /url: https://app.dyntube.com
+          - button "Switch to dark mode" [ref=f15e37] [cursor=pointer]
+    - generic [ref=f15e41]:
+      - complementary [ref=f15e42]:
+        - navigation [ref=f15e43]:
+          - generic [ref=f15e44]: Documentation
+          - link "Welcome to our Help Center" [ref=f15e49] [cursor=pointer]:
+            - /url: /docs
+          - button "Videos" [ref=f15e51] [cursor=pointer]
+          - button "Security" [ref=f15e56] [cursor=pointer]
+          - button "Channels" [ref=f15e61] [cursor=pointer]
+          - button "Projects" [ref=f15e66] [cursor=pointer]
+          - button "AI Features" [ref=f15e71] [cursor=pointer]
+          - button "TV Apps" [ref=f15e76] [cursor=pointer]
+          - button "Account" [ref=f15e81] [cursor=pointer]
+          - button "FAQs" [ref=f15e86] [cursor=pointer]
+          - generic [ref=f15e90]:
+            - button "Tips & Tricks" [ref=f15e91] [cursor=pointer]
+            - list [ref=f15e95]:
+              - listitem [ref=f15e96]:
+                - link "Embed Videos Using the New Video Player" [ref=f15e97] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+              - listitem [ref=f15e98]:
+                - link "How to Make a Rounded Big Play Button" [ref=f15e99] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-make-rounded-big-play-button
+              - listitem [ref=f15e100]:
+                - link "How to Embed DynTube Videos in LearnDash" [ref=f15e101] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-learndash
+              - listitem [ref=f15e102]:
+                - link "How to Embed DynTube Videos in Patreon" [ref=f15e103] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-patreon
+              - listitem [ref=f15e104]:
+                - link "How to Embed DynTube Video Channel in WordPress/LearnDash" [ref=f15e105] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-video-channel-in-wordpress-learndash
+              - listitem [ref=f15e106]:
+                - link "How to Add Dynamic Watermark to the Video Player" [ref=f15e107] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-add-dynamic-watermark-to-the-video-player
+              - listitem [ref=f15e108]:
+                - link "Control Video Player Using URL Parameters" [ref=f15e109] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/control-video-player-using-url
+              - listitem [ref=f15e110]:
+                - link "How to Use Your Own Videos as Ads" [ref=f15e111] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-use-your-own-videos-as-ads
+              - listitem [ref=f15e112]:
+                - link "How to Embed DynTube Player in Next.js" [ref=f15e113] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-player-in-next.js
+              - listitem [ref=f15e114]:
+                - link "How to Embed DynTube Player in React" [ref=f15e115] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-the-dyntube-player-in-react
+              - listitem [ref=f15e116]:
+                - link "How to Embed Videos & Channels Dynamically" [ref=f15e117] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-videos-and-channels-dynamically
+          - generic [ref=f15e118]:
+            - link "GitHub Samples" [ref=f15e119] [cursor=pointer]:
+              - /url: https://github.com/nicearma/dyntube-samples
+            - link "Support" [ref=f15e125] [cursor=pointer]:
+              - /url: /contact
+      - main [ref=f15e126]:
+        - navigation [ref=f15e128]:
+          - link "Home" [ref=f15e129] [cursor=pointer]:
+            - /url: /
+          - link "Docs" [ref=f15e132] [cursor=pointer]:
+            - /url: /docs
+          - link "Tips and tricks" [ref=f15e135] [cursor=pointer]:
+            - /url: /docs/tips-and-tricks
+          - generic [ref=f15e138]: How to add dynamic watermark to the video player
+        - generic [ref=f15e140]:
+          - heading "How to Add Dynamic Watermark to the Video Player" [level=1] [ref=f15e141]
+          - paragraph [ref=f15e142]: Dynamic watermarks display custom text overlaid on your videos, which can help deter unauthorized recording and identify the source of leaked content.
+          - heading "Live Demo" [level=2] [ref=f15e143]
+          - paragraph [ref=f15e144]: "View a demo of the dynamic watermark feature:"
+          - link "https://www-demos.s3.us-east-1.amazonaws.com/dynamic-watermark.html" [ref=f15e146] [cursor=pointer]:
+            - /url: https://www-demos.s3.us-east-1.amazonaws.com/dynamic-watermark.html
+          - 'heading "Method 1: JavaScript Embed Code" [level=2] [ref=f15e147]'
+          - 'heading "Step 1: Enable Dynamic Watermark" [level=3] [ref=f15e148]'
+          - paragraph [ref=f15e149]:
+            - text: Edit your project and navigate to the
+            - strong [ref=f15e150]: Video Options
+            - text: tab, or click on a video title and find the
+            - strong [ref=f15e151]: Options
+            - text: tab. Enable the
+            - strong [ref=f15e152]: Dynamic watermark
+            - text: option.
+          - 'heading "Step 2: Add the Watermark Attribute" [level=3] [ref=f15e153]'
+          - paragraph [ref=f15e154]:
+            - text: Add the
+            - code [ref=f15e155]: data-watermark
+            - text: "attribute to your embed code's DIV element:"
+          - generic [ref=f15e158]:
+            - generic [ref=f15e159]: "1"
+            - generic [ref=f15e160]: <div data-watermark="Dynamic Watermark" data-dyntube-key="abcd1234"></div>
+          - paragraph [ref=f15e161]: This displays an animated watermark on the video player.
+          - generic [ref=f15e162]:
+            - generic [ref=f15e163]: ℹ️
+            - paragraph [ref=f15e165]:
+              - text: Remember to disable the
+              - strong [ref=f15e166]: IP Watermark
+              - text: option in the dashboard for the dynamic watermark to work. Only one watermark type can be active at a time.
+          - 'heading "Method 2: Iframe Embed Code" [level=2] [ref=f15e167]'
+          - 'heading "Step 1: Enable Dynamic Watermark" [level=3] [ref=f15e168]'
+          - paragraph [ref=f15e169]:
+            - text: Enable the
+            - strong [ref=f15e170]: Dynamic watermark
+            - text: option in your project's
+            - strong [ref=f15e171]: Video Options
+            - text: tab or in the individual video's
+            - strong [ref=f15e172]: Options
+            - text: tab.
+          - 'heading "Step 2: Add Watermark to URL" [level=3] [ref=f15e173]'
+          - paragraph [ref=f15e174]: "Append the watermark parameter to your iframe URL:"
+          - generic [ref=f15e177]:
+            - generic [ref=f15e178]: "1"
+            - generic [ref=f15e179]: https://videos.dyntube.com/iframes/AHCWERUYER387?watermark=MY-WATERMARK
+          - 'heading "Method 3: WordPress with Current Username" [level=2] [ref=f15e180]'
+          - paragraph [ref=f15e181]: "Display the logged-in WordPress user's username as the watermark:"
+          - 'heading "Step 1: Get Current User Data" [level=3] [ref=f15e182]'
+          - paragraph [ref=f15e183]:
+            - text: Use the
+            - code [ref=f15e184]: wp_get_current_user()
+            - text: "function to retrieve the username:"
+          - generic [ref=f15e186]:
+            - generic [ref=f15e187]:
+              - generic [ref=f15e188]: "1"
+              - generic [ref=f15e189]: <?php
+            - generic [ref=f15e190]:
+              - generic [ref=f15e191]: "2"
+              - generic [ref=f15e192]: $current_user = wp_get_current_user();
+            - generic [ref=f15e193]:
+              - generic [ref=f15e194]: "3"
+              - generic [ref=f15e195]: $username = $current_user->user_login;
+            - generic [ref=f15e196]:
+              - generic [ref=f15e197]: "4"
+              - generic [ref=f15e198]: "?>"
+          - 'heading "Step 2: Display the Watermark" [level=3] [ref=f15e199]'
+          - paragraph [ref=f15e200]:
+            - text: Insert the username into the
+            - code [ref=f15e201]: data-watermark
+            - text: attribute, using
+            - code [ref=f15e202]: esc_attr()
+            - text: "for security:"
+          - generic [ref=f15e205]:
+            - generic [ref=f15e206]: "1"
+            - generic [ref=f15e207]: <div data-watermark="<?php echo esc_attr($username); ?>" data-dyntube-key="abcd1234"></div>
+          - 'heading "Step 3: Implement" [level=3] [ref=f15e208]'
+          - paragraph [ref=f15e209]: Add the PHP code and HTML element to your WordPress templates or pages where you want the personalized watermark to appear.
+          - heading "Related Articles" [level=2] [ref=f15e210]
+          - list [ref=f15e211]:
+            - listitem [ref=f15e212]:
+              - link "How to Upload & Embed Videos" [ref=f15e213] [cursor=pointer]:
+                - /url: /docs/videos/how-to-upload-and-embed-videos
+            - listitem [ref=f15e214]:
+              - link "Embed Videos Using the New Video Player" [ref=f15e215] [cursor=pointer]:
+                - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+            - listitem [ref=f15e216]:
+              - link "Developer Resources" [ref=f15e217] [cursor=pointer]:
+                - /url: /dev/developer-resources
+        - generic [ref=f15e218]:
+          - generic [ref=f15e220]:
+            - generic [ref=f15e221]: © 2026 DynTube. All rights reserved.
+            - generic [ref=f15e222]:
+              - link "Terms" [ref=f15e223] [cursor=pointer]:
+                - /url: /legal/terms
+              - link "Privacy" [ref=f15e224] [cursor=pointer]:
+                - /url: /legal/privacy
+              - link "Contact" [ref=f15e225] [cursor=pointer]:
+                - /url: /contact
+          - text: DYNTUBE
+  - alert [ref=f15e226]

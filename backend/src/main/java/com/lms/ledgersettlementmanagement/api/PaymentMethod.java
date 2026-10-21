@@ -14,6 +14,9 @@ package com.lms.ledgersettlementmanagement.api;
  */
 public enum PaymentMethod {
 
-	GATEWAY, MANUAL_SLIP, FREE, STAFF_GRANTED
+	GATEWAY, MANUAL_SLIP, FREE, STAFF_GRANTED,
+
+	/** ADR-030: a staff-recorded manual payment receipt ({@code "MANUAL-" + paymentId}). */
+	MANUAL_RECEIPT
 
 }

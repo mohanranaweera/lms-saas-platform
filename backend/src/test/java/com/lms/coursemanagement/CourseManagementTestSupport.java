@@ -54,6 +54,7 @@ public abstract class CourseManagementTestSupport extends AuthIntegrationTestSup
 	}
 
 	protected String loginAndGetToken(String host, String email) {
+		markOnboarded(email);
 		HttpResult<LoginResponse> response = login(host, email, RAW_PASSWORD);
 		if (response.getStatusCode() != HttpStatus.OK) {
 			throw new IllegalStateException("Login failed for " + email + ": " + response.getStatusCode());

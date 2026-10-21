@@ -48,6 +48,8 @@ export interface PlaybackSessionRecord {
   watermarkText: string | null;
   allowSeeking: boolean;
   allowDownload: boolean;
+  /** VIDEO Phase 13: `HLS` for a DynTube session; `EMBED` hands off to AOC. */
+  mediaFormat?: "FILE" | "HLS" | "EMBED";
 }
 
 export function makePlaybackSession(overrides: Partial<PlaybackSessionRecord> = {}): PlaybackSessionRecord {

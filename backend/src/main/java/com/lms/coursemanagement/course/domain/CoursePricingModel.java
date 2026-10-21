@@ -1,26 +1,36 @@
 package com.lms.coursemanagement.course.domain;
 
 /**
- * {@code course.pricing_model} (V37) - the billing shape a course uses,
- * distinct from {@link CourseStatus}'s lifecycle/visibility axis. Every
- * course defaults to {@link #ONE_TIME} (V37's column default), matching every
- * course that existed before Wave 2 shipped (a bare, flat {@code
- * course.price}).
+ * {@code course.pricing_model} (V37, extended by V85) - the billing shape a
+ * course uses, distinct from {@link CourseStatus}'s lifecycle/visibility
+ * axis. Every course defaults to {@link #ONE_TIME} (V37's column default).
  *
  * <ul>
- * <li>{@link #FREE} - no payment ever required; checkout resolves to a
- * $0 amount.</li>
- * <li>{@link #ONE_TIME} - the pre-Wave-2 behavior: {@code course.price} is
- * the checkout amount.</li>
- * <li>{@link #MONTHLY}/{@link #SESSION} - the checkout amount is resolved
- * from the course's current open {@link CourseBillingPeriod}, not {@code
- * course.price}.</li>
- * <li>{@link #CUSTOM} - no system-resolved amount; an authorized staff
- * member must supply one per order (manual quote).</li>
+ * <li>{@link #FREE} - no course fee ("Free").</li>
+ * <li>{@link #ONE_TIME} - {@code course.price} is the whole-course amount
+ * ("Full Course").</li>
+ * <li>{@link #MONTHLY} - priced per billing month from the course's current
+ * open {@link CourseBillingPeriod} ("Monthly Fee").</li>
+ * <li>{@link #SESSION} - legacy: current open billing period per session.
+ * Readable for existing courses, not offered on create (D09).</li>
+ * <li>{@link #CUSTOM} - legacy: staff-supplied manual quote. Readable for
+ * existing courses, not offered on create (D09).</li>
+ * <li>{@link #MODULE} - sold per module ({@code course_module.price},
+ * "Pay For Module").</li>
+ * <li>{@link #DAILY} - "Day payments": stored only; no offer engine exists
+ * yet (D09).</li>
+ * <li>{@link #INSTALLMENT} - "Installments": stored only; no offer engine
+ * exists yet (D09).</li>
  * </ul>
+ * None of DAILY/MODULE/INSTALLMENT has a whole-course checkout amount.
  */
 public enum CoursePricingModel {
 
-	FREE, ONE_TIME, MONTHLY, SESSION, CUSTOM
+	FREE, ONE_TIME, MONTHLY, SESSION, CUSTOM, DAILY, MODULE, INSTALLMENT;
+
+	/** The six models the "Add New Course" form offers (D09). */
+	public boolean selectableOnCreate() {
+		return this != SESSION && this != CUSTOM;
+	}
 
 }

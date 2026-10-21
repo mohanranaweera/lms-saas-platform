@@ -10,7 +10,9 @@ import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
 import com.lms.integrationmanagement.api.StoredObject;
+import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import com.lms.paymentmanagement.order.service.OrderService;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipFlag;
@@ -78,11 +80,22 @@ public class SlipUploadService {
 
 	private final long maxFileSizeBytes;
 
+	private final CheckoutComposerService checkoutComposerService;
+
+	private final StudentOrderLineRepository studentOrderLineRepository;
+
+	private final SlipWriteService slipWriteService;
+
 	public SlipUploadService(OrderService orderService, PaymentSlipRepository paymentSlipRepository,
 			PaymentSlipFlagRepository paymentSlipFlagRepository, ObjectStorageApi slipStorageApi,
 			SlipDuplicateCheckService slipDuplicateCheckService, UserProvisioningApi userProvisioningApi,
 			TenantContext tenantContext,
-			@Value("${app.payment.slip.max-file-size-bytes}") long maxFileSizeBytes) {
+			@Value("${app.payment.slip.max-file-size-bytes}") long maxFileSizeBytes,
+			CheckoutComposerService checkoutComposerService, StudentOrderLineRepository studentOrderLineRepository,
+			SlipWriteService slipWriteService) {
+		this.slipWriteService = slipWriteService;
+		this.checkoutComposerService = checkoutComposerService;
+		this.studentOrderLineRepository = studentOrderLineRepository;
 		this.orderService = orderService;
 		this.paymentSlipRepository = paymentSlipRepository;
 		this.paymentSlipFlagRepository = paymentSlipFlagRepository;
@@ -110,6 +123,12 @@ public class SlipUploadService {
 		if (paymentSlipRepository.existsActiveSlipForOrder(orderId)) {
 			throw new ConflictException("You already have a payment slip under review for this order");
 		}
+		// KLASS-T4c/T8b: refuse (409) a slip for a line order that already has a
+		// PENDING/CONFIRMED payment or a slip, or whose items were meanwhile paid
+		// / are awaiting payment in another order - before any storage or DB
+		// write. Re-checked under the coverage locks when the slip row is
+		// inserted (SlipWriteService). No-op for legacy orders.
+		checkoutComposerService.requireNewLineOrderEvidenceAllowed(order);
 
 		// Bounded streaming read (mirrors MaterialService.readBoundedBytes):
 		// aborts as soon as the running byte count exceeds maxFileSizeBytes,
@@ -135,7 +154,7 @@ public class SlipUploadService {
 		PaymentSlip slip = new PaymentSlip(tenantId, order.getId(), order.getStudentId(), stored.objectKey(),
 				referenceNumber, imageHash);
 		try {
-			slip = paymentSlipRepository.save(slip);
+			slip = slipWriteService.saveNewSlip(order, slip);
 		}
 		catch (RuntimeException saveFailure) {
 			// The object already landed in storage before this save was
@@ -175,9 +194,15 @@ public class SlipUploadService {
 			.map(TenantUserSummary::email)
 			.findFirst()
 			.orElse(null);
+		List<PaymentSlipOrderLine> orderLines = studentOrderLineRepository.findAllByOrderId(order.getId())
+			.stream()
+			.map(SlipReviewService::toLineView)
+			.toList();
 		return new PaymentSlipView(slip.getId(), slip.getOrderId(), slip.getStudentId(), slip.getReferenceNumber(),
 				slip.getStatus(), slip.getSubmittedAt(), slip.getReviewerId(), slip.getReviewedAt(), flagViews,
-				studentEmail, null, order.getAmount(), order.getCurrency());
+				studentEmail, null, order.getAmount(), order.getCurrency(), orderLines, order.getSubtotalAmount(),
+				order.getFacilityFeeAmount(), order.getDiscountAmount(), order.getPostageAmount(),
+				SlipReviewService.deliveryOf(order));
 	}
 
 	private static PaymentSlipFlagView toFlagView(PaymentSlipFlag flag) {

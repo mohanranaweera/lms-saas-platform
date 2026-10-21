@@ -13,6 +13,15 @@ import com.lms.usermanagement.student.web.dto.StudentCreateRequest;
 import com.lms.usermanagement.student.web.dto.StudentResponse;
 import com.lms.usermanagement.student.web.dto.StudentUpdateRequest;
 import com.lms.usermanagement.student.web.dto.TemporaryPasswordResponse;
+import com.lms.usermanagement.student.service.StudentBillingAddress;
+import com.lms.usermanagement.student.web.dto.StudentBillingAddressRequest;
+import com.lms.usermanagement.student.web.dto.StudentBillingAddressResponse;
+import com.lms.usermanagement.student.service.StudentProfileFieldsService;
+import com.lms.usermanagement.student.service.StudentProfileFieldsView;
+import com.lms.usermanagement.student.web.dto.StudentProfileFieldValueResponse;
+import com.lms.usermanagement.student.web.dto.StudentProfileFieldsResponse;
+import com.lms.usermanagement.student.web.dto.StudentProfileFieldsUpdateRequest;
+import org.springframework.web.bind.annotation.PutMapping;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -57,9 +66,13 @@ public class StudentController {
 
 	private final StudentBulkImportService studentBulkImportService;
 
-	public StudentController(StudentService studentService, StudentBulkImportService studentBulkImportService) {
+	private final StudentProfileFieldsService studentProfileFieldsService;
+
+	public StudentController(StudentService studentService, StudentBulkImportService studentBulkImportService,
+			StudentProfileFieldsService studentProfileFieldsService) {
 		this.studentService = studentService;
 		this.studentBulkImportService = studentBulkImportService;
+		this.studentProfileFieldsService = studentProfileFieldsService;
 	}
 
 	@PostMapping("/bulk-import")
@@ -150,6 +163,66 @@ public class StudentController {
 			@Valid @RequestBody StudentUpdateRequest request) {
 		StudentAccount account = studentService.updateOwnProfile(request.name());
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	@GetMapping("/me/billing-address")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<StudentBillingAddressResponse>> getOwnBillingAddress() {
+		StudentBillingAddress address = studentService.getOwnBillingAddress();
+		return ResponseEntity
+			.ok(ApiResponse.success(new StudentBillingAddressResponse(address.addressLine(), address.city())));
+	}
+
+	@PutMapping("/me/billing-address")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<StudentBillingAddressResponse>> updateOwnBillingAddress(
+			@Valid @RequestBody StudentBillingAddressRequest request) {
+		StudentBillingAddress address = studentService.updateOwnBillingAddress(request.addressLine(),
+				request.city());
+		return ResponseEntity
+			.ok(ApiResponse.success(new StudentBillingAddressResponse(address.addressLine(), address.city())));
+	}
+
+	/** STU-PROF-01: the caller's own tenant-configured "Additional details". */
+	@GetMapping("/me/profile")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<StudentProfileFieldsResponse>> getOwnProfileFields() {
+		return ResponseEntity.ok(ApiResponse.success(toFieldsResponse(studentProfileFieldsService.getOwnFields())));
+	}
+
+	@PutMapping("/me/profile")
+	@PreAuthorize("hasRole('STUDENT')")
+	public ResponseEntity<ApiResponse<StudentProfileFieldsResponse>> updateOwnProfileFields(
+			@Valid @RequestBody StudentProfileFieldsUpdateRequest request) {
+		return ResponseEntity.ok(ApiResponse
+			.success(toFieldsResponse(studentProfileFieldsService.updateOwnFields(request.values()))));
+	}
+
+	/** STU-PROF-01: staff view of a student's tenant-configured profile fields. */
+	@GetMapping("/{id}/profile-fields")
+	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	public ResponseEntity<ApiResponse<StudentProfileFieldsResponse>> getStudentProfileFields(@PathVariable UUID id) {
+		return ResponseEntity
+			.ok(ApiResponse.success(toFieldsResponse(studentProfileFieldsService.getStudentFields(id))));
+	}
+
+	@PutMapping("/{id}/profile-fields")
+	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<StudentProfileFieldsResponse>> updateStudentProfileFields(@PathVariable UUID id,
+			@Valid @RequestBody StudentProfileFieldsUpdateRequest request) {
+		return ResponseEntity.ok(ApiResponse
+			.success(toFieldsResponse(studentProfileFieldsService.updateStudentFields(id, request.values()))));
+	}
+
+	private static StudentProfileFieldsResponse toFieldsResponse(StudentProfileFieldsView view) {
+		List<StudentProfileFieldValueResponse> fields = view.fields()
+			.stream()
+			.map(value -> new StudentProfileFieldValueResponse(value.field().name(), value.field().label(),
+					value.field().group().name(), value.field().type().name(), value.field().maxLength(),
+					value.field().sensitive(), value.required(), value.value()))
+			.toList();
+		return new StudentProfileFieldsResponse(fields,
+				view.missingRequiredFields().stream().map(Enum::name).toList());
 	}
 
 	private static StudentResponse toResponse(StudentAccount account) {

@@ -1,20 +1,26 @@
 package com.lms.coursemanagement.course.service;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Mockito-only unit coverage for {@link CourseAccessGuard} - the combined
@@ -40,11 +47,16 @@ class CourseAccessGuardTest {
 	@Mock
 	private PermissionCheckService permissionCheckService;
 
+	@Mock
+	private EnrollmentAccessApi enrollmentAccessApi;
+
 	private CourseAccessGuard guard;
 
 	@BeforeEach
 	void setUp() {
-		guard = new CourseAccessGuard(permissionCheckService);
+		var accessPolicy = AccessPolicyTestDouble.backedBy(enrollmentAccessApi);
+		guard = new CourseAccessGuard(permissionCheckService, accessPolicy,
+				com.lms.enrollmentmanagement.support.LessonAccessTestDouble.backedBy(accessPolicy));
 	}
 
 	@AfterEach
@@ -114,9 +126,78 @@ class CourseAccessGuardTest {
 		verify(permissionCheckService).requirePermission(DomainArea.COURSES, PermissionAction.DELETE);
 	}
 
+	@Test
+	void activelyEnrolledStudentCanViewPrivateCourse() {
+		UUID studentId = UUID.randomUUID();
+		Course course = courseWithStatus(CourseStatus.PRIVATE);
+		asStudent(studentId);
+		when(enrollmentAccessApi.resolveAccessState(studentId, course.getId()))
+			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), Instant.now().plusSeconds(86_400)));
+
+		assertThatCode(() -> guard.requireCourseAccess(course, PermissionAction.VIEW)).doesNotThrowAnyException();
+		verifyNoInteractions(permissionCheckService);
+	}
+
+	@Test
+	void activelyEnrolledStudentCannotViewDraftCourse() {
+		UUID studentId = UUID.randomUUID();
+		Course course = courseWithStatus(CourseStatus.DRAFT);
+		asStudent(studentId);
+
+		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.VIEW))
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
+		verifyNoInteractions(enrollmentAccessApi);
+	}
+
+	@Test
+	void studentWithExpiredEnrollmentCannotViewPrivateCourse() {
+		UUID studentId = UUID.randomUUID();
+		Course course = courseWithStatus(CourseStatus.PRIVATE);
+		asStudent(studentId);
+		org.mockito.Mockito.lenient().when(enrollmentAccessApi.resolveAccessState(studentId, course.getId()))
+			.thenReturn(EnrollmentAccessState.expired(UUID.randomUUID(), Instant.now().minusSeconds(60), true));
+
+		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.VIEW))
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
+	}
+
+	@Test
+	void neverEnrolledStudentCannotViewPrivateCourse() {
+		UUID studentId = UUID.randomUUID();
+		Course course = courseWithStatus(CourseStatus.PRIVATE);
+		asStudent(studentId);
+		org.mockito.Mockito.lenient().when(enrollmentAccessApi.resolveAccessState(studentId, course.getId()))
+			.thenReturn(EnrollmentAccessState.neverEnrolled());
+
+		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.VIEW))
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
+	}
+
+	@Test
+	void activelyEnrolledStudentStillCannotEditTheCourse() {
+		UUID studentId = UUID.randomUUID();
+		Course course = courseWithStatus(CourseStatus.PRIVATE);
+		asStudent(studentId);
+
+		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.CREATE_EDIT))
+			.isInstanceOf(NotFoundException.class); // KLASS-T8b SEC L4: 404, never a 403 confirming existence
+		verifyNoInteractions(enrollmentAccessApi);
+	}
+
+	private static void asStudent(UUID studentId) {
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
+	}
+
 	private static Course courseOwnedBy(UUID teacherId) {
 		return new Course(TENANT_ID, teacherId, "Test Course", "test-course", "Math", null, null, null, null, null,
 				new BigDecimal("10.00"), null, null, CourseStatus.DRAFT);
+	}
+
+	private static Course courseWithStatus(CourseStatus status) {
+		Course course = new Course(TENANT_ID, UUID.randomUUID(), "Test Course", "test-course", "Math", null, null, null,
+				null, null, new BigDecimal("10.00"), null, null, status);
+		ReflectionTestUtils.setField(course, "id", UUID.randomUUID());
+		return course;
 	}
 
 }

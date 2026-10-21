@@ -413,3 +413,58 @@ and `POST /enrollments/{id}/revoke`'s second audit-log row all need.
 (`StudentLookupApi`, `StudentSummary`) — never a `user-management` repository or entity.
 See `docs/architecture/modular-monolith.md`'s Wave 3 worked example for the full
 cross-module edge picture introduced this wave.
+
+## Wave 10 — Access policy (ADR-022)
+
+`AccessPolicyApi` (in-process) is the single decision every content guard uses:
+entitlement + billing window (`enrollment.access_expires_at`) + manual extensions + grace
+period + course device limit. `effectiveExpiresAt = max(access_expires_at, newest extension)`;
+`accessEndsAt = effectiveExpiresAt + grace` (course grace if set, else tenant grace, default 0).
+`resolveAccessState` and every "currently enrolled" list (rosters, attendance, upcoming exams
+and classes) use the same window; `accessExpiresAt` in `EnrollmentAccessState` is now the
+effective (possibly extended) expiry.
+
+### Additive response fields
+
+- `GET /api/v1/courses/{courseId}/access-state` (student): `accessEndsAt`, `inGracePeriod`,
+  `deviceAuthorized` (false when this device is outside the course device limit).
+- `GET /api/v1/students/{id}/enrollments` (staff): `effectiveExpiresAt`, `accessEndsAt`,
+  `extended`, `accessActive`.
+
+### `GET /api/v1/access-policy` · `PUT /api/v1/access-policy`
+
+`ACCESS_EXPIRY` VIEW / CREATE_EDIT. Body `{ "gracePeriodDays": 0-90 }`; response
+`{ "gracePeriodDays": 3, "updatedAt": "..." }`. Audit `access_policy.updated` (before/after).
+
+### `GET /api/v1/access-policy/courses` · `PUT /api/v1/access-policy/courses/{courseId}`
+
+`ACCESS_EXPIRY` VIEW / CREATE_EDIT; changing `maxDevices` also needs `DEVICES` CREATE_EDIT.
+Body `{ "gracePeriodDays": 0-90 | null, "maxDevices": 1-20 | null }` — both null removes the
+override (response `data: null`). Response `{ courseId, courseName, gracePeriodDays,
+maxDevices, updatedAt }`. `404` for a course outside the tenant. Audit
+`course_access_policy.updated`.
+
+### `GET /api/v1/enrollments/{enrollmentId}/extensions` · `POST ...`
+
+`ACCESS_EXPIRY` VIEW / CREATE_EDIT (Tenant Admin). POST body
+`{ "newExpiresAt": "<ISO instant>", "reason": "..." }` → `201` `{ id, enrollmentId,
+previousExpiresAt, newExpiresAt, reason, grantedBy, grantedAt }`.
+
+Rules: the enrollment must be current (not revoked/superseded → `409`) and time-limited
+(lifetime → `409`); an expired one may be extended (product-owner decision D1);
+`newExpiresAt` must be after now and after the current effective expiry, and within 5 years
+(`400`). Extensions are append-only (DB trigger) and never change payments, ledger or the
+enrollment row. Audit `enrollment.access_extended` on the enrollment and the student profile.
+
+### Content errors
+
+- `403 DEVICE_NOT_AUTHORIZED` on materials, video, live classes, exams and course detail when
+  the enrollment is valid but this device is outside the course device limit (PUBLIC course
+  detail stays readable — it is storefront data).
+- Not enrolled / expired keep each domain's existing anti-enumeration `404`.
+- Material and video availability windows are evaluated by `AccessPolicyApi`
+  (`MATERIAL_NOT_YET_AVAILABLE`/`MATERIAL_EXPIRED`, video `POLICY_VIOLATION` - unchanged codes).
+
+## Klass parity additions (2026-10, ADR-028)
+
+The Klass course-management and free-enrollment/lesson-entitlement endpoints added on branch `feat/klass-course-enrollment-parity` are specified in `docs/plans/klass-enrollment-payment-parity.md` §4 (contract) with implemented behaviour in `docs/specs/klass-course-management-workflows.md` and `docs/specs/klass-enrollment-payment-workflows.md`. All changes are additive except the deliberate behaviour changes recorded there (D19, D22, D23, D24 and security fix L4: non-participant students receive 404 for non-PUBLIC courses).

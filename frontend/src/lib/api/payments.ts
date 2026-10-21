@@ -23,7 +23,8 @@ export type PaymentStatus = "PENDING" | "CONFIRMED" | "REJECTED" | "REFUNDED";
 export interface OrderResponse {
   id: string;
   studentId: string;
-  courseId: string;
+  /** `null` for a multi-course composer order (its courses are on the order lines). */
+  courseId: string | null;
   amount: number;
   currency: string;
   /** `null` for `ONE_TIME`/`FREE`/`CUSTOM` pricing — only `MONTHLY`/`SESSION` orders resolve a billing period (Wave 6). */
@@ -64,7 +65,14 @@ export interface PaymentInitiationResponse {
   orderId: string;
   status: "PENDING";
   gatewayReference: string;
-  redirectTarget: string;
+  redirectTarget: string | null;
+  /**
+   * PAY-GW-01: set for a form-POST gateway (PayHere). The fields are already
+   * signed by the backend; the frontend submits them unchanged and never
+   * computes a hash or amount itself. Both `null` otherwise.
+   */
+  formAction: string | null;
+  formFields: Record<string, string> | null;
 }
 
 /** Mirrors `PaymentResponse`. */

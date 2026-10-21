@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
@@ -19,11 +19,15 @@ import {
   useSubmitReactivationRequest,
   type ReactivationRequestResponse,
 } from "@/lib/api/enrollments";
+import {
+  LegacyEnrollmentCard,
+  useLegacyReactivationState,
+} from "@/components/courses/student/legacy-reactivation";
 
 /**
  * Confirm-and-submit panel for `enrollmentId` present in the URL
- * (`?enrollmentId=...`, linked from "My Courses"'s per-row Reactivate
- * action). `POST /api/v1/enrollments/{enrollmentId}/reactivation-requests`
+ * (`?enrollmentId=...`, linked from the Enrolled view's "Reactivate access"
+ * action and from this page's own expired-courses list). `POST /api/v1/enrollments/{enrollmentId}/reactivation-requests`
  * takes no request body — there is nothing here for React Hook Form/Zod to
  * validate, so this is a plain confirm button, not a form.
  *
@@ -187,7 +191,7 @@ function ReactivationHistory() {
         emptyState={{
           title: "You haven't requested reactivation for any course yet",
           description:
-            "Once your access to a course expires, you can request reactivation from My Courses.",
+            "Once your paid access to a course expires, you can request reactivation from the list above or from My Courses.",
         }}
       >
         {(data) => (
@@ -206,6 +210,69 @@ function ReactivationHistory() {
   );
 }
 
+/**
+ * Entry list shown when the page is opened without `?enrollmentId=` (sidebar
+ * "Reactivation", dashboard "Reactivate access"): the student's EXPIRED legacy
+ * (paid, ADR-013) enrollments, each linking to the submit panel. Free
+ * participation (ADR-028) never expires, so it never appears here. The CTA
+ * per row follows the same backend-derived rules as the catalog's Enrolled
+ * view (pending / approved-unfulfilled / requestable).
+ */
+function ExpiredEnrollmentsToRenew() {
+  const state = useLegacyReactivationState();
+  const { enrollmentsQuery, expiredRows } = state;
+
+  let body: ReactNode;
+  if (enrollmentsQuery.isPending) {
+    body = (
+      <p className="text-sm text-muted-foreground" aria-live="polite">
+        Loading your expired courses…
+      </p>
+    );
+  } else if (enrollmentsQuery.isError) {
+    body = (
+      <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        Couldn&apos;t load your expired courses.
+        <button
+          type="button"
+          onClick={() => enrollmentsQuery.refetch()}
+          className="font-medium text-foreground underline hover:no-underline"
+        >
+          Try again
+        </button>
+      </p>
+    );
+  } else if (expiredRows.length === 0) {
+    body = (
+      <p className="text-sm text-muted-foreground">
+        None of your courses currently need reactivation.
+      </p>
+    );
+  } else {
+    body = (
+      <ul aria-label="Courses with expired access" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {expiredRows.map((row) => (
+          <LegacyEnrollmentCard
+            key={row.enrollmentId}
+            row={row}
+            state={state}
+            reactivateText="Request reactivation"
+          />
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <section aria-labelledby="expired-enrollments-heading" className="flex flex-col gap-3" data-testid="reactivation-expired-list">
+      <h2 id="expired-enrollments-heading" className="text-base font-medium text-foreground">
+        Courses with expired access
+      </h2>
+      {body}
+    </section>
+  );
+}
+
 function ReactivationPageContent() {
   const searchParams = useSearchParams();
   const enrollmentId = searchParams.get("enrollmentId");
@@ -220,7 +287,11 @@ function ReactivationPageContent() {
         </p>
       </div>
 
-      {enrollmentId ? <SubmitReactivationPanel enrollmentId={enrollmentId} /> : null}
+      {enrollmentId ? (
+        <SubmitReactivationPanel enrollmentId={enrollmentId} />
+      ) : (
+        <ExpiredEnrollmentsToRenew />
+      )}
 
       <ReactivationHistory />
     </div>

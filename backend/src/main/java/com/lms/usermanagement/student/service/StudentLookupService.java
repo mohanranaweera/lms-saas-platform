@@ -2,6 +2,7 @@ package com.lms.usermanagement.student.service;
 
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
+import com.lms.usermanagement.api.StudentContact;
 import com.lms.usermanagement.api.StudentLookupApi;
 import com.lms.usermanagement.api.StudentSummary;
 import com.lms.usermanagement.student.domain.StudentProfile;
@@ -46,6 +47,47 @@ public class StudentLookupService implements StudentLookupApi {
 		// cross-tenant studentProfileId is structurally invisible here,
 		// resolving to empty, never a cross-tenant id leak.
 		return studentProfileRepository.findById(studentProfileId).map(StudentProfile::getUserId);
+	}
+
+	@Override
+	public Optional<StudentContact> findContact(UUID userId) {
+		return findContacts(List.of(userId)).stream().findFirst();
+	}
+
+	@Override
+	public List<StudentContact> findContacts(Collection<UUID> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return List.of();
+		}
+		List<StudentProfile> profiles = studentProfileRepository
+			.findAll((root, query, cb) -> root.get("userId").in(userIds));
+		Map<UUID, TenantUserSummary> summariesByUserId = userProvisioningApi
+			.findTenantUserSummaries(profiles.stream().map(StudentProfile::getUserId).toList())
+			.stream()
+			.collect(Collectors.toMap(TenantUserSummary::userId, Function.identity()));
+		return profiles.stream().map(profile -> {
+			TenantUserSummary summary = summariesByUserId.get(profile.getUserId());
+			return new StudentContact(profile.getUserId(), profile.getName(),
+					(summary != null) ? summary.email() : null, profile.getMobile(), profile.getAddressLine(),
+					profile.getCity(), profile.getWhatsappNumber(), (summary != null) ? summary.status() : null);
+		}).toList();
+	}
+
+	@Override
+	public List<StudentContact> findContactsByStudentIds(Collection<UUID> studentProfileIds) {
+		if (studentProfileIds == null || studentProfileIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> userIds = studentProfileRepository.findAllById(studentProfileIds)
+			.stream()
+			.map(StudentProfile::getUserId)
+			.toList();
+		return findContacts(userIds);
+	}
+
+	@Override
+	public List<UUID> listAllStudentUserIds() {
+		return studentProfileRepository.findAll().stream().map(StudentProfile::getUserId).toList();
 	}
 
 	@Override

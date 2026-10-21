@@ -110,111 +110,137 @@ async function mockCourseDetailRoute(
   });
 }
 
+/**
+ * R2 (G2/G3): the teacher edit page now uses the shared Klass
+ * `CourseEditDetailsForm` (ids `edit-course-*`): one form (no steps), no slug
+ * field (server-generated), and the teachers field is READ-ONLY for the
+ * teacher portal. The form reads Klass fields, the linkable-course list and
+ * tenant tags, so those are mocked too (an unmocked call would reach a running
+ * backend with the fake token).
+ */
+function klassCourseFixture() {
+  return {
+    ...courseFixture(),
+    teachers: [{ id: "teacher-1", name: "Teacher One", primary: true }],
+    tags: [{ id: "tag-1", name: "Biology" }],
+    linkedCourses: [] as { id: string; title: string }[],
+    priceDisplay: { amount: 49.99, currency: "USD", period: null },
+    enrollmentFee: "0.00",
+    paymentValidDays: 180,
+    commissionRate: null,
+    whatsappInviteUrl: null,
+    telegramInviteUrl: null,
+    coverImageUrl: null,
+    registrationEnabled: true,
+    displayOrder: null,
+    timezone: "Asia/Colombo",
+  };
+}
+
+async function mockEditFormReads(page: Page) {
+  await mockJson(page, "**/v1/course-tags", 200, apiSuccess([{ id: "tag-1", name: "Biology" }]));
+  await page.route("**/api/v1/courses?*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(apiSuccess({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 })),
+    });
+  });
+}
+
 test.describe("teacher course edit — successful save", () => {
-  test("loads the course pre-filled, saves across all three steps, shows the confirmation, and sends no teacherId/price/status", async ({
+  test("loads the course pre-filled, teachers read-only, no slug; saves and sends no teacher/slug/status, preserving hidden legacy fields", async ({
     page,
   }) => {
     await loginAsTeacher(page);
-    const course = courseFixture();
+    const course = klassCourseFixture();
     let patchBody: unknown = null;
-
-    await mockCourseDetailRoute(page, course, async (route, body) => {
-      patchBody = body;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(apiSuccess({ ...course, name: "Intro to Biology (Updated)" })),
-      });
+    await mockEditFormReads(page);
+    await page.route(`**/api/v1/courses/${course.id}`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        patchBody = route.request().postDataJSON();
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(apiSuccess({ ...course, name: "Intro to Biology (Updated)", description: "Updated." })),
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(course)) });
     });
 
     await page.goto(`/teacher/courses/${course.id}/edit`);
     await expect(page.getByRole("heading", { name: "Edit course" })).toBeVisible();
 
-    // Fields are pre-filled from the fetched course.
-    await expect(page.locator("#course-edit-name")).toHaveValue("Intro to Biology");
-    await expect(page.locator("#course-edit-slug")).toHaveValue("intro-to-biology");
+    // Pre-filled from the fetched course; the slug is never shown or editable.
+    await expect(page.getByTestId("edit-course-name")).toHaveValue("Intro to Biology");
+    await expect(page.locator('[id*="slug"], [data-testid*="slug"]')).toHaveCount(0);
+    await expect(page.getByText("intro-to-biology", { exact: true })).toHaveCount(0);
 
-    // No teacher-related control anywhere on this form.
-    await expect(page.getByLabel(/teacher/i)).toHaveCount(0);
+    // Teachers: read-only summary for a teacher; no picker, no primary radios.
+    await expect(page.getByTestId("edit-course-teachers-readonly")).toHaveValue(/Teacher One/);
+    await expect(page.getByTestId("edit-course-teachers")).toHaveCount(0);
+    await expect(page.getByTestId("edit-course-primary-teacher")).toHaveCount(0);
 
-    // --- Step 1: Basics ---
-    await page.locator("#course-edit-name").fill("Intro to Biology (Updated)");
-    await clickNext(page);
+    await page.getByTestId("edit-course-name").fill("Intro to Biology (Updated)");
+    const advanced = page.getByTestId("edit-course-toggle-advanced");
+    if ((await advanced.getAttribute("aria-expanded")) !== "true") await advanced.click();
+    await page.getByTestId("edit-course-description").fill("Updated.");
+    await page.getByTestId("edit-course-submit").click();
 
-    // --- Step 2: Classification ---
-    await expect(currentStepIndicator(page)).toContainText("Classification");
-    await page.locator("#course-edit-subject").fill("Life Sciences");
-    await clickNext(page);
-
-    // --- Step 3: Enrollment & access ---
-    await expect(currentStepIndicator(page)).toContainText("Enrollment & access");
-    await page.locator("#course-edit-enrollmentRule").fill("Open enrollment - waitlist available");
-
-    await page.getByRole("button", { name: "Save changes" }).click();
-
-    await expect(page.getByRole("status").filter({ hasText: "Course details saved." })).toBeVisible();
-
+    await expect(page.getByText("Course details saved.")).toBeVisible();
     expect(patchBody).toMatchObject({
       name: "Intro to Biology (Updated)",
-      slug: "intro-to-biology",
-      category: "Science",
-      subject: "Life Sciences",
+      description: "Updated.",
+      // Not shown in the form: sent back unchanged so the PATCH never wipes them.
+      subject: "Biology",
+      stream: null,
       grade: "Grade 9",
       academicYear: "2026",
-      description: "A beginner biology course.",
-      enrollmentRule: "Open enrollment - waitlist available",
-      accessDurationDays: 180,
+      enrollmentRule: "Open enrollment",
+      paymentValidDays: 180,
     });
-    // `CourseUpdateRequest` structurally excludes these — prove it holds at
-    // the network level too, not just in the type.
+    // A teacher can never change the teacher list, and slug/status are never sent.
     expect(patchBody).not.toHaveProperty("teacherId");
-    expect(patchBody).not.toHaveProperty("price");
+    expect(patchBody).not.toHaveProperty("teacherIds");
+    expect(patchBody).not.toHaveProperty("slug");
     expect(patchBody).not.toHaveProperty("status");
+    // Unchanged fee is not re-sent.
+    expect(patchBody).not.toHaveProperty("price");
   });
 });
 
-test.describe("teacher course edit — duplicate slug conflict", () => {
-  test("a 409 CONFLICT (no fieldErrors) on save returns to the Basics step and shows an inline slug error", async ({
+// Was "duplicate slug conflict" on edit: the slug is no longer user-editable
+// (server-generated), so the kept intent is that a 409 on save is surfaced in
+// the form, nothing claims success, and the edits are kept for a retry.
+test.describe("teacher course edit — server conflict", () => {
+  test("a 409 CONFLICT on save shows the form error, keeps the edits and never shows a saved confirmation", async ({
     page,
   }) => {
     await loginAsTeacher(page);
-    const course = courseFixture();
-    const conflictMessage = "This slug is already registered for another course in your tenant.";
-
-    await mockCourseDetailRoute(page, course, async (route) => {
-      await route.fulfill({
-        status: 409,
-        contentType: "application/json",
-        body: JSON.stringify(apiError("CONFLICT", conflictMessage)),
-      });
+    const course = klassCourseFixture();
+    const conflictMessage = "Another course in this institute already uses this name.";
+    await mockEditFormReads(page);
+    await page.route(`**/api/v1/courses/${course.id}`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 409,
+          contentType: "application/json",
+          body: JSON.stringify(apiError("CONFLICT", conflictMessage)),
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(course)) });
     });
 
     await page.goto(`/teacher/courses/${course.id}/edit`);
-    await expect(page.getByRole("heading", { name: "Edit course" })).toBeVisible();
+    await page.getByTestId("edit-course-name").fill("Duplicate Name");
+    await page.getByTestId("edit-course-submit").click();
 
-    await clickNext(page); // Basics -> Classification
-    await clickNext(page); // Classification -> Enrollment & access
-    await expect(currentStepIndicator(page)).toContainText("Enrollment & access");
-
-    await page.getByRole("button", { name: "Save changes" }).click();
-
-    // Jumped back to the Basics step, where `slug` lives.
-    await expect(currentStepIndicator(page)).toContainText("Basics");
-    await expect(page.getByRole("heading", { name: "Basics", exact: true })).toBeFocused();
-
-    const slugInput = page.locator("#course-edit-slug");
-    await expect(slugInput).toHaveAttribute("aria-invalid", "true");
-    const slugError = page.locator("#course-edit-slug-error");
-    await expect(slugError).toBeVisible();
-    await expect(slugError).toHaveText(conflictMessage);
-
-    // Exactly one alert within the app content — the inline field error —
-    // never the generic page-level ErrorState (the CONFLICT branch returns
-    // early without setting `pageError`). Scoped to `main` because the
-    // Next.js dev-mode issues overlay also renders its own unrelated
-    // `role="alert"` badge outside the app content in this environment.
-    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(1);
+    await expect(page.getByTestId("edit-course-form-error")).toContainText(conflictMessage);
     await expect(page.getByText("Course details saved.")).toHaveCount(0);
+    await expect(page.getByTestId("edit-course-name")).toHaveValue("Duplicate Name");
+    await expect(page.getByTestId("edit-course-submit")).toBeEnabled();
   });
 });
 

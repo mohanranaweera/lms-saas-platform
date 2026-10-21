@@ -5,7 +5,14 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import Link from "next/link";
 import { ArrowLeft, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canManageStudents } from "@/lib/auth/permissions";
+import {
+  canManageAccessPolicy,
+  canManageDevices,
+  canViewAccessPolicy,
+  canManageStudents,
+  canViewCommunications,
+  canViewDevices,
+} from "@/lib/auth/permissions";
 import { useStudent, type StudentResponse } from "@/lib/api/students";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { LoadingState } from "@/components/states/loading-state";
@@ -21,8 +28,21 @@ import { PaymentsTab } from "./payments-tab";
 import { AttendanceTab } from "./attendance-tab";
 import { ExamsTab } from "./exams-tab";
 import { StudentActivityTab } from "./activity-tab";
+import { DevicesTab } from "./devices-tab";
+import { NotificationsTab } from "./notifications-tab";
+import { WatchTimeTab } from "./watch-time-tab";
 
-const VALID_TABS = ["profile", "enrollments", "payments", "attendance", "exams", "activity"] as const;
+const VALID_TABS = [
+  "profile",
+  "enrollments",
+  "payments",
+  "attendance",
+  "exams",
+  "devices",
+  "watch-time",
+  "notifications",
+  "activity",
+] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 function isTabValue(value: string | null): value is TabValue {
@@ -34,9 +54,10 @@ function isTabValue(value: string | null): value is TabValue {
  * Enrollments / Payments / Attendance / Exams / Activity, each backed by its
  * own owning domain's client (never a student-specific duplicate — see
  * `lib/api/enrollments.ts`/`lib/api/ledger.ts`/`lib/api/attendance.ts`/
- * `lib/api/exams.ts`/`lib/api/audit-log.ts`). Device reset and generic
- * notification history are explicitly out of scope this wave (Wave 10/11) —
- * no tab/placeholder for either exists here, per
+ * `lib/api/exams.ts`/`lib/api/audit-log.ts`). Wave 10 adds the Devices tab
+ * (`lib/api/devices.ts`, `DEVICES`/`VIEW` roles only) and the Extend access
+ * action on Enrollments. Notification history stays out of scope (Wave 11) -
+ * no tab/placeholder for it exists here, per
  * `docs/parity/KLASS-PARITY-MASTER-INSTRUCTION.md` §34's "no placeholder-only
  * pages" rule.
  *
@@ -48,7 +69,15 @@ function StudentDetailPageContent() {
   const params = useParams<{ studentId: string }>();
   const studentId = params.studentId;
   const { session } = useAuth();
-  const canManage = canManageStudents(session?.role ?? null);
+  const role = session?.role ?? null;
+  const canManage = canManageStudents(role);
+  const access = {
+    viewDevices: canViewDevices(role),
+    manageDevices: canManageDevices(role),
+    viewCommunications: canViewCommunications(role),
+    extendAccess: canManageAccessPolicy(role),
+    viewWatchTime: canViewAccessPolicy(role),
+  };
 
   const studentQuery = useStudent(studentId);
 
@@ -93,6 +122,7 @@ function StudentDetailPageContent() {
           <StudentDetailBody
             student={student}
             canManage={canManage}
+            access={access}
             activeTab={activeTab}
             onTabChange={handleTabChange}
             enrollOpen={enrollOpen}
@@ -107,6 +137,7 @@ function StudentDetailPageContent() {
 function StudentDetailBody({
   student,
   canManage,
+  access,
   activeTab,
   onTabChange,
   enrollOpen,
@@ -114,6 +145,13 @@ function StudentDetailBody({
 }: {
   student: StudentResponse;
   canManage: boolean;
+  access: {
+    viewDevices: boolean;
+    manageDevices: boolean;
+    extendAccess: boolean;
+    viewCommunications: boolean;
+    viewWatchTime: boolean;
+  };
   activeTab: TabValue;
   onTabChange: (value: string) => void;
   enrollOpen: boolean;
@@ -138,11 +176,34 @@ function StudentDetailBody({
     {
       value: "enrollments",
       label: "Enrollments",
-      content: <EnrollmentsTab studentId={student.id} canManage={canManage} />,
+      content: <EnrollmentsTab studentId={student.id} canManage={canManage} canExtend={access.extendAccess} />,
     },
     { value: "payments", label: "Payments", content: <PaymentsTab studentId={student.id} /> },
     { value: "attendance", label: "Attendance", content: <AttendanceTab studentId={student.id} /> },
     { value: "exams", label: "Exams", content: <ExamsTab studentId={student.id} /> },
+    ...(access.viewDevices
+      ? [
+          {
+            value: "devices",
+            label: "Devices",
+            content: <DevicesTab studentId={student.id} canManage={access.manageDevices} />,
+          },
+        ]
+      : []),
+    // VIDEO Phase 12 - watch time per video and extra-time grants, ACCESS_EXPIRY/VIEW (grant: C/E).
+    ...(access.viewWatchTime
+      ? [
+          {
+            value: "watch-time",
+            label: "Watch time",
+            content: <WatchTimeTab studentId={student.id} canGrant={access.extendAccess} />,
+          },
+        ]
+      : []),
+    // Wave 11 (PAR-03-04) - broadcast delivery history, COMMUNICATIONS/VIEW.
+    ...(access.viewCommunications
+      ? [{ value: "notifications", label: "Notifications", content: <NotificationsTab studentId={student.id} /> }]
+      : []),
     { value: "activity", label: "Activity", content: <StudentActivityTab studentId={student.id} /> },
   ];
 

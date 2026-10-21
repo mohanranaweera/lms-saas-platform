@@ -8,7 +8,6 @@ import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.error.PayloadTooLargeException;
 import com.lms.common.error.UnsupportedMediaTypeException;
-import com.lms.common.money.PlatformCurrency;
 import com.lms.common.tenant.TenantContext;
 import com.lms.financeexpensemanagement.domain.Expense;
 import com.lms.financeexpensemanagement.domain.ExpenseCategory;
@@ -156,7 +155,7 @@ public class ExpenseService {
 		BigDecimal amount = normalizeAmount(command.amount());
 
 		Expense expense = new Expense(tenantId, category.getId(), command.expenseDate(),
-				command.description().trim(), amount, PlatformCurrency.DEFAULT_CURRENCY, command.method(),
+				command.description().trim(), amount, periodResolver.tenantCurrency(), command.method(),
 				blankToNull(command.reference()), actorId);
 
 		// Upload gate runs BEFORE any storage/DB write; a rejected file never

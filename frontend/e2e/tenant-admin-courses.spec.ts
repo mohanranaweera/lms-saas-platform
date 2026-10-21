@@ -8,6 +8,7 @@ import {
   mockJson,
   refreshResponseBody,
 } from "./fixtures/auth-mocks";
+import { openCourseActions } from "./fixtures/klass/course-row-menu";
 
 /**
  * Tenant Admin course list (`/tenant-admin/courses`) and course workspace
@@ -19,7 +20,7 @@ import {
  * `/api/v1/courses/**` directly.
  */
 
-const COURSES = [
+const BASE_COURSES = [
   {
     id: "11111111-1111-1111-1111-111111111111",
     teacherId: "aaaaaaaa-1111-2222-3333-444444444444",
@@ -62,6 +63,40 @@ const COURSES = [
   },
 ];
 
+const SECOND_TEACHER_USER_ID = "cccccccc-1111-2222-3333-444444444444";
+
+/** Teacher picker options (`GET /v1/teachers`): the two course owners plus a second active teacher. */
+const TEACHERS = [
+  { id: "teacher-row-a", userId: "aaaaaaaa-1111-2222-3333-444444444444", name: "Teacher Alpha", approvalStatus: "APPROVED", accountStatus: "ACTIVE" },
+  { id: "teacher-row-b", userId: "bbbbbbbb-1111-2222-3333-444444444444", name: "Teacher Bravo", approvalStatus: "APPROVED", accountStatus: "ACTIVE" },
+  { id: "teacher-row-c", userId: SECOND_TEACHER_USER_ID, name: "Teacher Charlie", approvalStatus: "APPROVED", accountStatus: "ACTIVE" },
+];
+
+/** R2: the Klass course edit form reads these `CourseResponse` fields (plan §4.1). */
+function withKlassFields<T extends { teacherId: string; price: number; pricingModel: string; accessDurationDays: number | null }>(
+  course: T
+) {
+  const owner = TEACHERS.find((teacher) => teacher.userId === course.teacherId);
+  return {
+    ...course,
+    teachers: [{ id: course.teacherId, name: owner?.name ?? "Teacher", primary: true }],
+    tags: [] as { id: string; name: string }[],
+    linkedCourses: [] as { id: string; title: string }[],
+    priceDisplay: { amount: course.price, currency: "USD", period: null },
+    enrollmentFee: "0.00",
+    paymentValidDays: course.accessDurationDays,
+    commissionRate: null,
+    whatsappInviteUrl: null,
+    telegramInviteUrl: null,
+    coverImageUrl: null,
+    registrationEnabled: true,
+    displayOrder: null,
+    timezone: "Asia/Colombo",
+  };
+}
+
+const COURSES = BASE_COURSES.map(withKlassFields);
+
 async function loginAsTenantAdmin(page: Page) {
   const token = fakeJwt({ role: "TENANT_ADMIN" });
   await mockJson(page, "**/v1/auth/login", 200, apiSuccess(loginResponseBody(token)));
@@ -79,6 +114,9 @@ async function loginAsTenantAdmin(page: Page) {
   await mockJson(page, "**/v1/students", 200, apiSuccess([]));
   await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([]));
   await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
+  // R2: the course edit form reads the teacher picker options and tenant tags.
+  await mockJson(page, "**/v1/teachers", 200, apiSuccess(TEACHERS));
+  await mockJson(page, "**/v1/course-tags", 200, apiSuccess([]));
   await page.goto("/login");
   await page.getByLabel("Email").fill("admin@example.com");
   await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple");
@@ -98,32 +136,33 @@ async function loginAsTenantAdmin(page: Page) {
 async function gotoCourseDetail(page: Page, course: { id: string; name: string }) {
   await page.getByRole("link", { name: "Courses" }).click();
   await expect(page).toHaveURL(/\/tenant-admin\/courses$/);
-  await page
-    .getByRole("row")
-    .filter({ hasText: course.name })
-    .getByRole("link", { name: "View" })
-    .click();
+  // R2 (G5): row actions live in the "Actions for <name>" overflow menu.
+  const menu = await openCourseActions(page, page.getByTestId("course-row").filter({ hasText: course.name }));
+  await menu.getByTestId("course-action-edit").click();
   await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${course.id}$`));
 }
 
 /** Navigates from the (already-open) course workspace to a given tab. */
 async function gotoTab(page: Page, tabLabel: string) {
-  await page.getByRole("navigation", { name: "Course sections" }).getByRole("link", { name: tabLabel }).click();
+  await page.getByRole("navigation", { name: "Course sections" }).getByRole("link", { name: tabLabel, exact: true }).click();
 }
 
 test.describe("tenant admin course list — empty state", () => {
-  test("shows a tenant-admin-specific empty state with a New course CTA", async ({ page }) => {
+  test("shows a tenant-admin-specific empty state with an Add course CTA", async ({ page }) => {
     await loginAsTenantAdmin(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([]));
 
     await page.getByRole("link", { name: "Courses" }).click();
     await expect(page).toHaveURL(/\/tenant-admin\/courses$/);
 
-    await expect(page.getByText("No active courses in this tenant yet")).toBeVisible();
+    // KLASS (CM-A01): new contextual copy for the Active tab's zero-data state.
+    const empty = page.getByTestId("courses-empty");
+    await expect(empty.getByText("No active courses yet")).toBeVisible();
     // Must not reuse the Teacher "My Courses" empty-state copy.
     await expect(page.getByText("No assigned courses yet")).toHaveCount(0);
-    // Wave 2 (PAR-05-02): Tenant Admin now has a real create-course screen.
-    await expect(page.getByRole("link", { name: "New course" }).first()).toBeVisible();
+    // The create CTA is now the in-page "Add course" modal trigger (EP-C01),
+    // not a link to a separate create screen.
+    await expect(empty.getByRole("button", { name: "Add course" })).toBeVisible();
   });
 });
 
@@ -142,46 +181,68 @@ test.describe("tenant admin course list — content and filters", () => {
     await expect(table.getByText("Advanced Calculus")).toBeVisible();
   });
 
-  test("filtering by teacher ID narrows the list, and a distinct filtered-empty state appears for no matches", async ({
+  // KLASS (CM-A01 / plan §4.1): the client-side "Teacher ID" filter was
+  // replaced by server-side search (title or teacher name). The intent kept:
+  // the narrowing is real (it is sent to the server), and a no-match search
+  // shows a distinct filtered-empty state with a clear action.
+  test("search narrows the list server-side, and a distinct filtered-empty state appears for no matches", async ({
     page,
   }) => {
     await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
+    const searches: string[] = [];
+    await page.route("**/v1/courses*", async (route) => {
+      const url = new URL(route.request().url());
+      const search = (url.searchParams.get("search") ?? "").toLowerCase();
+      if (search) searches.push(search);
+      const rows = search ? COURSES.filter((c) => c.name.toLowerCase().includes(search)) : COURSES;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiPageSuccess(rows)) });
+    });
 
     await page.getByRole("link", { name: "Courses" }).click();
     const table = page.getByRole("table");
     await expect(table).toBeVisible();
 
-    await page.getByLabel("Teacher ID").fill("aaaaaaaa");
+    await page.getByLabel("Search courses").fill("biology");
     await expect(table.getByText("Intro to Biology")).toBeVisible();
     await expect(table.getByText("Advanced Calculus")).toHaveCount(0);
+    expect(searches).toContain("biology");
 
-    await page.getByLabel("Teacher ID").fill("no-such-teacher");
-    await expect(page.getByText("No courses match your filters")).toBeVisible();
+    await page.getByLabel("Search courses").fill("no-such-course");
+    await expect(page.getByText("No courses match “no-such-course”")).toBeVisible();
     // Distinct from the true zero-data empty state.
-    await expect(page.getByText("No active courses in this tenant yet")).toHaveCount(0);
+    await expect(page.getByText("No active courses yet")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.getByRole("button", { name: "Clear search" }).click();
     await expect(table.getByText("Intro to Biology")).toBeVisible();
     await expect(table.getByText("Advanced Calculus")).toBeVisible();
   });
 
-  test("filtering by status narrows the list", async ({ page }) => {
+  // KLASS (CM-A01): the status dropdown was replaced by Active / Archived tabs.
+  test("the Active and Archived tabs request archived=false / archived=true", async ({ page }) => {
     await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
+    const archivedParams: string[] = [];
+    const archivedCourse = { ...COURSES[1], archivedAt: "2026-02-01T00:00:00Z" };
+    await page.route("**/v1/courses*", async (route) => {
+      const url = new URL(route.request().url());
+      if (!url.pathname.endsWith("/v1/courses")) return route.fallback();
+      const archived = url.searchParams.get("archived") ?? "";
+      archivedParams.push(archived);
+      const rows: unknown[] = archived === "true" ? [archivedCourse] : [COURSES[0]];
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiPageSuccess(rows)) });
+    });
 
     await page.getByRole("link", { name: "Courses" }).click();
-    const table = page.getByRole("table");
-    await expect(table).toBeVisible();
+    await expect(page.getByRole("table").getByText("Intro to Biology")).toBeVisible();
+    expect(archivedParams).toContain("false");
 
-    await page.getByLabel("Status").click();
-    await page.getByRole("option", { name: "Draft" }).click();
-
-    await expect(table.getByText("Advanced Calculus")).toBeVisible();
-    await expect(table.getByText("Intro to Biology")).toHaveCount(0);
+    await page.getByRole("tab", { name: "Archived" }).click();
+    await expect(page.getByRole("table").getByText("Advanced Calculus")).toBeVisible();
+    await expect(page.getByRole("table").getByText("Intro to Biology")).toHaveCount(0);
+    await expect(page.getByTestId("courses-registration-archived-note")).toBeVisible();
+    expect(archivedParams).toContain("true");
   });
 
-  test("each row's View action links to the tenant admin course workspace's Overview tab", async ({ page }) => {
+  test("each row's Edit action links to the tenant admin course workspace's Overview tab", async ({ page }) => {
     await loginAsTenantAdmin(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
     await mockJson(page, `**/v1/courses/${COURSES[0].id}`, 200, apiSuccess(COURSES[0]));
@@ -189,44 +250,20 @@ test.describe("tenant admin course list — content and filters", () => {
     await page.getByRole("link", { name: "Courses" }).click();
     await expect(page.getByRole("table")).toBeVisible();
 
-    const row = page.getByRole("row").filter({ hasText: "Intro to Biology" });
-    await row.getByRole("link", { name: "View" }).click();
+    const row = page.getByTestId("course-row").filter({ hasText: "Intro to Biology" });
+    const menu = await openCourseActions(page, row);
+    await expect(menu.getByTestId("course-action-schedule")).toHaveAttribute(
+      "href",
+      `/tenant-admin/courses/${COURSES[0].id}/sessions`
+    );
+    await expect(menu.getByTestId("course-action-roster")).toHaveAttribute(
+      "href",
+      `/tenant-admin/courses/${COURSES[0].id}/roster`
+    );
+    await menu.getByTestId("course-action-edit").click();
 
     await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${COURSES[0].id}$`));
     await expect(page.getByRole("heading", { name: "Intro to Biology" })).toBeVisible();
-  });
-
-  test("Show archived courses toggles includeArchived on the list request", async ({ page }) => {
-    await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-
-    await page.getByRole("link", { name: "Courses" }).click();
-    await expect(page.getByRole("table")).toBeVisible();
-
-    const archivedCourse = { ...COURSES[1], archivedAt: "2026-02-01T00:00:00Z" };
-    let sawIncludeArchivedTrue = false;
-    await page.route("**/v1/courses*", async (route) => {
-      const url = new URL(route.request().url());
-      if (url.searchParams.get("includeArchived") === "true") {
-        sawIncludeArchivedTrue = true;
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(apiPageSuccess([COURSES[0], archivedCourse])),
-        });
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(apiPageSuccess([COURSES[0]])),
-      });
-    });
-
-    await page.getByLabel("Show archived courses").check();
-    expect(sawIncludeArchivedTrue).toBe(true);
-    await expect(page.getByRole("table").getByText("Advanced Calculus")).toBeVisible();
-    await expect(page.getByRole("table").getByText("Archived")).toBeVisible();
   });
 });
 
@@ -259,10 +296,15 @@ test.describe("tenant admin course workspace — Overview tab", () => {
     await gotoCourseDetail(page, course);
 
     await expect(page.getByRole("heading", { name: course.name })).toBeVisible();
-    await expect(page.getByLabel("Course name")).toHaveValue(course.name);
+    // R2 (G3): Overview hosts the Klass-style edit form; no slug anywhere (server-generated).
+    await expect(page.getByTestId("edit-course-name")).toHaveValue(course.name);
+    await expect(page.getByTestId("edit-course-enrollment-fee")).toBeVisible();
+    await expect(page.getByText(course.slug, { exact: true })).toHaveCount(0);
+    await expect(page.locator('[id*="slug"], [data-testid*="slug"]')).toHaveCount(0);
     const nav = page.getByRole("navigation", { name: "Course sections" });
     await expect(nav.getByRole("link", { name: "Overview" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Fees & Billing" })).toBeVisible();
+    // R2-D5: the Fees & Billing tab was removed.
+    await expect(nav.getByRole("link", { name: "Fees & Billing" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Settings" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Access" })).toBeVisible();
 
@@ -277,8 +319,8 @@ test.describe("tenant admin course workspace — placeholder tabs", () => {
   test("Schedule/Recordings/Analytics are visible, clickable, and show an honest not-yet-available state", async ({
     page,
   }) => {
-    // Sessions is no longer a placeholder as of Wave 4 (PAR-19-03/live-class-
-    // management) — see the dedicated "Sessions tab (Wave 4)" describe block
+    // Live classes is no longer a placeholder as of Wave 4 (PAR-19-03/live-class-
+    // management) — see the dedicated "Live classes tab (Wave 4)" describe block
     // below for its real-content coverage.
     const course = COURSES[0];
     await loginAsTenantAdmin(page);
@@ -299,7 +341,7 @@ test.describe("tenant admin course workspace — placeholder tabs", () => {
   });
 });
 
-test.describe("tenant admin course workspace — Sessions tab (Wave 4)", () => {
+test.describe("tenant admin course workspace — Live classes tab (Wave 4)", () => {
   test("lists this course's live class sessions, scoped via courseId, with an empty state when none exist", async ({
     page,
   }) => {
@@ -310,7 +352,7 @@ test.describe("tenant admin course workspace — Sessions tab (Wave 4)", () => {
     await mockJson(page, "**/v1/class-sessions*", 200, apiSuccess([]));
     await gotoCourseDetail(page, course);
 
-    await gotoTab(page, "Sessions");
+    await gotoTab(page, "Live classes");
     await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${course.id}/sessions$`));
     await expect(page.getByText("No live class sessions for this course yet")).toBeVisible();
   });
@@ -357,7 +399,7 @@ test.describe("tenant admin course workspace — Access tab", () => {
 });
 
 test.describe("tenant admin course workspace — Settings tab", () => {
-  test("renders visibility/archive/clone/reassign/delete and publishing flips status", async ({ page }) => {
+  test("renders visibility/archive/clone/delete (no UUID reassign form) and publishing flips status", async ({ page }) => {
     const course = COURSES[1]; // Advanced Calculus, starts DRAFT
     await loginAsTenantAdmin(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
@@ -367,7 +409,9 @@ test.describe("tenant admin course workspace — Settings tab", () => {
 
     await expect(page.getByRole("heading", { name: "Visibility" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Archive course" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Reassign teacher" })).toBeVisible();
+    // R2 (G2): teachers are assigned with the multi-select on Overview; the UUID form is gone.
+    await expect(page.getByRole("heading", { name: "Reassign teacher" })).toHaveCount(0);
+    await expect(page.getByLabel("New teacher ID (UUID)")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Clone course" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Delete course" })).toBeVisible();
 
@@ -410,31 +454,60 @@ test.describe("tenant admin course workspace — Settings tab", () => {
     await expect(page.getByText("This course is archived", { exact: false })).toBeVisible();
   });
 
-  test("teacher reassignment sends the exact request body and shows the confirmation", async ({ page }) => {
+  // R2 (G2): replaces the UUID "Reassign teacher" form. Teachers are picked
+  // with the multi-select on Overview and the primary chosen with a radio; the
+  // PATCH carries `teacherIds` (primary first) and preserves the hidden legacy
+  // fields (a PATCH with `name` replaces them).
+  test("teacher multi-select: add a second teacher and make them primary — exact PATCH body, legacy fields preserved", async ({
+    page,
+  }) => {
     const course = COURSES[0];
-    const newTeacherId = "99999999-9999-9999-9999-999999999999";
     await loginAsTenantAdmin(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Settings");
-
-    let capturedBody: unknown = null;
-    await page.route(`**/v1/courses/${course.id}/teacher`, async (route) => {
-      capturedBody = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(apiSuccess({ ...course, teacherId: newTeacherId })),
-      });
+    let patchBody: Record<string, unknown> | null = null;
+    await page.route(`**/api/v1/courses/${course.id}`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        patchBody = route.request().postDataJSON();
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(
+            apiSuccess({
+              ...course,
+              teacherId: SECOND_TEACHER_USER_ID,
+              teachers: [
+                { id: SECOND_TEACHER_USER_ID, name: "Teacher Charlie", primary: true },
+                { id: course.teacherId, name: "Teacher Alpha", primary: false },
+              ],
+            })
+          ),
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(course)) });
     });
+    await gotoCourseDetail(page, course);
 
-    await page.getByLabel("New teacher ID (UUID)").fill(newTeacherId);
-    await page.getByRole("button", { name: "Reassign" }).click();
+    const teachers = page.getByTestId("edit-course-teachers");
+    await teachers.getByRole("button").first().click();
+    await teachers.getByRole("checkbox", { name: "Teacher Charlie" }).check();
+    const primary = page.getByTestId("edit-course-primary-teacher");
+    await expect(primary.getByTestId("edit-course-primary-teacher-option")).toHaveCount(2);
+    await primary.getByRole("radio", { name: "Teacher Charlie" }).check();
+    await page.getByTestId("edit-course-submit").click();
 
-    await expect(page.getByText("Teacher reassigned.")).toBeVisible();
-    expect(capturedBody).toEqual({ teacherId: newTeacherId });
-    await expect(page.getByText(newTeacherId, { exact: false })).toBeVisible();
+    await expect(page.getByText("Course details saved.")).toBeVisible();
+    expect(patchBody).toMatchObject({
+      name: course.name,
+      teacherIds: [SECOND_TEACHER_USER_ID, course.teacherId],
+      subject: course.subject,
+      stream: course.stream,
+      grade: course.grade,
+      academicYear: course.academicYear,
+      enrollmentRule: course.enrollmentRule,
+    });
+    expect(patchBody).not.toHaveProperty("slug");
+    expect(patchBody).not.toHaveProperty("teacherId");
   });
 
   test("cloning a course navigates to the new course's workspace", async ({ page }) => {
@@ -507,287 +580,61 @@ test.describe("tenant admin course workspace — Settings tab", () => {
   });
 });
 
-test.describe("tenant admin course workspace — Fees & Billing tab", () => {
-  test("ONE_TIME: submitting a new price sends the exact request body and shows the confirmation", async ({
+// R2-D5: the "Fees & Billing" tab (pricing-model / billing-configuration /
+// billing-period UI) was removed. The fee is edited in the Overview edit form
+// (a monthly fee change still records billing-period history server-side —
+// covered by backend tests), and the old /billing route redirects to Overview.
+test.describe("tenant admin course workspace — fee editing (former Fees & Billing tab)", () => {
+  test("ONE_TIME: changing the course fee in the edit form sends only the new price (plus preserved legacy fields)", async ({
     page,
   }) => {
     const course = COURSES[0];
     await loginAsTenantAdmin(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
-
-    await expect(page.getByRole("heading", { name: "Change price" })).toBeVisible();
-
-    let capturedBody: unknown = null;
-    await page.route(`**/v1/courses/${course.id}/price`, async (route) => {
-      capturedBody = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(apiSuccess({ ...course, price: 129.99 })),
-      });
-    });
-
-    await page.getByLabel("New price").fill("129.99");
-    await page.getByRole("button", { name: "Save price" }).click();
-
-    await expect(page.getByText("Price updated.")).toBeVisible();
-    expect(capturedBody).toEqual({ price: 129.99 });
-  });
-
-  test("changing the pricing model calls PATCH .../pricing-model with the selected value", async ({ page }) => {
-    const course = COURSES[0];
-    await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
-
-    let capturedBody: unknown = null;
-    await page.route(`**/v1/courses/${course.id}/pricing-model`, async (route) => {
-      capturedBody = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(apiSuccess({ ...course, pricingModel: "FREE" })),
-      });
-    });
-
-    await page.locator(`#pricing-model-${course.id}-pricingModel`).click();
-    await page.getByRole("option", { name: "Free" }).click();
-    await page.getByRole("button", { name: "Save pricing model" }).click();
-
-    await expect(page.getByText("Pricing model updated.")).toBeVisible();
-    expect(capturedBody).toEqual({ pricingModel: "FREE" });
-  });
-
-  test("FREE course shows a no-fee-configuration notice, never a form", async ({ page }) => {
-    const course = { ...COURSES[0], pricingModel: "FREE" as const };
-    await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
-
-    await expect(page.getByText("This course is free — no fee configuration needed.")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Change price" })).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Billing configuration" })).toHaveCount(0);
-  });
-
-  test("MONTHLY course with no billing configuration yet shows the create form, then the period history after creating one", async ({
-    page,
-  }) => {
-    const course = { ...COURSES[0], pricingModel: "MONTHLY" as const };
-    await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await mockJson(
-      page,
-      `**/v1/courses/${course.id}/billing-configuration`,
-      404,
-      apiError("NOT_FOUND", "Course billing configuration not found")
-    );
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
-
-    await expect(
-      page.getByText("This course has no billing configuration yet", { exact: false })
-    ).toBeVisible();
-    // SESSION-only field must not render for MONTHLY.
-    await expect(page.getByLabel("Session rate")).toHaveCount(0);
-
-    let capturedBody: unknown = null;
-    await page.route(`**/api/v1/courses/${course.id}/billing-configuration`, async (route) => {
-      if (route.request().method() === "POST") {
-        capturedBody = route.request().postDataJSON();
+    let patchBody: Record<string, unknown> | null = null;
+    await page.route(`**/api/v1/courses/${course.id}`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        patchBody = route.request().postDataJSON();
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify(
-            apiSuccess({
-              id: "cfg-1",
-              courseId: course.id,
-              sessionRate: null,
-              currency: "USD",
-              requiresManualQuote: false,
-              createdAt: "2026-03-01T00:00:00Z",
-              updatedAt: "2026-03-01T00:00:00Z",
-            })
-          ),
+          body: JSON.stringify(apiSuccess({ ...course, price: 59.99, priceDisplay: { amount: 59.99, currency: "USD", period: null } })),
         });
         return;
       }
-      await route.fallback();
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(course)) });
     });
+    await gotoCourseDetail(page, course);
 
-    await page.getByLabel("Currency").fill("USD");
-    await page.getByRole("button", { name: "Create billing configuration" }).click();
+    const price = page.getByTestId("edit-course-price");
+    await expect(price).toHaveValue(/49\.99/);
+    await price.fill("59.99");
+    await page.getByTestId("edit-course-submit").click();
 
-    await expect(page.getByText("Billing configuration saved.")).toBeVisible();
-    expect(capturedBody).toEqual({ sessionRate: undefined, currency: "USD", requiresManualQuote: false });
+    await expect(page.getByText("Course details saved.")).toBeVisible();
+    expect(patchBody).toMatchObject({ name: course.name, price: "59.99", subject: course.subject, grade: course.grade });
+    // Unchanged payment type is not re-sent; teachers untouched are not re-sent.
+    expect(patchBody).not.toHaveProperty("pricingModel");
+    expect(patchBody).not.toHaveProperty("teacherIds");
+    expect(patchBody).not.toHaveProperty("slug");
   });
 
-  test("SESSION course's billing configuration form includes a Session rate field", async ({ page }) => {
-    const course = { ...COURSES[0], pricingModel: "SESSION" as const };
-    await loginAsTenantAdmin(page);
+  test("the old /billing route redirects to the course Overview and no Fees & Billing tab is offered", async ({ page }) => {
+    const course = COURSES[0];
+    await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(fakeJwt({ role: "TENANT_ADMIN" }))));
+    await mockJson(page, "**/v1/teachers", 200, apiSuccess(TEACHERS));
+    await mockJson(page, "**/v1/course-tags", 200, apiSuccess([]));
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
     await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await mockJson(
-      page,
-      `**/v1/courses/${course.id}/billing-configuration`,
-      200,
-      apiSuccess({
-        id: "cfg-2",
-        courseId: course.id,
-        sessionRate: 15,
-        currency: "USD",
-        requiresManualQuote: false,
-        createdAt: "2026-03-01T00:00:00Z",
-        updatedAt: "2026-03-01T00:00:00Z",
-      })
-    );
-    await mockJson(page, `**/v1/courses/${course.id}/billing-periods*`, 200, apiPageSuccess([]));
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
 
-    await expect(page.getByLabel("Session rate")).toHaveValue("15");
-  });
+    await page.goto(`/tenant-admin/courses/${course.id}/billing`);
 
-  test("CUSTOM course shows the manual/staff-checkout notice and the requires-manual-quote checkbox", async ({
-    page,
-  }) => {
-    const course = { ...COURSES[0], pricingModel: "CUSTOM" as const };
-    await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await mockJson(
-      page,
-      `**/v1/courses/${course.id}/billing-configuration`,
-      404,
-      apiError("NOT_FOUND", "Course billing configuration not found")
-    );
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
-
-    await expect(
-      page.getByText("Checkout is completed through a manual/staff process instead.", { exact: false })
-    ).toBeVisible();
-    await expect(page.getByLabel(/Requires a manual quote/)).toBeVisible();
-  });
-
-  test("adding a billing period shows the non-retroactive note and posts the exact request body", async ({
-    page,
-  }) => {
-    const course = { ...COURSES[0], pricingModel: "MONTHLY" as const };
-    await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await mockJson(
-      page,
-      `**/v1/courses/${course.id}/billing-configuration`,
-      200,
-      apiSuccess({
-        id: "cfg-3",
-        courseId: course.id,
-        sessionRate: null,
-        currency: "USD",
-        requiresManualQuote: false,
-        createdAt: "2026-03-01T00:00:00Z",
-        updatedAt: "2026-03-01T00:00:00Z",
-      })
-    );
-    const existingPeriod = {
-      id: "period-1",
-      billingConfigurationId: "cfg-3",
-      amount: 20,
-      currency: "USD",
-      effectiveFrom: "2026-02-01T00:00:00Z",
-      effectiveTo: null,
-      createdAt: "2026-02-01T00:00:00Z",
-    };
-    await mockJson(page, `**/v1/courses/${course.id}/billing-periods*`, 200, apiPageSuccess([existingPeriod]));
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
-
-    await expect(
-      page.getByText("does not retroactively change any past period or any payment already made", {
-        exact: false,
-      })
-    ).toBeVisible();
-
-    let capturedBody: unknown = null;
-    await page.route(`**/api/v1/courses/${course.id}/billing-periods`, async (route) => {
-      if (route.request().method() === "POST") {
-        capturedBody = route.request().postDataJSON();
-        await route.fulfill({
-          status: 201,
-          contentType: "application/json",
-          body: JSON.stringify(
-            apiSuccess({
-              id: "period-2",
-              billingConfigurationId: "cfg-3",
-              amount: 25,
-              currency: "USD",
-              effectiveFrom: "2026-03-01T00:00:00Z",
-              effectiveTo: null,
-              createdAt: "2026-03-01T00:00:00Z",
-            })
-          ),
-        });
-        return;
-      }
-      await route.fallback();
-    });
-
-    await page.locator(`#billing-period-${course.id}-amount`).fill("25");
-    await page.locator(`#billing-period-${course.id}-currency`).fill("USD");
-    await page.getByRole("button", { name: "Add period", exact: true }).click();
-
-    await expect(page.getByText("Billing period added.")).toBeVisible();
-    expect(capturedBody).toMatchObject({ amount: 25, currency: "USD" });
-  });
-
-  test("a 409 when adding an out-of-order billing period surfaces the backend's error message", async ({
-    page,
-  }) => {
-    const course = { ...COURSES[0], pricingModel: "MONTHLY" as const };
-    await loginAsTenantAdmin(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
-    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
-    await mockJson(
-      page,
-      `**/v1/courses/${course.id}/billing-configuration`,
-      200,
-      apiSuccess({
-        id: "cfg-4",
-        courseId: course.id,
-        sessionRate: null,
-        currency: "USD",
-        requiresManualQuote: false,
-        createdAt: "2026-03-01T00:00:00Z",
-        updatedAt: "2026-03-01T00:00:00Z",
-      })
-    );
-    await mockJson(page, `**/v1/courses/${course.id}/billing-periods*`, 200, apiPageSuccess([]));
-    await gotoCourseDetail(page, course);
-    await gotoTab(page, "Fees & Billing");
-
-    await mockJson(
-      page,
-      `**/v1/courses/${course.id}/billing-periods`,
-      409,
-      apiError("CONFLICT", "A current billing period already exists for this course")
-    );
-
-    await page.locator(`#billing-period-${course.id}-amount`).fill("25");
-    await page.locator(`#billing-period-${course.id}-currency`).fill("USD");
-    await page.getByRole("button", { name: "Add period", exact: true }).click();
-
-    await expect(
-      page.getByRole("alert").filter({ hasText: "A current billing period already exists for this course" })
-    ).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${course.id}$`));
+    await expect(page.getByTestId("edit-course-name")).toHaveValue(course.name);
+    const nav = page.getByRole("navigation", { name: "Course sections" });
+    await expect(nav.getByRole("link", { name: "Fees & Billing" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Change price" })).toHaveCount(0);
+    await expect(page.getByLabel("Pricing model")).toHaveCount(0);
   });
 });
 
@@ -820,7 +667,7 @@ test.describe("tenant admin course workspace — permission denied", () => {
 });
 
 test.describe("tenant admin course workspace — role gating (Teacher viewing their own course)", () => {
-  test("a Teacher who directly navigates to a course they own sees edit/visibility/price controls but not the admin-only reassign/delete controls", async ({
+  test("a Teacher who directly navigates to a course they own sees edit/visibility/price controls but not the admin-only teacher-assignment/delete controls", async ({
     page,
   }) => {
     const course = { ...COURSES[0], teacherId: "user-1" }; // fakeJwt's default `sub`
@@ -831,6 +678,10 @@ test.describe("tenant admin course workspace — role gating (Teacher viewing th
     // Tenant-Admin-scoped — simulating the real backend behavior this page's
     // `isTenantAdmin` gate exists to compensate for in the UI.
     await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
+    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([course]));
+    await mockJson(page, "**/v1/course-tags", 200, apiSuccess([]));
+    // A teacher may not list the institute's teachers (server 403).
+    await mockJson(page, "**/v1/teachers", 403, apiError("FORBIDDEN", "You do not have permission."));
 
     // No client-side link from Teacher UI reaches this Tenant Admin route —
     // direct navigation is the realistic way a Teacher would end up here
@@ -842,7 +693,13 @@ test.describe("tenant admin course workspace — role gating (Teacher viewing th
 
     // Legitimately usable by a Teacher on their own course.
     await expect(page.getByRole("heading", { name: course.name })).toBeVisible();
-    await expect(page.getByLabel("Course name")).toHaveValue(course.name);
+    await expect(page.getByTestId("edit-course-name")).toHaveValue(course.name);
+    // Teachers are read-only for a teacher: no picker and no primary radios.
+    await expect(page.getByTestId("edit-course-teachers-readonly")).toBeVisible();
+    await expect(page.getByTestId("edit-course-teachers")).toHaveCount(0);
+    await expect(page.getByTestId("edit-course-primary-teacher")).toHaveCount(0);
+    // The fee stays editable for the owning teacher (in the edit form now).
+    await expect(page.getByTestId("edit-course-price")).toBeVisible();
 
     await gotoTab(page, "Settings");
     await expect(page.getByRole("heading", { name: "Visibility" })).toBeVisible();
@@ -857,7 +714,8 @@ test.describe("tenant admin course workspace — role gating (Teacher viewing th
     await expect(page.getByRole("heading", { name: "Archive course" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Clone course" })).toBeVisible();
 
-    await gotoTab(page, "Fees & Billing");
-    await expect(page.getByRole("heading", { name: "Change price" })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Course sections" }).getByRole("link", { name: "Fees & Billing" })
+    ).toHaveCount(0);
   });
 });

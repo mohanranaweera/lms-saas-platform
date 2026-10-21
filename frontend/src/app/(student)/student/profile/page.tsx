@@ -13,6 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorState } from "@/components/states/error-state";
 import type { StudentResponse } from "@/lib/api/students";
+import { ProfileCompletionBanner } from "@/components/students/profile-completion-banner";
+import { useOwnProfileFields } from "@/lib/api/student-profile-fields";
+import { BillingAddressForm } from "./billing-address-form";
+import { AdditionalDetailsSection } from "./additional-details-section";
 
 /**
  * My Profile (MVP-006, Student self-service). Reads/writes
@@ -23,6 +27,7 @@ import type { StudentResponse } from "@/lib/api/students";
  */
 export default function StudentProfilePage() {
   const profileQuery = useOwnStudentProfile();
+  const showBillingCard = useShowBillingCard();
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,6 +38,8 @@ export default function StudentProfilePage() {
         </p>
       </div>
 
+      <ProfileCompletionBanner showLink={false} />
+
       <QueryStateBoundary
         query={profileQuery}
         loadingLabel="Loading your profile…"
@@ -41,8 +48,27 @@ export default function StudentProfilePage() {
       >
         {(profile) => <ProfileForm profile={profile} />}
       </QueryStateBoundary>
+
+      <AdditionalDetailsSection />
+
+      {showBillingCard ? <BillingAddressForm /> : null}
     </div>
   );
+}
+
+/**
+ * STU-PROF-01: when the institute collects Address line 1 and City as
+ * profile fields, they are edited in "Additional details" (same columns as
+ * the billing address), so the separate billing card is not shown twice.
+ * Otherwise — or if the field list can't be loaded — the billing card stays,
+ * since online payment needs that address regardless of configuration.
+ */
+function useShowBillingCard(): boolean {
+  const fieldsQuery = useOwnProfileFields();
+  if (fieldsQuery.status === "pending") return false;
+  if (fieldsQuery.status === "error") return true;
+  const keys = new Set(fieldsQuery.data.fields.map((field) => field.key));
+  return !(keys.has("ADDRESS_LINE_1") && keys.has("CITY"));
 }
 
 function ProfileForm({ profile }: { profile: StudentResponse }) {

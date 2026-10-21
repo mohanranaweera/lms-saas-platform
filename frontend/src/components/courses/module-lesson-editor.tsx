@@ -6,22 +6,26 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { CourseModuleCard } from "@/components/courses/course-module-card";
 import { TitleInlineForm } from "@/components/courses/title-inline-form";
-import { useCourseModules, useCreateCourseModule, useUpdateCourseModule } from "@/lib/api/courses";
+import { useCreateCourseModule } from "@/lib/api/courses";
+import { useKlassModules, useReorderModules, useTenantTimeZone } from "@/lib/api/klass-admin";
+import { useAuth } from "@/lib/auth/auth-context";
+import { tenantDashboardPath } from "@/lib/auth/dashboard-paths";
 import { isApiClientError } from "@/lib/api/error";
-import { nextSequence, reorderAdjacent, sortBySequence } from "@/lib/courses/reorder";
+import { nextSequence, sortBySequence } from "@/lib/courses/reorder";
 
 /**
- * Teacher Module & Lesson Editor — top-level orchestrator for
- * `teacher/courses/[courseId]/modules`. Fetches this course's modules
- * (`GET /api/v1/courses/{courseId}/modules`, **not** guaranteed ordered by
- * the backend — sorted client-side by `sequence` below), renders each as a
- * `CourseModuleCard` (which owns its own lessons), and owns the "Add
- * module" affordance plus the module-list reorder (Move Up/Down) dance.
+ * Shared Module & Session editor for the Teacher and Tenant Admin course
+ * content routes. It renders each module as a `CourseModuleCard`, whose
+ * sessions use the same full Session form as the Klass table. Ordering is
+ * persisted with the dedicated atomic module/session order endpoints.
  */
 export function ModuleLessonEditor({ courseId }: { courseId: string }) {
-  const modulesQuery = useCourseModules(courseId);
+  const modulesQuery = useKlassModules(courseId);
+  const timeZone = useTenantTimeZone();
+  const { session } = useAuth();
+  const dashboardHref = tenantDashboardPath(session?.role ?? null) ?? "/login";
   const createModuleMutation = useCreateCourseModule(courseId);
-  const moveModuleMutation = useUpdateCourseModule(courseId);
+  const moveModuleMutation = useReorderModules(courseId);
 
   const [reorderBusyIds, setReorderBusyIds] = useState<Set<string>>(new Set());
   const [reorderError, setReorderError] = useState<string | null>(null);
@@ -36,17 +40,16 @@ export function ModuleLessonEditor({ courseId }: { courseId: string }) {
     setReorderBusyIds(new Set([sorted[index].id, sorted[targetIndex].id]));
     setReorderError(null);
     try {
-      await reorderAdjacent(sorted, moduleId, direction, (id, body) =>
-        moveModuleMutation.mutateAsync({ moduleId: id, body })
-      );
+      const reordered = [...sorted];
+      const [moved] = reordered.splice(index, 1);
+      reordered.splice(targetIndex, 0, moved);
+      await moveModuleMutation.mutateAsync(reordered.map((item) => item.id));
     } catch (error) {
       setReorderError(
         isApiClientError(error) ? error.message : "Couldn't reorder modules. Please try again."
       );
     } finally {
-      // Refetch regardless of outcome: if the 2nd/3rd PATCH failed after the
-      // 1st succeeded, the list is transiently "off by one" server-side —
-      // only a refetch (not local state) reflects reality.
+      // Refetch even on failure: the server's complete ordering is authoritative.
       await modulesQuery.refetch();
       setReorderBusyIds(new Set());
     }
@@ -57,7 +60,7 @@ export function ModuleLessonEditor({ courseId }: { courseId: string }) {
       query={modulesQuery}
       loadingLabel="Loading modules…"
       loginPath="/login"
-      permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
+      permissionDenied={{ dashboardHref }}
     >
       {(modules) => {
         const sorted = sortBySequence(modules);
@@ -73,7 +76,7 @@ export function ModuleLessonEditor({ courseId }: { courseId: string }) {
             {sorted.length === 0 ? (
               <EmptyState
                 title="No modules yet"
-                description="Add your first module to start structuring this course. Each module can then hold its own ordered list of lessons."
+                description="Add your first module to start structuring this course. Each module can then hold its own ordered list of sessions."
               />
             ) : (
               <ol className="flex flex-col gap-4">
@@ -87,6 +90,8 @@ export function ModuleLessonEditor({ courseId }: { courseId: string }) {
                       reorderBusy={reorderBusyIds.size > 0}
                       onMoveUp={() => handleMoveModule(module.id, "up")}
                       onMoveDown={() => handleMoveModule(module.id, "down")}
+                      timeZone={timeZone}
+                      dashboardHref={dashboardHref}
                     />
                   </li>
                 ))}

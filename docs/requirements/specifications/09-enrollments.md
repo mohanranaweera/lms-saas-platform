@@ -2,6 +2,14 @@
 
 **Domain:** `enrollment-management` (Modules 13/18) · **Portal(s):** Student, Tenant Admin
 
+> **Superseded in part by ADR-028 (2026-10-12).** Registered students may enroll freely through an
+> authenticated, authorized backend enrollment operation. Enrollment never depends on payment.
+> Paid lesson/session entitlements are granted only after verified backend payment confirmation or
+> approved manual payment evidence, never from a frontend success page. Payment
+> pending/failure/rejection does not cancel enrollment. Wherever this page says payment "activates
+> enrollment", read it as payment granting a *paid entitlement*; existing payment-activated enrollment
+> rows remain valid paid course access (see `docs/specs/klass-enrollment-payment-workflows.md`).
+
 ## 1. Business purpose
 
 The single security/finance-critical junction where "money confirmed" becomes "access granted" —
@@ -47,7 +55,8 @@ for enrollment records — aggregate views belong to `reporting-analytics`.
 
 ## 8. Acceptance criteria
 
-- [ ] Given no persisted `CONFIRMED` payment or `APPROVED` slip exists, then no code path can activate enrollment, even given a plausible-looking request payload.
+- [ ] Given a registered student and an available course, then the student can enroll with no order, payment or approval, and that enrollment survives pending/failed/rejected/expired payments (ADR-028).
+- [ ] Given no persisted `CONFIRMED` payment or `APPROVED` slip exists, then no code path can grant a paid entitlement, even given a plausible-looking request payload.
 - [ ] Given a `CONFIRMED` payment is persisted, then enrollment activation and the payment confirmation commit together — no window where one exists without the other.
 - [ ] Given an enrollment is active, then querying its activation source returns a specific, non-null FK to the confirmed payment or approved slip row that authorized it.
 - [ ] Given a course's access window lapses, then the student sees a distinct "access expired" state (not a generic error, not permission-denied) with a "Reactivate" CTA.

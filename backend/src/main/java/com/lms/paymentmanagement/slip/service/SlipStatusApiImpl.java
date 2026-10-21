@@ -36,6 +36,13 @@ public class SlipStatusApiImpl implements SlipStatusApi {
 	}
 
 	@Override
+	public boolean isApprovedForOrder(UUID slipId, UUID orderId) {
+		return paymentSlipRepository.findById(slipId)
+			.map(slip -> slip.getStatus() == PaymentSlipStatus.APPROVED && slip.getOrderId().equals(orderId))
+			.orElse(false);
+	}
+
+	@Override
 	public List<OrderSlipDetail> findOrderSlipDetails(List<UUID> orderIds) {
 		if (orderIds.isEmpty()) {
 			return List.of();

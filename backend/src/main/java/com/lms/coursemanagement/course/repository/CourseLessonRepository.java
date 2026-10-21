@@ -23,6 +23,13 @@ public interface CourseLessonRepository extends TenantAwareRepository<CourseLess
 				(root, query, cb) -> cb.and(cb.equal(root.get("id"), id), cb.equal(root.get("moduleId"), moduleId)));
 	}
 
+	default List<CourseLesson> findByModuleIds(java.util.Collection<UUID> moduleIds) {
+		if (moduleIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("moduleId").in(moduleIds));
+	}
+
 	default boolean existsByModuleIdAndSequence(UUID moduleId, Integer sequence) {
 		return exists((root, query, cb) -> cb.and(cb.equal(root.get("moduleId"), moduleId),
 				cb.equal(root.get("sequence"), sequence)));
@@ -31,6 +38,20 @@ public interface CourseLessonRepository extends TenantAwareRepository<CourseLess
 	default boolean existsByModuleIdAndSequenceAndIdNot(UUID moduleId, Integer sequence, UUID excludedId) {
 		return exists((root, query, cb) -> cb.and(cb.equal(root.get("moduleId"), moduleId),
 				cb.equal(root.get("sequence"), sequence), cb.notEqual(root.get("id"), excludedId)));
+	}
+
+	/** KLASS-T4a: next free sequence for appending a lesson when the client omits it. */
+	default int nextSequence(UUID moduleId) {
+		return findByModuleId(moduleId).stream().mapToInt(CourseLesson::getSequence).max().orElse(0) + 1;
+	}
+
+	/** KLASS-T4a: lessons of several modules in (module, sequence) order. */
+	default List<CourseLesson> findByModuleIdsOrdered(java.util.Collection<UUID> moduleIds) {
+		if (moduleIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("moduleId").in(moduleIds),
+				Sort.by(Sort.Direction.ASC, "moduleId").and(Sort.by(Sort.Direction.ASC, "sequence")));
 	}
 
 }

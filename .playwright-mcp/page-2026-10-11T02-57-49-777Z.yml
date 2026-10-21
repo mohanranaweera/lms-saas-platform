@@ -1,0 +1,26 @@
+- generic [active] [ref=f20e1]:
+  - generic [ref=f20e2]:
+    - link "LMS Platform" [ref=f20e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=f20e5]:
+      - generic [ref=f20e6]:
+        - generic [ref=f20e7]: Sign in
+        - generic [ref=f20e8]: Access your LMS Platform account.
+      - generic [ref=f20e9]:
+        - generic [ref=f20e10]:
+          - generic [ref=f20e11]:
+            - generic [ref=f20e12]: Email
+            - textbox "Email" [ref=f20e13]
+          - generic [ref=f20e14]:
+            - generic [ref=f20e15]: Password
+            - generic [ref=f20e16]:
+              - textbox "Password" [ref=f20e17]
+              - button "Show password" [ref=f20e18]
+            - link "Forgot password?" [ref=f20e22] [cursor=pointer]:
+              - /url: /forgot-password
+          - button "Sign in" [ref=f20e23]
+        - paragraph [ref=f20e24]:
+          - text: Don't have an account?
+          - link "Create one" [ref=f20e25] [cursor=pointer]:
+            - /url: /register
+  - button "Open Next.js Dev Tools" [ref=f20e31] [cursor=pointer]

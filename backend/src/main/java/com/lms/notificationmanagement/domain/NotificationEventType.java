@@ -13,6 +13,12 @@ package com.lms.notificationmanagement.domain;
  */
 public enum NotificationEventType {
 
-	PAYMENT_CONFIRMED, PAYMENT_REJECTED, PAYMENT_REFUNDED
+	PAYMENT_CONFIRMED, PAYMENT_REJECTED, PAYMENT_REFUNDED,
+
+	/** AUTH-PWD-01: set-your-password link for an invited account (e.g. a tenant's first Tenant Admin). */
+	ACCOUNT_SETUP_INVITE,
+
+	/** AUTH-PWD-01: forgot-password link. */
+	PASSWORD_RESET
 
 }

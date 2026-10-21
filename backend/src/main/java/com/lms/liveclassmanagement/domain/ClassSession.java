@@ -67,6 +67,14 @@ public class ClassSession extends Auditable implements TenantOwned {
 	@Column(name = "provider_failure_reason")
 	private String providerFailureReason;
 
+	/**
+	 * MEDIA-INT-01: the teacher's Zoom connection that hosts this meeting
+	 * ({@code media_provider_connection}, composite-FK'd in V60). {@code null}
+	 * for fake-provider sessions and before provisioning.
+	 */
+	@Column(name = "provider_connection_id")
+	private UUID providerConnectionId;
+
 	protected ClassSession() {
 	}
 
@@ -155,6 +163,10 @@ public class ClassSession extends Auditable implements TenantOwned {
 		return providerFailureReason;
 	}
 
+	public UUID getProviderConnectionId() {
+		return providerConnectionId;
+	}
+
 	// ------------------------------------------------------------------
 	// Editable-while-SCHEDULED fields.
 	// ------------------------------------------------------------------
@@ -179,10 +191,16 @@ public class ClassSession extends Auditable implements TenantOwned {
 	// ------------------------------------------------------------------
 
 	/** Clears any prior failure reason - a session can move FAILED -> PROVISIONED on a successful retry. */
-	public void markProvisioned(String providerReference) {
+	public void markProvisioned(String providerReference, UUID providerConnectionId) {
 		this.providerStatus = ClassSessionProviderStatus.PROVISIONED;
 		this.providerReference = providerReference;
+		this.providerConnectionId = providerConnectionId;
 		this.providerFailureReason = null;
+	}
+
+	/** Whether this session is over (no meeting needs (re)creating). */
+	public boolean isFinished() {
+		return status == ClassSessionStatus.COMPLETED || status == ClassSessionStatus.CANCELLED;
 	}
 
 	public void markProvisioningFailed(String reason) {

@@ -97,7 +97,9 @@ placeholder purely because this note predates Wave 3.
   (Wave 3, PAR-03-06)**: `app/(teacher)/teacher/courses/[courseId]/roster/page.tsx`,
   backed by the new `GET /api/v1/courses/{courseId}/roster` (backend-verified own-course
   ownership, never client-side filtering).
-- Teacher > Live Classes > Schedule Live Class — create Zoom session
+- Teacher > Live Classes > Schedule Live Class — create Zoom session. **MEDIA-INT-01:** hosted
+  on the teacher's own Zoom account; the form warns up front when Zoom isn't connected/licensed,
+  and the session page offers "Recreate meeting" when the host account was disconnected.
 - Teacher > Live Classes > Recordings — manage/attach recordings to lessons
 - Teacher > Attendance > Mark Attendance — manual attendance marking per session. **Shipped
   (MVP-016)**: `app/(teacher)/teacher/attendance/mark/page.tsx`.
@@ -118,6 +120,10 @@ placeholder purely because this note predates Wave 3.
   pre-existing entry that was merely updated.
 - Teacher > Support > My Tickets — teacher support tickets
 - Teacher > Profile > Profile & Availability — teacher profile, availability, payout profile
+- Teacher > Settings > Integrations — **shipped (MEDIA-INT-01)**: connect/reconnect/test/
+  disconnect the teacher's own Zoom, YouTube and Vimeo accounts
+  (`app/(teacher)/teacher/settings/integrations`); a reconnect banner shows on every teacher page
+  when an account needs reconnecting.
 
 ## Tenant Admin Portal (`app/(tenant-admin)/`)
 
@@ -141,7 +147,8 @@ placeholder purely because this note predates Wave 3.
 - Tenant Admin > Courses > Course List — all tenant courses, status, category
 - Tenant Admin > Courses > Course Detail / Approval — oversight of teacher-authored courses
 - Tenant Admin > Materials > Materials Oversight — folder structure, bulk upload management
-- Tenant Admin > Live Classes > Zoom Accounts — tenant Zoom account integration, multiple accounts
+- Tenant Admin > Live Classes > Zoom Accounts — superseded by ADR-018: Zoom accounts are per
+  teacher; the Tenant Admin sees and can disconnect them under Integrations (below).
 - Tenant Admin > Live Classes > Live Class Oversight — scheduled/past sessions across teachers
 - Tenant Admin > Attendance > Attendance Reports — student/course/teacher-level reports.
   **Shipped (MVP-016)**: `app/(tenant-admin)/tenant-admin/attendance/reports/page.tsx` (Tenant
@@ -167,7 +174,24 @@ placeholder purely because this note predates Wave 3.
 - Tenant Admin > Communications > Templates — email/SMS/WhatsApp template editor
 - Tenant Admin > Communications > Bulk Messaging — segment messaging composer
 - Tenant Admin > Communications > Delivery Logs — sent/failed message log
-- Tenant Admin > Integrations > Integration Settings — Zoom/SMS/WhatsApp/email/payment gateway/storage config
+- Tenant Admin > Institute Configuration > Custom Domain. **Shipped (TEN-DOM-01)**:
+  `app/(tenant-admin)/tenant-admin/settings/domains`. Add a domain; each domain card shows its
+  status (Waiting for DNS / Active / DNS records missing / Suspended), the CNAME and TXT records
+  with copy buttons, and Verify / Check again, Make primary and Remove (confirmed). There are
+  explanations when the platform hasn't switched the feature on or a domain is suspended.
+  Read-only Auditor: view only. In the nav as "Custom Domain", and on the settings index.
+- Tenant Admin > Integrations > Integration Settings — Zoom/SMS/WhatsApp/email/payment gateway/storage config.
+  **Media part shipped (MEDIA-INT-01)** as Institute Configuration > Integrations
+  (`app/(tenant-admin)/tenant-admin/settings/integrations`): teacher-provider switches, DynTube and
+  Bunny.net accounts, active video host, teachers' connections (disconnect with reason).
+  MEDIA-INT-01A: the Bunny.net form takes only an account API key (a legacy library-key
+  connection shows a reconnect banner), and a **Teacher video libraries** table lists each
+  approved teacher's library status (Ready / Being set up / Setup failed / Unavailable / Not
+  set up) with **Create library now** / **Retry** for admins; card view on phones.
+- Teacher > Settings > Integrations - MEDIA-INT-01A adds a read-only **Your video library**
+  card (the teacher's own Bunny library status; no ids or keys).
+- Public > Integration Error — neutral page for an expired/used OAuth connection link
+  (`app/(public)/integration-error`), MEDIA-INT-01.
 - Tenant Admin > Integrations > Webhook & Health Logs — integration health checks
 - Tenant Admin > Devices > Device Policy — tenant/course-level device limit overrides
 - Tenant Admin > Devices > Device Reset & History — reset device, view login activity, suspicious login flags
@@ -198,6 +222,9 @@ placeholder purely because this note predates Wave 3.
   `.../tenants/[tenantId]/page.tsx` — profile/plan/contact summary + Approve/Reject only.
   Suspend/cancel/reactivate and any usage data are explicitly out of scope (module plan §6/§21
   item 1) — do not assume this screen's status control is complete.
+  **TEN-DOM-01:** the Tenant Detail screen also has a **Custom domains** card
+  (`.../tenants/[tenantId]/custom-domains-card.tsx`). It switches the feature on or off for the
+  named institute (switching off is confirmed) and suspends a domain with a required reason.
 - Platform Admin > Plans > Plan & Feature Flag Editor — plan limits, feature toggles. Not
   shipped.
 - Platform Admin > Payments > Cross-Tenant Payment Dashboard — platform-wide payment oversight.
@@ -237,3 +264,9 @@ placeholder purely because this note predates Wave 3.
   or both is not resolved by source requirements — flagging for product decision.
 - Mobile app screens (module 5/phase 3, "Mobile apps") are out of scope for this
   web IA and screen map; a separate mobile IA would be needed if pursued.
+
+- **AUTH-PWD-01 (ADR-020), tenant host:**
+  - `/account-setup` (invited account sets its first password) and `/reset-password`: one-time link; the token is removed from the URL; no-referrer.
+  - `/forgot-password`: always the same confirmation.
+  - `/change-password`: signed-in users; also where a temporary-password login or any `403 PASSWORD_CHANGE_REQUIRED` lands. Linked from every tenant portal header.
+- **Platform Admin > Tenants > tenant:** a "Tenant Admin" panel showing the invitation status (No admin yet / Invitation pending / Active / Suspended), with resend, change email and invite.

@@ -1,0 +1,6 @@
+- main [ref=e2]:
+  - generic [ref=e3]: AOC Player
+  - generic [ref=e8]:
+    - heading "Starting…" [level=1] [ref=e9]
+    - paragraph
+  - generic [ref=e10]: Your lessons are opened from the LMS. This app never asks for your password.

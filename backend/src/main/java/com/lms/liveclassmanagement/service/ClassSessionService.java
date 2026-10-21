@@ -8,6 +8,7 @@ import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.LiveClassProviderApi;
+import com.lms.integrationmanagement.api.MeetingParticipant;
 import com.lms.integrationmanagement.api.ShortLivedJoinLink;
 import com.lms.integrationmanagement.api.ShortLivedPlaybackLink;
 import com.lms.liveclassmanagement.domain.ClassSession;
@@ -21,6 +22,7 @@ import com.lms.liveclassmanagement.support.LiveClassAccessGuard;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,10 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ClassSessionService {
 
-	private static final String TEACHER_PARTICIPANT_ROLE = "HOST";
-
-	private static final String STUDENT_PARTICIPANT_ROLE = "PARTICIPANT";
-
 	private final ClassSessionRepository classSessionRepository;
 
 	private final ClassSessionRecordingRepository recordingRepository;
@@ -51,16 +49,26 @@ public class ClassSessionService {
 
 	private final PermissionCheckService permissionCheckService;
 
+	private final ClassSessionViewAssembler viewAssembler;
+
+	private final MeetingParticipantResolver participantResolver;
+
+	private final ApplicationEventPublisher eventPublisher;
+
 	public ClassSessionService(ClassSessionRepository classSessionRepository,
 			ClassSessionRecordingRepository recordingRepository, LiveClassAccessGuard accessGuard,
 			EnrollmentAccessApi enrollmentAccessApi, LiveClassProviderApi liveClassProviderApi,
-			PermissionCheckService permissionCheckService) {
+			PermissionCheckService permissionCheckService, ClassSessionViewAssembler viewAssembler,
+			MeetingParticipantResolver participantResolver, ApplicationEventPublisher eventPublisher) {
 		this.classSessionRepository = classSessionRepository;
 		this.recordingRepository = recordingRepository;
 		this.accessGuard = accessGuard;
 		this.enrollmentAccessApi = enrollmentAccessApi;
 		this.liveClassProviderApi = liveClassProviderApi;
 		this.permissionCheckService = permissionCheckService;
+		this.viewAssembler = viewAssembler;
+		this.participantResolver = participantResolver;
+		this.eventPublisher = eventPublisher;
 	}
 
 	// ------------------------------------------------------------------
@@ -71,7 +79,7 @@ public class ClassSessionService {
 	public ClassSessionView getSession(UUID sessionId) {
 		ClassSession session = requireExisting(sessionId);
 		accessGuard.requireEntitlement(session, PermissionAction.VIEW);
-		return ClassSessionView.from(session);
+		return viewAssembler.toView(session);
 	}
 
 	/**
@@ -98,12 +106,11 @@ public class ClassSessionService {
 			permissionCheckService.requirePermission(DomainArea.LIVE_CLASSES, PermissionAction.VIEW);
 			candidates = classSessionRepository.findAllForTenant();
 		}
-		return candidates.stream()
+		return viewAssembler.toViews(candidates.stream()
 			.filter(session -> filter.courseId() == null || filter.courseId().equals(session.getCourseId()))
 			.filter(session -> filter.status() == null || filter.status() == session.getStatus())
 			.filter(session -> filter.matches(session.getScheduledStart()))
-			.map(ClassSessionView::from)
-			.toList();
+			.toList());
 	}
 
 	// ------------------------------------------------------------------
@@ -121,7 +128,7 @@ public class ClassSessionService {
 		catch (IllegalStateException ex) {
 			throw new ConflictException(ex.getMessage());
 		}
-		return ClassSessionView.from(classSessionRepository.save(session));
+		return viewAssembler.toView(classSessionRepository.save(session));
 	}
 
 	@Transactional
@@ -134,9 +141,19 @@ public class ClassSessionService {
 		return transition(sessionId, ClassSession::complete);
 	}
 
+	/**
+	 * MEDIA-INT-01: the provider meeting is deleted best-effort AFTER this
+	 * transaction commits ({@link ClassSessionMeetingCleanup}), never inside it.
+	 */
 	@Transactional
 	public ClassSessionView cancelSession(UUID sessionId) {
-		return transition(sessionId, ClassSession::cancel);
+		ClassSessionView view = transition(sessionId, ClassSession::cancel);
+		ClassSession cancelled = requireExisting(sessionId);
+		if (cancelled.getProviderReference() != null) {
+			eventPublisher.publishEvent(new ClassSessionMeetingCleanup.MeetingCancelled(sessionId,
+					cancelled.getProviderConnectionId(), cancelled.getProviderReference()));
+		}
+		return view;
 	}
 
 	private ClassSessionView transition(UUID sessionId, java.util.function.Consumer<ClassSession> transition) {
@@ -148,14 +165,22 @@ public class ClassSessionService {
 		catch (IllegalStateException ex) {
 			throw new ConflictException(ex.getMessage());
 		}
-		return ClassSessionView.from(classSessionRepository.save(session));
+		return viewAssembler.toView(classSessionRepository.save(session));
 	}
 
 	// ------------------------------------------------------------------
 	// Join / recording.
 	// ------------------------------------------------------------------
 
-	@Transactional(readOnly = true)
+	/**
+	 * Deliberately NOT {@code @Transactional} (MEDIA-INT-01): with a real
+	 * Zoom host this makes outbound calls (start URL / registrant), which must
+	 * never run inside an open DB transaction. The reads below each use their
+	 * own short repository transaction.
+	 *
+	 * <p>The course-owning teacher gets the host start link; everyone else
+	 * (entitled students, staff) gets a personal registrant link.
+	 */
 	public ShortLivedJoinLink join(UUID sessionId) {
 		ClassSession session = requireExisting(sessionId);
 		accessGuard.requireEntitlement(session, PermissionAction.VIEW);
@@ -166,11 +191,9 @@ public class ClassSessionService {
 				|| session.getProviderReference() == null) {
 			throw new ConflictException("This class session's meeting has not been successfully provisioned yet");
 		}
-		String participantRole = accessGuard.isCurrentPrincipalStudent() ? STUDENT_PARTICIPANT_ROLE
-				: TEACHER_PARTICIPANT_ROLE;
-		String displayName = AuthenticatedPrincipalHolder.get().userId().toString();
-		return liveClassProviderApi.getJoinUrl(session.getProviderReference(), session.getTenantId(), participantRole,
-				displayName);
+		MeetingParticipant participant = participantResolver.resolve(session.getProviderConnectionId() != null);
+		return liveClassProviderApi.getJoinUrl(session.getProviderConnectionId(), session.getProviderReference(),
+				participant);
 	}
 
 	@Transactional(readOnly = true)
@@ -179,6 +202,12 @@ public class ClassSessionService {
 		accessGuard.requireEntitlement(session, PermissionAction.VIEW);
 		if (session.getStatus() != ClassSessionStatus.COMPLETED) {
 			throw new ConflictException("This class session has not completed yet");
+		}
+		if (session.getProviderConnectionId() != null) {
+			// MEDIA-INT-01: Zoom cloud-recording links are not short-lived
+			// per-viewer URLs, so they are never handed out; recordings for
+			// real Zoom sessions arrive with MEDIA-INT-04.
+			throw new NotFoundException("Recording not available");
 		}
 		ClassSessionRecording recording = recordingRepository.findBySessionId(sessionId)
 			.filter(candidate -> candidate.getStatus() == ClassSessionRecordingStatus.AVAILABLE)

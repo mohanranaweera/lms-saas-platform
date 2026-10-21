@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorState } from "@/components/states/error-state";
+import { ProfileFieldsSection } from "./profile-fields-section";
 
 /**
  * Profile tab (Wave 3 tabbed rebuild) — the pre-Wave-3 detail page's own
@@ -65,7 +66,7 @@ export function ProfileTab({ student, canManage }: { student: StudentResponse; c
   });
 
   return (
-    <div className="flex max-w-xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
         <dt className="font-medium text-muted-foreground">Email</dt>
         <dd className="text-foreground">{student.email}</dd>
@@ -128,6 +129,8 @@ export function ProfileTab({ student, canManage }: { student: StudentResponse; c
           You don&apos;t have permission to edit this student&apos;s details.
         </p>
       )}
+
+      <ProfileFieldsSection studentId={student.id} canManage={canManage} />
     </div>
   );
 }

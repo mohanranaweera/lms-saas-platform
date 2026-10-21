@@ -2,7 +2,6 @@ package com.lms.enrollmentmanagement.repository;
 
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.enrollmentmanagement.domain.Enrollment;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -75,40 +74,14 @@ public interface EnrollmentRepository extends TenantAwareRepository<Enrollment, 
 	}
 
 	/**
-	 * The inverse of {@link #findAllCurrentByStudentId(UUID)}, keyed by
-	 * {@code courseId} instead of {@code studentId} - backs {@link
-	 * com.lms.enrollmentmanagement.api.EnrollmentAccessApi
-	 * #listCurrentlyEnrolledStudentIds(UUID)} (MVP-016). Unlike {@link
-	 * #findAllCurrentByStudentId(UUID)}, this ALSO excludes an
-	 * access-expired current row ({@code accessExpiresAt IS NULL OR
-	 * accessExpiresAt > now()}) - "currently enrolled" for this consumer
-	 * means access-currency, not merely lineage-currency, per that
-	 * interface's own javadoc.
+	 * Every lineage-current ({@code supersededAt IS NULL}) row of a course,
+	 * whatever its access window. Wave 10: access currency is decided by {@code
+	 * AccessWindowCalculator} (extensions and grace included), never by an
+	 * expiry predicate here - see {@code EnrollmentAccessApiImpl}.
 	 */
-	default List<Enrollment> findAllCurrentByCourseId(UUID courseId) {
-		Instant now = Instant.now();
+	default List<Enrollment> findAllLineageCurrentByCourseId(UUID courseId) {
 		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
-				cb.isNull(root.get("supersededAt")),
-				cb.or(cb.isNull(root.get("accessExpiresAt")), cb.greaterThan(root.<Instant>get("accessExpiresAt"), now))));
-	}
-
-	/**
-	 * The inverse of {@link #findAllCurrentByCourseId(UUID)}, keyed by {@code
-	 * studentId} instead of {@code courseId} - backs {@link
-	 * com.lms.enrollmentmanagement.api.EnrollmentAccessApi
-	 * #listCurrentlyEnrolledCourseIds(UUID)} (MVP-017). Same "currently
-	 * enrolled" access-currency predicate as {@link #findAllCurrentByCourseId(UUID)}
-	 * exactly ({@code supersededAt IS NULL AND (accessExpiresAt IS NULL OR
-	 * accessExpiresAt > now())}) - unlike {@link #findAllCurrentByStudentId(UUID)},
-	 * which is lineage-currency only (no expiry filter, used by {@code
-	 * EnrollmentQueryService#listMyEnrollments} which resolves each row's
-	 * access state separately for display).
-	 */
-	default List<Enrollment> findAllCurrentlyEnrolledByStudentId(UUID studentId) {
-		Instant now = Instant.now();
-		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("studentId"), studentId),
-				cb.isNull(root.get("supersededAt")),
-				cb.or(cb.isNull(root.get("accessExpiresAt")), cb.greaterThan(root.<Instant>get("accessExpiresAt"), now))));
+				cb.isNull(root.get("supersededAt"))));
 	}
 
 	/**

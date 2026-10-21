@@ -18,6 +18,46 @@ model" below). See `docs/api/video-access-management.md` for the separate, new
 `/api/v1/videos` contract that `VIDEO`/`RECORDING` materials reference by
 `videoAssetId`.
 
+## Klass parity / round 2 additions (2026-10)
+
+ADR-028 separates free course participation from paid lesson access. The historical Wave 5 enrollment descriptions below are superseded for lesson resources by the shared `LessonAccessApi` evaluator; see `docs/plans/klass-enrollment-payment-parity.md` §4.3. Payment-independent participation alone does not unlock paid files.
+
+### Institute file library — `/api/v1/media-files`
+
+Implemented by `contentmanagement.library.web.MediaFileController`, using the standard response/page envelopes. Tenant and uploader come from authenticated context, never request fields. Teachers may list/open/attach institute files but rename/delete only their own; staff permissions are independently checked server-side. Students receive 403 on library endpoints. Foreign item IDs and non-owner teacher mutation targets return 404.
+
+| Endpoint | Request | Success |
+|---|---|---|
+| `GET /api/v1/media-files` | `q` (max 200), `kind=DOCUMENT\|IMAGE\|OTHER`, `page` (default 0), `size` (default 24, 1–100) | 200 page of file items |
+| `GET /api/v1/media-files/summary` | none | 200 `{documents, images, other, total}` |
+| `POST /api/v1/media-files` | multipart `file`, optional `title` (max 255) | 201 file item |
+| `PATCH /api/v1/media-files/{id}` | JSON `{title}` (required, nonblank, max 255) | 200 file item |
+| `DELETE /api/v1/media-files/{id}` | none | 200 `data:null`; attached files return 409 `MEDIA_ATTACHED` |
+| `GET /api/v1/media-files/{id}/open-url` | none | 200 `{url, expiresAt}`; fresh five-minute signed URL |
+
+File item: `{id, kind, title, originalFilename, contentType, sizeBytes, uploadedBy, uploaderName, createdAt, attachedLessonCount, thumbnailUrl, canEdit, canDelete}`. Timestamps are ISO-8601 instants. `thumbnailUrl` is a short-lived signed image preview or null; no storage key is exposed. Capability flags are UX hints, never mutation authorization.
+
+Uploads remain content-sniffed PDF/PNG/JPEG/GIF/UTF-8 text, at most 25 MiB; Office/markup/SVG are unsupported. Invalid uploads cause no storage write. Deletion is soft deletion with audit evidence; upload/rename/delete emit server-side audit events.
+
+### New Media entry point (frontend)
+
+New Media automatically uses the current tab, with no destination selector:
+
+- **Uploads** (including its Videos filter): documents/images use `/api/v1/media-files`; videos use existing multipart `POST /api/v1/videos` and tenant-owned external object storage. Internal videos accept MP4/WebM/MOV up to the existing 25 MiB limit; the filename is the title. View videos reveals the internal-video list after success.
+- **DynTube**: existing signed multipart `/api/v1/media` start/presign/complete/cancel with `provider=DYNTUBE`.
+- **Named YouTube integration**: the same hosted flow with that tab's exact `integrationId`.
+- **Archived**: read-only, no upload action.
+
+Provider permissions/limits remain backend-enforced. A blocked tab never falls back to another host. Hosted transfer/completion blocks tab switching until receipt or cancellation finishes. No backend contract, storage strategy or upload limit changed; `/media-files` still does not accept videos.
+
+### Attach a library file to a lesson
+
+Existing multipart `POST .../lessons/{lessonId}/materials` additionally accepts `mediaFileId` and a title. No file bytes are copied; the server resolves type/file metadata from the library row and adds `mediaFileId` to `MaterialResponse`. A duplicate live attachment returns 409. A foreign/deleted/unusable file returns 404. Lesson/course ownership is still checked independently.
+
+Deleting this material removes only the lesson association, not the shared library object. Student download still uses `.../materials/{materialId}/download-url`, with lesson entitlement, visibility, availability and download-limit checks before URL signing. No student library browsing/open endpoint is provided.
+
+UI flow and validation evidence: `docs/plans/klass-gaps-round2.md`, `docs/qa/klass-round2-acceptance.md`. The separately recorded video-policy ownership defect has an owner-approved conservative fix, passing security re-review, and full backend verification (2651 tests, zero failures/errors/skips).
+
 ## Response envelope
 
 Every endpoint below returns `com.lms.common.api.ApiResponse<T>` — see
@@ -289,6 +329,30 @@ any lesson in scope still has an attached material — the caller must delete th
 first via this module's own `DELETE .../materials/{materialId}`. No Java/API-level coupling
 exists between the two modules for this (only a SQL-level `FOREIGN KEY`), consistent with
 `.claude/rules/architecture.md`'s cross-module boundary rules.
+
+## LessonMedia facade (`/api/v1/courses/{courseId}/lessons/{lessonId}/media`) — VIDEO Phase 6
+
+LessonMedia reuses the existing tenant-scoped `material` row with `material_type = VIDEO` (or the
+legacy `RECORDING` type). It does not create a second association table. Every endpoint requires an
+authenticated caller and resolves tenant and lesson ownership server-side; no request accepts a
+`tenantId`.
+
+- `GET /api/v1/courses/{courseId}/lessons/{lessonId}/media` → `200` with an ordered array of
+  `LessonMediaResponse`. Teachers/staff see visible and hidden rows; enrolled students see only
+  visible rows after the normal `AccessPolicyApi` entitlement check.
+- `POST .../media` body `{ "mediaAssetId": "<uuid>", "title": "optional", "sequence": 1 }` → `201`.
+  The asset must belong to the caller's tenant and be `READY`; omitted title uses the asset title or
+  filename, and omitted sequence appends. Duplicate asset or sequence → `409`; unknown/foreign
+  asset or lesson → `404`; a processing asset → `409 MEDIA_NOT_READY`.
+- `PATCH .../media/{lessonMediaId}` body `{ "title": "...", "sequence": 2, "visibility": "VISIBLE|HIDDEN" }`
+  → `200`. Sequence collisions → `409`.
+- `DELETE .../media/{lessonMediaId}` → `200` with `data: null`. This removes only the Material
+  association; the underlying `video_asset` remains in the Media Library. Attach and detach are
+  audit-logged as `lesson_media.attached` / `lesson_media.detached`.
+
+`LessonMediaResponse` contains `id`, `lessonId`, `courseId`, `mediaAssetId`, `title`, `sequence`,
+`visibility`, `provider`, `durationSeconds`, `status`, `createdAt`, and `updatedAt`. It deliberately
+contains no provider credential, storage key, playback token, or direct thumbnail URL.
 
 ## Cross-module interaction: video-access-management and live-class-management (Wave 5)
 

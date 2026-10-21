@@ -50,7 +50,8 @@ class CourseModuleServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		courseModuleService = new CourseModuleService(courseRepository, courseModuleRepository, courseAccessGuard);
+		courseModuleService = new CourseModuleService(courseRepository, courseModuleRepository, courseAccessGuard,
+				org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class));
 	}
 
 	@Test

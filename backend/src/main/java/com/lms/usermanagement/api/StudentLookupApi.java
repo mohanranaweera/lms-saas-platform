@@ -41,4 +41,28 @@ public interface StudentLookupApi {
 	 */
 	List<StudentSummary> getStudentSummariesByUserId(Collection<UUID> userIds);
 
+	/**
+	 * Name/email/mobile for one student user in the current tenant - the payer
+	 * details a hosted-checkout gateway needs (PAY-GW-01). Empty when the user
+	 * has no student profile in this tenant.
+	 */
+	Optional<StudentContact> findContact(UUID userId);
+
+	/**
+	 * Wave 11: contacts for many student users at once (broadcast delivery and
+	 * audience resolution). Ids that are not students of the current tenant are
+	 * silently omitted - callers compare sizes to detect foreign ids.
+	 */
+	List<StudentContact> findContacts(Collection<UUID> userIds);
+
+	/**
+	 * Wave 11: as {@link #findContacts} but keyed by student profile id (the id
+	 * every {@code /students/{id}} URL and the staff student list use). Ids not
+	 * belonging to the current tenant are silently omitted.
+	 */
+	List<StudentContact> findContactsByStudentIds(Collection<UUID> studentProfileIds);
+
+	/** Wave 11: every student user id in the current tenant (the "all students" audience). */
+	List<UUID> listAllStudentUserIds();
+
 }

@@ -125,4 +125,66 @@ public interface CourseLookupApi {
 	 */
 	Optional<CheckoutAmount> getResolvedCheckoutAmount(UUID courseId);
 
+	/**
+	 * @return all lesson IDs belonging to courses taught by {@code teacherUserId}
+	 * in the caller's tenant. Added for VIDEO Phase 6 (Q-010) - allowing teachers
+	 * to view and manage media attached to courses they teach.
+	 */
+	Set<UUID> findLessonIdsByTeacherId(UUID teacherUserId);
+
+	/**
+	 * KLASS-T4a (for T4b/T4c): every lesson of {@code courseId} with its
+	 * module and payment/schedule metadata, ordered by module sequence then
+	 * lesson sequence. Two tenant-scoped batched reads (modules, then their
+	 * lessons) - never one read per lesson. Empty for an unknown or
+	 * cross-tenant course id.
+	 */
+	List<LessonPolicy> findLessonPolicies(UUID courseId);
+
+	/**
+	 * KLASS-T4a: course-level availability/pricing facts (pricing model,
+	 * status, archived, registration flag, Payment Valid Days, current
+	 * monthly amount). Empty for an unknown or cross-tenant course id.
+	 */
+	Optional<CourseCatalogInfo> findCatalogInfo(UUID courseId);
+
+	/**
+	 * KLASS-T4a (D13): the source courses linked into {@code parentCourseId}
+	 * (one level only), in link creation order. Empty for an unknown or
+	 * cross-tenant parent id.
+	 */
+	List<UUID> findLinkedSourceCourseIds(UUID parentCourseId);
+
+	/**
+	 * KLASS-T4b (D13): the parent courses {@code sourceCourseId} is linked
+	 * INTO (one level only - never transitive). Used by the lesson access
+	 * evaluator: participation in such a parent counts as being enrolled in
+	 * the source course's lessons, which are still evaluated with the SOURCE
+	 * course's own payment rules. Empty for an unknown or cross-tenant id.
+	 */
+	List<UUID> findLinkedParentCourseIds(UUID sourceCourseId);
+
+	/**
+	 * KLASS-T4a (D09): every module of {@code courseId} with its MODULE-offer
+	 * price ({@code null} when not sold separately), in sequence order. Empty
+	 * for an unknown or cross-tenant course id.
+	 */
+	List<ModulePriceInfo> findModulePrices(UUID courseId);
+
+
+	/**
+	 * R2-D6: the tags of each of {@code courseIds} (ordered by name), read in
+	 * one tenant-scoped query. Courses with no tags (or unknown / cross-tenant
+	 * ids) are simply absent from the map.
+	 */
+	Map<UUID, List<CourseTagRef>> findTagsByCourseIds(Set<UUID> courseIds);
+
+	/**
+	 * DISC-01: every course of the caller's tenant (archived included, flagged)
+	 * with its current display price, ordered by name. Tenant-scoped through
+	 * the resolved {@link com.lms.common.tenant.TenantContext} like every other
+	 * method here; never another tenant's course.
+	 */
+	List<CoursePriceOption> findCoursePriceOptions();
+
 }

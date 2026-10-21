@@ -68,7 +68,7 @@ public class PlatformAdminAuthenticationService {
 
 		String accessToken = tokenService.issuePlatformAdminAccessToken(admin.getId(), session.getId());
 		return new LoginResult(accessToken, tokenService.accessTokenTtl(), session.getId(), rawRefreshToken,
-				sessionProperties.getRefreshTokenTtl(), admin.isMustChangePassword());
+				sessionProperties.getRefreshTokenTtl(), admin.isMustChangePassword(), null);
 	}
 
 }

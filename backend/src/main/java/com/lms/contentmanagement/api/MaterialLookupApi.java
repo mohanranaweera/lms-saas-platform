@@ -1,6 +1,9 @@
 package com.lms.contentmanagement.api;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -19,12 +22,41 @@ import java.util.UUID;
 public interface MaterialLookupApi {
 
 	/**
-	 * @return the resolved course-ownership context for the video asset, or
-	 * {@link Optional#empty()} if no {@code material} row in the caller's
-	 * tenant currently references {@code videoAssetId} (including a
-	 * cross-tenant id - never distinguished from "not yet attached to any
-	 * material").
+	 * KLASS-T8b SEC L3: one resolved course-ownership context per lesson
+	 * material of the caller's tenant that references the video asset (a
+	 * Media Library asset may be attached to several lessons), ordered by
+	 * material id. Empty if no {@code material} row in the caller's tenant
+	 * currently references {@code videoAssetId} (including a cross-tenant id -
+	 * never distinguished from "not yet attached to any material").
 	 */
-	Optional<MaterialVideoOwnership> resolveVideoAssetOwnership(UUID videoAssetId);
+	List<MaterialVideoOwnership> resolveVideoAssetOwnerships(UUID videoAssetId);
+
+	/**
+	 * VIDEO Phase 5: which of {@code videoAssetIds} a material of the
+	 * caller's tenant references (the Media Library "attached" flag and the
+	 * delete guard). Ids of other tenants are never in the result.
+	 */
+	Set<UUID> findVideoAssetIdsInUse(Collection<UUID> videoAssetIds);
+
+	/**
+	 * VIDEO Phase 6: attachment count per video asset ID in the caller's tenant.
+	 */
+	java.util.Map<UUID, Integer> countLessonAttachments(Collection<UUID> videoAssetIds);
+
+	/**
+	 * VIDEO Phase 6 (Q-010): video asset IDs attached to any lesson in courses
+	 * taught by {@code teacherUserId} in the caller's tenant.
+	 */
+	Set<UUID> findVideoAssetIdsForTeacher(UUID teacherUserId);
+
+	/**
+	 * KLASS-T4b: the VISIBLE materials of {@code lessonId} in the caller's
+	 * tenant, in sequence order (hidden ones are never listed). No
+	 * authorization - the caller has already evaluated lesson access.
+	 */
+	java.util.List<LessonMaterialSummary> findStudentVisibleLessonMaterials(UUID lessonId);
+
+	/** VIDEO Phase 7: resolves one LessonMedia row for playback authorization. */
+	Optional<LessonMediaPlaybackContext> resolveLessonMediaForPlayback(UUID lessonMediaId);
 
 }

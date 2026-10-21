@@ -58,6 +58,39 @@ export interface PaymentSlipResponse {
   reviewerEmail: string | null;
   orderAmount: number;
   orderCurrency: string;
+  /**
+   * KLASS-T4c/V90: the order's covered items (empty for a legacy line-less
+   * order). Each line names its course: one order may span several courses.
+   * Absent on older servers.
+   */
+  orderLines?: PaymentSlipOrderLine[];
+  orderSubtotal?: number | null;
+  orderFacilityFee?: number | null;
+  orderDiscount?: number | null;
+  /** V90: order postage total; `null` for legacy/pre-V90 orders. */
+  orderPostage?: number | null;
+  /** V90: delivery address snapshot, `null` when no postage was selected. */
+  orderDelivery?: PaymentSlipDelivery | null;
+}
+
+/** Mirrors `PaymentSlipOrderLine` (read-only projection of the order line). */
+export interface PaymentSlipOrderLine {
+  lineNo: number;
+  scope: string;
+  label: string;
+  unitAmount: number;
+  facilityFee: number;
+  lineTotal: number;
+  courseId: string | null;
+  courseTitle: string | null;
+}
+
+/** Mirrors `PaymentSlipDelivery`. */
+export interface PaymentSlipDelivery {
+  recipientName: string | null;
+  addressLine: string | null;
+  city: string | null;
+  phone: string | null;
 }
 
 /** Mirrors `SlipDownloadUrlResponse`. */

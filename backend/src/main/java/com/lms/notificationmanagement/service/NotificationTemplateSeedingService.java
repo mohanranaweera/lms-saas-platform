@@ -74,10 +74,27 @@ public class NotificationTemplateSeedingService {
 					"Hi,\n\nYour payment of {{amount}} {{currency}} (reference {{paymentId}}) could not be confirmed. Please contact support or try again.\n");
 			seedIfAbsent(event.tenantId(), NotificationEventType.PAYMENT_REFUNDED, "Refund Processed",
 					"Hi,\n\nA refund of {{amount}} for payment {{paymentId}} has been processed. Reason: {{reason}}.\n");
+			seedCredentialTemplates(event.tenantId());
 		}
 		finally {
 			TenantContextHolder.clear();
 		}
+	}
+
+	/**
+	 * AUTH-PWD-01: the account-setup and reset templates. Called for new tenants
+	 * above and, for tenants registered before this module, by the dispatcher
+	 * right before it sends one (the caller has set the TenantContext).
+	 */
+	public void seedCredentialTemplates(UUID tenantId) {
+		seedIfAbsent(tenantId, NotificationEventType.ACCOUNT_SETUP_INVITE, "Set up your {{tenantName}} account",
+				"Hi,\n\nAn account has been created for you at {{tenantName}}. Set your password to get started:\n\n"
+						+ "{{link}}\n\nThis link can be used once and expires in {{expiresIn}}. "
+						+ "If you weren't expecting this, you can ignore this email.\n");
+		seedIfAbsent(tenantId, NotificationEventType.PASSWORD_RESET, "Reset your {{tenantName}} password",
+				"Hi,\n\nWe received a request to reset your password at {{tenantName}}. Choose a new one here:\n\n"
+						+ "{{link}}\n\nThis link can be used once and expires in {{expiresIn}}. "
+						+ "If you didn't ask for this, you can ignore this email - your password won't change.\n");
 	}
 
 	/**

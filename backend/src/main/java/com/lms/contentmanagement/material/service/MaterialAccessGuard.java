@@ -1,11 +1,15 @@
 package com.lms.contentmanagement.material.service;
 
+import com.lms.common.error.DeviceNotAuthorizedException;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.ContentAvailability;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
+import com.lms.enrollmentmanagement.api.LessonAccessDecision;
+import com.lms.enrollmentmanagement.api.LessonAccessStatus;
+import java.util.List;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -81,21 +85,38 @@ public class MaterialAccessGuard {
 
 	private final PermissionCheckService permissionCheckService;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final AccessPolicyApi accessPolicyApi;
+
+	private final LessonAccessApi lessonAccessApi;
 
 	public MaterialAccessGuard(CourseLookupApi courseLookupApi, PermissionCheckService permissionCheckService,
-			EnrollmentAccessApi enrollmentAccessApi) {
+			AccessPolicyApi accessPolicyApi, LessonAccessApi lessonAccessApi) {
 		this.courseLookupApi = courseLookupApi;
 		this.permissionCheckService = permissionCheckService;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.accessPolicyApi = accessPolicyApi;
+		this.lessonAccessApi = lessonAccessApi;
 	}
 
 	public LessonOwnership requireLessonAccess(UUID courseId, UUID moduleId, UUID lessonId, PermissionAction action) {
-		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		LessonOwnership ownership = resolveLessonOwnership(courseId, moduleId, lessonId);
+		return authorize(ownership, action);
+	}
 
+	public LessonOwnership requireLessonAccess(UUID courseId, UUID lessonId, PermissionAction action) {
 		LessonOwnership ownership = courseLookupApi.resolveLessonOwnership(lessonId)
+			.filter(resolved -> resolved.courseId().equals(courseId))
+			.orElseThrow(() -> new NotFoundException("Lesson not found"));
+		return authorize(ownership, action);
+	}
+
+	private LessonOwnership resolveLessonOwnership(UUID courseId, UUID moduleId, UUID lessonId) {
+		return courseLookupApi.resolveLessonOwnership(lessonId)
 			.filter(resolved -> resolved.moduleId().equals(moduleId) && resolved.courseId().equals(courseId))
 			.orElseThrow(() -> new NotFoundException("Lesson not found"));
+	}
+
+	private LessonOwnership authorize(LessonOwnership ownership, PermissionAction action) {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 
 		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
 			if (!ownership.teacherId().equals(principal.userId())) {
@@ -105,18 +126,63 @@ public class MaterialAccessGuard {
 		}
 
 		if (STUDENT_ROLE.equals(principal.role())) {
-			if (action != PermissionAction.VIEW || !ownership.coursePublished()) {
+			if (action != PermissionAction.VIEW || !ownership.courseOpenToEnrolledStudents()) {
 				throw new NotFoundException("Lesson not found");
 			}
-			EnrollmentAccessState state = enrollmentAccessApi.resolveAccessState(principal.userId(), ownership.courseId());
-			if (state.state() != EnrollmentAccessStateType.ACTIVE) {
+			// KLASS-T4b (ADR-028): listing/metadata needs participation only (free
+			// participants may see titles); not-enrolled/unavailable stay a 404 and
+			// an unauthorized device a 403. Payment/window are decided per resource
+			// (requireLessonContentAccess / isLessonContentAllowedForStudent).
+			LessonAccessDecision decision = lessonAccessApi
+				.evaluate(ownership.courseId(), List.of(ownership.lessonId()))
+				.get(ownership.lessonId());
+			if (decision.status() == LessonAccessStatus.UNAVAILABLE
+					|| decision.status() == LessonAccessStatus.NOT_ENROLLED) {
 				throw new NotFoundException("Lesson not found");
+			}
+			if (decision.status() == LessonAccessStatus.DEVICE_NOT_AUTHORIZED) {
+				throw new DeviceNotAuthorizedException(
+						"This course can only be opened on a limited number of devices, and this device is not one of them.");
 			}
 			return ownership;
 		}
 
 		permissionCheckService.requirePermission(DomainArea.MATERIALS, action);
 		return ownership;
+	}
+
+	/**
+	 * KLASS-T4b: the protected-content gate (download / external link) - for a
+	 * Student the single lesson evaluator must answer ALLOWED (not enrolled /
+	 * unavailable = 404, device = 403, payment/window = 403 {@code {code,
+	 * access}}); staff/teachers keep the plain VIEW rule.
+	 */
+	public LessonOwnership requireLessonContentAccess(UUID courseId, UUID moduleId, UUID lessonId) {
+		LessonOwnership ownership = requireLessonAccess(courseId, moduleId, lessonId, PermissionAction.VIEW);
+		if (isStudent()) {
+			lessonAccessApi.requireLessonAccess(ownership.courseId(), ownership.lessonId(),
+					() -> new NotFoundException("Lesson not found"));
+		}
+		return ownership;
+	}
+
+	/**
+	 * KLASS-T4b: {@code true} when the caller is a Student whose lesson is not
+	 * ALLOWED by the lesson evaluator - the protected fields (external URL,
+	 * note content) of the lesson's materials must then be stripped. Titles and
+	 * metadata stay listable for every participant; non-students never redact.
+	 */
+	public boolean mustRedactLessonContent(UUID courseId, UUID lessonId) {
+		if (!isStudent()) {
+			return false;
+		}
+		LessonAccessDecision decision = lessonAccessApi.evaluate(courseId, List.of(lessonId)).get(lessonId);
+		return decision == null || !decision.allowed();
+	}
+
+	/** Wave 10: the material availability window, decided by the central {@link AccessPolicyApi}. */
+	public ContentAvailability contentWindow(java.time.Instant availableFrom, java.time.Instant availableUntil) {
+		return accessPolicyApi.evaluateContentWindow(availableFrom, availableUntil);
 	}
 
 	public boolean isStudent() {

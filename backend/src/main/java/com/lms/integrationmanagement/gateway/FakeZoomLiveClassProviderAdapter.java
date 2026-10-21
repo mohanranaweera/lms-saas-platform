@@ -2,6 +2,7 @@ package com.lms.integrationmanagement.gateway;
 
 import com.lms.integrationmanagement.api.LiveClassProviderApi;
 import com.lms.integrationmanagement.api.MeetingCreationResult;
+import com.lms.integrationmanagement.api.MeetingParticipant;
 import com.lms.integrationmanagement.api.ShortLivedJoinLink;
 import com.lms.integrationmanagement.api.ShortLivedPlaybackLink;
 import com.lms.integrationmanagement.config.LiveClassProviderProperties;
@@ -25,6 +26,10 @@ import org.springframework.stereotype.Component;
  * see {@link WebhookSignatureVerifier}'s javadoc - reusing the identical
  * HMAC-SHA256 mechanism {@code payment-management}'s webhook already relies
  * on, keyed by a distinct {@link LiveClassProviderProperties#getWebhookSecret()}.
+ *
+ * <p>MEDIA-INT-01: no longer injected directly - {@link
+ * LiveClassProviderRouter} (the {@code @Primary} bean) routes here only in
+ * local/test environments with {@code live-class.provider.fake-fallback-enabled}.
  */
 @Component
 public class FakeZoomLiveClassProviderAdapter implements LiveClassProviderApi {
@@ -41,15 +46,20 @@ public class FakeZoomLiveClassProviderAdapter implements LiveClassProviderApi {
 	}
 
 	@Override
-	public MeetingCreationResult createMeeting(UUID tenantId, UUID sessionId, String title, Instant scheduledStart,
-			Instant scheduledEnd) {
-		String reference = REFERENCE_PREFIX + UUID.randomUUID();
-		return new MeetingCreationResult(reference);
+	public void checkHostReady(UUID hostTeacherUserId) {
+		// Any teacher can host a fake meeting.
 	}
 
 	@Override
-	public ShortLivedJoinLink getJoinUrl(String providerReference, UUID tenantId, String participantRole,
-			String displayName) {
+	public MeetingCreationResult createMeeting(UUID tenantId, UUID sessionId, UUID hostTeacherUserId, String title,
+			Instant scheduledStart, Instant scheduledEnd) {
+		String reference = REFERENCE_PREFIX + UUID.randomUUID();
+		return new MeetingCreationResult(reference, null);
+	}
+
+	@Override
+	public ShortLivedJoinLink getJoinUrl(UUID connectionId, String providerReference,
+			MeetingParticipant participant) {
 		String token = UUID.randomUUID().toString();
 		String url = "https://live-class-provider.test/join/" + token;
 		return new ShortLivedJoinLink(url, Instant.now().plus(LINK_TTL_MINUTES, ChronoUnit.MINUTES));
@@ -63,7 +73,7 @@ public class FakeZoomLiveClassProviderAdapter implements LiveClassProviderApi {
 	}
 
 	@Override
-	public void cancelMeeting(String providerReference) {
+	public void cancelMeeting(UUID connectionId, String providerReference) {
 		// No-op: no real network call exists to make (see class javadoc). A
 		// real adapter would call the provider's delete-meeting endpoint here,
 		// idempotently.

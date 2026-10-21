@@ -25,10 +25,12 @@ import java.util.function.BiPredicate;
  * level by {@code TenantConfigController}); kept as a per-property field so
  * a future property needing a stricter gate (e.g. {@code APPROVE}) does not
  * require a shape change here.
+ * @param required when {@code true}, the property can never be cleared once
+ * set - a {@code null} in a PUT is rejected. See {@link #clearable()}.
  */
 public record ConfigPropertyDefinition(ConfigDomain domain, String key, ConfigValueType valueType,
 		Object defaultValue, BiPredicate<Object, Map<String, Object>> validator, boolean sensitive,
-		PermissionAction requiredAction) {
+		PermissionAction requiredAction, boolean required) {
 
 	public ConfigPropertyDefinition {
 		if (domain == null) {
@@ -48,11 +50,29 @@ public record ConfigPropertyDefinition(ConfigDomain domain, String key, ConfigVa
 		}
 	}
 
-	/** Convenience factory for the common case: not sensitive, {@code CREATE_EDIT} to write. */
+	/** Convenience factory for the common case: not sensitive, not required, {@code CREATE_EDIT} to write. */
 	public static ConfigPropertyDefinition of(ConfigDomain domain, String key, ConfigValueType valueType,
 			Object defaultValue, BiPredicate<Object, Map<String, Object>> validator) {
 		return new ConfigPropertyDefinition(domain, key, valueType, defaultValue, validator, false,
-				PermissionAction.CREATE_EDIT);
+				PermissionAction.CREATE_EDIT, false);
+	}
+
+	/** As {@link #of}, but for a required property with no default - never clearable. */
+	public static ConfigPropertyDefinition requiredOf(ConfigDomain domain, String key, ConfigValueType valueType,
+			BiPredicate<Object, Map<String, Object>> validator) {
+		return new ConfigPropertyDefinition(domain, key, valueType, null, validator, false,
+				PermissionAction.CREATE_EDIT, true);
+	}
+
+	/**
+	 * KLASS-T8d: an optional property (no default, not {@link #required}) may
+	 * be cleared - a {@code null} value in a PUT deletes the tenant's override
+	 * row so the property resolves back to {@code null} ("not configured").
+	 * A property with a default is not clearable (there is no reset-to-default
+	 * semantic), nor is a required one.
+	 */
+	public boolean clearable() {
+		return defaultValue == null && !required;
 	}
 
 }

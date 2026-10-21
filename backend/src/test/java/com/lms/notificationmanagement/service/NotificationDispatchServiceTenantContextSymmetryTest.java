@@ -2,6 +2,7 @@ package com.lms.notificationmanagement.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -90,7 +91,11 @@ class NotificationDispatchServiceTenantContextSymmetryTest {
 	void setUp() {
 		service = new NotificationDispatchService(notificationTemplateRepository, userProvisioningApi,
 				messagingProviderApi, notificationTemplateRenderer, objectMapper, notificationDispatchClaimService,
-				notificationDispatchFinalizeService);
+				notificationDispatchFinalizeService,
+				// AUTH-PWD-01 collaborators - unused on this payment-email path.
+				org.mockito.Mockito.mock(com.lms.identityaccessservice.api.PasswordTokenIssuingApi.class),
+				org.mockito.Mockito.mock(com.lms.tenantmanagement.api.TenantLookupApi.class),
+				org.mockito.Mockito.mock(NotificationTemplateSeedingService.class), "http://{subdomain}.lms.test");
 
 		NotificationOutbox row = new NotificationOutbox(TENANT_ID, NotificationEventType.PAYMENT_CONFIRMED,
 				RECIPIENT_USER_ID, "{\"amount\":\"10.00\"}", java.time.Instant.now());
@@ -137,7 +142,7 @@ class NotificationDispatchServiceTenantContextSymmetryTest {
 		verify(messagingProviderApi).sendEmail("student@example.test", "Rendered subject", "Rendered body");
 		verify(notificationDispatchFinalizeService).markSent(OUTBOX_ID, TENANT_ID, RECIPIENT_USER_ID,
 				"Rendered subject", "Rendered body");
-		verify(notificationDispatchFinalizeService, never()).markFailed(any(), any());
+		verify(notificationDispatchFinalizeService, never()).markRetryOrFailed(any(), any(), anyBoolean());
 	}
 
 	@Test
@@ -159,7 +164,8 @@ class NotificationDispatchServiceTenantContextSymmetryTest {
 
 		service.dispatchOne(OUTBOX_ID);
 
-		verify(notificationDispatchFinalizeService).markFailed(OUTBOX_ID, TENANT_ID);
+		// Wave 11 (D3): a non-SMTP failure is permanent - finalized as FAILED, never retried.
+		verify(notificationDispatchFinalizeService).markRetryOrFailed(OUTBOX_ID, TENANT_ID, false);
 		verify(notificationDispatchFinalizeService, never()).markSent(any(), any(), any(), anyString(), anyString());
 	}
 

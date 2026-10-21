@@ -1,0 +1,75 @@
+- generic [ref=f3e1]:
+  - button "Open Next.js Dev Tools" [ref=f3e16] [cursor=pointer]:
+    - generic [ref=f3e19]:
+      - text: Compiling
+      - generic [ref=f3e20]:
+        - generic [ref=f3e21]: .
+        - generic [ref=f3e22]: .
+        - generic [ref=f3e23]: .
+  - alert [ref=f3e15]
+  - generic [ref=f3e24]:
+    - complementary [ref=f3e25]:
+      - generic [ref=f3e26]: Student Portal
+      - navigation "Primary" [ref=f3e27]:
+        - list [ref=f3e28]:
+          - listitem [ref=f3e29]:
+            - link "Dashboard" [ref=f3e30] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f3e31]:
+            - link "My Courses" [ref=f3e32] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f3e33]:
+            - link "Browse Courses" [active] [ref=f3e34] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=f3e35]:
+            - link "Live Classes" [ref=f3e36] [cursor=pointer]:
+              - /url: /student/live-classes
+          - listitem [ref=f3e37]:
+            - link "My Attendance" [ref=f3e38] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f3e39]:
+            - link "Exams" [ref=f3e40] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f3e41]:
+            - link "Payments" [ref=f3e42] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f3e43]:
+            - link "Reactivation" [ref=f3e44] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f3e45]:
+            - link "Notifications" [ref=f3e46] [cursor=pointer]:
+              - /url: /student/notifications
+          - listitem [ref=f3e47]:
+            - link "Profile" [ref=f3e48] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f3e49]:
+      - banner [ref=f3e50]:
+        - button "Sign out" [ref=f3e52]
+      - main [ref=f3e53]:
+        - generic [ref=f3e54]:
+          - generic [ref=f3e55]:
+            - heading "Overview" [level=1] [ref=f3e56]
+            - paragraph [ref=f3e57]: Your enrollments, courses, and recent payment activity at a glance.
+          - generic [ref=f3e58]:
+            - generic [ref=f3e59]:
+              - group [ref=f3e60]:
+                - paragraph [ref=f3e62]: Active courses
+                - paragraph [ref=f3e67]: "1"
+              - group [ref=f3e68]:
+                - paragraph [ref=f3e70]: Needs attention
+                - paragraph [ref=f3e74]: "0"
+            - generic [ref=f3e75]:
+              - heading "Recent courses" [level=2] [ref=f3e76]
+              - list "Recent courses" [ref=f3e77]:
+                - listitem [ref=f3e78]:
+                  - generic [ref=f3e79]:
+                    - heading "2028 Biology Theory Class" [level=3] [ref=f3e80]
+                    - generic [ref=f3e81]: Active
+                  - generic [ref=f3e82]: Biology
+              - link "View all my courses" [ref=f3e83] [cursor=pointer]:
+                - /url: /student/courses
+          - region [ref=f3e84]:
+            - heading "Payment activity" [level=2] [ref=f3e85]
+            - group [ref=f3e86]:
+              - paragraph [ref=f3e88]: Most recent payment
+              - paragraph [ref=f3e93]: No payments yet

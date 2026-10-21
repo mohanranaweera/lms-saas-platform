@@ -43,9 +43,9 @@ public class ClassSessionWriteService {
 	}
 
 	@Transactional
-	public ClassSession markProvisioned(UUID sessionId, String providerReference) {
+	public ClassSession markProvisioned(UUID sessionId, String providerReference, UUID providerConnectionId) {
 		ClassSession session = getOwned(sessionId);
-		session.markProvisioned(providerReference);
+		session.markProvisioned(providerReference, providerConnectionId);
 		return classSessionRepository.save(session);
 	}
 

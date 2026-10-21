@@ -6,9 +6,8 @@ import com.lms.common.api.PageResponse;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamQuestion;
 import com.lms.exammanagement.domain.ExamQuestionLink;
@@ -78,6 +77,8 @@ public class ExamSchedulingService {
 
 	private final EnrollmentAccessApi enrollmentAccessApi;
 
+	private final AccessPolicyApi accessPolicyApi;
+
 	private final TenantContext tenantContext;
 
 	private final AuditLogApi auditLogApi;
@@ -86,7 +87,8 @@ public class ExamSchedulingService {
 			ExamQuestionLinkRepository examQuestionLinkRepository,
 			ExamQuestionOptionRepository examQuestionOptionRepository, ExamAccessGuard examAccessGuard,
 			ExamLifecycleService examLifecycleService, EnrollmentAccessApi enrollmentAccessApi,
-			TenantContext tenantContext, AuditLogApi auditLogApi) {
+			TenantContext tenantContext, AuditLogApi auditLogApi, AccessPolicyApi accessPolicyApi) {
+		this.accessPolicyApi = accessPolicyApi;
 		this.examRepository = examRepository;
 		this.examQuestionRepository = examQuestionRepository;
 		this.examQuestionLinkRepository = examQuestionLinkRepository;
@@ -176,11 +178,9 @@ public class ExamSchedulingService {
 			if (resolvedStatus != ExamStatus.PUBLISHED && resolvedStatus != ExamStatus.CLOSED) {
 				throw new NotFoundException("Exam not found");
 			}
-			EnrollmentAccessState accessState = enrollmentAccessApi.resolveAccessState(principal.userId(),
-					exam.getCourseId());
-			if (accessState.state() != EnrollmentAccessStateType.ACTIVE) {
-				throw new NotFoundException("Exam not found");
-			}
+			// Wave 10: the central access decision (expiry, extension, grace, course device limit).
+			accessPolicyApi.requireStudentCourseAccess(exam.getCourseId(),
+					() -> new NotFoundException("Exam not found"));
 		}
 		else {
 			examAccessGuard.requireAuthoringAccess(exam.getCourseId(), PermissionAction.VIEW);

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { PrincipalKind } from "@/lib/api/auth";
 import { LoadingState } from "@/components/states/loading-state";
+import { ErrorState } from "@/components/states/error-state";
+import { isApiClientError } from "@/lib/api/error";
 
 interface RouteGuardProps {
   kind: PrincipalKind;
@@ -16,9 +18,10 @@ interface RouteGuardProps {
 /**
  * Route-group guard: attempts to establish a session (refreshing via the
  * HttpOnly refresh cookie if needed) before rendering `children`; redirects
- * to `loginPath` on failure. This is UX convenience only — it exists to
- * avoid a flash of wrong-portal content before a real backend 401/403 is
- * even possible, per plan §11d. It is NOT the authorization mechanism: the
+ * to `loginPath` only for a real backend 401 and renders a retryable error for
+ * other failures. This is UX convenience only — it exists to avoid a flash of
+ * wrong-portal content before a real backend 401/403 is even possible, per plan
+ * §11d. It is NOT the authorization mechanism: the
  * backend independently rejects every request regardless of whether this
  * guard ran, and a caller must still handle 401/403 from real data calls
  * (see QueryStateBoundary) rather than relying on this guard alone.
@@ -27,6 +30,8 @@ export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
   const { ensureAccessToken } = useAuth();
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [authError, setAuthError] = useState<unknown>(null);
+  const [retryNumber, setRetryNumber] = useState(0);
 
   // `ensureAccessToken` is not referentially stable across session changes
   // (auth-context.tsx wraps it in `useCallback` with `[session]` as a dep),
@@ -44,20 +49,45 @@ export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
 
   useEffect(() => {
     let cancelled = false;
+
     latest.current
       .ensureAccessToken(kind)
       .then(() => {
         if (!cancelled) setReady(true);
       })
-      .catch(() => {
-        if (!cancelled) latest.current.router.replace(`${loginPath}?reason=session_expired`);
+      .catch((error: unknown) => {
+        if (cancelled) return;
+
+        if (isApiClientError(error) && error.status === 401) {
+          latest.current.router.replace(`${loginPath}?reason=session_expired`);
+          return;
+        }
+
+        setAuthError(error);
       });
     return () => {
       cancelled = true;
     };
-  }, [kind, loginPath]);
+  }, [kind, loginPath, retryNumber]);
 
   if (!ready) {
+    if (authError) {
+      return (
+        <ErrorState
+          message={
+            isApiClientError(authError)
+              ? authError.message
+              : "We couldn't verify your session. Please try again."
+          }
+          code={isApiClientError(authError) ? authError.code : undefined}
+          onRetry={() => {
+            setAuthError(null);
+            setRetryNumber((value) => value + 1);
+          }}
+        />
+      );
+    }
+
     return <LoadingState label="Checking your session…" />;
   }
 

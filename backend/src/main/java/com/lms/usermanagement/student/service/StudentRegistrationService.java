@@ -2,15 +2,14 @@ package com.lms.usermanagement.student.service;
 
 import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
-import com.lms.common.api.FieldError;
 import com.lms.common.error.ConflictException;
-import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.MessagingProviderApi;
 import com.lms.tenantmanagement.api.ConfigDomain;
+import com.lms.tenantmanagement.api.StudentProfileField;
 import com.lms.tenantmanagement.api.TenantConfigApi;
 import com.lms.usermanagement.student.domain.StudentProfile;
 import com.lms.usermanagement.student.domain.StudentRegistrationOtp;
@@ -20,8 +19,7 @@ import com.lms.usermanagement.student.repository.StudentRegistrationOtpRepositor
 import com.lms.usermanagement.student.web.dto.StudentRegistrationRequest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -68,10 +66,14 @@ public class StudentRegistrationService {
 
 	private final AuditLogApi auditLogApi;
 
+	private final StudentProfileFieldsService studentProfileFieldsService;
+
 	public StudentRegistrationService(TenantContext tenantContext, TenantConfigApi tenantConfigApi,
 			StudentProfileRepository studentProfileRepository, StudentRegistrationOtpRepository otpRepository,
 			StudentRegistrationOtpWriter otpWriter, UserProvisioningApi userProvisioningApi,
-			MessagingProviderApi messagingProviderApi, PasswordEncoder passwordEncoder, AuditLogApi auditLogApi) {
+			MessagingProviderApi messagingProviderApi, PasswordEncoder passwordEncoder, AuditLogApi auditLogApi,
+			StudentProfileFieldsService studentProfileFieldsService) {
+		this.studentProfileFieldsService = studentProfileFieldsService;
 		this.tenantContext = tenantContext;
 		this.tenantConfigApi = tenantConfigApi;
 		this.studentProfileRepository = studentProfileRepository;
@@ -141,7 +143,10 @@ public class StudentRegistrationService {
 			throw new NotFoundException("Student self-registration is not available");
 		}
 
-		validateRequiredFields(request, config);
+		// STU-PROF-01: validated against the tenant's student profile field
+		// settings before any account is created.
+		Map<StudentProfileField, Object> profileValues = studentProfileFieldsService
+			.validateRegistrationValues(registrationValues(request));
 
 		if (flag(config, "otp_required", false)) {
 			requireRecentlyVerifiedOtp(request.email());
@@ -159,8 +164,8 @@ public class StudentRegistrationService {
 		}
 
 		StudentProfile profile = new StudentProfile(tenantContext.getTenantId(), provisioned.userId(), request.name(),
-				StudentRegistrationStatus.SELF_REGISTERED, request.guardianName(), request.guardianPhone(),
-				request.school(), request.grade(), request.stream(), request.mobile());
+				StudentRegistrationStatus.SELF_REGISTERED, null, null, null, null, null, null);
+		StudentProfileFieldsService.applyRegistrationValues(profile, profileValues);
 		profile = studentProfileRepository.save(profile);
 
 		auditLogApi.record(AuditLogEntry.of(profile.getUserId(), "student.self_registered", "student_profile",
@@ -186,35 +191,34 @@ public class StudentRegistrationService {
 		}
 	}
 
-	private void validateRequiredFields(StudentRegistrationRequest request, Map<String, Object> config) {
-		List<FieldError> errors = new ArrayList<>();
-		if (flag(config, "require_guardian_info", false)) {
-			if (isBlank(request.guardianName())) {
-				errors.add(new FieldError("guardianName", "Guardian name is required"));
-			}
-			if (isBlank(request.guardianPhone())) {
-				errors.add(new FieldError("guardianPhone", "Guardian phone is required"));
-			}
+	/**
+	 * {@code profileFields} merged with the six legacy top-level properties,
+	 * which are mapped onto their catalogue keys only when {@code
+	 * profileFields} does not name that key itself.
+	 */
+	private static Map<String, Object> registrationValues(StudentRegistrationRequest request) {
+		Map<String, Object> values = new HashMap<>();
+		if (request.profileFields() != null) {
+			values.putAll(request.profileFields());
 		}
-		if (flag(config, "require_school", false) && isBlank(request.school())) {
-			errors.add(new FieldError("school", "School is required"));
+		if ((request.guardianName() != null || request.guardianPhone() != null)
+				&& !values.containsKey(StudentProfileField.GUARDIAN.name())) {
+			Map<String, Object> guardian = new HashMap<>();
+			guardian.put("name", request.guardianName());
+			guardian.put("phone", request.guardianPhone());
+			values.put(StudentProfileField.GUARDIAN.name(), guardian);
 		}
-		if (flag(config, "require_grade", false) && isBlank(request.grade())) {
-			errors.add(new FieldError("grade", "Grade is required"));
-		}
-		if (flag(config, "require_stream", false) && isBlank(request.stream())) {
-			errors.add(new FieldError("stream", "Stream is required"));
-		}
-		if (flag(config, "require_mobile", false) && isBlank(request.mobile())) {
-			errors.add(new FieldError("mobile", "Mobile number is required"));
-		}
-		if (!errors.isEmpty()) {
-			throw new FieldValidationException("Registration is missing required fields for this institute", errors);
-		}
+		putLegacy(values, StudentProfileField.SCHOOL, request.school());
+		putLegacy(values, StudentProfileField.GRADE, request.grade());
+		putLegacy(values, StudentProfileField.AL_STREAM, request.stream());
+		putLegacy(values, StudentProfileField.MOBILE, request.mobile());
+		return values;
 	}
 
-	private static boolean isBlank(String value) {
-		return value == null || value.isBlank();
+	private static void putLegacy(Map<String, Object> values, StudentProfileField field, String value) {
+		if (value != null) {
+			values.putIfAbsent(field.name(), value);
+		}
 	}
 
 	private static boolean flag(Map<String, Object> config, String key, boolean defaultValue) {

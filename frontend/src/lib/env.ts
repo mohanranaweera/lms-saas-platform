@@ -10,14 +10,61 @@ import { z } from "zod";
  * Fails fast (throws) at import time when the environment is misconfigured, so a
  * broken deployment surfaces immediately instead of failing deep inside a component.
  */
+/** An optional https URL setting (blank means unset). */
+function httpsUrl(name: string) {
+  return z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined)
+    .refine((value) => value === undefined || (URL.canParse(value) && new URL(value).protocol === "https:"), {
+      message: `${name} must be an https URL.`,
+    });
+}
+
 const envSchema = z.object({
+  /**
+   * TEN-DOM-01 / ADR-021: defaults to `/api` on the site's own address, so each
+   * tenant site - platform subdomain or custom domain - reaches its own tenant
+   * (the backend resolves the tenant from the host the browser used). In dev,
+   * `next.config.ts` rewrites `/api` to the backend; in production Nginx does.
+   * An absolute URL still works but ties every site to one host.
+   */
   NEXT_PUBLIC_API_BASE_URL: z
-    .string({ error: "NEXT_PUBLIC_API_BASE_URL is required." })
-    .url({ message: "NEXT_PUBLIC_API_BASE_URL must be a valid URL." }),
+    .string()
+    .default("/api")
+    .refine((value) => value.startsWith("/") || URL.canParse(value), {
+      message: "NEXT_PUBLIC_API_BASE_URL must be a path such as /api or a full URL.",
+    }),
+  /**
+   * VIDEO Phase 9 (ADR-025): where Students download the AOC Player installer
+   * for Windows. Unset until signed releases exist; the AOC Player page then
+   * says the download isn't available yet. Must be https (or a same-site path).
+   */
+  NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined)
+    .refine(
+      (value) =>
+        value === undefined ||
+        (value.startsWith("/") && !value.startsWith("//")) ||
+        (URL.canParse(value) && new URL(value).protocol === "https:"),
+      { message: "NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL must be an https URL or a path." }
+    ),
+  /**
+   * ADR-025 Amendment 2: store pages of the AOC mobile app. Unset until the
+   * app is published; phones and tablets then keep the "use a Windows
+   * computer" message. https only.
+   */
+  NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL: httpsUrl("NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL"),
+  NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL: httpsUrl("NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL"),
 });
 
 const parsed = envSchema.safeParse({
   NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL: process.env.NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL,
+  NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL: process.env.NEXT_PUBLIC_AOC_MOBILE_APP_ANDROID_URL,
+  NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL: process.env.NEXT_PUBLIC_AOC_MOBILE_APP_IOS_URL,
 });
 
 if (!parsed.success) {

@@ -2,7 +2,9 @@ package com.lms.liveclassmanagement.repository;
 
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.liveclassmanagement.domain.ClassSession;
+import com.lms.liveclassmanagement.domain.ClassSessionStatus;
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +50,17 @@ public interface ClassSessionRepository extends TenantAwareRepository<ClassSessi
 		}
 		return findAll((root, query, cb) -> root.get("courseId").in(courseIds),
 				Sort.by(Sort.Direction.ASC, "scheduledStart"));
+	}
+
+	/**
+	 * MEDIA-INT-01: upcoming (SCHEDULED/LIVE, not yet ended) sessions hosted on
+	 * one provider connection - the "N classes will be affected" warning
+	 * before a Zoom account is disconnected.
+	 */
+	default long countUpcomingHostedBy(UUID providerConnectionId, Instant now) {
+		return count((root, query, cb) -> cb.and(cb.equal(root.get("providerConnectionId"), providerConnectionId),
+				root.get("status").in(ClassSessionStatus.SCHEDULED, ClassSessionStatus.LIVE),
+				cb.greaterThan(root.get("scheduledEnd"), now)));
 	}
 
 	default List<ClassSession> findAllForTenant() {

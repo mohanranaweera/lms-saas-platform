@@ -10,6 +10,6 @@ import java.util.UUID;
  * a password/hash field - no such field exists anywhere in this chain.
  */
 public record TeacherResponse(UUID id, String name, String email, String approvalStatus, String accountStatus,
-		UUID approvedBy, Instant approvedAt) {
+		UUID approvedBy, Instant approvedAt, UUID userId) {
 
 }

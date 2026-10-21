@@ -163,6 +163,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           error.status === 401 &&
           (error.code === "UNAUTHENTICATED" || error.code === "SESSION_REVOKED");
 
+        // AUTH-PWD-01: the backend lets an account with a temporary password do
+        // nothing but change it - send the user there from any page. The error is
+        // still thrown so the calling page doesn't render stale data meanwhile.
+        if (
+          isApiClientError(error) &&
+          error.code === "PASSWORD_CHANGE_REQUIRED" &&
+          typeof window !== "undefined" &&
+          window.location.pathname !== "/change-password"
+        ) {
+          window.location.assign("/change-password");
+        }
+
         if (!isRecoverable) {
           throw error;
         }

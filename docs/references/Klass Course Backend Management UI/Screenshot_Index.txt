@@ -1,0 +1,13 @@
+Source: Course - Backend Management.mp4
+Screenshots preserve original resolution. Timestamps are from recording start.
+
+00:00 - 01_Course_Management_Table_000s.png
+00:08 - 02_Course_Modules_Table_008s.png
+00:12 - 03_Add_Module_Form_012s.png
+00:20 - 04_Module_Sessions_Table_020s.png
+00:28 - 05_Add_Session_Form_028s.png
+00:31 - 06_Resource_Types_Upper_List_031s.png
+00:46 - 07_Resource_Types_Lower_List_046s.png
+00:52 - 08_Session_Payment_Types_052s.png
+00:56 - 09_Required_Field_Validation_056s.png
+00:59 - 10_Additional_Lesson_And_Description_Fields_059s.png

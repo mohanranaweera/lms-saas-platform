@@ -11,8 +11,14 @@ import { useLedgerOutstanding, type OutstandingOrderResponse } from "@/lib/api/l
 
 const PAGE_SIZE = 20;
 
+/** A multi-course order (`courseId` null) has no single course. */
+function courseLabel(row: OutstandingOrderResponse): string {
+  if (row.courseTitle) return row.courseTitle;
+  return row.courseId ? shortId(row.courseId, "Course") : "Multiple courses";
+}
+
 const columns: DataTableColumn<OutstandingOrderResponse>[] = [
-  { key: "course", header: "Course", cell: (row) => row.courseTitle ?? shortId(row.courseId, "Course") },
+  { key: "course", header: "Course", cell: (row) => courseLabel(row) },
   {
     key: "status",
     header: "Status",
@@ -64,7 +70,7 @@ export function OutstandingPaymentsTab() {
               rows={data.content}
               rowKey={(row) => row.orderId}
               caption="Outstanding payments"
-              cardHeading={(row) => row.courseTitle ?? shortId(row.courseId, "Course")}
+              cardHeading={(row) => courseLabel(row)}
               cardHeadingAdornment={(row) => (
                 <PaymentOperationalStateBadge state={row.operationalState} />
               )}

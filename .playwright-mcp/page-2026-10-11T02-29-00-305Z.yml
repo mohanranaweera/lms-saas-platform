@@ -1,0 +1,179 @@
+- generic [active] [ref=f17e1]:
+  - generic [ref=f17e3]:
+    - banner [ref=f17e5]:
+      - generic [ref=f17e6]:
+        - link [ref=f17e7] [cursor=pointer]:
+          - /url: /
+          - img "DynTube" [ref=f17e8]
+        - navigation [ref=f17e17]:
+          - link "Pricing" [ref=f17e19] [cursor=pointer]:
+            - /url: "#"
+          - link "Features" [ref=f17e23] [cursor=pointer]:
+            - /url: "#"
+          - link "Channels" [ref=f17e27] [cursor=pointer]:
+            - /url: "#"
+          - link "Solutions" [ref=f17e31] [cursor=pointer]:
+            - /url: "#"
+          - link "Compare" [ref=f17e35] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=f17e38]:
+          - button "Switch to dark mode" [ref=f17e39] [cursor=pointer]
+          - generic [ref=f17e43]:
+            - link "Log In" [ref=f17e44] [cursor=pointer]:
+              - /url: /account/login
+            - link "Free Trial" [ref=f17e45] [cursor=pointer]:
+              - /url: /account/free-trial
+    - generic [ref=f17e49]:
+      - generic [ref=f17e50]: Error 404
+      - heading "404" [level=1] [ref=f17e52]
+      - heading "Page Not Found" [level=2] [ref=f17e53]
+      - paragraph [ref=f17e54]: The page you are looking for was moved, removed or might never existed.
+      - link "Go to homepage" [ref=f17e55] [cursor=pointer]:
+        - /url: /
+    - contentinfo [ref=f17e56]:
+      - generic [ref=f17e57]:
+        - generic [ref=f17e58]:
+          - generic [ref=f17e59]: Enterprise Security
+          - generic [ref=f17e64]: 99.9% Uptime
+          - generic [ref=f17e69]: Global CDN
+        - generic [ref=f17e76]:
+          - generic [ref=f17e77]:
+            - link [ref=f17e78] [cursor=pointer]:
+              - /url: /
+              - img "DynTube" [ref=f17e79]
+            - paragraph [ref=f17e88]: Professional video hosting for websites and businesses. Lightning-fast global CDN, advanced security, and powerful analytics — at a price that scales with you.
+          - generic [ref=f17e89]:
+            - generic [ref=f17e90]:
+              - heading "Product" [level=6] [ref=f17e91]
+              - list [ref=f17e93]:
+                - listitem [ref=f17e94]:
+                  - link "Video Hosting" [ref=f17e95] [cursor=pointer]:
+                    - /url: /video-hosting
+                - listitem [ref=f17e96]:
+                  - link "Video Player" [ref=f17e97] [cursor=pointer]:
+                    - /url: /player
+                - listitem [ref=f17e98]:
+                  - link "Video Analytics" [ref=f17e99] [cursor=pointer]:
+                    - /url: /video-analytics
+                - listitem [ref=f17e100]:
+                  - link "Video Security" [ref=f17e101] [cursor=pointer]:
+                    - /url: /video-security
+                - listitem [ref=f17e102]:
+                  - link "Live Streaming" [ref=f17e103] [cursor=pointer]:
+                    - /url: /live-streaming
+                - listitem [ref=f17e104]:
+                  - link "Video API" [ref=f17e105] [cursor=pointer]:
+                    - /url: /video-hosting-api
+                - listitem [ref=f17e106]:
+                  - link "Video Encryption" [ref=f17e107] [cursor=pointer]:
+                    - /url: /online-video-encryption
+                - listitem [ref=f17e108]:
+                  - link "DRM Protection" [ref=f17e109] [cursor=pointer]:
+                    - /url: /video-drm-protection
+                - listitem [ref=f17e110]:
+                  - link "Screen Recording Protection" [ref=f17e111] [cursor=pointer]:
+                    - /url: /screen-recording-protection
+                - listitem [ref=f17e112]:
+                  - link "White Label Hosting" [ref=f17e113] [cursor=pointer]:
+                    - /url: /white-label-video-hosting
+            - generic [ref=f17e114]:
+              - heading "Solutions" [level=6] [ref=f17e115]
+              - list [ref=f17e117]:
+                - listitem [ref=f17e118]:
+                  - link "Online Courses" [ref=f17e119] [cursor=pointer]:
+                    - /url: /video-hosting-for-online-courses
+                - listitem [ref=f17e120]:
+                  - link "Corporate Training" [ref=f17e121] [cursor=pointer]:
+                    - /url: /video-hosting-for-corporate-training
+                - listitem [ref=f17e122]:
+                  - link "SaaS Companies" [ref=f17e123] [cursor=pointer]:
+                    - /url: /video-hosting-for-saas
+                - listitem [ref=f17e124]:
+                  - link "Healthcare" [ref=f17e125] [cursor=pointer]:
+                    - /url: /video-hosting-for-healthcare
+                - listitem [ref=f17e126]:
+                  - link "Developers" [ref=f17e127] [cursor=pointer]:
+                    - /url: /video-hosting-api-for-developers
+                - listitem [ref=f17e128]:
+                  - link "Sermon Hosting" [ref=f17e129] [cursor=pointer]:
+                    - /url: /sermon-video-hosting
+                - listitem [ref=f17e130]:
+                  - link "All Solutions" [ref=f17e131] [cursor=pointer]:
+                    - /url: /solutions
+            - generic [ref=f17e132]:
+              - heading "Compare" [level=6] [ref=f17e133]
+              - list [ref=f17e135]:
+                - listitem [ref=f17e136]:
+                  - link "DynTube vs Vimeo" [ref=f17e137] [cursor=pointer]:
+                    - /url: /compare/vimeo-alternative
+                - listitem [ref=f17e138]:
+                  - link "DynTube vs Wistia" [ref=f17e139] [cursor=pointer]:
+                    - /url: /compare/wistia-alternative
+                - listitem [ref=f17e140]:
+                  - link "DynTube vs Vidyard" [ref=f17e141] [cursor=pointer]:
+                    - /url: /compare/vidyard-alternative
+                - listitem [ref=f17e142]:
+                  - link "DynTube vs Brightcove" [ref=f17e143] [cursor=pointer]:
+                    - /url: /compare/brightcove-alternative
+                - listitem [ref=f17e144]:
+                  - link "DynTube vs SproutVideo" [ref=f17e145] [cursor=pointer]:
+                    - /url: /compare/sproutvideo-alternative
+                - listitem [ref=f17e146]:
+                  - link "DynTube vs Bunny Stream" [ref=f17e147] [cursor=pointer]:
+                    - /url: /compare/bunny-alternative
+                - listitem [ref=f17e148]:
+                  - link "DynTube vs JW Player" [ref=f17e149] [cursor=pointer]:
+                    - /url: /compare/jwplayer-alternative
+                - listitem [ref=f17e150]:
+                  - link "DynTube vs Dacast" [ref=f17e151] [cursor=pointer]:
+                    - /url: /compare/dacast-alternative
+            - generic [ref=f17e152]:
+              - heading "Resources" [level=6] [ref=f17e153]
+              - list [ref=f17e155]:
+                - listitem [ref=f17e156]:
+                  - link "Blog" [ref=f17e157] [cursor=pointer]:
+                    - /url: /blog
+                - listitem [ref=f17e158]:
+                  - link "Documentation" [ref=f17e159] [cursor=pointer]:
+                    - /url: /docs
+                - listitem [ref=f17e160]:
+                  - link "API Reference" [ref=f17e161] [cursor=pointer]:
+                    - /url: /dev
+                - listitem [ref=f17e162]:
+                  - link "FAQs" [ref=f17e163] [cursor=pointer]:
+                    - /url: /faqs
+                - listitem [ref=f17e164]:
+                  - link "Customer Reviews" [ref=f17e165] [cursor=pointer]:
+                    - /url: /reviews
+                - listitem [ref=f17e166]:
+                  - link "Platform Comparison" [ref=f17e167] [cursor=pointer]:
+                    - /url: /best-video-hosting-platforms
+            - generic [ref=f17e168]:
+              - heading "Company" [level=6] [ref=f17e169]
+              - list [ref=f17e171]:
+                - listitem [ref=f17e172]:
+                  - link "Pricing" [ref=f17e173] [cursor=pointer]:
+                    - /url: /pricing
+                - listitem [ref=f17e174]:
+                  - link "Contact Us" [ref=f17e175] [cursor=pointer]:
+                    - /url: /contact
+                - listitem [ref=f17e176]:
+                  - link "Privacy Policy" [ref=f17e177] [cursor=pointer]:
+                    - /url: /legal/privacy
+                - listitem [ref=f17e178]:
+                  - link "Terms of Service" [ref=f17e179] [cursor=pointer]:
+                    - /url: /legal/terms
+                - listitem [ref=f17e180]:
+                  - link "Bandwidth Calculator" [ref=f17e181] [cursor=pointer]:
+                    - /url: /pages/bandwidth-calculator
+        - generic [ref=f17e182]:
+          - paragraph [ref=f17e183]: © 2026 DynTube. All rights reserved.
+          - generic [ref=f17e184]:
+            - link "Privacy" [ref=f17e185] [cursor=pointer]:
+              - /url: /legal/privacy
+            - link "Terms" [ref=f17e186] [cursor=pointer]:
+              - /url: /legal/terms
+            - link "Contact" [ref=f17e187] [cursor=pointer]:
+              - /url: /contact
+      - text: DYNTUBE
+  - alert [ref=f17e188]

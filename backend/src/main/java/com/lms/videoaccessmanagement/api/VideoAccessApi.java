@@ -1,5 +1,7 @@
 package com.lms.videoaccessmanagement.api;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,5 +34,22 @@ public interface VideoAccessApi {
 	 * @return {@link Optional#empty()} if no such asset exists for {@code tenantId}.
 	 */
 	Optional<VideoAssetSummary> getSummary(UUID videoAssetId, UUID tenantId);
+
+	/**
+	 * Detailed read projection for lesson media (VIDEO Phase 6).
+	 */
+	Optional<VideoAssetDetails> getDetails(UUID videoAssetId, UUID tenantId);
+
+	/**
+	 * Batch detailed read projection for lesson media (VIDEO Phase 6).
+	 */
+	Map<UUID, VideoAssetDetails> getDetailsBatch(Collection<UUID> videoAssetIds, UUID tenantId);
+
+	/**
+	 * KLASS-T4b: whether the caller's tenant requires lesson video to play in
+	 * the native AOC Player (tenant video configuration, platform default when
+	 * unset). Tenant from {@code TenantContext}.
+	 */
+	boolean isNativePlayerRequired();
 
 }

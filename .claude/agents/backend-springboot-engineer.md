@@ -13,5 +13,5 @@ Rules:
 - Database changes are new Flyway migrations only; never edit an already-shared migration.
 - Add tests for every security-sensitive change.
 - Do not modify the `frontend/` directory unless the task explicitly says full-stack implementation is authorized.
-- Enrollment may activate only after verified backend payment confirmation or approved manual payment evidence — never from a frontend success page.
+- Registered students may enroll freely through an authenticated, authorized backend enrollment operation. Enrollment never depends on payment. Paid lesson/session entitlements are granted only after verified backend payment confirmation or approved manual payment evidence, never from a frontend success page. Payment pending/failure/rejection does not cancel enrollment (ADR-028).
 - Run `backend\mvnw.cmd verify` before considering work complete.

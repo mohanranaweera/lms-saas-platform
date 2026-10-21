@@ -51,6 +51,15 @@ payment:
     # instead. Individual tests needing a different value override it via
     # @TestPropertySource.
     webhook-secret: "test-only-webhook-secret-not-for-production-use"
+    # Pre-PAY-GW-01 tests pay through the fake gateway when no tenant
+    # gateway account exists.
+    fake-fallback-enabled: true
+  credentials:
+    # Test-only key (Base64 of "test-only-payment-cred-key-32byt").
+    encryption-key: "dGVzdC1vbmx5LXBheW1lbnQtY3JlZC1rZXktMzJieXQ="
+  payhere:
+    notify-url: "https://notify.example.test/api/v1/integrations/webhooks/payhere"
+    return-url-template: "https://{subdomain}.example.test"
 
 live-class:
   provider:
@@ -58,6 +67,30 @@ live-class:
     # src/main/resources/application.yml's own comment for why the main
     # default is empty instead.
     webhook-secret: "test-only-live-class-webhook-secret-not-for-production-use"
+    # MEDIA-INT-01: existing live-class tests run against the fake provider
+    # (no Zoom OAuth app is configured in tests unless a test sets one).
+    fake-fallback-enabled: true
+
+integrations:
+  media:
+    # Test-only key (Base64 of "test-only-media-cred-key-32bytes").
+    encryption-key: "dGVzdC1vbmx5LW1lZGlhLWNyZWQta2V5LTMyYnl0ZXM="
+    callback-base-url: "https://app.example.test"
+    tenant-url-template: "https://{subdomain}.example.test"
+    platform-error-url: "https://app.example.test/integration-error"
+    zoom-webhook-secret-token: "test-only-zoom-webhook-secret-token"
+
+video:
+  # VIDEO Phase 4: tests drive the upload worker / status sync directly, so the
+  # timers are off; small parts and chunks keep test files tiny (the chunk size
+  # still respects YouTube's 256 KiB granularity).
+  features:
+    youtube-upload: true
+  upload:
+    scheduler-enabled: false
+    part-size-bytes: 262144
+    chunk-size-bytes: 262144
+    max-file-size-bytes: 67108864
 
 video-playback:
   token:
@@ -69,6 +102,29 @@ video-playback:
     secret: "test-only-video-playback-token-secret-not-for-production-use-32bytes+"
 
 app:
+  # VIDEO Phase 8: fixed, clearly test-only pepper for pairing/launch-code HMACs.
+  player:
+    launch-code-pepper: "test-only-player-launch-code-pepper-not-for-production"
+    dyntube-bridge-url: "http://embed.lms.test:3000/embed/dyntube-bridge.html"
+    allow-insecure-bridge: true
+  # Wave 10: the shared test profile does not exercise the plan-default device
+  # limit (existing tests log the same account in repeatedly without a device
+  # cookie, i.e. as new devices). Device-limit tests set explicit tenant or
+  # student limits; the plan default (2) itself is covered by
+  # DevicePolicyServiceTest.
+  security:
+    device:
+      plan-default-limit: 100
+  # Wave 11: SMS/WhatsApp tests run against the in-process sandbox adapter.
+  messaging:
+    sandbox-enabled: true
+  public:
+    tenant-url-template: "http://{subdomain}.lms.test"
+  # TEN-DOM-01: tests use real verification against a stubbed DnsRecordLookup.
+  custom-domains:
+    platform-domain: "lms.test"
+    cname-target: "tenants.lms.test"
+    verification-mode: dns
   mail:
     from-address: "no-reply@example.com"
   video-access:

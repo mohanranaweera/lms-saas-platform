@@ -53,7 +53,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+  endpoint:
+    prometheus:
+      access: read-only
+  prometheus:
+    metrics:
+      export:
+        enabled: ${VIDEO_PROMETHEUS_ENABLED:false}
   health:
     mail:
       # spring-boot-starter-mail auto-registers a MailHealthIndicator that
@@ -69,6 +76,10 @@ logging:
   structured:
     format:
       console: logstash
+    # MEDIA-INT-01 security review S7: mask tokens/API keys/Bearer credentials
+    # in every JSON log line (a safety net - nothing should log them).
+    json:
+      customizer: com.lms.common.logging.SecretMaskingJsonMembersCustomizer
 
 payment:
   gateway:
@@ -79,6 +90,19 @@ payment:
     # than silently accepting webhooks signed with a well-known placeholder,
     # unlike JWT_SECRET's dev-only-placeholder pattern above.
     webhook-secret: ${PAYMENT_GATEWAY_WEBHOOK_SECRET:}
+    # PAY-GW-01: never fall back to the fake gateway outside local/test -
+    # without a tenant gateway account, online payment is refused cleanly.
+    fake-fallback-enabled: false
+  # PAY-GW-01 / ADR-017: AES-256 key (Base64 of 32 bytes) encrypting tenant
+  # gateway merchant secrets at rest. Empty = fail closed (503) - must be set
+  # via a real env var wherever tenant gateway accounts are used.
+  credentials:
+    encryption-key: ${PAYMENT_CREDENTIALS_ENCRYPTION_KEY:}
+  payhere:
+    # Publicly reachable URL of POST /api/v1/integrations/webhooks/payhere.
+    notify-url: ${PAYHERE_NOTIFY_URL:}
+    # Tenant storefront origin; {subdomain} comes from the tenant record.
+    return-url-template: ${PAYHERE_RETURN_URL_TEMPLATE:}
 
 live-class:
   provider:
@@ -87,6 +111,33 @@ live-class:
     # payment.gateway.webhook-secret above. LIVE_CLASS_PROVIDER_WEBHOOK_SECRET
     # must be set via a real env var in every non-local environment.
     webhook-secret: ${LIVE_CLASS_PROVIDER_WEBHOOK_SECRET:}
+    # MEDIA-INT-01: never fall back to the fake provider outside local/test -
+    # without the Zoom OAuth app configured, live classes are unavailable.
+    fake-fallback-enabled: false
+
+# MEDIA-INT-01 / ADR-018 - media & meeting provider integrations. Every value
+# is empty by default: the affected provider shows as "unavailable" and
+# connecting fails closed. Never commit real values.
+integrations:
+  media:
+    # AES-256 key (Base64 of 32 bytes) encrypting provider tokens/API keys.
+    encryption-key: ${MEDIA_CREDENTIALS_ENCRYPTION_KEY:}
+    # Public origin serving /api/v1/integrations/oauth/{provider}/callback -
+    # the redirect URI registered with every provider's OAuth app.
+    callback-base-url: ${MEDIA_OAUTH_CALLBACK_BASE_URL:}
+    # Tenant site origin; {subdomain} comes from the tenant record.
+    tenant-url-template: ${MEDIA_TENANT_URL_TEMPLATE:}
+    platform-error-url: ${MEDIA_OAUTH_ERROR_URL:}
+    zoom-webhook-secret-token: ${ZOOM_WEBHOOK_SECRET_TOKEN:}
+    zoom:
+      client-id: ${ZOOM_OAUTH_CLIENT_ID:}
+      client-secret: ${ZOOM_OAUTH_CLIENT_SECRET:}
+    google:
+      client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+      client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:}
+    vimeo:
+      client-id: ${VIMEO_OAUTH_CLIENT_ID:}
+      client-secret: ${VIMEO_OAUTH_CLIENT_SECRET:}
 
 object-storage:
   # Wave 5 (S3ObjectStorageApi / UnavailableObjectStorageApi conditional
@@ -118,7 +169,85 @@ video-playback:
     # -accepted forged token.
     secret: ${VIDEO_PLAYBACK_TOKEN_SECRET:}
 
+video:
+  # VIDEO Phase 2 platform feature switches (VideoFeatureFlags, plan §25).
+  # youtube-custom-playback / managed-stream-playback / self-hosted-playback
+  # are locked: VideoFeatureFlags fails startup if any is true, because no
+  # implementation (or, for YouTube custom playback, no authorized provider
+  # arrangement) exists yet. They are intentionally not env-overridable here.
+  features:
+    youtube-upload: ${VIDEO_YOUTUBE_UPLOAD_ENABLED:false}
+    youtube-standard-playback: ${VIDEO_YOUTUBE_STANDARD_PLAYBACK_ENABLED:false}
+    native-player: ${VIDEO_NATIVE_PLAYER_ENABLED:false}
+    # VIDEO Phase 13 (ADR-026): DynTube managed streaming. Keep both off in any real
+    # environment until the DynTube project refuses untokenized playback (ADR-026
+    # consequence 1) - the tokenized URL alone does not protect the account's videos.
+    managed-stream-playback: ${VIDEO_MANAGED_STREAM_PLAYBACK_ENABLED:false}
+    dyntube-upload: ${VIDEO_DYNTUBE_UPLOAD_ENABLED:false}
+    dynamic-watermark: ${VIDEO_DYNAMIC_WATERMARK_ENABLED:true}
+    capture-protection: ${VIDEO_CAPTURE_PROTECTION_ENABLED:true}
+  # VIDEO Phase 4 upload pipeline (VideoUploadProperties, plan §13).
+  # Browser -> S3 staging (presigned multipart, part-size-bytes) -> background
+  # worker -> YouTube resumable upload (chunk-size-bytes, a multiple of
+  # 256 KiB; the only place video bytes pass through the JVM - VID-ADR-004).
+  # The per-tenant daily budget is tenant_video_configuration.daily_upload_limit.
+  upload:
+    scheduler-enabled: ${VIDEO_UPLOAD_SCHEDULER_ENABLED:true}
+    part-size-bytes: 16777216
+    chunk-size-bytes: 8388608
+    max-file-size-bytes: 10737418240
+    presign-ttl: 15m
+    max-concurrent-transfers: ${VIDEO_UPLOAD_MAX_CONCURRENT_TRANSFERS:2}
+    max-attempts: 8
+    stale-transfer-after: 15m
+    staging-retention: 48h
+    parked-expiry: 7d
+
 app:
+  # VIDEO Phase 8 (ADR-025): AOC Player pairing / launch codes / exchange.
+  # launch-code-pepper keys the HMAC that stores pairing and launch codes
+  # (PLAYER_LAUNCH_CODE_PEPPER, ADR-019). Empty = pairing and native launches
+  # fail closed with 503. min-version is the kill switch for old players.
+  player:
+    launch-code-pepper: ${PLAYER_LAUNCH_CODE_PEPPER:}
+    min-version: ${PLAYER_MIN_VERSION:0.1.0}
+    pairing-code-ttl-seconds: 90
+    # VIDEO Phase 13c (ADR-026 Amendment 1): the DynTube bridge page on the
+    # dedicated embed origin (never a tenant LMS origin). Empty = DynTube lessons
+    # can't play (fail closed).
+    dyntube-bridge-url: ${PLAYER_DYNTUBE_BRIDGE_URL:}
+  # Wave 11 (decision D1): the in-process SMS/WhatsApp sandbox adapter. Never
+  # enabled outside local/test - with it off and no real vendor adapter, the
+  # SMS/WhatsApp channels are unavailable (fail closed).
+  messaging:
+    sandbox-enabled: false
+    # MSG-PROV-01 / ADR-024: real vendors. Credentials are per tenant
+    # (encrypted in tenant_messaging_account), never configured here.
+    textlk:
+      enabled: ${MESSAGING_TEXTLK_ENABLED:true}
+    meta-whatsapp:
+      enabled: ${MESSAGING_META_WHATSAPP_ENABLED:true}
+    meta-graph-api-version: ${MESSAGING_META_GRAPH_API_VERSION:v23.0}
+    # National numbers with a leading 0 get this prefix (ADR-024 V5).
+    default-country-code: ${MESSAGING_DEFAULT_COUNTRY_CODE:94}
+    # Public API origin for the Meta status webhook URL shown to tenants
+    # (e.g. https://api.example.com). Empty = the page shows the path only.
+    webhook-base-url: ${MESSAGING_WEBHOOK_BASE_URL:}
+  # AUTH-PWD-01 / ADR-020: tenant site origin used in account-setup and
+  # password-reset emails; {subdomain} comes from the tenant record. Empty =
+  # those emails fail closed (not sent). Non-secret (ADR-019 Decision 3).
+  public:
+    tenant-url-template: ${TENANT_URL_TEMPLATE:}
+  # TEN-DOM-01 / ADR-021 - tenant custom domains. Non-secret (ADR-019
+  # Decision 3). Empty platform-domain = legacy subdomain parsing and no
+  # custom-domain resolution; empty cname-target = custom domains unavailable.
+  custom-domains:
+    platform-domain: ${PLATFORM_DOMAIN:}
+    cname-target: ${CUSTOM_DOMAIN_CNAME_TARGET:}
+    # dns | accept-all (accept-all: local profile only, refused under prod).
+    verification-mode: dns
+    max-per-tenant: 3
+    recheck-cron: "0 17 3 * * *"
   security:
     # Argon2id parameters (AUTH-3), OWASP-baseline defaults - see
     # Argon2PasswordEncoderConfig/Argon2Properties. Never hardcode these
@@ -143,6 +272,13 @@ app:
     session:
       refresh-token-ttl: 30d
       cache-ttl: 60s
+    # Wave 10 device limits. plan-default-limit is the lowest level of the
+    # device-limit precedence (student > course > tenant > plan) - product
+    # owner decision D2: 2 devices per student. cookie-max-age is the
+    # lifetime of the server-issued lms_device_id cookie (browser cap 400d).
+    device:
+      plan-default-limit: 2
+      cookie-max-age: 400d
   content:
     material:
       # MVP working default - accepted file types/size limit are not defined
@@ -151,6 +287,10 @@ app:
       # allow-list in ContentSniffer are this implementation's own default,
       # flagged for confirmation, not a ratified business decision.
       max-file-size-bytes: 26214400
+    library:
+      # Klass gaps round 2 (R2-D3): the institute media file library accepts
+      # the same types and size as lesson materials (25 MB).
+      max-file-size-bytes: ${app.content.material.max-file-size-bytes}
   mail:
     # MVP-018 email notifications - the one email-sending property Spring
     # Boot's spring.mail.* auto-configuration doesn't provide: the From
@@ -167,6 +307,14 @@ app:
       # upload paths are differently scoped and nothing ties their limits
       # together as a matter of ratified business decision.
       max-file-size-bytes: 26214400
+  # DISC-01 hardening (owner decisions 2026-10-21): per (tenant, student)
+  # limit on discount-code attempts that resolve to INVALID (quote + order),
+  # and how long a discount hold stays counted after a gateway payment starts.
+  discount:
+    code-attempts:
+      max-invalid: ${DISCOUNT_CODE_MAX_INVALID_ATTEMPTS:10}
+      window: ${DISCOUNT_CODE_ATTEMPT_WINDOW:15m}
+    gateway-hold-ttl: ${DISCOUNT_GATEWAY_HOLD_TTL:48h}
   finance:
     expense:
       # Wave 7 working default for expense receipt uploads (PDF/PNG/JPEG) -

@@ -26,3 +26,38 @@ export const forgotPasswordSchema = z.object({
   email: z.string().min(1, "Email is required.").email("Enter a valid email address."),
 });
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+/**
+ * AUTH-PWD-01 — a password chosen by its owner. Mirrors the backend's
+ * PasswordPolicy length rule (8-128) for fast feedback; the backend stays
+ * authoritative (it also rejects the email and the current password).
+ */
+const newPasswordField = z
+  .string()
+  .min(8, "Use at least 8 characters.")
+  .max(128, "Use at most 128 characters.");
+
+export const setPasswordSchema = z
+  .object({
+    newPassword: newPasswordField,
+    confirmPassword: z.string().min(1, "Confirm your new password."),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "The passwords don't match.",
+  });
+
+export type SetPasswordFormValues = z.infer<typeof setPasswordSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password."),
+    newPassword: newPasswordField,
+    confirmPassword: z.string().min(1, "Confirm your new password."),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "The passwords don't match.",
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;

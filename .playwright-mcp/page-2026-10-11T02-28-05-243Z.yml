@@ -1,0 +1,135 @@
+- generic [active] [ref=f10e1]:
+  - generic [ref=f10e3]:
+    - banner [ref=f10e4]:
+      - generic [ref=f10e5]:
+        - link "DynTube Docs" [ref=f10e7] [cursor=pointer]:
+          - /url: /
+          - img "DynTube" [ref=f10e8]
+          - generic [ref=f10e17]: Docs
+        - generic [ref=f10e19]:
+          - textbox "Search documentation..." [ref=f10e23]
+          - generic [ref=f10e24]: ⌘K
+        - generic [ref=f10e25]:
+          - link "API" [ref=f10e26] [cursor=pointer]:
+            - /url: /dev
+          - link "Dashboard" [ref=f10e31] [cursor=pointer]:
+            - /url: https://app.dyntube.com
+          - button "Switch to dark mode" [ref=f10e37] [cursor=pointer]
+    - generic [ref=f10e41]:
+      - complementary [ref=f10e42]:
+        - navigation [ref=f10e43]:
+          - generic [ref=f10e44]: Documentation
+          - link "Welcome to our Help Center" [ref=f10e49] [cursor=pointer]:
+            - /url: /docs
+          - button "Videos" [ref=f10e51] [cursor=pointer]
+          - button "Security" [ref=f10e56] [cursor=pointer]
+          - button "Channels" [ref=f10e61] [cursor=pointer]
+          - button "Projects" [ref=f10e66] [cursor=pointer]
+          - button "AI Features" [ref=f10e71] [cursor=pointer]
+          - button "TV Apps" [ref=f10e76] [cursor=pointer]
+          - button "Account" [ref=f10e81] [cursor=pointer]
+          - button "FAQs" [ref=f10e86] [cursor=pointer]
+          - button "Tips & Tricks" [ref=f10e91] [cursor=pointer]
+          - generic [ref=f10e95]:
+            - link "GitHub Samples" [ref=f10e96] [cursor=pointer]:
+              - /url: https://github.com/nicearma/dyntube-samples
+            - link "Support" [ref=f10e102] [cursor=pointer]:
+              - /url: /contact
+      - main [ref=f10e103]:
+        - navigation [ref=f10e105]:
+          - link "Home" [ref=f10e106] [cursor=pointer]:
+            - /url: /
+          - generic [ref=f10e109]: Docs
+        - generic [ref=f10e112]:
+          - generic [ref=f10e113]:
+            - generic [ref=f10e114]: Help Center
+            - heading "Welcome to DynTube Documentation" [level=1] [ref=f10e119]:
+              - generic [ref=f10e120]: Welcome to DynTube
+              - text: Documentation
+            - paragraph [ref=f10e121]: Learn how to upload, manage, and deliver your video content with DynTube's powerful video hosting platform.
+          - generic [ref=f10e123]:
+            - generic [ref=f10e124]:
+              - heading "New to DynTube?" [level=2] [ref=f10e125]
+              - paragraph [ref=f10e126]: Learn how to upload and embed your first video in minutes.
+            - link "Get Started" [ref=f10e127] [cursor=pointer]:
+              - /url: /docs/videos/how-to-upload-and-embed-videos
+          - generic [ref=f10e130]:
+            - heading "Browse by Topic" [level=2] [ref=f10e131]
+            - generic [ref=f10e132]:
+              - link [ref=f10e133] [cursor=pointer]:
+                - /url: /docs/videos/how-to-upload-and-embed-videos
+                - generic:
+                  - heading "Videos" [level=3]
+                  - paragraph: 15 articles
+              - link [ref=f10e139] [cursor=pointer]:
+                - /url: /docs/security/how-to-secure-your-videos-on-dyntube
+                - generic:
+                  - heading "Security" [level=3]
+                  - paragraph: 4 articles
+              - link [ref=f10e146] [cursor=pointer]:
+                - /url: /docs/channels/how-to-create-video-channels
+                - generic:
+                  - heading "Channels" [level=3]
+                  - paragraph: 3 articles
+              - link [ref=f10e152] [cursor=pointer]:
+                - /url: /docs/projects/how-to-create-a-project
+                - generic:
+                  - heading "Projects" [level=3]
+                  - paragraph: 3 articles
+              - link [ref=f10e158] [cursor=pointer]:
+                - /url: /docs/ai-features/how-does-the-ai-powered-transcription-and-translation-pricing-work
+                - generic:
+                  - heading "AI Features" [level=3]
+                  - paragraph: 1 article
+              - link [ref=f10e165] [cursor=pointer]:
+                - /url: /docs/tv-apps/how-to-add-your-dyntube-roku-feed-to-a-roku-channel
+                - generic:
+                  - heading "TV Apps" [level=3]
+                  - paragraph: 2 articles
+              - link [ref=f10e172] [cursor=pointer]:
+                - /url: /docs/account/how-to-upgrade-my-plan
+                - generic:
+                  - heading "Account" [level=3]
+                  - paragraph: 6 articles
+              - link [ref=f10e179] [cursor=pointer]:
+                - /url: /docs/faqs/how-to-choose-between-plans
+                - generic:
+                  - heading "FAQs" [level=3]
+                  - paragraph: 9 articles
+              - link [ref=f10e186] [cursor=pointer]:
+                - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+                - generic:
+                  - heading "Tips & Tricks" [level=3]
+                  - paragraph: 11 articles
+          - generic [ref=f10e192]:
+            - heading "Popular Articles" [level=2] [ref=f10e193]
+            - generic [ref=f10e194]:
+              - link "How to Upload & Embed Videos" [ref=f10e195] [cursor=pointer]:
+                - /url: /docs/videos/how-to-upload-and-embed-videos
+              - link "How to Secure Your Videos" [ref=f10e199] [cursor=pointer]:
+                - /url: /docs/security/how-to-secure-your-videos-on-dyntube
+              - link "How to Create Video Channels" [ref=f10e203] [cursor=pointer]:
+                - /url: /docs/channels/how-to-create-video-channels
+              - link "Embed Videos in WordPress" [ref=f10e207] [cursor=pointer]:
+                - /url: /docs/videos/how-to-embed-videos-in-wordpress
+              - link "How to Live Stream using OBS" [ref=f10e211] [cursor=pointer]:
+                - /url: /docs/videos/how-to-live-stream-on-dyntube-using-obs
+          - generic [ref=f10e216]:
+            - generic [ref=f10e222]:
+              - heading "Looking for API Documentation?" [level=2] [ref=f10e223]
+              - paragraph [ref=f10e224]: Check out our developer documentation for API reference and SDKs.
+            - link "View API Docs" [ref=f10e225] [cursor=pointer]:
+              - /url: /dev
+        - generic [ref=f10e228]:
+          - generic [ref=f10e230]:
+            - generic [ref=f10e231]: © 2026 DynTube. All rights reserved.
+            - generic [ref=f10e232]:
+              - link "Terms" [ref=f10e233] [cursor=pointer]:
+                - /url: /legal/terms
+              - link "Privacy" [ref=f10e234] [cursor=pointer]:
+                - /url: /legal/privacy
+              - link "Contact" [ref=f10e235] [cursor=pointer]:
+                - /url: /contact
+          - text: DYNTUBE
+  - alert [ref=f10e236]
+  - button "Open chat" [ref=f10e237] [cursor=pointer]

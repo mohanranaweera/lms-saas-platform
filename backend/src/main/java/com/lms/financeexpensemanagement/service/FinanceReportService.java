@@ -1,6 +1,5 @@
 package com.lms.financeexpensemanagement.service;
 
-import com.lms.common.money.PlatformCurrency;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.financeexpensemanagement.domain.Expense;
@@ -14,6 +13,7 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
+import com.lms.ledgersettlementmanagement.api.LedgerRevenueAllocation;
 import com.lms.ledgersettlementmanagement.api.LedgerRevenueApi;
 import com.lms.ledgersettlementmanagement.api.LedgerRevenueEntry;
 import java.math.BigDecimal;
@@ -86,26 +86,36 @@ public class FinanceReportService {
 		IncomeSummary income = incomeOf(ledgerEntries(range));
 		ExpenseSummary expenses = expenseSummaryOf(expenseRepository.findActiveDatedBetween(range.from(),
 				range.to()));
-		return new FinanceSummary(range.from(), range.to(), range.zone().getId(), PlatformCurrency.DEFAULT_CURRENCY,
+		return new FinanceSummary(range.from(), range.to(), range.zone().getId(), periodResolver.tenantCurrency(),
 				income, expenses, income.net().subtract(expenses.total()));
 	}
 
 	public CourseRevenueReport courseRevenue(LocalDate from, LocalDate to) {
 		permissionCheckService.requirePermission(DomainArea.FINANCE_EXPENSES, PermissionAction.VIEW);
 		DateRange range = periodResolver.resolve(from, to);
-		List<CourseRevenueRow> rows = courseRows(ledgerEntries(range));
-		return new CourseRevenueReport(range.from(), range.to(), PlatformCurrency.DEFAULT_CURRENCY, rows,
-				incomeOfRows(rows));
+		List<LedgerRevenueEntry> entries = ledgerEntries(range);
+		List<CourseRevenueRow> rows = courseRows(entries);
+		// ADR-029 §7: totals and counts per ledger entry (never per allocation).
+		return new CourseRevenueReport(range.from(), range.to(), periodResolver.tenantCurrency(), rows,
+				incomeOf(entries));
 	}
 
 	public TeacherRevenueReport teacherRevenue(LocalDate from, LocalDate to) {
 		permissionCheckService.requirePermission(DomainArea.FINANCE_EXPENSES, PermissionAction.VIEW);
 		DateRange range = periodResolver.resolve(from, to);
-		List<CourseRevenueRow> courseRows = courseRows(ledgerEntries(range));
+		List<LedgerRevenueEntry> entries = ledgerEntries(range);
+		Map<UUID, CourseAggregate> aggregates = courseAggregates(entries);
+		List<CourseRevenueRow> courseRows = courseRows(aggregates);
 
 		Map<UUID, List<CourseRevenueRow>> byTeacher = new LinkedHashMap<>();
+		Map<UUID, CourseAggregate> teacherEntries = new LinkedHashMap<>();
 		for (CourseRevenueRow row : courseRows) {
 			byTeacher.computeIfAbsent(row.teacherId(), ignored -> new ArrayList<>()).add(row);
+			CourseAggregate teacherAggregate = teacherEntries.computeIfAbsent(row.teacherId(),
+					ignored -> new CourseAggregate());
+			CourseAggregate course = aggregates.get(row.courseId());
+			teacherAggregate.paymentEntries.addAll(course.paymentEntries);
+			teacherAggregate.refundEntries.addAll(course.refundEntries);
 		}
 		Set<UUID> teacherIds = byTeacher.keySet().stream().filter(Objects::nonNull).collect(Collectors.toSet());
 		Map<UUID, String> emails = userProvisioningApi.findTenantUserSummaries(teacherIds)
@@ -116,13 +126,13 @@ public class FinanceReportService {
 			List<CourseRevenueRow> courses = entry.getValue();
 			BigDecimal gross = sum(courses.stream().map(CourseRevenueRow::gross).toList());
 			BigDecimal refunds = sum(courses.stream().map(CourseRevenueRow::refunds).toList());
-			int payments = courses.stream().mapToInt(CourseRevenueRow::paymentCount).sum();
-			int refundCount = courses.stream().mapToInt(CourseRevenueRow::refundCount).sum();
+			// Distinct ledger entries: one multi-course payment counts once per teacher.
+			CourseAggregate counts = teacherEntries.get(entry.getKey());
 			return new TeacherRevenueRow(entry.getKey(), emails.get(entry.getKey()), courses.size(), gross, refunds,
-					gross.subtract(refunds), payments, refundCount);
+					gross.subtract(refunds), counts.paymentEntries.size(), counts.refundEntries.size());
 		}).sorted(Comparator.comparing(TeacherRevenueRow::net).reversed()).toList();
-		return new TeacherRevenueReport(range.from(), range.to(), PlatformCurrency.DEFAULT_CURRENCY, rows,
-				incomeOfRows(courseRows));
+		return new TeacherRevenueReport(range.from(), range.to(), periodResolver.tenantCurrency(), rows,
+				incomeOf(entries));
 	}
 
 	/** Calendar-month buckets (tenant zone), clipped to the requested range. */
@@ -150,7 +160,7 @@ public class FinanceReportService {
 					expenseTotal, income.net().subtract(expenseTotal)));
 			month = month.plusMonths(1);
 		}
-		return new PeriodReport(range.from(), range.to(), range.zone().getId(), PlatformCurrency.DEFAULT_CURRENCY,
+		return new PeriodReport(range.from(), range.to(), range.zone().getId(), periodResolver.tenantCurrency(),
 				rows);
 	}
 
@@ -158,10 +168,46 @@ public class FinanceReportService {
 		return ledgerRevenueApi.findRevenueEntries(range.startInclusive(), range.endExclusive());
 	}
 
+	/** ADR-029: per-course sums of the entries' allocations + the distinct entries behind them. */
+	private static final class CourseAggregate {
+
+		private BigDecimal gross = BigDecimal.ZERO.setScale(2);
+
+		private BigDecimal refunds = BigDecimal.ZERO.setScale(2);
+
+		private final Set<UUID> paymentEntries = new java.util.HashSet<>();
+
+		private final Set<UUID> refundEntries = new java.util.HashSet<>();
+
+	}
+
+	private static Map<UUID, CourseAggregate> courseAggregates(List<LedgerRevenueEntry> entries) {
+		Map<UUID, CourseAggregate> byCourse = new LinkedHashMap<>();
+		for (LedgerRevenueEntry entry : entries) {
+			for (LedgerRevenueAllocation allocation : entry.allocations()) {
+				if (allocation.courseId() == null) {
+					continue;
+				}
+				CourseAggregate aggregate = byCourse.computeIfAbsent(allocation.courseId(),
+						ignored -> new CourseAggregate());
+				if (entry.refund()) {
+					aggregate.refunds = aggregate.refunds.add(allocation.amount().abs());
+					aggregate.refundEntries.add(entry.entryId());
+				}
+				else {
+					aggregate.gross = aggregate.gross.add(allocation.amount());
+					aggregate.paymentEntries.add(entry.entryId());
+				}
+			}
+		}
+		return byCourse;
+	}
+
 	private List<CourseRevenueRow> courseRows(List<LedgerRevenueEntry> entries) {
-		Map<UUID, List<LedgerRevenueEntry>> byCourse = entries.stream()
-			.filter(entry -> entry.courseId() != null)
-			.collect(Collectors.groupingBy(LedgerRevenueEntry::courseId));
+		return courseRows(courseAggregates(entries));
+	}
+
+	private List<CourseRevenueRow> courseRows(Map<UUID, CourseAggregate> byCourse) {
 		if (byCourse.isEmpty()) {
 			return List.of();
 		}
@@ -170,9 +216,10 @@ public class FinanceReportService {
 			.collect(Collectors.toMap(CourseSummary::id, CourseSummary::name, (a, b) -> a));
 		Map<UUID, UUID> teachers = courseLookupApi.getTeacherIdsByCourseId(byCourse.keySet());
 		return byCourse.entrySet().stream().map(entry -> {
-			IncomeSummary income = incomeOf(entry.getValue());
+			CourseAggregate aggregate = entry.getValue();
 			return new CourseRevenueRow(entry.getKey(), titles.get(entry.getKey()), teachers.get(entry.getKey()),
-					income.gross(), income.refunds(), income.net(), income.paymentCount(), income.refundCount());
+					aggregate.gross, aggregate.refunds, aggregate.gross.subtract(aggregate.refunds),
+					aggregate.paymentEntries.size(), aggregate.refundEntries.size());
 		}).sorted(Comparator.comparing(CourseRevenueRow::net).reversed()).toList();
 	}
 
@@ -192,14 +239,6 @@ public class FinanceReportService {
 			}
 		}
 		return new IncomeSummary(gross, refunds, gross.subtract(refunds), payments, refundCount);
-	}
-
-	private static IncomeSummary incomeOfRows(List<CourseRevenueRow> rows) {
-		BigDecimal gross = sum(rows.stream().map(CourseRevenueRow::gross).toList());
-		BigDecimal refunds = sum(rows.stream().map(CourseRevenueRow::refunds).toList());
-		return new IncomeSummary(gross, refunds, gross.subtract(refunds),
-				rows.stream().mapToInt(CourseRevenueRow::paymentCount).sum(),
-				rows.stream().mapToInt(CourseRevenueRow::refundCount).sum());
 	}
 
 	private ExpenseSummary expenseSummaryOf(List<Expense> expenses) {

@@ -4,6 +4,7 @@ import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.contentmanagement.api.MaterialDeletedEvent;
 import com.lms.coursemanagement.api.CourseArchiveStateChangedEvent;
+import com.lms.coursemanagement.api.CourseAuditEvent;
 import com.lms.coursemanagement.api.CourseBillingConfigurationChangedEvent;
 import com.lms.coursemanagement.api.CourseBillingPeriodAddedEvent;
 import com.lms.coursemanagement.api.CourseClonedEvent;
@@ -146,6 +147,26 @@ public class AuditLogEventListener {
 		metadata.put("sourceCourseId", event.sourceCourseId());
 		auditLogApi.record(
 				new AuditLogEntry(event.actorId(), "course.cloned", "course", event.newCourseId(), null, metadata));
+	}
+
+	/**
+	 * KLASS-T4a - generic course-management audit (course created/updated,
+	 * registration toggle, commission rate, cover, module/lesson price
+	 * changes). Null-valued metadata entries are dropped (see {@link
+	 * #onCourseBillingConfigurationChanged}'s javadoc for why).
+	 */
+	@EventListener
+	public void onCourseAudit(CourseAuditEvent event) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		if (event.metadata() != null) {
+			event.metadata().forEach((key, value) -> {
+				if (value != null) {
+					metadata.put(key, value);
+				}
+			});
+		}
+		auditLogApi.record(new AuditLogEntry(event.actorId(), event.action(), event.targetEntity(), event.targetId(),
+				null, metadata.isEmpty() ? null : metadata));
 	}
 
 	/** Wave 2 - mirrors {@link #onCoursePriceChanged}'s exact shape for {@code pricing_model} instead of {@code price}. */

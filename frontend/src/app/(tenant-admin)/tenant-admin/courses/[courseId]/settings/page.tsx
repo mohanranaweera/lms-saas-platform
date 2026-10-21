@@ -3,7 +3,6 @@
 import { useParams } from "next/navigation";
 import { CourseWorkspaceShell } from "@/components/courses/course-workspace-shell";
 import { CourseVisibilityControl } from "@/components/courses/course-visibility-control";
-import { CourseTeacherReassignForm } from "@/components/courses/course-teacher-reassign-form";
 import { CourseArchiveControl } from "@/components/courses/course-archive-control";
 import { CourseCloneAction } from "@/components/courses/course-clone-action";
 import { CourseDeleteAction } from "@/components/courses/course-delete-action";
@@ -11,11 +10,11 @@ import { useAuth } from "@/lib/auth/auth-context";
 
 /**
  * Tenant Admin course workspace — Settings tab (Wave 2). Consolidates
- * publish/unpublish, teacher reassignment (Tenant-Admin-only, unchanged),
- * archive/unarchive (new), clone (new), and delete (Tenant-Admin-only,
- * unchanged) — moved here from the old flat detail page.
+ * publish/unpublish, archive/unarchive, clone, and delete (Tenant-Admin-only).
+ * Teacher assignment moved to the Overview edit form's teacher picker (G2);
+ * the old UUID-typing reassignment form is gone.
  *
- * `isTenantAdmin` gates the two Tenant-Admin-only actions the same way the
+ * `isTenantAdmin` gates the Tenant-Admin-only delete action the same way the
  * pre-Wave-2 page did: a UX convenience only (a Teacher who directly
  * navigates here for a course they own would otherwise see these
  * non-functional for them — the backend independently 403s both regardless),
@@ -39,7 +38,6 @@ export default function TenantAdminCourseSettingsPage() {
             <CourseVisibilityControl courseId={course.id} course={course} />
             <CourseArchiveControl courseId={course.id} course={course} />
           </div>
-          {isTenantAdmin ? <CourseTeacherReassignForm courseId={course.id} course={course} /> : null}
           <CourseCloneAction courseId={course.id} course={course} />
           {isTenantAdmin ? <CourseDeleteAction courseId={course.id} course={course} /> : null}
         </div>

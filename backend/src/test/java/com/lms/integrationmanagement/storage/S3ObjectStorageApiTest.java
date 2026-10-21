@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lms.common.error.ServiceUnavailableException;
+import com.lms.integrationmanagement.api.DownloadOverrides;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
 import com.lms.integrationmanagement.api.StoredObject;
@@ -138,6 +139,99 @@ class S3ObjectStorageApiTest {
 
 		assertThatThrownBy(() -> api.generateSignedDownloadUrl("some-key", Duration.ofMinutes(5)))
 			.isInstanceOf(ServiceUnavailableException.class);
+	}
+
+	// ------------------------------------------------------------------
+	// R2-T3: response overrides (content type / disposition) on a presign.
+	// ------------------------------------------------------------------
+
+	@Test
+	void signedDownloadUrlWithOverridesCarriesResponseContentTypeAndDispositionInThePresignedRequest()
+			throws Exception {
+		String key = "tenant/" + UUID.randomUUID();
+		Duration ttl = Duration.ofMinutes(5);
+		PresignedGetObjectRequest presigned = mockPresignedRequest("https://minio.test/" + BUCKET + "/" + key);
+		when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
+
+		SignedDownloadUrl signed = api.generateSignedDownloadUrl(key, ttl,
+				DownloadOverrides.inline("application/pdf", "Week 1 notes.pdf"));
+
+		ArgumentCaptor<GetObjectPresignRequest> requestCaptor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
+		verify(s3Presigner).presignGetObject(requestCaptor.capture());
+		GetObjectPresignRequest presignRequest = requestCaptor.getValue();
+		assertThat(presignRequest.signatureDuration()).isEqualTo(ttl);
+		GetObjectRequest getObjectRequest = (GetObjectRequest) presignRequest.getObjectRequest();
+		assertThat(getObjectRequest.bucket()).isEqualTo(BUCKET);
+		assertThat(getObjectRequest.key()).isEqualTo(key);
+		assertThat(getObjectRequest.responseContentType()).isEqualTo("application/pdf");
+		assertThat(getObjectRequest.responseContentDisposition())
+			.isEqualTo("inline; filename=\"Week 1 notes.pdf\"; filename*=UTF-8''Week%201%20notes.pdf");
+		assertThat(signed.expiresAt()).isAfter(Instant.now());
+	}
+
+	@Test
+	void signedDownloadUrlWithoutAContentTypeOverrideSetsOnlyTheDisposition() throws Exception {
+		PresignedGetObjectRequest presigned = mockPresignedRequest("https://minio.test/x");
+		when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
+
+		api.generateSignedDownloadUrl("k", Duration.ofMinutes(1), DownloadOverrides.attachment(null, null));
+
+		ArgumentCaptor<GetObjectPresignRequest> requestCaptor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
+		verify(s3Presigner).presignGetObject(requestCaptor.capture());
+		GetObjectRequest getObjectRequest = (GetObjectRequest) requestCaptor.getValue().getObjectRequest();
+		assertThat(getObjectRequest.responseContentType()).isNull();
+		assertThat(getObjectRequest.responseContentDisposition()).isEqualTo("attachment");
+	}
+
+	@Test
+	void signedDownloadUrlWithOverridesWrapsASdkFailureAsServiceUnavailable() {
+		when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class)))
+			.thenThrow(SdkClientException.create("boom"));
+
+		assertThatThrownBy(() -> api.generateSignedDownloadUrl("k", Duration.ofMinutes(5),
+				DownloadOverrides.inline("image/png", "a.png")))
+			.isInstanceOf(ServiceUnavailableException.class);
+	}
+
+	@Test
+	void downloadOverridesStripCrLfQuotesAndPathSeparatorsFromTheFilename() {
+		DownloadOverrides overrides = DownloadOverrides.attachment("text/plain; charset=utf-8",
+				"evil\r\nSet-Cookie: x=\"1\"/..\\name.txt");
+
+		String header = overrides.contentDispositionHeaderValue();
+
+		assertThat(header).doesNotContain("\r").doesNotContain("\n").doesNotContain("\\");
+		assertThat(overrides.filename()).isEqualTo("evilSet-Cookie: x=1..name.txt");
+		// Exactly the two quotes delimiting the ASCII fallback remain.
+		assertThat(header.chars().filter(c -> c == '"').count()).isEqualTo(2);
+		assertThat(overrides.contentType()).isEqualTo("text/plain; charset=utf-8");
+	}
+
+	@Test
+	void downloadOverridesEncodeNonAsciiFilenamesPerRfc5987WithAnAsciiFallback() {
+		DownloadOverrides overrides = DownloadOverrides.inline("application/pdf", "සටහන් é.pdf");
+
+		String header = overrides.contentDispositionHeaderValue();
+
+		assertThat(header).startsWith("inline; filename=\"");
+		assertThat(header).contains("filename*=UTF-8''%E0%B7%83");
+		assertThat(header).contains("%C3%A9.pdf");
+		String fallback = header.substring(header.indexOf('"') + 1, header.indexOf('"', header.indexOf('"') + 1));
+		assertThat(fallback).isEqualTo("_____ _.pdf");
+		assertThat(header.chars().allMatch(c -> c >= 0x20 && c <= 0x7E)).isTrue();
+	}
+
+	@Test
+	void downloadOverridesRejectContentTypesWithInjectionOrExtraParameters() {
+		assertThatThrownBy(() -> DownloadOverrides.inline("text/html\r\nX-Evil: 1", "a"))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> DownloadOverrides.inline("text/plain; boundary=x", "a"))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> DownloadOverrides.inline("text/plain; charset=\"utf-8\"", "a"))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> DownloadOverrides.inline("not-a-content-type", "a"))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThat(DownloadOverrides.inline("Image/PNG", "a").contentType()).isEqualTo("image/png");
 	}
 
 	private PresignedGetObjectRequest mockPresignedRequest(String url) throws Exception {

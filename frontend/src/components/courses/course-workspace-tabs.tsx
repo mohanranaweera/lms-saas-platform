@@ -19,11 +19,16 @@ export interface CourseWorkspaceTab {
  */
 export const COURSE_WORKSPACE_TABS: CourseWorkspaceTab[] = [
   { segment: "", label: "Overview" },
-  { segment: "billing", label: "Fees & Billing" },
+  // No "Fees & Billing" tab (R2-D5): payment type and fee are edited on Overview;
+  // `billing` redirects there for old links.
   { segment: "settings", label: "Settings" },
+  // The materials editor inside the workspace shell; the Klass-style Modules
+  // table (`modules`) is a separate full-page screen reached from the course list.
+  { segment: "content", label: "Modules & sessions" },
+  { segment: "roster", label: "Roster" },
   { segment: "access", label: "Access" },
   { segment: "schedule", label: "Schedule" },
-  { segment: "sessions", label: "Sessions" },
+  { segment: "sessions", label: "Live classes" },
   { segment: "recordings", label: "Recordings" },
   { segment: "analytics", label: "Analytics" },
 ];

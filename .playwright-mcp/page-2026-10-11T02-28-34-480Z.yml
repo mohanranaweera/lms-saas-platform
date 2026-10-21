@@ -1,0 +1,139 @@
+- generic [active] [ref=f13e1]:
+  - generic [ref=f13e3]:
+    - banner [ref=f13e4]:
+      - generic [ref=f13e5]:
+        - link "DynTube Docs" [ref=f13e7] [cursor=pointer]:
+          - /url: /
+          - img "DynTube" [ref=f13e8]
+          - generic [ref=f13e17]: Docs
+        - generic [ref=f13e19]:
+          - textbox "Search documentation..." [ref=f13e23]
+          - generic [ref=f13e24]: ⌘K
+        - generic [ref=f13e25]:
+          - link "API" [ref=f13e26] [cursor=pointer]:
+            - /url: /dev
+          - link "Dashboard" [ref=f13e31] [cursor=pointer]:
+            - /url: https://app.dyntube.com
+          - button "Switch to dark mode" [ref=f13e37] [cursor=pointer]
+    - generic [ref=f13e41]:
+      - complementary [ref=f13e42]:
+        - navigation [ref=f13e43]:
+          - generic [ref=f13e44]: Documentation
+          - link "Welcome to our Help Center" [ref=f13e49] [cursor=pointer]:
+            - /url: /docs
+          - button "Videos" [ref=f13e51] [cursor=pointer]
+          - button "Security" [ref=f13e56] [cursor=pointer]
+          - button "Channels" [ref=f13e61] [cursor=pointer]
+          - button "Projects" [ref=f13e66] [cursor=pointer]
+          - button "AI Features" [ref=f13e71] [cursor=pointer]
+          - button "TV Apps" [ref=f13e76] [cursor=pointer]
+          - button "Account" [ref=f13e81] [cursor=pointer]
+          - button "FAQs" [ref=f13e86] [cursor=pointer]
+          - generic [ref=f13e90]:
+            - button "Tips & Tricks" [ref=f13e91] [cursor=pointer]
+            - list [ref=f13e95]:
+              - listitem [ref=f13e96]:
+                - link "Embed Videos Using the New Video Player" [ref=f13e97] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+              - listitem [ref=f13e98]:
+                - link "How to Make a Rounded Big Play Button" [ref=f13e99] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-make-rounded-big-play-button
+              - listitem [ref=f13e100]:
+                - link "How to Embed DynTube Videos in LearnDash" [ref=f13e101] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-learndash
+              - listitem [ref=f13e102]:
+                - link "How to Embed DynTube Videos in Patreon" [ref=f13e103] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-videos-in-patreon
+              - listitem [ref=f13e104]:
+                - link "How to Embed DynTube Video Channel in WordPress/LearnDash" [ref=f13e105] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-video-channel-in-wordpress-learndash
+              - listitem [ref=f13e106]:
+                - link "How to Add Dynamic Watermark to the Video Player" [ref=f13e107] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-add-dynamic-watermark-to-the-video-player
+              - listitem [ref=f13e108]:
+                - link "Control Video Player Using URL Parameters" [ref=f13e109] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/control-video-player-using-url
+              - listitem [ref=f13e110]:
+                - link "How to Use Your Own Videos as Ads" [ref=f13e111] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-use-your-own-videos-as-ads
+              - listitem [ref=f13e112]:
+                - link "How to Embed DynTube Player in Next.js" [ref=f13e113] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-dyntube-player-in-next.js
+              - listitem [ref=f13e114]:
+                - link "How to Embed DynTube Player in React" [ref=f13e115] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-the-dyntube-player-in-react
+              - listitem [ref=f13e116]:
+                - link "How to Embed Videos & Channels Dynamically" [ref=f13e117] [cursor=pointer]:
+                  - /url: /docs/tips-and-tricks/how-to-embed-videos-and-channels-dynamically
+          - generic [ref=f13e118]:
+            - link "GitHub Samples" [ref=f13e119] [cursor=pointer]:
+              - /url: https://github.com/nicearma/dyntube-samples
+            - link "Support" [ref=f13e125] [cursor=pointer]:
+              - /url: /contact
+      - main [ref=f13e126]:
+        - navigation [ref=f13e128]:
+          - link "Home" [ref=f13e129] [cursor=pointer]:
+            - /url: /
+          - link "Docs" [ref=f13e132] [cursor=pointer]:
+            - /url: /docs
+          - link "Tips and tricks" [ref=f13e135] [cursor=pointer]:
+            - /url: /docs/tips-and-tricks
+          - generic [ref=f13e138]: How to embed the dyntube player in react
+        - generic [ref=f13e140]:
+          - heading "How to Embed DynTube Player in React" [level=1] [ref=f13e141]
+          - paragraph [ref=f13e142]: You can embed DynTube videos in your React application using our sample project as a reference.
+          - heading "Sample Project" [level=2] [ref=f13e143]
+          - paragraph [ref=f13e144]: "Check out our React embed sample on GitHub:"
+          - link "https://github.com/dyntube/react-embed-sample" [ref=f13e146] [cursor=pointer]:
+            - /url: https://github.com/dyntube/react-embed-sample
+          - heading "Manual Integration" [level=2] [ref=f13e147]
+          - paragraph [ref=f13e148]: "Follow these steps to integrate DynTube into your existing React app:"
+          - 'heading "Step 1: Add the Script Tag" [level=3] [ref=f13e149]'
+          - paragraph [ref=f13e150]:
+            - text: Open
+            - code [ref=f13e151]: /public/index.html
+            - text: and add the following script in the
+            - code [ref=f13e152]: <head>
+            - text: "section:"
+          - generic [ref=f13e155]:
+            - generic [ref=f13e156]: "1"
+            - generic [ref=f13e157]: "<script>!function(e,t,i){if(void 0===e._dyntube_v1_init){e._dyntube_v1_init=!0;var a=t.createElement(\"script\");a.type=\"text/javascript\",a.async=!0,a.src=\"https://embed.dyntube.com/v1.0/dyntube.js\",t.getElementsByTagName(\"head\")[0].appendChild(a)}}(window,document);</script>"
+          - 'heading "Step 2: Add the Video Element" [level=3] [ref=f13e158]'
+          - paragraph [ref=f13e159]:
+            - text: In
+            - code [ref=f13e160]: /src/App.js
+            - text: "or any component where you want to display the video, add the embed div:"
+          - generic [ref=f13e163]:
+            - generic [ref=f13e164]: "1"
+            - generic [ref=f13e165]: <div data-dyntube-key="7FavFDdssdpztWUTwVQ"></div>
+          - paragraph [ref=f13e166]:
+            - text: Replace the
+            - code [ref=f13e167]: data-dyntube-key
+            - text: value with your video's
+            - code [ref=f13e168]: channelKey
+            - text: from the DynTube dashboard.
+          - heading "Before You Start" [level=2] [ref=f13e169]
+          - paragraph [ref=f13e170]: These guides assume you already have a published DynTube video or channel and can access its embed code from the dashboard.
+          - heading "Related Articles" [level=2] [ref=f13e171]
+          - list [ref=f13e172]:
+            - listitem [ref=f13e173]:
+              - link "How to Upload & Embed Videos" [ref=f13e174] [cursor=pointer]:
+                - /url: /docs/videos/how-to-upload-and-embed-videos
+            - listitem [ref=f13e175]:
+              - link "Embed Videos Using the New Video Player" [ref=f13e176] [cursor=pointer]:
+                - /url: /docs/tips-and-tricks/embed-videos-using-the-new-video-player
+            - listitem [ref=f13e177]:
+              - link "Developer Resources" [ref=f13e178] [cursor=pointer]:
+                - /url: /dev/developer-resources
+        - generic [ref=f13e179]:
+          - generic [ref=f13e181]:
+            - generic [ref=f13e182]: © 2026 DynTube. All rights reserved.
+            - generic [ref=f13e183]:
+              - link "Terms" [ref=f13e184] [cursor=pointer]:
+                - /url: /legal/terms
+              - link "Privacy" [ref=f13e185] [cursor=pointer]:
+                - /url: /legal/privacy
+              - link "Contact" [ref=f13e186] [cursor=pointer]:
+                - /url: /contact
+          - text: DYNTUBE
+  - alert [ref=f13e187]

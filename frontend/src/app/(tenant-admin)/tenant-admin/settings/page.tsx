@@ -49,6 +49,67 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/tenant-admin/settings/integrations" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Integrations</CardTitle>
+              <CardDescription>
+                Teachers&apos; Zoom, YouTube and Vimeo accounts, and your institute&apos;s DynTube and Bunny.net
+                video hosting.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/video-providers" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Video providers</CardTitle>
+              <CardDescription>
+                Connect your institute&apos;s own YouTube channel for lesson video uploads.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/video-configuration" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Video settings</CardTitle>
+              <CardDescription>
+                Where new videos are stored, the secure player, watermarks and viewing limits.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/domains" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Custom domain</CardTitle>
+              <CardDescription>
+                Serve your site on your own address, such as learn.yourinstitute.lk.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/devices-access" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Devices &amp; access</CardTitle>
+              <CardDescription>
+                Student device limits and resets, the grace period after expiry, and per-course overrides.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/student-fields" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Student fields</CardTitle>
+              <CardDescription>
+                Which details students provide at registration and on their profile, and which are required.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   );

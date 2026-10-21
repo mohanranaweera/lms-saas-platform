@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -114,10 +115,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		}
 
 		AuthenticatedPrincipal principal = parsedToken.isPlatformAdmin() ? resolvePlatformAdminPrincipal(parsedToken)
-				: resolveTenantPrincipal(parsedToken);
+				: resolveTenantPrincipal(parsedToken, request);
 
 		if (principal == null) {
 			unauthorized(response, ApiErrorCodes.SESSION_REVOKED, "Your session is no longer valid. Please sign in again.");
+			return;
+		}
+
+		// AUTH-PWD-01 / ADR-020: an account that must change its password may do
+		// nothing else. Read from the account row loaded above (not a token
+		// claim), so an admin-forced reset applies to the very next request.
+		if (!parsedToken.isPlatformAdmin() && Boolean.TRUE.equals(request.getAttribute(MUST_CHANGE_PASSWORD_ATTRIBUTE))
+				&& !allowedDuringPasswordChange(request)) {
+			FilterApiResponseWriter.write(response, objectMapper, HttpStatus.FORBIDDEN,
+					ApiErrorCodes.PASSWORD_CHANGE_REQUIRED, "You must change your password before continuing.");
 			return;
 		}
 
@@ -134,7 +145,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		}
 	}
 
-	private AuthenticatedPrincipal resolveTenantPrincipal(ParsedToken parsedToken) {
+	/** Paths an account that must change its password can still use. */
+	private static final Set<String> PASSWORD_CHANGE_ALLOWED_POSTS = Set.of("/api/v1/auth/password",
+			"/api/v1/auth/logout", "/api/v1/auth/refresh");
+
+	private static boolean allowedDuringPasswordChange(HttpServletRequest request) {
+		String uri = request.getRequestURI();
+		return ("POST".equalsIgnoreCase(request.getMethod()) && PASSWORD_CHANGE_ALLOWED_POSTS.contains(uri))
+				|| uri.startsWith("/api/v1/public/");
+	}
+
+	/** Set while resolving the principal from the already-loaded account (no second lookup). */
+	private static final String MUST_CHANGE_PASSWORD_ATTRIBUTE = "lms.auth.mustChangePassword";
+
+	private AuthenticatedPrincipal resolveTenantPrincipal(ParsedToken parsedToken, HttpServletRequest request) {
 		UUID resolvedTenantId;
 		try {
 			resolvedTenantId = tenantContext.getTenantId();
@@ -153,6 +177,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			return null;
 		}
 		TenantUser user = userOpt.get();
+		request.setAttribute(MUST_CHANGE_PASSWORD_ATTRIBUTE, user.isMustChangePassword());
 		return new AuthenticatedPrincipal(user.getId(), resolvedTenantId, user.getRole().name(), parsedToken.sessionId());
 	}
 

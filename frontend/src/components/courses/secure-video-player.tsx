@@ -11,6 +11,7 @@ import {
   type PlaybackSessionResponse,
 } from "@/lib/api/videos";
 import { isApiClientError } from "@/lib/api/error";
+import { attachHls, type HlsFailure } from "./hls-source";
 
 /**
  * Secure video player for a `VIDEO`/`RECORDING` material (Wave 5, plan §5/§6;
@@ -54,6 +55,13 @@ import { isApiClientError } from "@/lib/api/error";
  *   `watermarkText` on `PlaybackSessionResponse` — there is no separate
  *   `watermarkEnabled` boolean on that DTO (verified against the real
  *   backend file; see `lib/api/videos.ts`'s doc comment).
+ * - VIDEO Phase 13 (ADR-026): a session with `mediaFormat: "HLS"` (DynTube)
+ *   is played through `attachHls` (hls.js, loaded on demand). The near-expiry
+ *   refresh still renews the session and its heartbeat token, but keeps the
+ *   running stream: its segments carry the CDN's own signatures, and swapping
+ *   the playlist would restart playback. The stream is only reloaded (with a
+ *   fresh signed playlist) after a playback error, through the same bounded
+ *   retry as a stale file URL.
  */
 
 const HEARTBEAT_INTERVAL_MS = 12_000;
@@ -78,11 +86,37 @@ const MAX_CONSECUTIVE_VIDEO_ERRORS = 2;
 interface SecureVideoPlayerProps {
   videoAssetId: string;
   title: string;
+  /**
+   * VIDEO Phase 8: called when the backend answers `409 NATIVE_PLAYER_REQUIRED`
+   * (the institute requires the AOC Player), so the parent can show the launcher.
+   */
+  onNativePlayerRequired?: () => void;
+  /** VIDEO Phase 13c: DynTube EMBED is authorized by the native player only. */
+  onEmbedRequiresNativePlayer?: () => void;
 }
 
-type PlayerState = "loading" | "not-entitled" | "error" | "ready" | "revoked" | "token-invalid";
+type PlayerState = "loading" | "not-entitled" | "error" | "ready" | "revoked" | "token-invalid" | "key-refused";
 
-export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProps) {
+/**
+ * VIDEO Phase 13: the HLS host's key server refused the decryption key. A new
+ * session can't fix that - it is a security setting on the host's account.
+ */
+const KEY_REFUSED_MESSAGE =
+  "The video host refused to unlock this video for playback. Ask your institute to check the video host's security settings.";
+
+/** VIDEO Phase 13c: DynTube plays in its own player, which only the AOC Player embeds so far. */
+const EMBED_ONLY_MESSAGE = "This video plays in the AOC Player. Open the lesson there to watch it.";
+
+/** `PLAYBACK_WATCH_LIMIT` (VIDEO Phase 12): the Student's watch time for this video is used up. */
+const WATCH_LIMIT_MESSAGE =
+  "You've used all the watch time allowed for this video. Ask your institute if you need more time.";
+
+export function SecureVideoPlayer({
+  videoAssetId,
+  title,
+  onNativePlayerRequired,
+  onEmbedRequiresNativePlayer,
+}: SecureVideoPlayerProps) {
   const issueSessionMutation = useIssuePlaybackSession();
   const progressMutation = useRecordPlaybackProgress();
   const endSessionMutation = useEndPlaybackSession();
@@ -99,6 +133,12 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
   const watchedSinceHeartbeatRef = useRef(0);
   const lastTimeUpdateRef = useRef(0);
   const consecutiveVideoErrorsRef = useRef(0);
+  // VIDEO Phase 13: releases the current hls.js stream, if one is attached. `streamGenerationRef`
+  // invalidates an attach still loading when a newer session (or teardown) replaces it.
+  const detachHlsRef = useRef<(() => void) | null>(null);
+  const streamGenerationRef = useRef(0);
+  // The latest error handler, for hls.js's fatal-error callback (set in an effect below).
+  const fatalStreamErrorRef = useRef<(failure: HlsFailure) => void>(() => undefined);
   // Mirrors `session` for the unmount-cleanup effect below only — never read
   // during render (see module doc comment).
   const latestSessionRef = useRef<PlaybackSessionResponse | null>(null);
@@ -107,12 +147,38 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
     latestSessionRef.current = session;
   }, [session]);
 
+  const detachStream = useCallback(() => {
+    streamGenerationRef.current += 1;
+    detachHlsRef.current?.();
+    detachHlsRef.current = null;
+  }, []);
+
   const requestSession = useCallback(
-    async (preserveCurrentTime: boolean) => {
+    /**
+     * @param keepStream a token refresh: an HLS stream that is already
+     * playing keeps going (see the module doc comment)
+     */
+    async (preserveCurrentTime: boolean, keepStream = false) => {
       const currentTime = preserveCurrentTime ? (videoRef.current?.currentTime ?? 0) : 0;
       const wasPlaying = preserveCurrentTime && isPlaying;
       try {
         const nextSession = await issueSessionMutation.mutateAsync(videoAssetId);
+        if (nextSession.mediaFormat === "EMBED") {
+          detachStream();
+          // EMBED is handed to the native flow. End the legacy browser session
+          // before unmounting this component so it cannot retain a concurrency
+          // slot while the AOC Player issues its own authorized session.
+          if (nextSession.watchSessionId) {
+            endSessionMutation.mutate(nextSession.watchSessionId, { onError: () => undefined });
+          }
+          if (onEmbedRequiresNativePlayer) {
+            onEmbedRequiresNativePlayer();
+          } else {
+            setTerminalMessage(EMBED_ONLY_MESSAGE);
+            setState("revoked");
+          }
+          return;
+        }
         setSession(nextSession);
         setState("ready");
         setTerminalMessage(null);
@@ -123,7 +189,21 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
         requestAnimationFrame(() => {
           const el = videoRef.current;
           if (!el) return;
-          el.src = nextSession.signedUrl;
+          const hls = nextSession.mediaFormat === "HLS";
+          if (hls && keepStream && detachHlsRef.current) return;
+          detachStream();
+          if (hls) {
+            const generation = streamGenerationRef.current;
+            void attachHls(el, nextSession.signedUrl, (failure) => fatalStreamErrorRef.current(failure)).then((detach) => {
+              if (streamGenerationRef.current === generation) {
+                detachHlsRef.current = detach;
+              } else {
+                detach();
+              }
+            });
+          } else {
+            el.src = nextSession.signedUrl;
+          }
           if (preserveCurrentTime) {
             const onLoaded = () => {
               el.currentTime = currentTime;
@@ -135,14 +215,36 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
           }
         });
       } catch (error) {
-        if (isApiClientError(error) && error.status === 404) {
+        if (isApiClientError(error) && error.code === "NATIVE_PLAYER_REQUIRED" && onNativePlayerRequired) {
+          onNativePlayerRequired();
+        } else if (isApiClientError(error) && error.code === "PLAYBACK_WATCH_LIMIT") {
+          // Covers a mid-playback refresh too: the session is over, so drop the media.
+          detachStream();
+          const el = videoRef.current;
+          if (el) {
+            el.pause();
+            el.removeAttribute("src");
+            el.load();
+          }
+          setIsPlaying(false);
+          setTerminalMessage(WATCH_LIMIT_MESSAGE);
+          setState("revoked");
+        } else if (isApiClientError(error) && error.status === 404) {
           setState("not-entitled");
         } else {
           setState("error");
         }
       }
     },
-    [issueSessionMutation, videoAssetId, isPlaying]
+    [
+      issueSessionMutation,
+      videoAssetId,
+      isPlaying,
+      onNativePlayerRequired,
+      onEmbedRequiresNativePlayer,
+      endSessionMutation,
+      detachStream,
+    ]
   );
 
   // Initial session on mount — the canonical "fetch on mount" effect
@@ -169,6 +271,9 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
   // after this effect first mounted is still ended correctly.
   useEffect(() => {
     return () => {
+      streamGenerationRef.current += 1;
+      detachHlsRef.current?.();
+      detachHlsRef.current = null;
       const activeSession = latestSessionRef.current;
       if (activeSession?.watchSessionId) {
         endSessionMutation.mutate(activeSession.watchSessionId, {
@@ -202,11 +307,12 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
       void requestSession(true);
       return;
     }
-    const timeout = setTimeout(() => void requestSession(true), msUntilRefresh);
+    const timeout = setTimeout(() => void requestSession(true, true), msUntilRefresh);
     return () => clearTimeout(timeout);
   }, [state, session, requestSession]);
 
   const endTerminal = useCallback((message: string, next: PlayerState) => {
+    detachStream();
     const el = videoRef.current;
     if (el) {
       el.pause();
@@ -216,7 +322,7 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
     setIsPlaying(false);
     setState(next);
     setTerminalMessage(message);
-  }, []);
+  }, [detachStream]);
 
   const sendHeartbeat = useCallback(async () => {
     const el = videoRef.current;
@@ -236,6 +342,10 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
       if (isApiClientError(error)) {
         if (error.code === "POLICY_VIOLATION") {
           endTerminal("This viewing session has ended because a limit was reached.", "revoked");
+          return;
+        }
+        if (error.code === "PLAYBACK_WATCH_LIMIT") {
+          endTerminal(WATCH_LIMIT_MESSAGE, "revoked");
           return;
         }
         if (error.code === "SEEK_NOT_ALLOWED") {
@@ -314,6 +424,19 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
     void requestSession(true);
   };
 
+  // hls.js reports fatal stream errors outside React; route them to the current handler.
+  useEffect(() => {
+    fatalStreamErrorRef.current = (failure) => {
+      if (failure === "KEY_REFUSED") {
+        detachStream();
+        setTerminalMessage(KEY_REFUSED_MESSAGE);
+        setState("key-refused");
+        return;
+      }
+      handleVideoError();
+    };
+  });
+
   const handleRetry = () => {
     setState("loading");
     void requestSession(false);
@@ -354,14 +477,14 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
     );
   }
 
-  if (state === "revoked" || state === "token-invalid") {
+  if (state === "revoked" || state === "token-invalid" || state === "key-refused") {
     return (
       <div role="alert" className="flex flex-col items-center gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-6 py-10 text-center">
         <AlertCircle className="size-6 text-destructive" aria-hidden="true" />
         <p className="text-sm text-destructive">{terminalMessage}</p>
-        {state === "token-invalid" ? (
+        {state === "token-invalid" || state === "key-refused" ? (
           <Button type="button" variant="outline" size="sm" onClick={handleRetry}>
-            Reload
+            {state === "key-refused" ? "Try again" : "Reload"}
           </Button>
         ) : null}
       </div>
@@ -394,7 +517,7 @@ export function SecureVideoPlayer({ videoAssetId, title }: SecureVideoPlayerProp
       {session?.watermarkText ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute select-none text-xs font-semibold text-white/60"
+          className="pointer-events-none absolute max-w-[36%] whitespace-pre-line select-none text-xs font-semibold leading-snug text-white/60"
           style={{ top: `${watermarkPosition.top}%`, left: `${watermarkPosition.left}%` }}
         >
           {session.watermarkText}

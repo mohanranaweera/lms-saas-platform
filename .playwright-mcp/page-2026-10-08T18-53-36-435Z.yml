@@ -1,0 +1,125 @@
+- generic [active] [ref=f10e1]:
+  - button "Open Next.js Dev Tools" [ref=f10e11] [cursor=pointer]
+  - alert [ref=f10e15]
+  - generic [ref=f10e16]:
+    - complementary [ref=f10e17]:
+      - generic [ref=f10e18]: Student Portal
+      - navigation "Primary" [ref=f10e19]:
+        - list [ref=f10e20]:
+          - listitem [ref=f10e21]:
+            - link "Dashboard" [ref=f10e22] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f10e23]:
+            - link "My Courses" [ref=f10e24] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f10e25]:
+            - link "Browse Courses" [ref=f10e26] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=f10e27]:
+            - link "My Attendance" [ref=f10e28] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f10e29]:
+            - link "Exams" [ref=f10e30] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f10e31]:
+            - link "Payments" [ref=f10e32] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f10e33]:
+            - link "Reactivation" [ref=f10e34] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f10e35]:
+            - link [ref=f10e36] [cursor=pointer]:
+              - /url: /student/notifications
+              - text: Notifications
+              - generic "1 unread notification" [ref=f10e37]:
+                - generic [aria-hidden] [ref=f10e38]: "1"
+          - listitem [ref=f10e39]:
+            - link "My Devices" [ref=f10e40] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=f10e41]:
+            - link "AOC Player" [ref=f10e42] [cursor=pointer]:
+              - /url: /student/player
+          - listitem [ref=f10e43]:
+            - link "Profile" [ref=f10e44] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f10e45]:
+      - banner [ref=f10e46]:
+        - generic [ref=f10e47]:
+          - link "Change password" [ref=f10e48] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f10e50]
+      - main [ref=f10e51]:
+        - generic [ref=f10e52]:
+          - generic [ref=f10e53]:
+            - heading "AOC Player" [level=1] [ref=f10e54]
+            - paragraph [ref=f10e55]: If your institute plays lesson videos in the AOC Player app, pair it with this computer once.
+          - generic [ref=f10e56]:
+            - generic [ref=f10e57]:
+              - generic [ref=f10e58]: Install the AOC Player
+              - generic [ref=f10e62]: For Windows 10 and 11. Install it once on this computer, then pair it below.
+            - paragraph [ref=f10e64]: The AOC Player download isn't available yet. Your institute will let you know when it is.
+          - generic [ref=f10e65]:
+            - generic [ref=f10e66]:
+              - generic [ref=f10e67]: Pair this computer
+              - generic [ref=f10e71]: With the AOC Player installed, choose “Pair the AOC Player” and allow your browser to open it. Pairing again on this computer replaces the previous player.
+            - generic [ref=f10e72]:
+              - status
+              - button "Pair the AOC Player" [ref=f10e74]
+          - region [ref=f10e75]:
+            - heading "Your players" [level=2] [ref=f10e76]
+            - list "Your AOC Players" [ref=f10e77]:
+              - listitem [ref=f10e78]:
+                - generic [ref=f10e79]:
+                  - paragraph [ref=f10e80]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e81]: Active
+                  - paragraph [ref=f10e82]: Version 0.1.0 · paired Oct 9, 2026 · last used Oct 9, 2026
+                - button "Remove this AOC Player" [ref=f10e83]: Remove
+              - listitem [ref=f10e84]:
+                - generic [ref=f10e85]:
+                  - paragraph [ref=f10e86]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e87]: Removed
+                  - paragraph [ref=f10e88]: Version 0.1.0 · paired Oct 9, 2026 · last used Oct 9, 2026 · removed by you
+              - listitem [ref=f10e89]:
+                - generic [ref=f10e90]:
+                  - paragraph [ref=f10e91]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e92]: Removed
+                  - paragraph [ref=f10e93]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · removed by you
+              - listitem [ref=f10e94]:
+                - generic [ref=f10e95]:
+                  - paragraph [ref=f10e96]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e97]: Removed
+                  - paragraph [ref=f10e98]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · its device was removed
+              - listitem [ref=f10e99]:
+                - generic [ref=f10e100]:
+                  - paragraph [ref=f10e101]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e102]: Removed
+                  - paragraph [ref=f10e103]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · its device was removed
+              - listitem [ref=f10e104]:
+                - generic [ref=f10e105]:
+                  - paragraph [ref=f10e106]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e107]: Removed
+                  - paragraph [ref=f10e108]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · removed by your institute
+              - listitem [ref=f10e109]:
+                - generic [ref=f10e110]:
+                  - paragraph [ref=f10e111]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e112]: Removed
+                  - paragraph [ref=f10e113]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · replaced by a newer pairing
+              - listitem [ref=f10e114]:
+                - generic [ref=f10e115]:
+                  - paragraph [ref=f10e116]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e117]: Removed
+                  - paragraph [ref=f10e118]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · replaced by a newer pairing
+              - listitem [ref=f10e119]:
+                - generic [ref=f10e120]:
+                  - paragraph [ref=f10e121]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f10e122]: Removed
+                  - paragraph [ref=f10e123]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · removed by you

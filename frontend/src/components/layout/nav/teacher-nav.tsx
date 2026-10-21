@@ -5,11 +5,14 @@ export function TeacherNav({ onNavigate }: { onNavigate?: () => void }) {
   const items: NavItem[] = [
     { label: "Dashboard", href: "/teacher/dashboard" },
     { label: "Courses", href: "/teacher/courses" },
+    { label: "Media Library", href: "/teacher/media" },
     { label: "Live Classes", href: "/teacher/live-classes" },
     { label: "Mark Attendance", href: "/teacher/attendance/mark" },
     { label: "Attendance Reports", href: "/teacher/attendance/reports" },
     { label: "Exams", href: "/teacher/exams/questions" },
+    { label: "Messages", href: "/teacher/communications" },
     { label: "Notifications", href: "/teacher/notifications", badge: <NotificationsNavBadge /> },
+    { label: "Settings", href: "/teacher/settings" },
     { label: "Profile" },
   ];
 

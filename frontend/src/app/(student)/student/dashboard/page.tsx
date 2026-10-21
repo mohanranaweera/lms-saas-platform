@@ -7,6 +7,7 @@ import { AlertTriangle, CheckCircle2, Receipt } from "lucide-react";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { ProfileCompletionBanner } from "@/components/students/profile-completion-banner";
 import { AccessStateBadge } from "@/components/students/enrollment-status-badges";
 import { formatDateTime, formatMoney, shortId } from "@/lib/format";
 import {
@@ -65,6 +66,8 @@ export default function StudentDashboardPage() {
           Your enrollments, courses, and recent payment activity at a glance.
         </p>
       </div>
+
+      <ProfileCompletionBanner />
 
       <QueryStateBoundary
         query={enrollmentsQuery}

@@ -9,10 +9,17 @@ import { CheckCircle2, Clock, Lock } from "lucide-react";
 import {
   buildStudentRegistrationSchema,
   registrationOtpSchema,
-  STUDENT_REGISTRATION_DEFAULT_VALUES,
+  studentRegistrationDefaultValues,
   type StudentRegistrationFormValues,
   type RegistrationOtpFormValues,
 } from "@/lib/validation/student-registration";
+import {
+  formFieldNames,
+  toFormFieldName,
+  toPayloadValues,
+} from "@/lib/validation/student-profile-fields";
+import type { ProfileFieldDescriptor } from "@/lib/api/student-profile-fields";
+import { ProfileFieldInputs } from "@/components/students/profile-field-inputs";
 import {
   useRegisterStudent,
   useSendRegistrationOtp,
@@ -48,10 +55,11 @@ import { LoadingState } from "@/components/states/loading-state";
  * doesn't match this tenant's actual policy:
  *   - `publicRegistrationEnabled=false` -> the "registration is not open"
  *     state renders in place of the form; no submit attempt is made.
- *   - `requireGuardianInfo`/`requireSchool`/`requireGrade`/`requireStream`/
- *     `requireMobile` each drive whether the matching field is validated
- *     (and labeled) as required vs. optional, via
- *     `buildStudentRegistrationSchema`.
+ *   - `registrationFields` (STU-PROF-01) is the list of tenant-configured
+ *     fields asked at registration; each renders through the shared
+ *     `ProfileFieldInputs` and is validated (and labeled) as required vs.
+ *     optional via `buildStudentRegistrationSchema`. Every other enabled
+ *     field is filled in later from the student's profile page.
  *   - `otpRequired=true` reveals the email-OTP step (send + verify) between
  *     "Create account" and the actual registration submission; when
  *     `false`, submitting registers immediately.
@@ -84,29 +92,17 @@ interface PageErrorState {
   fieldErrors?: FieldError[];
 }
 
-const KNOWN_FIELD_NAMES = new Set<string>([
-  "name",
-  "email",
-  "password",
-  "guardianName",
-  "guardianPhone",
-  "school",
-  "grade",
-  "stream",
-  "mobile",
-]);
+const BASE_FIELD_NAMES = new Set<string>(["name", "email", "password"]);
 
-function toRegistrationInput(values: StudentRegistrationFormValues): StudentRegistrationInput {
+function toRegistrationInput(
+  values: StudentRegistrationFormValues,
+  registrationFields: ProfileFieldDescriptor[]
+): StudentRegistrationInput {
   return {
     name: values.name,
     email: values.email,
     password: values.password,
-    guardianName: values.guardianName?.trim() ? values.guardianName.trim() : undefined,
-    guardianPhone: values.guardianPhone?.trim() ? values.guardianPhone.trim() : undefined,
-    school: values.school?.trim() ? values.school.trim() : undefined,
-    grade: values.grade?.trim() ? values.grade.trim() : undefined,
-    stream: values.stream?.trim() ? values.stream.trim() : undefined,
-    mobile: values.mobile?.trim() ? values.mobile.trim() : undefined,
+    profileFields: toPayloadValues(registrationFields, values.profile, { omitEmpty: true }),
   };
 }
 
@@ -177,6 +173,9 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
   const [pendingApproval, setPendingApproval] = useState(false);
   const [heldValues, setHeldValues] = useState<StudentRegistrationFormValues | null>(null);
 
+  const registrationFields = policy.registrationFields;
+  const profileFieldNames = new Set(registrationFields.flatMap(formFieldNames));
+
   const {
     register,
     handleSubmit,
@@ -184,8 +183,8 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
     getValues,
     formState: { errors, isDirty },
   } = useForm<StudentRegistrationFormValues>({
-    resolver: zodResolver(buildStudentRegistrationSchema(policy)),
-    defaultValues: STUDENT_REGISTRATION_DEFAULT_VALUES,
+    resolver: zodResolver(buildStudentRegistrationSchema(registrationFields)),
+    defaultValues: studentRegistrationDefaultValues(registrationFields),
   });
 
   const registerMutation = useRegisterStudent();
@@ -223,15 +222,18 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
   function applySubmitError(error: unknown) {
     if (isApiClientError(error)) {
       if (error.fieldErrors.length > 0) {
-        const unmapped = error.fieldErrors.filter(
-          (fieldError) => !KNOWN_FIELD_NAMES.has(fieldError.field)
-        );
+        const unmapped: FieldError[] = [];
         for (const fieldError of error.fieldErrors) {
-          if (KNOWN_FIELD_NAMES.has(fieldError.field)) {
-            setError(fieldError.field as keyof StudentRegistrationFormValues, {
+          const profileName = toFormFieldName(fieldError.field, "profileFields");
+          if (BASE_FIELD_NAMES.has(fieldError.field)) {
+            setError(fieldError.field as "name" | "email" | "password", {
               type: "server",
               message: fieldError.message,
             });
+          } else if (profileName && profileFieldNames.has(profileName)) {
+            setError(`profile.${profileName}`, { type: "server", message: fieldError.message });
+          } else {
+            unmapped.push(fieldError);
           }
         }
         if (unmapped.length > 0) {
@@ -260,7 +262,7 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
   }
 
   async function submitRegistration(values: StudentRegistrationFormValues) {
-    const result = await registerMutation.mutateAsync(toRegistrationInput(values));
+    const result = await registerMutation.mutateAsync(toRegistrationInput(values, registrationFields));
     setPendingApproval(result.pendingApproval);
     setStep("success");
   }
@@ -351,12 +353,7 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
     );
   }
 
-  const hasRequiredAdditionalField =
-    policy.requireGuardianInfo ||
-    policy.requireSchool ||
-    policy.requireGrade ||
-    policy.requireStream ||
-    policy.requireMobile;
+  const hasRequiredAdditionalField = registrationFields.some((field) => field.required);
 
   return (
     <Card>
@@ -432,66 +429,24 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
               errors={errors}
             />
 
-            <fieldset className="flex flex-col gap-4 rounded-md border border-border p-3">
-              <legend className="px-1 text-xs font-medium text-muted-foreground">
-                Additional information
-              </legend>
-              <p className="text-xs text-muted-foreground">
-                {hasRequiredAdditionalField
-                  ? "Fields marked (optional) aren't required — every other field below is required by this institute."
-                  : "These fields are optional for this institute."}
-              </p>
-              <RegisterField
-                name="guardianName"
-                label="Guardian name"
-                optional={!policy.requireGuardianInfo}
-                autoComplete="off"
-                register={register}
-                errors={errors}
-              />
-              <RegisterField
-                name="guardianPhone"
-                label="Guardian phone"
-                type="tel"
-                optional={!policy.requireGuardianInfo}
-                autoComplete="off"
-                register={register}
-                errors={errors}
-              />
-              <RegisterField
-                name="school"
-                label="School"
-                optional={!policy.requireSchool}
-                autoComplete="off"
-                register={register}
-                errors={errors}
-              />
-              <RegisterField
-                name="grade"
-                label="Grade"
-                optional={!policy.requireGrade}
-                autoComplete="off"
-                register={register}
-                errors={errors}
-              />
-              <RegisterField
-                name="stream"
-                label="Stream"
-                optional={!policy.requireStream}
-                autoComplete="off"
-                register={register}
-                errors={errors}
-              />
-              <RegisterField
-                name="mobile"
-                label="Mobile number"
-                type="tel"
-                optional={!policy.requireMobile}
-                autoComplete="off"
-                register={register}
-                errors={errors}
-              />
-            </fieldset>
+            {registrationFields.length > 0 ? (
+              <fieldset className="flex flex-col gap-4 rounded-md border border-border p-3">
+                <legend className="px-1 text-xs font-medium text-muted-foreground">
+                  Additional information
+                </legend>
+                <p className="text-xs text-muted-foreground">
+                  {hasRequiredAdditionalField
+                    ? "Fields marked (optional) aren't required — every other field below is required by this institute."
+                    : "These fields are optional for this institute."}
+                </p>
+                <ProfileFieldInputs
+                  fields={registrationFields}
+                  idPrefix="register"
+                  register={(name) => register(`profile.${name}`)}
+                  errorFor={(name) => errors.profile?.[name]?.message}
+                />
+              </fieldset>
+            ) : null}
 
             <Button
               type="submit"
