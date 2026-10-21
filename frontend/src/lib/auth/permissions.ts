@@ -497,3 +497,37 @@ export function canViewMedia(role: string | null): boolean {
 export function canManageMedia(role: string | null): boolean {
   return role === "TENANT_ADMIN" || role === "CONTENT_MANAGER" || isTeacherRole(role);
 }
+
+/**
+ * ADR-030 Student Payments page (`PAYMENTS_SLIPS`/`VIEW`): Tenant Admin,
+ * Finance Staff, Student Support, Read-only Auditor. UX only - every
+ * `/api/v1/staff/students/**` endpoint re-checks.
+ */
+export function canViewStudentPayments(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/** ADR-030 record a manual payment receipt (`PAYMENTS_SLIPS`/`APPROVE`): Tenant Admin, Finance Staff. UX only. */
+export function canRecordManualPayment(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
+}
+
+/** ADR-030 `FREE_CARDS`/`VIEW`: Tenant Admin, Finance Staff, Student Support, Read-only Auditor. UX only. */
+export function canViewFreeCards(role: string | null): boolean {
+  return canViewStudentPayments(role);
+}
+
+/** ADR-030 `FREE_CARDS`/`CREATE_EDIT` (issue): Tenant Admin only. UX only. */
+export function canIssueFreeCard(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/** ADR-030 `FREE_CARDS`/`DELETE` (revoke - a status change, never a row delete): Tenant Admin only. UX only. */
+export function canRevokeFreeCard(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}

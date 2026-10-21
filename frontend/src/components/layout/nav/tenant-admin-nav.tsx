@@ -22,6 +22,8 @@ import {
   canViewDevices,
   canViewCommunications,
   canViewMedia,
+  canViewStudentPayments,
+  canViewFreeCards,
 } from "@/lib/auth/permissions";
 import { NavGroup, type NavItem } from "./nav-links";
 
@@ -99,6 +101,13 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (canViewPaymentDashboard(role)) {
     financeItems.push({ label: "Payment Slips", href: "/tenant-admin/payments/slip-review" });
+  }
+  // ADR-030 - PAYMENTS_SLIPS/VIEW and FREE_CARDS/VIEW. UX only; the backend re-checks.
+  if (canViewStudentPayments(role)) {
+    financeItems.push({ label: "Student Payments", href: "/tenant-admin/payments/students" });
+  }
+  if (canViewFreeCards(role)) {
+    financeItems.push({ label: "Free Cards", href: "/tenant-admin/payments/free-cards" });
   }
   // DISC-01 - DISCOUNTS/VIEW. UX only; /api/v1/admin/discounts re-enforces it.
   if (canViewDiscounts(role)) {

@@ -6,7 +6,7 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useStudentLedger } from "@/lib/api/ledger";
 import type { LedgerHistoryEntryResponse } from "@/lib/api/ledger";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canViewAccessExpiryQueue } from "@/lib/auth/permissions";
+import { canViewAccessExpiryQueue, canViewStudentPayments } from "@/lib/auth/permissions";
 import { formatDateTime, formatMoney, shortId } from "@/lib/format";
 
 const columns: DataTableColumn<LedgerHistoryEntryResponse>[] = [
@@ -27,9 +27,21 @@ export function PaymentsTab({ studentId }: { studentId: string }) {
   const { session } = useAuth();
   const query = useStudentLedger(studentId);
   const canViewReactivationQueue = canViewAccessExpiryQueue(session?.role ?? null);
+  const canOpenStudentPayments = canViewStudentPayments(session?.role ?? null);
 
   return (
     <div className="flex flex-col gap-4">
+      {canOpenStudentPayments ? (
+        <p className="text-sm text-muted-foreground">
+          <Link
+            href={`/tenant-admin/payments/students?studentId=${encodeURIComponent(studentId)}`}
+            className="font-medium text-foreground hover:underline"
+            data-testid="student-payments-link"
+          >
+            Record payment / Free card
+          </Link>
+        </p>
+      ) : null}
       {canViewReactivationQueue ? (
         <p className="text-sm text-muted-foreground">
           Need to extend this student&apos;s access to an expired enrollment?{" "}
