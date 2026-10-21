@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LiveRegion } from "@/components/ui/live-region";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { isApiClientError } from "@/lib/api/error";
@@ -465,7 +466,10 @@ function Section({
   );
 }
 
-/** Klass-style course multi-select: an "All" checkbox + "<Course> - <price>" options. */
+/**
+ * Klass-style course picker: a dropdown with "All" + "<Course> - <price>"
+ * checkboxes and type-to-filter (shared `MultiSelect`).
+ */
 function CoursePicker({
   testId,
   legend,
@@ -483,70 +487,39 @@ function CoursePicker({
   error?: string;
   emptyText: string;
 }) {
-  const errorId = useId();
+  const id = useId();
   const visible = new Set(options.map((option) => option.courseId));
-  const allSelected = options.length > 0 && options.every((option) => value.includes(option.courseId));
-  const toggle = (courseId: string, checked: boolean) =>
-    onChange(checked ? [...value, courseId] : value.filter((existing) => existing !== courseId));
+  const hidden = value.filter((courseId) => !visible.has(courseId)).length;
 
   return (
-    <fieldset
-      className="flex min-w-0 flex-col gap-1.5"
-      aria-describedby={error ? errorId : undefined}
-      data-testid={testId}
-    >
-      <legend className="mb-1 text-sm font-medium text-foreground">{legend}</legend>
-      {options.length === 0 ? (
-        <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">{emptyText}</p>
-      ) : (
-        <div
-          className={`flex max-h-56 flex-col gap-1 overflow-y-auto rounded-md border p-2 ${
-            error ? "border-destructive" : "border-input"
-          }`}
-        >
-          <label className="flex items-center gap-2 border-b border-border pb-1 text-sm font-medium">
-            <input
-              type="checkbox"
-              className="size-4 accent-blue-600"
-              checked={allSelected}
-              onChange={(event) =>
-                onChange(
-                  event.target.checked
-                    ? Array.from(new Set([...value, ...options.map((option) => option.courseId)]))
-                    : value.filter((courseId) => !visible.has(courseId))
-                )
-              }
-            />
-            All
-          </label>
-          {options.map((option) => (
-            <label key={option.courseId} className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-0.5 size-4 accent-blue-600"
-                checked={value.includes(option.courseId)}
-                onChange={(event) => toggle(option.courseId, event.target.checked)}
-              />
-              <span className="min-w-0 break-words">
-                {option.name}
-                {option.priceLabel ? <span className="text-muted-foreground"> - {option.priceLabel}</span> : null}
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
-      {value.length > 0 ? (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Label htmlFor={`${id}-trigger`}>{legend}</Label>
+      <MultiSelect
+        id={`${id}-trigger`}
+        testId={testId}
+        options={options.map((option) => ({
+          value: option.courseId,
+          label: option.priceLabel ? `${option.name} - ${option.priceLabel}` : option.name,
+        }))}
+        value={value}
+        onChange={onChange}
+        placeholder="Select courses"
+        searchPlaceholder="Type to filter courses…"
+        emptyText={emptyText}
+        invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
+      />
+      {hidden > 0 ? (
         <p className="text-xs text-muted-foreground">
-          {value.length} selected
-          {value.some((courseId) => !visible.has(courseId)) ? " (includes courses not listed here)" : ""}
+          {hidden} selected course{hidden === 1 ? " isn't" : "s aren't"} available for this discount type.
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} role="alert" className="text-xs text-destructive">
+        <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
           {error}
         </p>
       ) : null}
-    </fieldset>
+    </div>
   );
 }
 

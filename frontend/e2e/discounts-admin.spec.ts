@@ -164,6 +164,15 @@ async function setup(page: Page, role: string, overrides: Partial<FakeState> = {
   return state;
 }
 
+/** Opens a course dropdown, ticks the matching courses and closes it. */
+async function pickCourses(page: Page, testId: string, names: RegExp[]): Promise<void> {
+  await page.getByTestId(testId).click();
+  const popup = page.getByTestId(`${testId}-popup`);
+  for (const name of names) await popup.getByLabel(name).check();
+  await page.keyboard.press("Escape");
+  await expect(popup).toBeHidden();
+}
+
 test.describe("Tenant Admin discounts", () => {
   test("lists discounts with server counts, status chips and the Finance nav entry", async ({ page }) => {
     await setup(page, "TENANT_ADMIN");
@@ -245,7 +254,7 @@ test.describe("Tenant Admin discounts", () => {
     await expect(page.getByText("Enter code to get discount")).toBeVisible();
 
     await page.getByLabel("Discount Name *").fill("Welcome back");
-    await page.getByTestId("discount-required-courses").getByLabel(/2026 A\/L ICT/).check();
+    await pickCourses(page, "discount-required-courses", [/2026 A\/L ICT/]);
     await page.getByLabel("Discount Code *").fill("back-2026");
     await page.getByLabel("Percentage (%)").check();
     await page.getByLabel("Discount Value (%) *").fill("150");
@@ -304,13 +313,16 @@ test.describe("Tenant Admin discounts", () => {
     await page.getByRole("option", { name: "Course Bundle - Free Course" }).click();
 
     await page.getByLabel("Discount Name *").fill("Bio bonus");
-    await page.getByTestId("discount-required-courses").getByLabel(/2026 A\/L ICT/).check();
-    const free = page.getByTestId("discount-free-courses");
+    await pickCourses(page, "discount-required-courses", [/2026 A\/L ICT/]);
+    await page.getByTestId("discount-free-courses").click();
+    const free = page.getByTestId("discount-free-courses-popup");
     // ICT is required and the paper pack isn't monthly: only Biology is offered.
     await expect(free.getByLabel(/2026 A\/L Biology/)).toBeVisible();
     await expect(free.getByLabel(/2026 A\/L ICT/)).toHaveCount(0);
     await expect(free.getByLabel(/Model Paper Pack/)).toHaveCount(0);
     await free.getByLabel(/2026 A\/L Biology/).check();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("discount-free-courses")).toContainText("2026 A/L Biology");
     await expect(page.getByLabel("Free For (Months) *")).toHaveValue("1");
     await page.getByLabel("Valid From *").fill("2026-01-01");
     await page.getByLabel("Valid To *").fill("2026-12-31");
@@ -381,5 +393,31 @@ test.describe("Tenant Admin discounts", () => {
     await page.goto("/tenant-admin/dashboard");
     await expect(page.getByRole("link", { name: "Dashboard" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Discounts", exact: true })).toHaveCount(0);
+  });
+
+  test("course dropdown filters while typing; All ticks only the matching courses", async ({ page }) => {
+    await setup(page, "TENANT_ADMIN");
+    await page.goto("/tenant-admin/payments/discounts/new");
+    const trigger = page.getByTestId("discount-required-courses");
+    await expect(trigger).toContainText("Select courses");
+
+    await trigger.click();
+    const popup = page.getByTestId("discount-required-courses-popup");
+    // Focus lands in the search box, so typing filters straight away.
+    await expect(page.getByTestId("discount-required-courses-search")).toBeFocused();
+    await expect(popup.getByRole("checkbox")).toHaveCount(4); // All + 3 courses
+    await page.keyboard.type("a/l");
+    await expect(popup.getByLabel(/Model Paper Pack/)).toHaveCount(0);
+    await popup.getByLabel("All matching (2)").check();
+    await page.keyboard.press("Escape");
+    await expect(trigger).toContainText("2026 A/L ICT - LKR 3500.00");
+    await expect(trigger).toContainText("2026 A/L Biology - LKR 2000.00");
+
+    // Reopening clears the filter; a query with no match says so.
+    await trigger.click();
+    await expect(popup.getByRole("checkbox")).toHaveCount(4);
+    await expect(popup.getByLabel(/Model Paper Pack/)).not.toBeChecked();
+    await page.getByTestId("discount-required-courses-search").fill("chemistry");
+    await expect(popup.getByText("Nothing matches")).toBeVisible();
   });
 });
