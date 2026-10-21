@@ -206,6 +206,96 @@ class DiscountPricingServiceTest {
 
 	}
 
+	/** D4a (owner decision 2026-10-21): FIXED bundle / code amounts count once per qualifying billing month. */
+	@Nested
+	class PerBillingMonth {
+
+		@Test
+		void fixedBundleAppliesOncePerMonthOfTheCourse() {
+			RuleSnapshot bundle = rule(DiscountType.BUNDLE_AMOUNT_OFF, SelectionMode.ANY, null,
+					DiscountValueType.FIXED, "200", List.of(MATHS));
+
+			// The reported case: Sep + Oct of one course -> 200 each month, not 200 for the order.
+			DiscountOutcome outcome = apply(List.of(monthly(1, MATHS, 2026, 9, "3500.00"),
+					monthly(2, MATHS, 2026, 10, "3500.00")), List.of(bundle), null);
+
+			AppliedDiscount applied = outcome.applied().get(0);
+			assertThat(applied.amount()).isEqualByComparingTo("400.00");
+			assertThat(applied.allocation().get(1)).isEqualByComparingTo("200.00");
+			assertThat(applied.allocation().get(2)).isEqualByComparingTo("200.00");
+		}
+
+		@Test
+		void fixedCodeAppliesOncePerMonthToo() {
+			RuleSnapshot code = rule(DiscountType.DISCOUNT_CODE, SelectionMode.ANY, null, DiscountValueType.FIXED,
+					"150", List.of(MATHS));
+
+			DiscountOutcome outcome = apply(List.of(monthly(1, MATHS, 2026, 9, "1000.00"),
+					monthly(2, MATHS, 2026, 10, "1000.00"), monthly(3, MATHS, 2026, 11, "1000.00")), List.of(code),
+					code.ruleId());
+
+			assertThat(outcome.codeStatus()).isEqualTo(CodeStatus.APPLIED);
+			assertThat(outcome.total()).isEqualByComparingTo("450.00");
+		}
+
+		@Test
+		void allBundleCountsOnlyMonthsHavingEveryRequiredCourseAndSplitsWithinTheMonth() {
+			RuleSnapshot bundle = rule(DiscountType.BUNDLE_AMOUNT_OFF, SelectionMode.ALL, null,
+					DiscountValueType.FIXED, "200", List.of(MATHS, SCIENCE));
+
+			DiscountOutcome outcome = apply(List.of(monthly(1, MATHS, 2026, 9, "1000.00"),
+					monthly(2, SCIENCE, 2026, 9, "3000.00"), monthly(3, MATHS, 2026, 10, "1000.00")), List.of(bundle),
+					null);
+
+			AppliedDiscount applied = outcome.applied().get(0);
+			assertThat(applied.amount()).isEqualByComparingTo("200.00");
+			// September only (October has Maths alone); 200 split 1:3 within September.
+			assertThat(applied.allocation()).containsOnlyKeys(1, 2);
+			assertThat(applied.allocation().get(1)).isEqualByComparingTo("50.00");
+			assertThat(applied.allocation().get(2)).isEqualByComparingTo("150.00");
+		}
+
+		@Test
+		void eachMonthIsCappedAtThatMonthsEligibleTotal() {
+			RuleSnapshot bundle = rule(DiscountType.BUNDLE_AMOUNT_OFF, SelectionMode.ANY, null,
+					DiscountValueType.FIXED, "500", List.of(MATHS));
+
+			DiscountOutcome outcome = apply(List.of(monthly(1, MATHS, 2026, 9, "300.00"),
+					monthly(2, MATHS, 2026, 10, "1000.00")), List.of(bundle), null);
+
+			assertThat(outcome.applied().get(0).allocation().get(1)).isEqualByComparingTo("300.00");
+			assertThat(outcome.applied().get(0).allocation().get(2)).isEqualByComparingTo("500.00");
+			assertThat(outcome.total()).isEqualByComparingTo("800.00");
+		}
+
+		@Test
+		void linesWithoutAMonthCountOnceAndAnOrderOnlyQualifyingAcrossMonthsAppliesOnce() {
+			RuleSnapshot bundle = rule(DiscountType.BUNDLE_AMOUNT_OFF, SelectionMode.ALL, null,
+					DiscountValueType.FIXED, "200", List.of(MATHS, SCIENCE));
+
+			// Lessons have no month: one group -> once.
+			assertThat(apply(List.of(lesson(1, MATHS, "500.00"), lesson(2, SCIENCE, "500.00"),
+					lesson(3, MATHS, "500.00")), List.of(bundle), null).total()).isEqualByComparingTo("200.00");
+			// Maths in Sep, Science in Oct: no single month has both, but the order does -> once (D4).
+			assertThat(apply(List.of(monthly(1, MATHS, 2026, 9, "1000.00"), monthly(2, SCIENCE, 2026, 10, "1000.00")),
+					List.of(bundle), null).total()).isEqualByComparingTo("200.00");
+		}
+
+		@Test
+		void percentageAndAdvanceAreUnchanged() {
+			RuleSnapshot percent = rule(DiscountType.BUNDLE_AMOUNT_OFF, SelectionMode.ANY, null,
+					DiscountValueType.PERCENTAGE, "10", List.of(MATHS));
+			List<CartLine> twoMonths = List.of(monthly(1, MATHS, 2026, 11, "1000.00"),
+					monthly(2, MATHS, 2026, 12, "1000.00"));
+			assertThat(apply(twoMonths, List.of(percent), null).total()).isEqualByComparingTo("200.00");
+
+			RuleSnapshot advance = rule(DiscountType.ADVANCE_PAYMENT, SelectionMode.ANY, null,
+					DiscountValueType.FIXED, "200", List.of(MATHS));
+			assertThat(apply(twoMonths, List.of(advance), null).total()).isEqualByComparingTo("200.00");
+		}
+
+	}
+
 	@Nested
 	class Combination {
 

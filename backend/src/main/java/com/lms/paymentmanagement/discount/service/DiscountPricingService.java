@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
@@ -181,7 +182,7 @@ public class DiscountPricingService {
 			if (best == null) {
 				break;
 			}
-			Map<Integer, BigDecimal> allocation = DiscountAllocator.allocate(best.amount(), best.lines());
+			Map<Integer, BigDecimal> allocation = best.allocation();
 			taken.addAll(allocation.keySet());
 			// Lines in the candidate that received 0 (tiny percentage) stay untaken.
 			applied.add(new AppliedDiscount(best.rule(), best.amount(), allocation, best.qualification()));
@@ -208,8 +209,12 @@ public class DiscountPricingService {
 		return new DiscountOutcome(List.copyOf(applied), codeStatus);
 	}
 
-	/** A qualified value rule with its untaken eligible lines and the amount it would save. */
-	record Candidate(RuleSnapshot rule, List<CartLine> lines, BigDecimal amount, Qualification qualification) {
+	/**
+	 * A qualified value rule with its untaken eligible lines, the amount it would
+	 * save and that amount's exact per-line allocation.
+	 */
+	record Candidate(RuleSnapshot rule, List<CartLine> lines, BigDecimal amount, Map<Integer, BigDecimal> allocation,
+			Qualification qualification) {
 
 	}
 
@@ -237,12 +242,67 @@ public class DiscountPricingService {
 			return null;
 		}
 		List<CartLine> untaken = eligible.stream().filter(line -> !taken.contains(line.lineNo())).toList();
-		BigDecimal sum = untaken.stream().map(line -> money(line.unitAmount())).reduce(ZERO, BigDecimal::add);
-		BigDecimal amount = amountFor(rule, sum);
+		Map<Integer, BigDecimal> allocation = appliesPerBillingMonth(rule)
+				? perBillingMonthAllocation(rule, eligible, untaken) : null;
+		if (allocation == null) {
+			BigDecimal sum = sum(untaken);
+			allocation = DiscountAllocator.allocate(amountFor(rule, sum), untaken);
+		}
+		BigDecimal amount = allocation.values().stream().reduce(ZERO, BigDecimal::add);
 		List<String> advancePeriods = rule.type() == DiscountType.ADVANCE_PAYMENT
 				? untaken.stream().map(line -> line.period().toString()).distinct().sorted().toList() : List.of();
-		return new Candidate(rule, untaken, amount,
+		return new Candidate(rule, untaken, amount, allocation,
 				new Qualification(qualifyingCourses(rule, eligible), advancePeriods, List.of(), List.of()));
+	}
+
+	/**
+	 * D4a (owner decision 2026-10-21): a FIXED Course Bundle - Amount Off or
+	 * Discount Code amount counts once per qualifying billing month, not once
+	 * per order. Percentages and Advance Payment keep D4.
+	 */
+	static boolean appliesPerBillingMonth(RuleSnapshot rule) {
+		return rule.valueType() == DiscountValueType.FIXED && (rule.type() == DiscountType.BUNDLE_AMOUNT_OFF
+				|| rule.type() == DiscountType.DISCOUNT_CODE);
+	}
+
+	/**
+	 * D4a: the eligible lines are grouped by billing month (MONTHLY lines) plus
+	 * one group for lines without a month (course / module / lesson). Every
+	 * group whose own lines meet the selection mode gets min(value, the group's
+	 * untaken total), allocated within that group (D4 rounding). The whole
+	 * order has already qualified (selection mode + minimum purchase).
+	 * @return {@code null} when no single group qualifies (e.g. an "All"
+	 * bundle bought in different months) - the amount then applies once per
+	 * order, as D4.
+	 */
+	static Map<Integer, BigDecimal> perBillingMonthAllocation(RuleSnapshot rule, List<CartLine> eligible,
+			List<CartLine> untaken) {
+		Map<YearMonth, List<CartLine>> eligibleByMonth = groupByBillingMonth(eligible);
+		Map<YearMonth, List<CartLine>> untakenByMonth = groupByBillingMonth(untaken);
+		boolean anyGroupQualifies = false;
+		Map<Integer, BigDecimal> allocation = new TreeMap<>();
+		for (Map.Entry<YearMonth, List<CartLine>> group : eligibleByMonth.entrySet()) {
+			if (!selectionMet(rule, group.getValue())) {
+				continue;
+			}
+			anyGroupQualifies = true;
+			List<CartLine> open = untakenByMonth.getOrDefault(group.getKey(), List.of());
+			allocation.putAll(DiscountAllocator.allocate(amountFor(rule, sum(open)), open));
+		}
+		return anyGroupQualifies ? new LinkedHashMap<>(allocation) : null;
+	}
+
+	/** Lines by billing month; lines without one share the {@code null} key. Months ascending, {@code null} last. */
+	private static Map<YearMonth, List<CartLine>> groupByBillingMonth(List<CartLine> lines) {
+		Map<YearMonth, List<CartLine>> groups = new TreeMap<>(Comparator.nullsLast(Comparator.naturalOrder()));
+		for (CartLine line : lines) {
+			groups.computeIfAbsent(line.period(), key -> new ArrayList<>()).add(line);
+		}
+		return groups;
+	}
+
+	private static BigDecimal sum(List<CartLine> lines) {
+		return lines.stream().map(line -> money(line.unitAmount())).reduce(ZERO, BigDecimal::add);
 	}
 
 	/** FIXED: min(value, eligible total); PERCENTAGE: round_half_up(total x p / 100, 2) (D4). */
@@ -271,6 +331,11 @@ public class DiscountPricingService {
 				return false;
 			}
 		}
+		return selectionMet(rule, eligibleLines);
+	}
+
+	/** The rule's course selection mode, counted in DISTINCT required courses among {@code eligibleLines}. */
+	static boolean selectionMet(RuleSnapshot rule, List<CartLine> eligibleLines) {
 		int required = rule.requiredCourseIds().size();
 		if (required == 0) {
 			return false;
