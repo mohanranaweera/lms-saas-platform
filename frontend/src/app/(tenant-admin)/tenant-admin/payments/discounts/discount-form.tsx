@@ -360,6 +360,13 @@ export function DiscountForm({
                     id={`${formId}-value`}
                     label={valueType === "PERCENTAGE" ? "Discount Value (%) *" : `Discount Value (${currency}) *`}
                     error={errors.value?.message}
+                    helper={
+                      valueType === "FIXED" && (discountType === "BUNDLE_AMOUNT_OFF" || discountType === "DISCOUNT_CODE")
+                        ? "Taken off once for each month paid (when that month's courses match). Non-monthly items: once per order."
+                        : valueType === "FIXED"
+                          ? "Taken off once per order."
+                          : undefined
+                    }
                   >
                     <Input
                       id={`${formId}-value`}
