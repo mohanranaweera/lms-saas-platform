@@ -50,12 +50,7 @@ public class ContentCoverageService implements ContentCoverageApi {
 
 	@Override
 	public Set<UUID> findCallerCourseIds() {
-		Set<UUID> direct = participationRepository.findCourseIdsByStudentId(callerId());
-		Set<UUID> result = new HashSet<>(direct);
-		for (UUID courseId : direct) {
-			result.addAll(courseLookupApi.findLinkedSourceCourseIds(courseId));
-		}
-		return result;
+		return findCourseIds(callerId());
 	}
 
 	@Override
@@ -65,7 +60,32 @@ public class ContentCoverageService implements ContentCoverageApi {
 
 	@Override
 	public CallerCoverage coverageForCaller(UUID courseId) {
-		UUID studentId = callerId();
+		return coverageFor(callerId(), courseId);
+	}
+
+	@Override
+	public void lockCallerCoverage(Set<String> coverageKeys) {
+		lockCoverage(callerId(), coverageKeys);
+	}
+
+	@Override
+	public Set<UUID> findCourseIds(UUID studentId) {
+		Set<UUID> direct = participationRepository.findCourseIdsByStudentId(studentId);
+		Set<UUID> result = new HashSet<>(direct);
+		for (UUID courseId : direct) {
+			result.addAll(courseLookupApi.findLinkedSourceCourseIds(courseId));
+		}
+		return result;
+	}
+
+	@Override
+	public boolean isParticipant(UUID studentId, UUID courseId) {
+		return lessonAccessService.isParticipantOrLegacyEnrolled(studentId, courseId);
+	}
+
+	/** Payment-backed coverage only - Free Card keys are never added here (ADR-030 F9). */
+	@Override
+	public CallerCoverage coverageFor(UUID studentId, UUID courseId) {
 		Instant now = Instant.now();
 		Set<String> active = entitlementRepository.findUnrevokedByStudentIdAndCourseId(studentId, courseId)
 			.stream()
@@ -77,9 +97,8 @@ public class ContentCoverageService implements ContentCoverageApi {
 	}
 
 	@Override
-	public void lockCallerCoverage(Set<String> coverageKeys) {
+	public void lockCoverage(UUID studentId, Set<String> coverageKeys) {
 		UUID tenantId = tenantContext.getTenantId();
-		UUID studentId = callerId();
 		for (String key : new TreeSet<>(coverageKeys)) {
 			entitlementRepository.acquireCoverageLock(CoverageKeys.lockKey(tenantId, studentId, key));
 		}

@@ -111,6 +111,14 @@ public interface PaymentStatusApi {
 	boolean isConfirmedForOrder(UUID paymentId, UUID orderId);
 
 	/**
+	 * ADR-030 (R1): {@link #isConfirmedForOrder} AND the payment is a
+	 * staff-recorded manual receipt payment ({@code gateway_reference} starts
+	 * with {@code "MANUAL-"}) - so the staff-recorded grant path can never be
+	 * pointed at a gateway, slip or other confirmation.
+	 */
+	boolean isConfirmedManualReceiptForOrder(UUID paymentId, UUID orderId);
+
+	/**
 	 * KLASS-T4c: the lines of {@code orderId} in line order; empty for a legacy
 	 * (line-less) order and for an unknown / cross-tenant order id.
 	 */

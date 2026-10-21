@@ -6,8 +6,15 @@ import java.util.UUID;
 /**
  * KLASS-T4c read side for the payment composer (plan §4.4): what the CALLING
  * student already participates in and already has paid coverage for. Tenant
- * from {@code TenantContext}, student from the authenticated principal - no
- * method accepts either.
+ * from {@code TenantContext} - no method accepts it.
+ *
+ * <p>The {@code *Caller*} methods resolve the student from the authenticated
+ * principal. ADR-030 adds student-explicit variants for staff flows (manual
+ * payment receipts): their {@code studentId} must be a {@code tenant_user.id}
+ * the CALLER has already resolved server-side within the current tenant (e.g.
+ * via {@code StudentLookupApi#resolveUserId}) after its own permission check -
+ * never a raw client value. Coverage here is payment-backed only: Free Card
+ * coverage is deliberately NOT included (ADR-030 F9).
  */
 public interface ContentCoverageApi {
 
@@ -38,5 +45,17 @@ public interface ContentCoverageApi {
 	 * CoverageKeys#lockKey} - in sorted order, inside the caller's transaction.
 	 */
 	void lockCallerCoverage(Set<String> coverageKeys);
+
+	/** {@link #findCallerCourseIds()} for an explicit, already server-resolved student (ADR-030). */
+	Set<UUID> findCourseIds(UUID studentId);
+
+	/** {@link #isCallerParticipant(UUID)} for an explicit, already server-resolved student (ADR-030). */
+	boolean isParticipant(UUID studentId, UUID courseId);
+
+	/** {@link #coverageForCaller(UUID)} for an explicit, already server-resolved student (ADR-030). */
+	CallerCoverage coverageFor(UUID studentId, UUID courseId);
+
+	/** {@link #lockCallerCoverage(Set)} for an explicit, already server-resolved student (ADR-030). */
+	void lockCoverage(UUID studentId, Set<String> coverageKeys);
 
 }

@@ -14,6 +14,9 @@ import com.lms.enrollmentmanagement.api.EntitlementGrantApi.GrantResult;
 import com.lms.enrollmentmanagement.domain.ContentEntitlement;
 import com.lms.enrollmentmanagement.domain.ContentEntitlementScope;
 import com.lms.enrollmentmanagement.repository.ContentEntitlementRepository;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.service.PermissionCheckServiceImpl;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.paymentmanagement.api.SlipStatusApi;
 import java.time.Instant;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  * KLASS-T4c: the grant path never trusts its caller - an unconfirmed payment,
@@ -56,7 +60,7 @@ class EntitlementGrantServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new EntitlementGrantService(entitlementRepository, paymentStatusApi, slipStatusApi, courseLookupApi,
-				auditLogApi, tenantContext);
+				auditLogApi, tenantContext, new PermissionCheckServiceImpl());
 	}
 
 	@Test
@@ -68,6 +72,46 @@ class EntitlementGrantServiceTest {
 		assertThatThrownBy(() -> service.grantForConfirmedPayment(paymentId, orderId))
 			.isInstanceOf(IllegalStateException.class);
 		verify(paymentStatusApi, never()).findOrderLines(any());
+		verify(entitlementRepository, never()).save(any());
+	}
+
+	@Test
+	void aStaffRecordedPaymentThatIsNotAConfirmedManualPaymentIsRefusedBeforeAnyWrite() {
+		// ADR-030 / R1: the manual-receipt grant re-verifies its own evidence
+		// (CONFIRMED payment of the order with a MANUAL- reference).
+		UUID paymentId = UUID.randomUUID();
+		UUID orderId = UUID.randomUUID();
+		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), UUID.randomUUID(),
+				"FINANCE_STAFF", UUID.randomUUID()));
+		try {
+			when(paymentStatusApi.isConfirmedManualReceiptForOrder(paymentId, orderId)).thenReturn(false);
+
+			assertThatThrownBy(() -> service.grantForStaffRecordedPayment(paymentId, orderId))
+				.isInstanceOf(IllegalStateException.class);
+			verify(paymentStatusApi, never()).findOrderLines(any());
+			verify(entitlementRepository, never()).save(any());
+		}
+		finally {
+			AuthenticatedPrincipalHolder.clear();
+		}
+	}
+
+	@Test
+	void aStaffRecordedGrantRequiresPaymentsSlipsApprove() {
+		// R1 defence in depth: a role without PAYMENTS_SLIPS/APPROVE never reaches the evidence check.
+		for (String role : List.of("STUDENT", "TEACHER", "STUDENT_SUPPORT", "READ_ONLY_AUDITOR")) {
+			AuthenticatedPrincipalHolder.set(
+					new AuthenticatedPrincipal(UUID.randomUUID(), UUID.randomUUID(), role, UUID.randomUUID()));
+			try {
+				assertThatThrownBy(() -> service.grantForStaffRecordedPayment(UUID.randomUUID(), UUID.randomUUID()))
+					.as(role)
+					.isInstanceOf(AccessDeniedException.class);
+			}
+			finally {
+				AuthenticatedPrincipalHolder.clear();
+			}
+		}
+		verify(paymentStatusApi, never()).isConfirmedManualReceiptForOrder(any(), any());
 		verify(entitlementRepository, never()).save(any());
 	}
 

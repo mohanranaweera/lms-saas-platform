@@ -23,14 +23,20 @@ import com.lms.enrollmentmanagement.api.LessonAccessDecision;
 import com.lms.enrollmentmanagement.api.LessonAccessDeniedException;
 import com.lms.enrollmentmanagement.api.LessonAccessStatus;
 import com.lms.enrollmentmanagement.domain.ContentEntitlement;
+import com.lms.enrollmentmanagement.domain.FreeCard;
+import com.lms.enrollmentmanagement.domain.FreeCardType;
 import com.lms.enrollmentmanagement.repository.ContentEntitlementRepository;
 import com.lms.enrollmentmanagement.repository.CourseParticipationRepository;
+import com.lms.enrollmentmanagement.repository.FreeCardRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -79,12 +85,15 @@ class LessonAccessServiceTest {
 	@Mock
 	private AccessPolicyService accessPolicyService;
 
+	@Mock
+	private FreeCardRepository freeCardRepository;
+
 	private LessonAccessService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new LessonAccessService(courseLookupApi, participationRepository, entitlementRepository,
-				paymentStatusApi, accessPolicyService);
+				paymentStatusApi, accessPolicyService, freeCardRepository);
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(STUDENT, TENANT, "STUDENT", UUID.randomUUID()));
 		lenient().when(courseLookupApi.findLinkedParentCourseIds(any())).thenReturn(List.of());
 		lenient().when(accessPolicyService.isDeviceAuthorizedForCourse(any(), any(), any())).thenReturn(true);
@@ -258,6 +267,91 @@ class LessonAccessServiceTest {
 				() -> new NotFoundException("x")).status()).isEqualTo(LessonAccessStatus.ALLOWED);
 		assertThatThrownBy(() -> service.requireLessonAccessOnDevice(STUDENT, COURSE, LESSON, null,
 				() -> new NotFoundException("x"))).isInstanceOf(NotFoundException.class);
+	}
+
+
+	// ------------------------------------------------------------------
+	// ADR-030 (F4): Free Card MONTHLY keys join the active coverage set.
+	// ------------------------------------------------------------------
+
+	private static FreeCard freeCard(UUID courseId, LocalDate from, LocalDate to) {
+		return FreeCard.issue(TENANT, STUDENT, courseId, FreeCardType.FULL, from, to, ZoneId.of("UTC"), "scholarship",
+				"LKR", null, UUID.randomUUID(), Instant.now(), UUID.randomUUID(), false);
+	}
+
+	private void freeParticipant() {
+		when(accessPolicyService.evaluateLegacyCoverage(STUDENT, COURSE)).thenReturn(AccessOutcome.NOT_ENROLLED);
+		when(participationRepository.existsByStudentIdAndCourseIdIn(eq(STUDENT), anyCollection())).thenReturn(true);
+		when(entitlementRepository.findUnrevokedByStudentIdAndCourseId(STUDENT, COURSE)).thenReturn(List.of());
+	}
+
+	@Test
+	void effectiveFreeCardCoversAClassFeeLessonOfACoveredMonth() {
+		YearMonth now = YearMonth.now(ZoneId.of("UTC"));
+		course(COURSE, "MONTHLY", LessonPaymentType.COVERED_BY_CLASS_FEES, now.getYear(), now.getMonthValue());
+		freeParticipant();
+		LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+		when(freeCardRepository.findUnrevokedByStudentIdAndCourseId(STUDENT, COURSE))
+			.thenReturn(List.of(freeCard(COURSE, today.minusDays(1), today.plusDays(1))));
+
+		LessonAccessDecision decision = evaluateLesson(COURSE);
+
+		assertThat(decision.status()).isEqualTo(LessonAccessStatus.ALLOWED);
+	}
+
+	@Test
+	void freeCardNeverCoversAPaidLesson() {
+		course(COURSE, "MONTHLY", LessonPaymentType.PAID, null, null);
+		freeParticipant();
+		LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+		when(freeCardRepository.findUnrevokedByStudentIdAndCourseId(STUDENT, COURSE))
+			.thenReturn(List.of(freeCard(COURSE, today.minusDays(1), today.plusDays(1))));
+
+		assertThat(evaluateLesson(COURSE).status()).isEqualTo(LessonAccessStatus.PAYMENT_REQUIRED);
+	}
+
+	@Test
+	void freeCardDoesNotCoverAMonthOutsideItsValidity() {
+		YearMonth later = YearMonth.now(ZoneId.of("UTC")).plusMonths(3);
+		course(COURSE, "MONTHLY", LessonPaymentType.COVERED_BY_CLASS_FEES, later.getYear(), later.getMonthValue());
+		freeParticipant();
+		LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+		when(freeCardRepository.findUnrevokedByStudentIdAndCourseId(STUDENT, COURSE))
+			.thenReturn(List.of(freeCard(COURSE, today.minusDays(1), today.plusDays(1))));
+
+		assertThat(evaluateLesson(COURSE).status()).isEqualTo(LessonAccessStatus.PAYMENT_REQUIRED);
+	}
+
+	@Test
+	void scheduledExpiredOrRevokedFreeCardGrantsNothing() {
+		YearMonth now = YearMonth.now(ZoneId.of("UTC"));
+		course(COURSE, "MONTHLY", LessonPaymentType.COVERED_BY_CLASS_FEES, now.getYear(), now.getMonthValue());
+		freeParticipant();
+		LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+		// Covers this month on paper, but only becomes effective tomorrow.
+		FreeCard scheduled = freeCard(COURSE, today.plusDays(1), today.plusDays(2));
+		FreeCard revoked = freeCard(COURSE, today.minusDays(1), today.plusDays(1));
+		revoked.revoke(UUID.randomUUID(), Instant.now().minusSeconds(1), "revoked");
+		when(freeCardRepository.findUnrevokedByStudentIdAndCourseId(STUDENT, COURSE))
+			.thenReturn(List.of(scheduled, revoked));
+
+		LessonAccessStatus status = evaluateLesson(COURSE).status();
+
+		// Tomorrow may still be this month; either way the card is not yet effective.
+		assertThat(status).isEqualTo(LessonAccessStatus.PAYMENT_REQUIRED);
+	}
+
+	@Test
+	void anotherCoursesFreeCardKeyNeverMatches() {
+		YearMonth now = YearMonth.now(ZoneId.of("UTC"));
+		course(COURSE, "MONTHLY", LessonPaymentType.COVERED_BY_CLASS_FEES, now.getYear(), now.getMonthValue());
+		freeParticipant();
+		LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+		// A misfiled row for the parent course: its keys carry the parent id.
+		when(freeCardRepository.findUnrevokedByStudentIdAndCourseId(STUDENT, COURSE))
+			.thenReturn(List.of(freeCard(PARENT, today.minusDays(1), today.plusDays(1))));
+
+		assertThat(evaluateLesson(COURSE).status()).isEqualTo(LessonAccessStatus.PAYMENT_REQUIRED);
 	}
 
 }

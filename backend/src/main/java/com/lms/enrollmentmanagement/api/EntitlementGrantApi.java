@@ -48,6 +48,16 @@ public interface EntitlementGrantApi {
 	GrantResult grantForApprovedSlip(UUID slipId, UUID orderId, UUID paymentId);
 
 	/**
+	 * ADR-030 (M1): a staff-recorded manual payment receipt, by the
+	 * authenticated staff member (audited with that member as actor). The
+	 * evidence is the {@code MANUAL-} payment, which must be a {@code
+	 * CONFIRMED} payment of {@code orderId} in the current tenant whose
+	 * gateway reference starts with {@code MANUAL-}. The caller must hold
+	 * {@code PAYMENTS_SLIPS/APPROVE} (re-checked here, R1).
+	 */
+	GrantResult grantForStaffRecordedPayment(UUID paymentId, UUID orderId);
+
+	/**
 	 * Verified chargeback (D08, payments.md §9): revokes every not-yet-revoked
 	 * entitlement whose evidence is {@code paymentId} ({@code revoked_reason =
 	 * CHARGEBACK}). Never touches participation, payments or the ledger.

@@ -14,6 +14,9 @@ import com.lms.enrollmentmanagement.api.ContentCoverageApi.CallerCoverage;
 import com.lms.enrollmentmanagement.api.CoverageKeys;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
+import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.integrationmanagement.api.PaymentGatewayAccountApi;
 import com.lms.paymentmanagement.checkout.service.CheckoutViews.BankDetails;
 import com.lms.paymentmanagement.checkout.service.CheckoutViews.CheckoutCart;
@@ -182,6 +185,8 @@ public class CheckoutComposerService {
 
 	private final DiscountCodeAttemptLimiter discountCodeAttemptLimiter;
 
+	private final PermissionCheckService permissionCheckService;
+
 	public CheckoutComposerService(CourseLookupApi courseLookupApi, ContentCoverageApi contentCoverageApi,
 			PaymentStatusApiImpl paymentStatusApi, TenantConfigApi tenantConfigApi,
 			PaymentGatewayAccountApi paymentGatewayAccountApi, StudentOrderRepository studentOrderRepository,
@@ -189,7 +194,8 @@ public class CheckoutComposerService {
 			StudentOrderCourseChargeRepository studentOrderCourseChargeRepository, StudentLookupApi studentLookupApi,
 			DiscountCheckoutService discountCheckoutService, DiscountPricingService discountPricingService,
 			DiscountRedemptionService discountRedemptionService, DiscountClock discountClock,
-			DiscountCodeAttemptLimiter discountCodeAttemptLimiter) {
+			DiscountCodeAttemptLimiter discountCodeAttemptLimiter, PermissionCheckService permissionCheckService) {
+		this.permissionCheckService = permissionCheckService;
 		this.discountCodeAttemptLimiter = discountCodeAttemptLimiter;
 		this.discountCheckoutService = discountCheckoutService;
 		this.discountPricingService = discountPricingService;
@@ -229,15 +235,15 @@ public class CheckoutComposerService {
 
 	@Transactional(readOnly = true)
 	public List<CheckoutCourse> listCourses(String scopeParam) {
-		requireStudent();
+		Subject subject = Subject.caller(requireStudent());
 		Scope scope = parseScope(scopeParam);
 		Map<UUID, String> offered = new LinkedHashMap<>();
-		for (UUID courseId : contentCoverageApi.findCallerCourseIds()) {
+		for (UUID courseId : contentCoverageApi.findCourseIds(subject.studentId())) {
 			Optional<CourseCatalogInfo> info = courseLookupApi.findCatalogInfo(courseId);
 			if (info.isEmpty() || "DRAFT".equals(info.get().status())) {
 				continue;
 			}
-			CourseFacts facts = loadFacts(info.get());
+			CourseFacts facts = loadFacts(subject, info.get());
 			if (!offersFor(scope, facts).isEmpty()) {
 				offered.put(courseId, info.get().name());
 			}
@@ -258,13 +264,27 @@ public class CheckoutComposerService {
 
 	@Transactional(readOnly = true)
 	public CheckoutOffers offers(UUID courseId, String scopeParam, Integer year) {
-		requireStudent();
+		return offers(Subject.caller(requireStudent()), courseId, scopeParam, year);
+	}
+
+	/**
+	 * ADR-030 staff variant of {@link #offers}: the offers of {@code
+	 * studentUserId} (a {@code tenant_user.id} the caller already resolved
+	 * server-side in the current tenant; {@code PAYMENTS_SLIPS/VIEW} re-checked here, R1).
+	 */
+	@Transactional(readOnly = true)
+	public CheckoutOffers offersForStudent(UUID studentUserId, UUID courseId, String scopeParam, Integer year) {
+		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW);
+		return offers(Subject.staffFor(studentUserId), courseId, scopeParam, year);
+	}
+
+	private CheckoutOffers offers(Subject subject, UUID courseId, String scopeParam, Integer year) {
 		Scope scope = parseScope(scopeParam);
-		CourseCatalogInfo info = requireParticipatedCourse(courseId);
+		CourseCatalogInfo info = requireParticipatedCourse(subject, courseId);
 		if (scope == Scope.DAILY || scope == Scope.INSTALLMENT) {
 			return new CheckoutOffers(scope.name(), courseId, info.currency(), false, List.of(), List.of());
 		}
-		CourseFacts facts = loadFacts(info);
+		CourseFacts facts = loadFacts(subject, info);
 		List<Offer> offers = offersFor(scope, facts);
 		TreeSet<Integer> years = new TreeSet<>();
 		offers.stream().map(Offer::year).filter(y -> y != null).forEach(years::add);
@@ -289,10 +309,49 @@ public class CheckoutComposerService {
 	@Transactional(readOnly = true)
 	public CheckoutQuote quote(CheckoutCart cart) {
 		AuthenticatedPrincipal principal = requireStudent();
+		Subject subject = Subject.caller(principal);
 		requireCodeAttemptAllowed(cart, principal);
-		Priced priced = price(cart, requireCartCourses(cart));
+		Priced priced = price(subject, cart, requireCartCourses(subject, cart));
 		recordCodeAttempt(priced, principal);
 		return toQuote(priced);
+	}
+
+	/**
+	 * ADR-030 (M1) staff variant of {@link #quote} for {@code studentUserId}
+	 * (resolved server-side by the caller; {@code PAYMENTS_SLIPS/APPROVE} re-checked here, R1): no
+	 * discount code (a non-null code is 422 {@code ITEM_NOT_ELIGIBLE}), no
+	 * free-course rewards, no code-attempt limiter; automatic value rules,
+	 * facility fees and postage (the student's on-record address) apply as
+	 * for the student.
+	 */
+	@Transactional(readOnly = true)
+	public CheckoutQuote quoteForStudent(UUID studentUserId, CheckoutCart cart) {
+		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.APPROVE);
+		Subject subject = Subject.staffFor(studentUserId);
+		CheckoutCart staffCart = requireStaffCart(cart);
+		return toQuote(price(subject, staffCart, requireCartCourses(subject, staffCart)));
+	}
+
+	/**
+	 * ADR-030 (M1) staff variant of {@link #createOrder}: same locks, re-quote
+	 * and token check, for {@code studentUserId}, with the rules of {@link
+	 * #quoteForStudent}. Must join the caller's transaction (the manual receipt
+	 * confirms the payment in the same one). An order never grants anything.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CheckoutOrder createOrderForStudent(UUID studentUserId, CheckoutCart cart, String quoteToken,
+			UUID idempotencyKey) {
+		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.APPROVE);
+		return placeOrder(Subject.staffFor(studentUserId), requireStaffCart(cart), quoteToken, idempotencyKey, null);
+	}
+
+	/** Staff carts carry no discount code and no accepted free-course rewards (ADR-030 M1). */
+	private static CheckoutCart requireStaffCart(CheckoutCart cart) {
+		if (DiscountPricingService.normalizeCode(cart.discountCode()) != null) {
+			throw new CheckoutItemException(CheckoutItemException.ITEM_NOT_ELIGIBLE,
+					"Discount codes cannot be applied to a staff-recorded payment");
+		}
+		return new CheckoutCart(cart.defaultCourseId(), cart.items(), cart.postageCourseIds(), null, List.of());
 	}
 
 	/**
@@ -329,11 +388,21 @@ public class CheckoutComposerService {
 	@Transactional
 	public CheckoutOrder createOrder(CheckoutCart cart, String quoteToken, UUID idempotencyKey) {
 		AuthenticatedPrincipal principal = requireStudent();
+		return placeOrder(Subject.caller(principal), cart, quoteToken, idempotencyKey, principal);
+	}
+
+	/**
+	 * @param codeLimited the student caller whose discount-code attempts are
+	 * limited, or {@code null} for a staff subject (no code allowed at all).
+	 */
+	private CheckoutOrder placeOrder(Subject subject, CheckoutCart cart, String quoteToken, UUID idempotencyKey,
+			AuthenticatedPrincipal codeLimited) {
 		UUID tenantId = tenantContext.getTenantId();
+		UUID studentId = subject.studentId();
 		if (idempotencyKey != null) {
-			studentOrderRepository.acquireIdempotencyLock(tenantId + ":" + principal.userId() + ":" + idempotencyKey);
-			Optional<StudentOrder> existing = studentOrderRepository.findByStudentIdAndIdempotencyKey(
-					principal.userId(), idempotencyKey);
+			studentOrderRepository.acquireIdempotencyLock(tenantId + ":" + studentId + ":" + idempotencyKey);
+			Optional<StudentOrder> existing = studentOrderRepository.findByStudentIdAndIdempotencyKey(studentId,
+					idempotencyKey);
 			if (existing.isPresent()) {
 				StudentOrder order = existing.get();
 				List<StudentOrderLine> lines = order.isLineOrder()
@@ -346,8 +415,10 @@ public class CheckoutComposerService {
 				return toOrderView(order, lines, charges, true);
 			}
 		}
-		requireCodeAttemptAllowed(cart, principal);
-		Map<UUID, CourseCatalogInfo> courses = requireCartCourses(cart);
+		if (codeLimited != null) {
+			requireCodeAttemptAllowed(cart, codeLimited);
+		}
+		Map<UUID, CourseCatalogInfo> courses = requireCartCourses(subject, cart);
 
 		// Lock every well-formed requested coverage of every course plus every
 		// month an accepted free-course reward could add (the lock
@@ -363,10 +434,12 @@ public class CheckoutComposerService {
 			throw new CheckoutItemException(CheckoutItemException.ITEM_NOT_ELIGIBLE,
 					"Too many items (including free-course months) in one order");
 		}
-		contentCoverageApi.lockCallerCoverage(lockKeys);
+		contentCoverageApi.lockCoverage(studentId, lockKeys);
 		discountCheckoutService.lockRulesForCart(courses.keySet(), cart.discountCode());
-		Priced priced = price(cart, courses);
-		recordCodeAttempt(priced, principal);
+		Priced priced = price(subject, cart, courses);
+		if (codeLimited != null) {
+			recordCodeAttempt(priced, codeLimited);
+		}
 		if (quoteToken == null || quoteToken.isBlank()) {
 			throw new CheckoutItemException(CheckoutItemException.QUOTE_REQUIRED,
 					"Review the quote for this payment before placing the order");
@@ -381,7 +454,7 @@ public class CheckoutComposerService {
 		}
 
 		DeliveryDetails delivery = priced.deliveryRequired() ? priced.delivery() : null;
-		StudentOrder order = studentOrderRepository.save(StudentOrder.forLines(tenantId, principal.userId(),
+		StudentOrder order = studentOrderRepository.save(StudentOrder.forLines(tenantId, studentId,
 				priced.courseId(), priced.currency(), priced.subtotal(), priced.facilityFeeTotal(),
 				priced.postageTotal(), priced.discountTotal(), priced.feePolicySnapshot(), idempotencyKey,
 				delivery == null ? null
@@ -390,7 +463,7 @@ public class CheckoutComposerService {
 		Instant now = Instant.now();
 		// DISC-01 snapshot + RESERVED redemptions (same transaction as the order).
 		Map<UUID, UUID> orderDiscountIds = discountCheckoutService.persistOrderDiscounts(tenantId, order.getId(),
-				principal.userId(), priced.applied(), now);
+				studentId, priced.applied(), now);
 		List<StudentOrderLine> lines = new ArrayList<>();
 		for (PricedLine pricedLine : priced.pricedLines()) {
 			Offer offer = pricedLine.offer();
@@ -453,9 +526,9 @@ public class CheckoutComposerService {
 	 * {@value #MAX_ITEMS} items and {@value #MAX_COURSES} distinct courses.
 	 * Returns the courses in first-appearance order.
 	 */
-	private Map<UUID, CourseCatalogInfo> requireCartCourses(CheckoutCart cart) {
+	private Map<UUID, CourseCatalogInfo> requireCartCourses(Subject subject, CheckoutCart cart) {
 		if (cart.defaultCourseId() != null) {
-			requireParticipatedCourse(cart.defaultCourseId());
+			requireParticipatedCourse(subject, cart.defaultCourseId());
 		}
 		List<ItemSelection> items = cart.items();
 		if (items.isEmpty()) {
@@ -479,7 +552,7 @@ public class CheckoutComposerService {
 		}
 		Map<UUID, CourseCatalogInfo> courses = new LinkedHashMap<>();
 		for (UUID courseId : courseIds) {
-			courses.put(courseId, requireParticipatedCourse(courseId));
+			courses.put(courseId, requireParticipatedCourse(subject, courseId));
 		}
 		return courses;
 	}
@@ -708,11 +781,11 @@ public class CheckoutComposerService {
 	 * discountTotal}; a 0 total is flagged {@code ORDER_TOTAL_ZERO} (D3).</li>
 	 * </ul>
 	 */
-	private Priced price(CheckoutCart cart, Map<UUID, CourseCatalogInfo> courses) {
+	private Priced price(Subject subject, CheckoutCart cart, Map<UUID, CourseCatalogInfo> courses) {
 		FacilityFeeSettings fee = FacilityFeeSettings.from(paymentConfig());
 		Map<UUID, Map<String, Offer>> offersByCourse = new HashMap<>();
 		for (CourseCatalogInfo info : courses.values()) {
-			CourseFacts facts = loadFacts(info);
+			CourseFacts facts = loadFacts(subject, info);
 			Map<String, Offer> offersByKey = new LinkedHashMap<>();
 			for (Scope scope : List.of(Scope.MONTHLY, Scope.MODULE, Scope.LESSON)) {
 				offersFor(scope, facts).forEach(offer -> offersByKey.put(offer.coverageKey(), offer));
@@ -759,14 +832,16 @@ public class CheckoutComposerService {
 		LocalDate today = discountClock.today();
 		YearMonth currentMonth = YearMonth.from(today);
 		DiscountCheckoutService.Candidates candidates = discountCheckoutService.candidates(currency,
-				cart.discountCode(), AuthenticatedPrincipalHolder.get().userId(), today, discountClock.now());
+				cart.discountCode(), subject.studentId(), today, discountClock.now());
+		// ADR-030 (M1): a staff-recorded payment gets no free-course rewards.
+		List<RuleSnapshot> freeRules = subject.staff() ? List.of() : candidates.freeRules();
 		Map<UUID, CourseCatalogInfo> allCourses = new LinkedHashMap<>(courses);
-		Map<UUID, RewardCourse> rewardCourses = rewardCourses(candidates.freeRules(), currency, allCourses,
+		Map<UUID, RewardCourse> rewardCourses = rewardCourses(subject, freeRules, currency, allCourses,
 				offersByCourse);
 		List<CartLine> baseLines = new ArrayList<>();
 		byCourse.forEach((courseId, offers) -> offers.forEach(offer -> baseLines.add(new CartLine(0,
 				offer.coverageKey(), courseId, offer.scope().name(), offer.year(), offer.month(), offer.amount()))));
-		RewardPlan plan = discountPricingService.planRewards(candidates.freeRules(), baseLines, rewardCourses,
+		RewardPlan plan = discountPricingService.planRewards(freeRules, baseLines, rewardCourses,
 				new LinkedHashSet<>(cart.acceptedRewardRuleIds()), currentMonth);
 		Map<String, UUID> rewardKeys = plan.rewardKeys();
 		for (AppliedReward reward : plan.applied()) {
@@ -855,7 +930,7 @@ public class CheckoutComposerService {
 		BigDecimal total = subtotal.add(feeTotal).add(postageTotal).subtract(discountTotal);
 
 		boolean deliveryRequired = !postageCourses.isEmpty();
-		DeliveryDetails delivery = deliveryOnRecord();
+		DeliveryDetails delivery = deliveryOnRecord(subject.studentId());
 		if (deliveryRequired && (delivery == null || delivery.addressLine() == null || delivery.city() == null)) {
 			throw new CheckoutItemException(CheckoutItemException.DELIVERY_DETAILS_REQUIRED,
 					"Add your delivery address (address and city) to your billing details before choosing postage");
@@ -892,21 +967,21 @@ public class CheckoutComposerService {
 	 * are offered. Eligible reward courses are added to {@code allCourses} and
 	 * their MONTHLY offers to {@code offersByCourse}.
 	 */
-	private Map<UUID, RewardCourse> rewardCourses(List<RuleSnapshot> freeRules, String currency,
+	private Map<UUID, RewardCourse> rewardCourses(Subject subject, List<RuleSnapshot> freeRules, String currency,
 			Map<UUID, CourseCatalogInfo> allCourses, Map<UUID, Map<String, Offer>> offersByCourse) {
 		Map<UUID, RewardCourse> result = new HashMap<>();
 		for (RuleSnapshot rule : freeRules) {
 			for (UUID courseId : rule.rewardCourseIds()) {
 				if (!result.containsKey(courseId)) {
-					result.put(courseId, rewardCourse(courseId, currency, allCourses, offersByCourse));
+					result.put(courseId, rewardCourse(subject, courseId, currency, allCourses, offersByCourse));
 				}
 			}
 		}
 		return result;
 	}
 
-	private RewardCourse rewardCourse(UUID courseId, String currency, Map<UUID, CourseCatalogInfo> allCourses,
-			Map<UUID, Map<String, Offer>> offersByCourse) {
+	private RewardCourse rewardCourse(Subject subject, UUID courseId, String currency,
+			Map<UUID, CourseCatalogInfo> allCourses, Map<UUID, Map<String, Offer>> offersByCourse) {
 		CourseCatalogInfo info = allCourses.get(courseId);
 		if (info == null) {
 			Optional<CourseCatalogInfo> found = courseLookupApi.findCatalogInfo(courseId)
@@ -915,7 +990,7 @@ public class CheckoutComposerService {
 				return new RewardCourse(courseId, null, false, List.of());
 			}
 			info = found.get();
-			if (!contentCoverageApi.isCallerParticipant(courseId)) {
+			if (!contentCoverageApi.isParticipant(subject.studentId(), courseId)) {
 				return new RewardCourse(courseId, info.name(), false,
 						info.available() && "MONTHLY".equals(info.pricingModel()), List.of());
 			}
@@ -926,7 +1001,7 @@ public class CheckoutComposerService {
 		Map<String, Offer> offers = offersByCourse.get(courseId);
 		if (offers == null) {
 			offers = new LinkedHashMap<>();
-			for (Offer offer : monthlyOffers(loadFacts(info))) {
+			for (Offer offer : monthlyOffers(loadFacts(subject, info))) {
 				offers.put(offer.coverageKey(), offer);
 			}
 			offersByCourse.put(courseId, offers);
@@ -1090,8 +1165,7 @@ public class CheckoutComposerService {
 	 * snapshot column sizes; {@code null} when nothing is on record. {@code
 	 * addressLine}/{@code city} are {@code null} when blank.
 	 */
-	private DeliveryDetails deliveryOnRecord() {
-		UUID studentId = AuthenticatedPrincipalHolder.get().userId();
+	private DeliveryDetails deliveryOnRecord(UUID studentId) {
 		Optional<StudentContact> contact = studentLookupApi.findContact(studentId);
 		if (contact.isEmpty()) {
 			return null;
@@ -1147,11 +1221,11 @@ public class CheckoutComposerService {
 	// Offer computation (D09).
 	// ------------------------------------------------------------------
 
-	private CourseFacts loadFacts(CourseCatalogInfo info) {
+	private CourseFacts loadFacts(Subject subject, CourseCatalogInfo info) {
 		UUID courseId = info.courseId();
-		UUID studentId = AuthenticatedPrincipalHolder.get().userId();
+		UUID studentId = subject.studentId();
 		return new CourseFacts(info, courseLookupApi.findLessonPolicies(courseId),
-				contentCoverageApi.coverageForCaller(courseId),
+				contentCoverageApi.coverageFor(studentId, courseId),
 				paymentStatusApi.findPendingCoverageKeys(studentId, courseId));
 	}
 
@@ -1304,11 +1378,11 @@ public class CheckoutComposerService {
 	// Guards and mapping.
 	// ------------------------------------------------------------------
 
-	private CourseCatalogInfo requireParticipatedCourse(UUID courseId) {
+	private CourseCatalogInfo requireParticipatedCourse(Subject subject, UUID courseId) {
 		CourseCatalogInfo info = courseLookupApi.findCatalogInfo(courseId)
 			.filter(course -> !"DRAFT".equals(course.status()))
 			.orElseThrow(() -> new NotFoundException("Course not found"));
-		if (!contentCoverageApi.isCallerParticipant(courseId)) {
+		if (!contentCoverageApi.isParticipant(subject.studentId(), courseId)) {
 			throw new NotFoundException("Course not found");
 		}
 		return info;
@@ -1321,6 +1395,28 @@ public class CheckoutComposerService {
 		catch (IllegalArgumentException ex) {
 			throw new CheckoutItemException(CheckoutItemException.ITEM_NOT_ELIGIBLE, "Unknown payment type");
 		}
+	}
+
+	/**
+	 * Whose offers/quote/order this is: the authenticated student caller, or
+	 * (ADR-030) an explicit student the staff caller resolved server-side
+	 * after its own permission check. Never built from client input.
+	 */
+	private record Subject(UUID studentId, boolean staff) {
+
+		static Subject caller(AuthenticatedPrincipal principal) {
+			return new Subject(principal.userId(), false);
+		}
+
+		/** Defence in depth: a STUDENT principal can never act for another student. */
+		static Subject staffFor(UUID studentUserId) {
+			AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+			if (principal == null || STUDENT_ROLE.equals(principal.role())) {
+				throw new AccessDeniedException("Only staff may act for a student");
+			}
+			return new Subject(Objects.requireNonNull(studentUserId), true);
+		}
+
 	}
 
 	private static AuthenticatedPrincipal requireStudent() {

@@ -11,14 +11,17 @@ import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.enrollmentmanagement.api.LessonAccessDecision;
 import com.lms.enrollmentmanagement.api.LessonAccessDeniedException;
 import com.lms.enrollmentmanagement.domain.ContentEntitlement;
+import com.lms.enrollmentmanagement.domain.FreeCard;
 import com.lms.enrollmentmanagement.repository.ContentEntitlementRepository;
 import com.lms.enrollmentmanagement.repository.CourseParticipationRepository;
+import com.lms.enrollmentmanagement.repository.FreeCardRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,14 +59,17 @@ public class LessonAccessService implements LessonAccessApi {
 
 	private final AccessPolicyService accessPolicyService;
 
+	private final FreeCardRepository freeCardRepository;
+
 	public LessonAccessService(CourseLookupApi courseLookupApi, CourseParticipationRepository participationRepository,
 			ContentEntitlementRepository entitlementRepository, PaymentStatusApi paymentStatusApi,
-			AccessPolicyService accessPolicyService) {
+			AccessPolicyService accessPolicyService, FreeCardRepository freeCardRepository) {
 		this.courseLookupApi = courseLookupApi;
 		this.participationRepository = participationRepository;
 		this.entitlementRepository = entitlementRepository;
 		this.paymentStatusApi = paymentStatusApi;
 		this.accessPolicyService = accessPolicyService;
+		this.freeCardRepository = freeCardRepository;
 	}
 
 	/** One course's lessons (module, then lesson order) with their decisions. */
@@ -108,7 +114,11 @@ public class LessonAccessService implements LessonAccessApi {
 
 	@Override
 	public boolean isCallerParticipant(UUID courseId) {
-		UUID studentId = callerId();
+		return isParticipantOrLegacyEnrolled(callerId(), courseId);
+	}
+
+	/** {@link #isCallerParticipant} for an explicit, already server-resolved student (ADR-030 staff flows). */
+	boolean isParticipantOrLegacyEnrolled(UUID studentId, UUID courseId) {
 		return isParticipant(studentId, courseId)
 				|| accessPolicyService.evaluateLegacyCoverage(studentId, courseId) != AccessOutcome.NOT_ENROLLED;
 	}
@@ -150,11 +160,19 @@ public class LessonAccessService implements LessonAccessApi {
 		boolean freePricing = "FREE".equals(info.get().pricingModel());
 		boolean legacyCovered = legacy == AccessOutcome.ALLOWED;
 		if (enrolled && !lessons.isEmpty()) {
-			activeKeys = entitlementRepository.findUnrevokedByStudentIdAndCourseId(studentId, courseId)
+			Set<String> keys = entitlementRepository.findUnrevokedByStudentIdAndCourseId(studentId, courseId)
 				.stream()
 				.filter(entitlement -> entitlement.isActiveAt(now))
 				.map(ContentEntitlement::getCoverageKey)
-				.collect(Collectors.toSet());
+				.collect(Collectors.toCollection(HashSet::new));
+			// ADR-030 (F4): an effective Free Card of THIS course adds its own
+			// MONTHLY keys (never a linked parent's card, never MODULE/LESSON).
+			for (FreeCard card : freeCardRepository.findUnrevokedByStudentIdAndCourseId(studentId, courseId)) {
+				if (card.isEffectiveAt(now)) {
+					keys.addAll(card.coveredMonthKeys());
+				}
+			}
+			activeKeys = keys;
 			if (needsPaymentFacts(lessons, freePricing, legacyCovered)) {
 				pendingKeys = paymentStatusApi.findPendingCoverageKeys(studentId, courseId);
 			}

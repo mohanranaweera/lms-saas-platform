@@ -107,6 +107,17 @@ public enum DomainArea {
 	 * A {@code VIEW}-only caller sees discount codes masked. Never a
 	 * payment/ledger mutation grant ({@code .claude/rules/payments.md} §8).
 	 */
-	DISCOUNTS
+	DISCOUNTS,
+
+	/**
+	 * Klass Manual Payment &amp; Free Card (ADR-030, decision F1): complimentary
+	 * Free Cards. Tenant Admin {@code V/C-E/D} (issue = {@code CREATE_EDIT},
+	 * revoke = {@code DELETE} - a revocation stamp, never a row delete);
+	 * Finance Staff, Student Support and Read-only Auditor {@code V} only.
+	 * Recording manual payments ({@link #PAYMENTS_SLIPS} {@code APPROVE})
+	 * never implies issuing cards. Never a payment/ledger mutation grant
+	 * ({@code .claude/rules/payments.md} §8).
+	 */
+	FREE_CARDS
 
 }

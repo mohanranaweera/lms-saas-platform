@@ -141,6 +141,33 @@ class PermissionCheckServiceImplTest {
 	}
 
 	@Test
+	void freeCardsIssueAndRevokeAreTenantAdminOnly() {
+		// ADR-030 (F1): recording manual payments (PAYMENTS_SLIPS APPROVE,
+		// Finance Staff) never implies issuing Free Cards.
+		Map<Role, Set<PermissionAction>> expected = new EnumMap<>(Role.class);
+		for (Role role : Role.values()) {
+			expected.put(role, EnumSet.noneOf(PermissionAction.class));
+		}
+		expected.put(Role.TENANT_ADMIN,
+				EnumSet.of(PermissionAction.VIEW, PermissionAction.CREATE_EDIT, PermissionAction.DELETE));
+		expected.put(Role.FINANCE_STAFF, EnumSet.of(PermissionAction.VIEW));
+		expected.put(Role.STUDENT_SUPPORT, EnumSet.of(PermissionAction.VIEW));
+		expected.put(Role.READ_ONLY_AUDITOR, EnumSet.of(PermissionAction.VIEW));
+		for (Role role : Role.values()) {
+			AuthenticatedPrincipalHolder.set(principalFor(role));
+			try {
+				for (PermissionAction action : PermissionAction.values()) {
+					assertThat(service.hasPermission(DomainArea.FREE_CARDS, action)).as("%s / %s", role, action)
+						.isEqualTo(expected.get(role).contains(action));
+				}
+			}
+			finally {
+				AuthenticatedPrincipalHolder.clear();
+			}
+		}
+	}
+
+	@Test
 	void teacherTeacherAssistantStudentAlwaysDenied() {
 		// Teacher / Teacher Assistant / Student are deliberately absent from this
 		// domain-flat V/C/E/D/A matrix: their permission models are
@@ -328,7 +355,10 @@ class PermissionCheckServiceImplTest {
 							// Wave 11 (decision D2) - "Communications" row.
 							cell(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
 							// DISC-01 (owner decision 2026-10-21) - "Discounts" row.
-							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT))),
+							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
+							// ADR-030 (F1) - "Free Cards" row.
+							cell(DomainArea.FREE_CARDS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+									PermissionAction.DELETE))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
@@ -340,7 +370,8 @@ class PermissionCheckServiceImplTest {
 							// "V (own-area actions)" -> base V only.
 							cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW),
-							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW))),
+							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW),
+							cell(DomainArea.FREE_CARDS, PermissionAction.VIEW))),
 			Map.entry(Role.COURSE_COORDINATOR,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW),
 							cell(DomainArea.TEACHERS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
@@ -360,7 +391,8 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.ACCESS_EXPIRY, PermissionAction.VIEW), cell(DomainArea.AUDIT_LOG, PermissionAction.VIEW),
 							cell(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
 							cell(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
-							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW))),
+							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW),
+							cell(DomainArea.FREE_CARDS, PermissionAction.VIEW))),
 			Map.entry(Role.CONTENT_MANAGER,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.MATERIALS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
@@ -392,6 +424,7 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.INTEGRATIONS, PermissionAction.VIEW),
 							cell(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW),
 							cell(DomainArea.COMMUNICATIONS, PermissionAction.VIEW),
-							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW))));
+							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW),
+							cell(DomainArea.FREE_CARDS, PermissionAction.VIEW))));
 
 }

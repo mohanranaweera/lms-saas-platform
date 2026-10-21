@@ -47,6 +47,9 @@ public class LedgerViewEnrichmentService {
 
 	private static final String SLIP_PREFIX = "SLIP-";
 
+	/** ADR-030: {@code ManualPaymentService#record}. */
+	private static final String MANUAL_RECEIPT_PREFIX = "MANUAL-";
+
 	private final PaymentStatusApi paymentStatusApi;
 
 	private final SlipStatusApi slipStatusApi;
@@ -128,6 +131,9 @@ public class LedgerViewEnrichmentService {
 		}
 		if (gatewayReference.startsWith(SLIP_PREFIX)) {
 			return PaymentMethod.MANUAL_SLIP;
+		}
+		if (gatewayReference.startsWith(MANUAL_RECEIPT_PREFIX)) {
+			return PaymentMethod.MANUAL_RECEIPT;
 		}
 		return PaymentMethod.GATEWAY;
 	}

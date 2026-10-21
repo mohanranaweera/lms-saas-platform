@@ -11,6 +11,9 @@ import com.lms.enrollmentmanagement.domain.ContentEntitlement;
 import com.lms.enrollmentmanagement.domain.ContentEntitlementScope;
 import com.lms.enrollmentmanagement.repository.ContentEntitlementRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.DomainArea;
+import com.lms.identityaccessservice.api.PermissionAction;
+import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.paymentmanagement.api.OrderLineSnapshot;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.paymentmanagement.api.SlipStatusApi;
@@ -77,9 +80,12 @@ public class EntitlementGrantService implements EntitlementGrantApi {
 
 	private final TenantContext tenantContext;
 
+	private final PermissionCheckService permissionCheckService;
+
 	public EntitlementGrantService(ContentEntitlementRepository entitlementRepository,
 			PaymentStatusApi paymentStatusApi, SlipStatusApi slipStatusApi, CourseLookupApi courseLookupApi,
-			AuditLogApi auditLogApi, TenantContext tenantContext) {
+			AuditLogApi auditLogApi, TenantContext tenantContext, PermissionCheckService permissionCheckService) {
+		this.permissionCheckService = permissionCheckService;
 		this.entitlementRepository = entitlementRepository;
 		this.paymentStatusApi = paymentStatusApi;
 		this.slipStatusApi = slipStatusApi;
@@ -120,6 +126,19 @@ public class EntitlementGrantService implements EntitlementGrantApi {
 				? new Evidence(paymentId, null, paymentId, slipId, reviewer, "slip-review:" + reviewer)
 				: new Evidence(null, slipId, null, slipId, reviewer, "slip-review:" + reviewer);
 		return grant(orderId, evidence);
+	}
+
+	@Override
+	@Transactional
+	public GrantResult grantForStaffRecordedPayment(UUID paymentId, UUID orderId) {
+		// R1 defence in depth: the same grant that confirms manual receipts.
+		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.APPROVE);
+		if (!paymentStatusApi.isConfirmedManualReceiptForOrder(paymentId, orderId)) {
+			throw new IllegalStateException("Refusing to grant entitlements: payment " + paymentId
+					+ " is not a CONFIRMED MANUAL- payment of order " + orderId + " in the current tenant context");
+		}
+		UUID staff = AuthenticatedPrincipalHolder.get().userId();
+		return grant(orderId, new Evidence(paymentId, null, paymentId, null, staff, "manual-receipt:" + staff));
 	}
 
 	private GrantResult grant(UUID orderId, Evidence evidence) {

@@ -66,6 +66,14 @@ public class PaymentStatusApiImpl implements PaymentStatusApi {
 	}
 
 	@Override
+	public boolean isConfirmedManualReceiptForOrder(UUID paymentId, UUID orderId) {
+		return paymentRepository.findById(paymentId)
+			.map(payment -> payment.getStatus() == PaymentStatus.CONFIRMED && payment.getOrderId().equals(orderId)
+					&& payment.getGatewayReference() != null && payment.getGatewayReference().startsWith("MANUAL-"))
+			.orElse(false);
+	}
+
+	@Override
 	public List<OrderLineSnapshot> findOrderLines(UUID orderId) {
 		Optional<StudentOrder> order = studentOrderRepository.findById(orderId);
 		if (order.isEmpty()) {
