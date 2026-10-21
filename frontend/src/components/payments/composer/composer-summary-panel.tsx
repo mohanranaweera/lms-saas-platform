@@ -34,8 +34,19 @@ import {
   type ComposerCart,
   type QuoteCourseGroup,
 } from "./composer-model";
+import { ComposerDiscountPanel } from "./composer-discount-panel";
 
 export type PaymentMethod = "online" | "slip";
+
+/** DISC-01: discount-code / free-course actions (each changes the cart, which re-quotes). */
+export interface ComposerDiscountControls {
+  /** The last quote answered 429 `DISCOUNT_CODE_RATE_LIMITED`. */
+  rateLimited: boolean;
+  onApplyCode: (code: string) => void;
+  onRemoveCode: () => void;
+  onAcceptReward: (ruleId: string) => void;
+  onDeclineReward: (ruleId: string) => void;
+}
 
 export type FlowState =
   | { phase: "idle" }
@@ -69,6 +80,7 @@ export function ComposerSummaryPanel({
   onSubmitSlip,
   onCancel,
   billingAddressMissing,
+  discount,
 }: {
   cart: ComposerCart;
   currency: string;
@@ -90,6 +102,7 @@ export function ComposerSummaryPanel({
   onSubmitSlip: (input: { referenceNumber: string; file: File }) => void;
   onCancel: () => void;
   billingAddressMissing: boolean;
+  discount: ComposerDiscountControls;
 }) {
   const busy = flow.phase === "working";
   const empty = cart.items.length === 0;
@@ -123,6 +136,7 @@ export function ComposerSummaryPanel({
                 postageSelected={cart.postageCourseIds.includes(group.courseId)}
                 onRemove={onRemove}
                 onTogglePostage={onTogglePostage}
+                onDeclineReward={discount.onDeclineReward}
               />
             ))}
           </div>
@@ -180,12 +194,24 @@ export function ComposerSummaryPanel({
         {!empty && quoteStatus === "error" && quoteError ? (
           <div role="alert" className="flex flex-col items-start gap-2 text-sm text-destructive" data-testid="composer-quote-error">
             <span>{quoteError}</span>
-            {deliveryMissing ? null : (
+            {deliveryMissing || discount.rateLimited ? null : (
               <Button type="button" size="sm" variant="outline" onClick={onRetryQuote}>
                 Try again
               </Button>
             )}
           </div>
+        ) : null}
+
+        {!empty ? (
+          <ComposerDiscountPanel
+            quote={quoted ? quote : undefined}
+            appliedCode={cart.discountCode}
+            rateLimited={discount.rateLimited}
+            busy={busy}
+            onApplyCode={discount.onApplyCode}
+            onRemoveCode={discount.onRemoveCode}
+            onAcceptReward={discount.onAcceptReward}
+          />
         ) : null}
 
         {!empty && (deliveryMissing || (quoted && quote.deliveryRequired)) ? (
@@ -250,7 +276,22 @@ export function ComposerSummaryPanel({
         </dl>
       </section>
 
-      {quoted && !empty ? (
+      {quoted && !empty && quote.blockingIssue ? (
+        <div className="flex flex-col gap-3">
+          <Alert variant="destructive" role="alert" data-testid="composer-blocking-issue">
+            <AlertCircle aria-hidden="true" />
+            <AlertDescription>
+              {quote.blockingMessage ||
+                "Your discounts cover the whole amount, and an order with a zero total can't be placed. Remove a discount or add another item to continue."}
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" onClick={onCancel} data-testid="composer-cancel">
+              CANCEL
+            </Button>
+          </div>
+        </div>
+      ) : quoted && !empty ? (
         <MethodSection
           quote={quote}
           method={method}
@@ -280,6 +321,7 @@ function QuotedCourseGroup({
   postageSelected,
   onRemove,
   onTogglePostage,
+  onDeclineReward,
 }: {
   group: QuoteCourseGroup;
   quote: CheckoutQuote;
@@ -287,7 +329,12 @@ function QuotedCourseGroup({
   postageSelected: boolean;
   onRemove: (key: string) => void;
   onTogglePostage: (courseId: string, selected: boolean) => void;
+  onDeclineReward: (ruleId: string) => void;
 }) {
+  // A free-course reward line isn't a cart item: removing it declines the offer it came from.
+  const rewardRuleFor = (lineNo: number) =>
+    quote.discounts?.find((discount) => discount.type === "BUNDLE_FREE_COURSE" && discount.lineNos.includes(lineNo))
+      ?.ruleId ?? null;
   const charge = group.charge;
   const currency = charge?.currency ?? quote.currency;
   const feeSource = charge ? facilityFeeSourceText(charge, quote.feeBasis) : null;
@@ -302,29 +349,73 @@ function QuotedCourseGroup({
         {group.courseTitle}
       </p>
       <ul className="flex flex-col gap-1" aria-label={`Selected items for ${group.courseTitle}`}>
-        {group.lines.map((line) => (
-          <li key={line.lineNo} className="flex items-start justify-between gap-2 text-sm" data-testid="composer-summary-line">
-            <span className="min-w-0 text-xs text-muted-foreground">
-              {linePeriodText(line)} — {SCOPE_LINE_LABELS[line.scope] ?? line.scope}
-            </span>
-            <span className="flex shrink-0 items-center gap-1">
-              <span className="font-medium text-foreground">
-                {formatCurrency(line.unitAmount, quote.currency).replace(`${quote.currency} `, "")}
+        {group.lines.map((line) => {
+          const lineDiscount = toAmount(line.discountAmount);
+          const rewardRuleId = line.reward ? rewardRuleFor(line.lineNo) : null;
+          const plain = (value: Parameters<typeof formatCurrency>[0]) =>
+            formatCurrency(value, quote.currency).replace(`${quote.currency} `, "");
+          return (
+            <li
+              key={line.lineNo}
+              className="flex items-start justify-between gap-2 text-sm"
+              data-testid="composer-summary-line"
+              data-reward={line.reward ? "true" : undefined}
+            >
+              <span className="flex min-w-0 flex-col text-xs text-muted-foreground">
+                <span>
+                  {linePeriodText(line)} — {SCOPE_LINE_LABELS[line.scope] ?? line.scope}
+                </span>
+                {line.reward ? (
+                  <span className="text-emerald-700 dark:text-emerald-300" data-testid="composer-line-discount">
+                    Free{line.discountName ? ` — ${line.discountName}` : ""}
+                  </span>
+                ) : lineDiscount > 0 ? (
+                  <span className="text-emerald-700 dark:text-emerald-300" data-testid="composer-line-discount">
+                    − {plain(line.discountAmount)}
+                    {line.discountName ? ` ${line.discountName}` : ""}
+                  </span>
+                ) : null}
               </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                aria-label={`Remove ${linePeriodText(line)} (${group.courseTitle})`}
-                onClick={() => onRemove(lineKey(line, group.courseId))}
-                disabled={busy}
-                data-testid="composer-summary-remove"
-              >
-                <XIcon aria-hidden="true" />
-              </Button>
-            </span>
-          </li>
-        ))}
+              <span className="flex shrink-0 items-center gap-1">
+                {line.reward ? (
+                  <s className="font-medium text-muted-foreground">
+                    <span className="sr-only">Normally </span>
+                    {plain(line.unitAmount)}
+                  </s>
+                ) : (
+                  <span className="font-medium text-foreground">{plain(line.unitAmount)}</span>
+                )}
+                {line.reward ? (
+                  rewardRuleId ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={`Remove free ${linePeriodText(line)} (${group.courseTitle})`}
+                      onClick={() => onDeclineReward(rewardRuleId)}
+                      disabled={busy}
+                      data-testid="composer-reward-remove"
+                    >
+                      <XIcon aria-hidden="true" />
+                    </Button>
+                  ) : null
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Remove ${linePeriodText(line)} (${group.courseTitle})`}
+                    onClick={() => onRemove(lineKey(line, group.courseId))}
+                    disabled={busy}
+                    data-testid="composer-summary-remove"
+                  >
+                    <XIcon aria-hidden="true" />
+                  </Button>
+                )}
+              </span>
+            </li>
+          );
+        })}
       </ul>
       {charge ? (
         <dl className="flex flex-col gap-0.5 border-t border-border pt-2 text-xs">

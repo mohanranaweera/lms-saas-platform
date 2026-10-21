@@ -31,7 +31,9 @@ import {
   quoteFromQuoteChanged,
   removeCartItem,
   scopeForTab,
+  setCartDiscountCode,
   setCartPostage,
+  setRewardAccepted,
   toQuoteRequest,
   toggleCartItem,
   withTimeout,
@@ -175,6 +177,28 @@ function ComposerBody({ preset, onClose }: { preset: ComposerPreset | null; onCl
   const togglePostage = (courseId: string, selected: boolean) => {
     if (flow.phase === "working") return;
     changeCart(setCartPostage(cart, courseId, selected));
+  };
+
+  // DISC-01: a code or an accepted free-course offer is part of the cart, so changing
+  // one re-quotes and starts a new order attempt (new idempotency keys).
+  const discountControls = {
+    rateLimited: isApiClientError(quoteError) && quoteError.code === "DISCOUNT_CODE_RATE_LIMITED",
+    onApplyCode: (code: string) => {
+      if (flow.phase === "working") return;
+      changeCart(setCartDiscountCode(cart, code));
+    },
+    onRemoveCode: () => {
+      if (flow.phase === "working") return;
+      changeCart(setCartDiscountCode(cart, null));
+    },
+    onAcceptReward: (ruleId: string) => {
+      if (flow.phase === "working") return;
+      changeCart(setRewardAccepted(cart, ruleId, true));
+    },
+    onDeclineReward: (ruleId: string) => {
+      if (flow.phase === "working") return;
+      changeCart(setRewardAccepted(cart, ruleId, false));
+    },
   };
 
   const selectCourse = (id: string, title: string) => {
@@ -341,6 +365,7 @@ function ComposerBody({ preset, onClose }: { preset: ComposerPreset | null; onCl
           onSubmitSlip={submitSlip}
           onCancel={onClose}
           billingAddressMissing={billingAddressMissing}
+          discount={discountControls}
         />
       </div>
     </div>

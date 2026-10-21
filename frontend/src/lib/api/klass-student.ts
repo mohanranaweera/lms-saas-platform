@@ -248,10 +248,16 @@ export interface QuoteItemRequest {
   lessonId?: string;
 }
 
-/** `POST /api/v1/checkout/quote` body: the cart items + the courses whose postage the student ticked. */
+/**
+ * `POST /api/v1/checkout/quote` body: the cart items + the courses whose postage the student ticked.
+ * DISC-01: the code the student entered (≤ 40 chars, normalized server-side) and the
+ * free-course offers they accepted (≤ 10). Whether a discount applies is decided by the server.
+ */
 export interface CheckoutQuoteRequest {
   items: QuoteItemRequest[];
   postageCourseIds: string[];
+  discountCode?: string;
+  acceptedRewardRuleIds?: string[];
 }
 
 export interface QuoteLine {
@@ -268,6 +274,55 @@ export interface QuoteLine {
   /** The course this line belongs to (an order may span several courses). */
   courseId: string | null;
   courseTitle: string | null;
+  /** DISC-01: never more than `unitAmount`; facility fees are never discounted. */
+  discountAmount?: MoneyValue;
+  /** DISC-01: a free-course reward line (`discountAmount = unitAmount`). */
+  reward?: boolean;
+  /** DISC-01: the applied discount's name, else null. */
+  discountName?: string | null;
+}
+
+export type DiscountKind = "ADVANCE_PAYMENT" | "BUNDLE_AMOUNT_OFF" | "BUNDLE_FREE_COURSE" | "DISCOUNT_CODE";
+
+/** DISC-01: one discount the server applied (student-visible terms only). */
+export interface AppliedDiscount {
+  ruleId: string;
+  ruleVersionId: string;
+  type: DiscountKind;
+  name: string;
+  code: string | null;
+  amount: MoneyValue;
+  lineNos: number[];
+  rewardCourseId: string | null;
+  rewardCourseIds?: string[];
+  explanation: string | null;
+}
+
+/** DISC-01: a disabled, expired or not-yet-valid code is reported as INVALID. */
+export type DiscountCodeStatus =
+  | "APPLIED"
+  | "INVALID"
+  | "NOT_ELIGIBLE"
+  | "USAGE_LIMIT_REACHED"
+  | "NOT_APPLIED_BETTER_DISCOUNT";
+
+export interface DiscountCodeResult {
+  code: string;
+  status: DiscountCodeStatus;
+  message: string | null;
+}
+
+/** DISC-01: free months the student qualifies for but hasn't accepted (re-quote with the rule id to add them). */
+export interface RewardOffer {
+  ruleId: string;
+  name: string;
+  courseId: string;
+  courseTitle: string | null;
+  months: { year: number; month: number; label: string }[];
+  originalValue: MoneyValue;
+  /** Facility fee those lines would add under the tenant's fee rules. */
+  facilityFee: MoneyValue;
+  explanation: string | null;
 }
 
 export type FacilityFeeSource = "TENANT_DEFAULT" | "COURSE_OVERRIDE" | "NOT_APPLICABLE";
@@ -326,6 +381,15 @@ export interface CheckoutQuote {
   quoteToken: string;
   methods: { online: boolean; slip: boolean };
   bankDetails: BankDetails | null;
+  /** DISC-01 (lists never null server-side; optional for older responses). */
+  discounts?: AppliedDiscount[];
+  /** Null when no code was entered. */
+  codeResult?: DiscountCodeResult | null;
+  rewardOffers?: RewardOffer[];
+  notices?: string[];
+  /** `ORDER_TOTAL_ZERO` when discounts bring the total to 0 (the order can't be placed), else null. */
+  blockingIssue?: "ORDER_TOTAL_ZERO" | null;
+  blockingMessage?: string | null;
 }
 
 /** `POST /api/v1/checkout/orders` = the quote body + the latest `quoteToken` + an idempotency key. */
@@ -354,6 +418,8 @@ export interface ComposerOrderResponse {
   discountTotal?: MoneyValue;
   feeBasis?: FacilityFeeBasis;
   delivery?: DeliveryDetails | null;
+  /** DISC-01: the order's immutable applied-discount snapshot. */
+  discounts?: AppliedDiscount[];
 }
 
 // ---------------------------------------------------------------------------

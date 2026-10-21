@@ -99,9 +99,21 @@ export interface ComposerCart {
   items: SelectedItem[];
   /** Courses whose postage the student ticked. Default: none. */
   postageCourseIds: string[];
+  /** DISC-01: the code the student applied (as typed, trimmed); the server decides whether it counts. */
+  discountCode: string | null;
+  /** DISC-01: free-course offers the student accepted. The server drops any that no longer qualify (with a notice). */
+  acceptedRewardRuleIds: string[];
 }
 
-export const EMPTY_CART: ComposerCart = { items: [], postageCourseIds: [] };
+export const EMPTY_CART: ComposerCart = {
+  items: [],
+  postageCourseIds: [],
+  discountCode: null,
+  acceptedRewardRuleIds: [],
+};
+
+/** Server limit on `discountCode` (`@Size(max = 40)`). */
+export const DISCOUNT_CODE_MAX_LENGTH = 40;
 
 /** Distinct course ids of the cart, in the order they were first added. */
 export function cartCourseIds(cart: ComposerCart): string[] {
@@ -128,7 +140,7 @@ export function addCartItem(cart: ComposerCart, item: SelectedItem): ComposerCar
 export function removeCartItem(cart: ComposerCart, key: string): ComposerCart {
   const items = cart.items.filter((item) => item.key !== key);
   if (items.length === cart.items.length) return cart;
-  return { items, postageCourseIds: prunePostage(items, cart.postageCourseIds) };
+  return { ...cart, items, postageCourseIds: prunePostage(items, cart.postageCourseIds) };
 }
 
 export function toggleCartItem(cart: ComposerCart, item: SelectedItem): ComposerCart {
@@ -150,12 +162,36 @@ export function cartItemCount(cart: ComposerCart, courseId: string): number {
   return cart.items.filter((item) => item.request.courseId === courseId).length;
 }
 
-/** The quote/order body: identifiers only, `courseId` on every item, postage only for courses in the cart. */
-export function toQuoteRequest(cart: ComposerCart): CheckoutQuoteRequest {
+/** Applies (or with null/blank, removes) the discount code. Same code again = same cart. */
+export function setCartDiscountCode(cart: ComposerCart, code: string | null): ComposerCart {
+  const next = code?.trim() ? code.trim().slice(0, DISCOUNT_CODE_MAX_LENGTH) : null;
+  return next === cart.discountCode ? cart : { ...cart, discountCode: next };
+}
+
+/** Accepts or declines one free-course offer (by rule id). */
+export function setRewardAccepted(cart: ComposerCart, ruleId: string, accepted: boolean): ComposerCart {
+  const has = cart.acceptedRewardRuleIds.includes(ruleId);
+  if (accepted === has) return cart;
   return {
+    ...cart,
+    acceptedRewardRuleIds: accepted
+      ? [...cart.acceptedRewardRuleIds, ruleId]
+      : cart.acceptedRewardRuleIds.filter((id) => id !== ruleId),
+  };
+}
+
+/**
+ * The quote/order body: identifiers only, `courseId` on every item, postage only for courses in the cart,
+ * plus the applied code / accepted offers when present (never a discount amount).
+ */
+export function toQuoteRequest(cart: ComposerCart): CheckoutQuoteRequest {
+  const body: CheckoutQuoteRequest = {
     items: cart.items.map((item) => item.request),
     postageCourseIds: prunePostage(cart.items, cart.postageCourseIds),
   };
+  if (cart.discountCode) body.discountCode = cart.discountCode;
+  if (cart.acceptedRewardRuleIds.length > 0) body.acceptedRewardRuleIds = cart.acceptedRewardRuleIds;
+  return body;
 }
 
 // ---------------------------------------------------------------------------
@@ -324,6 +360,10 @@ export function composerErrorMessage(error: unknown): string {
         return "Your total needs to be recalculated. Review it and confirm again.";
       case "QUOTE_CHANGED":
         return "Prices changed — review the updated total, then confirm again.";
+      case "DISCOUNT_CODE_RATE_LIMITED":
+        return "Too many incorrect discount codes. Remove the code and try again later.";
+      case "ORDER_TOTAL_ZERO":
+        return "Your discounts cover the whole amount, and an order with a zero total can't be placed. Remove a discount or add another item to continue.";
       case "NETWORK_ERROR":
         return "We couldn't reach the server. Check your connection and try again.";
       default:

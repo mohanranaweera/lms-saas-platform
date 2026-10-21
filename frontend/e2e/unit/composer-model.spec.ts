@@ -12,7 +12,9 @@ import {
   lineKey,
   quoteFromQuoteChanged,
   removeCartItem,
+  setCartDiscountCode,
   setCartPostage,
+  setRewardAccepted,
   toQuoteRequest,
   toggleCartItem,
   type ComposerCart,
@@ -233,5 +235,37 @@ test.describe("composer model", () => {
     expect(
       hasDeliveryAddress(quote({ delivery: { recipientName: null, addressLine: "1 Main St", city: "Kandy", phone: null } }))
     ).toBe(true);
+  });
+
+  test("DISC-01: code and accepted offers ride along with the cart, and are omitted when unset", () => {
+    let cart = addCartItem(EMPTY_CART, month(ICT, 2026, 10));
+    expect(toQuoteRequest(cart)).not.toHaveProperty("discountCode");
+    expect(toQuoteRequest(cart)).not.toHaveProperty("acceptedRewardRuleIds");
+
+    cart = setCartDiscountCode(cart, "  save10x ");
+    expect(cart.discountCode).toBe("save10x");
+    // Same code again is the same cart (no re-quote, same idempotency keys).
+    expect(setCartDiscountCode(cart, "save10x")).toBe(cart);
+    cart = setRewardAccepted(cart, "rule-free", true);
+    expect(setRewardAccepted(cart, "rule-free", true)).toBe(cart);
+
+    // Removing an item keeps the code and offers; the server re-evaluates them.
+    cart = removeCartItem(addCartItem(cart, month(BIO, 2026, 11)), month(BIO, 2026, 11).key);
+    const body = toQuoteRequest(cart);
+    expect(body.discountCode).toBe("save10x");
+    expect(body.acceptedRewardRuleIds).toEqual(["rule-free"]);
+    expect(JSON.stringify(body)).not.toMatch(/amount|price|total/i);
+
+    cart = setRewardAccepted(setCartDiscountCode(cart, "   "), "rule-free", false);
+    expect(cart.discountCode).toBeNull();
+    expect(toQuoteRequest(cart)).not.toHaveProperty("discountCode");
+    expect(toQuoteRequest(cart)).not.toHaveProperty("acceptedRewardRuleIds");
+  });
+
+  test("DISC-01: rate-limit and zero-total errors have clear copy", () => {
+    const limited = new ApiClientError({ code: "DISCOUNT_CODE_RATE_LIMITED", message: "x", fieldErrors: [] }, 429);
+    expect(composerErrorMessage(limited)).toContain("Too many incorrect discount codes");
+    const zero = new ApiClientError({ code: "ORDER_TOTAL_ZERO", message: "x", fieldErrors: [] }, 422);
+    expect(composerErrorMessage(zero)).toContain("zero total");
   });
 });

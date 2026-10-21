@@ -313,6 +313,25 @@ export function canManagePaymentGateway(role: string | null): boolean {
 }
 
 /**
+ * Roles holding `DISCOUNTS`/`VIEW` per `PermissionCheckServiceImpl`'s matrix
+ * (DISC-01): Tenant Admin, Finance Staff, Student Support, Read-only Auditor.
+ * UX only - the backend re-checks every request.
+ */
+export function canViewDiscounts(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/** `DISCOUNTS`/`CREATE_EDIT` - Tenant Admin only (DISC-01). UX only. */
+export function canManageDiscounts(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
  * Roles holding `INTEGRATIONS`/`VIEW` per `PermissionCheckServiceImpl`'s
  * matrix (MEDIA-INT-01): Tenant Admin, Read-only Auditor. UX only - the
  * backend re-checks every request.

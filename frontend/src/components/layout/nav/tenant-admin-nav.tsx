@@ -7,6 +7,7 @@ import {
   canViewAccessExpiryQueue,
   canViewAttendanceReports,
   canViewAuditLog,
+  canViewDiscounts,
   canViewExamsStaff,
   canViewFinance,
   canViewInstituteConfig,
@@ -98,6 +99,10 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (canViewPaymentDashboard(role)) {
     financeItems.push({ label: "Payment Slips", href: "/tenant-admin/payments/slip-review" });
+  }
+  // DISC-01 - DISCOUNTS/VIEW. UX only; /api/v1/admin/discounts re-enforces it.
+  if (canViewDiscounts(role)) {
+    financeItems.push({ label: "Discounts", href: "/tenant-admin/payments/discounts" });
   }
   if (canViewAccessExpiryQueue(role)) {
     financeItems.push({
