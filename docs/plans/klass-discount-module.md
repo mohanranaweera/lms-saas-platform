@@ -83,6 +83,14 @@ credentials stored anywhere).
 - **D4 Fixed amount** — applied once per qualifying order, capped at the eligible lines' total,
   allocated pro rata by unit amount with largest-remainder rounding (ties → lower `lineNo`).
   Percentage: total = round_half_up(eligible × p / 100), then the same allocation.
+- **D4a Fixed amount per billing month** (owner decision 2026-10-21, supersedes D4 for FIXED
+  Course Bundle - Amount Off and Discount Code) — eligible lines are grouped by billing month (MONTHLY
+  lines) plus one group for lines without a month (course / module / lesson). Each group whose own
+  lines meet the course selection mode gets min(value, group's untaken total), allocated within the
+  group (D4 rounding). If the order qualifies but no single group does (e.g. an "All" bundle bought in
+  different months), the amount applies once per order as D4. Percentages and Advance Payment keep D4.
+  Example: Rs. 200 bundle, Biology Sep + Oct → Rs. 400 (Rs. 200 per month). Orders placed before this
+  change keep their snapshotted amounts.
 - **D5 (default)** Qualification uses only lines in the current order (no existing paid coverage).
 - **D6 (default)** Combination: no stacking on a line. Greedy: evaluate all candidates; pick the
   greatest student saving; ties → (free-course > bundle > advance > code) then earlier `validFrom`,
