@@ -55,14 +55,16 @@ public class CheckoutComposerController {
 	@PostMapping("/quote")
 	public ResponseEntity<ApiResponse<CheckoutQuote>> quote(@Valid @RequestBody CheckoutQuoteRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(composerService
-			.quote(new CheckoutCart(request.courseId(), selections(request.items()), request.postageCourseIds()))));
+			.quote(new CheckoutCart(request.courseId(), selections(request.items()), request.postageCourseIds(),
+					request.discountCode(), request.acceptedRewardRuleIds()))));
 	}
 
 	/** 201 for a new order; 200 for an idempotency-key replay (same order returned). */
 	@PostMapping("/orders")
 	public ResponseEntity<ApiResponse<CheckoutOrder>> createOrder(@Valid @RequestBody CheckoutOrderRequest request) {
 		CheckoutOrder order = composerService.createOrder(
-				new CheckoutCart(request.courseId(), selections(request.items()), request.postageCourseIds()),
+				new CheckoutCart(request.courseId(), selections(request.items()), request.postageCourseIds(),
+						request.discountCode(), request.acceptedRewardRuleIds()),
 				request.quoteToken(), request.idempotencyKey());
 		return ResponseEntity.status(order.idempotentReplay() ? HttpStatus.OK : HttpStatus.CREATED)
 			.body(ApiResponse.success(order));

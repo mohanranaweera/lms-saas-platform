@@ -35,7 +35,17 @@ public class FieldValidationException extends ApplicationException {
 	 * provider rejected these keys" apart from plain input validation.
 	 */
 	public FieldValidationException(String errorCode, String message, List<FieldError> fieldErrors) {
-		super(HttpStatus.BAD_REQUEST, errorCode, message);
+		this(HttpStatus.BAD_REQUEST, errorCode, message, fieldErrors);
+	}
+
+	/**
+	 * Field errors with a non-400 status (e.g. DISC-01's {@code 422
+	 * DISCOUNT_VALIDATION}); {@code GlobalExceptionHandler} renders {@link
+	 * #getHttpStatus()}.
+	 */
+	protected FieldValidationException(HttpStatus status, String errorCode, String message,
+			List<FieldError> fieldErrors) {
+		super(status, errorCode, message);
 		if (fieldErrors == null || fieldErrors.isEmpty()) {
 			throw new IllegalArgumentException("fieldErrors must not be null/empty");
 		}

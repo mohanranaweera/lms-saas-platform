@@ -81,7 +81,29 @@ public class StudentOrderLine extends BaseEntity implements TenantOwned {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	/**
+	 * DISC-01 (V92): the {@code student_order_discount} of THIS order that
+	 * produced {@code discountAmount} ({@code null} when undiscounted).
+	 */
+	@Column(name = "order_discount_id", updatable = false)
+	private UUID orderDiscountId;
+
+	/** DISC-01 (V92, D2): a free-course reward line ({@code discountAmount = unitAmount}). */
+	@Column(name = "reward", nullable = false, updatable = false)
+	private boolean reward;
+
 	protected StudentOrderLine() {
+	}
+
+	/** DISC-01: a line with its discount link and reward marker (V92 CHECKs enforce the shape). */
+	public StudentOrderLine(UUID tenantId, UUID orderId, int lineNo, String scope, UUID courseId, UUID moduleId,
+			UUID lessonId, Integer periodYear, Integer periodMonth, UUID billingPeriodId, String label,
+			BigDecimal unitAmount, BigDecimal facilityFeeAmount, BigDecimal discountAmount, String currency,
+			String coverageKey, Instant createdAt, UUID orderDiscountId, boolean reward) {
+		this(tenantId, orderId, lineNo, scope, courseId, moduleId, lessonId, periodYear, periodMonth, billingPeriodId,
+				label, unitAmount, facilityFeeAmount, discountAmount, currency, coverageKey, createdAt);
+		this.orderDiscountId = orderDiscountId;
+		this.reward = reward;
 	}
 
 	public StudentOrderLine(UUID tenantId, UUID orderId, int lineNo, String scope, UUID courseId, UUID moduleId,
@@ -184,6 +206,14 @@ public class StudentOrderLine extends BaseEntity implements TenantOwned {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public UUID getOrderDiscountId() {
+		return orderDiscountId;
+	}
+
+	public boolean isReward() {
+		return reward;
 	}
 
 }

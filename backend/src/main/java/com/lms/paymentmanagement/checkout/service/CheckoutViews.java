@@ -49,10 +49,66 @@ public final class CheckoutViews {
 
 	}
 
-	/** One priced line; {@code courseId}/{@code courseTitle} = the course the line belongs to. */
+	/**
+	 * One priced line; {@code courseId}/{@code courseTitle} = the course the line
+	 * belongs to. DISC-01 (additive): {@code discountAmount} (never more than
+	 * {@code unitAmount}; facility fees are never discounted), {@code reward}
+	 * (a free-course reward line: {@code discountAmount = unitAmount}) and
+	 * {@code discountName} (the applied discount's name, else {@code null}).
+	 * {@code lineTotal = unitAmount + facilityFee - discountAmount}.
+	 */
 	public record QuoteLine(int lineNo, String scope, String label, Integer year, Integer month, UUID moduleId,
 			UUID lessonId, BigDecimal unitAmount, BigDecimal facilityFee, BigDecimal lineTotal, UUID courseId,
-			String courseTitle) {
+			String courseTitle, BigDecimal discountAmount, boolean reward, String discountName) {
+
+		/** Pre-DISC-01 shape (no discount). */
+		public QuoteLine(int lineNo, String scope, String label, Integer year, Integer month, UUID moduleId,
+				UUID lessonId, BigDecimal unitAmount, BigDecimal facilityFee, BigDecimal lineTotal, UUID courseId,
+				String courseTitle) {
+			this(lineNo, scope, label, year, month, moduleId, lessonId, unitAmount, facilityFee, lineTotal, courseId,
+					courseTitle, BigDecimal.ZERO.setScale(2), false, null);
+		}
+
+	}
+
+	/**
+	 * DISC-01: one discount applied to a quote / order - only the applied
+	 * rule's own student-visible terms, never limits or usage.
+	 * @param type {@code ADVANCE_PAYMENT|BUNDLE_AMOUNT_OFF|BUNDLE_FREE_COURSE|DISCOUNT_CODE}.
+	 * @param code the code (DISCOUNT_CODE only).
+	 * @param lineNos the lines carrying this discount.
+	 * @param rewardCourseId BUNDLE_FREE_COURSE: the (first) free course, else {@code null};
+	 * {@code rewardCourseIds} lists all of them.
+	 */
+	public record AppliedDiscountView(UUID ruleId, UUID ruleVersionId, String type, String name, String code,
+			BigDecimal amount, List<Integer> lineNos, UUID rewardCourseId, List<UUID> rewardCourseIds,
+			String explanation) {
+
+	}
+
+	/**
+	 * DISC-01: status of the code the student entered.
+	 * @param status {@code APPLIED|INVALID|NOT_ELIGIBLE|USAGE_LIMIT_REACHED|NOT_APPLIED_BETTER_DISCOUNT} - a
+	 * disabled, expired or not-yet-valid code is {@code INVALID} (DISC-01 hardening, 2026-10-21).
+	 */
+	public record CodeResult(String code, String status, String message) {
+
+	}
+
+	/** One month of a free-course offer. */
+	public record RewardMonth(int year, int month, String label) {
+
+	}
+
+	/**
+	 * DISC-01: free months the student qualifies for but has not accepted yet
+	 * (re-quote with the rule id in {@code acceptedRewardRuleIds} to add them).
+	 * @param originalValue the months' normal course value (becomes 0).
+	 * @param facilityFee the facility fee those lines would add under the
+	 * tenant's existing fee rules.
+	 */
+	public record RewardOffer(UUID ruleId, String name, UUID courseId, String courseTitle, List<RewardMonth> months,
+			BigDecimal originalValue, BigDecimal facilityFee, String explanation) {
 
 	}
 
@@ -98,7 +154,21 @@ public final class CheckoutViews {
 	public record CheckoutQuote(UUID courseId, String currency, List<QuoteLine> lines, List<CourseCharge> courses,
 			BigDecimal subtotal, BigDecimal facilityFeeTotal, BigDecimal postageTotal, BigDecimal discountTotal,
 			BigDecimal total, String feeBasis, String feeNote, boolean deliveryRequired, DeliveryDetails delivery,
-			String quoteToken, Methods methods, BankDetails bankDetails) {
+			String quoteToken, Methods methods, BankDetails bankDetails, List<AppliedDiscountView> discounts,
+			CodeResult codeResult, List<RewardOffer> rewardOffers, List<String> notices, String blockingIssue,
+			String blockingMessage) {
+
+		/**
+		 * DISC-01 additions: {@code discounts} (applied), {@code codeResult}
+		 * ({@code null} when no code was entered), {@code rewardOffers}, {@code
+		 * notices}, {@code blockingIssue} ({@code ORDER_TOTAL_ZERO} or {@code
+		 * null}) + {@code blockingMessage}. Lists are never null.
+		 */
+		public CheckoutQuote {
+			discounts = discounts == null ? List.of() : List.copyOf(discounts);
+			rewardOffers = rewardOffers == null ? List.of() : List.copyOf(rewardOffers);
+			notices = notices == null ? List.of() : List.copyOf(notices);
+		}
 
 	}
 
@@ -112,16 +182,33 @@ public final class CheckoutViews {
 			UUID billingPeriodId, OrderStatus status, Instant createdAt, Instant updatedAt, List<QuoteLine> lines,
 			List<CourseCharge> courses, BigDecimal subtotal, BigDecimal facilityFeeTotal, BigDecimal postageTotal,
 			BigDecimal discountTotal, String feeBasis, DeliveryDetails delivery,
-			@JsonIgnore boolean idempotentReplay) {
+			@JsonIgnore boolean idempotentReplay, List<AppliedDiscountView> discounts) {
+
+		/** DISC-01: {@code discounts} = the order's immutable applied-discount snapshot (never null). */
+		public CheckoutOrder {
+			discounts = discounts == null ? List.of() : List.copyOf(discounts);
+		}
 
 	}
 
 	/** The service-level composer request: items (+ default course) and the courses with postage selected. */
-	public record CheckoutCart(UUID defaultCourseId, List<ItemSelection> items, List<UUID> postageCourseIds) {
+	public record CheckoutCart(UUID defaultCourseId, List<ItemSelection> items, List<UUID> postageCourseIds,
+			String discountCode, List<UUID> acceptedRewardRuleIds) {
 
+		/**
+		 * DISC-01: {@code discountCode} (raw, normalized server-side; {@code
+		 * null} = none) and {@code acceptedRewardRuleIds} (free-course offers the
+		 * student accepted; unknown / foreign ids are ignored with a notice).
+		 */
 		public CheckoutCart {
 			items = items == null ? List.of() : items;
 			postageCourseIds = postageCourseIds == null ? List.of() : postageCourseIds;
+			acceptedRewardRuleIds = acceptedRewardRuleIds == null ? List.of()
+					: acceptedRewardRuleIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+		}
+
+		public CheckoutCart(UUID defaultCourseId, List<ItemSelection> items, List<UUID> postageCourseIds) {
+			this(defaultCourseId, items, postageCourseIds, null, null);
 		}
 
 	}

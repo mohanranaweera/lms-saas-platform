@@ -29,6 +29,28 @@ import com.lms.paymentmanagement.checkout.service.CheckoutViews.ItemSelection;
 import com.lms.paymentmanagement.checkout.service.CheckoutViews.Methods;
 import com.lms.paymentmanagement.checkout.service.CheckoutViews.OfferItem;
 import com.lms.paymentmanagement.checkout.service.CheckoutViews.QuoteLine;
+import com.lms.paymentmanagement.checkout.service.CheckoutViews.AppliedDiscountView;
+import com.lms.paymentmanagement.checkout.service.CheckoutViews.CodeResult;
+import com.lms.paymentmanagement.checkout.service.CheckoutViews.RewardMonth;
+import com.lms.paymentmanagement.checkout.service.CheckoutViews.RewardOffer;
+import com.lms.paymentmanagement.discount.domain.DiscountType;
+import com.lms.paymentmanagement.discount.domain.StudentOrderDiscount;
+import com.lms.paymentmanagement.discount.service.DiscountCheckoutService;
+import com.lms.paymentmanagement.discount.service.DiscountCodeAttemptLimiter;
+import com.lms.paymentmanagement.discount.service.DiscountClock;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.AppliedDiscount;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.AppliedReward;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.CartLine;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.CodeStatus;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.DiscountOutcome;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.RewardCourse;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.RewardMonthOffer;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.RewardOfferPlan;
+import com.lms.paymentmanagement.discount.service.DiscountPricing.RewardPlan;
+import com.lms.paymentmanagement.discount.service.DiscountPricingService;
+import com.lms.paymentmanagement.discount.service.DiscountRedemptionService;
+import com.lms.paymentmanagement.discount.service.DiscountRedemptionService.EvidenceKind;
+import com.lms.paymentmanagement.discount.service.RuleSnapshot;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.domain.StudentOrderCourseCharge;
 import com.lms.paymentmanagement.order.domain.StudentOrderLine;
@@ -47,7 +69,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.Month;
+import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -111,6 +135,17 @@ public class CheckoutComposerService {
 
 	private static final int MAX_COURSES = 20;
 
+	/**
+	 * DISC-01: upper bound on the (tenant, student, coverage) advisory locks one
+	 * order placement takes - the cart's own items (at most {@value #MAX_ITEMS})
+	 * plus every month an accepted free-course reward could add. Beyond it the
+	 * order is refused (422 {@code ITEM_NOT_ELIGIBLE}), never locked unbounded.
+	 */
+	static final int MAX_LOCK_KEYS = 240;
+
+	static final String ZERO_TOTAL_MESSAGE = "Your discounts cover the whole amount, and an order with a zero total "
+			+ "cannot be placed. Remove a discount or add another item to continue.";
+
 	enum Scope {
 
 		MONTHLY, MODULE, LESSON, COURSE, DAILY, INSTALLMENT
@@ -137,11 +172,29 @@ public class CheckoutComposerService {
 
 	private final StudentLookupApi studentLookupApi;
 
+	private final DiscountCheckoutService discountCheckoutService;
+
+	private final DiscountPricingService discountPricingService;
+
+	private final DiscountRedemptionService discountRedemptionService;
+
+	private final DiscountClock discountClock;
+
+	private final DiscountCodeAttemptLimiter discountCodeAttemptLimiter;
+
 	public CheckoutComposerService(CourseLookupApi courseLookupApi, ContentCoverageApi contentCoverageApi,
 			PaymentStatusApiImpl paymentStatusApi, TenantConfigApi tenantConfigApi,
 			PaymentGatewayAccountApi paymentGatewayAccountApi, StudentOrderRepository studentOrderRepository,
 			StudentOrderLineRepository studentOrderLineRepository, TenantContext tenantContext,
-			StudentOrderCourseChargeRepository studentOrderCourseChargeRepository, StudentLookupApi studentLookupApi) {
+			StudentOrderCourseChargeRepository studentOrderCourseChargeRepository, StudentLookupApi studentLookupApi,
+			DiscountCheckoutService discountCheckoutService, DiscountPricingService discountPricingService,
+			DiscountRedemptionService discountRedemptionService, DiscountClock discountClock,
+			DiscountCodeAttemptLimiter discountCodeAttemptLimiter) {
+		this.discountCodeAttemptLimiter = discountCodeAttemptLimiter;
+		this.discountCheckoutService = discountCheckoutService;
+		this.discountPricingService = discountPricingService;
+		this.discountRedemptionService = discountRedemptionService;
+		this.discountClock = discountClock;
 		this.studentOrderCourseChargeRepository = studentOrderCourseChargeRepository;
 		this.studentLookupApi = studentLookupApi;
 		this.courseLookupApi = courseLookupApi;
@@ -235,8 +288,30 @@ public class CheckoutComposerService {
 	 */
 	@Transactional(readOnly = true)
 	public CheckoutQuote quote(CheckoutCart cart) {
-		requireStudent();
-		return toQuote(price(cart, requireCartCourses(cart)));
+		AuthenticatedPrincipal principal = requireStudent();
+		requireCodeAttemptAllowed(cart, principal);
+		Priced priced = price(cart, requireCartCourses(cart));
+		recordCodeAttempt(priced, principal);
+		return toQuote(priced);
+	}
+
+	/**
+	 * DISC-01 code probing (owner decision 2026-10-21): 429 {@code
+	 * DISCOUNT_CODE_RATE_LIMITED} when the caller (tenant + student from the
+	 * trusted context) has used up its INVALID-code allowance and enters a code
+	 * again. Carts without a code are never limited.
+	 */
+	private void requireCodeAttemptAllowed(CheckoutCart cart, AuthenticatedPrincipal principal) {
+		if (DiscountPricingService.normalizeCode(cart.discountCode()) != null) {
+			discountCodeAttemptLimiter.requireNotLimited(tenantContext.getTenantId(), principal.userId());
+		}
+	}
+
+	/** Counts an attempt whose code resolved (student-facing) to INVALID; 429 beyond the limit. */
+	private void recordCodeAttempt(Priced priced, AuthenticatedPrincipal principal) {
+		if (priced.codeResult() != null && CodeStatus.INVALID.name().equals(priced.codeResult().status())) {
+			discountCodeAttemptLimiter.recordInvalid(tenantContext.getTenantId(), principal.userId());
+		}
 	}
 
 	/**
@@ -271,13 +346,27 @@ public class CheckoutComposerService {
 				return toOrderView(order, lines, charges, true);
 			}
 		}
+		requireCodeAttemptAllowed(cart, principal);
 		Map<UUID, CourseCatalogInfo> courses = requireCartCourses(cart);
 
-		// Lock every well-formed requested coverage of every course (the lock
-		// implementation takes them in sorted order), then price - which
-		// re-reads coverage and pending state - see class javadoc.
-		contentCoverageApi.lockCallerCoverage(requestedKeys(cart));
+		// Lock every well-formed requested coverage of every course plus every
+		// month an accepted free-course reward could add (the lock
+		// implementation takes them in sorted order), then (DISC-01, D12) the
+		// rules that could apply (capped or not), in id order - then price, which
+		// re-reads coverage, pending state, rule capacity and the
+		// one-use-per-student cap - see class javadoc. The number of lock keys
+		// is bounded (MAX_LOCK_KEYS, fail closed).
+		Set<String> lockKeys = new TreeSet<>(requestedKeys(cart));
+		lockKeys.addAll(discountCheckoutService.rewardLockKeys(cart.acceptedRewardRuleIds(),
+				discountClock.currentMonth(), MAX_LOCK_KEYS));
+		if (lockKeys.size() > MAX_LOCK_KEYS) {
+			throw new CheckoutItemException(CheckoutItemException.ITEM_NOT_ELIGIBLE,
+					"Too many items (including free-course months) in one order");
+		}
+		contentCoverageApi.lockCallerCoverage(lockKeys);
+		discountCheckoutService.lockRulesForCart(courses.keySet(), cart.discountCode());
 		Priced priced = price(cart, courses);
+		recordCodeAttempt(priced, principal);
 		if (quoteToken == null || quoteToken.isBlank()) {
 			throw new CheckoutItemException(CheckoutItemException.QUOTE_REQUIRED,
 					"Review the quote for this payment before placing the order");
@@ -286,25 +375,35 @@ public class CheckoutComposerService {
 				quoteToken.strip().toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8))) {
 			throw new QuoteChangedException(toQuote(priced));
 		}
+		if (priced.blockingIssue() != null) {
+			// D3: no zero-total order (and so no new activation path).
+			throw new CheckoutItemException(CheckoutItemException.ORDER_TOTAL_ZERO, ZERO_TOTAL_MESSAGE);
+		}
 
 		DeliveryDetails delivery = priced.deliveryRequired() ? priced.delivery() : null;
 		StudentOrder order = studentOrderRepository.save(StudentOrder.forLines(tenantId, principal.userId(),
 				priced.courseId(), priced.currency(), priced.subtotal(), priced.facilityFeeTotal(),
-				priced.postageTotal(), ZERO, priced.feePolicySnapshot(), idempotencyKey,
+				priced.postageTotal(), priced.discountTotal(), priced.feePolicySnapshot(), idempotencyKey,
 				delivery == null ? null
 						: new StudentOrder.DeliverySnapshot(delivery.recipientName(), delivery.addressLine(),
 								delivery.city(), delivery.phone())));
 		Instant now = Instant.now();
+		// DISC-01 snapshot + RESERVED redemptions (same transaction as the order).
+		Map<UUID, UUID> orderDiscountIds = discountCheckoutService.persistOrderDiscounts(tenantId, order.getId(),
+				principal.userId(), priced.applied(), now);
 		List<StudentOrderLine> lines = new ArrayList<>();
 		for (PricedLine pricedLine : priced.pricedLines()) {
 			Offer offer = pricedLine.offer();
 			QuoteLine quoteLine = pricedLine.line();
+			UUID orderDiscountId = pricedLine.discountRule() == null || quoteLine.discountAmount().signum() == 0
+					? null : orderDiscountIds.get(pricedLine.discountRule().ruleId());
 			lines.add(studentOrderLineRepository.save(new StudentOrderLine(tenantId, order.getId(),
 					quoteLine.lineNo(), offer.scope().name(), pricedLine.courseId(), offer.moduleId(),
 					offer.lessonId(), offer.year(), offer.month(), offer.billingPeriodId(), offer.label(),
-					quoteLine.unitAmount(), quoteLine.facilityFee(), ZERO, offer.currency(), offer.coverageKey(),
-					now)));
+					quoteLine.unitAmount(), quoteLine.facilityFee(), quoteLine.discountAmount(), offer.currency(),
+					offer.coverageKey(), now, orderDiscountId, pricedLine.rewardRuleId() != null)));
 		}
+		requireDiscountInvariants(priced.discountTotal(), priced.applied(), lines, orderDiscountIds);
 		List<StudentOrderCourseCharge> charges = new ArrayList<>();
 		for (CourseCharge charge : priced.courses()) {
 			charges.add(studentOrderCourseChargeRepository.save(new StudentOrderCourseCharge(tenantId, order.getId(),
@@ -313,6 +412,37 @@ public class CheckoutComposerService {
 					now)));
 		}
 		return toOrderView(order, lines, charges, false);
+	}
+
+	/**
+	 * DISC-01 invariant, checked before the placement transaction commits (fail
+	 * closed - a mismatch is a bug, never a silently wrong order): the order's
+	 * discount equals the sum of its lines' {@code discount_amount}, and each
+	 * {@code student_order_discount.amount} equals the sum of the lines linked
+	 * to it.
+	 */
+	static void requireDiscountInvariants(BigDecimal discountTotal, List<AppliedDiscount> applied,
+			List<StudentOrderLine> lines, Map<UUID, UUID> orderDiscountIds) {
+		BigDecimal lineTotal = ZERO;
+		Map<UUID, BigDecimal> bySnapshot = new HashMap<>();
+		for (StudentOrderLine line : lines) {
+			BigDecimal discount = line.getDiscountAmount() == null ? ZERO : line.getDiscountAmount();
+			lineTotal = lineTotal.add(discount);
+			if (line.getOrderDiscountId() != null) {
+				bySnapshot.merge(line.getOrderDiscountId(), discount, BigDecimal::add);
+			}
+		}
+		if (lineTotal.compareTo(discountTotal) != 0) {
+			throw new IllegalStateException("Order discount does not equal the sum of its line discounts");
+		}
+		for (AppliedDiscount discount : applied) {
+			UUID snapshotId = orderDiscountIds.get(discount.rule().ruleId());
+			if (snapshotId == null
+					|| bySnapshot.getOrDefault(snapshotId, ZERO).compareTo(discount.amount()) != 0) {
+				throw new IllegalStateException(
+						"Applied discount does not equal the sum of its lines for rule " + discount.rule().ruleId());
+			}
+		}
 	}
 
 	/**
@@ -370,9 +500,15 @@ public class CheckoutComposerService {
 	 */
 	private static boolean sameSelection(List<StudentOrderLine> lines, List<StudentOrderCourseCharge> charges,
 			CheckoutCart cart) {
+		// DISC-01: reward lines ADDED by an accepted free-course offer were not
+		// requested items - they (and a course only they belong to) are ignored.
+		Set<String> requested = requestedKeys(cart);
 		Set<UUID> orderCourses = new TreeSet<>();
 		Set<String> orderKeys = new TreeSet<>();
 		lines.forEach(line -> {
+			if (line.isReward() && !requested.contains(line.getCoverageKey())) {
+				return;
+			}
 			orderCourses.add(line.getCourseId());
 			orderKeys.add(line.getCoverageKey());
 		});
@@ -382,7 +518,7 @@ public class CheckoutComposerService {
 			.forEach(charge -> orderPostage.add(charge.getCourseId()));
 		Set<UUID> requestedPostage = new TreeSet<>();
 		cart.postageCourseIds().stream().filter(Objects::nonNull).forEach(requestedPostage::add);
-		return orderCourses.equals(requestedCourseIds(cart)) && orderKeys.equals(requestedKeys(cart))
+		return orderCourses.equals(requestedCourseIds(cart)) && orderKeys.equals(requested)
 				&& orderPostage.equals(requestedPostage);
 	}
 
@@ -435,6 +571,7 @@ public class CheckoutComposerService {
 		}
 		requireNoEvidenceOnOrder(order);
 		requireLinesStillPayable(order, lines);
+		discountRedemptionService.requireHoldRetakable(order.getId());
 	}
 
 	/**
@@ -453,7 +590,7 @@ public class CheckoutComposerService {
 	 * is resolved by the caller BEFORE this runs.
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
-	public void lockAndRequireNewLineOrderEvidenceAllowed(StudentOrder order) {
+	public void lockAndRequireNewLineOrderEvidenceAllowed(StudentOrder order, EvidenceKind evidenceKind) {
 		List<StudentOrderLine> lines = studentOrderLineRepository.findAllByOrderId(order.getId());
 		if (lines.isEmpty()) {
 			return;
@@ -463,6 +600,10 @@ public class CheckoutComposerService {
 		contentCoverageApi.lockCallerCoverage(keys);
 		requireNoEvidenceOnOrder(order);
 		requireLinesStillPayable(order, lines);
+		// DISC-01 (D12): re-take a lapsed discount hold after re-validation (409
+		// DISCOUNT_NO_LONGER_AVAILABLE); a gateway payment holds for the gateway
+		// TTL, a bank slip holds open-ended while it is open.
+		discountRedemptionService.holdForEvidence(order.getId(), evidenceKind);
 	}
 
 	private void requireNoEvidenceOnOrder(StudentOrder order) {
@@ -503,25 +644,41 @@ public class CheckoutComposerService {
 	// Pricing.
 	// ------------------------------------------------------------------
 
-	/** One selected offer with the course it belongs to and its priced line. */
-	private record PricedLine(UUID courseId, Offer offer, QuoteLine line) {
+	/**
+	 * One selected (or reward) offer with the course it belongs to and its
+	 * priced line. {@code rewardRuleId} = the free-course rule the line is a
+	 * reward of; {@code discountRule} = the rule whose discount the line
+	 * carries ({@code null} when undiscounted).
+	 */
+	private record PricedLine(UUID courseId, Offer offer, QuoteLine line, UUID rewardRuleId,
+			RuleSnapshot discountRule) {
 
 	}
 
 	/**
 	 * A fully priced cart. {@code courseId} is the single course of the cart
 	 * ({@code null} when it spans several); {@code delivery} is the on-record
-	 * address ({@code null} when nothing is on record).
+	 * address ({@code null} when nothing is on record). DISC-01: {@code
+	 * applied} = the engine's applied discounts (allocation per line), plus
+	 * their student views, the code result, reward offers, notices and the
+	 * zero-total blocking issue.
 	 */
 	private record Priced(UUID courseId, String currency, List<PricedLine> pricedLines, List<QuoteLine> lines,
 			List<CourseCharge> courses, BigDecimal subtotal, BigDecimal facilityFeeTotal, BigDecimal postageTotal,
-			BigDecimal total, String feeBasis, String feeNote, String feePolicySnapshot, boolean deliveryRequired,
-			DeliveryDetails delivery, String quoteToken) {
+			BigDecimal discountTotal, BigDecimal total, String feeBasis, String feeNote, String feePolicySnapshot,
+			boolean deliveryRequired, DeliveryDetails delivery, String quoteToken, List<AppliedDiscount> applied,
+			List<AppliedDiscountView> discounts, CodeResult codeResult, List<RewardOffer> rewardOffers,
+			List<String> notices, String blockingIssue) {
+
+	}
+
+	/** A line before its discount is known: course, offer, number, facility fee. */
+	private record FeeLine(UUID courseId, String courseTitle, Offer offer, int lineNo, BigDecimal facilityFee) {
 
 	}
 
 	/**
-	 * Prices a cart (plan §2):
+	 * Prices a cart (plan §2; DISC-01 spec §2):
 	 * <ul>
 	 * <li>Items resolve against the server-computed offers of their own course
 	 * (an item's {@code courseId}, else the cart default); duplicates collapse
@@ -532,6 +689,10 @@ public class CheckoutComposerService {
 	 * courses and currencies. Collection routing is one account per tenant (the
 	 * tenant's ACTIVE gateway account, or bank slip), so currency is the only
 	 * possible incompatibility between two courses of the same tenant.</li>
+	 * <li>DISC-01 phase 1: accepted free-course rewards add MONTHLY reward lines
+	 * of the reward course (appended after that course's lines, or as a new
+	 * course group) BEFORE fees; selected lines matching a reward month are
+	 * converted in place.</li>
 	 * <li>Facility fee per tenant mode: NONE 0; PER_COURSE the course's
 	 * effective fee once, on its first line; PER_LINE the course's effective
 	 * fee on every line; PER_ORDER the tenant default once, on line 1
@@ -542,6 +703,9 @@ public class CheckoutComposerService {
 	 * Any postage requires the on-record billing address ({@code
 	 * DELIVERY_DETAILS_REQUIRED}). Postage never creates a line or an
 	 * entitlement.</li>
+	 * <li>DISC-01 phase 3: discounts on unit amounts only (never fees or
+	 * postage), one per line; {@code total = subtotal + fees + postage -
+	 * discountTotal}; a 0 total is flagged {@code ORDER_TOTAL_ZERO} (D3).</li>
 	 * </ul>
 	 */
 	private Priced price(CheckoutCart cart, Map<UUID, CourseCatalogInfo> courses) {
@@ -591,6 +755,27 @@ public class CheckoutComposerService {
 		});
 		String currency = requireSingleCurrency(byCourse, courses);
 
+		// DISC-01 phase 1 (before fees): candidate rules and free-course rewards.
+		LocalDate today = discountClock.today();
+		YearMonth currentMonth = YearMonth.from(today);
+		DiscountCheckoutService.Candidates candidates = discountCheckoutService.candidates(currency,
+				cart.discountCode(), AuthenticatedPrincipalHolder.get().userId(), today, discountClock.now());
+		Map<UUID, CourseCatalogInfo> allCourses = new LinkedHashMap<>(courses);
+		Map<UUID, RewardCourse> rewardCourses = rewardCourses(candidates.freeRules(), currency, allCourses,
+				offersByCourse);
+		List<CartLine> baseLines = new ArrayList<>();
+		byCourse.forEach((courseId, offers) -> offers.forEach(offer -> baseLines.add(new CartLine(0,
+				offer.coverageKey(), courseId, offer.scope().name(), offer.year(), offer.month(), offer.amount()))));
+		RewardPlan plan = discountPricingService.planRewards(candidates.freeRules(), baseLines, rewardCourses,
+				new LinkedHashSet<>(cart.acceptedRewardRuleIds()), currentMonth);
+		Map<String, UUID> rewardKeys = plan.rewardKeys();
+		for (AppliedReward reward : plan.applied()) {
+			for (RewardMonthOffer month : reward.addedMonths()) {
+				Offer offer = offersByCourse.get(month.courseId()).get(month.key());
+				byCourse.computeIfAbsent(month.courseId(), id -> new ArrayList<>()).add(offer);
+			}
+		}
+
 		Set<UUID> postageCourses = new LinkedHashSet<>();
 		for (UUID courseId : cart.postageCourseIds()) {
 			if (courseId == null || !byCourse.containsKey(courseId)) {
@@ -600,8 +785,7 @@ public class CheckoutComposerService {
 			postageCourses.add(courseId);
 		}
 
-		List<PricedLine> pricedLines = new ArrayList<>();
-		List<QuoteLine> lines = new ArrayList<>();
+		List<FeeLine> feeLines = new ArrayList<>();
 		List<CourseCharge> charges = new ArrayList<>();
 		BigDecimal subtotal = ZERO;
 		BigDecimal feeTotal = ZERO;
@@ -609,7 +793,7 @@ public class CheckoutComposerService {
 		int lineNo = 1;
 		for (Map.Entry<UUID, List<Offer>> entry : byCourse.entrySet()) {
 			UUID courseId = entry.getKey();
-			CourseCatalogInfo info = courses.get(courseId);
+			CourseCatalogInfo info = allCourses.get(courseId);
 			BigDecimal effective = fee.effectiveFor(info.facilityFeeOverride());
 			BigDecimal courseSubtotal = ZERO;
 			BigDecimal courseFee = ZERO;
@@ -622,13 +806,8 @@ public class CheckoutComposerService {
 					case FacilityFeeSettings.PER_ORDER -> lineNo == 1 ? fee.amount() : ZERO;
 					default -> ZERO;
 				};
-				BigDecimal unit = offer.amount();
-				QuoteLine line = new QuoteLine(lineNo++, offer.scope().name(), offer.label(), offer.year(),
-						offer.month(), offer.moduleId(), offer.lessonId(), unit, lineFee, unit.add(lineFee), courseId,
-						info.name());
-				lines.add(line);
-				pricedLines.add(new PricedLine(courseId, offer, line));
-				courseSubtotal = courseSubtotal.add(unit);
+				feeLines.add(new FeeLine(courseId, info.name(), offer, lineNo++, lineFee));
+				courseSubtotal = courseSubtotal.add(offer.amount());
 				courseFee = courseFee.add(lineFee);
 			}
 			BigDecimal postageFee = money(info.postageFee());
@@ -640,7 +819,40 @@ public class CheckoutComposerService {
 			feeTotal = feeTotal.add(courseFee);
 			postageTotal = postageTotal.add(postageCharge);
 		}
-		BigDecimal total = subtotal.add(feeTotal).add(postageTotal);
+
+		// DISC-01 phase 3: discounts on the final, numbered lines.
+		List<CartLine> finalLines = feeLines.stream()
+			.map(line -> new CartLine(line.lineNo(), line.offer().coverageKey(), line.courseId(),
+					line.offer().scope().name(), line.offer().year(), line.offer().month(), line.offer().amount(),
+					rewardKeys.get(line.offer().coverageKey())))
+			.toList();
+		DiscountOutcome outcome = discountPricingService.applyDiscounts(finalLines, plan, candidates.valueRules(),
+				candidates.codeRuleId(), currentMonth);
+		Map<Integer, BigDecimal> discountByLine = new HashMap<>();
+		Map<Integer, RuleSnapshot> ruleByLine = new HashMap<>();
+		for (AppliedDiscount applied : outcome.applied()) {
+			applied.allocation().forEach((no, amount) -> {
+				discountByLine.put(no, amount);
+				ruleByLine.put(no, applied.rule());
+			});
+		}
+		List<PricedLine> pricedLines = new ArrayList<>();
+		List<QuoteLine> lines = new ArrayList<>();
+		for (FeeLine feeLine : feeLines) {
+			Offer offer = feeLine.offer();
+			BigDecimal unit = offer.amount();
+			BigDecimal discount = discountByLine.getOrDefault(feeLine.lineNo(), ZERO);
+			RuleSnapshot rule = ruleByLine.get(feeLine.lineNo());
+			UUID rewardRuleId = rewardKeys.get(offer.coverageKey());
+			QuoteLine line = new QuoteLine(feeLine.lineNo(), offer.scope().name(), offer.label(), offer.year(),
+					offer.month(), offer.moduleId(), offer.lessonId(), unit, feeLine.facilityFee(),
+					unit.add(feeLine.facilityFee()).subtract(discount), feeLine.courseId(), feeLine.courseTitle(),
+					discount, rewardRuleId != null, rule == null ? null : rule.name());
+			lines.add(line);
+			pricedLines.add(new PricedLine(feeLine.courseId(), offer, line, rewardRuleId, rule));
+		}
+		BigDecimal discountTotal = outcome.total();
+		BigDecimal total = subtotal.add(feeTotal).add(postageTotal).subtract(discountTotal);
 
 		boolean deliveryRequired = !postageCourses.isEmpty();
 		DeliveryDetails delivery = deliveryOnRecord();
@@ -648,14 +860,145 @@ public class CheckoutComposerService {
 			throw new CheckoutItemException(CheckoutItemException.DELIVERY_DETAILS_REQUIRED,
 					"Add your delivery address (address and city) to your billing details before choosing postage");
 		}
+
+		List<AppliedDiscountView> discountViews = outcome.applied()
+			.stream()
+			.map(applied -> new AppliedDiscountView(applied.rule().ruleId(), applied.rule().versionId(),
+					applied.rule().type().name(), applied.rule().name(),
+					applied.rule().type() == DiscountType.DISCOUNT_CODE ? applied.rule().code() : null,
+					applied.amount(), applied.lineNos(),
+					applied.qualification().rewardCourseIds().isEmpty() ? null
+							: applied.qualification().rewardCourseIds().get(0),
+					applied.qualification().rewardCourseIds(), discountPricingService.explanation(applied.rule())))
+			.toList();
+		CodeResult codeResult = codeResult(candidates, outcome);
+		List<RewardOffer> rewardOffers = rewardOffers(plan, fee, allCourses, byCourse);
+		String blockingIssue = total.signum() == 0 ? CheckoutItemException.ORDER_TOTAL_ZERO : null;
+
 		UUID singleCourse = byCourse.size() == 1 ? byCourse.keySet().iterator().next() : null;
-		String token = quoteToken(singleCourse, currency, fee, pricedLines, charges, subtotal, feeTotal, postageTotal, total,
-				deliveryRequired ? delivery : null);
+		String token = quoteToken(singleCourse, currency, fee, pricedLines, charges, subtotal, feeTotal, postageTotal,
+				discountTotal, total, deliveryRequired ? delivery : null, outcome, candidates.code(), blockingIssue);
 		return new Priced(singleCourse, currency, List.copyOf(pricedLines), List.copyOf(lines), List.copyOf(charges),
-				subtotal, feeTotal, postageTotal, total, fee.mode(), feeTotal.signum() > 0 ? FEE_NOTE : null,
-				fee.snapshot(), deliveryRequired, delivery, token);
+				subtotal, feeTotal, postageTotal, discountTotal, total, fee.mode(),
+				feeTotal.signum() > 0 ? FEE_NOTE : null, fee.snapshot(), deliveryRequired, delivery, token,
+				outcome.applied(), discountViews, codeResult, rewardOffers, plan.notices(), blockingIssue);
 	}
 
+	/**
+	 * DISC-01: the reward courses of the candidate free-course rules as seen by
+	 * the caller. A course is eligible only when it is a non-DRAFT course of the
+	 * caller's tenant the caller participates in (the composer's normal rule for
+	 * any line), MONTHLY-priced; only its AVAILABLE months in the cart currency
+	 * are offered. Eligible reward courses are added to {@code allCourses} and
+	 * their MONTHLY offers to {@code offersByCourse}.
+	 */
+	private Map<UUID, RewardCourse> rewardCourses(List<RuleSnapshot> freeRules, String currency,
+			Map<UUID, CourseCatalogInfo> allCourses, Map<UUID, Map<String, Offer>> offersByCourse) {
+		Map<UUID, RewardCourse> result = new HashMap<>();
+		for (RuleSnapshot rule : freeRules) {
+			for (UUID courseId : rule.rewardCourseIds()) {
+				if (!result.containsKey(courseId)) {
+					result.put(courseId, rewardCourse(courseId, currency, allCourses, offersByCourse));
+				}
+			}
+		}
+		return result;
+	}
+
+	private RewardCourse rewardCourse(UUID courseId, String currency, Map<UUID, CourseCatalogInfo> allCourses,
+			Map<UUID, Map<String, Offer>> offersByCourse) {
+		CourseCatalogInfo info = allCourses.get(courseId);
+		if (info == null) {
+			Optional<CourseCatalogInfo> found = courseLookupApi.findCatalogInfo(courseId)
+				.filter(course -> !"DRAFT".equals(course.status()));
+			if (found.isEmpty()) {
+				return new RewardCourse(courseId, null, false, List.of());
+			}
+			info = found.get();
+			if (!contentCoverageApi.isCallerParticipant(courseId)) {
+				return new RewardCourse(courseId, info.name(), false,
+						info.available() && "MONTHLY".equals(info.pricingModel()), List.of());
+			}
+		}
+		if (!"MONTHLY".equals(info.pricingModel())) {
+			return new RewardCourse(courseId, info.name(), false, List.of());
+		}
+		Map<String, Offer> offers = offersByCourse.get(courseId);
+		if (offers == null) {
+			offers = new LinkedHashMap<>();
+			for (Offer offer : monthlyOffers(loadFacts(info))) {
+				offers.put(offer.coverageKey(), offer);
+			}
+			offersByCourse.put(courseId, offers);
+		}
+		List<RewardMonthOffer> months = offers.values()
+			.stream()
+			.filter(offer -> offer.scope() == Scope.MONTHLY && "AVAILABLE".equals(offer.state())
+					&& currency.equals(offer.currency()) && offer.year() != null && offer.month() != null)
+			.map(offer -> new RewardMonthOffer(courseId, offer.year(), offer.month(), offer.coverageKey(),
+					offer.amount(), offer.label()))
+			.toList();
+		allCourses.putIfAbsent(courseId, info);
+		return new RewardCourse(courseId, info.name(), true, months);
+	}
+
+	/**
+	 * The entered code's status: the gate failure when it could not apply at
+	 * all, else the engine's verdict - always the STUDENT-FACING status (owner
+	 * decision 2026-10-21): a disabled, expired or not-yet-valid code is
+	 * {@code INVALID} with the same message as an unknown code, so a real but
+	 * unusable code cannot be told apart from a guess. A code the student
+	 * already used is {@code NOT_ELIGIBLE} (one use per student per rule).
+	 */
+	private static CodeResult codeResult(DiscountCheckoutService.Candidates candidates, DiscountOutcome outcome) {
+		if (candidates.code() == null) {
+			return null;
+		}
+		CodeStatus internal = candidates.codeGateStatus() != null ? candidates.codeGateStatus()
+				: outcome.codeStatus() != null ? outcome.codeStatus() : CodeStatus.INVALID;
+		CodeStatus status = internal.studentFacing();
+		String message = internal == CodeStatus.ALREADY_USED ? "You have already used this discount."
+				: switch (status) {
+					case APPLIED -> "Discount code applied.";
+					case NOT_ELIGIBLE -> "Your selection does not meet this code's conditions.";
+					case USAGE_LIMIT_REACHED -> "This discount code has reached its usage limit.";
+					case NOT_APPLIED_BETTER_DISCOUNT -> "A better discount is already applied to these items.";
+					case INVALID, EXPIRED, DISABLED, NOT_YET_VALID, ALREADY_USED -> "This discount code is not valid.";
+				};
+		return new CodeResult(candidates.code(), status.name(), message);
+	}
+
+	/** Not-yet-accepted free months with their value and the facility fee they would add. */
+	private static List<RewardOffer> rewardOffers(RewardPlan plan, FacilityFeeSettings fee,
+			Map<UUID, CourseCatalogInfo> allCourses, Map<UUID, List<Offer>> byCourse) {
+		List<RewardOffer> offers = new ArrayList<>();
+		for (RewardOfferPlan offerPlan : plan.offers()) {
+			CourseCatalogInfo info = allCourses.get(offerPlan.courseId());
+			if (info == null) {
+				continue;
+			}
+			BigDecimal effective = fee.effectiveFor(info.facilityFeeOverride());
+			int count = offerPlan.months().size();
+			BigDecimal offerFee = switch (fee.mode()) {
+				case FacilityFeeSettings.PER_LINE -> effective.multiply(BigDecimal.valueOf(count));
+				case FacilityFeeSettings.PER_COURSE -> byCourse.containsKey(offerPlan.courseId()) ? ZERO : effective;
+				default -> ZERO;
+			};
+			BigDecimal value = offerPlan.months()
+				.stream()
+				.map(RewardMonthOffer::unitAmount)
+				.reduce(ZERO, BigDecimal::add);
+			List<RewardMonth> months = offerPlan.months()
+				.stream()
+				.map(month -> new RewardMonth(month.year(), month.month(), month.label()))
+				.toList();
+			offers.add(new RewardOffer(offerPlan.rule().ruleId(), offerPlan.rule().name(), offerPlan.courseId(),
+					offerPlan.courseTitle(), months, value, money(offerFee),
+					"Get " + count + (count == 1 ? " month" : " months") + " of \"" + offerPlan.courseTitle()
+							+ "\" free with \"" + offerPlan.rule().name() + "\"."));
+		}
+		return List.copyOf(offers);
+	}
 	private static String requireSingleCurrency(Map<UUID, List<Offer>> byCourse,
 			Map<UUID, CourseCatalogInfo> courses) {
 		Map<UUID, Set<String>> currenciesByCourse = new LinkedHashMap<>();
@@ -683,12 +1026,16 @@ public class CheckoutComposerService {
 	 * SHA-256 (hex) of a canonical rendering of the whole breakdown: lines
 	 * (course, coverage key, amounts), per-course charges, totals, currency,
 	 * fee basis/snapshot and - when postage is selected - the delivery
-	 * address. Any server-side change between quote and order changes it.
+	 * address. DISC-01 ({@code v2}): also every line's discount, reward flag
+	 * and discount rule/version, every applied discount (rule, version, amount,
+	 * lines), the entered code and the blocking issue. Any server-side change
+	 * between quote and order changes it.
 	 */
 	private static String quoteToken(UUID courseId, String currency, FacilityFeeSettings fee, List<PricedLine> lines,
 			List<CourseCharge> charges, BigDecimal subtotal, BigDecimal feeTotal, BigDecimal postageTotal,
-			BigDecimal total, DeliveryDetails delivery) {
-		StringBuilder canonical = new StringBuilder("v1");
+			BigDecimal discountTotal, BigDecimal total, DeliveryDetails delivery, DiscountOutcome outcome, String code,
+			String blockingIssue) {
+		StringBuilder canonical = new StringBuilder("v2");
 		field(canonical, "course", courseId);
 		field(canonical, "currency", currency);
 		field(canonical, "basis", fee.mode());
@@ -698,6 +1045,9 @@ public class CheckoutComposerService {
 			field(canonical, "line", line.lineNo() + "," + line.courseId() + "," + line.scope() + ","
 					+ line.unitAmount().toPlainString() + "," + line.facilityFee().toPlainString());
 			field(canonical, "key", priced.offer().coverageKey());
+			field(canonical, "discount", line.discountAmount().toPlainString() + "," + line.reward() + ","
+					+ (priced.discountRule() == null ? ""
+							: priced.discountRule().ruleId() + "," + priced.discountRule().versionId()));
 		}
 		for (CourseCharge charge : charges) {
 			field(canonical, "charge", charge.courseId() + "," + charge.subtotal().toPlainString() + ","
@@ -705,8 +1055,14 @@ public class CheckoutComposerService {
 					+ charge.facilityFeeSource() + "," + charge.postageFee().toPlainString() + ","
 					+ charge.postageSelected() + "," + charge.postageCharge().toPlainString());
 		}
+		for (AppliedDiscount applied : outcome.applied()) {
+			field(canonical, "applied", applied.rule().ruleId() + "," + applied.rule().versionId() + ","
+					+ applied.amount().toPlainString() + "," + applied.lineNos());
+		}
+		field(canonical, "code", code);
+		field(canonical, "blocking", blockingIssue);
 		field(canonical, "totals", subtotal.toPlainString() + "," + feeTotal.toPlainString() + ","
-				+ postageTotal.toPlainString() + "," + ZERO.toPlainString() + "," + total.toPlainString());
+				+ postageTotal.toPlainString() + "," + discountTotal.toPlainString() + "," + total.toPlainString());
 		if (delivery != null) {
 			field(canonical, "name", delivery.recipientName());
 			field(canonical, "address", delivery.addressLine());
@@ -722,7 +1078,6 @@ public class CheckoutComposerService {
 			throw new IllegalStateException("SHA-256 unavailable", ex);
 		}
 	}
-
 	/** Length-prefixed so no value can be confused with a separator. */
 	private static void field(StringBuilder canonical, String name, Object value) {
 		String text = value == null ? "" : value.toString();
@@ -766,12 +1121,12 @@ public class CheckoutComposerService {
 
 	private CheckoutQuote toQuote(Priced priced) {
 		return new CheckoutQuote(priced.courseId(), priced.currency(), priced.lines(), priced.courses(),
-				priced.subtotal(), priced.facilityFeeTotal(), priced.postageTotal(), ZERO, priced.total(),
-				priced.feeBasis(), priced.feeNote(), priced.deliveryRequired(), priced.delivery(),
+				priced.subtotal(), priced.facilityFeeTotal(), priced.postageTotal(), priced.discountTotal(),
+				priced.total(), priced.feeBasis(), priced.feeNote(), priced.deliveryRequired(), priced.delivery(),
 				priced.quoteToken(), new Methods(paymentGatewayAccountApi.isOnlinePaymentAvailable(), true),
-				bankDetails());
+				bankDetails(), priced.discounts(), priced.codeResult(), priced.rewardOffers(), priced.notices(),
+				priced.blockingIssue(), priced.blockingIssue() == null ? null : ZERO_TOTAL_MESSAGE);
 	}
-
 	private BankDetails bankDetails() {
 		Map<String, Object> config = paymentConfig();
 		String bank = text(config.get("bank_name"));
@@ -981,6 +1336,9 @@ public class CheckoutComposerService {
 	 * orders have none - their per-course figures are derived from the lines,
 	 * with {@code effectiveFacilityFee}/{@code facilityFeeSource} {@code null}),
 	 * postage and delivery. Course titles are read (tenant-scoped) for display.
+	 * DISC-01: per-line discount / reward / discount name and the order's
+	 * immutable {@code student_order_discount} snapshot - never re-derived from
+	 * current rules.
 	 */
 	private CheckoutOrder toOrderView(StudentOrder order, List<StudentOrderLine> lines,
 			List<StudentOrderCourseCharge> charges, boolean replay) {
@@ -990,12 +1348,40 @@ public class CheckoutComposerService {
 		if (!courseIds.isEmpty()) {
 			courseLookupApi.getCourseSummaries(courseIds).forEach(summary -> titles.put(summary.id(), summary.name()));
 		}
+		List<StudentOrderDiscount> snapshots = lines.isEmpty() ? List.of()
+				: discountCheckoutService.orderDiscounts(order.getId());
+		Map<UUID, StudentOrderDiscount> snapshotById = new HashMap<>();
+		snapshots.forEach(snapshot -> snapshotById.put(snapshot.getId(), snapshot));
 		List<QuoteLine> quoteLines = lines.stream()
-			.map(line -> new QuoteLine(line.getLineNo(), line.getScope(), line.getLabel(), line.getPeriodYear(),
-					line.getPeriodMonth(), line.getModuleId(), line.getLessonId(), line.getUnitAmount(),
-					line.getFacilityFeeAmount(), line.getLineTotal(), line.getCourseId(),
-					titles.get(line.getCourseId())))
+			.map(line -> {
+				StudentOrderDiscount snapshot = line.getOrderDiscountId() == null ? null
+						: snapshotById.get(line.getOrderDiscountId());
+				return new QuoteLine(line.getLineNo(), line.getScope(), line.getLabel(), line.getPeriodYear(),
+						line.getPeriodMonth(), line.getModuleId(), line.getLessonId(), line.getUnitAmount(),
+						line.getFacilityFeeAmount(), line.getLineTotal(), line.getCourseId(),
+						titles.get(line.getCourseId()), line.getDiscountAmount(), line.isReward(),
+						snapshot == null ? null : snapshot.getName());
+			})
 			.toList();
+		List<AppliedDiscountView> discounts = new ArrayList<>();
+		for (StudentOrderDiscount snapshot : snapshots) {
+			List<Integer> lineNos = new ArrayList<>();
+			Set<UUID> rewardCourses = new LinkedHashSet<>();
+			for (StudentOrderLine line : lines) {
+				if (snapshot.getId().equals(line.getOrderDiscountId())) {
+					lineNos.add(line.getLineNo());
+					if (line.isReward()) {
+						rewardCourses.add(line.getCourseId());
+					}
+				}
+			}
+			List<UUID> rewardCourseIds = List.copyOf(rewardCourses);
+			discounts.add(new AppliedDiscountView(snapshot.getRuleId(), snapshot.getRuleVersionId(),
+					snapshot.getDiscountType().name(), snapshot.getName(), snapshot.getCode(), snapshot.getAmount(),
+					List.copyOf(lineNos), rewardCourseIds.isEmpty() ? null : rewardCourseIds.get(0), rewardCourseIds,
+					DiscountPricingService.explanation(snapshot.getDiscountType(), snapshot.getValueType(),
+							snapshot.getValue(), order.getCurrency(), snapshot.getCode(), null)));
+		}
 		Map<UUID, StudentOrderCourseCharge> chargeByCourse = new HashMap<>();
 		charges.forEach(charge -> chargeByCourse.put(charge.getCourseId(), charge));
 		List<CourseCharge> courseCharges = new ArrayList<>();
@@ -1027,7 +1413,7 @@ public class CheckoutComposerService {
 				order.getCurrency(), order.getBillingPeriodId(), order.getStatus(), order.getCreatedAt(),
 				order.getUpdatedAt(), quoteLines, List.copyOf(courseCharges), order.getSubtotalAmount(),
 				order.getFacilityFeeAmount(), order.getPostageAmount() == null ? ZERO : order.getPostageAmount(),
-				order.getDiscountAmount(), feeBasis, delivery, replay);
+				order.getDiscountAmount(), feeBasis, delivery, replay, List.copyOf(discounts));
 	}
 
 }

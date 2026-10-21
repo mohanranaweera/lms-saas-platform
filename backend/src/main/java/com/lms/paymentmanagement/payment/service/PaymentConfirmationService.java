@@ -9,6 +9,7 @@ import com.lms.paymentmanagement.api.PaymentConfirmationApi;
 import com.lms.paymentmanagement.api.PaymentConfirmedEvent;
 import com.lms.paymentmanagement.api.PaymentRejectedEvent;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
+import com.lms.paymentmanagement.discount.service.DiscountRedemptionService;
 import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
@@ -87,10 +88,14 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 
 	private final EntitlementGrantApi entitlementGrantApi;
 
+	private final DiscountRedemptionService discountRedemptionService;
+
 	public PaymentConfirmationService(PaymentRepository paymentRepository,
 			StudentOrderRepository studentOrderRepository, LedgerEntryApi ledgerEntryApi,
 			EnrollmentActivationApi enrollmentActivationApi, ApplicationEventPublisher eventPublisher,
-			StudentOrderLineRepository studentOrderLineRepository, EntitlementGrantApi entitlementGrantApi) {
+			StudentOrderLineRepository studentOrderLineRepository, EntitlementGrantApi entitlementGrantApi,
+			DiscountRedemptionService discountRedemptionService) {
+		this.discountRedemptionService = discountRedemptionService;
 		this.studentOrderLineRepository = studentOrderLineRepository;
 		this.entitlementGrantApi = entitlementGrantApi;
 		this.paymentRepository = paymentRepository;
@@ -133,6 +138,9 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 				// course-wide enrollment; line-less orders keep the existing path.
 				if (studentOrderLineRepository.existsByOrderId(order.getId())) {
 					entitlementGrantApi.grantForConfirmedPayment(payment.getId(), order.getId());
+					// DISC-01 (D12): the order's discount uses become CONSUMED in
+					// this same transaction (idempotent; no-op without discounts).
+					discountRedemptionService.consume(order.getId());
 				}
 				else {
 					// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
@@ -188,6 +196,8 @@ public class PaymentConfirmationService implements PaymentConfirmationApi {
 			else {
 				payment.reject();
 				paymentRepository.save(payment);
+				// DISC-01 (D12): the order's discount hold lapses 48h from now.
+				discountRedemptionService.restartHold(order.getId());
 				eventPublisher.publishEvent(new PaymentRejectedEvent(payment.getTenantId(), payment.getId(),
 						order.getId(), previousStatus, PaymentStatus.REJECTED, Instant.now(), order.getStudentId(),
 						payment.getAmount(), payment.getCurrency()));

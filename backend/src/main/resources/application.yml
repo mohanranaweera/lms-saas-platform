@@ -307,6 +307,14 @@ app:
       # upload paths are differently scoped and nothing ties their limits
       # together as a matter of ratified business decision.
       max-file-size-bytes: 26214400
+  # DISC-01 hardening (owner decisions 2026-10-21): per (tenant, student)
+  # limit on discount-code attempts that resolve to INVALID (quote + order),
+  # and how long a discount hold stays counted after a gateway payment starts.
+  discount:
+    code-attempts:
+      max-invalid: ${DISCOUNT_CODE_MAX_INVALID_ATTEMPTS:10}
+      window: ${DISCOUNT_CODE_ATTEMPT_WINDOW:15m}
+    gateway-hold-ttl: ${DISCOUNT_GATEWAY_HOLD_TTL:48h}
   finance:
     expense:
       # Wave 7 working default for expense receipt uploads (PDF/PNG/JPEG) -

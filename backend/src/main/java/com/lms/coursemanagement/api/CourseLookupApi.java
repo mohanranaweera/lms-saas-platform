@@ -179,4 +179,12 @@ public interface CourseLookupApi {
 	 */
 	Map<UUID, List<CourseTagRef>> findTagsByCourseIds(Set<UUID> courseIds);
 
+	/**
+	 * DISC-01: every course of the caller's tenant (archived included, flagged)
+	 * with its current display price, ordered by name. Tenant-scoped through
+	 * the resolved {@link com.lms.common.tenant.TenantContext} like every other
+	 * method here; never another tenant's course.
+	 */
+	List<CoursePriceOption> findCoursePriceOptions();
+
 }

@@ -7,6 +7,7 @@ import com.lms.coursemanagement.api.ModulePriceInfo;
 import com.lms.coursemanagement.api.CourseAccessWindow;
 import com.lms.coursemanagement.api.CourseBillingNotConfiguredException;
 import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.coursemanagement.api.CoursePriceOption;
 import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.coursemanagement.api.LessonOwnership;
 import com.lms.coursemanagement.course.domain.Course;
@@ -241,6 +242,37 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 					periodId, tenantConfigApi.resolveDefaultCurrency(course.getTenantId()),
 					course.getFacilityFeeOverride(), course.getPostageFee());
 		});
+	}
+
+	@Override
+	public List<CoursePriceOption> findCoursePriceOptions() {
+		String tenantCurrency = null;
+		List<CoursePriceOption> options = new ArrayList<>();
+		for (Course course : courseRepository.findAll()) {
+			BigDecimal price = null;
+			String currency = null;
+			if (course.getPricingModel() == CoursePricingModel.MONTHLY) {
+				Optional<CourseBillingPeriod> open = courseBillingConfigurationRepository.findByCourseId(course.getId())
+					.flatMap(configuration -> courseBillingPeriodRepository
+						.findCurrentOpenByBillingConfigurationId(configuration.getId()));
+				if (open.isPresent()) {
+					price = open.get().getAmount();
+					currency = open.get().getCurrency();
+				}
+			}
+			else if (course.getPricingModel() == CoursePricingModel.ONE_TIME && course.getPrice() != null) {
+				if (tenantCurrency == null) {
+					tenantCurrency = tenantConfigApi.resolveDefaultCurrency(course.getTenantId());
+				}
+				price = course.getPrice();
+				currency = tenantCurrency;
+			}
+			options.add(new CoursePriceOption(course.getId(), course.getName(), course.getPricingModel().name(),
+					course.getStatus().name(), course.isArchived(), price, currency));
+		}
+		options.sort(java.util.Comparator.comparing(CoursePriceOption::name, String.CASE_INSENSITIVE_ORDER)
+			.thenComparing(CoursePriceOption::courseId));
+		return List.copyOf(options);
 	}
 
 	@Override

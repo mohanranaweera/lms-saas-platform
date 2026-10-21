@@ -18,6 +18,7 @@ import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.enrollmentmanagement.api.EntitlementGrantApi;
+import com.lms.paymentmanagement.discount.service.DiscountRedemptionService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.domain.StudentOrderLine;
 import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
@@ -121,6 +122,8 @@ public class SlipReviewService {
 
 	private final CourseLookupApi courseLookupApi;
 
+	private final DiscountRedemptionService discountRedemptionService;
+
 	public SlipReviewService(PaymentSlipRepository paymentSlipRepository,
 			PaymentSlipFlagRepository paymentSlipFlagRepository, StudentOrderRepository studentOrderRepository,
 			ObjectStorageApi slipStorageApi, PaymentDomainAccessGuard accessGuard,
@@ -128,8 +131,9 @@ public class SlipReviewService {
 			PermissionCheckService permissionCheckService, UserProvisioningApi userProvisioningApi,
 			TenantContext tenantContext, PaymentRepository paymentRepository, LedgerEntryApi ledgerEntryApi,
 			StudentOrderLineRepository studentOrderLineRepository, EntitlementGrantApi entitlementGrantApi,
-			CourseLookupApi courseLookupApi) {
+			CourseLookupApi courseLookupApi, DiscountRedemptionService discountRedemptionService) {
 		this.courseLookupApi = courseLookupApi;
+		this.discountRedemptionService = discountRedemptionService;
 		this.studentOrderLineRepository = studentOrderLineRepository;
 		this.entitlementGrantApi = entitlementGrantApi;
 		this.paymentSlipRepository = paymentSlipRepository;
@@ -280,6 +284,9 @@ public class SlipReviewService {
 		// order keeps the existing enrollment activation unchanged.
 		if (studentOrderLineRepository.existsByOrderId(order.getId())) {
 			entitlementGrantApi.grantForApprovedSlip(slip.getId(), order.getId(), payment.getId());
+			// DISC-01 (D12): the order's discount uses become CONSUMED in this
+			// same transaction (idempotent; no-op without discounts).
+			discountRedemptionService.consume(order.getId());
 		}
 		else {
 			// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
@@ -351,6 +358,8 @@ public class SlipReviewService {
 		Instant reviewedAt = Instant.now();
 		slip.reject(principal.userId(), reviewedAt);
 		slip = paymentSlipRepository.save(slip);
+		// DISC-01 (D12): the order's discount hold lapses 48h from now.
+		discountRedemptionService.restartHold(slip.getOrderId());
 
 		auditLogApi.record(new AuditLogEntry(principal.userId(), "payment_slip.rejected", TARGET_ENTITY, slip.getId(),
 				reason, null));

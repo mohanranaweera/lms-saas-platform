@@ -165,7 +165,10 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// TEN-DOM-01 / ADR-021 - only the Tenant Admin manages custom domains.
 			.grant(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
 			// Wave 11 (decision D2) - broadcasts, templates, delivery logs.
-			.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)));
+			.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+			// DISC-01 (owner decision 2026-10-21) - only the Tenant Admin
+			// creates / edits / toggles / archives discount rules.
+			.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
 			.grant(DomainArea.COURSES, PermissionAction.VIEW)
@@ -180,7 +183,9 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// "V (own-area actions)"
 			.grant(DomainArea.AUDIT_LOG, PermissionAction.VIEW)
 			// PAY-GW-01 - status only (enabled/mode), never the secret.
-			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)));
+			.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)
+			// DISC-01 - view rules (codes masked), never edit them.
+			.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW)));
 
 		matrix.put(Role.COURSE_COORDINATOR,
 				roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
@@ -211,7 +216,9 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 					.grant(DomainArea.SUPPORT_TICKETS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
 					// Wave 11 (decision D2) - Student Support sends broadcasts
 					// and manages broadcast templates.
-					.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)));
+					.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
+					// DISC-01 - view rules (codes masked), never edit them.
+					.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW)));
 
 		matrix.put(Role.CONTENT_MANAGER,
 				roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
@@ -251,7 +258,8 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 					.grant(DomainArea.PAYMENT_GATEWAY, PermissionAction.VIEW)
 					.grant(DomainArea.INTEGRATIONS, PermissionAction.VIEW)
 					.grant(DomainArea.CUSTOM_DOMAINS, PermissionAction.VIEW)
-					.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW)));
+					.grant(DomainArea.COMMUNICATIONS, PermissionAction.VIEW)
+					.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW)));
 
 		return Map.copyOf(matrix);
 	}

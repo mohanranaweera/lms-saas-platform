@@ -1,6 +1,7 @@
 package com.lms.paymentmanagement.slip.service;
 
 import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
+import com.lms.paymentmanagement.discount.service.DiscountRedemptionService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
@@ -33,7 +34,8 @@ public class SlipWriteService {
 
 	@Transactional
 	public PaymentSlip saveNewSlip(StudentOrder order, PaymentSlip slip) {
-		checkoutComposerService.lockAndRequireNewLineOrderEvidenceAllowed(order);
+		checkoutComposerService.lockAndRequireNewLineOrderEvidenceAllowed(order,
+				DiscountRedemptionService.EvidenceKind.SLIP);
 		return paymentSlipRepository.saveAndFlush(slip);
 	}
 

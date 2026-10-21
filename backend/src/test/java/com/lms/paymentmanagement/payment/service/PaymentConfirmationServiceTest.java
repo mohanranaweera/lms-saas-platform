@@ -70,12 +70,16 @@ class PaymentConfirmationServiceTest {
 	@Mock
 	private EntitlementGrantApi entitlementGrantApi;
 
+	@Mock
+	private com.lms.paymentmanagement.discount.service.DiscountRedemptionService discountRedemptionService;
+
 	private PaymentConfirmationService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new PaymentConfirmationService(paymentRepository, studentOrderRepository, ledgerEntryApi,
-				enrollmentActivationApi, eventPublisher, studentOrderLineRepository, entitlementGrantApi);
+				enrollmentActivationApi, eventPublisher, studentOrderLineRepository, entitlementGrantApi,
+				discountRedemptionService);
 	}
 
 	@AfterEach

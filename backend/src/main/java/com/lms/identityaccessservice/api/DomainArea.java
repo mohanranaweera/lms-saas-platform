@@ -97,6 +97,16 @@ public enum DomainArea {
 	 * in {@code notification-management}, not a flat grant here. Messaging
 	 * provider credentials stay under {@link #INTEGRATIONS}.
 	 */
-	COMMUNICATIONS
+	COMMUNICATIONS,
+
+	/**
+	 * DISC-01 (owner decision 2026-10-21): tenant discount rules (Advance
+	 * Payment, Bundle Amount Off, Bundle Free Course, Discount Code). Tenant
+	 * Admin {@code V/C/E}; Finance Staff, Student Support and Read-only
+	 * Auditor {@code V} only (the roles that view {@link #PAYMENTS_SLIPS}).
+	 * A {@code VIEW}-only caller sees discount codes masked. Never a
+	 * payment/ledger mutation grant ({@code .claude/rules/payments.md} §8).
+	 */
+	DISCOUNTS
 
 }

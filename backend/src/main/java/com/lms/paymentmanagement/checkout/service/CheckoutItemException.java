@@ -49,6 +49,9 @@ public class CheckoutItemException extends ApplicationException {
 	/** V90: 409 - the server re-quote differs from the client's quote; see {@link QuoteChangedException}. */
 	public static final String QUOTE_CHANGED = "QUOTE_CHANGED";
 
+	/** DISC-01 (D3): 422 - the discounted order total would be 0; such an order is never placed. */
+	public static final String ORDER_TOTAL_ZERO = "ORDER_TOTAL_ZERO";
+
 	public CheckoutItemException(String errorCode, String message) {
 		this(HttpStatus.UNPROCESSABLE_CONTENT, errorCode, message);
 	}

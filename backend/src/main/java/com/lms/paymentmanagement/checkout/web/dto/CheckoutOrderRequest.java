@@ -12,10 +12,17 @@ import java.util.UUID;
  * QUOTE_REQUIRED} without it, 409 {@code QUOTE_CHANGED} when the server
  * re-quote differs) + {@code idempotencyKey} (optional client-generated
  * dedup key scoped to (tenant, student) - never an identity signal). The
- * server re-quotes; any client total is ignored.
+ * server re-quotes; any client total is ignored. DISC-01: {@code
+ * discountCode} / {@code acceptedRewardRuleIds} exactly as quoted.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CheckoutOrderRequest(UUID courseId, @Valid @Size(max = 100) List<CheckoutItemRequest> items,
-		@Size(max = 20) List<UUID> postageCourseIds, @Size(max = 128) String quoteToken, UUID idempotencyKey) {
+		@Size(max = 20) List<UUID> postageCourseIds, @Size(max = 128) String quoteToken, UUID idempotencyKey,
+		@Size(max = 40) String discountCode, @Size(max = 10) List<UUID> acceptedRewardRuleIds) {
+
+	public CheckoutOrderRequest(UUID courseId, List<CheckoutItemRequest> items, List<UUID> postageCourseIds,
+			String quoteToken, UUID idempotencyKey) {
+		this(courseId, items, postageCourseIds, quoteToken, idempotencyKey, null, null);
+	}
 
 }
