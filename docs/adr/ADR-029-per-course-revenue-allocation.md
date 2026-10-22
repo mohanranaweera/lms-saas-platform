@@ -68,3 +68,23 @@ The institute absorbs the discount; it is never charged to a course outside the 
 to. Allocations remain reproducible from the immutable order-line and `student_order_discount`
 snapshots, so editing or archiving a discount rule never changes a historical share. Covered by
 `DiscountHardeningIntegrationTest.settlementSharesFollowTheNetLineTotalOfDiscountedAndRewardLines`.
+
+## Addendum A2: Facility fees are institute-only (accepted 2026-10-22)
+
+Accepted by the project owner while defining the Teacher Income Summary report
+(`docs/specs/teacher-income-summary-report.md` §2-R), resolving open item **O-1**:
+
+> "facility fees + postage are institute-only for settlement. Do not put facility fees + Postage
+> INSIDE each course's share. Service fees = facility fee + postage is for institute charge."
+
+- A course's share of a line order becomes Σ over that course's lines of
+  `line_total − facility_fee_amount` (i.e. unit − discount). This covers PER_LINE, PER_COURSE and the
+  PER_ORDER facility fee (which the composer stores on line 1). Postage stays excluded (decision 2).
+- Facility fees + postage are reported as institute **service fees** = ledger entry amount − Σ course
+  allocations (signed; refunds keep following decision 3 pro rata, so fees are reduced proportionally).
+- Applies to every consumer of the allocation: settlement runs created after this change, the course
+  payment summary and course audiences. Legacy line-less orders are unchanged (no fee snapshot).
+- Decision 6 still holds: settlement items already stored are never recomputed; a teacher's already
+  settled share keeps whatever basis it was settled on. The report surfaces such differences as
+  `settledBasisDifference`.
+- Ledger entry types, one `PAYMENT_CONFIRMED` per payment, and ADR-028 activation are unchanged.
