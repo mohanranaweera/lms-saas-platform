@@ -2,8 +2,13 @@ package com.lms.coursemanagement.course.repository;
 
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.coursemanagement.course.domain.CourseLesson;
+import jakarta.persistence.criteria.Predicate;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;
 
@@ -52,6 +57,29 @@ public interface CourseLessonRepository extends TenantAwareRepository<CourseLess
 		}
 		return findAll((root, query, cb) -> root.get("moduleId").in(moduleIds),
 				Sort.by(Sort.Direction.ASC, "moduleId").and(Sort.by(Sort.Direction.ASC, "sequence")));
+	}
+
+	/** RPT-01: lessons by id (tenant-scoped; unknown / foreign ids are absent). */
+	default List<CourseLesson> findAllByIdIn(Collection<UUID> ids) {
+		if (ids.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("id").in(ids));
+	}
+
+	/** RPT-01: lessons whose billing month is one of {@code months} (callers cap the set at 36). */
+	default List<CourseLesson> findByBillingMonths(Set<YearMonth> months) {
+		if (months.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> {
+			List<Predicate> anyMonth = new ArrayList<>();
+			for (YearMonth month : months) {
+				anyMonth.add(cb.and(cb.equal(root.get("billingYear"), (short) month.getYear()),
+						cb.equal(root.get("billingMonth"), (short) month.getMonthValue())));
+			}
+			return cb.or(anyMonth.toArray(Predicate[]::new));
+		});
 	}
 
 }

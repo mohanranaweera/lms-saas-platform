@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RPT-01 Teacher Income Summary (spec section 1.2 layout). Application-owned template:
+  no scriptlets, no SQL, no arithmetic - every figure is precomputed from the stored
+  report run and only displayed/formatted here (amount patterns come from the data).
+-->
+<jasperReport name="teacher-income-summary" pageWidth="595" pageHeight="842" columnWidth="539"
+		leftMargin="28" rightMargin="28" topMargin="24" bottomMargin="24"
+		whenNoDataType="AllSectionsNoDetail">
+	<property name="net.sf.jasperreports.export.pdf.glyph.renderer.blocks.lms" value="sinhala,tamil"/>
+	<style name="Base" default="true" fontName="LMS Sans" fontSize="9.0" forecolor="#1F2937"/>
+	<style name="Muted" fontName="LMS Sans" fontSize="8.0" forecolor="#6B7280"/>
+	<style name="CardLabel" fontName="LMS Sans" fontSize="7.0" forecolor="#6B7280" bold="true"/>
+	<style name="CardValue" fontName="LMS Sans" fontSize="12.0" forecolor="#111827" bold="true"/>
+	<style name="ColHeader" fontName="LMS Sans" fontSize="7.5" forecolor="#374151" bold="true"/>
+	<parameter name="INSTITUTE" class="java.lang.String"/>
+	<parameter name="FILTER_LINE" class="java.lang.String"/>
+	<parameter name="GENERATED_LINE" class="java.lang.String"/>
+	<parameter name="FOOTER_TEXT" class="java.lang.String"/>
+	<parameter name="GENERATED_AT" class="java.lang.String"/>
+	<parameter name="TIMEZONE" class="java.lang.String"/>
+	<parameter name="NOTES" class="java.lang.String"/>
+	<parameter name="EMPTY" class="java.lang.Boolean"/>
+	<field name="sectionKey" class="java.lang.String"/>
+	<field name="currency" class="java.lang.String"/>
+	<field name="amountPattern" class="java.lang.String"/>
+	<field name="sectionRevenue" class="java.math.BigDecimal"/>
+	<field name="sectionTeacherIncome" class="java.math.BigDecimal"/>
+	<field name="sectionCommission" class="java.math.BigDecimal"/>
+	<field name="sectionTeacherCount" class="java.lang.Integer"/>
+	<field name="sectionServiceFees" class="java.math.BigDecimal"/>
+	<field name="teacherKey" class="java.lang.String"/>
+	<field name="teacherName" class="java.lang.String"/>
+	<field name="teacherIncome" class="java.math.BigDecimal"/>
+	<field name="teacherPayouts" class="java.math.BigDecimal"/>
+	<field name="teacherBalance" class="java.math.BigDecimal"/>
+	<field name="hasCourse" class="java.lang.Boolean"/>
+	<field name="courseName" class="java.lang.String"/>
+	<field name="paymentCount" class="java.lang.Long"/>
+	<field name="revenue" class="java.math.BigDecimal"/>
+	<field name="courseTeacherIncome" class="java.math.BigDecimal"/>
+	<field name="commission" class="java.math.BigDecimal"/>
+	<field name="rateNote" class="java.lang.String"/>
+	<group name="section" minHeightToStartNewPage="140">
+		<expression><![CDATA[$F{sectionKey}]]></expression>
+		<groupHeader>
+			<band height="104">
+				<element kind="textField" x="0" y="6" width="539" height="16" fontSize="11.0" bold="true">
+					<expression><![CDATA["Currency: " + $F{currency}]]></expression>
+				</element>
+				<element kind="frame" x="0" y="26" width="128" height="52" backcolor="#F9FAFB" mode="Opaque">
+					<box>
+						<leftPen lineWidth="3.0" lineColor="#2563EB"/>
+					</box>
+					<element kind="staticText" x="10" y="8" width="112" height="12" style="CardLabel">
+						<text><![CDATA[TOTAL REVENUE]]></text>
+					</element>
+					<element kind="textField" x="10" y="24" width="112" height="20" style="CardValue" textAdjust="ScaleFont">
+						<expression><![CDATA[$F{sectionRevenue}]]></expression>
+						<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+					</element>
+				</element>
+				<element kind="frame" x="137" y="26" width="128" height="52" backcolor="#F9FAFB" mode="Opaque">
+					<box>
+						<leftPen lineWidth="3.0" lineColor="#16A34A"/>
+					</box>
+					<element kind="staticText" x="10" y="8" width="112" height="12" style="CardLabel">
+						<text><![CDATA[TEACHER SHARE (EARNED)]]></text>
+					</element>
+					<element kind="textField" x="10" y="24" width="112" height="20" style="CardValue" textAdjust="ScaleFont">
+						<expression><![CDATA[$F{sectionTeacherIncome}]]></expression>
+						<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+					</element>
+				</element>
+				<element kind="frame" x="274" y="26" width="128" height="52" backcolor="#F9FAFB" mode="Opaque">
+					<box>
+						<leftPen lineWidth="3.0" lineColor="#F59E0B"/>
+					</box>
+					<element kind="staticText" x="10" y="8" width="112" height="12" style="CardLabel">
+						<text><![CDATA[INSTITUTE COMMISSION]]></text>
+					</element>
+					<element kind="textField" x="10" y="24" width="112" height="20" style="CardValue" textAdjust="ScaleFont">
+						<expression><![CDATA[$F{sectionCommission}]]></expression>
+						<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+					</element>
+				</element>
+				<element kind="frame" x="411" y="26" width="128" height="52" backcolor="#F9FAFB" mode="Opaque">
+					<box>
+						<leftPen lineWidth="3.0" lineColor="#7C3AED"/>
+					</box>
+					<element kind="staticText" x="10" y="8" width="112" height="12" style="CardLabel">
+						<text><![CDATA[TOTAL TEACHERS]]></text>
+					</element>
+					<element kind="textField" x="10" y="24" width="112" height="20" style="CardValue" pattern="#,##0">
+						<expression><![CDATA[$F{sectionTeacherCount}]]></expression>
+					</element>
+				</element>
+				<element kind="staticText" x="0" y="84" width="262" height="14" style="Muted">
+					<text><![CDATA[Service fees collected (institute only, not in the figures above):]]></text>
+				</element>
+				<element kind="textField" x="262" y="84" width="277" height="14" style="Muted" bold="true">
+					<expression><![CDATA[$F{sectionServiceFees}]]></expression>
+					<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+				</element>
+			</band>
+		</groupHeader>
+	</group>
+	<group name="teacher" minHeightToStartNewPage="90">
+		<expression><![CDATA[$F{teacherKey}]]></expression>
+		<groupHeader>
+			<band height="58">
+				<element kind="frame" x="0" y="8" width="539" height="46" backcolor="#F3F4F6" mode="Opaque">
+					<element kind="textField" x="8" y="4" width="523" height="16" fontSize="11.0" bold="true" textAdjust="StretchHeight">
+						<expression><![CDATA[$F{teacherName}]]></expression>
+					</element>
+					<element kind="staticText" x="8" y="24" width="58" height="16" style="Muted" vTextAlign="Middle">
+						<text><![CDATA[Total Income]]></text>
+					</element>
+					<element kind="textField" x="66" y="24" width="78" height="16" bold="true" vTextAlign="Middle" textAdjust="ScaleFont">
+						<expression><![CDATA[$F{teacherIncome}]]></expression>
+						<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+					</element>
+					<element kind="staticText" x="146" y="24" width="38" height="16" style="Muted" vTextAlign="Middle">
+						<text><![CDATA[Payouts]]></text>
+					</element>
+					<element kind="textField" x="184" y="24" width="80" height="16" forecolor="#DC2626" bold="true" vTextAlign="Middle" textAdjust="ScaleFont">
+						<expression><![CDATA[$F{teacherPayouts}]]></expression>
+						<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+					</element>
+					<element kind="staticText" x="272" y="24" width="34" height="16" style="Muted" vTextAlign="Middle">
+						<text><![CDATA[Payins]]></text>
+					</element>
+					<element kind="staticText" x="306" y="24" width="72" height="16" forecolor="#6B7280" vTextAlign="Middle">
+						<text><![CDATA[Not tracked]]></text>
+					</element>
+					<element kind="staticText" x="386" y="24" width="40" height="16" style="Muted" vTextAlign="Middle">
+						<text><![CDATA[Balance]]></text>
+					</element>
+					<element kind="textField" x="426" y="24" width="105" height="16" forecolor="#2563EB" bold="true" vTextAlign="Middle" textAdjust="ScaleFont">
+						<expression><![CDATA[$F{teacherBalance}]]></expression>
+						<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+					</element>
+				</element>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="10"/>
+		</groupFooter>
+	</group>
+	<group name="courseTable" reprintHeaderOnEachPage="true">
+		<expression><![CDATA[$F{teacherKey}]]></expression>
+		<groupHeader>
+			<band height="20">
+				<printWhenExpression><![CDATA[$F{hasCourse}]]></printWhenExpression>
+				<element kind="frame" x="0" y="2" width="539" height="18" backcolor="#E5E7EB" mode="Opaque">
+					<element kind="staticText" x="6" y="0" width="218" height="18" style="ColHeader" vTextAlign="Middle">
+						<text><![CDATA[COURSE]]></text>
+					</element>
+					<element kind="staticText" x="224" y="0" width="60" height="18" style="ColHeader" hTextAlign="Center" vTextAlign="Middle">
+						<text><![CDATA[NO. PAYMENTS]]></text>
+					</element>
+					<element kind="textField" x="284" y="0" width="85" height="18" style="ColHeader" hTextAlign="Right" vTextAlign="Middle">
+						<expression><![CDATA["TOTAL (" + $F{currency} + ")"]]></expression>
+					</element>
+					<element kind="textField" x="369" y="0" width="85" height="18" style="ColHeader" hTextAlign="Right" vTextAlign="Middle">
+						<expression><![CDATA["TEACHER (" + $F{currency} + ")"]]></expression>
+					</element>
+					<element kind="textField" x="454" y="0" width="80" height="18" style="ColHeader" hTextAlign="Right" vTextAlign="Middle">
+						<expression><![CDATA["COMMISSION (" + $F{currency} + ")"]]></expression>
+					</element>
+				</element>
+			</band>
+		</groupHeader>
+	</group>
+	<title height="94">
+		<element kind="rectangle" x="0" y="0" width="539" height="54" backcolor="#1F2937" mode="Opaque">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" x="14" y="6" width="511" height="24" forecolor="#FFFFFF" fontSize="16.0" bold="true" vTextAlign="Middle">
+			<text><![CDATA[Teacher Income Summary Report]]></text>
+		</element>
+		<element kind="textField" x="14" y="30" width="511" height="18" forecolor="#D1D5DB" fontSize="10.0" vTextAlign="Middle" textAdjust="ScaleFont">
+			<expression><![CDATA[$P{INSTITUTE}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="60" width="539" height="14" style="Muted" textAdjust="StretchHeight">
+			<expression><![CDATA[$P{FILTER_LINE}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="76" width="539" height="14" style="Muted" positionType="Float">
+			<expression><![CDATA[$P{GENERATED_LINE}]]></expression>
+		</element>
+	</title>
+	<detail>
+		<band height="18" splitType="Prevent">
+			<printWhenExpression><![CDATA[$F{hasCourse}]]></printWhenExpression>
+			<element kind="frame" x="0" y="0" width="539" height="18" stretchType="ContainerHeight">
+				<box>
+					<bottomPen lineWidth="0.5" lineColor="#E5E7EB"/>
+				</box>
+				<element kind="textField" x="6" y="0" width="218" height="18" vTextAlign="Middle" textAdjust="StretchHeight">
+					<box topPadding="2" bottomPadding="2"/>
+					<expression><![CDATA[$F{courseName}]]></expression>
+				</element>
+				<element kind="textField" x="224" y="0" width="60" height="18" hTextAlign="Center" vTextAlign="Middle" pattern="#,##0" stretchType="ContainerHeight">
+					<expression><![CDATA[$F{paymentCount}]]></expression>
+				</element>
+				<element kind="textField" x="284" y="0" width="85" height="18" hTextAlign="Right" vTextAlign="Middle" textAdjust="ScaleFont" stretchType="ContainerHeight">
+					<expression><![CDATA[$F{revenue}]]></expression>
+					<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+				</element>
+				<element kind="textField" x="369" y="0" width="85" height="18" hTextAlign="Right" vTextAlign="Middle" textAdjust="ScaleFont" blankWhenNull="true" stretchType="ContainerHeight">
+					<expression><![CDATA[$F{courseTeacherIncome}]]></expression>
+					<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+				</element>
+				<element kind="textField" x="454" y="0" width="80" height="18" hTextAlign="Right" vTextAlign="Middle" textAdjust="ScaleFont" blankWhenNull="true" stretchType="ContainerHeight">
+					<expression><![CDATA[$F{commission}]]></expression>
+					<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+				</element>
+				<element kind="staticText" x="369" y="0" width="85" height="18" forecolor="#6B7280" hTextAlign="Right" vTextAlign="Middle" stretchType="ContainerHeight">
+					<printWhenExpression><![CDATA[$F{courseTeacherIncome} == null]]></printWhenExpression>
+					<text><![CDATA[—]]></text>
+				</element>
+				<element kind="staticText" x="454" y="0" width="80" height="18" forecolor="#6B7280" hTextAlign="Right" vTextAlign="Middle" stretchType="ContainerHeight">
+					<printWhenExpression><![CDATA[$F{commission} == null]]></printWhenExpression>
+					<text><![CDATA[—]]></text>
+				</element>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="22">
+		<element kind="line" x="0" y="2" width="539" height="1" forecolor="#D1D5DB"/>
+		<element kind="textField" x="0" y="6" width="420" height="14" style="Muted" textAdjust="ScaleFont">
+			<expression><![CDATA[$P{FOOTER_TEXT}]]></expression>
+		</element>
+		<element kind="textField" x="420" y="6" width="90" height="14" style="Muted" hTextAlign="Right">
+			<expression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></expression>
+		</element>
+		<element kind="textField" x="510" y="6" width="29" height="14" style="Muted" evaluationTime="Report">
+			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="44">
+		<element kind="staticText" x="0" y="6" width="539" height="16" fontSize="10.0" forecolor="#6B7280" hTextAlign="Center">
+			<printWhenExpression><![CDATA[$P{EMPTY}]]></printWhenExpression>
+			<text><![CDATA[No payments to show]]></text>
+		</element>
+		<element kind="textField" x="0" y="26" width="539" height="14" style="Muted" fontSize="7.0" textAdjust="StretchHeight" positionType="Float">
+			<expression><![CDATA["Notes:\n" + $P{NOTES}]]></expression>
+		</element>
+	</summary>
+</jasperReport>

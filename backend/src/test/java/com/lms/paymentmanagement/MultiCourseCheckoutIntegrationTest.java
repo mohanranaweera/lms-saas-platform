@@ -702,14 +702,16 @@ class MultiCourseCheckoutIntegrationTest extends SlipTestSupport {
 		}
 		assertThat(titled).isTrue();
 
-		// Postage excluded from teacher gross for a single-course order.
+		// Postage and (ADR-029 A2) the facility fee excluded from teacher gross for a
+		// single-course order: 3800 - postage 200 - fee 100 = 3500 (was 3600 before A2).
 		JsonNode feb = settleOk(fx, fx.teacher().getId(), "2025-02-01", "2025-02-28").path("settlement");
-		assertThat(feb.path("grossAmount").decimalValue()).isEqualByComparingTo("3600.00");
+		assertThat(feb.path("grossAmount").decimalValue()).isEqualByComparingTo("3500.00");
 
 		// Each teacher gets exactly their course's share of the multi-course payment.
+		// A2: A's share is unit 3500 (its 100 facility fee is institute-only; was 3600 / 1440).
 		JsonNode march1 = settleOk(fx, fx.teacher().getId(), "2025-03-01", "2025-03-31");
-		assertThat(march1.path("settlement").path("grossAmount").decimalValue()).isEqualByComparingTo("3600.00");
-		assertThat(march1.path("settlement").path("shareAmount").decimalValue()).isEqualByComparingTo("1440.00");
+		assertThat(march1.path("settlement").path("grossAmount").decimalValue()).isEqualByComparingTo("3500.00");
+		assertThat(march1.path("settlement").path("shareAmount").decimalValue()).isEqualByComparingTo("1400.00");
 		assertThat(march1.path("courses")).hasSize(1);
 		assertThat(march1.path("courses").get(0).path("courseId").asString()).isEqualTo(fx.a().toString());
 		JsonNode march2 = settleOk(fx, fx.teacher2().getId(), "2025-03-01", "2025-03-31");
@@ -736,13 +738,14 @@ class MultiCourseCheckoutIntegrationTest extends SlipTestSupport {
 		assertThat(courseReport.path("totals").path("paymentCount").asInt()).isEqualTo(1);
 		assertThat(courseReport.path("rows")).hasSize(2);
 
-		// A 10% refund (780.00) is split pro rata: A 360.00, B 400.00 (postage part 20.00 unattributed).
+		// A 10% refund (780.00) is split pro rata to the A2 shares 3500 : 4000 of 7800:
+		// A 350.00 (was 360.00), B 400.00; the fee + postage part 30.00 stays unattributed.
 		var refund = createRefund(fx.host(), fx.adminToken(), multiPayment, new BigDecimal("780.00"),
 				"Partial refund");
 		assertThat(refund.getStatusCode().is2xxSuccessful()).as(String.valueOf(refund.getBody())).isTrue();
 		backdate(multiPayment, "REFUND", "2025-04-02T09:00:00Z");
 		JsonNode april1 = settleOk(fx, fx.teacher().getId(), "2025-04-01", "2025-04-09").path("settlement");
-		assertThat(april1.path("refundAmount").decimalValue()).isEqualByComparingTo("360.00");
+		assertThat(april1.path("refundAmount").decimalValue()).isEqualByComparingTo("350.00");
 		JsonNode april2 = settleOk(fx, fx.teacher2().getId(), "2025-04-01", "2025-04-09").path("settlement");
 		assertThat(april2.path("refundAmount").decimalValue()).isEqualByComparingTo("400.00");
 		assertThat(april2.path("shareAmount").decimalValue()).isEqualByComparingTo("-200.00");

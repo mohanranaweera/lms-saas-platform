@@ -16,4 +16,9 @@ public record OrderLineSnapshot(UUID lineId, UUID orderId, UUID studentId, int l
 		UUID moduleId, UUID lessonId, Integer periodYear, Integer periodMonth, String coverageKey, String label,
 		BigDecimal unitAmount, BigDecimal facilityFee, BigDecimal lineTotal, String currency) {
 
+	/** ADR-029 A2: this line's course share ({@code line_total - facility_fee_amount}). */
+	public BigDecimal courseShare() {
+		return OrderRevenueBasis.courseShareOfLine(lineTotal, facilityFee);
+	}
+
 }

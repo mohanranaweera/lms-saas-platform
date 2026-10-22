@@ -205,9 +205,9 @@ public class LedgerQueryService {
 		Map<UUID, OrderPaymentDetail> detailsByOrderId = paymentStatusApi.findOrderPaymentDetails(orderIds)
 			.stream()
 			.collect(Collectors.toMap(OrderPaymentDetail::orderId, d -> d));
-		// ADR-029: a line order counts with THIS course's share (its line
-		// totals; postage and other courses' lines excluded); a legacy order
-		// with its full amount.
+		// ADR-029 (+ A2): a line order counts with THIS course's share (its
+		// lines' line_total - facility_fee_amount; facility fees, postage and
+		// other courses' lines excluded); a legacy order with its full amount.
 		Map<UUID, BigDecimal> courseAmountByOrderId = new HashMap<>();
 		for (OrderRevenueBasis basis : paymentStatusApi.findOrderRevenueBases(orderIds)) {
 			BigDecimal share = basis.lineOrder() ? basis.courseShares().get(courseId)

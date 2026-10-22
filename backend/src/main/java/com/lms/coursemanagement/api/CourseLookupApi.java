@@ -1,6 +1,7 @@
 package com.lms.coursemanagement.api;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -186,5 +187,16 @@ public interface CourseLookupApi {
 	 * method here; never another tenant's course.
 	 */
 	List<CoursePriceOption> findCoursePriceOptions();
+
+	/**
+	 * RPT-01: the current billing month ({@code billing_year}/{@code
+	 * billing_month}) of each lesson in {@code lessonIds} that has one, in the
+	 * caller's tenant. Lessons without a billing month, unknown and cross-tenant
+	 * ids are absent. Read-only.
+	 */
+	Map<UUID, YearMonth> findLessonBillingMonths(Set<UUID> lessonIds);
+
+	/** RPT-01: ids of the caller's tenant's lessons billed in one of {@code months}. */
+	Set<UUID> findLessonIdsInBillingMonths(Set<YearMonth> months);
 
 }

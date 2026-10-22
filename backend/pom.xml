@@ -28,6 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<jasperreports.version>7.1.0</jasperreports.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -168,6 +169,41 @@
 			<artifactId>s3</artifactId>
 			<version>2.55.4</version>
 		</dependency>
+		<dependency>
+			<!-- RPT-01: server-side PDF rendering of application-owned report
+			     templates (LGPL). Not managed by the Spring Boot BOM. -->
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports</artifactId>
+			<version>${jasperreports.version}</version>
+			<exclusions>
+				<!-- Batik is only used to render SVG images; the RPT-01 templates
+				     contain no SVG/image elements, so the SVG toolchain is not
+				     shipped (smaller attack surface). Re-add if a template ever
+				     uses SVG. -->
+				<exclusion>
+					<groupId>org.apache.xmlgraphics</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>xml-apis</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports-pdf</artifactId>
+			<version>${jasperreports.version}</version>
+		</dependency>
+		<dependency>
+			<!-- RPT-01: Jasper's optional dependency (declared optional in
+			     jasperreports 7.1.0, same version) - required by font sets to
+			     detect the Unicode script (Sinhala/Tamil/Latin) of each text run
+			     so the matching Noto family is used. Unicode License (permissive). -->
+			<groupId>com.ibm.icu</groupId>
+			<artifactId>icu4j</artifactId>
+			<version>78.2</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -175,6 +211,36 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<!-- RPT-01: precompile the application-owned Jasper templates
+				     (src/main/resources/reports/*.jrxml -> target/classes/reports/*.jasper)
+				     in a forked JVM with the project classpath, so the packaged
+				     application never needs a Java compiler at runtime (an
+				     executable jar's nested jars cannot be fed to javac). -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>precompile-report-templates</id>
+						<phase>process-classes</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>${java.home}/bin/java</executable>
+							<classpathScope>runtime</classpathScope>
+							<arguments>
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-classpath</argument>
+								<classpath/>
+								<argument>com.lms.reportinganalytics.service.pdf.ReportTemplatePrecompiler</argument>
+								<argument>${project.basedir}/src/main/resources/reports</argument>
+								<argument>${project.build.outputDirectory}/reports</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

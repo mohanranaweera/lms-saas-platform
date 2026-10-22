@@ -14,8 +14,10 @@ import java.util.UUID;
  *
  * <p>ADR-029: {@code allocations} = the per-course split of this entry
  * (legacy order: one allocation of the full amount to its course; line order:
- * each course's line-total share, refunds pro rata; postage is never
- * allocated, so allocations may sum to less than {@code amount}). {@code
+ * each course's share = sum of its lines' {@code line_total -
+ * facility_fee_amount} (ADR-029 A2), refunds pro rata; facility fees and
+ * postage are never allocated, so allocations may sum to less than {@code
+ * amount} - the difference is the institute's service fees). {@code
  * courseId} = the order's single course, {@code null} for a multi-course
  * order. Totals and counts must be computed per entry, never per allocation.
  */

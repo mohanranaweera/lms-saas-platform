@@ -1,9 +1,13 @@
 package com.lms.ledgersettlementmanagement.repository;
 
 import com.lms.common.persistence.TenantAwareRepository;
+import com.lms.ledgersettlementmanagement.api.InstantRange;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntry;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntryType;
+import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -163,6 +167,56 @@ public interface LedgerEntryRepository extends TenantAwareRepository<LedgerEntry
 	default List<LedgerEntry> findAllCreatedBetween(Instant fromInclusive, Instant toExclusive) {
 		return findAll((root, query, cb) -> cb.and(cb.greaterThanOrEqualTo(root.get("createdAt"), fromInclusive),
 				cb.lessThan(root.get("createdAt"), toExclusive)), Sort.by(Sort.Direction.ASC, "createdAt"));
+	}
+
+	/**
+	 * RPT-01: entries created in any of {@code windows} (each half-open),
+	 * oldest first. Specification-based, so the tenant predicate is structural.
+	 */
+	default List<LedgerEntry> findAllCreatedInAny(List<InstantRange> windows) {
+		if (windows.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> {
+			List<Predicate> any = new ArrayList<>();
+			for (InstantRange window : windows) {
+				any.add(cb.and(cb.greaterThanOrEqualTo(root.get("createdAt"), window.fromInclusive()),
+						cb.lessThan(root.get("createdAt"), window.toExclusive())));
+			}
+			return cb.or(any.toArray(Predicate[]::new));
+		}, Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by("id")));
+	}
+
+	/** RPT-01: number of entries created in any of {@code windows} (tenant-scoped count, no rows loaded). */
+	default long countCreatedInAny(List<InstantRange> windows) {
+		if (windows.isEmpty()) {
+			return 0;
+		}
+		return count((root, query, cb) -> {
+			List<Predicate> any = new ArrayList<>();
+			for (InstantRange window : windows) {
+				any.add(cb.and(cb.greaterThanOrEqualTo(root.get("createdAt"), window.fromInclusive()),
+						cb.lessThan(root.get("createdAt"), window.toExclusive())));
+			}
+			return cb.or(any.toArray(Predicate[]::new));
+		});
+	}
+
+	/** RPT-01: number of entries of {@code orderIds} (tenant-scoped count, no rows loaded). */
+	default long countForOrders(Collection<UUID> orderIds) {
+		if (orderIds.isEmpty()) {
+			return 0;
+		}
+		return count((root, query, cb) -> root.get("orderId").in(orderIds));
+	}
+
+	/** RPT-01: every entry of {@code orderIds} (any date), oldest first. Tenant-scoped. */
+	default List<LedgerEntry> findAllForOrdersOldestFirst(Collection<UUID> orderIds) {
+		if (orderIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("orderId").in(orderIds),
+				Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by("id")));
 	}
 
 	@Override

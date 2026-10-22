@@ -1,5 +1,6 @@
 package com.lms.paymentmanagement.api;
 
+import java.time.YearMonth;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -123,5 +124,27 @@ public interface PaymentStatusApi {
 	 * (line-less) order and for an unknown / cross-tenant order id.
 	 */
 	List<OrderLineSnapshot> findOrderLines(UUID orderId);
+
+	/**
+	 * RPT-01 batched read: the lines of every order in {@code orderIds} (unknown
+	 * / cross-tenant ids are absent), ordered by order then {@code line_no}.
+	 * Read-only; tenant from {@link com.lms.common.tenant.TenantContext}.
+	 */
+	List<OrderLineSnapshot> findOrderLinesForOrders(Collection<UUID> orderIds);
+
+	/**
+	 * RPT-01 batched read: currency / gateway reference of each payment id in
+	 * {@code paymentIds} that exists in the current tenant (others are absent).
+	 */
+	List<PaymentFact> findPaymentFacts(Collection<UUID> paymentIds);
+
+	/**
+	 * RPT-01 (spec section 3, MONTHS mode): ids of the current tenant's orders with at
+	 * least one line billed in {@code months} - a {@code MONTHLY} line whose
+	 * {@code (period_year, period_month)} is in the set, or a {@code LESSON}
+	 * line whose lesson is in {@code lessonIdsInMonths} (resolved by the caller
+	 * from {@code course-management}'s lesson billing months). Read-only.
+	 */
+	Set<UUID> findOrderIdsWithLinesInMonths(Set<YearMonth> months, Collection<UUID> lessonIdsInMonths);
 
 }

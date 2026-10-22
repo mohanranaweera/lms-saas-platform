@@ -102,6 +102,10 @@ video-playback:
     secret: "test-only-video-playback-token-secret-not-for-production-use-32bytes+"
 
 app:
+  # RPT-01: tests issue many runs per user; the 429 test lowers this at runtime.
+  reporting:
+    teacher-income:
+      runs-per-window: 1000
   # VIDEO Phase 8: fixed, clearly test-only pepper for pairing/launch-code HMACs.
   player:
     launch-code-pepper: "test-only-player-launch-code-pepper-not-for-production"

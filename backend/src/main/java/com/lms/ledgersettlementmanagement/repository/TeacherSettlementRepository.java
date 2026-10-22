@@ -1,12 +1,14 @@
 package com.lms.ledgersettlementmanagement.repository;
 
 import com.lms.common.persistence.AppendOnlyTenantAwareRepository;
+import com.lms.ledgersettlementmanagement.api.InstantRange;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlement;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementKind;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementStatus;
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -39,6 +41,25 @@ public interface TeacherSettlementRepository extends AppendOnlyTenantAwareReposi
 			}
 			return cb.and(predicates.toArray(Predicate[]::new));
 		}, pageable);
+	}
+
+	/**
+	 * RPT-01: PAID rows (REGULAR and ADJUSTMENT) of {@code teacherIds} whose
+	 * {@code paidAt} falls in any of {@code windows}. Tenant-scoped.
+	 */
+	default List<TeacherSettlement> findPaidInWindows(Collection<UUID> teacherIds, List<InstantRange> windows) {
+		if (teacherIds.isEmpty() || windows.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> {
+			List<Predicate> any = new ArrayList<>();
+			for (InstantRange window : windows) {
+				any.add(cb.and(cb.greaterThanOrEqualTo(root.get("paidAt"), window.fromInclusive()),
+						cb.lessThan(root.get("paidAt"), window.toExclusive())));
+			}
+			return cb.and(root.get("teacherId").in(teacherIds),
+					cb.equal(root.get("status"), TeacherSettlementStatus.PAID), cb.or(any.toArray(Predicate[]::new)));
+		}, Sort.by(Sort.Direction.ASC, "paidAt"));
 	}
 
 	default List<TeacherSettlement> findAdjustmentsOf(UUID settlementId) {

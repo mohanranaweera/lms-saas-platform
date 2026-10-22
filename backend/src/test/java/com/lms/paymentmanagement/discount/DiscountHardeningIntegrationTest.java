@@ -586,9 +586,11 @@ class DiscountHardeningIntegrationTest extends DiscountTestSupport {
 
 	@Test
 	void settlementSharesFollowTheNetLineTotalOfDiscountedAndRewardLines() {
-		// Documents ADR-029 behaviour for the owner's sign-off: course shares are
-		// sum(line_total) = unit + fee - discount, so a discount lowers the
-		// course's share and a free reward course's share is 0. Not changed here.
+		// Documents ADR-029 behaviour: course shares are (Addendum A2)
+		// sum(line_total - facility_fee_amount) = unit - discount, so a discount
+		// lowers the course's share and a free reward course's share is 0. This
+		// fixture has no facility fee, so the A2 change leaves these figures as
+		// they were and the shares still sum to the order amount.
 		Fx fx = seed("disc-settle");
 		createRule(fx, valueRule("Bundle", "BUNDLE_AMOUNT_OFF", List.of(fx.a(), fx.b()), "ALL", "FIXED", 300));
 		UUID free = createRule(fx, with(with(rule("Free C", "BUNDLE_FREE_COURSE", List.of(fx.a())),

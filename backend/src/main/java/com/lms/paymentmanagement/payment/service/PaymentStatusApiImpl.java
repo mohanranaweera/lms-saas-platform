@@ -3,6 +3,7 @@ package com.lms.paymentmanagement.payment.service;
 import com.lms.paymentmanagement.api.OrderLineSnapshot;
 import com.lms.paymentmanagement.api.OrderPaymentDetail;
 import com.lms.paymentmanagement.api.OrderRevenueBasis;
+import com.lms.paymentmanagement.api.PaymentFact;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.domain.StudentOrderLine;
@@ -15,6 +16,7 @@ import com.lms.common.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -170,7 +172,7 @@ public class PaymentStatusApiImpl implements PaymentStatusApi {
 		Map<UUID, Map<UUID, BigDecimal>> sharesByOrder = new HashMap<>();
 		for (StudentOrderLine line : studentOrderLineRepository.findAllByOrderIdIn(orderIds)) {
 			sharesByOrder.computeIfAbsent(line.getOrderId(), key -> new LinkedHashMap<>())
-				.merge(line.getCourseId(), line.getLineTotal(), BigDecimal::add);
+				.merge(line.getCourseId(), courseShareOf(line), BigDecimal::add);
 		}
 		List<OrderRevenueBasis> result = new ArrayList<>();
 		for (StudentOrder order : studentOrderRepository.findAllById(orderIds)) {
@@ -179,6 +181,64 @@ public class PaymentStatusApiImpl implements PaymentStatusApi {
 					Map.copyOf(shares)));
 		}
 		return result;
+	}
+
+	/** RPT-01 batch size for {@code IN} lists (well below PostgreSQL's bind-parameter limit). */
+	private static final int IN_CHUNK = 1000;
+
+	@Override
+	public List<OrderLineSnapshot> findOrderLinesForOrders(Collection<UUID> orderIds) {
+		if (orderIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(orderIds));
+		List<OrderLineSnapshot> result = new ArrayList<>();
+		for (int from = 0; from < ids.size(); from += IN_CHUNK) {
+			List<UUID> chunk = ids.subList(from, Math.min(ids.size(), from + IN_CHUNK));
+			Map<UUID, UUID> studentByOrder = new HashMap<>();
+			studentOrderRepository.findAllById(chunk)
+				.forEach(order -> studentByOrder.put(order.getId(), order.getStudentId()));
+			for (StudentOrderLine line : studentOrderLineRepository.findAllByOrderIdIn(chunk)) {
+				result.add(toSnapshot(line, studentByOrder.get(line.getOrderId())));
+			}
+		}
+		result.sort(java.util.Comparator.comparing(OrderLineSnapshot::orderId)
+			.thenComparingInt(OrderLineSnapshot::lineNo));
+		return result;
+	}
+
+	@Override
+	public List<PaymentFact> findPaymentFacts(Collection<UUID> paymentIds) {
+		if (paymentIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(paymentIds));
+		List<PaymentFact> result = new ArrayList<>();
+		for (int from = 0; from < ids.size(); from += IN_CHUNK) {
+			for (Payment payment : paymentRepository.findAllById(ids.subList(from, Math.min(ids.size(), from + IN_CHUNK)))) {
+				result.add(new PaymentFact(payment.getId(), payment.getOrderId(), payment.getCurrency(),
+						payment.getGatewayReference()));
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public Set<UUID> findOrderIdsWithLinesInMonths(Set<YearMonth> months, Collection<UUID> lessonIdsInMonths) {
+		Set<UUID> orderIds = new LinkedHashSet<>();
+		studentOrderLineRepository.findMonthlyLinesInMonths(months).forEach(line -> orderIds.add(line.getOrderId()));
+		List<UUID> lessons = List.copyOf(new LinkedHashSet<>(lessonIdsInMonths));
+		for (int from = 0; from < lessons.size(); from += IN_CHUNK) {
+			studentOrderLineRepository
+				.findLessonLinesForLessons(lessons.subList(from, Math.min(lessons.size(), from + IN_CHUNK)))
+				.forEach(line -> orderIds.add(line.getOrderId()));
+		}
+		return orderIds;
+	}
+
+	/** ADR-029 A2: see {@link OrderRevenueBasis#courseShareOfLine}. */
+	private static BigDecimal courseShareOf(StudentOrderLine line) {
+		return OrderRevenueBasis.courseShareOfLine(line.getLineTotal(), line.getFacilityFeeAmount());
 	}
 
 	/**

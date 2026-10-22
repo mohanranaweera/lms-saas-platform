@@ -119,7 +119,8 @@ public class LedgerViewEnrichmentService {
 		}).toList();
 	}
 
-	private static PaymentMethod deriveMethod(String gatewayReference) {
+	/** The single derivation of a payment's method from its reference prefix (also used by RPT-01). */
+	static PaymentMethod deriveMethod(String gatewayReference) {
 		if (gatewayReference == null) {
 			return null;
 		}

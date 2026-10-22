@@ -28,7 +28,10 @@ import com.lms.coursemanagement.course.repository.CourseTagAssignmentRepository;
 import com.lms.coursemanagement.api.CourseTagRef;
 import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -306,6 +309,28 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 			.map(module -> new ModulePriceInfo(module.getId(), module.getCourseId(), module.getTitle(),
 					module.getSequence(), module.getPrice()))
 			.toList();
+	}
+
+	@Override
+	public Map<UUID, YearMonth> findLessonBillingMonths(Set<UUID> lessonIds) {
+		Map<UUID, YearMonth> result = new HashMap<>();
+		List<UUID> ids = List.copyOf(lessonIds);
+		for (int from = 0; from < ids.size(); from += 1000) {
+			for (CourseLesson lesson : courseLessonRepository.findAllByIdIn(ids.subList(from,
+					Math.min(ids.size(), from + 1000)))) {
+				if (lesson.getBillingYear() != null && lesson.getBillingMonth() != null) {
+					result.put(lesson.getId(), YearMonth.of(lesson.getBillingYear(), lesson.getBillingMonth()));
+				}
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public Set<UUID> findLessonIdsInBillingMonths(Set<YearMonth> months) {
+		Set<UUID> result = new HashSet<>();
+		courseLessonRepository.findByBillingMonths(months).forEach(lesson -> result.add(lesson.getId()));
+		return result;
 	}
 
 }

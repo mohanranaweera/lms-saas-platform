@@ -315,6 +315,14 @@ app:
       max-invalid: ${DISCOUNT_CODE_MAX_INVALID_ATTEMPTS:10}
       window: ${DISCOUNT_CODE_ATTEMPT_WINDOW:15m}
     gateway-hold-ttl: ${DISCOUNT_GATEWAY_HOLD_TTL:48h}
+  # RPT-01 Teacher Income Summary resource bounds (see TeacherIncomeReportProperties).
+  reporting:
+    teacher-income:
+      max-ledger-entries: ${REPORT_TEACHER_INCOME_MAX_LEDGER_ENTRIES:50000}
+      max-course-rows: ${REPORT_TEACHER_INCOME_MAX_COURSE_ROWS:5000}
+      max-run-bytes: ${REPORT_TEACHER_INCOME_MAX_RUN_BYTES:2097152}
+      runs-per-window: ${REPORT_TEACHER_INCOME_RUNS_PER_WINDOW:10}
+      run-window: ${REPORT_TEACHER_INCOME_RUN_WINDOW:1m}
   finance:
     expense:
       # Wave 7 working default for expense receipt uploads (PDF/PNG/JPEG) -

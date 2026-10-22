@@ -18,9 +18,10 @@ import java.util.UUID;
  * <li>Legacy order: the whole amount to {@code order.course_id}.</li>
  * <li>Line order: each course gets {@code amount x share / orderAmount}
  * (2 dp, HALF_UP). For a confirmed payment ({@code amount = orderAmount})
- * that is exactly the course's line-total share; a refund/chargeback is split
- * pro rata to the same shares. The postage part of the amount is never
- * allocated. The attributable total is {@code amount x sum(shares) /
+ * that is exactly the course's share (ADR-029 A2: sum of its lines'
+ * {@code line_total - facility_fee_amount}); a refund/chargeback is split
+ * pro rata to the same shares. The facility-fee and postage part of the
+ * amount is never allocated (institute service fees). The attributable total is {@code amount x sum(shares) /
  * orderAmount} (2 dp, HALF_UP); the rounding remainder goes to the largest
  * share (ties: lowest course id), so allocations sum exactly to it.</li>
  * </ul>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RPT-01 report fonts (Jasper font extension). Sources (official notofonts GitHub releases,
+  SIL Open Font License 1.1 - OFL.txt, OFL-NotoSansSinhala.txt, OFL-NotoSansTamil.txt):
+    Noto Sans          NotoSans-v2.015         https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip
+    Noto Sans Sinhala  NotoSansSinhala-v3.000  https://github.com/notofonts/sinhala/releases/download/NotoSansSinhala-v3.000/NotoSansSinhala-v3.000.zip
+    Noto Sans Tamil    NotoSansTamil-v2.004    https://github.com/notofonts/tamil/releases/download/NotoSansTamil-v2.004/NotoSansTamil-v2.004.zip
+  (hinted/ttf Regular + Bold of each). Embedded as Identity-H so any glyph can be used.
+-->
+<fontFamilies>
+	<fontFamily name="Noto Sans">
+		<normal><![CDATA[reports/fonts/NotoSans-Regular.ttf]]></normal>
+		<bold><![CDATA[reports/fonts/NotoSans-Bold.ttf]]></bold>
+		<italic><![CDATA[reports/fonts/NotoSans-Regular.ttf]]></italic>
+		<boldItalic><![CDATA[reports/fonts/NotoSans-Bold.ttf]]></boldItalic>
+		<pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
+		<pdfEmbedded><![CDATA[true]]></pdfEmbedded>
+	</fontFamily>
+	<fontFamily name="Noto Sans Sinhala">
+		<normal><![CDATA[reports/fonts/NotoSansSinhala-Regular.ttf]]></normal>
+		<bold><![CDATA[reports/fonts/NotoSansSinhala-Bold.ttf]]></bold>
+		<italic><![CDATA[reports/fonts/NotoSansSinhala-Regular.ttf]]></italic>
+		<boldItalic><![CDATA[reports/fonts/NotoSansSinhala-Bold.ttf]]></boldItalic>
+		<pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
+		<pdfEmbedded><![CDATA[true]]></pdfEmbedded>
+	</fontFamily>
+	<fontFamily name="Noto Sans Tamil">
+		<normal><![CDATA[reports/fonts/NotoSansTamil-Regular.ttf]]></normal>
+		<bold><![CDATA[reports/fonts/NotoSansTamil-Bold.ttf]]></bold>
+		<italic><![CDATA[reports/fonts/NotoSansTamil-Regular.ttf]]></italic>
+		<boldItalic><![CDATA[reports/fonts/NotoSansTamil-Bold.ttf]]></boldItalic>
+		<pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
+		<pdfEmbedded><![CDATA[true]]></pdfEmbedded>
+	</fontFamily>
+	<fontSet name="LMS Sans">
+		<family familyName="Noto Sans" primary="true"/>
+		<family familyName="Noto Sans Sinhala">
+			<includedScript>Sinhala</includedScript>
+		</family>
+		<family familyName="Noto Sans Tamil">
+			<includedScript>Tamil</includedScript>
+		</family>
+	</fontSet>
+</fontFamilies>

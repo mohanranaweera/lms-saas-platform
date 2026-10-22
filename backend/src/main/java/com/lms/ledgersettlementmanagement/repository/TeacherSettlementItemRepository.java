@@ -38,6 +38,14 @@ public interface TeacherSettlementItemRepository extends AppendOnlyTenantAwareRe
 		return ledgerEntryId + ":" + courseId;
 	}
 
+	/** RPT-01: stored items of any of {@code ledgerEntryIds} (tenant-scoped). */
+	default List<TeacherSettlementItem> findByLedgerEntryIds(Collection<UUID> ledgerEntryIds) {
+		if (ledgerEntryIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("ledgerEntryId").in(ledgerEntryIds));
+	}
+
 	default List<TeacherSettlementItem> findBySettlementId(UUID settlementId) {
 		return findAll((root, query, cb) -> cb.equal(root.get("settlementId"), settlementId));
 	}

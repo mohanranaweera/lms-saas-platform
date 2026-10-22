@@ -3,6 +3,7 @@ package com.lms.ledgersettlementmanagement.repository;
 import com.lms.common.persistence.AppendOnlyTenantAwareRepository;
 import com.lms.ledgersettlementmanagement.domain.TeacherRevenueShareRate;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +19,15 @@ public interface TeacherRevenueShareRateRepository extends AppendOnlyTenantAware
 			return findAll(sort);
 		}
 		return findAll((root, query, cb) -> cb.equal(root.get("teacherId"), teacherId), sort);
+	}
+
+	/** RPT-01: every rate row of {@code teacherIds}, oldest effective date first. */
+	default List<TeacherRevenueShareRate> findForTeachers(Collection<UUID> teacherIds) {
+		if (teacherIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("teacherId").in(teacherIds),
+				Sort.by(Sort.Direction.ASC, "effectiveFrom"));
 	}
 
 	/** The rate in effect on {@code date}: latest {@code effectiveFrom <= date}. */
