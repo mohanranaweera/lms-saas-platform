@@ -127,7 +127,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
       { label: "Expenses", href: "/tenant-admin/finance/expenses" },
       { label: "Expense Categories", href: "/tenant-admin/finance/categories" },
       { label: "Finance Reports", href: "/tenant-admin/finance/reports" },
-      { label: "Teacher Payouts", href: "/tenant-admin/finance/teacher-payouts" }
+      { label: "Teacher Payouts", href: "/tenant-admin/finance/teacher-payouts" },
+      // RPT-01 - report catalog; /api/v1/reports/** re-enforces FINANCE_EXPENSES/VIEW.
+      { label: "Reports", href: "/tenant-admin/reports" }
     );
   }
 

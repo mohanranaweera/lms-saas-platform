@@ -28,6 +28,7 @@ export function MultiSelect({
   invalid = false,
   disabled = false,
   testId,
+  hideSelectedInTrigger = false,
   "aria-describedby": describedBy,
 }: {
   id?: string;
@@ -41,6 +42,12 @@ export function MultiSelect({
   invalid?: boolean;
   disabled?: boolean;
   testId?: string;
+  /**
+   * Show "N selected" in the trigger instead of the selected labels - for
+   * callers that render their own removable chips next to the control, so
+   * the selection is never shown twice. Default keeps existing behaviour.
+   */
+  hideSelectedInTrigger?: boolean;
   "aria-describedby"?: string;
 }) {
   const generatedId = useId();
@@ -88,6 +95,8 @@ export function MultiSelect({
         <span className="flex min-w-0 flex-1 flex-wrap gap-1">
           {selectedLabels.length === 0 ? (
             <span className="text-muted-foreground">{placeholder}</span>
+          ) : hideSelectedInTrigger ? (
+            <span>{selectedLabels.length} selected</span>
           ) : (
             <>
               {selectedLabels.slice(0, 3).map((label) => (
