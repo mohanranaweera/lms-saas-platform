@@ -30,15 +30,48 @@ public class ReportTemplates {
 
 	public static final String PAYSLIP = "reports/teacher-payslip";
 
+	public static final String STUDENT_PAYMENTS = "reports/student-payment-report";
+
+	public static final String ATTENDANCE = "reports/attendance-report";
+
+	public static final String COURSE_SUMMARY = "reports/course-summary-report";
+
+	public static final String UNPAID_STUDENTS = "reports/unpaid-students-report";
+
+	public static final String REGISTRATIONS = "reports/registration-report";
+
+	public static final String STUDENT_BEHAVIOR = "reports/student-behavior-report";
+	public static final String UNDO_PAYMENTS = "reports/undo-payments-report";
+
 	private static final Logger log = LoggerFactory.getLogger(ReportTemplates.class);
 
 	private final JasperReport summary;
 
 	private final JasperReport payslip;
 
+	private final JasperReport studentPayments;
+
+	private final JasperReport attendance;
+
+	private final JasperReport courseSummary;
+
+	private final JasperReport unpaidStudents;
+
+	private final JasperReport registrations;
+
+	private final JasperReport studentBehavior;
+	private final JasperReport undoPayments;
+
 	public ReportTemplates() {
 		this.summary = load(SUMMARY);
 		this.payslip = load(PAYSLIP);
+		this.studentPayments = load(STUDENT_PAYMENTS);
+		this.attendance = load(ATTENDANCE);
+		this.courseSummary = load(COURSE_SUMMARY);
+		this.unpaidStudents = load(UNPAID_STUDENTS);
+		this.registrations = load(REGISTRATIONS);
+		this.studentBehavior = load(STUDENT_BEHAVIOR);
+		this.undoPayments = load(UNDO_PAYMENTS);
 	}
 
 	public JasperReport summary() {
@@ -47,6 +80,38 @@ public class ReportTemplates {
 
 	public JasperReport payslip() {
 		return payslip;
+	}
+
+	/** RPT-02 Student Payment Report (landscape A4). */
+	public JasperReport studentPayments() {
+		return studentPayments;
+	}
+
+	/** RPT-03 Attendance Report (landscape A4). */
+	public JasperReport attendance() {
+		return attendance;
+	}
+
+	/** RPT-05 Course Summary Report (portrait A4). */
+	public JasperReport courseSummary() {
+		return courseSummary;
+	}
+
+	/** Unpaid Students Report (portrait A4). */
+	public JasperReport unpaidStudents() {
+		return unpaidStudents;
+	}
+
+	public JasperReport registrations() {
+		return registrations;
+	}
+
+	public JasperReport studentBehavior() {
+		return studentBehavior;
+	}
+
+	public JasperReport undoPayments() {
+		return undoPayments;
 	}
 
 	static JasperReport load(String base) {

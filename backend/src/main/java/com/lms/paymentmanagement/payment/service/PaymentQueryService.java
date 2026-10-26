@@ -3,10 +3,18 @@ package com.lms.paymentmanagement.payment.service;
 import com.lms.common.error.NotFoundException;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.repository.PaymentRepository;
+import com.lms.paymentmanagement.refund.repository.PaymentRefundRepository;
+import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.coursemanagement.api.CourseSummary;
+import com.lms.paymentmanagement.api.OrderLineSnapshot;
+import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.paymentmanagement.support.PaymentDomainAccessGuard;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,16 +35,41 @@ public class PaymentQueryService {
 
 	private final PaymentDomainAccessGuard accessGuard;
 
+	private final PaymentRefundRepository paymentRefundRepository;
+	private final StudentOrderLineRepository orderLineRepository;
+	private final CourseLookupApi courseLookupApi;
+
 	public PaymentQueryService(PaymentRepository paymentRepository, StudentOrderRepository studentOrderRepository,
-			PaymentDomainAccessGuard accessGuard) {
+			PaymentDomainAccessGuard accessGuard, PaymentRefundRepository paymentRefundRepository,
+			StudentOrderLineRepository orderLineRepository, CourseLookupApi courseLookupApi) {
 		this.paymentRepository = paymentRepository;
 		this.studentOrderRepository = studentOrderRepository;
 		this.accessGuard = accessGuard;
+		this.paymentRefundRepository = paymentRefundRepository;
+		this.orderLineRepository = orderLineRepository;
+		this.courseLookupApi = courseLookupApi;
 	}
 
 	public PaymentView getPayment(UUID id) {
 		Payment payment = loadPaymentForCaller(id);
 		return toView(payment);
+	}
+
+	public RefundVerificationView getRefundVerification(UUID id) {
+		Payment payment = loadPaymentForCaller(id);
+		var refunds = paymentRefundRepository.findAllByOriginalPaymentId(id);
+		java.math.BigDecimal refunded = refunds.stream().map(com.lms.paymentmanagement.refund.domain.PaymentRefund::getAmount)
+			.reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+		StudentOrder order = studentOrderRepository.findById(payment.getOrderId())
+				.orElseThrow(() -> new NotFoundException("Order not found for this payment"));
+		List<OrderLineSnapshot> lines = orderLineRepository.findAllByOrderId(order.getId()).stream()
+				.map(line -> PaymentStatusApiImpl.toSnapshot(line, order.getStudentId())).toList();
+		Map<UUID, String> courseNames = courseLookupApi.getCourseSummaries(lines.stream().map(OrderLineSnapshot::courseId).collect(java.util.stream.Collectors.toSet()))
+				.stream().collect(java.util.stream.Collectors.toMap(CourseSummary::id, CourseSummary::name, (a,b) -> a));
+		List<RefundVerificationView.Line> lineViews = lines.stream().map(line -> new RefundVerificationView.Line(line.lineNo(), line.courseId(), courseNames.getOrDefault(line.courseId(), "Unknown course"), line.label(), line.scope(), line.unitAmount(), line.facilityFee(), line.discountAmount(), line.lineTotal(), line.currency())).toList();
+		return new RefundVerificationView(payment.getId(), payment.getOrderId(), order.getOrderNumber(), order.getDisplayOrderNumber(), payment.getAmount(), payment.getCurrency(),
+				payment.getStatus().name(), payment.getGatewayReference(), payment.getCreatedAt(), refunded,
+				payment.getAmount().subtract(refunded).max(java.math.BigDecimal.ZERO), lineViews);
 	}
 
 	Payment loadPaymentForCaller(UUID id) {

@@ -12,10 +12,9 @@ import { LiveRegion } from "@/components/ui/live-region";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/states/empty-state";
-import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
-import { PermissionDeniedState } from "@/components/states/permission-denied-state";
-import { isApiClientError, type ApiClientError } from "@/lib/api/error";
+import { ReportRunError, reportRunErrorMessage } from "@/components/reports/report-run-error";
+import { isApiClientError } from "@/lib/api/error";
 import type { FieldError } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import {
@@ -39,7 +38,7 @@ import {
   toTeacherIncomeRunRequest,
   type TeacherIncomeFilterValues,
 } from "@/lib/validation/reports";
-import { MonthPicker } from "./month-picker";
+import { MonthPicker } from "@/components/reports/month-picker";
 import { TeacherIncomeResults } from "./teacher-income-results";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -52,6 +51,8 @@ const FIELD_LABELS: Record<string, string> = {
   runId: "Report",
   body: "Filter",
 };
+
+const NARROW_HINT = "Narrow the period or select fewer teachers";
 
 function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "teacher";
@@ -139,7 +140,7 @@ export function TeacherIncomeWorkspace({ options }: { options: TeacherIncomeOpti
       const isFieldValidation =
         isApiClientError(error) && error.status === 422 && error.code === "REPORT_VALIDATION";
       if (!isFieldValidation) {
-        setAnnouncement(`The report could not be generated. ${runErrorMessage(error)}`);
+        setAnnouncement(`The report could not be generated. ${reportRunErrorMessage(error, NARROW_HINT)}`);
         requestAnimationFrame(() => paneRef.current?.focus());
         return;
       }
@@ -533,49 +534,7 @@ function ResultPane({
   }
 
   if (error) {
-    if (isApiClientError(error)) {
-      if (error.status === 403) {
-        return <PermissionDeniedState error={error as ApiClientError} dashboardHref="/tenant-admin/dashboard" />;
-      }
-      if (error.status === 422 && error.code === "REPORT_VALIDATION") {
-        return (
-          <EmptyState
-            title="Check the filters"
-            description="The server rejected some filters. Fix the highlighted fields and search again."
-          />
-        );
-      }
-      if (error.status === 422 && error.code === "REPORT_TOO_LARGE") {
-        return (
-          <ErrorState
-            message={`${error.message.replace(/[.\s]+$/, "")}. Narrow the period or select fewer teachers, then search again.`}
-            code={error.code}
-            fieldErrors={error.fieldErrors}
-            fieldLabels={FIELD_LABELS}
-          />
-        );
-      }
-      if (error.status === 429) {
-        return (
-          <ErrorState
-            message="Too many report requests, please wait a moment and try again."
-            code={error.code}
-            onRetry={onRetry}
-          />
-        );
-      }
-      if (error.status === 503) {
-        return (
-          <ErrorState
-            message="Reports are temporarily unavailable. Please try again shortly."
-            code={error.code}
-            onRetry={onRetry}
-          />
-        );
-      }
-      return <ErrorState message={error.message} code={error.code} onRetry={onRetry} />;
-    }
-    return <ErrorState message="The report could not be generated. Please try again." onRetry={onRetry} />;
+    return <ReportRunError error={error} narrowHint={NARROW_HINT} fieldLabels={FIELD_LABELS} onRetry={onRetry} />;
   }
 
   if (!report) {
@@ -611,16 +570,4 @@ function ResultPane({
       onRunAgain={onRunAgain}
     />
   );
-}
-
-/** Plain-language copy for a failed run, used for the live-region announcement. */
-function runErrorMessage(error: unknown): string {
-  if (isApiClientError(error)) {
-    if (error.status === 403) return "You don't have permission to view this report.";
-    if (error.status === 429) return "Too many report requests, please wait a moment and try again.";
-    if (error.status === 503) return "Reports are temporarily unavailable. Please try again shortly.";
-    if (error.code === "REPORT_TOO_LARGE") return "The report is too large. Narrow the period or select fewer teachers.";
-    return error.message;
-  }
-  return "Please try again.";
 }

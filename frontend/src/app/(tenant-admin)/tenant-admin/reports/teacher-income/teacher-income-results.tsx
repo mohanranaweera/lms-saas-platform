@@ -1,12 +1,13 @@
 "use client";
 
 import { forwardRef } from "react";
-import { AlertTriangle, Download, FileText } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 import {
   formatReportAmount,
+  formatReportGenerated,
   reportPaymentMethodLabel,
   type ReportCourseRow,
   type ReportCurrencyReconciliation,
@@ -14,7 +15,8 @@ import {
   type ReportTeacherBlock,
   type TeacherIncomeReport,
 } from "@/lib/api/reports";
-import { InfoHint } from "./info-hint";
+import { InfoHint } from "@/components/reports/info-hint";
+import { ExpiredNotice, StaleNotice } from "@/components/reports/report-notices";
 
 /**
  * Renders a server-computed RPT-01 run. Every figure is the backend's own
@@ -30,18 +32,6 @@ const PAYINS_HINT = "There is no record of money paid by teachers to the institu
 
 function isZero(amount: string | null | undefined): boolean {
   return !amount || Number(amount) === 0;
-}
-
-function formatGenerated(iso: string, timezone: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: timezone,
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
 }
 
 export interface TeacherIncomeResultsProps {
@@ -91,35 +81,7 @@ export const TeacherIncomeResults = forwardRef<HTMLHeadingElement, TeacherIncome
           </div>
         </div>
 
-        {stale ? (
-          <div
-            id="export-disabled-reason"
-            role="status"
-            className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
-            data-testid="stale-notice"
-          >
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>
-              The filters have changed since this report was run. The figures below are for the previous
-              filters - search again to refresh them and to export.
-            </span>
-          </div>
-        ) : expired ? (
-          <div
-            id="export-disabled-reason"
-            role="status"
-            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
-            data-testid="expired-notice"
-          >
-            <span className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              This report has expired — run it again.
-            </span>
-            <Button type="button" size="sm" variant="outline" onClick={onRunAgain}>
-              Run again
-            </Button>
-          </div>
-        ) : null}
+        {stale ? <StaleNotice /> : expired ? <ExpiredNotice onRunAgain={onRunAgain} /> : null}
 
         {downloadError && !expired ? (
           <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -142,7 +104,7 @@ export const TeacherIncomeResults = forwardRef<HTMLHeadingElement, TeacherIncome
             <dd>{reportPaymentMethodLabel(filters.paymentMethod)}</dd>
             <dt className="text-muted-foreground">Generated</dt>
             <dd>
-              {formatGenerated(report.generatedAt, report.timezone)} ({report.timezone})
+              {formatReportGenerated(report.generatedAt, report.timezone)} ({report.timezone})
             </dd>
           </dl>
         </section>

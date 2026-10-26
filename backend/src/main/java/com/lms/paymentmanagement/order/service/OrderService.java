@@ -514,7 +514,7 @@ public class OrderService {
 	}
 
 	private static OrderView toView(StudentOrder order, boolean idempotentReplay) {
-		return new OrderView(order.getId(), order.getStudentId(), order.getCourseId(), order.getAmount(),
+		return new OrderView(order.getId(), order.getOrderNumber(), order.getDisplayOrderNumber(), order.getStudentId(), order.getCourseId(), order.getAmount(),
 				order.getCurrency(), order.getBillingPeriodId(), order.getStatus(), order.getCreatedAt(),
 				order.getUpdatedAt(), idempotentReplay);
 	}

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Unpaid Students Report. Display-only typed-bean template: no SQL, scriptlets or qualification logic. -->
+<jasperReport name="unpaid-students-report" pageWidth="595" pageHeight="842" columnWidth="539"
+		leftMargin="28" rightMargin="28" topMargin="22" bottomMargin="22" whenNoDataType="AllSectionsNoDetail">
+	<property name="net.sf.jasperreports.export.pdf.glyph.renderer.blocks.lms" value="sinhala,tamil"/>
+	<style name="Base" default="true" fontName="LMS Sans" fontSize="8.5" forecolor="#1F2937"/>
+	<style name="Muted" fontName="LMS Sans" fontSize="8.0" forecolor="#4B5563"/>
+	<style name="Header" fontName="LMS Sans" fontSize="8.0" forecolor="#374151" bold="true"/>
+	<style name="KpiLabel" fontName="LMS Sans" fontSize="8.0" forecolor="#6B7280" bold="true"/>
+	<style name="KpiValue" fontName="LMS Sans" fontSize="13.0" forecolor="#111827" bold="true"/>
+	<parameter name="INSTITUTE" class="java.lang.String"/>
+	<parameter name="COURSE" class="java.lang.String"/>
+	<parameter name="MONTH" class="java.lang.String"/>
+	<parameter name="ATTENDED" class="java.lang.String"/>
+	<parameter name="GENERATED" class="java.lang.String"/>
+	<parameter name="UNPAID_COUNT" class="java.lang.String"/>
+	<parameter name="FOOTER" class="java.lang.String"/>
+	<parameter name="EMPTY" class="java.lang.Boolean"/>
+	<field name="rowNo" class="java.lang.String"/>
+	<field name="indexNumber" class="java.lang.String"/>
+	<field name="studentName" class="java.lang.String"/>
+	<field name="mobile" class="java.lang.String"/>
+	<field name="attendanceCount" class="java.lang.String"/>
+	<title height="154">
+		<element kind="rectangle" x="0" y="0" width="539" height="54" backcolor="#1F2937" mode="Opaque"><pen lineWidth="0.0"/></element>
+		<element kind="staticText" x="14" y="6" width="511" height="22" forecolor="#FFFFFF" fontSize="16.0" bold="true" vTextAlign="Middle"><text><![CDATA[Unpaid Students Report]]></text></element>
+		<element kind="textField" x="14" y="30" width="511" height="16" forecolor="#D1D5DB" fontSize="10.0" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$P{INSTITUTE}]]></expression></element>
+		<element kind="textField" x="0" y="59" width="539" height="13" style="Muted" textAdjust="ScaleFont"><expression><![CDATA["Course: " + $P{COURSE}]]></expression></element>
+		<element kind="textField" x="0" y="75" width="260" height="13" style="Muted"><expression><![CDATA["Month: " + $P{MONTH}]]></expression></element>
+		<element kind="textField" x="270" y="75" width="269" height="13" style="Muted"><expression><![CDATA["At Least One Attended: " + $P{ATTENDED}]]></expression></element>
+		<element kind="textField" x="0" y="91" width="539" height="13" style="Muted"><expression><![CDATA[$P{GENERATED}]]></expression></element>
+		<element kind="frame" x="0" y="110" width="170" height="42" backcolor="#F9FAFB" mode="Opaque"><box><leftPen lineWidth="3.0" lineColor="#DC2626"/></box><element kind="staticText" x="9" y="5" width="152" height="12" style="KpiLabel"><text><![CDATA[UNPAID STUDENTS]]></text></element><element kind="textField" x="9" y="18" width="152" height="20" style="KpiValue"><expression><![CDATA[$P{UNPAID_COUNT}]]></expression></element></element>
+		<element kind="frame" x="186" y="110" width="353" height="42" backcolor="#F9FAFB" mode="Opaque"><box><leftPen lineWidth="3.0" lineColor="#2563EB"/></box><element kind="staticText" x="9" y="5" width="335" height="12" style="KpiLabel"><text><![CDATA[COURSE]]></text></element><element kind="textField" x="9" y="18" width="335" height="20" style="KpiValue" textAdjust="ScaleFont"><expression><![CDATA[$P{COURSE}]]></expression></element></element>
+	</title>
+	<columnHeader height="22">
+		<element kind="frame" x="0" y="2" width="539" height="18" backcolor="#E5E7EB" mode="Opaque">
+			<element kind="staticText" x="4" y="0" width="24" height="18" style="Header" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[#]]></text></element>
+			<element kind="staticText" x="34" y="0" width="58" height="18" style="Header" vTextAlign="Middle"><text><![CDATA[INDEX]]></text></element>
+			<element kind="staticText" x="98" y="0" width="236" height="18" style="Header" vTextAlign="Middle"><text><![CDATA[STUDENT NAME]]></text></element>
+			<element kind="staticText" x="340" y="0" width="112" height="18" style="Header" vTextAlign="Middle"><text><![CDATA[MOBILE]]></text></element>
+			<element kind="staticText" x="458" y="0" width="77" height="18" style="Header" hTextAlign="Center" vTextAlign="Middle"><text><![CDATA[ATTENDANCE]]></text></element>
+		</element>
+	</columnHeader>
+	<detail><band height="20" splitType="Prevent"><element kind="frame" x="0" y="0" width="539" height="20"><box><bottomPen lineWidth="0.5" lineColor="#E5E7EB"/></box>
+		<element kind="textField" x="4" y="1" width="24" height="18" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{rowNo}]]></expression></element>
+		<element kind="textField" x="34" y="1" width="58" height="18" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$F{indexNumber}]]></expression></element>
+		<element kind="textField" x="98" y="1" width="236" height="18" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$F{studentName}]]></expression></element>
+		<element kind="textField" x="340" y="1" width="112" height="18" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$F{mobile}]]></expression></element>
+		<element kind="textField" x="458" y="1" width="77" height="18" hTextAlign="Center" vTextAlign="Middle"><expression><![CDATA[$F{attendanceCount}]]></expression></element>
+	</element></band></detail>
+	<pageFooter height="25"><element kind="line" x="0" y="2" width="539" height="1" forecolor="#D1D5DB"/><element kind="textField" x="0" y="8" width="415" height="12" style="Muted" textAdjust="ScaleFont"><expression><![CDATA[$P{FOOTER}]]></expression></element><element kind="textField" x="420" y="8" width="119" height="12" style="Muted" hTextAlign="Right"><expression><![CDATA["Page " + $V{PAGE_NUMBER}]]></expression></element></pageFooter>
+	<summary height="30"><element kind="staticText" x="0" y="7" width="539" height="14" forecolor="#6B7280" fontSize="10.0" hTextAlign="Center"><printWhenExpression><![CDATA[$P{EMPTY}]]></printWhenExpression><text><![CDATA[No unpaid students match these filters]]></text></element></summary>
+</jasperReport>

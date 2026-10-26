@@ -19,18 +19,13 @@ import com.lms.reportinganalytics.config.TeacherIncomeReportProperties;
 import com.lms.reportinganalytics.service.TeacherIncomeCriteria.PeriodMode;
 import com.lms.reportinganalytics.service.TeacherIncomeReport.TeacherRef;
 import com.lms.reportinganalytics.service.pdf.TeacherIncomePdfRenderer;
+import com.lms.reportinganalytics.service.support.ReportPeriodRules;
+import com.lms.reportinganalytics.service.support.ReportTenantInfo;
 import com.lms.reportinganalytics.web.dto.TeacherIncomeRunRequest;
-import com.lms.tenantmanagement.api.ConfigDomain;
-import com.lms.tenantmanagement.api.TenantConfigApi;
-import com.lms.tenantmanagement.api.TenantLookupApi;
-import com.lms.tenantmanagement.api.TenantSummary;
 import com.lms.usermanagement.api.TeacherLookupApi;
-import java.time.DateTimeException;
 import java.time.Instant;
-import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -68,9 +63,7 @@ public class TeacherIncomeReportService {
 
 	private final UserProvisioningApi userProvisioningApi;
 
-	private final TenantConfigApi tenantConfigApi;
-
-	private final TenantLookupApi tenantLookupApi;
+	private final ReportTenantInfo tenantInfo;
 
 	private final TenantContext tenantContext;
 
@@ -84,8 +77,8 @@ public class TeacherIncomeReportService {
 
 	public TeacherIncomeReportService(PermissionCheckService permissionCheckService,
 			TeacherIncomeRequestValidator validator, TeacherIncomeLedgerApi ledgerApi, CourseLookupApi courseLookupApi,
-			TeacherLookupApi teacherLookupApi, UserProvisioningApi userProvisioningApi,
-			TenantConfigApi tenantConfigApi, TenantLookupApi tenantLookupApi, TenantContext tenantContext,
+			TeacherLookupApi teacherLookupApi, UserProvisioningApi userProvisioningApi, ReportTenantInfo tenantInfo,
+			TenantContext tenantContext,
 			TeacherIncomeRunStore runStore, TeacherIncomePdfRenderer pdfRenderer,
 			TeacherIncomeRunRateLimiter rateLimiter, TeacherIncomeReportProperties properties) {
 		this.rateLimiter = rateLimiter;
@@ -96,8 +89,7 @@ public class TeacherIncomeReportService {
 		this.courseLookupApi = courseLookupApi;
 		this.teacherLookupApi = teacherLookupApi;
 		this.userProvisioningApi = userProvisioningApi;
-		this.tenantConfigApi = tenantConfigApi;
-		this.tenantLookupApi = tenantLookupApi;
+		this.tenantInfo = tenantInfo;
 		this.tenantContext = tenantContext;
 		this.runStore = runStore;
 		this.pdfRenderer = pdfRenderer;
@@ -134,19 +126,18 @@ public class TeacherIncomeReportService {
 
 	private TeacherIncomeReport computeAndStore(UUID tenantId, UUID userId, TeacherIncomeCriteria criteria) {
 		int maxEntries = properties.getMaxLedgerEntries();
-		ZoneId zone = tenantZone(tenantId);
+		ZoneId zone = tenantInfo.zone(tenantId);
 		Instant generatedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
 		List<ReportLedgerEntry> entries;
 		List<ReportLedgerEntry> monthWindowEntries = List.of();
 		List<InstantRange> windows;
 		if (criteria.periodMode() == PeriodMode.DATES) {
-			windows = List.of(new InstantRange(criteria.startDate().atStartOfDay(zone).toInstant(),
-					criteria.endDate().plusDays(1).atStartOfDay(zone).toInstant()));
+			windows = List.of(ReportPeriodRules.dateWindow(criteria.startDate(), criteria.endDate(), zone));
 			entries = ledgerApi.findEntriesCreatedIn(windows, maxEntries);
 		}
 		else {
-			windows = monthWindows(criteria, zone);
+			windows = ReportPeriodRules.monthWindows(criteria.months(), zone);
 			entries = ledgerApi.findEntriesForBillingMonths(criteria.months(), maxEntries);
 			monthWindowEntries = ledgerApi.findEntriesCreatedIn(windows, maxEntries);
 		}
@@ -167,10 +158,10 @@ public class TeacherIncomeReportService {
 					.collect(Collectors.toMap(CourseSummary::id, CourseSummary::name, (a, b) -> a));
 
 		TeacherIncomeReport computed = TeacherIncomeCalculator.calculate(new TeacherIncomeCalculator.Input(criteria,
-				zone, generatedAt, instituteName(tenantId), teacherRefs(criteria.teacherIds()), entries,
+				zone, generatedAt, tenantInfo.instituteName(tenantId), teacherRefs(criteria.teacherIds()), entries,
 				monthWindowEntries, teacherByCourse, courseNames, ledgerApi.findShareRates(criteria.teacherIds()),
 				ledgerApi.findPaidSettlements(criteria.teacherIds(), windows),
-				tenantConfigApi.resolveDefaultCurrency(tenantId)));
+				tenantInfo.defaultCurrency(tenantId)));
 		int rows = computed.sections().stream().flatMap(s -> s.teachers().stream()).mapToInt(t -> t.courses().size())
 			.sum();
 		if (rows > properties.getMaxCourseRows()) {
@@ -215,32 +206,6 @@ public class TeacherIncomeReportService {
 			.orElseThrow(() -> new NotFoundException("Report run not found"));
 	}
 
-	/** One window per selected month in the tenant timezone, adjacent months merged. */
-	static List<InstantRange> monthWindows(TeacherIncomeCriteria criteria, ZoneId zone) {
-		List<InstantRange> windows = new ArrayList<>();
-		YearMonth runStart = null;
-		YearMonth previous = null;
-		for (YearMonth month : criteria.months()) {
-			if (runStart == null) {
-				runStart = month;
-			}
-			else if (!month.equals(previous.plusMonths(1))) {
-				windows.add(window(runStart, previous, zone));
-				runStart = month;
-			}
-			previous = month;
-		}
-		if (runStart != null) {
-			windows.add(window(runStart, previous, zone));
-		}
-		return windows;
-	}
-
-	private static InstantRange window(YearMonth first, YearMonth last, ZoneId zone) {
-		return new InstantRange(first.atDay(1).atStartOfDay(zone).toInstant(),
-				last.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant());
-	}
-
 	private List<TeacherRef> teacherRefs(List<UUID> teacherIds) {
 		Map<UUID, String> names = new HashMap<>();
 		teacherLookupApi.listTeachers().forEach(t -> names.put(t.userId(), t.name()));
@@ -255,28 +220,6 @@ public class TeacherIncomeReportService {
 			return name.trim();
 		}
 		return email == null ? "Unknown teacher" : email;
-	}
-
-	private String instituteName(UUID tenantId) {
-		return tenantLookupApi.resolveTenantSummaries(Set.of(tenantId))
-			.stream()
-			.findFirst()
-			.map(TenantSummary::name)
-			.orElse("");
-	}
-
-	private ZoneId tenantZone(UUID tenantId) {
-		Object configured = tenantConfigApi.resolveValue(tenantId, ConfigDomain.GENERAL, "default_timezone")
-			.orElse(null);
-		if (configured instanceof String zoneName) {
-			try {
-				return ZoneId.of(zoneName);
-			}
-			catch (DateTimeException ignored) {
-				// Registry-validated; UTC fallback is defensive only.
-			}
-		}
-		return ZoneId.of("UTC");
 	}
 
 }

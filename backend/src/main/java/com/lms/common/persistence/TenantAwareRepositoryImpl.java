@@ -2,6 +2,10 @@ package com.lms.common.persistence;
 
 import com.lms.common.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,11 +48,14 @@ public class TenantAwareRepositoryImpl<T extends TenantOwned, ID extends Seriali
 
 	private final TenantContext tenantContext;
 
+	private final EntityManager entityManager;
+
 	public TenantAwareRepositoryImpl(JpaEntityInformation<T, ?> entityInformation, EntityManager entityManager,
 			TenantContext tenantContext) {
 		super(entityInformation, entityManager);
 		this.entityInformation = entityInformation;
 		this.tenantContext = tenantContext;
+		this.entityManager = entityManager;
 	}
 
 	private Specification<T> scopedToTenant() {
@@ -120,6 +127,19 @@ public class TenantAwareRepositoryImpl<T extends TenantOwned, ID extends Seriali
 	@Override
 	public long count(Specification<T> spec) {
 		return super.count(scopedToTenant().and(spec));
+	}
+
+	@Override
+	public <R> List<R> findAttributeValues(Specification<T> spec, String attribute, Class<R> type) {
+		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		CriteriaQuery<R> query = cb.createQuery(type);
+		Root<T> root = query.from(getDomainClass());
+		Predicate where = scopedToTenant().and(spec).toPredicate(root, query, cb);
+		query.select(root.get(attribute));
+		if (where != null) {
+			query.where(where);
+		}
+		return entityManager.createQuery(query).getResultList();
 	}
 
 	@Override

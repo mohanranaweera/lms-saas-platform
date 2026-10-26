@@ -17,22 +17,20 @@ import com.lms.reportinganalytics.service.TeacherIncomeReport.Section;
 import com.lms.reportinganalytics.service.TeacherIncomeReport.TeacherBlock;
 import com.lms.reportinganalytics.service.TeacherIncomeReport.TeacherRef;
 import com.lms.reportinganalytics.service.TeacherIncomeReport.Totals;
+import com.lms.reportinganalytics.service.support.ReportPeriodRules;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -65,10 +63,6 @@ public final class TeacherIncomeCalculator {
 	static final BigDecimal HUNDRED = new BigDecimal("100");
 
 	static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2);
-
-	private static final DateTimeFormatter MONTH_LABEL = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
-
-	private static final DateTimeFormatter DATE_LABEL = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
 
 	private static final Set<PaymentMethod> NON_CASH = Set.of(PaymentMethod.FREE, PaymentMethod.STAFF_GRANTED);
 
@@ -517,16 +511,12 @@ public final class TeacherIncomeCalculator {
 	}
 
 	static String periodLabel(TeacherIncomeCriteria c) {
-		if (c.periodMode() == PeriodMode.MONTHS) {
-			List<String> labels = new ArrayList<>();
-			c.months().forEach(month -> labels.add(month.format(MONTH_LABEL)));
-			return String.join(", ", labels);
-		}
-		return c.startDate().format(DATE_LABEL) + " to " + c.endDate().format(DATE_LABEL);
+		return ReportPeriodRules.periodLabel(ReportPeriodRules.Mode.valueOf(c.periodMode().name()), c.months(),
+				c.startDate(), c.endDate());
 	}
 
 	static String money(BigDecimal amount) {
-		return Objects.requireNonNullElse(amount, BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP).toPlainString();
+		return ReportPeriodRules.money(amount);
 	}
 
 }

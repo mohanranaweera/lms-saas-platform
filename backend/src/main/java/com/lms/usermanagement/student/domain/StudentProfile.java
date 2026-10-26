@@ -10,6 +10,7 @@ import com.lms.tenantmanagement.api.StudentProfileField;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.UUID;
+import org.hibernate.annotations.Generated;
 
 /**
  * The operational/profile aspect of a student account, owned by
@@ -129,6 +130,19 @@ public class StudentProfile extends Auditable implements TenantOwned {
 	@Column(name = "registration_status", nullable = false)
 	private StudentRegistrationStatus registrationStatus;
 
+	/**
+	 * V95 per-tenant index number ("0001", ..., "10000"; spec
+	 * student-payment-report.md section 6). Database-generated and immutable:
+	 * never written by the application (insertable/updatable = false, so the
+	 * INSERT leaves it NULL and V95's BEFORE INSERT trigger takes the next
+	 * number from {@code student_index_counter} in the same transaction);
+	 * Hibernate reads the assigned value back after the insert. There is no
+	 * setter - no application path supplies or changes it.
+	 */
+	@Generated
+	@Column(name = "index_number", insertable = false, updatable = false, length = 20)
+	private String indexNumber;
+
 	protected StudentProfile() {
 	}
 
@@ -198,6 +212,11 @@ public class StudentProfile extends Auditable implements TenantOwned {
 
 	public StudentRegistrationStatus getRegistrationStatus() {
 		return registrationStatus;
+	}
+
+	/** The V95 index number (string - leading zeros are significant); assigned by the database. */
+	public String getIndexNumber() {
+		return indexNumber;
 	}
 
 	/**

@@ -38,7 +38,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Implements {@link TeacherIncomeLedgerApi} (RPT-01). Read-only: every read
+ * Implements {@link TeacherIncomeLedgerApi} (RPT-01) and the shared {@link
+ * com.lms.ledgersettlementmanagement.api.ReportLedgerApi} reads (RPT-01, RPT-02). Read-only: every read
  * goes through this module's structurally tenant-scoped repositories or
  * another module's {@code api}; nothing is written. Each source is read once
  * per call in id batches of {@link #CHUNK} (never per entry), and the
@@ -98,6 +99,44 @@ public class TeacherIncomeLedgerService implements TeacherIncomeLedgerApi {
 		}
 		List<LedgerEntry> entries = new ArrayList<>();
 		for (List<UUID> chunk : chunks(orderIds)) {
+			entries.addAll(ledgerEntryRepository.findAllForOrdersOldestFirst(chunk));
+		}
+		entries.sort(Comparator.comparing(LedgerEntry::getCreatedAt).thenComparing(LedgerEntry::getId));
+		return enrich(entries);
+	}
+
+	@Override
+	public List<ReportLedgerEntry> findConfirmationsForPayments(Collection<UUID> paymentIds, int maxEntries) {
+		if (paymentIds == null || paymentIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(paymentIds));
+		long inScope = 0;
+		for (List<UUID> chunk : chunks(ids)) {
+			inScope += ledgerEntryRepository.countConfirmedForPayments(chunk);
+			requireWithin(inScope, maxEntries);
+		}
+		List<LedgerEntry> entries = new ArrayList<>();
+		for (List<UUID> chunk : chunks(ids)) {
+			entries.addAll(ledgerEntryRepository.findConfirmedForPaymentsOldestFirst(chunk));
+		}
+		entries.sort(Comparator.comparing(LedgerEntry::getCreatedAt).thenComparing(LedgerEntry::getId));
+		return enrich(entries);
+	}
+
+	@Override
+	public List<ReportLedgerEntry> findEntriesForOrders(Collection<UUID> orderIds, int maxEntries) {
+		if (orderIds == null || orderIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(orderIds));
+		long inScope = 0;
+		for (List<UUID> chunk : chunks(ids)) {
+			inScope += ledgerEntryRepository.countForOrders(chunk);
+			requireWithin(inScope, maxEntries);
+		}
+		List<LedgerEntry> entries = new ArrayList<>();
+		for (List<UUID> chunk : chunks(ids)) {
 			entries.addAll(ledgerEntryRepository.findAllForOrdersOldestFirst(chunk));
 		}
 		entries.sort(Comparator.comparing(LedgerEntry::getCreatedAt).thenComparing(LedgerEntry::getId));

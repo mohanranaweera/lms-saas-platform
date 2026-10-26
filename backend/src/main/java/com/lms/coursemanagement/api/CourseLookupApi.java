@@ -199,4 +199,25 @@ public interface CourseLookupApi {
 	/** RPT-01: ids of the caller's tenant's lessons billed in one of {@code months}. */
 	Set<UUID> findLessonIdsInBillingMonths(Set<YearMonth> months);
 
+	/**
+	 * RPT-02: id / name / slug / category of the caller's tenant's courses
+	 * (archived and unpublished included - historical payments stay
+	 * reportable), ordered by name then id, in one tenant-scoped read, bounded
+	 * to the first {@link #MAX_COURSE_SUMMARIES} (the report's course picker is
+	 * a type-to-filter multi-select; selected ids are validated separately, so
+	 * a course beyond the bound can still be reported by id). Never another
+	 * tenant's course.
+	 */
+	List<CourseSummary> listCourseSummaries();
+
+	/**
+	 * RPT-05: all courses whose current primary teacher is {@code teacherId},
+	 * ordered for a dependent report picker. Tenant scope comes from the resolved
+	 * context; a foreign teacher id returns an empty list.
+	 */
+	List<CourseSummary> listCourseSummariesByTeacherId(UUID teacherId);
+
+	/** Upper bound of {@link #listCourseSummaries()}. */
+	int MAX_COURSE_SUMMARIES = 2000;
+
 }

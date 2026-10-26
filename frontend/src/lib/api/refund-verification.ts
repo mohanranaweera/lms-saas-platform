@@ -1,0 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth/auth-context";
+export interface RefundVerification { paymentId:string; orderId:string; orderNumber:number; displayOrderNumber:string; paymentAmount:number; currency:string; paymentStatus:string; gatewayReference:string|null; paymentCreatedAt:string; refundedAmount:number; refundableAmount:number; lines:Array<{lineNo:number;courseId:string;courseName:string;label:string;scope:string;unitAmount:number;facilityFee:number;discountAmount:number;lineTotal:number;currency:string}>; }
+export function useRefundVerification(paymentId:string, enabled=true){const {authorizedFetch}=useAuth();return useQuery({queryKey:["payments",paymentId,"refund-verification"],queryFn:()=>authorizedFetch<RefundVerification>("tenant",`/v1/payments/${encodeURIComponent(paymentId)}/refund-verification`),enabled:enabled&&!!paymentId,retry:false});}

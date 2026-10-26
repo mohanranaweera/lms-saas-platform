@@ -7,7 +7,7 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/comp
 import { buttonVariants } from "@/components/ui/button";
 
 /**
- * Report catalog (RPT-01, `docs/specs/reporting-catalog.md`). Lists only
+ * Report catalog (RPT-01, RPT-02; `docs/specs/reporting-catalog.md`). Lists only
  * reports that actually exist - no "coming soon" placeholders. The catalog
  * itself loads no data; each report page renders its own backend-verified
  * loading / error / permission-denied states (`/api/v1/reports/**` enforces
@@ -18,6 +18,41 @@ const REPORTS = [
     href: "/tenant-admin/reports/teacher-income",
     title: "Teacher Income Summary Report",
     description: "View earnings of teachers for a selected period or specific months.",
+  },
+  {
+    href: "/tenant-admin/reports/student-payments",
+    title: "Student Payment Report",
+    description: "Find student payments made within a selected time frame or specific months.",
+  },
+  {
+    href: "/tenant-admin/reports/attendance",
+    title: "Attendance Report",
+    description: "Generate a student attendance report for a selected date range.",
+  },
+  {
+    href: "/tenant-admin/reports/course-summary",
+    title: "Course Summary Report",
+    description: "Generate detailed course insights for a selected teacher, course, and time period.",
+  },
+  {
+    href: "/tenant-admin/reports/unpaid-students",
+    title: "Unpaid Students Report",
+    description: "Generate a list of unpaid students for a selected period or specific months.",
+  },
+  {
+    href: "/tenant-admin/reports/registrations",
+    title: "Registration Report",
+    description: "Generate a list of registrations for a selected date range.",
+  },
+  {
+    href: "/tenant-admin/reports/student-behavior",
+    title: "Student Behavior Report",
+    description: "Generate a report of new, dropped, and continuing students for a selected course and month.",
+  },
+  {
+    href: "/tenant-admin/reports/undo-payments",
+    title: "Undo Payments Report",
+    description: "Inspect and export records of undone or reversed payments.",
   },
 ];
 

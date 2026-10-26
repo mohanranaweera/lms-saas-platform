@@ -192,7 +192,7 @@ test.describe("Reports navigation and catalog", () => {
     await expect(page.getByRole("link", { name: "Reports", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Teacher Income Summary Report" })).toBeVisible();
     await expect(page.getByText(/coming soon/i)).toHaveCount(0);
-    await page.getByRole("link", { name: /Open report/ }).click();
+    await page.getByRole("link", { name: /Open report.*Teacher Income Summary Report/ }).click();
     await expect(page).toHaveURL(/\/tenant-admin\/reports\/teacher-income$/);
   });
 

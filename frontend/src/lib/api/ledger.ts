@@ -74,6 +74,8 @@ export interface LedgerDashboardParams {
   status?: PaymentOperationalState;
   /** Wave 6 §4 — optional `PaymentMethod` filter; combinable with `status` (AND). */
   method?: PaymentMethod;
+  /** Server-side search across order/payment/reference/course identifiers. */
+  search?: string;
 }
 
 /** Mirrors `OutstandingOrderResponse` (`GET /api/v1/ledger/outstanding`). */
@@ -137,6 +139,7 @@ function buildDashboardQuery(params?: LedgerDashboardParams): string {
   search.set("sort", params?.sort ?? "createdAt,desc");
   if (params?.status) search.set("status", params.status);
   if (params?.method) search.set("method", params.method);
+  if (params?.search?.trim()) search.set("search", params.search.trim());
   return `?${search.toString()}`;
 }
 

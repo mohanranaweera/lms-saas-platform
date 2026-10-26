@@ -3,11 +3,16 @@ package com.lms.usermanagement.student.service;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.usermanagement.api.StudentContact;
+import com.lms.usermanagement.api.StudentIndexEntry;
+import com.lms.usermanagement.api.RegistrationReportStudent;
 import com.lms.usermanagement.api.StudentLookupApi;
+import com.lms.usermanagement.api.UnpaidStudentProfile;
 import com.lms.usermanagement.api.StudentSummary;
 import com.lms.usermanagement.student.domain.StudentProfile;
 import com.lms.usermanagement.student.repository.StudentProfileRepository;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class StudentLookupService implements StudentLookupApi {
+
+	private static final int INDEX_CHUNK = 1000;
 
 	private final StudentProfileRepository studentProfileRepository;
 
@@ -108,6 +115,73 @@ public class StudentLookupService implements StudentLookupApi {
 				return new StudentSummary(profile.getId(), profile.getUserId(), profile.getName(), email);
 			})
 			.toList();
+	}
+
+	@Override
+	public List<StudentIndexEntry> findStudentIndexEntries(Collection<UUID> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(userIds));
+		List<StudentIndexEntry> result = new ArrayList<>();
+		for (int from = 0; from < ids.size(); from += INDEX_CHUNK) {
+			List<UUID> chunk = ids.subList(from, Math.min(ids.size(), from + INDEX_CHUNK));
+			studentProfileRepository.findAll((root, query, cb) -> root.get("userId").in(chunk))
+				.forEach(profile -> result.add(
+						new StudentIndexEntry(profile.getUserId(), profile.getName(), profile.getIndexNumber())));
+		}
+		return result;
+	}
+
+	@Override
+	public List<UUID> findRegistrationOperatorIds() {
+		return studentProfileRepository.findAttributeValues((root, query, cb) -> cb.isNotNull(root.get("createdBy")),
+				"createdBy", UUID.class).stream().distinct().toList();
+	}
+
+	@Override
+	public List<RegistrationReportStudent> findRegistrationsBetween(java.time.Instant fromInclusive,
+			java.time.Instant toExclusive, int maxRows) {
+		if (fromInclusive == null || toExclusive == null || !fromInclusive.isBefore(toExclusive)) return List.of();
+		List<StudentProfile> profiles = studentProfileRepository.findAll((root, query, cb) -> {
+			query.orderBy(cb.asc(root.get("createdAt")), cb.asc(root.get("id")));
+			return cb.and(cb.greaterThanOrEqualTo(root.get("createdAt"), fromInclusive),
+					cb.lessThan(root.get("createdAt"), toExclusive));
+		});
+		List<UUID> userIds = profiles.stream().limit(Math.max(1L, (long) maxRows + 1))
+			.map(StudentProfile::getUserId).toList();
+		Map<UUID, TenantUserSummary> summaries = userProvisioningApi.findTenantUserSummaries(userIds).stream()
+			.collect(Collectors.toMap(TenantUserSummary::userId, Function.identity()));
+		return profiles.stream().limit(Math.max(1L, (long) maxRows + 1)).map(profile -> {
+			TenantUserSummary summary = summaries.get(profile.getUserId());
+			return new RegistrationReportStudent(profile.getId(), profile.getUserId(), profile.getIndexNumber(),
+					profile.getName(), summary == null ? null : summary.email(), profile.getMobile(), profile.getCreatedAt(),
+					profile.getCreatedBy(), profile.getRegistrationStatus() == null ? null : profile.getRegistrationStatus().name());
+		}).toList();
+	}
+
+	@Override
+	public List<UnpaidStudentProfile> findUnpaidStudentProfiles(Collection<UUID> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(userIds));
+		List<UnpaidStudentProfile> result = new ArrayList<>();
+		for (int from = 0; from < ids.size(); from += INDEX_CHUNK) {
+			List<UUID> chunk = ids.subList(from, Math.min(ids.size(), from + INDEX_CHUNK));
+			List<StudentProfile> profiles = studentProfileRepository
+				.findAll((root, query, cb) -> root.get("userId").in(chunk));
+			Map<UUID, TenantUserSummary> summariesByUserId = userProvisioningApi
+				.findTenantUserSummaries(profiles.stream().map(StudentProfile::getUserId).toList())
+				.stream()
+				.collect(Collectors.toMap(TenantUserSummary::userId, Function.identity()));
+			profiles.forEach(profile -> {
+				TenantUserSummary summary = summariesByUserId.get(profile.getUserId());
+				result.add(new UnpaidStudentProfile(profile.getId(), profile.getUserId(), profile.getIndexNumber(),
+						profile.getName(), summary == null ? null : summary.email(), profile.getMobile()));
+			});
+		}
+		return result;
 	}
 
 }

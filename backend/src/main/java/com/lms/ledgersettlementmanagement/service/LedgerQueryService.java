@@ -113,8 +113,14 @@ public class LedgerQueryService {
 	 */
 	public Page<LedgerHistoryEntryView> getDashboard(Pageable pageable, PaymentOperationalState status,
 			PaymentMethod method) {
+		return getDashboard(pageable, status, method, null);
+	}
+
+	public Page<LedgerHistoryEntryView> getDashboard(Pageable pageable, PaymentOperationalState status,
+			PaymentMethod method, String search) {
+		boolean hasSearch = search != null && !search.isBlank();
 		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW);
-		if (status == null && method == null) {
+		if (status == null && method == null && !hasSearch) {
 			Page<LedgerHistoryEntryView> page = ledgerEntryApi.findDashboard(pageable);
 			// Batch-enrich the WHOLE page content in one round trip per data
 			// source (never one enrich() call per row - see
@@ -126,11 +132,19 @@ public class LedgerQueryService {
 		}
 		List<LedgerHistoryEntryView> enriched = ledgerViewEnrichmentService.enrich(ledgerEntryApi
 			.findAllDashboardEntries());
+		String normalizedSearch = hasSearch ? search.trim().toLowerCase(java.util.Locale.ROOT) : null;
 		List<LedgerHistoryEntryView> filtered = enriched.stream()
 			.filter(view -> status == null || status == view.operationalState())
 			.filter(view -> method == null || method == view.method())
+			.filter(view -> !hasSearch || searchable(view, normalizedSearch))
 			.toList();
 		return paginate(filtered, pageable);
+	}
+
+	private static boolean searchable(LedgerHistoryEntryView view, String search) {
+		return java.util.stream.Stream.of(view.orderId(), view.paymentId(), view.courseTitle(), view.reference())
+				.filter(java.util.Objects::nonNull).map(value -> value.toString().toLowerCase(java.util.Locale.ROOT))
+				.anyMatch(value -> value.contains(search));
 	}
 
 	/**

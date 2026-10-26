@@ -74,8 +74,9 @@ public class LedgerController {
 	public ResponseEntity<ApiResponse<PageResponse<LedgerHistoryEntryResponse>>> getDashboard(
 			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
 			@RequestParam(required = false) PaymentOperationalState status,
-			@RequestParam(required = false) PaymentMethod method) {
-		Page<LedgerHistoryEntryView> page = ledgerQueryService.getDashboard(pageable, status, method);
+			@RequestParam(required = false) PaymentMethod method,
+				@RequestParam(required = false) String search) {
+		Page<LedgerHistoryEntryView> page = ledgerQueryService.getDashboard(pageable, status, method, search);
 		PageResponse<LedgerHistoryEntryResponse> response = PageResponse
 			.from(page.map(LedgerHistoryEntryResponse::from));
 		return ResponseEntity.ok(ApiResponse.success(response));

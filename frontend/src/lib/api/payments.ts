@@ -115,6 +115,7 @@ export const paymentKeys = {
   orderPaymentStatus: (orderId: string) => ["orders", orderId, "payment-status"] as const,
   payment: (paymentId: string) => ["payments", paymentId] as const,
   paymentRefunds: (paymentId: string) => ["payments", paymentId, "refunds"] as const,
+  refundVerification: (paymentId: string) => ["payments", paymentId, "refund-verification"] as const,
 };
 
 /**

@@ -219,6 +219,25 @@ public interface LedgerEntryRepository extends TenantAwareRepository<LedgerEntry
 				Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by("id")));
 	}
 
+	/** RPT-02: number of PAYMENT_CONFIRMED entries of {@code paymentIds} (tenant-scoped count, no rows loaded). */
+	default long countConfirmedForPayments(Collection<UUID> paymentIds) {
+		if (paymentIds.isEmpty()) {
+			return 0;
+		}
+		return count((root, query, cb) -> cb.and(root.get("paymentId").in(paymentIds),
+				cb.equal(root.get("entryType"), LedgerEntryType.PAYMENT_CONFIRMED)));
+	}
+
+	/** RPT-02: the PAYMENT_CONFIRMED entries of {@code paymentIds} (any date), oldest first. Tenant-scoped. */
+	default List<LedgerEntry> findConfirmedForPaymentsOldestFirst(Collection<UUID> paymentIds) {
+		if (paymentIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> cb.and(root.get("paymentId").in(paymentIds),
+				cb.equal(root.get("entryType"), LedgerEntryType.PAYMENT_CONFIRMED)),
+				Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by("id")));
+	}
+
 	@Override
 	default void deleteById(UUID id) {
 		throw new UnsupportedOperationException("ledger_entry is append-only - no row may ever be deleted");

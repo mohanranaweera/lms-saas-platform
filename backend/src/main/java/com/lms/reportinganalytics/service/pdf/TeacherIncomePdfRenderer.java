@@ -7,7 +7,6 @@ import com.lms.reportinganalytics.service.TeacherIncomeReport.CourseRow;
 import com.lms.reportinganalytics.service.TeacherIncomeReport.Section;
 import com.lms.reportinganalytics.service.TeacherIncomeReport.TeacherBlock;
 import com.lms.reportinganalytics.service.TeacherIncomeReport.TeacherRef;
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -17,17 +16,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import net.sf.jasperreports.engine.DefaultJasperReportsContext;
-import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JRParameter;
-import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-import net.sf.jasperreports.export.SimpleExporterInput;
-import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
-import net.sf.jasperreports.pdf.JRPdfExporter;
-import net.sf.jasperreports.pdf.SimplePdfExporterConfiguration;
 import org.springframework.stereotype.Component;
 
 /**
@@ -43,7 +34,7 @@ public class TeacherIncomePdfRenderer {
 	/** Upper bound on course rows in one summary PDF (larger runs are a 422). */
 	public static final int MAX_PDF_ROWS = 5000;
 
-	static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss", Locale.ENGLISH);
+	static final DateTimeFormatter TIMESTAMP = JasperPdfSupport.TIMESTAMP;
 
 	private final ReportTemplates templates;
 
@@ -185,8 +176,7 @@ public class TeacherIncomePdfRenderer {
 
 	/** {@code #,##0.00} with the currency prefix: "Rs." for LKR, else the ISO code. */
 	static String amountPattern(String currency) {
-		String prefix = "LKR".equals(currency) ? "Rs." : currency.replace("'", "");
-		return "'" + prefix + "' #,##0.00;'" + prefix + "' -#,##0.00";
+		return JasperPdfSupport.amountPattern(currency);
 	}
 
 	private static BigDecimal dec(String amount) {
@@ -194,31 +184,11 @@ public class TeacherIncomePdfRenderer {
 	}
 
 	private static JasperPrint fill(JasperReport report, Map<String, Object> params, List<?> beans) {
-		try {
-			return JasperFillManager.getInstance(DefaultJasperReportsContext.getInstance())
-				.fill(report, params, new JRBeanCollectionDataSource(beans));
-		}
-		catch (JRException ex) {
-			throw new IllegalStateException("Report rendering failed", ex);
-		}
+		return JasperPdfSupport.fill(report, params, beans);
 	}
 
 	private static byte[] export(JasperPrint print, String title) {
-		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			JRPdfExporter exporter = new JRPdfExporter(DefaultJasperReportsContext.getInstance());
-			exporter.setExporterInput(new SimpleExporterInput(print));
-			exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(out));
-			SimplePdfExporterConfiguration configuration = new SimplePdfExporterConfiguration();
-			configuration.setMetadataTitle(title);
-			configuration.setMetadataCreator("LMS");
-			exporter.setConfiguration(configuration);
-			exporter.exportReport();
-			return out.toByteArray();
-		}
-		catch (JRException ex) {
-			throw new IllegalStateException("PDF export failed", ex);
-		}
+		return JasperPdfSupport.export(print, title);
 	}
 
 }

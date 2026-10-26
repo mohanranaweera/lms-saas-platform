@@ -38,9 +38,19 @@ public class ReportValidationException extends FieldValidationException {
 	}
 
 	public static ReportValidationException snapshotTooLarge(int bytes, int max) {
+		return snapshotTooLarge(bytes, max, "choose a shorter period or fewer teachers");
+	}
+
+	public static ReportValidationException snapshotTooLarge(int bytes, int max, String hint) {
 		return new ReportValidationException(REPORT_TOO_LARGE, "The report is too large",
 				List.of(new FieldError("period", "the report result is " + bytes + " bytes; at most " + max
-						+ " are allowed - choose a shorter period or fewer teachers")));
+						+ " are allowed - " + hint)));
+	}
+
+	/** RPT-02: a {@code 422 REPORT_TOO_LARGE} with one field error and a report-specific hint. */
+	public static ReportValidationException tooLarge(String field, String detail) {
+		return new ReportValidationException(REPORT_TOO_LARGE, "The report is too large",
+				List.of(new FieldError(field, detail)));
 	}
 
 }

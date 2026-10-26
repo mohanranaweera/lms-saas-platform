@@ -3,6 +3,7 @@ package com.lms.paymentmanagement.payment.web;
 import com.lms.common.api.ApiResponse;
 import com.lms.paymentmanagement.payment.service.PaymentQueryService;
 import com.lms.paymentmanagement.payment.service.PaymentView;
+import com.lms.paymentmanagement.payment.service.RefundVerificationView;
 import com.lms.paymentmanagement.payment.web.dto.PaymentResponse;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,12 @@ public class PaymentController {
 	public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(@PathVariable UUID id) {
 		PaymentView view = paymentQueryService.getPayment(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
+	}
+
+	@GetMapping("/{id}/refund-verification")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<RefundVerificationView>> getRefundVerification(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(paymentQueryService.getRefundVerification(id)));
 	}
 
 	private static PaymentResponse toResponse(PaymentView view) {

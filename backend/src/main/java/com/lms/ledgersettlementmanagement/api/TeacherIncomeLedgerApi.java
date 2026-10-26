@@ -3,10 +3,8 @@ package com.lms.ledgersettlementmanagement.api;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -20,27 +18,10 @@ import java.util.UUID;
  * before exposing any result.
  * Nothing here writes: no ledger, payment or settlement row is ever created or
  * changed by these reads. Batched (no N+1): one ledger read plus one batched
- * read per related source, whatever the number of entries.
+ * read per related source, whatever the number of entries. The enriched-entry
+ * reads it shares with other reports are declared on {@link ReportLedgerApi}.
  */
-public interface TeacherIncomeLedgerApi {
-
-	/**
-	 * DATES mode (and MONTHS-mode legacy detection): every {@code
-	 * PAYMENT_CONFIRMED} / {@code REFUND} entry whose {@code created_at} falls
-	 * in any of {@code windows}, oldest first, fully enriched.
-	 * @throws ReportScopeTooLargeException if more than {@code maxEntries}
-	 * entries are in scope (counted before anything is loaded or enriched).
-	 */
-	List<ReportLedgerEntry> findEntriesCreatedIn(List<InstantRange> windows, int maxEntries);
-
-	/**
-	 * MONTHS mode: every entry (confirmed and refunds, whatever their dates) of
-	 * the orders that have at least one line billed in {@code months} (MONTHLY
-	 * line period or LESSON line's lesson billing month), oldest first.
-	 * @throws ReportScopeTooLargeException if more than {@code maxEntries}
-	 * entries are in scope (counted before anything is loaded or enriched).
-	 */
-	List<ReportLedgerEntry> findEntriesForBillingMonths(Set<YearMonth> months, int maxEntries);
+public interface TeacherIncomeLedgerApi extends ReportLedgerApi {
 
 	/** Every revenue-share rate row (append-only, effective-dated) of the given teachers. */
 	List<ShareRate> findShareRates(Collection<UUID> teacherIds);

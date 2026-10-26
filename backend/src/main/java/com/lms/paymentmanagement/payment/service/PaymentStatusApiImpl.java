@@ -92,7 +92,7 @@ public class PaymentStatusApiImpl implements PaymentStatusApi {
 		return new OrderLineSnapshot(line.getId(), line.getOrderId(), studentId, line.getLineNo(), line.getScope(),
 				line.getCourseId(), line.getModuleId(), line.getLessonId(), line.getPeriodYear(),
 				line.getPeriodMonth(), line.getCoverageKey(), line.getLabel(), line.getUnitAmount(),
-				line.getFacilityFeeAmount(), line.getLineTotal(), line.getCurrency());
+				line.getFacilityFeeAmount(), line.getDiscountAmount(), line.getLineTotal(), line.getCurrency(), line.isReward());
 	}
 
 	@Override
@@ -104,6 +104,22 @@ public class PaymentStatusApiImpl implements PaymentStatusApi {
 	@Override
 	public List<UUID> findOrderIdsForStudent(UUID studentId) {
 		return studentOrderRepository.findAllByStudentId(studentId).stream().map(StudentOrder::getId).toList();
+	}
+
+	@Override
+	public Map<UUID, List<UUID>> findOrderIdsForStudents(Collection<UUID> studentIds) {
+		if (studentIds == null || studentIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<UUID, List<UUID>> result = new LinkedHashMap<>();
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(studentIds));
+		for (int from = 0; from < ids.size(); from += IN_CHUNK) {
+			List<UUID> chunk = ids.subList(from, Math.min(ids.size(), from + IN_CHUNK));
+			studentOrderRepository.findAll((root, query, cb) -> root.get("studentId").in(chunk))
+				.forEach(order -> result.computeIfAbsent(order.getStudentId(), ignored -> new ArrayList<>())
+					.add(order.getId()));
+		}
+		return result;
 	}
 
 	@Override

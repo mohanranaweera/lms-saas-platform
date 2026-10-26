@@ -21,6 +21,7 @@ import {
 import { LiveRegion } from "@/components/ui/live-region";
 import { isApiClientError } from "@/lib/api/error";
 import { useCreateRefund } from "@/lib/api/payments";
+import { useRefundVerification } from "@/lib/api/refund-verification";
 import type { LedgerHistoryEntryResponse } from "@/lib/api/ledger";
 import {
   refundSchema,
@@ -64,6 +65,7 @@ export function RefundDialog({ entry }: { entry: LedgerHistoryEntryResponse }) {
   // reused across two genuinely separate refund attempts.
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => randomUuid());
   const mutation = useCreateRefund(paymentId ?? "");
+  const verification = useRefundVerification(paymentId ?? "", open);
 
   const {
     register,
@@ -82,6 +84,10 @@ export function RefundDialog({ entry }: { entry: LedgerHistoryEntryResponse }) {
 
   const onSubmit = handleSubmit(async (values) => {
     setPageError(null);
+    if (!verification.data || verification.data.paymentStatus !== "CONFIRMED" || verification.data.refundableAmount <= 0) {
+      setPageError("Payment verification is incomplete or this payment has no refundable balance.");
+      return;
+    }
     try {
       await mutation.mutateAsync({
         amount: Number(values.amount),
@@ -151,10 +157,12 @@ export function RefundDialog({ entry }: { entry: LedgerHistoryEntryResponse }) {
         <AlertDialogHeader>
           <AlertDialogTitle>Refund payment {paymentId}</AlertDialogTitle>
           <AlertDialogDescription>
-            Order {entry.orderId} — originally confirmed for {entry.amount.toFixed(2)}. This
-            creates a new refund record and ledger entry; the original payment is never modified.
+            Verify {verification.data?.displayOrderNumber ?? `Order ${entry.orderId.slice(0, 8)}`} / Payment {(paymentId ?? "").slice(0, 8)} before submitting. This creates a new refund record and ledger entry; the original payment is never modified.
           </AlertDialogDescription>
         </AlertDialogHeader>
+
+
+        {verification.isLoading ? <p className="rounded-md border bg-muted/40 p-3 text-sm">Verifying payment and order details…</p> : verification.isError ? <Alert variant="destructive"><AlertDescription>Order verification failed. Close and try again.</AlertDescription></Alert> : verification.data ? <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm"><div className="font-medium">Verified {verification.data.displayOrderNumber} · payment details</div><div className="grid grid-cols-2 gap-x-3 gap-y-1"><span className="text-muted-foreground">Order</span><span className="break-all">{verification.data.displayOrderNumber}</span><span className="text-muted-foreground">Payment method</span><span>{verification.data.gatewayReference?.startsWith("SLIP-") ? "Bank transfer slip" : verification.data.gatewayReference?.startsWith("MANUAL-") ? "Manual receipt" : "Online payment"}</span><span className="text-muted-foreground">Status</span><span>{verification.data.paymentStatus}</span><span className="text-muted-foreground">Refundable balance</span><span>{verification.data.refundableAmount.toFixed(2)} {verification.data.currency}</span></div></div> : null}
 
         {pageError ? (
           <Alert variant="destructive">
@@ -233,7 +241,7 @@ export function RefundDialog({ entry }: { entry: LedgerHistoryEntryResponse }) {
             <Button
               type="submit"
               variant="destructive"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || verification.isLoading || verification.isError || !verification.data || verification.data.refundableAmount <= 0}
               aria-busy={mutation.isPending}
             >
               {mutation.isPending ? "Submitting…" : "Submit refund"}

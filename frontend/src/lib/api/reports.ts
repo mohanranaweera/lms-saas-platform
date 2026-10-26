@@ -265,28 +265,55 @@ export function saveBlob(blob: Blob, filename: string): void {
 }
 
 /** Friendly copy for a failed PDF export. */
-export function reportDownloadErrorMessage(error: unknown): string {
+export function reportDownloadErrorMessage(
+  error: unknown,
+  narrowHint = "Narrow the teachers or period."
+): string {
   if (isApiClientError(error)) {
     if (error.status === 404) return "This report has expired — run it again.";
     if (error.status === 403) return "You don't have permission to export this report.";
     if (error.code === "REPORT_TOO_LARGE") {
       return error.fieldErrors[0]?.message
         ? `The report is too large to export as PDF: ${error.fieldErrors[0].message}.`
-        : "The report is too large to export as PDF. Narrow the teachers or period.";
+        : `The report is too large to export as PDF. ${narrowHint}`;
     }
+    if (error.status === 429) return "Too many report requests, please wait a moment and try again.";
     if (error.status === 503) return "Reports are temporarily unavailable. Please try again shortly.";
     return error.message;
   }
   return "The download failed. Please try again.";
 }
 
-/** "Rs. 1,234.00" for LKR, otherwise "USD 1,234.00". Formats the server string; never re-computes it. */
-export function formatReportAmount(amount: string | null | undefined, currency: string): string {
-  if (amount === null || amount === undefined) return "—";
+/**
+ * "1,234.00" / "-1,234.00": groups and pads a server decimal string. Pure
+ * formatting - never parses to a float, never re-computes.
+ */
+export function formatReportDecimal(amount: string): string {
   const negative = amount.trim().startsWith("-");
   const [intPart, fracPart = ""] = amount.trim().replace(/^[-+]/, "").split(".");
   const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const fraction = (fracPart + "00").slice(0, 2);
+  return `${negative ? "-" : ""}${grouped}.${fraction}`;
+}
+
+/** "Rs. 1,234.00" for LKR, otherwise "USD 1,234.00". Formats the server string; never re-computes it. */
+export function formatReportAmount(amount: string | null | undefined, currency: string): string {
+  if (amount === null || amount === undefined) return "—";
+  const formatted = formatReportDecimal(amount);
+  const negative = formatted.startsWith("-");
   const prefix = currency === "LKR" ? "Rs." : currency;
-  return `${negative ? "-" : ""}${prefix} ${grouped}.${fraction}`;
+  return `${negative ? "-" : ""}${prefix} ${negative ? formatted.slice(1) : formatted}`;
+}
+
+/** "1 Apr 2025, 10:00" in the report's timezone (falls back to the raw ISO string). */
+export function formatReportGenerated(iso: string, timezone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: timezone,
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
 }

@@ -36,6 +36,9 @@ public class StudentOrder extends Auditable implements TenantOwned {
 	@Column(name = "tenant_id", nullable = false, updatable = false)
 	private UUID tenantId;
 
+	@Column(name = "order_number", nullable = false, updatable = false)
+	private long orderNumber;
+
 	@Column(name = "student_id", nullable = false, updatable = false)
 	private UUID studentId;
 
@@ -194,6 +197,14 @@ public class StudentOrder extends Auditable implements TenantOwned {
 	@Override
 	public void setTenantId(UUID tenantId) {
 		this.tenantId = tenantId;
+	}
+
+	public long getOrderNumber() {
+		return orderNumber;
+	}
+
+	public String getDisplayOrderNumber() {
+		return "ORD-" + String.format(java.util.Locale.ROOT, "%06d", orderNumber);
 	}
 
 	public UUID getStudentId() {

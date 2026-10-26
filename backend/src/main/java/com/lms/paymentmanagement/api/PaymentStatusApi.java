@@ -3,6 +3,7 @@ package com.lms.paymentmanagement.api;
 import java.time.YearMonth;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,6 +42,9 @@ public interface PaymentStatusApi {
 	 * payment-management}'s {@code student_order} table.
 	 */
 	List<UUID> findOrderIdsForStudent(UUID studentId);
+
+	/** Batched tenant-scoped order ids for a report population. */
+	Map<UUID, List<UUID>> findOrderIdsForStudents(Collection<UUID> studentIds);
 
 	/**
 	 * Wave 6 (§3.2/§4) batched read - one {@link OrderPaymentDetail} per id in

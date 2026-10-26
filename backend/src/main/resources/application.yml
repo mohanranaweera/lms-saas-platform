@@ -323,6 +323,61 @@ app:
       max-run-bytes: ${REPORT_TEACHER_INCOME_MAX_RUN_BYTES:2097152}
       runs-per-window: ${REPORT_TEACHER_INCOME_RUNS_PER_WINDOW:10}
       run-window: ${REPORT_TEACHER_INCOME_RUN_WINDOW:1m}
+    # RPT-02 Student Payment Report resource bounds (see StudentPaymentReportProperties).
+    student-payments:
+      max-ledger-entries: ${REPORT_STUDENT_PAYMENTS_MAX_LEDGER_ENTRIES:50000}
+      max-rows: ${REPORT_STUDENT_PAYMENTS_MAX_ROWS:20000}
+      max-pdf-rows: ${REPORT_STUDENT_PAYMENTS_MAX_PDF_ROWS:10000}
+      max-run-bytes: ${REPORT_STUDENT_PAYMENTS_MAX_RUN_BYTES:8388608}
+      runs-per-window: ${REPORT_STUDENT_PAYMENTS_RUNS_PER_WINDOW:10}
+      pdf-per-window: ${REPORT_STUDENT_PAYMENTS_PDF_PER_WINDOW:6}
+      rows-per-window: ${REPORT_STUDENT_PAYMENTS_ROWS_PER_WINDOW:120}
+      run-window: ${REPORT_STUDENT_PAYMENTS_RUN_WINDOW:1m}
+    course-summary:
+      max-facts: ${REPORT_COURSE_SUMMARY_MAX_FACTS:50000}
+      max-ledger-entries: ${REPORT_COURSE_SUMMARY_MAX_LEDGER_ENTRIES:50000}
+      max-run-bytes: ${REPORT_COURSE_SUMMARY_MAX_RUN_BYTES:4194304}
+      runs-per-window: ${REPORT_COURSE_SUMMARY_RUNS_PER_WINDOW:10}
+      pdf-per-window: ${REPORT_COURSE_SUMMARY_PDF_PER_WINDOW:6}
+      run-window: ${REPORT_COURSE_SUMMARY_RUN_WINDOW:1m}
+    unpaid-students:
+      max-participants: ${REPORT_UNPAID_STUDENTS_MAX_PARTICIPANTS:10000}
+      max-ledger-entries: ${REPORT_UNPAID_STUDENTS_MAX_LEDGER_ENTRIES:50000}
+      max-attendance-facts: ${REPORT_UNPAID_STUDENTS_MAX_ATTENDANCE_FACTS:50000}
+      max-rows: ${REPORT_UNPAID_STUDENTS_MAX_ROWS:10000}
+      max-pdf-rows: ${REPORT_UNPAID_STUDENTS_MAX_PDF_ROWS:10000}
+      max-run-bytes: ${REPORT_UNPAID_STUDENTS_MAX_RUN_BYTES:8388608}
+      runs-per-window: ${REPORT_UNPAID_STUDENTS_RUNS_PER_WINDOW:10}
+      pdf-per-window: ${REPORT_UNPAID_STUDENTS_PDF_PER_WINDOW:6}
+      rows-per-window: ${REPORT_UNPAID_STUDENTS_ROWS_PER_WINDOW:120}
+      run-window: ${REPORT_UNPAID_STUDENTS_RUN_WINDOW:1m}
+    student-behavior:
+      max-ledger-entries: ${REPORT_STUDENT_BEHAVIOR_MAX_LEDGER_ENTRIES:50000}
+      max-rows: ${REPORT_STUDENT_BEHAVIOR_MAX_ROWS:20000}
+      max-pdf-rows: ${REPORT_STUDENT_BEHAVIOR_MAX_PDF_ROWS:10000}
+      max-run-bytes: ${REPORT_STUDENT_BEHAVIOR_MAX_RUN_BYTES:8388608}
+      runs-per-window: ${REPORT_STUDENT_BEHAVIOR_RUNS_PER_WINDOW:10}
+      pdf-per-window: ${REPORT_STUDENT_BEHAVIOR_PDF_PER_WINDOW:6}
+      rows-per-window: ${REPORT_STUDENT_BEHAVIOR_ROWS_PER_WINDOW:120}
+      run-window: ${REPORT_STUDENT_BEHAVIOR_RUN_WINDOW:1m}
+    registration:
+      max-rows: ${REPORT_REGISTRATION_MAX_ROWS:20000}
+      max-pdf-rows: ${REPORT_REGISTRATION_MAX_PDF_ROWS:10000}
+      max-run-bytes: ${REPORT_REGISTRATION_MAX_RUN_BYTES:12582912}
+      runs-per-window: ${REPORT_REGISTRATION_RUNS_PER_WINDOW:10}
+      pdf-per-window: ${REPORT_REGISTRATION_PDF_PER_WINDOW:6}
+      rows-per-window: ${REPORT_REGISTRATION_ROWS_PER_WINDOW:120}
+      run-window: ${REPORT_REGISTRATION_RUN_WINDOW:1m}
+    attendance:
+      max-facts: ${REPORT_ATTENDANCE_MAX_FACTS:50000}
+      max-students: ${REPORT_ATTENDANCE_MAX_STUDENTS:5000}
+      max-date-columns: ${REPORT_ATTENDANCE_MAX_DATE_COLUMNS:366}
+      max-matrix-cells: ${REPORT_ATTENDANCE_MAX_MATRIX_CELLS:250000}
+      max-pdf-rows: ${REPORT_ATTENDANCE_MAX_PDF_ROWS:5000}
+      max-run-bytes: ${REPORT_ATTENDANCE_MAX_RUN_BYTES:8388608}
+      runs-per-window: ${REPORT_ATTENDANCE_RUNS_PER_WINDOW:10}
+      pdf-per-window: ${REPORT_ATTENDANCE_PDF_PER_WINDOW:6}
+      run-window: ${REPORT_ATTENDANCE_RUN_WINDOW:1m}
   finance:
     expense:
       # Wave 7 working default for expense receipt uploads (PDF/PNG/JPEG) -

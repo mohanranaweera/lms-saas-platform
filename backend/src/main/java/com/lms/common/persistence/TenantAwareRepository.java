@@ -1,6 +1,8 @@
 package com.lms.common.persistence;
 
 import java.io.Serializable;
+import java.util.List;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
@@ -22,5 +24,13 @@ import org.springframework.data.repository.NoRepositoryBean;
 @NoRepositoryBean
 public interface TenantAwareRepository<T extends TenantOwned, ID extends Serializable>
 		extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
+
+	/**
+	 * The values of one attribute of the current tenant's rows matching {@code
+	 * spec} - a narrow projection (only that column is selected) with the same
+	 * structural tenant predicate as every other finder here. For bounded
+	 * report lookups that need ids only, not whole entities.
+	 */
+	<R> List<R> findAttributeValues(Specification<T> spec, String attribute, Class<R> type);
 
 }

@@ -65,4 +65,28 @@ public interface StudentLookupApi {
 	/** Wave 11: every student user id in the current tenant (the "all students" audience). */
 	List<UUID> listAllStudentUserIds();
 
+	/**
+	 * RPT-02: name and index number of each student user in {@code userIds},
+	 * read in tenant-scoped batches (one query per chunk, never per id). Ids
+	 * that are not students of the current tenant are silently omitted. The
+	 * index number is read-only; this contract offers no way to set it.
+	 */
+	List<StudentIndexEntry> findStudentIndexEntries(Collection<UUID> userIds);
+
+	/**
+	 * Unpaid Students Report display fields, keyed by the user ids used by
+	 * participation, payment and attendance. Unknown or foreign ids are omitted.
+	 */
+	List<UnpaidStudentProfile> findUnpaidStudentProfiles(Collection<UUID> userIds);
+
+	/**
+	 * Registration Report source rows, ordered by the tenant-owned profile creation
+	 * timestamp then profile id. The window is start-inclusive/end-exclusive.
+	 */
+	List<RegistrationReportStudent> findRegistrationsBetween(java.time.Instant fromInclusive,
+			java.time.Instant toExclusive, int maxRows);
+
+	/** Every recorded profile-creation actor in current tenant registration rows. */
+	List<UUID> findRegistrationOperatorIds();
+
 }

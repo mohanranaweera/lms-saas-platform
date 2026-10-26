@@ -130,7 +130,7 @@ public class OrderController {
 	}
 
 	private static OrderResponse toResponse(OrderView view) {
-		return new OrderResponse(view.id(), view.studentId(), view.courseId(), view.amount(), view.currency(),
+		return new OrderResponse(view.id(), view.orderNumber(), view.displayOrderNumber(), view.studentId(), view.courseId(), view.amount(), view.currency(),
 				view.billingPeriodId(), view.status(), view.createdAt(), view.updatedAt());
 	}
 

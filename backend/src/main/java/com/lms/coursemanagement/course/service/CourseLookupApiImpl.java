@@ -127,10 +127,35 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	}
 
 	@Override
+	public List<CourseSummary> listCourseSummaries() {
+		return courseRepository
+			.findAll(org.springframework.data.domain.PageRequest.of(0, MAX_COURSE_SUMMARIES,
+					org.springframework.data.domain.Sort.by("name").and(org.springframework.data.domain.Sort.by("id"))))
+			.stream()
+			.map(course -> new CourseSummary(course.getId(), course.getName(), course.getSlug(), course.getCategory()))
+			.sorted(java.util.Comparator.comparing(CourseSummary::name, String.CASE_INSENSITIVE_ORDER)
+				.thenComparing(CourseSummary::id))
+			.toList();
+	}
+
+	@Override
 	public Map<UUID, UUID> getTeacherIdsByCourseId(Set<UUID> courseIds) {
 		return courseRepository.findAllById(courseIds)
 			.stream()
 			.collect(Collectors.toMap(Course::getId, Course::getTeacherId));
+	}
+
+	@Override
+	public List<CourseSummary> listCourseSummariesByTeacherId(UUID teacherId) {
+		if (teacherId == null) {
+			return List.of();
+		}
+		return courseRepository.findByTeacherId(teacherId)
+			.stream()
+			.map(course -> new CourseSummary(course.getId(), course.getName(), course.getSlug(), course.getCategory()))
+			.sorted(java.util.Comparator.comparing(CourseSummary::name, String.CASE_INSENSITIVE_ORDER)
+				.thenComparing(CourseSummary::id))
+			.toList();
 	}
 
 	@Override

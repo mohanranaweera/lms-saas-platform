@@ -16,7 +16,7 @@ import java.util.UUID;
  * {@code 201} for a replay. {@code false} for every ordinary read (
  * {@code getOrder}, etc.) and every genuinely new order creation.
  */
-public record OrderView(UUID id, UUID studentId, UUID courseId, BigDecimal amount, String currency,
+public record OrderView(UUID id, long orderNumber, String displayOrderNumber, UUID studentId, UUID courseId, BigDecimal amount, String currency,
 		UUID billingPeriodId, OrderStatus status, Instant createdAt, Instant updatedAt, boolean idempotentReplay) {
 
 }

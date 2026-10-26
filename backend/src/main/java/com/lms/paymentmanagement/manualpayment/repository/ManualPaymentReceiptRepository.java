@@ -2,6 +2,7 @@ package com.lms.paymentmanagement.manualpayment.repository;
 
 import com.lms.common.persistence.AppendOnlyTenantAwareRepository;
 import com.lms.paymentmanagement.manualpayment.domain.ManualPaymentReceipt;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,34 @@ public interface ManualPaymentReceiptRepository extends AppendOnlyTenantAwareRep
 			return List.of();
 		}
 		return findAll((root, query, cb) -> root.get("orderId").in(orderIds));
+	}
+
+	/** RPT-02: receipts of {@code paymentIds} (tenant-scoped). */
+	default List<ManualPaymentReceipt> findAllByPaymentIdIn(Collection<UUID> paymentIds) {
+		if (paymentIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("paymentId").in(paymentIds));
+	}
+
+	/** RPT-02: number of receipts received in {@code [from, to]} (tenant-scoped count, no rows loaded). */
+	default long countReceivedBetween(LocalDate from, LocalDate to) {
+		return count((root, query, cb) -> cb.between(root.get("receivedOn"), from, to));
+	}
+
+	/** RPT-02: number of receipts in {@code [from, to]} for the supplied payment ids. Tenant-scoped. */
+	default long countReceivedBetweenForPaymentIds(LocalDate from, LocalDate to, Collection<UUID> paymentIds) {
+		if (paymentIds.isEmpty()) {
+			return 0;
+		}
+		return count((root, query, cb) -> cb.and(cb.between(root.get("receivedOn"), from, to),
+				root.get("paymentId").in(paymentIds)));
+	}
+
+	/** RPT-02: payment ids (only that column) of receipts received in {@code [from, to]}. Tenant-scoped. */
+	default List<UUID> findPaymentIdsReceivedBetween(LocalDate from, LocalDate to) {
+		return findAttributeValues((root, query, cb) -> cb.between(root.get("receivedOn"), from, to), "paymentId",
+				UUID.class);
 	}
 
 	/**
