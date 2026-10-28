@@ -29,6 +29,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -125,6 +129,8 @@ public class OrderService {
 
 	private final PaymentRepository paymentRepository;
 
+	private final com.lms.paymentmanagement.order.repository.StudentOrderLineRepository studentOrderLineRepository;
+
 	private final CourseLookupApi courseLookupApi;
 
 	private final TenantContext tenantContext;
@@ -147,7 +153,8 @@ public class OrderService {
 			CourseLookupApi courseLookupApi, TenantContext tenantContext, PaymentDomainAccessGuard accessGuard,
 			EnrollmentAccessApi enrollmentAccessApi, EnrollmentActivationApi enrollmentActivationApi,
 			ReactivationLinkingApi reactivationLinkingApi, PermissionCheckService permissionCheckService,
-			ApplicationEventPublisher eventPublisher, LedgerEntryApi ledgerEntryApi) {
+			ApplicationEventPublisher eventPublisher, LedgerEntryApi ledgerEntryApi,
+			com.lms.paymentmanagement.order.repository.StudentOrderLineRepository studentOrderLineRepository) {
 		this.studentOrderRepository = studentOrderRepository;
 		this.paymentRepository = paymentRepository;
 		this.courseLookupApi = courseLookupApi;
@@ -159,6 +166,7 @@ public class OrderService {
 		this.permissionCheckService = permissionCheckService;
 		this.eventPublisher = eventPublisher;
 		this.ledgerEntryApi = ledgerEntryApi;
+		this.studentOrderLineRepository = studentOrderLineRepository;
 	}
 
 	/**
@@ -464,6 +472,16 @@ public class OrderService {
 	}
 
 	@Transactional(readOnly = true)
+	public List<OrderLineView> getOrderLines(UUID id) {
+		StudentOrder order = loadOrderForCaller(id);
+		Map<UUID, String> titles = new HashMap<>();
+		Set<UUID> courseIds = studentOrderLineRepository.findAllByOrderId(order.getId()).stream().map(line -> line.getCourseId()).collect(java.util.stream.Collectors.toSet());
+		if (courseIds.isEmpty() && order.getCourseId() != null) courseIds = Set.of(order.getCourseId());
+		for (var summary : courseLookupApi.getCourseSummaries(courseIds)) titles.put(summary.id(), summary.name());
+		return studentOrderLineRepository.findAllByOrderId(order.getId()).stream().map(line -> new OrderLineView(line.getLineNo(), line.getScope(), line.getCourseId(), titles.get(line.getCourseId()), line.getModuleId(), line.getLessonId(), line.getPeriodYear(), line.getPeriodMonth(), line.getBillingPeriodId(), line.getLabel(), line.getUnitAmount(), line.getFacilityFeeAmount(), line.getDiscountAmount(), line.getLineTotal(), line.getCurrency(), line.getCreatedAt())).toList();
+	}
+
+	@Transactional(readOnly = true)
 	public OrderPaymentStatusView getPaymentStatus(UUID id) {
 		StudentOrder order = loadOrderForCaller(id);
 		return paymentRepository.findLatestByOrderId(order.getId())
@@ -515,8 +533,8 @@ public class OrderService {
 
 	private static OrderView toView(StudentOrder order, boolean idempotentReplay) {
 		return new OrderView(order.getId(), order.getOrderNumber(), order.getDisplayOrderNumber(), order.getStudentId(), order.getCourseId(), order.getAmount(),
-				order.getCurrency(), order.getBillingPeriodId(), order.getStatus(), order.getCreatedAt(),
-				order.getUpdatedAt(), idempotentReplay);
+				order.getCurrency(), order.getBillingPeriodId(), order.getStatus(), order.getCreatedAt(), order.getUpdatedAt(), order.getSubtotalAmount(),
+				order.getFacilityFeeAmount(), order.getPostageAmount(), order.getDiscountAmount(), idempotentReplay);
 	}
 
 }

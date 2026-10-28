@@ -37,6 +37,33 @@ public class TeacherProfile extends Auditable implements TenantOwned {
 	@Column(name = "name", nullable = false)
 	private String name;
 
+	@Column(name = "first_name", length = 120)
+	private String firstName;
+
+	@Column(name = "last_name", length = 120)
+	private String lastName;
+
+	@Column(name = "contact_number", length = 40)
+	private String contactNumber;
+
+	@Column(name = "qualifications", length = 2000)
+	private String qualifications;
+
+	@Column(name = "description", length = 5000)
+	private String description;
+
+	@Column(name = "institute_commission_percent", precision = 5, scale = 2)
+	private java.math.BigDecimal instituteCommissionPercent;
+
+	@Column(name = "profile_media_file_id")
+	private UUID profileMediaFileId;
+
+	@Column(name = "public_profile_disabled", nullable = false)
+	private boolean publicProfileDisabled;
+
+	@Column(name = "display_order")
+	private Integer displayOrder;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "approval_status", nullable = false)
 	private ApprovalStatus approvalStatus;
@@ -87,6 +114,60 @@ public class TeacherProfile extends Auditable implements TenantOwned {
 
 	public String getName() {
 		return name;
+	}
+
+	public String getFirstName() {
+		return firstName;
+	}
+
+	public String getLastName() {
+		return lastName;
+	}
+
+	public String getContactNumber() {
+		return contactNumber;
+	}
+
+	public String getQualifications() {
+		return qualifications;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public java.math.BigDecimal getInstituteCommissionPercent() {
+		return instituteCommissionPercent;
+	}
+
+	public UUID getProfileMediaFileId() {
+		return profileMediaFileId;
+	}
+
+	public boolean isPublicProfileDisabled() {
+		return publicProfileDisabled;
+	}
+
+	public Integer getDisplayOrder() {
+		return displayOrder;
+	}
+
+	public void setDisplayOrder(Integer displayOrder) {
+		this.displayOrder = displayOrder;
+	}
+
+	public void updateProfile(String firstName, String lastName, String contactNumber, String qualifications,
+			String description, java.math.BigDecimal instituteCommissionPercent, UUID profileMediaFileId,
+			boolean publicProfileDisabled) {
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.contactNumber = contactNumber;
+		this.qualifications = qualifications;
+		this.description = description;
+		this.instituteCommissionPercent = instituteCommissionPercent;
+		this.profileMediaFileId = profileMediaFileId;
+		this.publicProfileDisabled = publicProfileDisabled;
+		this.name = (lastName == null || lastName.isBlank()) ? firstName : (firstName + " " + lastName).trim();
 	}
 
 	public ApprovalStatus getApprovalStatus() {

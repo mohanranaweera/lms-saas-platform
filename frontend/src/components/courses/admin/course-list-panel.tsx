@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BookOpen, HelpCircle, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
@@ -27,6 +28,7 @@ import {
   PRICING_MODEL_LABELS,
   formatAmount,
   useKlassCourses,
+  useCourseTags,
   useReorderCourses,
   useSetKlassCoursePublished,
   type KlassCourse,
@@ -58,6 +60,7 @@ export function CourseListPanel() {
   const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [createKey, setCreateKey] = useState(0);
+  const [tagId, setTagId] = useState<string | null>(null);
   const toast = useAdminToast();
   const publishNew = useSetKlassCoursePublished();
 
@@ -95,6 +98,8 @@ export function CourseListPanel() {
       archived={value === "archived"}
       search={search}
       page={page}
+      tagId={tagId}
+      onTagIdChange={(next) => { setTagId(next); setPage(0); }}
       onPageChange={setPage}
       onClearSearch={() => setSearchInput("")}
       onAddCourse={openCreate}
@@ -178,6 +183,8 @@ function CourseTable({
   archived,
   search,
   page,
+  tagId,
+  onTagIdChange,
   onPageChange,
   onClearSearch,
   onAddCourse,
@@ -186,12 +193,15 @@ function CourseTable({
   archived: boolean;
   search: string;
   page: number;
+  tagId: string | null;
+  onTagIdChange: (tagId: string | null) => void;
   onPageChange: (page: number) => void;
   onClearSearch: () => void;
   onAddCourse: () => void;
   onToast: (message: AdminToastMessage) => void;
 }) {
-  const query = useKlassCourses({ archived, search, page, size: PAGE_SIZE });
+  const query = useKlassCourses({ archived, search, page, size: PAGE_SIZE, tagId });
+  const tagsQuery = useCourseTags();
   const reorder = useReorderCourses();
   const [optimisticRows, setOptimisticRows] = useState<KlassCourse[] | null>(null);
   const [showRegistrationHelp, setShowRegistrationHelp] = useState(false);
@@ -244,7 +254,7 @@ function CourseTable({
           );
         }
 
-        const reorderEnabled = !archived && !search && data.totalPages <= 1;
+        const reorderEnabled = !archived && !search && !tagId && data.totalPages <= 1;
         const headerCurrency = rows.find((course) => course.priceDisplay)?.priceDisplay?.currency ?? "LKR";
 
         const handleMove = (from: number, to: number) => {
@@ -268,6 +278,11 @@ function CourseTable({
             header: "Name",
             cell: (course) => <span className="font-medium text-foreground">{course.name}</span>,
             hideOnCard: true,
+          },
+          {
+            key: "tags",
+            header: "Tags",
+            cell: (course) => course.tags.length ? <div className="flex flex-wrap gap-1">{course.tags.map((tag) => <Badge key={tag.id} variant="outline">{tag.name}</Badge>)}</div> : <span className="text-muted-foreground">—</span>,
           },
           {
             key: "status",
@@ -315,7 +330,19 @@ function CourseTable({
             aria-busy={refreshing || undefined}
             data-testid="courses-list"
           >
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-3">
+              <label htmlFor={`course-tag-filter-${archived ? "archived" : "active"}`} className="text-sm font-medium text-foreground">Filter by tag</label>
+              <select
+                id={`course-tag-filter-${archived ? "archived" : "active"}`}
+                value={tagId ?? ""}
+                onChange={(event) => onTagIdChange(event.target.value || null)}
+                disabled={tagsQuery.isPending || tagsQuery.isError}
+                className="h-9 w-full max-w-xs rounded-lg border border-input bg-background px-2.5 text-sm"
+              >
+                <option value="">All tags</option>
+                {(tagsQuery.data ?? []).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
+              </select>
+              {tagsQuery.isError ? <p className="text-xs text-destructive" role="alert">Tags could not be loaded. Clear filter or retry page.</p> : null}
               <button
                 type="button"
                 onClick={() => setShowRegistrationHelp((current) => !current)}

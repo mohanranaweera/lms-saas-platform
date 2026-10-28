@@ -139,7 +139,7 @@ public class SecurityFilterChainConfig {
 				// (MVP-008, GET-only) - tenant is still resolved server-side from
 				// the subdomain by TenantResolutionFilter; no client-supplied
 				// tenantId is ever accepted. See CoursePublicController.
-				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**")
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**", "/api/v1/public/teachers", "/api/v1/public/teachers/**")
 					.permitAll();
 				// Public, unauthenticated branding read path (Wave 1 - Tenant
 				// Admin IA + Configuration Framework) - tenant is still

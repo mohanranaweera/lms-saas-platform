@@ -14,6 +14,8 @@ import java.util.UUID;
 public record PublicCourseResponse(UUID id, String name, String slug, String category, String subject,
 		String stream, String grade, String academicYear, String description, BigDecimal price,
 		Integer accessDurationDays, String enrollmentRule, CoursePricingModel pricingModel, BigDecimal resolvedAmount,
-		String currency, boolean requiresManualQuote) {
+		String currency, boolean requiresManualQuote, String teacherName, String coverImageUrl,
+			boolean registrationEnabled, com.lms.coursemanagement.course.service.PublicCourseOutline outline,
+			java.util.List<com.lms.coursemanagement.course.service.PublicCourseTag> tags) {
 
 }

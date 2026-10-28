@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ChevronRight, Clock, CreditCard, Loader2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LessonNode } from "@/lib/api/klass-student";
+import { usePaymentComposer } from "@/components/payments/composer/payment-composer-provider";
+import { presetFromPurchase } from "@/components/payments/composer/composer-model";
 
 const pill =
   "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap";
@@ -78,6 +80,7 @@ export function LessonAccessAction({
   onPay: (() => void) | null;
   allowedLabel?: string;
 }) {
+  const composer = usePaymentComposer();
   const status = lesson.access.status;
   if (launching) {
     return (
@@ -98,6 +101,9 @@ export function LessonAccessAction({
     case "PAYMENT_REQUIRED":
       if (lesson.paymentType !== "FREE" && onPay) {
         return <PayNowButton onClick={onPay} label={`Pay now for ${lesson.title}`} testId="lesson-pay-now" />;
+      }
+      if (lesson.paymentType !== "FREE" && composer && lesson.access.requiredPurchase) {
+        return <PayNowButton onClick={() => composer.openComposer(presetFromPurchase(lesson.access.requiredPurchase!, { itemLabel: lesson.title }))} label={`Pay now for ${lesson.title}`} testId="lesson-pay-now" />;
       }
       return (
         <StatusPill tone="danger" testId="lesson-status">

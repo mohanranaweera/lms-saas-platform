@@ -17,6 +17,7 @@ import java.util.UUID;
  * {@code getOrder}, etc.) and every genuinely new order creation.
  */
 public record OrderView(UUID id, long orderNumber, String displayOrderNumber, UUID studentId, UUID courseId, BigDecimal amount, String currency,
-		UUID billingPeriodId, OrderStatus status, Instant createdAt, Instant updatedAt, boolean idempotentReplay) {
+		UUID billingPeriodId, OrderStatus status, Instant createdAt, Instant updatedAt, BigDecimal subtotalAmount,
+			BigDecimal facilityFeeAmount, BigDecimal postageAmount, BigDecimal discountAmount, boolean idempotentReplay) {
 
 }

@@ -217,6 +217,9 @@ public interface CourseLookupApi {
 	 */
 	List<CourseSummary> listCourseSummariesByTeacherId(UUID teacherId);
 
+	/** Public storefront courses assigned to an approved teacher, excluding archived and non-public courses. */
+	List<PublicCourseSummary> listPublicCourseSummariesByTeacherId(UUID teacherId);
+
 	/** Upper bound of {@link #listCourseSummaries()}. */
 	int MAX_COURSE_SUMMARIES = 2000;
 

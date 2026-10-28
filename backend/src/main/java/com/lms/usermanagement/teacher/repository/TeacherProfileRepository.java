@@ -4,7 +4,9 @@ import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.usermanagement.teacher.domain.ApprovalStatus;
 import com.lms.usermanagement.teacher.domain.TeacherProfile;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Sort;
 
 /**
  * Tenant-scoped per {@code .claude/rules/tenancy.md}: every inherited finder
@@ -21,8 +23,24 @@ import java.util.UUID;
  */
 public interface TeacherProfileRepository extends TenantAwareRepository<TeacherProfile, UUID> {
 
+	Sort DISPLAY_ORDER = Sort.by(Sort.Order.asc("displayOrder").nullsLast(), Sort.Order.asc("name").ignoreCase(), Sort.Order.asc("id"));
+
 	default List<TeacherProfile> findByApprovalStatus(ApprovalStatus approvalStatus) {
-		return findAll((root, query, cb) -> cb.equal(root.get("approvalStatus"), approvalStatus));
+		return findAll((root, query, cb) -> cb.equal(root.get("approvalStatus"), approvalStatus), DISPLAY_ORDER);
+	}
+
+	default List<TeacherProfile> findAllPublicProfiles(ApprovalStatus approvalStatus, Sort sort) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("approvalStatus"), approvalStatus),
+				cb.isFalse(root.get("publicProfileDisabled"))), sort);
+	}
+
+	default Optional<TeacherProfile> findPublicProfileById(UUID id, ApprovalStatus approvalStatus) {
+		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("id"), id),
+				cb.equal(root.get("approvalStatus"), approvalStatus), cb.isFalse(root.get("publicProfileDisabled"))));
+	}
+
+	default List<TeacherProfile> findAllOrdered() {
+		return findAll(DISPLAY_ORDER);
 	}
 
 }

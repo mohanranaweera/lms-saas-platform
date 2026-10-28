@@ -209,6 +209,33 @@ class TeacherServiceTest {
 		verify(permissionCheckService).requirePermission(DomainArea.TEACHERS, PermissionAction.VIEW);
 	}
 
+	@Test
+	void updateTeacherPersistsProfileChangesAndReturnsUpdatedAccount() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		UUID teacherId = UUID.randomUUID();
+		UUID userId = UUID.randomUUID();
+		TeacherProfile profile = new TeacherProfile(TENANT_ID, userId, "Old Name");
+		setId(profile, teacherId);
+		when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(profile));
+		when(teacherProfileRepository.save(any(TeacherProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(userProvisioningApi.findTenantUserSummaries(List.of(userId)))
+			.thenReturn(List.of(new TenantUserSummary(userId, "teacher@example.test", "TEACHER", "ACTIVE")));
+
+		TeacherAccount account = teacherService.updateTeacher(teacherId, "Updated", "Teacher", "+1 555 0100",
+				new java.math.BigDecimal("12.50"), "M.Ed.", "Updated profile", null);
+
+		assertThat(profile.getFirstName()).isEqualTo("Updated");
+		assertThat(profile.getLastName()).isEqualTo("Teacher");
+		assertThat(profile.getContactNumber()).isEqualTo("+1 555 0100");
+		assertThat(profile.getInstituteCommissionPercent()).isEqualByComparingTo("12.50");
+		assertThat(profile.getQualifications()).isEqualTo("M.Ed.");
+		assertThat(profile.getDescription()).isEqualTo("Updated profile");
+		assertThat(profile.getName()).isEqualTo("Updated Teacher");
+		assertThat(account.name()).isEqualTo("Updated Teacher");
+		verify(teacherProfileRepository).save(profile);
+		verify(auditLogApi).record(any());
+	}
+
 	// ------------------------------------------------------------------
 	// Tenant-Admin-only approve/reject narrowing (approved plan §2).
 	// ------------------------------------------------------------------

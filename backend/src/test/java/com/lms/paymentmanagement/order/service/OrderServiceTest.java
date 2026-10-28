@@ -65,6 +65,9 @@ class OrderServiceTest {
 
 	private static final UUID COURSE_ID = UUID.randomUUID();
 
+	@org.mockito.Mock
+	private com.lms.paymentmanagement.order.repository.StudentOrderLineRepository studentOrderLineRepository;
+
 	@Mock
 	private StudentOrderRepository studentOrderRepository;
 
@@ -104,7 +107,7 @@ class OrderServiceTest {
 	void setUp() {
 		service = new OrderService(studentOrderRepository, paymentRepository, courseLookupApi, tenantContext,
 				accessGuard, enrollmentAccessApi, enrollmentActivationApi, reactivationLinkingApi,
-				permissionCheckService, eventPublisher, ledgerEntryApi);
+				permissionCheckService, eventPublisher, ledgerEntryApi, studentOrderLineRepository);
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		when(courseLookupApi.getResolvedCheckoutAmount(COURSE_ID))
 			.thenReturn(Optional.of(new CheckoutAmount(new BigDecimal("99.99"), "USD", null, false, false)));

@@ -40,6 +40,21 @@ export interface PublicCourseResponse {
   resolvedAmount: number | null;
   currency: string;
   requiresManualQuote: boolean;
+  teacherName: string | null;
+  coverImageUrl: string | null;
+  registrationEnabled: boolean;
+  outline: { modules: Array<{ id: string; title: string; sequence: number; lessons: Array<{ id: string; title: string; label: string | null; resourceType: string | null; sequence: number }> }> };
+  tags: Array<{ id: string; name: string }>;
+}
+
+export interface PublicCourseTag { id: string; name: string; }
+
+export function listPublicCourseTags(): Promise<PublicCourseTag[]> {
+  return apiFetch<PublicCourseTag[]>("/v1/public/courses/tags");
+}
+
+export function usePublicCourseTags() {
+  return useQuery({ queryKey: ["public-course-tags"], queryFn: listPublicCourseTags, staleTime: 5 * 60_000 });
 }
 
 export const publicCourseKeys = {
@@ -56,6 +71,7 @@ export interface PublicCourseListParams {
   page?: number;
   size?: number;
   sort?: string;
+  tagId?: string | null;
 }
 
 function buildPublicCourseListQuery(params?: PublicCourseListParams): string {
@@ -63,6 +79,7 @@ function buildPublicCourseListQuery(params?: PublicCourseListParams): string {
   search.set("page", String(params?.page ?? 0));
   search.set("size", String(params?.size ?? PUBLIC_COURSES_PAGE_SIZE));
   if (params?.sort) search.set("sort", params.sort);
+  if (params?.tagId) search.set("tagId", params.tagId);
   return `?${search.toString()}`;
 }
 

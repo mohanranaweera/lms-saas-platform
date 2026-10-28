@@ -1,174 +1,77 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { LoadingState } from "@/components/states/loading-state";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { CourseCover, PriceBadge } from "@/components/courses/student/course-visuals";
+import { UserRound } from "lucide-react";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
-import { Button } from "@/components/ui/button";
-import { isApiClientError } from "@/lib/api/error";
+import { LoadingState } from "@/components/states/loading-state";
+import { StudentCourseDetailView } from "@/components/courses/student/student-course-detail";
+import { PaymentComposerProvider } from "@/components/payments/composer/payment-composer-provider";
+import { EnrollConfirmDialog, enrollErrorMessage } from "@/components/courses/student/enroll-confirm-dialog";
 import { usePublicCourse } from "@/lib/api/public-courses";
 import { useAuth } from "@/lib/auth/auth-context";
-import {
-  CoursePriceText,
-  CoursePricingNotice,
-  isCourseCheckoutAvailable,
-} from "@/components/courses/course-price-display";
+import { useSelfEnroll, useStudentCourse } from "@/lib/api/klass-student";
+import { isApiClientError } from "@/lib/api/error";
 
-const DETAIL_FIELDS: Array<{ key: "subject" | "stream" | "grade" | "academicYear"; label: string }> = [
-  { key: "subject", label: "Subject" },
-  { key: "stream", label: "Stream" },
-  { key: "grade", label: "Grade" },
-  { key: "academicYear", label: "Academic year" },
-];
-
-/**
- * Public course detail. A 404 here (`retry: false` on `usePublicCourse`) is
- * a deliberate, generic anti-enumeration response covering DRAFT/PRIVATE-in-
- * this-tenant, nonexistent, and cross-tenant-same-slug cases alike — this
- * page must never try to distinguish or hint at which of those applies, and
- * must never route that case through the scarier generic `ErrorState`
- * styling. Any other error status still falls back to the normal
- * `ErrorState` pattern.
- */
 export default function PublicCourseDetailPage() {
   const params = useParams<{ slug: string }>();
-  const slug = params.slug;
-  const query = usePublicCourse(slug);
+  const publicQuery = usePublicCourse(params.slug);
   const { session, ensureAccessToken } = useAuth();
+  const [authReady, setAuthReady] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
+  const enrollment = useSelfEnroll();
+  const isStudent = session?.kind === "tenant" && session.role === "STUDENT";
+  const studentCourseId = isStudent && publicQuery.status === "success" ? publicQuery.data.id : "";
+  const studentQuery = useStudentCourse(studentCourseId);
 
-  const is404 =
-    query.status === "error" && isApiClientError(query.error) && query.error.status === 404;
-
-  /**
-   * The access token is memory-only per tab (see auth-context.tsx), so a
-   * student who logged in earlier and then opened this page in a fresh tab
-   * (or via a direct/bookmarked link) would otherwise show `session === null`
-   * here even though their refresh-token cookie is still valid. This page
-   * never makes an authenticated request on its own (the public course
-   * lookup doesn't need one) to trigger that self-heal, so it's done
-   * explicitly on mount, best-effort - a failure just means "not signed in",
-   * which is already the correct fallback (render the sign-in CTA below).
-   */
-  const [checkingAuth, setCheckingAuth] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    ensureAccessToken("tenant")
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setCheckingAuth(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // Intentionally run once per mount only - re-running on every `session`/
-    // `ensureAccessToken` identity change (both change on login/logout, since
-    // `ensureAccessToken` closes over `session`) would re-trigger this
-    // best-effort check pointlessly after it has already resolved.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    ensureAccessToken("tenant").catch(() => {}).finally(() => {
+      if (!cancelled) setAuthReady(true);
+    });
+    return () => { cancelled = true; };
+  }, [ensureAccessToken]);
 
-  const isStudent = session?.kind === "tenant" && session.role === "STUDENT";
+  if (publicQuery.status === "pending" || !authReady) return <LoadingState label="Loading course…" />;
+  if (publicQuery.status === "error") {
+    const notFound = isApiClientError(publicQuery.error) && publicQuery.error.status === 404;
+    return <div className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">{notFound ? <EmptyState title="Course not found" description="This course may be unpublished or the link may be incorrect." action={{ label: "Back to courses", onClick: () => window.location.assign("/courses") }} /> : <ErrorState message={isApiClientError(publicQuery.error) ? publicQuery.error.message : "Couldn't load course."} onRetry={() => publicQuery.refetch()} />}</div>;
+  }
 
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
-      {query.status === "pending" ? <LoadingState label="Loading course…" /> : null}
+  const publicCourse = publicQuery.data;
 
-      {query.status === "error" && is404 ? (
-        <EmptyState
-          title="Course not found"
-          description="Course not found — it may be unpublished or the link may be incorrect."
-        />
-      ) : null}
-
-      {query.status === "error" && !is404 ? (
-        <ErrorState
-          message={
-            isApiClientError(query.error)
-              ? query.error.message
-              : "Something went wrong. Please try again."
-          }
-          code={isApiClientError(query.error) ? query.error.code : undefined}
-          onRetry={() => query.refetch()}
-        />
-      ) : null}
-
-      {query.status === "success" ? (
-        <article className="flex flex-col gap-6">
-          <div>
-            <span className="inline-flex w-fit rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {query.data.category}
-            </span>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              {query.data.name}
-            </h1>
+  if (!isStudent) {
+    return (
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
+        <Link href="/courses" className="text-sm text-muted-foreground hover:underline">← Back to courses</Link>
+        <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex flex-col gap-5 p-4 sm:p-6 md:flex-row md:items-center md:gap-8">
+            <CourseCover src={publicCourse.coverImageUrl} title={publicCourse.name} className="rounded-lg md:w-2/5 md:max-w-sm" />
+            <div className="flex min-w-0 flex-col gap-2">
+              {publicCourse.resolvedAmount !== null ? <PriceBadge priceDisplay={{ amount: publicCourse.resolvedAmount, currency: publicCourse.currency, period: publicCourse.pricingModel === "MONTHLY" ? "MONTH" : null }} pricingModel={publicCourse.pricingModel} /> : null}
+              <h1 className="break-words text-2xl font-bold text-foreground sm:text-3xl">{publicCourse.name}</h1>
+              {publicCourse.teacherName ? <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><UserRound className="size-4" aria-hidden="true" />{publicCourse.teacherName}</p> : null}
+              <Button className="mt-2 w-fit" render={<Link href="/login" />}>Register now</Button>
+            </div>
           </div>
+        </section>
+        <p className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">Register or sign in as a student to enroll and open this course.</p>
+      </div>
+    );
+  }
 
-          {DETAIL_FIELDS.some((field) => query.data[field.key]) ? (
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-border p-4 text-sm sm:grid-cols-4">
-              {DETAIL_FIELDS.filter((field) => query.data[field.key]).map((field) => (
-                <div key={field.key}>
-                  <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
-                  <dd className="text-foreground">{query.data[field.key]}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
+  if (studentQuery.status === "pending") return <LoadingState label="Loading course…" />;
+  if (studentQuery.status === "error") {
+    const unavailable = isApiClientError(studentQuery.error) && (studentQuery.error.status === 403 || studentQuery.error.status === 404);
+    if (!unavailable) return <ErrorState message="We couldn't load this course." code={isApiClientError(studentQuery.error) ? studentQuery.error.code : undefined} onRetry={() => studentQuery.refetch()} />;
+    const canEnroll = publicCourse.registrationEnabled;
+    return <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6"><div className="rounded-xl border border-border bg-card p-6 shadow-sm"><h1 className="text-2xl font-bold text-foreground">{publicCourse.name}</h1><p className="mt-2 text-sm text-muted-foreground">You are not enrolled in this course.</p>{canEnroll ? <Button className="mt-4" disabled={enrollment.isPending} onClick={() => setConfirmOpen(true)}>{enrollment.isPending ? "Enrolling…" : "Enroll now"}</Button> : <p className="mt-4 text-sm text-muted-foreground">Enrollment is not open right now.</p>}{enrollError ? <p role="alert" className="mt-3 text-sm text-destructive">{enrollError}</p> : null}</div><EnrollConfirmDialog courseTitle={publicCourse.name} open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={async () => { setConfirmOpen(false); setEnrollError(null); try { await enrollment.mutateAsync(publicCourse.id); await studentQuery.refetch(); } catch (error) { setEnrollError(enrollErrorMessage(error)); } }} /></div>;
+  }
 
-          {query.data.description ? (
-            <p className="whitespace-pre-line text-sm text-foreground">{query.data.description}</p>
-          ) : null}
-
-          <dl className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground">Price</dt>
-              <dd className="text-base font-semibold text-foreground">
-                <CoursePriceText course={query.data} />
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground">Access duration</dt>
-              <dd className="text-foreground">
-                {query.data.accessDurationDays
-                  ? `${query.data.accessDurationDays} days`
-                  : "Lifetime access"}
-              </dd>
-            </div>
-          </dl>
-
-          <CoursePricingNotice course={query.data} />
-
-          {query.data.enrollmentRule ? (
-            <div>
-              <h2 className="text-sm font-medium text-foreground">Enrollment rule</h2>
-              <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
-                {query.data.enrollmentRule}
-              </p>
-            </div>
-          ) : null}
-
-          <div>
-            {!isCourseCheckoutAvailable(query.data) ? (
-              <p className="text-sm text-muted-foreground">
-                {query.data.requiresManualQuote
-                  ? "Enrollment for this course is arranged manually by our staff — contact the institute to enroll."
-                  : "Enrollment isn't open yet — pricing for this course hasn't been configured."}
-              </p>
-            ) : checkingAuth ? (
-              <Button type="button" disabled aria-busy="true">
-                Loading…
-              </Button>
-            ) : isStudent ? (
-              <Button render={<Link href={`/student/checkout/${query.data.id}`} />}>
-                Enroll now
-              </Button>
-            ) : (
-              <Button render={<Link href="/login" />}>Sign in to enroll</Button>
-            )}
-          </div>
-        </article>
-      ) : null}
-    </div>
-  );
+  return <PaymentComposerProvider><StudentCourseDetailView courseId={publicCourse.id} /></PaymentComposerProvider>;
 }

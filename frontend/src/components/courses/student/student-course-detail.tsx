@@ -50,7 +50,7 @@ function tabFromParam(value: string | null): DetailTab {
  * and opening a lesson always goes through the server launch. Enrollment is
  * the free, server-confirmed action (ADR-028).
  */
-export function StudentCourseDetailView({ courseId }: { courseId: string }) {
+export function StudentCourseDetailView({ courseId, headerCta }: { courseId: string; headerCta?: ReactNode }) {
   const courseQuery = useStudentCourse(courseId);
 
   if (courseQuery.status === "pending") return <LoadingState label="Loading course…" />;
@@ -80,10 +80,10 @@ export function StudentCourseDetailView({ courseId }: { courseId: string }) {
     );
   }
 
-  return <CourseDetailLoaded course={courseQuery.data} />;
+  return <CourseDetailLoaded course={courseQuery.data} headerCta={headerCta} />;
 }
 
-function CourseDetailLoaded({ course }: { course: StudentCourseDetail }) {
+function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail; headerCta?: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -171,6 +171,7 @@ function CourseDetailLoaded({ course }: { course: StudentCourseDetail }) {
                 {teacherNames}
               </p>
             ) : null}
+            {headerCta ? <div className="pt-2">{headerCta}</div> : null}
           </div>
         </div>
         <DetailTabs tab={tab} onChange={setTab} />

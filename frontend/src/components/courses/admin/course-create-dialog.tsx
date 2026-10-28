@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/lib/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { AdminFormDialog } from "@/components/courses/admin/admin-dialog";
 import {
@@ -52,12 +53,19 @@ export function CourseCreateDialog({
   open,
   onOpenChange,
   onCreated,
+  mode = "staff",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: (course: KlassCourse, outcome: { coverUploaded: boolean | null }) => void;
+  /** Teacher mode keeps assignment server-owned and removes staff-only teacher selection. */
+  mode?: "staff" | "teacher";
 }) {
+  const { session } = useAuth();
+  const isTeacher = mode === "teacher";
+  const teacherUserId = isTeacher ? (session?.userId ?? "") : "";
   const [idempotencyKey] = useState(() => randomUuid());
+  const teacherDefaults = isTeacher && teacherUserId ? { teacherIds: [teacherUserId] } : {};
   const [formError, setFormError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -78,7 +86,10 @@ export function CourseCreateDialog({
   } = useForm<CourseCreateFormValues>({
     resolver: zodResolver(courseCreateSchema),
     mode: "onTouched",
-    defaultValues: COURSE_CREATE_DEFAULTS,
+    defaultValues: {
+      ...COURSE_CREATE_DEFAULTS,
+      ...teacherDefaults,
+    },
     // Focus is moved by `focusFirstError` below: the default would try to
     // focus a field inside the collapsed (hidden) additional settings.
     shouldFocusError: false,
@@ -99,7 +110,7 @@ export function CourseCreateDialog({
 
   const createMutation = useCreateKlassCourse();
   const coverMutation = useUploadCourseCover();
-  const teachers = useTeacherOptions();
+  const teachers = useTeacherOptions({ enabled: open && !isTeacher });
   const tagsQuery = useCourseTags({ enabled: open });
   const linkable = useLinkableCourseOptions({ enabled: open });
 
@@ -201,6 +212,7 @@ export function CourseCreateDialog({
   };
 
   const ids = courseSettingsFieldIds(ID_PREFIX);
+  const teacherSummary = teacherUserId ? "You (current teacher)" : "Current teacher";
 
   const footer = createdCourse ? (
     <>
@@ -226,7 +238,8 @@ export function CourseCreateDialog({
     <AdminFormDialog
       open={open}
       onOpenChange={handleOpenChange}
-      title="Add New Course"
+      title={isTeacher ? "Create New Course" : "Add New Course"}
+      description={isTeacher ? "Create a course you will own as its teacher. Enrollment stays free." : undefined}
       footer={footer}
       testId="add-course-dialog"
     >
@@ -256,11 +269,16 @@ export function CourseCreateDialog({
             errors={errors}
             teachers={{
               label: "Teacher",
-              helper: "The first teacher you tick is the primary teacher.",
+              helper: isTeacher
+                ? "This course is assigned to you. Teacher assignment is controlled by the server."
+                : "The first teacher you tick is the primary teacher.",
               options: teachers.options,
               loading: teachers.loading,
               loadError: teachers.loadError,
               emptyText: "No approved, active teachers in this institute yet.",
+              readOnly: isTeacher
+                ? { summary: teacherSummary, note: "Only institute staff can change course teachers." }
+                : null,
             }}
             pricing={{
               models: CREATABLE_PRICING_MODELS,

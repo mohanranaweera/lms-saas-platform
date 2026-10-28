@@ -30,6 +30,7 @@ interface DashboardShellProps {
    * `layout.tsx`), not imported here.
    */
   headerActions?: ReactNode;
+  headerNav?: ReactNode;
 }
 
 /**
@@ -43,6 +44,7 @@ export function DashboardShell({
   nav,
   children,
   headerActions,
+  headerNav,
 }: DashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -88,7 +90,10 @@ export function DashboardShell({
               {portalLabel}
             </span>
           </div>
-          {headerActions}
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+            {headerNav ? <div className="flex items-center gap-1">{headerNav}</div> : <span />}
+            {headerActions}
+          </div>
         </header>
 
         <main className="flex-1 px-4 py-6 md:px-6">{children}</main>

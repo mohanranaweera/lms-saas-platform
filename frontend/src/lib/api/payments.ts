@@ -20,8 +20,29 @@ export type OrderStatus = "PLACED" | "PENDING";
 export type PaymentStatus = "PENDING" | "CONFIRMED" | "REJECTED" | "REFUNDED";
 
 /** Mirrors `OrderResponse` (backend `.../paymentmanagement/order/web/dto`). */
+export interface OrderLineResponse {
+  lineNo: number;
+  scope: string;
+  courseId: string | null;
+  courseTitle: string | null;
+  moduleId: string | null;
+  lessonId: string | null;
+  periodYear: number | null;
+  periodMonth: number | null;
+  billingPeriodId: string | null;
+  label: string;
+  unitAmount: number;
+  facilityFeeAmount: number;
+  discountAmount: number;
+  lineTotal: number;
+  currency: string;
+  createdAt: string;
+}
+
 export interface OrderResponse {
   id: string;
+  orderNumber: number;
+  displayOrderNumber: string;
   studentId: string;
   /** `null` for a multi-course composer order (its courses are on the order lines). */
   courseId: string | null;
@@ -32,6 +53,10 @@ export interface OrderResponse {
   status: OrderStatus;
   createdAt: string;
   updatedAt: string;
+  subtotalAmount: number | null;
+  facilityFeeAmount: number | null;
+  postageAmount: number | null;
+  discountAmount: number | null;
 }
 
 /**
@@ -157,6 +182,15 @@ const TERMINAL_PAYMENT_STATUSES: ReadonlySet<PaymentStatus> = new Set([
  * the only endpoint that screen reads to decide success/failure; it never
  * stops polling based on anything else (a redirect param, a timer, etc.).
  */
+export function useOrderLines(orderId: string, options?: { enabled?: boolean }) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: ["orders", orderId, "lines"],
+    queryFn: () => authorizedFetch<OrderLineResponse[]>("tenant", `/v1/orders/${orderId}/lines`),
+    enabled: (options?.enabled ?? true) && orderId.length > 0,
+  });
+}
+
 export function useOrderPaymentStatus(orderId: string) {
   const { authorizedFetch } = useAuth();
   return useQuery({

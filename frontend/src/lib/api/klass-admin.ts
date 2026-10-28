@@ -281,6 +281,7 @@ export interface KlassCourseListParams {
   search: string;
   page: number;
   size: number;
+  tagId?: string | null;
 }
 
 export const klassAdminKeys = {
@@ -308,6 +309,7 @@ export function useKlassCourses(params: KlassCourseListParams) {
   if (params.search.trim()) qs.set("search", params.search.trim());
   qs.set("page", String(params.page));
   qs.set("size", String(params.size));
+  if (params.tagId) qs.set("tagId", params.tagId);
   return useQuery({
     queryKey: klassAdminKeys.courseList(params),
     queryFn: () =>

@@ -5,6 +5,8 @@ import com.lms.common.api.PageResponse;
 import com.lms.coursemanagement.course.service.CoursePublicService;
 import com.lms.coursemanagement.course.service.PublicCourseView;
 import com.lms.coursemanagement.course.web.dto.PublicCourseResponse;
+import com.lms.coursemanagement.course.web.dto.PublicCourseTagResponse;
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -33,10 +35,17 @@ public class CoursePublicController {
 		this.coursePublicService = coursePublicService;
 	}
 
+	@GetMapping("/tags")
+	public ResponseEntity<ApiResponse<List<PublicCourseTagResponse>>> listTags() {
+		return ResponseEntity.ok(ApiResponse.success(coursePublicService.listPublicTags().stream()
+			.map(tag -> new PublicCourseTagResponse(tag.id(), tag.name())).toList()));
+	}
+
 	@GetMapping
 	public ResponseEntity<ApiResponse<PageResponse<PublicCourseResponse>>> listCourses(
-			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-		PageResponse<PublicCourseView> page = coursePublicService.listPublishedCourses(pageable);
+			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+			@org.springframework.web.bind.annotation.RequestParam(required = false) java.util.UUID tagId) {
+		PageResponse<PublicCourseView> page = coursePublicService.listPublishedCourses(pageable, tagId);
 		PageResponse<PublicCourseResponse> response = new PageResponse<>(
 				page.content().stream().map(CoursePublicController::toResponse).toList(), page.page(), page.size(),
 				page.totalElements(), page.totalPages());
@@ -53,7 +62,7 @@ public class CoursePublicController {
 		return new PublicCourseResponse(view.id(), view.name(), view.slug(), view.category(), view.subject(),
 				view.stream(), view.grade(), view.academicYear(), view.description(), view.price(),
 				view.accessDurationDays(), view.enrollmentRule(), view.pricingModel(), view.resolvedAmount(),
-				view.currency(), view.requiresManualQuote());
+				view.currency(), view.requiresManualQuote(), view.teacherName(), view.coverImageUrl(), view.registrationEnabled(), view.outline(), view.tags());
 	}
 
 }

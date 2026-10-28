@@ -9,6 +9,7 @@ import com.lms.coursemanagement.api.CourseBillingNotConfiguredException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CoursePriceOption;
 import com.lms.coursemanagement.api.CourseSummary;
+import com.lms.coursemanagement.api.PublicCourseSummary;
 import com.lms.coursemanagement.api.LessonOwnership;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseBillingConfiguration;
@@ -26,6 +27,7 @@ import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import com.lms.coursemanagement.course.repository.CourseTagAssignmentRepository;
 import com.lms.coursemanagement.api.CourseTagRef;
+import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.math.BigDecimal;
 import java.time.YearMonth;
@@ -39,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,12 +72,24 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	private final CourseLinkRepository courseLinkRepository;
 
 	private final CourseTagAssignmentRepository courseTagAssignmentRepository;
+	private final ObjectStorageApi objectStorageApi;
 
 	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
 			CourseLessonRepository courseLessonRepository,
 			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
 			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi,
 			CourseLinkRepository courseLinkRepository, CourseTagAssignmentRepository courseTagAssignmentRepository) {
+		this(courseRepository, courseModuleRepository, courseLessonRepository, courseBillingConfigurationRepository,
+				courseBillingPeriodRepository, tenantConfigApi, courseLinkRepository, courseTagAssignmentRepository, null);
+	}
+
+	@Autowired
+	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
+			CourseLessonRepository courseLessonRepository,
+			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
+			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi,
+			CourseLinkRepository courseLinkRepository, CourseTagAssignmentRepository courseTagAssignmentRepository,
+			ObjectStorageApi objectStorageApi) {
 		this.courseRepository = courseRepository;
 		this.courseModuleRepository = courseModuleRepository;
 		this.courseLessonRepository = courseLessonRepository;
@@ -83,6 +98,7 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 		this.tenantConfigApi = tenantConfigApi;
 		this.courseLinkRepository = courseLinkRepository;
 		this.courseTagAssignmentRepository = courseTagAssignmentRepository;
+		this.objectStorageApi = objectStorageApi;
 	}
 
 	@Override
@@ -159,8 +175,32 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	}
 
 	@Override
+	public List<PublicCourseSummary> listPublicCourseSummariesByTeacherId(UUID teacherId) {
+		if (teacherId == null) {
+			return List.of();
+		}
+		return courseRepository.findByTeacherId(teacherId)
+			.stream()
+			.filter(course -> course.getStatus() == CourseStatus.PUBLIC && !course.isArchived())
+			.map(course -> new PublicCourseSummary(course.getId(), course.getName(), course.getSlug(), course.getCategory(), coverUrl(course)))
+			.sorted(java.util.Comparator.comparing(PublicCourseSummary::name, String.CASE_INSENSITIVE_ORDER)
+				.thenComparing(PublicCourseSummary::id))
+			.toList();
+	}
+
+	@Override
 	public Optional<CheckoutAmount> getResolvedCheckoutAmount(UUID courseId) {
 		return courseRepository.findById(courseId).map(this::resolveCheckoutAmount);
+	}
+
+	private String coverUrl(Course course) {
+		if (course.getCoverImageObjectKey() == null) return null;
+		try {
+			return objectStorageApi.generateSignedDownloadUrl(course.getCoverImageObjectKey(), java.time.Duration.ofMinutes(5)).url();
+		}
+		catch (RuntimeException ex) {
+			return null;
+		}
 	}
 
 	private CheckoutAmount resolveCheckoutAmount(Course course) {

@@ -53,6 +53,8 @@ export function ReorderableTable<T>({
   indexOffset = 0,
   actions,
   rowTestId,
+  showMoveButtons = true,
+  showPosition = true,
 }: {
   rows: T[];
   rowKey: (row: T) => string;
@@ -66,6 +68,8 @@ export function ReorderableTable<T>({
   indexOffset?: number;
   actions: (row: T) => ReactNode;
   rowTestId?: string;
+  showMoveButtons?: boolean;
+  showPosition?: boolean;
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -149,9 +153,9 @@ export function ReorderableTable<T>({
               <th scope="col" className="w-20 px-2 py-2">
                 <span className="sr-only">Reorder</span>
               </th>
-              <th scope="col" className="w-10 px-2 py-2 font-medium text-foreground">
+              {showPosition ? <th scope="col" className="w-10 px-2 py-2 font-medium text-foreground">
                 #
-              </th>
+              </th> : null}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -206,10 +210,10 @@ export function ReorderableTable<T>({
                         canMove ? "cursor-grab" : "opacity-40"
                       )}
                     />
-                    {moveButtons(row, index, "table")}
+                    {showMoveButtons ? moveButtons(row, index, "table") : null}
                   </div>
                 </td>
-                <td className="px-2 py-2 text-muted-foreground">{indexOffset + index + 1}</td>
+                {showPosition ? <td className="px-2 py-2 text-muted-foreground">{indexOffset + index + 1}</td> : null}
                 {columns.map((column) => (
                   <td key={column.key} className={cn("px-3 py-2 text-muted-foreground", column.className)}>
                     {column.cell(row, index, "table")}
@@ -234,9 +238,9 @@ export function ReorderableTable<T>({
           >
             <div className="flex items-start justify-between gap-2">
               <span className="text-sm font-medium text-foreground">
-                {indexOffset + index + 1}. {rowLabel(row)}
+                {showPosition ? `${indexOffset + index + 1}. ` : ""}{rowLabel(row)}
               </span>
-              {moveButtons(row, index, "card")}
+              {showMoveButtons ? moveButtons(row, index, "card") : null}
             </div>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {columns

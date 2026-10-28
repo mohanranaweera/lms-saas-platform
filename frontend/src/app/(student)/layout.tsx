@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { StudentNav } from "@/components/layout/nav/student-nav";
-import { LogoutControl } from "@/components/auth/logout-control";
+import { StudentHeaderActions } from "@/components/layout/student-header-actions";
 import { RouteGuard } from "@/components/auth/route-guard";
 import {
   GlobalPayButton,
@@ -15,12 +16,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         <DashboardShell
           portalLabel="Student Portal"
           nav={<StudentNav />}
-          headerActions={
-            <div className="flex items-center gap-2">
-              <GlobalPayButton />
-              <LogoutControl kind="tenant" portalLabel="Student Portal" />
-            </div>
-          }
+          headerNav={<div className="flex items-center gap-1"><Link href="/student/courses" className="rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary/20">My Courses</Link><Link href="/student/courses?view=available" className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">Explore</Link></div>}
+          headerActions={<StudentHeaderActions><GlobalPayButton /></StudentHeaderActions>}
         >
           {children}
         </DashboardShell>

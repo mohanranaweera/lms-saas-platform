@@ -27,13 +27,13 @@ import java.util.UUID;
  * case-insensitively, within the same tenant/ownership scope.
  */
 public record CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived,
-		Boolean archived, String search) {
+		Boolean archived, String search, UUID tagId) {
 
-	public static final CourseListFilter EMPTY = new CourseListFilter(null, null, null, false, null, null);
+	public static final CourseListFilter EMPTY = new CourseListFilter(null, null, null, false, null, null, null);
 
 	/** Pre-KLASS shape. */
 	public CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived) {
-		this(status, category, teacherId, includeArchived, null, null);
+		this(status, category, teacherId, includeArchived, null, null, null);
 	}
 
 }
