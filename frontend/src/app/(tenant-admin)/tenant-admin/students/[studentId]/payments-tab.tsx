@@ -34,7 +34,7 @@ export function PaymentsTab({ studentId }: { studentId: string }) {
       {canOpenStudentPayments ? (
         <p className="text-sm text-muted-foreground">
           <Link
-            href={`/tenant-admin/payments/students?studentId=${encodeURIComponent(studentId)}`}
+            href={`/tenant-admin/payments?tab=free-cards&view=student&studentId=${encodeURIComponent(studentId)}`}
             className="font-medium text-foreground hover:underline"
             data-testid="student-payments-link"
           >

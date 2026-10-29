@@ -63,6 +63,15 @@ export function canReviewSlips(role: string | null): boolean {
 }
 
 /**
+ * PAY-HUB-01: `PAYMENTS_SLIPS`/`CREATE_EDIT` (Tenant Admin, Finance Staff) -
+ * who may add an internal note to a payment slip. Viewing notes needs only
+ * `VIEW`. UX only; `POST /payment-slips/{id}/notes` re-enforces it.
+ */
+export function canAddSlipNotes(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
+}
+
+/**
  * Roles holding `ACCESS_EXPIRY`/`VIEW` per `PermissionCheckServiceImpl`'s
  * matrix (Tenant Admin, Finance Staff, Student Support, Read-only Auditor) —
  * who may view the Reactivation Approvals queue

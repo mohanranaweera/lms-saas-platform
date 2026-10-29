@@ -378,7 +378,8 @@ async function setup(page: Page, role: string, overrides: Partial<FakeState> = {
   return state;
 }
 
-const SCOPED = "/tenant-admin/payments/students?studentId=s-1&courseId=c-py";
+// PAY-HUB-01: Student Payments is now the Payments hub "Free Cards" tab (student view).
+const SCOPED = "/tenant-admin/payments?tab=free-cards&view=student&studentId=s-1&courseId=c-py";
 
 /** Opens Add Payment for John Doe / Python, ticks August 2026, Cash, and waits for the quote. */
 async function fillAddPayment(page: Page) {
@@ -395,9 +396,11 @@ test.describe("Student Payments - manual payment & free card (ADR-030)", () => {
     await setup(page, "TENANT_ADMIN");
     await page.goto(SCOPED);
 
-    await expect(page.getByRole("heading", { name: "Student Payments", level: 1 })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Student Payments", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Free Cards", exact: true })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Free Cards", selected: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Student payments", pressed: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Payments", exact: true })).toBeVisible();
+    // Free Cards is a tab of the Payments hub now, not a separate nav link.
+    await expect(page.getByRole("link", { name: "Free Cards", exact: true })).toHaveCount(0);
     await expect(page.getByTestId("student-name")).toContainText("John Doe");
     await expect(page.getByTestId("student-card")).toContainText("0713663831");
     await expect(page.getByTestId("course-select")).toHaveValue("c-py");
@@ -412,7 +415,7 @@ test.describe("Student Payments - manual payment & free card (ADR-030)", () => {
     await expect(rows.nth(1).getByTestId("history-status")).toHaveText("Pending slip");
     await expect(rows.nth(1).getByRole("link", { name: "review in Payment Slips" })).toHaveAttribute(
       "href",
-      "/tenant-admin/payments/slip-review"
+      "/tenant-admin/payments?tab=slips"
     );
     await expect(page.getByText("Paid", { exact: true }).first()).toBeVisible();
 
@@ -421,7 +424,7 @@ test.describe("Student Payments - manual payment & free card (ADR-030)", () => {
     await expect(details).toContainText("Cash");
     await expect(details).toContainText("RCPT-77");
     await expect(details).toContainText("finance@inst.test");
-    await expect(details.getByTestId("history-reverse")).toHaveAttribute("href", "/tenant-admin/payments/refunds");
+    await expect(details.getByTestId("history-reverse")).toHaveAttribute("href", "/tenant-admin/payments?tab=refunds");
 
     await expect(page.getByTestId("free-card-row")).toHaveCount(1);
     await expect(page.getByTestId("free-card-row").getByTestId("free-card-status")).toHaveText("Active");
@@ -594,7 +597,7 @@ test.describe("Student Payments - manual payment & free card (ADR-030)", () => {
     await expect(error).toContainText("already has a student payment waiting");
     await expect(error.getByRole("link", { name: "Open Payment Slips" })).toHaveAttribute(
       "href",
-      "/tenant-admin/payments/slip-review"
+      "/tenant-admin/payments?tab=slips"
     );
     await expect(dialog.getByTestId("add-payment-success")).toHaveCount(0);
   });
@@ -603,7 +606,7 @@ test.describe("Student Payments - manual payment & free card (ADR-030)", () => {
     await setup(page, "TENANT_ADMIN", {
       recordReplies: [{ status: 422, code: "ADJUSTMENT_WITH_POSTAGE_UNSUPPORTED", message: "No" }],
     });
-    await page.goto("/tenant-admin/payments/students?studentId=s-1&courseId=c-chem");
+    await page.goto("/tenant-admin/payments?tab=free-cards&view=student&studentId=s-1&courseId=c-chem");
     await page.getByTestId("add-payment-open").click();
     const dialog = page.getByTestId("add-payment-dialog");
     await dialog.getByLabel("2026 August").check();
@@ -702,7 +705,9 @@ test.describe("Student Payments - manual payment & free card (ADR-030)", () => {
 
   test("an unknown student id is reported, never trusted", async ({ page }) => {
     await setup(page, "TENANT_ADMIN");
+    // The old Student Payments URL still works: it redirects into the hub, keeping the selection.
     await page.goto("/tenant-admin/payments/students?studentId=s-unknown&courseId=c-py");
+    await expect(page).toHaveURL(/tab=free-cards&view=student&studentId=s-unknown&courseId=c-py$/);
     await expect(page.getByTestId("student-not-found")).toContainText("Student not found / not in your institute");
     await expect(page.getByTestId("history-row")).toHaveCount(0);
   });
@@ -731,8 +736,10 @@ test.describe("Student Payments - manual payment & free card (ADR-030)", () => {
     const state = await setup(page, "TENANT_ADMIN", {
       cards: [freeCard(), freeCard({ id: "fc-2", status: "EXPIRED", coveredMonths: ["2026-05"], validFrom: "2026-05-01", validTo: "2026-05-31" })],
     });
+    // The old Free Cards URL redirects to the hub tab's "All free cards" view.
     await page.goto("/tenant-admin/payments/free-cards");
-    await expect(page.getByRole("heading", { name: "Free Cards", level: 1 })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Free Cards", selected: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "All free cards", pressed: true })).toBeVisible();
     const table = page.getByRole("table");
     await expect(table.getByRole("row")).toHaveCount(3);
     await page.getByTestId("free-cards-status-filter").selectOption("EXPIRED");

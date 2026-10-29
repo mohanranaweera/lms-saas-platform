@@ -92,6 +92,11 @@ function makeSlip(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+/** The review-queue LIST endpoint only (never `/review-queue/count`). */
+function isReviewQueueList(url: URL): boolean {
+  return url.pathname.endsWith("/payment-slips/review-queue");
+}
+
 async function selectSlipFile(page: Page, filename = "slip.png") {
   await page.locator('input[type="file"]').setInputFiles({
     name: filename,
@@ -523,7 +528,7 @@ test.describe("student payment slip upload — no client-side duplicate-detectio
   });
 });
 
-test.describe("tenant admin — Manual Slip Review Queue role gating", () => {
+test.describe("tenant admin — Payment Slips tab role gating (PAY-HUB-01)", () => {
   test("a STUDENT session sees PermissionDeniedState on a real 403, not a crash", async ({
     page,
   }) => {
@@ -535,160 +540,148 @@ test.describe("tenant admin — Manual Slip Review Queue role gating", () => {
       apiError("FORBIDDEN", "You do not have permission to view the slip review queue.")
     );
 
+    // The old queue URL still works - it redirects to the hub's Payment Slips tab.
     await page.goto("/tenant-admin/payments/slip-review");
 
+    await expect(page).toHaveURL(/\/tenant-admin\/payments\?tab=slips$/);
     await expect(
       page.getByRole("alert").filter({ hasText: "You don't have permission to view this." })
     ).toBeVisible();
     await expect(page.getByRole("table")).toHaveCount(0);
   });
 
-  test("a role without PAYMENTS_SLIPS/VIEW (Content Manager) does not see the Payment Slips nav link", async ({
+  test("a role without PAYMENTS_SLIPS/VIEW (Content Manager) sees no Payments nav link", async ({
     page,
   }) => {
-    // `canViewPaymentDashboard` (lib/auth/permissions.ts), which also gates
-    // this nav entry, grants TENANT_ADMIN/FINANCE_STAFF/STUDENT_SUPPORT/
-    // READ_ONLY_AUDITOR — every role at or above STUDENT_SUPPORT holds VIEW.
-    // CONTENT_MANAGER is explicitly called out in
-    // `tenant-admin-nav.tsx`'s own doc comment as an excluded staff role, so
-    // it is used here rather than STUDENT (a different, non-staff role
-    // group already covered by the 403 test above).
     await mockTenantSession(page, "CONTENT_MANAGER");
 
     await page.goto("/tenant-admin/dashboard");
 
     await expect(page.getByRole("link", { name: "Payment Slips" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Payments", exact: true })).toHaveCount(0);
   });
 });
 
-test.describe("tenant admin — Manual Slip Review Queue empty states are distinct", () => {
-  test("zero-data on the default Pending review filter, first page, shows 'No pending slips'", async ({
+test.describe("tenant admin — Payment Slips tab empty states are distinct", () => {
+  test("zero-data on the default Pending view, first page, shows 'No slips waiting for approval'", async ({
     page,
   }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
-    await page.route("**/api/v1/payment-slips/review-queue*", async (route) => {
+    await mockJson(page, "**/api/v1/payment-slips/review-queue/count", 200, apiSuccess({ pending: 0 }));
+    await page.route(isReviewQueueList, async (route) => {
       const url = new URL(route.request().url());
       expect(url.searchParams.has("status")).toBe(false);
       expect(url.searchParams.get("page")).toBe("0");
       await fulfillJson(route, 200, apiPageSuccess([]));
     });
 
-    await page.goto("/tenant-admin/payments/slip-review");
+    await page.goto("/tenant-admin/payments?tab=slips");
 
-    await expect(page.getByText("No pending slips")).toBeVisible();
-    await expect(
-      page.getByText("Once a student submits a manual payment slip", { exact: false })
-    ).toBeVisible();
-    await expect(page.getByText("No slips match your filter")).toHaveCount(0);
+    await expect(page.getByText("No slips waiting for approval")).toBeVisible();
+    await expect(page.getByText("When a student uploads a bank transfer slip", { exact: false })).toBeVisible();
+    await expect(page.getByText("No slips here")).toHaveCount(0);
     await expect(page.getByRole("table")).toHaveCount(0);
   });
 
-  test("a specific status filter returning empty shows the distinct 'No slips match your filter' copy", async ({
-    page,
-  }) => {
+  test("the Rejected view and a no-match search each show their own distinct copy", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
-    await page.route("**/api/v1/payment-slips/review-queue*", async (route) => {
+    await mockJson(page, "**/api/v1/payment-slips/review-queue/count", 200, apiSuccess({ pending: 1 }));
+    await page.route(isReviewQueueList, async (route) => {
       const url = new URL(route.request().url());
-      const status = url.searchParams.get("status");
-      if (status === "REJECTED") {
+      if (url.searchParams.get("status") === "REJECTED" || url.searchParams.get("search") === "nobody") {
         await fulfillJson(route, 200, apiPageSuccess([]));
       } else {
         await fulfillJson(route, 200, apiPageSuccess([makeSlip({ id: "slip-pending-1" })]));
       }
     });
 
-    await page.goto("/tenant-admin/payments/slip-review");
+    await page.goto("/tenant-admin/payments?tab=slips");
     await expect(page.getByRole("table")).toBeVisible();
 
-    await page.getByLabel("Status").click();
-    await page.getByRole("option", { name: "Rejected" }).click();
+    await page.getByRole("button", { name: "Rejected" }).click();
+    await expect(page.getByText("No slips here")).toBeVisible();
+    await expect(page.getByText("No slips waiting for approval")).toHaveCount(0);
 
-    await expect(page.getByText("No slips match your filter")).toBeVisible();
-    await expect(
-      page.getByText("Try a different status filter or go back to an earlier page.")
-    ).toBeVisible();
-    // Distinct from the zero-data copy — never reused for this different situation.
-    await expect(page.getByText("No pending slips")).toHaveCount(0);
-    await expect(page.getByRole("table")).toHaveCount(0);
-
-    // The empty state's own "Reset filters" action returns to the default filter.
-    await page.getByRole("button", { name: "Reset filters" }).click();
+    await page.getByRole("button", { name: "Pending", exact: true }).click();
+    await expect(page.getByRole("table")).toBeVisible();
+    await page.getByLabel("Search").fill("nobody");
+    await expect(page.getByText("No slips match your search")).toBeVisible();
+    await page.getByRole("button", { name: "Clear search" }).click();
     await expect(page.getByRole("table")).toBeVisible();
   });
 });
 
-test.describe("tenant admin — Manual Slip Review Queue filter and pagination", () => {
-  test("changing the status filter sends the right status query param and resets to page 0", async ({
-    page,
-  }) => {
+test.describe("tenant admin — Payment Slips tab status view and pagination", () => {
+  test("switching to Approved sends status=APPROVED and resets to page 0", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
-
+    await mockJson(page, "**/api/v1/payment-slips/review-queue/count", 200, apiSuccess({ pending: 2 }));
     const requests: Array<{ status: string | null; page: string | null }> = [];
-    await page.route("**/api/v1/payment-slips/review-queue*", async (route) => {
+    await page.route(isReviewQueueList, async (route) => {
       const url = new URL(route.request().url());
       requests.push({ status: url.searchParams.get("status"), page: url.searchParams.get("page") });
+      const requestedPage = Number(url.searchParams.get("page") ?? "0");
       await fulfillJson(
         route,
         200,
         apiPageSuccess([makeSlip({ id: `slip-${requests.length}` })], {
-          page: Number(url.searchParams.get("page") ?? "0"),
+          page: requestedPage,
+          size: 10,
           totalPages: 2,
-          totalElements: 2,
+          totalElements: 11,
         })
       );
     });
 
-    await page.goto("/tenant-admin/payments/slip-review");
+    await page.goto("/tenant-admin/payments?tab=slips");
     await expect(page.getByRole("table")).toBeVisible();
 
-    // Move off page 0 first, so we can prove the filter change resets it.
-    await page.getByRole("button", { name: "Next", exact: true }).click();
-    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect(page.getByText("11–11 of 11")).toBeVisible();
 
-    await page.getByLabel("Status").click();
-    await page.getByRole("option", { name: "Under review" }).click();
+    await page.getByRole("button", { name: "Approved" }).click();
 
-    await expect(page.getByText("Page 1 of 2")).toBeVisible();
+    await expect(page.getByText("1–10 of 11")).toBeVisible();
     const lastRequest = requests[requests.length - 1];
-    expect(lastRequest.status).toBe("UNDER_REVIEW");
+    expect(lastRequest.status).toBe("APPROVED");
     expect(lastRequest.page).toBe("0");
   });
 
-  test("Next/Previous fetch and render a different page of slips", async ({ page }) => {
+  test("next/previous page fetch and render a different page of slips", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
-
-    await page.route("**/api/v1/payment-slips/review-queue*", async (route) => {
+    await mockJson(page, "**/api/v1/payment-slips/review-queue/count", 200, apiSuccess({ pending: 2 }));
+    await page.route(isReviewQueueList, async (route) => {
       const url = new URL(route.request().url());
       const requestedPage = Number(url.searchParams.get("page") ?? "0");
       await fulfillJson(
         route,
         200,
-        apiPageSuccess([makeSlip({ id: `slip-page-${requestedPage}`, referenceNumber: `REF-PAGE-${requestedPage}` })], {
-          page: requestedPage,
-          totalPages: 2,
-          totalElements: 2,
-        })
+        apiPageSuccess(
+          [
+            makeSlip({
+              id: `slip-page-${requestedPage}`,
+              referenceNumber: `REF-PAGE-${requestedPage}`,
+              studentName: `Student ${requestedPage}`,
+            }),
+          ],
+          { page: requestedPage, size: 10, totalPages: 2, totalElements: 11 }
+        )
       );
     });
 
-    await page.goto("/tenant-admin/payments/slip-review");
+    await page.goto("/tenant-admin/payments?tab=slips");
 
     const table = page.getByRole("table");
-    await expect(table.getByText("REF-PAGE-0")).toBeVisible();
-    await expect(page.getByText("Page 1 of 2")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Previous" })).toBeDisabled();
+    await expect(table.getByText("Student 0")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Previous page" })).toBeDisabled();
 
-    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await page.getByRole("button", { name: "Next page" }).click();
 
-    await expect(table.getByText("REF-PAGE-1")).toBeVisible();
-    await expect(table.getByText("REF-PAGE-0")).toHaveCount(0);
-    await expect(page.getByText("Page 2 of 2")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
+    await expect(table.getByText("Student 1")).toBeVisible();
+    await expect(table.getByText("Student 0")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Next page" })).toBeDisabled();
 
-    await page.getByRole("button", { name: "Previous" }).click();
-
-    await expect(table.getByText("REF-PAGE-0")).toBeVisible();
-    await expect(page.getByText("Page 1 of 2")).toBeVisible();
+    await page.getByRole("button", { name: "Previous page" }).click();
+    await expect(table.getByText("Student 0")).toBeVisible();
   });
 });
 
@@ -795,7 +788,7 @@ test.describe("tenant admin — Slip Detail fetch states", () => {
     await expect(page.getByText("reviewer@example.com")).toBeVisible();
   });
 
-  test("renders a 'Back to slip review queue' link that navigates back to the queue", async ({
+  test("renders a 'Back to payment slips' link that navigates back to the hub's Payment Slips tab", async ({
     page,
   }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
@@ -805,11 +798,11 @@ test.describe("tenant admin — Slip Detail fetch states", () => {
 
     await page.goto(`/tenant-admin/payments/slip-review/${slip.id}`);
 
-    const backLink = page.getByRole("link", { name: "Back to slip review queue" });
+    const backLink = page.getByRole("link", { name: "Back to payment slips" });
     await expect(backLink).toBeVisible();
     await backLink.click();
 
-    await expect(page).toHaveURL("/tenant-admin/payments/slip-review");
+    await expect(page).toHaveURL("/tenant-admin/payments?tab=slips");
   });
 
   test("a 403 on the slip detail fetch renders PermissionDeniedState, not a crash", async ({

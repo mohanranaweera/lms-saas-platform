@@ -3,7 +3,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, XCircle } from "lucide-react";
+import { AlertCircle, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +33,17 @@ import { slipRejectSchema, type SlipRejectFormValues } from "@/lib/validation/pa
  * `refund-dialog.tsx`'s exact discipline. `REJECTED` is a one-directional
  * terminal transition; there is no reversal endpoint.
  */
-export function RejectSlipDialog({ slip }: { slip: PaymentSlipResponse }) {
+export function RejectSlipDialog({
+  slip,
+  variant = "button",
+  onDone,
+}: {
+  slip: PaymentSlipResponse;
+  /** PAY-HUB-01: `"icon"` renders the Klass-style red "decline" icon button used in the slip grid. */
+  variant?: "button" | "icon";
+  /** Called after a successful rejection (e.g. to close the slip viewer). */
+  onDone?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const mutation = useRejectSlip(slip.id);
@@ -54,6 +64,7 @@ export function RejectSlipDialog({ slip }: { slip: PaymentSlipResponse }) {
       await mutation.mutateAsync({ reason: values.reason.trim() });
       setOpen(false);
       reset();
+      onDone?.();
     } catch (error) {
       setPageError(
         isApiClientError(error) ? error.message : "Something went wrong. Please try again."
@@ -104,10 +115,27 @@ export function RejectSlipDialog({ slip }: { slip: PaymentSlipResponse }) {
         }
       }}
     >
-      <AlertDialogTrigger render={<Button type="button" variant="outline" size="sm" />}>
-        <XCircle aria-hidden="true" />
-        Reject
-      </AlertDialogTrigger>
+      {variant === "icon" ? (
+        <AlertDialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Decline payment ${slip.referenceNumber}`}
+              title="Decline payment"
+              data-testid="slip-decline"
+            />
+          }
+        >
+          <Trash2 aria-hidden="true" className="text-destructive" />
+        </AlertDialogTrigger>
+      ) : (
+        <AlertDialogTrigger render={<Button type="button" variant="outline" size="sm" />}>
+          <XCircle aria-hidden="true" />
+          Reject
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Reject slip {slip.referenceNumber}</AlertDialogTitle>

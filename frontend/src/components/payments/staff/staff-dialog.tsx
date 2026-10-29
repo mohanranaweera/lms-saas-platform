@@ -23,6 +23,7 @@ export function StaffDialog({
   icon,
   busy = false,
   testId,
+  size = "md",
   children,
 }: {
   open: boolean;
@@ -32,6 +33,8 @@ export function StaffDialog({
   icon?: ReactNode;
   busy?: boolean;
   testId?: string;
+  /** `"lg"` widens the centered card (e.g. the Payments hub slip viewer). */
+  size?: "md" | "lg";
   children: ReactNode;
 }) {
   return (
@@ -46,7 +49,7 @@ export function StaffDialog({
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <DialogPrimitive.Popup
           data-testid={testId}
-          className="fixed inset-0 z-50 flex flex-col bg-popover text-sm text-popover-foreground shadow-lg outline-none transition duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border sm:border-border"
+          className={`fixed inset-0 z-50 flex flex-col bg-popover text-sm text-popover-foreground shadow-lg outline-none transition duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] ${size === "lg" ? "sm:max-w-3xl" : "sm:max-w-xl"} sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border sm:border-border`}
         >
           <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
             <div className="flex items-start gap-3">

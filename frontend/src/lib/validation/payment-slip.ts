@@ -101,3 +101,17 @@ export const slipRejectSchema = z.object({
     .max(1000, "Reason must be 1000 characters or fewer."),
 });
 export type SlipRejectFormValues = z.infer<typeof slipRejectSchema>;
+
+/**
+ * PAY-HUB-01 staff slip note: 1-1000 characters after trimming (the backend
+ * enforces the same rule and remains authoritative).
+ */
+export const slipNoteSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, "Write a note first.")
+    .max(1000, "A note can be at most 1000 characters."),
+});
+
+export type SlipNoteFormValues = z.infer<typeof slipNoteSchema>;

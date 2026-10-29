@@ -71,6 +71,13 @@ export interface PaymentSlipResponse {
   orderPostage?: number | null;
   /** V90: delivery address snapshot, `null` when no postage was selected. */
   orderDelivery?: PaymentSlipDelivery | null;
+  /** PAY-HUB-01: the student's profile id (for `/tenant-admin/students/{id}`), name and mobile; all nullable. */
+  studentProfileId?: string | null;
+  studentName?: string | null;
+  studentMobile?: string | null;
+  /** PAY-HUB-01: the order's tenant-local number and its `ORD-000123` display form. */
+  orderNumber?: number | null;
+  displayOrderNumber?: string | null;
 }
 
 /** Mirrors `PaymentSlipOrderLine` (read-only projection of the order line). */
@@ -97,7 +104,27 @@ export interface PaymentSlipDelivery {
 export interface SlipDownloadUrlResponse {
   url: string;
   expiresAt: string;
+  /** PAY-HUB-01: the type sniffed at upload; `null` when storage can't report it (offer download only). */
+  contentType?: "image/png" | "image/jpeg" | "image/gif" | "application/pdf" | null;
 }
+
+/** PAY-HUB-01: `GET /api/v1/payment-slips/review-queue/count`. */
+export interface SlipPendingCountResponse {
+  pending: number;
+}
+
+/** PAY-HUB-01: an internal staff note on a slip (never shown to students). */
+export interface SlipNoteResponse {
+  id: string;
+  slipId: string;
+  body: string;
+  authorUserId: string;
+  authorEmail: string | null;
+  createdAt: string;
+}
+
+/** Server limit for a slip note body (after trimming). */
+export const SLIP_NOTE_MAX_LENGTH = 1000;
 
 /** Input to `useUploadSlip` — sent as `multipart/form-data` (`referenceNumber` + `file` parts), never JSON. */
 export interface SlipUploadInput {
@@ -108,6 +135,8 @@ export interface SlipUploadInput {
 export interface SlipReviewQueueParams {
   /** Omit entirely for the real pending queue (`SUBMITTED` + `UNDER_REVIEW` combined) — there is no backend "ALL" value. */
   status?: PaymentSlipStatus;
+  /** PAY-HUB-01: student name/email/mobile, slip reference, or order number (server-side, max 100 chars). */
+  search?: string;
   page?: number;
   size?: number;
   sort?: string;
@@ -129,6 +158,9 @@ export const paymentSlipKeys = {
   reviewQueueAll: () => [...paymentSlipKeys.all, "review-queue"] as const,
   reviewQueue: (params?: SlipReviewQueueParams) =>
     [...paymentSlipKeys.reviewQueueAll(), params ?? {}] as const,
+  // Nested under `reviewQueueAll` so approve/reject invalidation refreshes the count too.
+  pendingCount: () => [...paymentSlipKeys.reviewQueueAll(), "count"] as const,
+  notes: (slipId: string) => [...paymentSlipKeys.all, "notes", slipId] as const,
 };
 
 /**
@@ -188,6 +220,7 @@ export function useSlipDownloadUrl() {
 function buildReviewQueueQuery(params?: SlipReviewQueueParams): string {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
+  if (params?.search?.trim()) search.set("search", params.search.trim());
   search.set("page", String(params?.page ?? 0));
   search.set("size", String(params?.size ?? 20));
   if (params?.sort) search.set("sort", params.sort);
@@ -235,6 +268,8 @@ export function useApproveSlip(slipId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentSlipKeys.detail(slipId) });
       queryClient.invalidateQueries({ queryKey: paymentSlipKeys.reviewQueueAll() });
+      // PAY-HUB-01: the All Orders tab's payment status for this order changes too.
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
     },
   });
 }
@@ -255,6 +290,54 @@ export function useRejectSlip(slipId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentSlipKeys.detail(slipId) });
       queryClient.invalidateQueries({ queryKey: paymentSlipKeys.reviewQueueAll() });
+      // PAY-HUB-01: the All Orders tab's payment status for this order changes too.
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+    },
+  });
+}
+
+/**
+ * PAY-HUB-01 `GET /api/v1/payment-slips/review-queue/count` — staff
+ * `PAYMENTS_SLIPS`/`VIEW` only. `enabled` lets a caller skip a guaranteed 403
+ * (UX only; the backend decides).
+ */
+export function useSlipPendingCount(options?: { enabled?: boolean }) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: paymentSlipKeys.pendingCount(),
+    queryFn: () =>
+      authorizedFetch<SlipPendingCountResponse>("tenant", "/v1/payment-slips/review-queue/count"),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/** PAY-HUB-01 `GET /api/v1/payment-slips/{slipId}/notes` — staff `VIEW` only, oldest first. */
+export function useSlipNotes(slipId: string, options?: { enabled?: boolean }) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: paymentSlipKeys.notes(slipId),
+    queryFn: () =>
+      authorizedFetch<SlipNoteResponse[]>("tenant", `/v1/payment-slips/${slipId}/notes`),
+    enabled: (options?.enabled ?? true) && slipId.length > 0,
+  });
+}
+
+/**
+ * PAY-HUB-01 `POST /api/v1/payment-slips/{slipId}/notes` — Tenant Admin /
+ * Finance Staff (`PAYMENTS_SLIPS`/`CREATE_EDIT`). Append-only: there is no
+ * edit or delete. A note never changes the slip's review state.
+ */
+export function useAddSlipNote(slipId: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      authorizedFetch<SlipNoteResponse>("tenant", `/v1/payment-slips/${slipId}/notes`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: paymentSlipKeys.notes(slipId) });
     },
   });
 }

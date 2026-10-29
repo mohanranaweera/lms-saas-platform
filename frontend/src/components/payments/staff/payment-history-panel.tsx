@@ -138,7 +138,7 @@ function HistoryRow({ entry, courseId, canRefund }: { entry: HistoryEntry; cours
       {entry.status === "PENDING_SLIP" ? (
         <p className="text-xs text-muted-foreground">
           Pending slip –{" "}
-          <Link href="/tenant-admin/payments/slip-review" className="font-medium text-foreground underline">
+          <Link href="/tenant-admin/payments?tab=slips" className="font-medium text-foreground underline">
             review in Payment Slips
           </Link>
         </p>
@@ -191,7 +191,7 @@ function HistoryRow({ entry, courseId, canRefund }: { entry: HistoryEntry; cours
           {entry.status === "RECEIVED" && canRefund && entry.paymentId ? (
             <p className="mt-3 text-xs text-muted-foreground">
               <Link
-                href="/tenant-admin/payments/refunds"
+                href="/tenant-admin/payments?tab=refunds"
                 className="font-medium text-foreground underline"
                 data-testid="history-reverse"
               >

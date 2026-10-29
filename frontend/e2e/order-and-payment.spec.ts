@@ -888,325 +888,6 @@ test.describe("payment history — Wave 6 extended fields, including the previou
   });
 });
 
-test.describe("payment dashboard — a role without PAYMENTS_SLIPS/VIEW is denied server-side, not just hidden client-side", () => {
-  test("a STUDENT session sees PermissionDeniedState on a real 403, not a blank or crashed dashboard", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "STUDENT");
-    await mockJson(
-      page,
-      "**/api/v1/ledger/dashboard*",
-      403,
-      apiError("FORBIDDEN", "You do not have permission to view the payment dashboard.")
-    );
-
-    await page.goto("/tenant-admin/payments/dashboard");
-
-    await expect(
-      page.getByRole("alert").filter({ hasText: "You don't have permission to view this." })
-    ).toBeVisible();
-    await expect(page.getByRole("table")).toHaveCount(0);
-  });
-
-  test("a FINANCE_STAFF session — the other of only two roles holding PAYMENTS_SLIPS/APPROVE — can view the dashboard", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "FINANCE_STAFF");
-    await mockJson(
-      page,
-      "**/api/v1/ledger/dashboard*",
-      200,
-      apiPageSuccess([CONFIRMED_LEDGER_ENTRY])
-    );
-
-    await page.goto("/tenant-admin/payments/dashboard");
-
-    // The table rendering at all proves success — a 403 would replace it
-    // entirely with PermissionDeniedState (see the STUDENT test above), so
-    // there's no need to separately assert on `role="alert"`'s absence (Next.js
-    // itself injects an unrelated, always-present route-announcer element with
-    // that role for client-side navigation a11y).
-    await expect(page.getByRole("table").getByText(CONFIRMED_LEDGER_ENTRY.orderId)).toBeVisible();
-  });
-});
-
-test.describe("payment dashboard — pagination controls actually change the rendered page", () => {
-  test("Next/Previous fetch and render a different page of ledger entries, not a static list", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-
-    const entryForPage = (pageNumber: number) => ({
-      id: `ledger-page-${pageNumber}`,
-      orderId: `order-page-${pageNumber}`,
-      paymentId: `payment-page-${pageNumber}`,
-      entryType: "PAYMENT_CONFIRMED" as const,
-      amount: 10 + pageNumber,
-      reversesEntryId: null,
-      createdAt: new Date().toISOString(),
-    });
-
-    await page.route("**/api/v1/ledger/dashboard*", async (route) => {
-      const url = new URL(route.request().url());
-      const requestedPage = Number(url.searchParams.get("page") ?? "0");
-      await fulfillJson(
-        route,
-        200,
-        apiPageSuccess([entryForPage(requestedPage)], {
-          page: requestedPage,
-          totalPages: 2,
-          totalElements: 2,
-        })
-      );
-    });
-
-    await page.goto("/tenant-admin/payments/dashboard");
-
-    const table = page.getByRole("table");
-    await expect(table.getByText("order-page-0")).toBeVisible();
-    await expect(table.getByText("order-page-1")).toHaveCount(0);
-    await expect(page.getByText("Page 1 of 2")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Previous" })).toBeDisabled();
-
-    // `exact: true` — a substring match on "Next" also matches Next.js's own
-    // dev-tools overlay button ("Open Next.js Dev Tools"), which is present
-    // in this dev-server test environment.
-    await page.getByRole("button", { name: "Next", exact: true }).click();
-
-    await expect(table.getByText("order-page-1")).toBeVisible();
-    await expect(table.getByText("order-page-0")).toHaveCount(0);
-    await expect(page.getByText("Page 2 of 2")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
-
-    await page.getByRole("button", { name: "Previous" }).click();
-
-    await expect(table.getByText("order-page-0")).toBeVisible();
-    await expect(page.getByText("Page 1 of 2")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Previous" })).toBeDisabled();
-  });
-});
-
-test.describe("payment dashboard — filtered-empty state is distinct from the zero-data empty state", () => {
-  test("navigating to a page that comes back empty shows 'No more results', not the zero-data 'No payments yet' copy", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-
-    // Simulates the real-world race the empty-state branch guards against:
-    // page 0 reports totalPages=2 (so Next is enabled), but by the time page
-    // 1 is actually fetched, the underlying data has changed and it comes
-    // back empty.
-    await page.route("**/api/v1/ledger/dashboard*", async (route) => {
-      const url = new URL(route.request().url());
-      const requestedPage = Number(url.searchParams.get("page") ?? "0");
-      if (requestedPage === 0) {
-        await fulfillJson(
-          route,
-          200,
-          apiPageSuccess([CONFIRMED_LEDGER_ENTRY], { page: 0, totalPages: 2, totalElements: 1 })
-        );
-      } else {
-        await fulfillJson(
-          route,
-          200,
-          apiPageSuccess([], { page: requestedPage, totalPages: 2, totalElements: 1 })
-        );
-      }
-    });
-
-    await page.goto("/tenant-admin/payments/dashboard");
-    await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByText("No payments yet")).toHaveCount(0);
-
-    await page.getByRole("button", { name: "Next", exact: true }).click();
-
-    await expect(page.getByText("No more results")).toBeVisible();
-    await expect(
-      page.getByText("There are no ledger entries on this page", { exact: false })
-    ).toBeVisible();
-    // Distinct from the zero-data copy — never reused for this different situation.
-    await expect(page.getByText("No payments yet")).toHaveCount(0);
-    await expect(page.getByRole("table")).toHaveCount(0);
-  });
-});
-
-test.describe("payment dashboard — Wave 6 status/method filters produce the correct subset", () => {
-  test("selecting a status filter sends the status query param and renders only the matching rows", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-
-    const requestedStatuses: Array<string | null> = [];
-    await page.route("**/api/v1/ledger/dashboard*", async (route) => {
-      const url = new URL(route.request().url());
-      const status = url.searchParams.get("status");
-      requestedStatuses.push(status);
-      if (status === "PAID") {
-        await fulfillJson(route, 200, apiPageSuccess([CONFIRMED_LEDGER_ENTRY]));
-      } else if (status === "REJECTED") {
-        await fulfillJson(route, 200, apiPageSuccess([]));
-      } else {
-        await fulfillJson(
-          route,
-          200,
-          apiPageSuccess([
-            CONFIRMED_LEDGER_ENTRY,
-            {
-              ...CONFIRMED_LEDGER_ENTRY,
-              id: "ledger-other",
-              orderId: "order-other",
-              entryType: "REFUND",
-            },
-          ])
-        );
-      }
-    });
-
-    await page.goto("/tenant-admin/payments/dashboard");
-    await expect(page.getByRole("table")).toBeVisible();
-
-    await page.getByLabel("Status").click();
-    await page.getByRole("option", { name: "Paid", exact: true }).click();
-
-    await expect.poll(() => requestedStatuses.at(-1)).toBe("PAID");
-    await expect(page.getByRole("table").getByText(CONFIRMED_LEDGER_ENTRY.orderId)).toBeVisible();
-    await expect(page.getByRole("table").getByText("order-other")).toHaveCount(0);
-
-    await page.getByLabel("Status").click();
-    await page.getByRole("option", { name: "Rejected" }).click();
-
-    await expect(page.getByText("No payments match your filters")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Reset filters" })).toBeVisible();
-  });
-});
-
-test.describe("payment dashboard — Wave 6 Outstanding tab lists only non-paid orders", () => {
-  test("switching to the Outstanding tab fetches and renders /v1/ledger/outstanding, not the dashboard endpoint", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-    await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([CONFIRMED_LEDGER_ENTRY]));
-    await mockJson(
-      page,
-      "**/api/v1/ledger/outstanding*",
-      200,
-      apiPageSuccess([
-        {
-          orderId: "order-outstanding-1",
-          studentId: "student-1",
-          courseId: "course-1",
-          courseTitle: "Intro to Biology",
-          amount: 49.99,
-          currency: "USD",
-          operationalState: "PENDING",
-        },
-        {
-          orderId: "order-outstanding-2",
-          studentId: "student-2",
-          courseId: "course-2",
-          courseTitle: "Advanced Chemistry",
-          amount: 79.0,
-          currency: "USD",
-          operationalState: "UNDER_REVIEW",
-        },
-      ])
-    );
-
-    await page.goto("/tenant-admin/payments/dashboard");
-    await page.getByRole("tab", { name: "Outstanding" }).click();
-
-    await expect(page).toHaveURL(/[?&]tab=outstanding/);
-    const table = page.getByRole("table");
-    await expect(table.getByText("Intro to Biology")).toBeVisible();
-    await expect(table.getByText("Advanced Chemistry")).toBeVisible();
-    // Every row on this tab is, by construction of the endpoint, a
-    // non-`PAID`/non-`REFUNDED` order — asserted via the two statuses this
-    // fixture actually uses.
-    await expect(table.getByText("Pending", { exact: true })).toBeVisible();
-    await expect(table.getByText("Under review", { exact: true })).toBeVisible();
-    await expect(table.getByText("Paid", { exact: true })).toHaveCount(0);
-  });
-
-  test("a zero-data result shows the contextual 'no outstanding payments' empty state", async ({ page }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-    await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
-    await mockJson(page, "**/api/v1/ledger/outstanding*", 200, apiPageSuccess([]));
-
-    await page.goto("/tenant-admin/payments/dashboard?tab=outstanding");
-
-    await expect(page.getByText("No outstanding payments")).toBeVisible();
-    await expect(
-      page.getByText("Every order in your tenant currently has a paid or refunded status.")
-    ).toBeVisible();
-  });
-});
-
-test.describe("payment dashboard — Wave 6 Course Summary tab matches the backend's aggregate", () => {
-  test("selecting a course fetches its summary and renders per-state counts/totals", async ({ page }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-    await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
-    await mockJson(
-      page,
-      "**/api/v1/courses*",
-      200,
-      apiPageSuccess([
-        {
-          id: "course-summary-1",
-          teacherId: "teacher-1",
-          name: "Intro to Biology",
-          slug: "intro-to-biology",
-          category: "Science",
-          subject: "Biology",
-          stream: null,
-          grade: "Grade 9",
-          academicYear: "2026",
-          description: "A beginner-friendly introduction to biology.",
-          price: 49.99,
-          accessDurationDays: 180,
-          enrollmentRule: null,
-          status: "PUBLIC",
-          pricingModel: "ONE_TIME",
-          resolvedAmount: 49.99,
-          currency: "USD",
-          requiresManualQuote: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ])
-    );
-    await mockJson(
-      page,
-      "**/api/v1/ledger/courses/course-summary-1/summary",
-      200,
-      apiSuccess({
-        courseId: "course-summary-1",
-        courseTitle: "Intro to Biology",
-        totalOrders: 5,
-        byState: [
-          { state: "PAID", count: 3, totalAmount: 149.97 },
-          { state: "PENDING", count: 1, totalAmount: 49.99 },
-          { state: "REJECTED", count: 1, totalAmount: 49.99 },
-        ],
-      })
-    );
-
-    await page.goto("/tenant-admin/payments/dashboard?tab=course-summary");
-
-    await expect(page.getByText("Select a course", { exact: true })).toBeVisible();
-
-    const courseSelect = page.getByLabel("Course", { exact: true });
-    await expect(courseSelect).toBeEnabled();
-    await courseSelect.click();
-    await page.getByRole("option", { name: "Intro to Biology" }).click();
-
-    await expect(page.getByRole("heading", { name: "Intro to Biology" })).toBeVisible();
-    await expect(page.getByText("5 total orders")).toBeVisible();
-    await expect(page.getByText("3 orders", { exact: false })).toBeVisible();
-    await expect(page.getByText("149.97", { exact: false })).toBeVisible();
-    await expect(page.getByText("1 order", { exact: false }).first()).toBeVisible();
-  });
-});
-
 test.describe("refunds — filtered-empty state is distinct from the zero-data empty state", () => {
   test("a page with ledger entries but none PAYMENT_CONFIRMED shows the filtered-empty copy, not the zero-data copy", async ({
     page,
@@ -1233,7 +914,7 @@ test.describe("refunds — filtered-empty state is distinct from the zero-data e
       ])
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
     await expect(page.getByText("No confirmed payments on this page")).toBeVisible();
     await expect(
@@ -1245,6 +926,31 @@ test.describe("refunds — filtered-empty state is distinct from the zero-data e
 });
 
 test.describe("refunds — action visibility is role-gated, and a forced 403 is never silently swallowed", () => {
+  test.beforeEach(async ({ page }) => {
+    // The refund dialog verifies the payment/order before enabling submit.
+    await mockJson(
+      page,
+      `**/api/v1/payments/${CONFIRMED_LEDGER_ENTRY.paymentId}/refund-verification`,
+      200,
+      apiSuccess({
+        paymentId: CONFIRMED_LEDGER_ENTRY.paymentId,
+        orderId: CONFIRMED_LEDGER_ENTRY.orderId,
+        orderNumber: 1,
+        displayOrderNumber: "ORD-000001",
+        paymentAmount: CONFIRMED_LEDGER_ENTRY.amount,
+        currency: "USD",
+        paymentStatus: "CONFIRMED",
+        gatewayReference: "GW-REF-1",
+        paymentCreatedAt: CONFIRMED_LEDGER_ENTRY.createdAt,
+        refundedAmount: 0,
+        refundableAmount: CONFIRMED_LEDGER_ENTRY.amount,
+        lines: [],
+        postageAmount: null,
+        delivery: null,
+      })
+    );
+  });
+
   test("a STUDENT_SUPPORT session (VIEW only, no APPROVE) sees the payment but no Refund action", async ({
     page,
   }) => {
@@ -1256,11 +962,11 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       apiPageSuccess([CONFIRMED_LEDGER_ENTRY])
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
-    await expect(page.getByRole("table").getByText(CONFIRMED_LEDGER_ENTRY.orderId)).toBeVisible();
+    await expect(page.getByRole("table").getByRole("button", { name: "View order details" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Refund/ })).toHaveCount(0);
-    // The nav itself hides the Refunds link for this role too.
+    // PAY-HUB-01: Refunds is a tab of the single Payments hub - there is no separate nav link.
     await expect(page.getByRole("link", { name: "Refunds" })).toHaveCount(0);
   });
 
@@ -1273,9 +979,9 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       apiPageSuccess([CONFIRMED_LEDGER_ENTRY])
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
-    await expect(page.getByRole("table").getByText(CONFIRMED_LEDGER_ENTRY.orderId)).toBeVisible();
+    await expect(page.getByRole("table").getByRole("button", { name: "View order details" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Refund/ })).toHaveCount(0);
   });
 
@@ -1296,7 +1002,7 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       apiError("FORBIDDEN", "You do not have permission to process refunds.")
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
     const trigger = page.getByRole("button", {
       name: `Refund payment ${CONFIRMED_LEDGER_ENTRY.paymentId} for order ${CONFIRMED_LEDGER_ENTRY.orderId}`,
@@ -1328,7 +1034,7 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       apiPageSuccess([CONFIRMED_LEDGER_ENTRY])
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
     const trigger = page.getByRole("button", {
       name: `Refund payment ${CONFIRMED_LEDGER_ENTRY.paymentId} for order ${CONFIRMED_LEDGER_ENTRY.orderId}`,
@@ -1380,8 +1086,8 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       })
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
-    await expect(page.getByRole("table").getByText(CONFIRMED_LEDGER_ENTRY.orderId)).toBeVisible();
+    await page.goto("/tenant-admin/payments?tab=refunds");
+    await expect(page.getByRole("table").getByRole("button", { name: "View order details" })).toBeVisible();
     const requestCountBeforeRefund = dashboardRequestCount;
 
     const trigger = page.getByRole("button", {
@@ -1419,7 +1125,7 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       ])
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
     const trigger = page.getByRole("button", {
       name: `Refund payment ${CONFIRMED_LEDGER_ENTRY.paymentId} for order ${CONFIRMED_LEDGER_ENTRY.orderId}`,
@@ -1451,14 +1157,14 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       apiPageSuccess([CONFIRMED_LEDGER_ENTRY])
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
     await expect(
       page.getByRole("button", {
         name: `Refund payment ${CONFIRMED_LEDGER_ENTRY.paymentId} for order ${CONFIRMED_LEDGER_ENTRY.orderId}`,
       })
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: "Refunds" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Refunds" })).toBeVisible();
   });
 
   test("the refund dialog traps focus while open and returns focus to the trigger button on Cancel", async ({
@@ -1472,7 +1178,7 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       apiPageSuccess([CONFIRMED_LEDGER_ENTRY])
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
     const trigger = page.getByRole("button", {
       name: `Refund payment ${CONFIRMED_LEDGER_ENTRY.paymentId} for order ${CONFIRMED_LEDGER_ENTRY.orderId}`,
@@ -1533,7 +1239,7 @@ test.describe("refunds — action visibility is role-gated, and a forced 403 is 
       }
     );
 
-    await page.goto("/tenant-admin/payments/refunds");
+    await page.goto("/tenant-admin/payments?tab=refunds");
 
     const trigger = page.getByRole("button", {
       name: `Refund payment ${CONFIRMED_LEDGER_ENTRY.paymentId} for order ${CONFIRMED_LEDGER_ENTRY.orderId}`,

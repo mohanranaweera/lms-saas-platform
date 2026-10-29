@@ -778,7 +778,7 @@ function SubmitErrorAlert({ error }: { error: { code: string | null; message: st
         {error.code === "ITEM_PENDING" ? (
           <>
             {" "}
-            <Link href="/tenant-admin/payments/slip-review" className="font-medium underline">
+            <Link href="/tenant-admin/payments?tab=slips" className="font-medium underline">
               Open Payment Slips
             </Link>
           </>
@@ -821,7 +821,7 @@ function QuoteSummary({
           {isApiClientError(error) && error.code === "ITEM_PENDING" ? (
             <>
               {" "}
-              <Link href="/tenant-admin/payments/slip-review" className="font-medium underline">
+              <Link href="/tenant-admin/payments?tab=slips" className="font-medium underline">
                 Open Payment Slips
               </Link>
             </>

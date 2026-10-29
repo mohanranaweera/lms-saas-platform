@@ -170,4 +170,5 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   MANUAL_SLIP: "Manual bank transfer",
   FREE: "Free enrollment",
   STAFF_GRANTED: "Staff granted",
+  MANUAL_RECEIPT: "Recorded by staff",
 };

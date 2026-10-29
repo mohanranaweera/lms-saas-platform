@@ -41,7 +41,17 @@ import { slipOverrideReasonSchema, type SlipOverrideReasonFormValues } from "@/l
  *   backend independently rejects a reasonless override with `409` before
  *   any state change, per `.claude/rules/payments.md` §3).
  */
-export function ApproveSlipDialog({ slip }: { slip: PaymentSlipResponse }) {
+export function ApproveSlipDialog({
+  slip,
+  variant = "button",
+  onDone,
+}: {
+  slip: PaymentSlipResponse;
+  /** PAY-HUB-01: `"icon"` renders the Klass-style green check icon button used in the slip grid. */
+  variant?: "button" | "icon";
+  /** Called after a successful approval (e.g. to close the slip viewer). */
+  onDone?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const mutation = useApproveSlip(slip.id);
@@ -74,6 +84,7 @@ export function ApproveSlipDialog({ slip }: { slip: PaymentSlipResponse }) {
       setOpen(false);
       reset();
       setOverrideReasonValue("");
+      onDone?.();
     } catch (error) {
       setPageError(
         isApiClientError(error) ? error.message : "Something went wrong. Please try again."
@@ -102,6 +113,7 @@ export function ApproveSlipDialog({ slip }: { slip: PaymentSlipResponse }) {
     try {
       await mutation.mutateAsync({});
       setOpen(false);
+      onDone?.();
     } catch (error) {
       setPageError(
         isApiClientError(error) ? error.message : "Something went wrong. Please try again."
@@ -162,10 +174,27 @@ export function ApproveSlipDialog({ slip }: { slip: PaymentSlipResponse }) {
         }
       }}
     >
-      <AlertDialogTrigger render={<Button type="button" size="sm" />}>
-        <CheckCircle2 aria-hidden="true" />
-        Approve
-      </AlertDialogTrigger>
+      {variant === "icon" ? (
+        <AlertDialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Approve payment ${slip.referenceNumber}`}
+              title="Approve payment"
+              data-testid="slip-approve"
+            />
+          }
+        >
+          <CheckCircle2 aria-hidden="true" className="text-green-600 dark:text-green-400" />
+        </AlertDialogTrigger>
+      ) : (
+        <AlertDialogTrigger render={<Button type="button" size="sm" />}>
+          <CheckCircle2 aria-hidden="true" />
+          Approve
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Approve slip {slip.referenceNumber}</AlertDialogTitle>

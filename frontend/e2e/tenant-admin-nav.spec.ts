@@ -225,9 +225,13 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
 
       const gatedItems: Array<[string, boolean]> = [
         ["Teachers", entry.teachers],
+        // PAY-HUB-01: one "Payments" hub link (All Orders / Payment Slips / Free
+        // Cards / Refunds are tabs inside it); the old separate links are gone.
         ["Payments", entry.payments],
-        ["Refunds", entry.refunds],
-        ["Payment Slips", entry.paymentSlips],
+        ["Refunds", false],
+        ["Payment Slips", false],
+        ["Student Payments", false],
+        ["Free Cards", false],
         ["Reactivation Approvals", entry.reactivationApprovals],
         ["Exams", entry.exams],
         ["Audit Log", entry.auditLog],

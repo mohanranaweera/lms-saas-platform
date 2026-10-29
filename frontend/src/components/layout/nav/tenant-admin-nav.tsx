@@ -93,21 +93,20 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   const financeItems: NavItem[] = [];
-  if (canViewPaymentDashboard(role)) {
-    financeItems.push({ label: "Payments", href: "/tenant-admin/payments/dashboard" });
-  }
-  if (canProcessRefunds(role)) {
-    financeItems.push({ label: "Refunds", href: "/tenant-admin/payments/refunds" });
-  }
-  if (canViewPaymentDashboard(role)) {
-    financeItems.push({ label: "Payment Slips", href: "/tenant-admin/payments/slip-review" });
-  }
-  // ADR-030 - PAYMENTS_SLIPS/VIEW and FREE_CARDS/VIEW. UX only; the backend re-checks.
-  if (canViewStudentPayments(role)) {
-    financeItems.push({ label: "Student Payments", href: "/tenant-admin/payments/students" });
-  }
-  if (canViewFreeCards(role)) {
-    financeItems.push({ label: "Free Cards", href: "/tenant-admin/payments/free-cards" });
+  // PAY-HUB-01: one Payments hub (All Orders, Payment Slips, Free Cards,
+  // Refunds tabs). Shown when any of its tabs is visible to this role. UX
+  // only; every tab's endpoints re-check permission server-side.
+  if (
+    canViewPaymentDashboard(role) ||
+    canViewStudentPayments(role) ||
+    canViewFreeCards(role) ||
+    canProcessRefunds(role)
+  ) {
+    financeItems.push({
+      label: "Payments",
+      href: "/tenant-admin/payments",
+      activePrefixes: ["/tenant-admin/payments/slip-review"],
+    });
   }
   // DISC-01 - DISCOUNTS/VIEW. UX only; /api/v1/admin/discounts re-enforces it.
   if (canViewDiscounts(role)) {

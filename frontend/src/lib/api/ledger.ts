@@ -35,7 +35,8 @@ export type PaymentOperationalState =
  * server-side from the confirmed payment's `gatewayReference` prefix
  * convention, never recomputed here.
  */
-export type PaymentMethod = "GATEWAY" | "MANUAL_SLIP" | "FREE" | "STAFF_GRANTED";
+/** `MANUAL_RECEIPT` (ADR-030): a payment staff recorded at the institute. */
+export type PaymentMethod = "GATEWAY" | "MANUAL_SLIP" | "FREE" | "STAFF_GRANTED" | "MANUAL_RECEIPT";
 
 /**
  * Mirrors `LedgerHistoryEntryResponse`. Wave 6 §4 extends this with
