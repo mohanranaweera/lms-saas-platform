@@ -1,31 +1,10 @@
-import Link from "next/link";
+import { PublicChrome } from "@/components/public/public-chrome";
 
+/**
+ * Public route group (`/`, `/courses`, `/teachers`, …). The tenant-themed
+ * header/footer and theme scope live in `PublicChrome`; pages render body
+ * content only (no page renders its own header/footer).
+ */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-svh flex-col">
-      <header className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <Link href="/" className="text-lg font-semibold text-foreground">
-          LMS Platform
-        </Link>
-        <nav aria-label="Account" className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-foreground hover:underline"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/register-institute"
-            className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
-          >
-            Get started
-          </Link>
-        </nav>
-      </header>
-      <main className="flex flex-1 flex-col">{children}</main>
-      <footer className="border-t border-border px-4 py-4 text-center text-sm text-muted-foreground sm:px-6">
-        &copy; {new Date().getFullYear()} LMS Platform. All rights reserved.
-      </footer>
-    </div>
-  );
+  return <PublicChrome>{children}</PublicChrome>;
 }

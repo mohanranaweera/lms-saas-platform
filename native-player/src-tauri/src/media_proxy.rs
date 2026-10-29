@@ -23,6 +23,10 @@ const SCHEME: &str = "aoc-media";
 const MAX_URL_BYTES: usize = 4096;
 const MAX_REDIRECTS: usize = 2;
 const MAX_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
+/// Largest byte range fetched upstream per WebView request. The media element
+/// asks for the next range as it plays, so any file size streams while each
+/// response stays well under `MAX_RESPONSE_BYTES`.
+const RANGE_CHUNK_BYTES: u64 = 4 * 1024 * 1024;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
@@ -164,9 +168,15 @@ impl NativeMediaProxy {
         for redirects in 0..=MAX_REDIRECTS {
             let resolved = self.validate_resolved_destination(&upstream).await?;
             let mut headers = HeaderMap::new();
-            if let Some(value) = request.headers().get(RANGE) {
-                headers.insert(RANGE, value.clone());
-            }
+            let requested = request
+                .headers()
+                .get(RANGE)
+                .and_then(|value| value.to_str().ok());
+            let range = bounded_range(requested);
+            headers.insert(
+                RANGE,
+                range.parse().map_err(|_| ProxyError::InvalidRequest)?,
+            );
             if let Some(value) = request.headers().get(ACCEPT) {
                 headers.insert(ACCEPT, value.clone());
             }
@@ -330,6 +340,32 @@ fn parse_request_uri(uri: &http::Uri) -> Result<(Uuid, &'static str), ProxyError
     Ok((session_id, "/media"))
 }
 
+/// The upstream `Range` for one WebView request: always a closed range of at
+/// most `RANGE_CHUNK_BYTES`. No range, an open range (`bytes=N-`, what a media
+/// element sends first) or an oversized one becomes `bytes=N-(N+chunk-1)`; the
+/// upstream answers 206 with the real total in `Content-Range`. Anything this
+/// doesn't understand (suffix or multi-range) is sent as the first chunk.
+fn bounded_range(requested: Option<&str>) -> String {
+    let parsed = requested
+        .map(str::trim)
+        .and_then(|value| value.strip_prefix("bytes="))
+        .filter(|spec| !spec.contains(','))
+        .and_then(|spec| spec.split_once('-'))
+        .and_then(|(start, end)| {
+            let start = start.trim().parse::<u64>().ok()?;
+            let end = match end.trim() {
+                "" => None,
+                value => Some(value.parse::<u64>().ok()?),
+            };
+            Some((start, end))
+        })
+        .filter(|(start, end)| end.is_none_or(|end| end >= *start));
+    let (start, end) = parsed.unwrap_or((0, None));
+    let last = start + RANGE_CHUNK_BYTES - 1;
+    let end = end.map_or(last, |end| end.min(last));
+    format!("bytes={start}-{end}")
+}
+
 async fn read_bounded(mut response: reqwest::Response) -> Result<Vec<u8>, ProxyError> {
     if response
         .content_length()
@@ -446,6 +482,63 @@ mod tests {
         let response = proxy.handle(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
         assert_eq!(response.body(), &vec![1, 2, 3, 4]);
+        server.verify().await;
+    }
+
+    #[test]
+    fn upstream_ranges_are_always_closed_and_bounded() {
+        let chunk = RANGE_CHUNK_BYTES;
+        assert_eq!(bounded_range(None), format!("bytes=0-{}", chunk - 1));
+        assert_eq!(bounded_range(Some("bytes=0-")), format!("bytes=0-{}", chunk - 1));
+        assert_eq!(
+            bounded_range(Some("bytes=10000000-")),
+            format!("bytes=10000000-{}", 10_000_000 + chunk - 1)
+        );
+        assert_eq!(bounded_range(Some("bytes=0-3")), "bytes=0-3");
+        assert_eq!(
+            bounded_range(Some("bytes=5-99999999")),
+            format!("bytes=5-{}", 5 + chunk - 1)
+        );
+        for odd in ["bytes=-500", "bytes=0-1,5-9", "items=0-1", "bytes=9-3", "bytes=x-"] {
+            assert_eq!(bounded_range(Some(odd)), format!("bytes=0-{}", chunk - 1), "{odd}");
+        }
+    }
+
+    /// A media element's first request (`bytes=0-`) on a file larger than
+    /// `MAX_RESPONSE_BYTES` used to fail and leave a black screen.
+    #[tokio::test]
+    async fn an_open_range_on_a_large_file_streams_one_bounded_chunk() {
+        let server = MockServer::start().await;
+        let chunk = RANGE_CHUNK_BYTES as usize;
+        let total = 20 * 1024 * 1024;
+        Mock::given(method("GET"))
+            .and(path("/big.mp4"))
+            .and(header("range", format!("bytes=0-{}", chunk - 1).as_str()))
+            .respond_with(
+                ResponseTemplate::new(206)
+                    .insert_header("Content-Type", "video/mp4")
+                    .insert_header("Content-Range", format!("bytes 0-{}/{total}", chunk - 1).as_str())
+                    .set_body_bytes(vec![7u8; chunk]),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+        let origin = Url::parse(&server.uri()).unwrap();
+        let proxy = NativeMediaProxy::new(vec![origin], true).unwrap();
+        let session = Uuid::new_v4();
+        assert!(proxy.bind(session, &format!("{}/big.mp4", server.uri())).is_some());
+        let request = Request::builder()
+            .uri(format!("{SCHEME}://localhost/session/{session}/media"))
+            .header(RANGE, "bytes=0-")
+            .body(Vec::new())
+            .unwrap();
+        let response = proxy.handle(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(response.body().len(), chunk);
+        assert_eq!(
+            response.headers().get(CONTENT_RANGE).unwrap(),
+            format!("bytes 0-{}/{total}", chunk - 1).as_str()
+        );
         server.verify().await;
     }
 

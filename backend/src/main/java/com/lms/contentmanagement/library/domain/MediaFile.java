@@ -38,6 +38,10 @@ public class MediaFile extends Auditable implements TenantOwned {
 	@Column(name = "kind", nullable = false, updatable = false, length = 20)
 	private MediaFileKind kind;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "usage_area", nullable = false, updatable = false, length = 30)
+	private MediaFileUsage usageArea = MediaFileUsage.COURSE_LIBRARY;
+
 	@Column(name = "title", nullable = false, length = MAX_TITLE_LENGTH)
 	private String title;
 
@@ -83,6 +87,12 @@ public class MediaFile extends Auditable implements TenantOwned {
 		this.uploadedBy = uploadedBy;
 	}
 
+	public MediaFile(UUID tenantId, MediaFileKind kind, MediaFileUsage usageArea, String title, String originalFilename,
+			String contentType, long sizeBytes, String objectKey, String sha256, UUID uploadedBy) {
+		this(tenantId, kind, title, originalFilename, contentType, sizeBytes, objectKey, sha256, uploadedBy);
+		this.usageArea = usageArea;
+	}
+
 	@Override
 	public UUID getTenantId() {
 		return tenantId;
@@ -91,6 +101,10 @@ public class MediaFile extends Auditable implements TenantOwned {
 	@Override
 	public void setTenantId(UUID tenantId) {
 		this.tenantId = tenantId;
+	}
+
+	public MediaFileUsage getUsageArea() {
+		return usageArea;
 	}
 
 	public MediaFileKind getKind() {

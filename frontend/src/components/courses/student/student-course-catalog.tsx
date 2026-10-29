@@ -21,7 +21,6 @@ import {
 } from "@/lib/api/klass-student";
 import { CourseCover, PriceBadge } from "./course-visuals";
 import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog";
-import { ExpiredLegacyAccessSection } from "./legacy-reactivation";
 import { StudentToast, useStudentToast } from "./student-toast";
 
 const PAGE_SIZE = 20;
@@ -120,37 +119,8 @@ export function StudentCourseCatalog() {
     }
   };
 
-  const heading = view === "ENROLLED" ? "Enrolled Courses" : "Available Courses";
-
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6" data-testid="student-course-catalog">
-      <h1 className="text-2xl font-bold text-foreground sm:text-3xl" data-testid="catalog-heading">
-        {heading}
-      </h1>
-
-      <div role="group" aria-label="Course view" className="flex flex-wrap gap-2">
-        {(["ENROLLED", "AVAILABLE"] as const).map((option) => {
-          const selected = option === view;
-          return (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={selected}
-              data-testid={option === "ENROLLED" ? "catalog-view-enrolled" : "catalog-view-available"}
-              onClick={() => setView(option)}
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
-                selected
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200"
-                  : "bg-muted text-foreground hover:bg-muted/70"
-              )}
-            >
-              {option === "ENROLLED" ? "Enrolled Courses" : "Available Courses"}
-            </button>
-          );
-        })}
-      </div>
-
       <section aria-label="Search and filters" className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex w-full flex-col gap-1 sm:max-w-md">
@@ -229,9 +199,6 @@ export function StudentCourseCatalog() {
         }
       />
 
-      {/* Legacy paid-access renewal (ADR-013) for EXPIRED legacy enrollments -
-          independent of the catalog read, renders nothing unless there are any. */}
-      {view === "ENROLLED" ? <ExpiredLegacyAccessSection /> : null}
 
       <QueryStateBoundary
         query={catalogQuery}
@@ -275,7 +242,7 @@ export function StudentCourseCatalog() {
           return (
             <div className="flex flex-col gap-4">
               <ul
-                aria-label={heading}
+                aria-label={view === "ENROLLED" ? "Enrolled Courses" : "Available Courses"}
                 aria-busy={catalogQuery.isFetching}
                 className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 data-testid="catalog-grid"

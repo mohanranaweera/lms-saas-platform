@@ -25,10 +25,20 @@ export type TeacherAccountStatus = "ACTIVE" | "SUSPENDED";
 /** Mirrors `TeacherResponse` exactly (backend `.../teacher/web/dto/TeacherResponse.java`). */
 export interface Teacher {
   id: string;
-  /** The teacher's user account id — what course teacher assignment (`teacherIds`) expects. */
   userId: string;
   name: string;
+  firstName: string | null;
+  lastName: string | null;
   email: string;
+  contactNumber: string | null;
+  instituteCommissionPercent: number;
+  qualifications: string | null;
+  description: string | null;
+  profileMediaFileId: string | null;
+  profileImageUrl: string | null;
+  publicProfileDisabled: boolean;
+  displayOrder?: number | null;
+  studentCount: number;
   approvalStatus: TeacherApprovalStatus;
   accountStatus: TeacherAccountStatus;
   approvedBy: string | null;
@@ -37,8 +47,35 @@ export interface Teacher {
 
 export interface TeacherCreateInput {
   name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
+  contactNumber: string;
+  instituteCommissionPercent: number;
+  qualifications?: string;
+  description?: string;
+  profileMediaFileId?: string;
+  publicProfileDisabled: boolean;
+}
+
+export interface TeacherUpdateInput {
+  firstName: string;
+  lastName: string;
+  contactNumber: string;
+  instituteCommissionPercent: number;
+  qualifications?: string;
+  description?: string;
+  profileMediaFileId?: string;
+  publicProfileDisabled: boolean;
+}
+
+export interface TeacherPage {
+  content: Teacher[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 const TEACHERS_KEY = ["teachers"] as const;
@@ -54,12 +91,21 @@ const teacherKey = (id: string) => ["teachers", id] as const;
  * `.claude/rules/ui-ux.md` §1's Teacher-role restriction, which does not apply
  * to this admin-side view).
  */
-export function useTeachers(options?: { enabled?: boolean }) {
+export function useTeachers(options?: { enabled?: boolean; query?: string; page?: number; size?: number }) {
   const { authorizedFetch } = useAuth();
+  const query = options?.query?.trim() ?? "";
+  const page = options?.page ?? 0;
+  const size = options?.size ?? 10;
+  const paged = Boolean(query || page > 0 || options?.size);
+  const path = `/v1/teachers?q=${encodeURIComponent(query)}&page=${page}&size=${size}`;
   return useQuery({
-    queryKey: TEACHERS_KEY,
-    queryFn: () => authorizedFetch<Teacher[]>("tenant", "/v1/teachers"),
+    queryKey: [...TEACHERS_KEY, { query, page, size }],
+    queryFn: async () => {
+      const response = await authorizedFetch<TeacherPage | Teacher[]>("tenant", paged ? path : "/v1/teachers");
+      return Array.isArray(response) ? response : response.content;
+    },
     enabled: options?.enabled ?? true,
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -83,6 +129,47 @@ export function useCreateTeacher() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEACHERS_KEY });
+    },
+  });
+}
+
+export function useReorderTeachers() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (teacherIds: string[]) => authorizedFetch<null>("tenant", "/v1/teachers/reorder", {
+      method: "POST", body: JSON.stringify({ teacherIds }),
+    }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: TEACHERS_KEY }),
+  });
+}
+
+export function useUpdateTeacher(id: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TeacherUpdateInput) =>
+      authorizedFetch<Teacher>("tenant", `/v1/teachers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(teacherKey(id), data);
+      queryClient.invalidateQueries({ queryKey: TEACHERS_KEY });
+    },
+  });
+}
+
+/** `DELETE /v1/teachers/{id}/profile-photo`: clears the photo; the file is deleted when no other teacher uses it. */
+export function useRemoveTeacherPhoto() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (teacherId: string) =>
+      authorizedFetch<Teacher>("tenant", `/v1/teachers/${encodeURIComponent(teacherId)}/profile-photo`, { method: "DELETE" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: TEACHERS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ["public-teachers"] });
     },
   });
 }

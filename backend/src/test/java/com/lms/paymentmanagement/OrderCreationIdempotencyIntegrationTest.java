@@ -194,6 +194,15 @@ class OrderCreationIdempotencyIntegrationTest extends PaymentManagementTestSuppo
 
 		assertThat(second.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		assertThat(second.getBody().data().id()).isNotEqualTo(first.getBody().data().id());
+
+		// The database assigns tenant-local order numbers (V100 trigger); the
+		// application must leave the column NULL on insert, never send 0.
+		assertThat(first.getBody().data().orderNumber()).isEqualTo(1L);
+		assertThat(first.getBody().data().displayOrderNumber()).isEqualTo("ORD-000001");
+		assertThat(second.getBody().data().orderNumber()).isEqualTo(2L);
+		assertThat(second.getBody().data().displayOrderNumber()).isEqualTo("ORD-000002");
+		assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM student_order WHERE tenant_id = ? AND order_number = 0",
+				Long.class, fixture.tenant().getId())).isZero();
 	}
 
 	// ------------------------------------------------------------------

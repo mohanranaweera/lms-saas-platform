@@ -1,29 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Teacher } from "@/lib/api/teachers";
 import { TeacherStatusBadge } from "../status-badge";
 import { TeacherDecisionDialog } from "../teacher-decision-dialog";
 import { TeacherSuspendDialog } from "../teacher-suspend-dialog";
+import { TeacherProfileForm } from "./teacher-profile-form";
 
 /**
- * Profile tab (Wave 3 tabbed rebuild) — the pre-Wave-3 detail page's own
- * card content, unchanged, plus the new Suspend/Reactivate actions
- * (PAR-04-04). Already-decided teachers show status read-only with no
- * reopen affordance, matching the backend's one-directional approval state
- * machine — `SUSPENDED`/`APPROVED` toggle is the one exception (a real,
- * bidirectional pair, per `ApprovalStatus`'s own backend doc comment).
+ * Profile tab (Wave 3 tabbed rebuild) — editable teacher accounts open
+ * directly in the profile form. View-only roles retain the read-only profile
+ * summary because the backend remains authoritative for mutation access.
  */
 export function TeacherProfileTab({ teacher }: { teacher: Teacher }) {
   const { session } = useAuth();
+  const router = useRouter();
   const canDecide = session?.role === "TENANT_ADMIN";
+  const canEdit = session?.role === "TENANT_ADMIN" || session?.role === "COURSE_COORDINATOR";
 
-  // Distinguishable success feedback for Suspend/Reactivate — this app has
-  // no toast library (`components/ui/live-region.tsx`'s doc comment), so
-  // this mirrors `students/page.tsx#createdNotice`'s established brief,
-  // auto-clearing, `role="status" aria-live="polite"` page-level notice
-  // pattern rather than inventing a new one.
+  // Distinguishable success feedback for profile and lifecycle actions — this
+  // app has no toast library, so keep the existing accessible live-region pattern.
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     if (!notice) return;
@@ -36,41 +34,74 @@ export function TeacherProfileTab({ teacher }: { teacher: Teacher }) {
       <div role="status" aria-live="polite">
         {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
       </div>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs font-medium text-muted-foreground">Email</dt>
-          <dd className="text-sm text-foreground">{teacher.email}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium text-muted-foreground">Account status</dt>
-          <dd className="text-sm text-foreground">{teacher.accountStatus}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium text-muted-foreground">Approval status</dt>
-          <dd className="text-sm text-foreground">
-            <TeacherStatusBadge status={teacher.approvalStatus} />
-          </dd>
-        </div>
-        {teacher.approvalStatus !== "PENDING" ? (
-          <>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground">Decided by</dt>
-              <dd className="text-sm text-foreground">{teacher.approvedBy ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground">Decided at</dt>
-              <dd className="text-sm text-foreground">
-                {teacher.approvedAt
-                  ? new Intl.DateTimeFormat("en-US", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(teacher.approvedAt))
-                  : "—"}
-              </dd>
-            </div>
-          </>
-        ) : null}
-      </dl>
+
+      {canEdit ? (
+        <TeacherProfileForm
+          teacher={teacher}
+          onCancel={() => router.push("/tenant-admin/teachers")}
+          onSaved={() => setNotice("Teacher profile saved.")}
+        />
+      ) : (
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">First name</dt>
+            <dd className="text-sm text-foreground">{teacher.firstName ?? teacher.name}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">Last name</dt>
+            <dd className="text-sm text-foreground">{teacher.lastName ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">Contact number</dt>
+            <dd className="text-sm text-foreground">{teacher.contactNumber ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">Institute commission</dt>
+            <dd className="text-sm text-foreground">{teacher.instituteCommissionPercent ?? 0}%</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">Qualifications</dt>
+            <dd className="whitespace-pre-wrap text-sm text-foreground">{teacher.qualifications ?? "—"}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs font-medium text-muted-foreground">Description</dt>
+            <dd className="whitespace-pre-wrap text-sm text-foreground">{teacher.description ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">Email</dt>
+            <dd className="text-sm text-foreground">{teacher.email}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">Account status</dt>
+            <dd className="text-sm text-foreground">{teacher.accountStatus}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">Approval status</dt>
+            <dd className="text-sm text-foreground">
+              <TeacherStatusBadge status={teacher.approvalStatus} />
+            </dd>
+          </div>
+          {teacher.approvalStatus !== "PENDING" ? (
+            <>
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground">Decided by</dt>
+                <dd className="text-sm text-foreground">{teacher.approvedBy ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground">Decided at</dt>
+                <dd className="text-sm text-foreground">
+                  {teacher.approvedAt
+                    ? new Intl.DateTimeFormat("en-US", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(teacher.approvedAt))
+                    : "—"}
+                </dd>
+              </div>
+            </>
+          ) : null}
+        </dl>
+      )}
 
       {canDecide && teacher.approvalStatus === "PENDING" ? (
         <div className="flex flex-wrap items-center gap-3">

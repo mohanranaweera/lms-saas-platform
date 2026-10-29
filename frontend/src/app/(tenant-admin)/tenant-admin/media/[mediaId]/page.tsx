@@ -16,7 +16,7 @@ export default function TenantAdminMediaDetailPage() {
       listHref="/tenant-admin/media"
       dashboardHref="/tenant-admin/dashboard"
       canManage={canManageMedia(role)}
-      settingsHref={canManageIntegrations(role) ? "/tenant-admin/settings/video-providers" : undefined}
+      settingsHref={canManageIntegrations(role) ? "/tenant-admin/settings/video" : undefined}
     />
   );
 }

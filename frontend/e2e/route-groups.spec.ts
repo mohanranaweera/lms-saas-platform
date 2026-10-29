@@ -10,34 +10,48 @@ import {
 } from "./fixtures/auth-mocks";
 
 test.describe("public route group", () => {
-  test("home page renders marketing content and auth entry points", async ({ page }) => {
+  // The public home is tenant-branded (`GET /v1/public/tenant-config/home`,
+  // host-resolved); see e2e/public-home-appearance.spec.ts for full coverage.
+  test("home page renders tenant content and auth entry points", async ({ page }) => {
+    await mockJson(page, "**/v1/auth/refresh", 401, apiError("UNAUTHENTICATED", "No session"));
+    await mockJson(page, "**/v1/platform-admin/auth/refresh", 401, apiError("UNAUTHENTICATED", "No session"));
+    await mockJson(page, "**/v1/public/teachers*", 200, apiPageSuccess([]));
+    await mockJson(page, "**/v1/public/courses*", 200, apiPageSuccess([]));
+    await mockJson(
+      page,
+      "**/v1/public/tenant-config/home",
+      200,
+      apiSuccess({
+        publicPageEnabled: true,
+        instituteName: "Example Institute",
+        logoUrl: null,
+        faviconUrl: null,
+        homepageUrl: null,
+        subHeroEnabled: false,
+        ctaEnabled: false,
+        supportVideoUrl: null,
+        desktopBannerUrls: [],
+        mobileBannerUrls: [],
+        featuredCourses: [],
+      })
+    );
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Sign in" }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Get started" }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Example Institute" })).toBeVisible();
+    const header = page.getByRole("banner");
+    await expect(header.getByRole("link", { name: "Login" })).toHaveAttribute("href", "/login");
+    await expect(header.getByRole("link", { name: "Register" })).toHaveAttribute("href", "/register");
   });
 
-  test("both 'Get started' entry points link to the tenant self-registration screen, not the disabled account placeholder", async ({
-    page,
-  }) => {
-    // "Get started" appears twice on the home page — once in the header nav,
-    // once as the hero CTA — and both now point at the real, working
-    // tenant-registration flow rather than the unrelated `(auth)/register`
-    // disabled placeholder. Previously the header nav had a *second*,
-    // differently-worded link ("Register your institute") to the same
-    // destination sitting next to a "Get started" that went to the dead
-    // placeholder — ambiguous and half-broken. Now there's exactly one
-    // meaning for "Get started", consistently, everywhere it appears.
+  test("when no institute matches the host, the header offers institute self-registration", async ({ page }) => {
+    await mockJson(page, "**/v1/auth/refresh", 401, apiError("UNAUTHENTICATED", "No session"));
+    await mockJson(page, "**/v1/platform-admin/auth/refresh", 401, apiError("UNAUTHENTICATED", "No session"));
+    await mockJson(page, "**/v1/public/tenant-config/home", 404, apiError("NOT_FOUND", "Tenant not found"));
     await page.goto("/");
-    const links = page.getByRole("link", { name: "Get started" });
-    await expect(links).toHaveCount(2);
-
-    for (let i = 0; i < 2; i += 1) {
-      await page.goto("/");
-      await links.nth(i).click();
-      await expect(page).toHaveURL(/\/register-institute$/);
-      await expect(page.getByRole("heading", { name: "Register your institute" })).toBeVisible();
-    }
+    const header = page.getByRole("banner");
+    await expect(header.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+    await header.getByRole("link", { name: "Get started" }).click();
+    await expect(page).toHaveURL(/\/register-institute$/);
+    await expect(page.getByRole("heading", { name: "Register your institute" })).toBeVisible();
   });
 });
 

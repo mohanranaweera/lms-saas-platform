@@ -7,18 +7,23 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.ledgersettlementmanagement.api.LedgerHistoryEntryView;
 import com.lms.ledgersettlementmanagement.api.PaymentMethod;
 import com.lms.ledgersettlementmanagement.api.PaymentOperationalState;
+import com.lms.ledgersettlementmanagement.service.AdminOrderListService;
+import com.lms.ledgersettlementmanagement.service.AdminOrderRowView;
 import com.lms.ledgersettlementmanagement.service.CoursePaymentSummaryView;
 import com.lms.ledgersettlementmanagement.service.LedgerQueryService;
 import com.lms.ledgersettlementmanagement.service.OutstandingOrderView;
+import com.lms.ledgersettlementmanagement.web.dto.AdminOrderRowResponse;
 import com.lms.ledgersettlementmanagement.web.dto.CoursePaymentSummaryResponse;
 import com.lms.ledgersettlementmanagement.web.dto.LedgerHistoryEntryResponse;
 import com.lms.ledgersettlementmanagement.web.dto.OutstandingOrderResponse;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,8 +50,11 @@ public class LedgerController {
 
 	private final LedgerQueryService ledgerQueryService;
 
-	public LedgerController(LedgerQueryService ledgerQueryService) {
+	private final AdminOrderListService adminOrderListService;
+
+	public LedgerController(LedgerQueryService ledgerQueryService, AdminOrderListService adminOrderListService) {
 		this.ledgerQueryService = ledgerQueryService;
+		this.adminOrderListService = adminOrderListService;
 	}
 
 	@GetMapping("/history")
@@ -88,6 +96,27 @@ public class LedgerController {
 	 * UNDER_REVIEW}/{@code REJECTED}), paginated. Tenant-admin, {@code
 	 * PAYMENTS_SLIPS}/{@code VIEW}-gated, tenant-scoped only.
 	 */
+	/**
+	 * PAY-HUB-01 - the Payments hub "All Orders" list: one row per order in
+	 * the caller's tenant, newest first. {@code from}/{@code to} are inclusive
+	 * days in the tenant's timezone. Staff {@code PAYMENTS_SLIPS}/{@code VIEW}
+	 * only, enforced in {@link AdminOrderListService}. Sort is fixed; a
+	 * client {@code sort} param is ignored.
+	 */
+	@GetMapping("/orders")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<PageResponse<AdminOrderRowResponse>>> getOrders(
+			@PageableDefault(size = 20) Pageable pageable,
+			@RequestParam(required = false) String orderNumber,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+			@RequestParam(required = false) PaymentOperationalState status,
+			@RequestParam(required = false) PaymentMethod method) {
+		Page<AdminOrderRowView> page = adminOrderListService.listOrders(orderNumber, from, to, status, method,
+				pageable);
+		return ResponseEntity.ok(ApiResponse.success(PageResponse.from(page.map(AdminOrderRowResponse::from))));
+	}
+
 	@GetMapping("/outstanding")
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResponse<PageResponse<OutstandingOrderResponse>>> getOutstanding(

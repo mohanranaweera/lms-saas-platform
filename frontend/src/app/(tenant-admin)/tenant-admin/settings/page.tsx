@@ -49,6 +49,16 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/tenant-admin/settings/appearance" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>
+                Public home visibility, hero banners, featured courses, support video, and receipt logo.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         <Link href="/tenant-admin/settings/integrations" className="block">
           <Card className="h-full transition-colors hover:bg-muted/40">
             <CardHeader>
@@ -60,22 +70,13 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
-        <Link href="/tenant-admin/settings/video-providers" className="block">
+        <Link href="/tenant-admin/settings/video" className="block">
           <Card className="h-full transition-colors hover:bg-muted/40">
             <CardHeader>
-              <CardTitle>Video providers</CardTitle>
+              <CardTitle>Video</CardTitle>
               <CardDescription>
-                Connect your institute&apos;s own YouTube channel for lesson video uploads.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/tenant-admin/settings/video-configuration" className="block">
-          <Card className="h-full transition-colors hover:bg-muted/40">
-            <CardHeader>
-              <CardTitle>Video settings</CardTitle>
-              <CardDescription>
-                Where new videos are stored, the secure player, watermarks and viewing limits.
+                Your institute&apos;s YouTube channels, where new videos are stored, the secure player, watermarks
+                and viewing limits.
               </CardDescription>
             </CardHeader>
           </Card>

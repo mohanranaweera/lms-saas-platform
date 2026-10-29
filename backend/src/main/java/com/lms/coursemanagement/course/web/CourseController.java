@@ -94,9 +94,10 @@ public class CourseController {
 			@PageableDefault(size = 20) Pageable pageable, @RequestParam(required = false) CourseStatus status,
 			@RequestParam(required = false) String category, @RequestParam(required = false) UUID teacherId,
 			@RequestParam(required = false, defaultValue = "false") boolean includeArchived,
-			@RequestParam(required = false) Boolean archived, @RequestParam(required = false) String search) {
+			@RequestParam(required = false) Boolean archived, @RequestParam(required = false) String search,
+				@RequestParam(required = false) UUID tagId) {
 		PageResponse<CourseView> page = courseService.listCourses(pageable,
-				new CourseListFilter(status, category, teacherId, includeArchived, archived, search));
+				new CourseListFilter(status, category, teacherId, includeArchived, archived, search, tagId));
 		PageResponse<CourseResponse> response = new PageResponse<>(
 				page.content().stream().map(CourseController::toResponse).toList(), page.page(), page.size(),
 				page.totalElements(), page.totalPages());

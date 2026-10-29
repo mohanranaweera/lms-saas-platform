@@ -387,6 +387,88 @@ class MediaFileLibraryIntegrationTest extends ContentManagementTestSupport {
 		assertThat(storage.containsKey(objectKeyOf(aFile))).isTrue();
 	}
 
+	@Test
+	void teacherProfilePhotosAreSiteFilesNeverListedOpenedOrAttachableFromTheLibrary() {
+		Fx fx = seed("lib-usage");
+		Fx other = seed("lib-usage-b");
+		UUID libraryImage = uploadOk(fx.host(), fx.adminToken(), pngFile("lesson.png"), null);
+		MvcResult photoResult = performMultipart(authenticatedMultipart(
+				multipart("/api/v1/media-files").file(pngFile("face.png")).param("usage", "TEACHER_PROFILE"), fx.host(),
+				fx.adminToken()));
+		assertThat(status(photoResult)).as(rawContent(photoResult)).isEqualTo(201);
+		UUID photo = UUID.fromString(json(photoResult).path("data").path("id").asString());
+		assertThat(jdbcTemplate.queryForObject("SELECT usage_area FROM media_file WHERE id = ?", String.class, photo))
+			.isEqualTo("TEACHER_PROFILE");
+
+		// The library only shows course content: list, counts, open, rename, delete and attach ignore the photo.
+		for (String token : List.of(fx.adminToken(), fx.teacherToken())) {
+			assertThat(ids(json(list(fx.host(), token, "")).path("data"))).containsExactly(libraryImage.toString());
+			assertThat(json(summary(fx.host(), token)).path("data").path("images").asLong()).isEqualTo(1);
+			assertThat(status(openUrl(fx.host(), token, photo))).isEqualTo(404);
+		}
+		assertThat(status(rename(fx.host(), fx.adminToken(), photo, "Renamed"))).isEqualTo(404);
+		assertThat(status(remove(fx.host(), fx.adminToken(), photo))).isEqualTo(404);
+		assertThat(status(attach(fx.host(), fx.adminToken(), fx.courseId(), fx.moduleId(), fx.lessonId(), "Photo",
+				photo))).isEqualTo(404);
+		assertThat(count("SELECT count(*) FROM material WHERE media_file_id = ?", photo)).isZero();
+		assertThat(storage.containsKey(objectKeyOf(photo))).isTrue();
+
+		// A profile photo must be an image; nothing is stored when it isn't.
+		long rowsBefore = count("SELECT count(*) FROM media_file WHERE tenant_id = ?", fx.tenant().getId());
+		MvcResult notImage = performMultipart(authenticatedMultipart(
+				multipart("/api/v1/media-files").file(pdfFile("cv.pdf")).param("usage", "TEACHER_PROFILE"), fx.host(),
+				fx.adminToken()));
+		assertThat(status(notImage)).isEqualTo(415);
+		assertThat(count("SELECT count(*) FROM media_file WHERE tenant_id = ?", fx.tenant().getId())).isEqualTo(rowsBefore);
+
+		// Students still have no library access at all, and the photo stays invisible to another tenant.
+		assertThat(status(list(fx.host(), fx.studentToken(), ""))).isEqualTo(403);
+		assertThat(status(openUrl(other.host(), other.adminToken(), photo))).isEqualTo(404);
+	}
+
+	@Test
+	void removingATeacherPhotoDeletesTheSiteFileAndItsObjectButNeverALibraryFile() {
+		Fx fx = seed("lib-photo-del");
+		MvcResult photoResult = performMultipart(authenticatedMultipart(
+				multipart("/api/v1/media-files").file(pngFile("face.png")).param("usage", "TEACHER_PROFILE"), fx.host(),
+				fx.adminToken()));
+		UUID photo = UUID.fromString(json(photoResult).path("data").path("id").asString());
+		UUID libraryImage = uploadOk(fx.host(), fx.adminToken(), pngFile("lesson.png"), null);
+		UUID profileId = UUID.randomUUID();
+		UUID profile2Id = UUID.randomUUID();
+		jdbcTemplate.update("INSERT INTO teacher_profile (id, tenant_id, user_id, name, approval_status, created_at, updated_at, "
+				+ "profile_media_file_id) VALUES (?, ?, ?, 'Photo Teacher', 'APPROVED', now(), now(), ?)", profileId,
+				fx.tenant().getId(), fx.teacher().getId(), photo);
+		jdbcTemplate.update("INSERT INTO teacher_profile (id, tenant_id, user_id, name, approval_status, created_at, updated_at, "
+				+ "profile_media_file_id) VALUES (?, ?, ?, 'Library Photo Teacher', 'APPROVED', now(), now(), ?)", profile2Id,
+				fx.tenant().getId(), fx.teacher2().getId(), libraryImage);
+		String photoKey = objectKeyOf(photo);
+
+		// Only staff allowed to edit teachers may remove a photo.
+		assertThat(status(call(fx.host(), fx.teacherToken(), delete("/api/v1/teachers/{id}/profile-photo", profileId))))
+			.isEqualTo(403);
+		MvcResult removed = call(fx.host(), fx.adminToken(), delete("/api/v1/teachers/{id}/profile-photo", profileId));
+		assertThat(status(removed)).as(rawContent(removed)).isEqualTo(200);
+		assertThat(json(removed).path("data").path("profileImageUrl").isNull()).isTrue();
+		assertThat(count("SELECT count(*) FROM teacher_profile WHERE id = ? AND profile_media_file_id IS NULL", profileId))
+			.isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM media_file WHERE id = ? AND deleted_at IS NOT NULL", photo)).isEqualTo(1);
+		assertThat(storage.containsKey(photoKey)).isFalse();
+		assertThat(audits(fx.tenant().getId(), "media_file.deleted", photo)).isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM audit_log WHERE tenant_id = ? AND action = 'teacher.profile_photo_removed' "
+				+ "AND target_entity = 'teacher_profile' AND target_id = ?", fx.tenant().getId(), profileId)).isEqualTo(1);
+
+		// A course-library image used as a photo is unlinked but stays in the library.
+		assertThat(status(call(fx.host(), fx.adminToken(), delete("/api/v1/teachers/{id}/profile-photo", profile2Id))))
+			.isEqualTo(200);
+		assertThat(count("SELECT count(*) FROM media_file WHERE id = ? AND deleted_at IS NULL", libraryImage)).isEqualTo(1);
+
+		// Another tenant can't touch this teacher.
+		Fx other = seed("lib-photo-del-b");
+		assertThat(status(call(other.host(), other.adminToken(), delete("/api/v1/teachers/{id}/profile-photo", profileId))))
+			.isEqualTo(404);
+	}
+
 	// ------------------------------------------------------------------
 	// Attach / detach / delete.
 	// ------------------------------------------------------------------

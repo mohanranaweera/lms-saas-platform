@@ -3,6 +3,7 @@ package com.lms.contentmanagement.library.repository;
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.contentmanagement.library.domain.MediaFile;
 import com.lms.contentmanagement.library.domain.MediaFileKind;
+import com.lms.contentmanagement.library.domain.MediaFileUsage;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,8 +23,13 @@ public interface MediaFileRepository extends TenantAwareRepository<MediaFile, UU
 		return findOne(byId(id).and(live()));
 	}
 
+	/** A live Media Library file (COURSE_LIBRARY); site files such as teacher photos are "not found" here. */
+	default Optional<MediaFile> findLiveLibraryById(UUID id) {
+		return findOne(byId(id).and(live()).and(library()));
+	}
+
 	default Page<MediaFile> findLive(MediaFileKind kind, String search, Pageable pageable) {
-		Specification<MediaFile> spec = live();
+		Specification<MediaFile> spec = live().and(library());
 		if (kind != null) {
 			spec = spec.and((root, query, cb) -> cb.equal(root.get("kind"), kind));
 		}
@@ -36,11 +42,15 @@ public interface MediaFileRepository extends TenantAwareRepository<MediaFile, UU
 	}
 
 	default long countLiveByKind(MediaFileKind kind) {
-		return count(live().and((root, query, cb) -> cb.equal(root.get("kind"), kind)));
+		return count(live().and(library()).and((root, query, cb) -> cb.equal(root.get("kind"), kind)));
 	}
 
 	private static Specification<MediaFile> byId(UUID id) {
 		return (root, query, cb) -> cb.equal(root.get("id"), id);
+	}
+
+	private static Specification<MediaFile> library() {
+		return (root, query, cb) -> cb.equal(root.get("usageArea"), MediaFileUsage.COURSE_LIBRARY);
 	}
 
 	private static Specification<MediaFile> live() {

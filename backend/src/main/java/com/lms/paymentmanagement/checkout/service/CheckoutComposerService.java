@@ -454,7 +454,7 @@ public class CheckoutComposerService {
 		}
 
 		DeliveryDetails delivery = priced.deliveryRequired() ? priced.delivery() : null;
-		StudentOrder order = studentOrderRepository.save(StudentOrder.forLines(tenantId, studentId,
+		StudentOrder order = studentOrderRepository.saveAndFlush(StudentOrder.forLines(tenantId, studentId,
 				priced.courseId(), priced.currency(), priced.subtotal(), priced.facilityFeeTotal(),
 				priced.postageTotal(), priced.discountTotal(), priced.feePolicySnapshot(), idempotencyKey,
 				delivery == null ? null

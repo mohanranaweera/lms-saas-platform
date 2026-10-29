@@ -5,6 +5,7 @@ import { canManageInstituteConfig } from "@/lib/auth/permissions";
 import { useStudentProfileFieldSettings } from "@/lib/api/student-profile-fields";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { StudentFieldSettingsForm } from "./student-field-settings-form";
+import { SettingsHeader } from "@/components/settings/settings-tab-strip";
 
 /**
  * Tenant Admin student profile field settings (STU-PROF-01): which details
@@ -24,13 +25,10 @@ export default function StudentFieldSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Student fields</h1>
-        <p className="text-sm text-muted-foreground">
-          Choose the details your institute collects from students. Registration stays short — students fill in
-          the rest from their profile page.
-        </p>
-      </div>
+      <SettingsHeader
+        active="/tenant-admin/settings/student-fields"
+        description="Choose the details your institute collects from students. Registration stays short — students fill in the rest from their profile page."
+      />
 
       <QueryStateBoundary
         query={query}

@@ -12,6 +12,7 @@ import {
   VideoHostSection,
 } from "@/components/integrations/admin-integration-sections";
 import { BunnyLibrariesSection } from "@/components/integrations/bunny-libraries-section";
+import { SettingsHeader } from "@/components/settings/settings-tab-strip";
 
 /**
  * Tenant Admin → Institute configuration → Integrations (MEDIA-INT-01 /
@@ -31,13 +32,10 @@ export default function TenantIntegrationsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Integrations</h1>
-        <p className="text-sm text-muted-foreground">
-          Zoom, YouTube and Vimeo are connected by each teacher with their own account. DynTube and Bunny.net are
-          one account for the whole institute.
-        </p>
-      </div>
+      <SettingsHeader
+        active="/tenant-admin/settings/integrations"
+        description="Zoom, YouTube and Vimeo are connected by each teacher with their own account. DynTube and Bunny.net are one account for the whole institute."
+      />
 
       <QueryStateBoundary
         query={query}

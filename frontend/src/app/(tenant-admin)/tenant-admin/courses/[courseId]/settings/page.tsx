@@ -6,11 +6,15 @@ import { CourseVisibilityControl } from "@/components/courses/course-visibility-
 import { CourseArchiveControl } from "@/components/courses/course-archive-control";
 import { CourseCloneAction } from "@/components/courses/course-clone-action";
 import { CourseDeleteAction } from "@/components/courses/course-delete-action";
+import { CourseChargesSection } from "@/components/courses/admin/course-charges-section";
+import { QueryStateBoundary } from "@/components/states/query-state-boundary";
+import { useKlassCourse } from "@/lib/api/klass-admin";
 import { useAuth } from "@/lib/auth/auth-context";
 
 /**
  * Tenant Admin course workspace — Settings tab (Wave 2). Consolidates
- * publish/unpublish, archive/unarchive, clone, and delete (Tenant-Admin-only).
+ * publish/unpublish, archive/unarchive, the course's facility fee and postage
+ * (moved here from Overview), clone, and delete (Tenant-Admin-only).
  * Teacher assignment moved to the Overview edit form's teacher picker (G2);
  * the old UUID-typing reassignment form is gone.
  *
@@ -38,10 +42,27 @@ export default function TenantAdminCourseSettingsPage() {
             <CourseVisibilityControl courseId={course.id} course={course} />
             <CourseArchiveControl courseId={course.id} course={course} />
           </div>
+          <CourseCharges courseId={course.id} />
           <CourseCloneAction courseId={course.id} course={course} />
           {isTenantAdmin ? <CourseDeleteAction courseId={course.id} course={course} /> : null}
         </div>
       )}
     </CourseWorkspaceShell>
+  );
+}
+
+/** Facility fee and postage (V90): loads the full course record the section edits; saves on its own. */
+function CourseCharges({ courseId }: { courseId: string }) {
+  const query = useKlassCourse(courseId);
+  return (
+    <QueryStateBoundary
+      query={query}
+      loadingLabel="Loading facility fee and postage…"
+      loginPath="/login"
+      permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
+      genericErrorMessage="The facility fee and postage settings could not be loaded."
+    >
+      {(klassCourse) => <CourseChargesSection key={`charges-${klassCourse.id}`} course={klassCourse} />}
+    </QueryStateBoundary>
   );
 }

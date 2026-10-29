@@ -169,16 +169,19 @@ export function toCourseUpdateRequest(
  * Billing configuration / Billing period controls are intentionally not here
  * (R2-D5) — a monthly fee change is recorded as billing-period history by the
  * server. Loads the course through the shared detail cache entry. The
- * facility fee / postage section (V90) sits below and saves on its own.
+ * facility fee / postage section (V90) sits below and saves on its own, unless
+ * `showCharges` is false (the Tenant Admin workspace shows it on its Settings tab).
  */
 export function CourseEditDetailsForm({
   courseId,
   portal,
   dashboardHref,
+  showCharges = true,
 }: {
   courseId: string;
   portal: CourseEditPortal;
   dashboardHref: string;
+  showCharges?: boolean;
 }) {
   const query = useKlassCourse(courseId);
   return (
@@ -192,7 +195,7 @@ export function CourseEditDetailsForm({
       {(course) => (
         <div className="flex flex-col gap-6">
           <CourseEditDetailsFormBody key={course.id} course={course} portal={portal} />
-          <CourseChargesSection key={`charges-${course.id}`} course={course} />
+          {showCharges ? <CourseChargesSection key={`charges-${course.id}`} course={course} /> : null}
         </div>
       )}
     </QueryStateBoundary>

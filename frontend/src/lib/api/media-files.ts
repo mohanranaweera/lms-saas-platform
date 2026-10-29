@@ -137,14 +137,21 @@ function useInvalidateMediaFiles() {
   return () => void queryClient.invalidateQueries({ queryKey: mediaFileKeys.all });
 }
 
+export type MediaFileUsage = "COURSE_LIBRARY" | "TEACHER_PROFILE";
+
 export function useUploadMediaFile() {
   const { authorizedFetch } = useAuth();
   const invalidate = useInvalidateMediaFiles();
   return useMutation({
-    mutationFn: ({ file, title }: { file: File; title?: string }) => {
+    /**
+     * `usage` files the upload by purpose: "TEACHER_PROFILE" photos are site files,
+     * never listed in the Media Library or attachable to lessons (V105).
+     */
+    mutationFn: ({ file, title, usage }: { file: File; title?: string; usage?: MediaFileUsage }) => {
       const formData = new FormData();
       formData.append("file", file);
       if (title?.trim()) formData.append("title", title.trim());
+      if (usage) formData.append("usage", usage);
       return authorizedFetch<MediaFile>("tenant", BASE, { method: "POST", body: formData });
     },
     onSuccess: invalidate,

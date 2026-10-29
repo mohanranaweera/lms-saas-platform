@@ -92,6 +92,16 @@ public interface CourseLookupApi {
 	List<CourseSummary> getCourseSummaries(Set<UUID> courseIds);
 
 	/**
+	 * Storefront cards for the {@code PUBLIC}-status courses among {@code
+	 * courseIds}, in the given order. Tenant-scoped through the resolved {@link
+	 * com.lms.common.tenant.TenantContext}: an unknown, cross-tenant, DRAFT or
+	 * PRIVATE id is silently dropped (never an error). Pricing is resolved
+	 * exactly as for the public course catalog; {@code coverImageUrl} is signed
+	 * for {@code coverUrlTtl}.
+	 */
+	List<PublishedCourseCard> getPublishedCourseCards(List<UUID> courseIds, java.time.Duration coverUrlTtl);
+
+	/**
 	 * @return a map of {@code courseId -> teacherId} for every id in {@code
 	 * courseIds} that exists in the caller's tenant, resolved via the same
 	 * tenant-scoped {@link com.lms.common.tenant.TenantContext} as every
@@ -216,6 +226,9 @@ public interface CourseLookupApi {
 	 * context; a foreign teacher id returns an empty list.
 	 */
 	List<CourseSummary> listCourseSummariesByTeacherId(UUID teacherId);
+
+	/** Public storefront courses assigned to an approved teacher, excluding archived and non-public courses. */
+	List<com.lms.coursemanagement.api.PublicCourseSummary> listPublicCourseSummariesByTeacherId(UUID teacherId);
 
 	/** Upper bound of {@link #listCourseSummaries()}. */
 	int MAX_COURSE_SUMMARIES = 2000;

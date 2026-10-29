@@ -32,7 +32,19 @@ public record PaymentSlipView(UUID id, UUID orderId, UUID studentId, String refe
 		List<PaymentSlipFlagView> flags, String studentEmail, String reviewerEmail, BigDecimal orderAmount,
 		String orderCurrency, List<PaymentSlipOrderLine> orderLines, BigDecimal orderSubtotal,
 		BigDecimal orderFacilityFee, BigDecimal orderDiscount, BigDecimal orderPostage,
-		PaymentSlipDelivery orderDelivery) {
+		PaymentSlipDelivery orderDelivery, UUID studentProfileId, String studentName, String studentMobile,
+		Long orderNumber, String displayOrderNumber) {
+
+	/** Pre-PAY-HUB-01 shape (no student profile/name/mobile, no order number). */
+	public PaymentSlipView(UUID id, UUID orderId, UUID studentId, String referenceNumber, PaymentSlipStatus status,
+			Instant submittedAt, UUID reviewerId, Instant reviewedAt, List<PaymentSlipFlagView> flags,
+			String studentEmail, String reviewerEmail, BigDecimal orderAmount, String orderCurrency,
+			List<PaymentSlipOrderLine> orderLines, BigDecimal orderSubtotal, BigDecimal orderFacilityFee,
+			BigDecimal orderDiscount, BigDecimal orderPostage, PaymentSlipDelivery orderDelivery) {
+		this(id, orderId, studentId, referenceNumber, status, submittedAt, reviewerId, reviewedAt, flags, studentEmail,
+				reviewerEmail, orderAmount, orderCurrency, orderLines, orderSubtotal, orderFacilityFee, orderDiscount,
+				orderPostage, orderDelivery, null, null, null, null, null);
+	}
 
 	/** Pre-V90 shape (no postage / delivery snapshot). */
 	public PaymentSlipView(UUID id, UUID orderId, UUID studentId, String referenceNumber, PaymentSlipStatus status,

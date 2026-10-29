@@ -66,6 +66,14 @@ public interface StudentLookupApi {
 	List<UUID> listAllStudentUserIds();
 
 	/**
+	 * PAY-HUB-01: user ids of the current tenant's students whose name,
+	 * mobile or email contains {@code term} (case-insensitive; LIKE wildcards
+	 * in the term are literal). At most {@code limit} ids, name-ordered. A
+	 * blank term returns nothing.
+	 */
+	List<UUID> searchStudentUserIds(String term, int limit);
+
+	/**
 	 * RPT-02: name and index number of each student user in {@code userIds},
 	 * read in tenant-scoped batches (one query per chunk, never per id). Ids
 	 * that are not students of the current tenant are silently omitted. The

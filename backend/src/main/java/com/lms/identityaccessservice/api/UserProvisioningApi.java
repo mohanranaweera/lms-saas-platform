@@ -70,6 +70,14 @@ public interface UserProvisioningApi {
 	List<TenantUserSummary> findTenantUserSummaries(Collection<UUID> userIds);
 
 	/**
+	 * PAY-HUB-01: ids of the caller's own tenant's users whose email contains
+	 * {@code term} (case-insensitive, LIKE wildcards in {@code term} are
+	 * matched literally), at most {@code limit} of them. A blank term returns
+	 * nothing. Tenant-scoped like every other read here.
+	 */
+	List<UUID> findTenantUserIdsByEmailContaining(String term, int limit);
+
+	/**
 	 * Suspends the given {@code tenant_user} row (blocks login) - tenant-scoped
 	 * implicitly via the same resolved {@link com.lms.common.tenant.TenantContext}
 	 * every other method here uses, never a caller-supplied {@code tenant_id}.

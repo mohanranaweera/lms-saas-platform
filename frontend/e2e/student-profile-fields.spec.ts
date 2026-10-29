@@ -84,7 +84,8 @@ test.describe("student fields settings (Tenant Admin)", () => {
     });
 
     await page.goto("/tenant-admin/settings/student-fields");
-    await expect(page.getByRole("heading", { name: "Student fields" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Settings sections" }).getByRole("link", { name: "Student fields" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("checkbox", { name: "Email: Enabled" })).toBeDisabled();
     await expect(page.getByRole("checkbox", { name: "Email: Enabled" })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "NIC number: Required" })).toBeDisabled();

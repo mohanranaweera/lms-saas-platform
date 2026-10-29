@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/videos";
 import { isApiClientError } from "@/lib/api/error";
 import { attachHls, type HlsFailure } from "./hls-source";
+import { lessonAccessMessage } from "@/components/player/playback-errors";
 
 /**
  * Secure video player for a `VIDEO`/`RECORDING` material (Wave 5, plan §5/§6;
@@ -228,6 +229,10 @@ export function SecureVideoPlayer({
           }
           setIsPlaying(false);
           setTerminalMessage(WATCH_LIMIT_MESSAGE);
+          setState("revoked");
+        } else if (lessonAccessMessage(error)) {
+          // The lesson ended / hasn't started / awaits payment: say so, don't offer a retry.
+          setTerminalMessage(lessonAccessMessage(error));
           setState("revoked");
         } else if (isApiClientError(error) && error.status === 404) {
           setState("not-entitled");

@@ -33,27 +33,21 @@ const SELECT_CLASS =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30";
 
 /**
- * Tenant Admin → Institute configuration → Video settings (VIDEO Phase 3).
+ * Tenant Admin → Settings → Video → Video settings (VIDEO Phase 3).
  * Tenant-wide rules for lesson videos. They are stored now and enforced by
  * the playback phases; the device limit itself stays under Devices & access.
  * A Read-only Auditor sees the values without the controls; the backend
  * re-checks every save.
  */
-export default function VideoConfigurationPage() {
+export function VideoSettingsSection() {
   const { session } = useAuth();
   const canManage = canManageIntegrations(session?.role ?? null);
   const query = useTenantVideoConfiguration();
 
   return (
-    <div className="flex flex-col gap-6">
+    <section aria-labelledby="video-settings-heading" className="flex flex-col gap-6">
       <div>
-        <Link
-          href="/tenant-admin/settings"
-          className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
-        >
-          ← Institute configuration
-        </Link>
-        <h1 className="mt-2 text-xl font-semibold text-foreground">Video settings</h1>
+        <h2 id="video-settings-heading" className="text-lg font-semibold text-foreground">Video settings</h2>
         <p className="text-sm text-muted-foreground">
           How lesson videos are uploaded and played across your institute. The number of devices a student may use is
           set under{" "}
@@ -72,7 +66,7 @@ export default function VideoConfigurationPage() {
       >
         {(view) => <VideoConfigurationForm view={view} canManage={canManage} />}
       </QueryStateBoundary>
-    </div>
+    </section>
   );
 }
 

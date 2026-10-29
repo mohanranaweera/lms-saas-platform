@@ -12,6 +12,7 @@ import com.lms.common.error.UnsupportedMediaTypeException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.contentmanagement.library.domain.MediaFile;
 import com.lms.contentmanagement.library.domain.MediaFileKind;
+import com.lms.contentmanagement.library.domain.MediaFileUsage;
 import com.lms.contentmanagement.library.repository.MediaFileRepository;
 import com.lms.contentmanagement.library.support.MediaFileAccessGuard;
 import com.lms.contentmanagement.library.support.MediaFileAccessGuard.CallerRights;
@@ -172,7 +173,7 @@ public class MediaFileService {
 	 */
 	public SignedDownloadUrl openUrl(UUID id) {
 		accessGuard.requireLibraryAccess(PermissionAction.VIEW);
-		MediaFile file = mediaFileRepository.findLiveById(id)
+		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
 			.orElseThrow(() -> new NotFoundException("Media file not found"));
 		return objectStorageApi.generateSignedDownloadUrl(file.getObjectKey(), OPEN_URL_TTL,
 				DownloadOverrides.inline(file.getContentType(), file.getOriginalFilename()));
@@ -188,7 +189,17 @@ public class MediaFileService {
 	 * written; a rejected upload leaves no stored object and no row.
 	 */
 	public MediaFileView upload(MultipartFile file, String requestedTitle) {
+		return upload(file, requestedTitle, MediaFileUsage.COURSE_LIBRARY);
+	}
+
+	/**
+	 * As {@link #upload(MultipartFile, String)}, filed under {@code usage}. A
+	 * {@link MediaFileUsage#TEACHER_PROFILE} upload must be an image and is never
+	 * listed in the library.
+	 */
+	public MediaFileView upload(MultipartFile file, String requestedTitle, MediaFileUsage usage) {
 		accessGuard.requireLibraryAccess(PermissionAction.CREATE_EDIT);
+		MediaFileUsage usageArea = usage == null ? MediaFileUsage.COURSE_LIBRARY : usage;
 		if (file == null || file.isEmpty()) {
 			throw new FieldValidationException("A file is required",
 					List.of(new FieldError("file", "A file upload is required")));
@@ -207,6 +218,9 @@ public class MediaFileService {
 					"The uploaded file's content does not match an accepted format (PDF, image, or plain text)");
 		}
 		MediaFileKind kind = MediaFileKind.fromSniffedContentType(contentType);
+		if (usageArea == MediaFileUsage.TEACHER_PROFILE && kind != MediaFileKind.IMAGE) {
+			throw new UnsupportedMediaTypeException("A profile photo must be a PNG, JPEG or GIF image");
+		}
 		String sha256 = sha256Hex(bytes);
 		UUID tenantId = tenantContext.getTenantId();
 		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
@@ -217,11 +231,12 @@ public class MediaFileService {
 		MediaFile saved;
 		try {
 			saved = transactionTemplate.execute(status -> {
-				MediaFile created = mediaFileRepository.save(new MediaFile(tenantId, kind, title, originalFilename,
+				MediaFile created = mediaFileRepository.save(new MediaFile(tenantId, kind, usageArea, title, originalFilename,
 						contentType, stored.sizeBytes(), stored.objectKey(), sha256, actorId));
 				Map<String, Object> metadata = new LinkedHashMap<>();
 				metadata.put("title", title);
 				metadata.put("kind", kind.name());
+				metadata.put("usageArea", usageArea.name());
 				metadata.put("contentType", contentType);
 				metadata.put("sizeBytes", stored.sizeBytes());
 				metadata.put("originalFilename", originalFilename);
@@ -246,7 +261,7 @@ public class MediaFileService {
 	@Transactional
 	public MediaFileView rename(UUID id, String rawTitle) {
 		accessGuard.requireLibraryAccess(PermissionAction.CREATE_EDIT);
-		MediaFile file = mediaFileRepository.findLiveById(id)
+		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
 			.orElseThrow(() -> new NotFoundException("Media file not found"));
 		accessGuard.requireManage(file, PermissionAction.CREATE_EDIT);
 		String title = validateTitle(rawTitle);
@@ -271,7 +286,7 @@ public class MediaFileService {
 	@Transactional
 	public void delete(UUID id) {
 		accessGuard.requireLibraryAccess(PermissionAction.DELETE);
-		MediaFile file = mediaFileRepository.findLiveById(id)
+		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
 			.orElseThrow(() -> new NotFoundException("Media file not found"));
 		accessGuard.requireManage(file, PermissionAction.DELETE);
 		entityManager.refresh(file, LockModeType.PESSIMISTIC_WRITE);
@@ -296,6 +311,36 @@ public class MediaFileService {
 		eventPublisher.publishEvent(new MediaFileDeletedEvent(file.getTenantId(), file.getId(), file.getObjectKey()));
 	}
 
+	/**
+	 * Removes a teacher profile photo that is no longer used (cleared or replaced).
+	 * Only {@link MediaFileUsage#TEACHER_PROFILE} files are removed - a library image
+	 * that also served as a photo stays - and never one attached to a lesson. The
+	 * caller (the teacher module) has already authorized the change and checked no
+	 * other teacher uses the file. Soft delete + audit; the object goes after commit.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void discardTeacherProfilePhoto(UUID id) {
+		Optional<MediaFile> found = mediaFileRepository.findLiveById(id)
+			.filter(file -> file.getUsageArea() == MediaFileUsage.TEACHER_PROFILE);
+		if (found.isEmpty()) {
+			return;
+		}
+		MediaFile file = found.get();
+		entityManager.refresh(file, LockModeType.PESSIMISTIC_WRITE);
+		if (file.isDeleted() || materialRepository.countByMediaFileId(id) > 0) {
+			return;
+		}
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		file.markDeleted(actorId, Instant.now());
+		mediaFileRepository.save(file);
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("usageArea", file.getUsageArea().name());
+		metadata.put("originalFilename", file.getOriginalFilename());
+		auditLogApi.record(new AuditLogEntry(actorId, "media_file.deleted", TARGET_ENTITY, file.getId(), null,
+				metadata));
+		eventPublisher.publishEvent(new MediaFileDeletedEvent(file.getTenantId(), file.getId(), file.getObjectKey()));
+	}
+
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void onMediaFileDeleted(MediaFileDeletedEvent event) {
 		deleteStoredObjectQuietly(event.objectKey(), event.mediaFileId());
@@ -313,7 +358,7 @@ public class MediaFileService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public MediaFile lockLiveForAttach(UUID id) {
-		MediaFile file = mediaFileRepository.findLiveById(id)
+		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
 			.orElseThrow(() -> new NotFoundException("Media file not found"));
 		entityManager.refresh(file, LockModeType.PESSIMISTIC_WRITE);
 		if (file.isDeleted()) {

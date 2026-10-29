@@ -15,8 +15,11 @@ import com.lms.identityaccessservice.repository.TenantUserRepository;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,6 +85,22 @@ public class UserProvisioningService implements UserProvisioningApi {
 		}
 
 		return new ProvisionedUser(user.getId(), user.getEmail());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<UUID> findTenantUserIdsByEmailContaining(String term, int limit) {
+		if (term == null || term.isBlank() || limit <= 0) {
+			return List.of();
+		}
+		String pattern = "%" + term.strip().toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%")
+			.replace("_", "\\_") + "%";
+		// findAll(Specification, Pageable) is tenant-scoped by TenantAwareRepositoryImpl.
+		return tenantUserRepository
+			.findAll((root, query, cb) -> cb.like(cb.lower(root.get("email")), pattern, '\\'),
+					PageRequest.of(0, limit, Sort.by("email")))
+			.map(TenantUser::getId)
+			.getContent();
 	}
 
 	@Override

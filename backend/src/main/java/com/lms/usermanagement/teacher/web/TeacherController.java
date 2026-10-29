@@ -9,6 +9,8 @@ import com.lms.usermanagement.teacher.service.TeacherService;
 import com.lms.usermanagement.teacher.web.dto.TeacherActivityResponse;
 import com.lms.usermanagement.teacher.web.dto.TeacherCreateRequest;
 import com.lms.usermanagement.teacher.web.dto.TeacherResponse;
+import com.lms.usermanagement.teacher.web.dto.TeacherOrderRequest;
+import com.lms.usermanagement.teacher.web.dto.TeacherUpdateRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,9 +20,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -52,14 +56,25 @@ public class TeacherController {
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
 	public ResponseEntity<ApiResponse<TeacherResponse>> createTeacher(
 			@Valid @RequestBody TeacherCreateRequest request) {
-		TeacherAccount account = teacherService.createTeacher(request.name(), request.email(), request.password());
+		TeacherAccount account = teacherService.createTeacher(request.name(), request.firstName(), request.lastName(),
+				request.email(), request.password(), request.contactNumber(), request.instituteCommissionPercent(),
+				request.qualifications(), request.description(), request.profileMediaFileId(), request.publicProfileDisabled());
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(account)));
 	}
 
 	@GetMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
-	public ResponseEntity<ApiResponse<List<TeacherResponse>>> listTeachers(
-			@RequestParam(required = false) ApprovalStatus approvalStatus) {
+	public ResponseEntity<ApiResponse<?>> listTeachers(
+			@RequestParam(required = false) ApprovalStatus approvalStatus,
+			@RequestParam(required = false) String q,
+			@RequestParam(required = false) Integer page,
+			@RequestParam(required = false) Integer size) {
+		if (q != null || page != null || size != null) {
+			var accounts = teacherService.pageTeachers(approvalStatus, q, page == null ? 0 : page, size == null ? 10 : size);
+			PageResponse<TeacherResponse> response = new PageResponse<>(accounts.content().stream().map(TeacherController::toResponse).toList(),
+				accounts.page(), accounts.size(), accounts.totalElements(), accounts.totalPages());
+			return ResponseEntity.ok(ApiResponse.success(response));
+		}
 		List<TeacherResponse> teachers = teacherService.listTeachers(approvalStatus)
 			.stream()
 			.map(TeacherController::toResponse)
@@ -67,11 +82,35 @@ public class TeacherController {
 		return ResponseEntity.ok(ApiResponse.success(teachers));
 	}
 
+	@PostMapping("/reorder")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<Void>> reorderTeachers(@Valid @RequestBody TeacherOrderRequest request) {
+		teacherService.reorderTeachers(request.teacherIds());
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
 	@GetMapping("/{id}")
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
 	public ResponseEntity<ApiResponse<TeacherResponse>> getTeacher(@PathVariable UUID id) {
 		TeacherAccount account = teacherService.getTeacher(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	@PatchMapping("/{id}")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<TeacherResponse>> updateTeacher(@PathVariable UUID id,
+			@Valid @RequestBody TeacherUpdateRequest request) {
+		TeacherAccount account = teacherService.updateTeacher(id, request.firstName(), request.lastName(),
+				request.contactNumber(), request.instituteCommissionPercent(), request.qualifications(), request.description(),
+				request.profileMediaFileId(), request.publicProfileDisabled());
+		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	/** Removes the teacher's profile photo; the file is deleted when no other teacher uses it. */
+	@DeleteMapping("/{id}/profile-photo")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<TeacherResponse>> removeProfilePhoto(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(toResponse(teacherService.removeProfilePhoto(id))));
 	}
 
 	@PostMapping("/{id}/approve")
@@ -114,8 +153,10 @@ public class TeacherController {
 	}
 
 	private static TeacherResponse toResponse(TeacherAccount account) {
-		return new TeacherResponse(account.id(), account.name(), account.email(), account.approvalStatus(),
-				account.accountStatus(), account.approvedBy(), account.approvedAt(), account.userId());
+		return new TeacherResponse(account.id(), account.name(), account.firstName(), account.lastName(), account.email(),
+				account.contactNumber(), account.instituteCommissionPercent(), account.qualifications(), account.description(),
+				account.profileMediaFileId(), account.profileImageUrl(), account.publicProfileDisabled(), account.studentCount(), account.approvalStatus(), account.accountStatus(),
+				account.approvedBy(), account.approvedAt(), account.userId());
 	}
 
 	private static TeacherActivityResponse toActivityResponse(AuditActivityEntry entry) {

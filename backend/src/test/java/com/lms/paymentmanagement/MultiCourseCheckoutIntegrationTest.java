@@ -857,4 +857,47 @@ class MultiCourseCheckoutIntegrationTest extends SlipTestSupport {
 			.isEqualTo("Kandy");
 	}
 
+
+	// ------------------------------------------------------------------
+	// PAY-HUB-01: the staff order drawer and the refund view carry postage.
+	// ------------------------------------------------------------------
+
+	@Test
+	void adminOrderDetailAndRefundVerificationShowEveryProductFeePostageAndDelivery() {
+		Fx fx = seed("mcc-hub-detail", true);
+		UUID orderId = UUID.fromString(placeOrder(fx, fixtureCart(fx, true), null).path("id").asString());
+		PaymentSlipResponse slip = uploadSlipOrFail(fx.host(), fx.studentToken(), orderId, "REF-MCC-HUB",
+				pdfFile("slip.pdf", distinctPdfBytes("mcc-hub-detail")));
+
+		JsonNode pending = json(call(fx.host(), fx.adminToken(), get("/api/v1/orders/{id}/admin-detail", orderId)))
+			.path("data");
+		assertThat(pending.path("operationalState").asString()).isEqualTo("UNDER_REVIEW");
+		assertThat(pending.path("lines")).hasSize(3);
+		assertThat(pending.path("lines").get(0).path("courseTitle").asString()).isNotBlank();
+		assertThat(pending.path("postage").decimalValue()).isEqualByComparingTo("200.00");
+		assertThat(pending.path("facilityFee").decimalValue()).isEqualByComparingTo("100.00");
+		assertThat(pending.path("total").decimalValue()).isEqualByComparingTo("11300.00");
+		assertThat(pending.path("delivery").path("city").asString()).isEqualTo("Kandy");
+		assertThat(pending.path("student").path("name").asString()).isEqualTo("Nimal Silva");
+		assertThat(pending.path("slips")).hasSize(1);
+		assertThat(pending.path("slips").get(0).path("referenceNumber").asString()).isEqualTo("REF-MCC-HUB");
+		assertThat(pending.path("payments")).isEmpty();
+		assertThat(pending.path("remaining").decimalValue()).isEqualByComparingTo("0");
+
+		assertThat(approveSlip(fx.host(), fx.financeToken(), slip.id(), null).getStatusCode().value()).isEqualTo(200);
+		JsonNode paid = json(call(fx.host(), fx.adminToken(), get("/api/v1/orders/{id}/admin-detail", orderId)))
+			.path("data");
+		assertThat(paid.path("operationalState").asString()).isEqualTo("PAID");
+		assertThat(paid.path("payments")).hasSize(1);
+		assertThat(paid.path("payments").get(0).path("method").asString()).isEqualTo("MANUAL_SLIP");
+		assertThat(paid.path("payments").get(0).path("reference").asString()).isEqualTo("REF-MCC-HUB");
+		assertThat(paid.path("remaining").decimalValue()).isEqualByComparingTo("11300.00");
+
+		String paymentId = paid.path("payments").get(0).path("paymentId").asString();
+		JsonNode refundView = json(call(fx.host(), fx.adminToken(),
+				get("/api/v1/payments/{id}/refund-verification", paymentId))).path("data");
+		assertThat(refundView.path("postageAmount").decimalValue()).isEqualByComparingTo("200.00");
+		assertThat(refundView.path("delivery").path("recipientName").asString()).isEqualTo("Nimal Silva");
+	}
+
 }

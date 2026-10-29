@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.UUID;
+import org.hibernate.annotations.Generated;
 
 /**
  * {@code payment-management}'s "intent to buy" aggregate (PAY-1), mapped 1:1
@@ -36,8 +37,17 @@ public class StudentOrder extends Auditable implements TenantOwned {
 	@Column(name = "tenant_id", nullable = false, updatable = false)
 	private UUID tenantId;
 
-	@Column(name = "order_number", nullable = false, updatable = false)
-	private long orderNumber;
+	/**
+	 * Tenant-local order number (V100), assigned by the BEFORE INSERT trigger
+	 * from {@code student_order_number_counter} - but only when the INSERT leaves
+	 * it NULL. Never written by the application (insertable/updatable = false);
+	 * Hibernate reads the assigned value back after the insert. A primitive that
+	 * was inserted used to send 0, so every new order got number 0 and the second
+	 * one in a tenant hit {@code uq_student_order_tenant_order_number}.
+	 */
+	@Generated
+	@Column(name = "order_number", insertable = false, updatable = false)
+	private Long orderNumber;
 
 	@Column(name = "student_id", nullable = false, updatable = false)
 	private UUID studentId;
@@ -199,12 +209,13 @@ public class StudentOrder extends Auditable implements TenantOwned {
 		this.tenantId = tenantId;
 	}
 
+	/** 0 only before the order is saved (the database assigns the real number). */
 	public long getOrderNumber() {
-		return orderNumber;
+		return orderNumber == null ? 0L : orderNumber;
 	}
 
 	public String getDisplayOrderNumber() {
-		return "ORD-" + String.format(java.util.Locale.ROOT, "%06d", orderNumber);
+		return "ORD-" + String.format(java.util.Locale.ROOT, "%06d", getOrderNumber());
 	}
 
 	public UUID getStudentId() {

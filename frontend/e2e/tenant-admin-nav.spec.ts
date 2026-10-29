@@ -41,7 +41,7 @@ import {
  *   - `staff` (Administration: "Staff", "Roles & Permissions") —
  *     `canViewStaff` (`STAFF_AND_ROLES`/`VIEW`: Tenant Admin, Read-only
  *     Auditor only — both entries share this one gate).
- *   - `instituteConfig` (Institute Configuration: "General", "Branding") —
+ *   - `instituteConfig` (Institute Configuration: "Settings", "Appearance") —
  *     `canViewInstituteConfig` (`BRANDING_SETTINGS`/`VIEW`: Tenant Admin,
  *     Read-only Auditor only — both entries share this one gate).
  * "Communication" has no built destination yet and renders nothing (see
@@ -233,11 +233,13 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
         ["Audit Log", entry.auditLog],
         ["Staff", entry.staff],
         ["Roles & Permissions", entry.staff],
-        ["General", entry.instituteConfig],
-        ["Branding", entry.instituteConfig],
-        ["Student Fields", entry.instituteConfig],
-        // MEDIA-INT-01 - INTEGRATIONS/VIEW: Tenant Admin and Read-only Auditor only.
-        ["Integrations", entry.role === "TENANT_ADMIN" || entry.role === "READ_ONLY_AUDITOR"],
+        // General, Student Fields and Integrations are tabs inside Settings now, not sidebar items.
+        ["Settings", entry.instituteConfig],
+        ["Appearance", entry.instituteConfig],
+        ["General", false],
+        ["Branding", false],
+        ["Student Fields", false],
+        ["Integrations", false],
       ];
       for (const [label, visible] of gatedItems) {
         // exact: "Payments" must not also match PAY-GW-01's "Online Payments".
@@ -285,8 +287,8 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
 
     await expect(page.getByRole("link", { name: "Staff" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Roles & Permissions" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "General" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Branding" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Settings", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Appearance", exact: true })).toHaveCount(0);
     // Institute Configuration's heading is only rendered when it has at
     // least one item (`NavGroup` renders nothing for an empty group) — this
     // role has zero items in that group, so the heading itself must be gone

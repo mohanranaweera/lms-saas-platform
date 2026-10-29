@@ -2,9 +2,17 @@ package com.lms.paymentmanagement.order.repository;
 
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
+import jakarta.persistence.criteria.Predicate;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -30,6 +38,46 @@ public interface StudentOrderRepository extends TenantAwareRepository<StudentOrd
 
 	default List<StudentOrder> findAllByStudentId(UUID studentId) {
 		return findAll((root, query, cb) -> cb.equal(root.get("studentId"), studentId));
+	}
+
+	/** PAY-HUB-01: the (at most one) order with this tenant-local number - tenant-scoped. */
+	default Optional<StudentOrder> findByOrderNumber(long orderNumber) {
+		return findOne((root, query, cb) -> cb.equal(root.get("orderNumber"), orderNumber));
+	}
+
+	/**
+	 * PAY-HUB-01 "All Orders" list: optional exact order number and
+	 * {@code [createdFrom, createdBefore)} window, newest first - tenant-scoped
+	 * via the inherited {@code findAll(Specification, Pageable)}.
+	 */
+	default Page<StudentOrder> searchForAdmin(Long orderNumber, Instant createdFrom, Instant createdBefore,
+			Pageable pageable) {
+		return findAll(adminSearch(orderNumber, createdFrom, createdBefore),
+				PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), ADMIN_LIST_SORT));
+	}
+
+	/** As {@link #searchForAdmin} but every match, for filters only resolvable in application code. */
+	default List<StudentOrder> searchAllForAdmin(Long orderNumber, Instant createdFrom, Instant createdBefore) {
+		return findAll(adminSearch(orderNumber, createdFrom, createdBefore), ADMIN_LIST_SORT);
+	}
+
+	Sort ADMIN_LIST_SORT = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("orderNumber"));
+
+	private static Specification<StudentOrder> adminSearch(Long orderNumber, Instant createdFrom,
+			Instant createdBefore) {
+		return (root, query, cb) -> {
+			List<Predicate> predicates = new ArrayList<>();
+			if (orderNumber != null) {
+				predicates.add(cb.equal(root.get("orderNumber"), orderNumber));
+			}
+			if (createdFrom != null) {
+				predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), createdFrom));
+			}
+			if (createdBefore != null) {
+				predicates.add(cb.lessThan(root.get("createdAt"), createdBefore));
+			}
+			return cb.and(predicates.toArray(Predicate[]::new));
+		};
 	}
 
 	/** Wave 6 (§4) course-payment-summary read pattern - tenant-scoped via the inherited {@code findAll(Specification)}. */

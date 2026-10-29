@@ -109,6 +109,15 @@ export function canViewTeachers(role: string | null): boolean {
 }
 
 /**
+ * Roles holding `TEACHERS`/`CREATE_EDIT` (Tenant Admin, Course Coordinator):
+ * may edit teacher profiles, including removing a profile photo. UX only - the
+ * backend re-checks every request.
+ */
+export function canManageTeachers(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "COURSE_COORDINATOR";
+}
+
+/**
  * Roles holding `ATTENDANCE`/`VIEW` per `PermissionCheckServiceImpl`'s matrix
  * (Tenant Admin, Attendance Operator, Read-only Auditor) — gates the
  * "Attendance Reports" nav entry

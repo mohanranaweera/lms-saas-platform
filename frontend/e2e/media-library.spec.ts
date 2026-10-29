@@ -443,7 +443,7 @@ test.describe("Uploading", () => {
     await expect(page.getByText("Your institute hasn't connected a YouTube channel yet.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Open video providers" })).toHaveAttribute(
       "href",
-      "/tenant-admin/settings/video-providers"
+      "/tenant-admin/settings/video"
     );
     await expect(uploadForm(page).getByRole("button", { name: "Upload video" })).toBeDisabled();
   });

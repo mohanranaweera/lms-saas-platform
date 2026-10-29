@@ -3,18 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Search, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { ReorderableTable, moveItem, type ReorderableColumn } from "@/components/courses/admin/reorderable-table";
 import { EmptyState } from "@/components/states/empty-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useTeachers, type Teacher, type TeacherApprovalStatus } from "@/lib/api/teachers";
-import { TeacherStatusBadge, TEACHER_APPROVAL_STATUS_LABELS } from "./status-badge";
+import { useTeachers, useReorderTeachers, type Teacher, type TeacherApprovalStatus } from "@/lib/api/teachers";
+import { TEACHER_APPROVAL_STATUS_LABELS } from "./status-badge";
 import { TeacherDecisionDialog } from "./teacher-decision-dialog";
 import { TeacherSuspendDialog } from "./teacher-suspend-dialog";
+import { TeacherEditSheet } from "./teacher-edit-sheet";
 
 /**
  * Teacher List (Tenant Admin) — MVP-007 TCH-1.
@@ -40,9 +41,11 @@ const STATUS_FILTER_OPTIONS: Array<{ value: "all" | TeacherApprovalStatus; label
 export default function TenantAdminTeachersPage() {
   const { session } = useAuth();
   const router = useRouter();
-  const query = useTeachers();
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<"all" | TeacherApprovalStatus>("all");
   const [search, setSearch] = useState("");
+  const query = useTeachers({ query: search, page, size: pageSize });
 
   // Row-level Approve/Reject actions are UX convenience only — the backend
   // independently re-enforces both the PENDING precondition (409) and the
@@ -63,7 +66,10 @@ export default function TenantAdminTeachersPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Teachers</h1>
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground"><UserRound aria-hidden="true" /></span>
+            <h1 className="text-xl font-semibold text-foreground">Teachers</h1>
+          </div>
           <p className="text-sm text-muted-foreground">
             Teacher accounts for your institute, and their approval status.
           </p>
@@ -71,7 +77,7 @@ export default function TenantAdminTeachersPage() {
         {canCreate ? (
           <Button render={<Link href="/tenant-admin/teachers/new" />}>
             <Plus aria-hidden="true" />
-            Add teacher
+            ADD TEACHER
           </Button>
         ) : null}
       </div>
@@ -79,7 +85,7 @@ export default function TenantAdminTeachersPage() {
       <QueryStateBoundary
         query={query}
         loadingLabel="Loading teachers…"
-        isEmpty={(data: Teacher[]) => data.length === 0}
+        isEmpty={(data: Teacher[]) => data.length === 0 && search.trim() === "" && statusFilter === "all"}
         emptyState={{
           title: "No teachers yet",
           description: canCreate
@@ -101,6 +107,11 @@ export default function TenantAdminTeachersPage() {
             setSearch={setSearch}
             clearFilters={clearFilters}
             canDecide={canDecide}
+            canEdit={canCreate}
+            page={page}
+            pageSize={pageSize}
+            setPage={setPage}
+            setPageSize={setPageSize}
           />
         )}
       </QueryStateBoundary>
@@ -116,6 +127,21 @@ interface TeacherListResultsProps {
   setSearch: (value: string) => void;
   clearFilters: () => void;
   canDecide: boolean;
+  canEdit: boolean;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+}
+
+function TeacherAvatar({ teacher }: { teacher: Teacher }) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  if (teacher.profileImageUrl && !imageFailed) {
+    return <img src={teacher.profileImageUrl} alt={`${teacher.name} profile`} className="size-10 rounded-full object-cover" onError={() => setImageFailed(true)} />;
+  }
+
+  return <span className="flex size-10 items-center justify-center rounded-full bg-muted"><UserRound aria-hidden="true" /></span>;
 }
 
 function TeacherListResults({
@@ -126,7 +152,15 @@ function TeacherListResults({
   setSearch,
   clearFilters,
   canDecide,
+  canEdit,
+  page,
+  pageSize,
+  setPage,
+  setPageSize,
 }: TeacherListResultsProps) {
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const reorder = useReorderTeachers();
+
   const filteredByStatus = useMemo(
     () =>
       statusFilter === "all"
@@ -140,7 +174,11 @@ function TeacherListResults({
     if (!q) return filteredByStatus;
     return filteredByStatus.filter(
       (teacher) =>
-        teacher.name.toLowerCase().includes(q) || teacher.email.toLowerCase().includes(q)
+        teacher.name.toLowerCase().includes(q) ||
+        teacher.email.toLowerCase().includes(q) ||
+        (teacher.firstName ?? "").toLowerCase().includes(q) ||
+        (teacher.lastName ?? "").toLowerCase().includes(q) ||
+        (teacher.contactNumber ?? "").toLowerCase().includes(q)
     );
   }, [filteredByStatus, search]);
 
@@ -215,45 +253,13 @@ function TeacherListResults({
     return null;
   }
 
-  const columns: DataTableColumn<Teacher>[] = [
-    {
-      key: "name",
-      header: "Name",
-      cell: (teacher) => (
-        <Link href={`/tenant-admin/teachers/${teacher.id}`} className="font-medium text-foreground hover:underline">
-          {teacher.name}
-        </Link>
-      ),
-      hideOnCard: true,
-    },
-    { key: "email", header: "Email", cell: (teacher) => teacher.email },
-    {
-      key: "approvalStatus",
-      header: "Approval status",
-      cell: (teacher) => <TeacherStatusBadge status={teacher.approvalStatus} />,
-      hideOnCard: true,
-    },
-    { key: "accountStatus", header: "Account status", cell: (teacher) => teacher.accountStatus },
-    {
-      key: "actions",
-      header: "Actions",
-      cell: (teacher) => renderActions(teacher, "icon"),
-      hideOnCard: true,
-    },
-  ];
-
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="teacher-search">Search</Label>
-          <Input
-            id="teacher-search"
-            type="search"
-            placeholder="Search by name or email"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-sm">
+          <Label htmlFor="teacher-search" className="sr-only">Search teachers</Label>
+          <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input id="teacher-search" type="search" placeholder="Search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} className="pl-9" />
         </div>
         <div className="flex flex-col gap-1.5 sm:w-56">
           <Label htmlFor="teacher-status-filter">Status</Label>
@@ -293,26 +299,53 @@ function TeacherListResults({
           />
         )
       ) : (
-        <DataTable
-          columns={columns}
+        <ReorderableTable
+          columns={[
+            { key: "teacher", header: "Teacher", cardLabel: "Teacher", cell: (teacher) => <div className="flex items-center gap-3"><TeacherAvatar teacher={teacher} /><div><p className="font-medium text-foreground">{teacher.name}</p><p className="text-xs text-muted-foreground">{teacher.approvalStatus}</p></div></div> },
+            { key: "email", header: "Email", cell: (teacher) => teacher.email },
+            { key: "contact", header: "Contact Number", cell: (teacher) => teacher.contactNumber ?? "—" },
+            { key: "students", header: "Student Count", cell: (teacher) => teacher.studentCount },
+            { key: "commission", header: "Commission", cell: (teacher) => `${teacher.instituteCommissionPercent ?? 0}%` },
+          ] as ReorderableColumn<Teacher>[]}
           rows={filtered}
           rowKey={(teacher) => teacher.id}
+          rowLabel={(teacher) => teacher.name}
           caption="Teachers"
-          cardHeading={(teacher) => (
-            <Link href={`/tenant-admin/teachers/${teacher.id}`} className="hover:underline">
-              {teacher.name}
-            </Link>
-          )}
-          cardHeadingAdornment={(teacher) => <TeacherStatusBadge status={teacher.approvalStatus} />}
-          cardFooter={(teacher) => renderActions(teacher, "full")}
+          reorderEnabled={!search.trim() && statusFilter === "all" && filtered.length > 1}
+          reorderPending={reorder.isPending}
+          showMoveButtons={false}
+          showPosition={false}
+          onMove={(from, to) => {
+            const next = moveItem(filtered, from, to);
+            void reorder.mutateAsync(next.map((teacher) => teacher.id));
+          }}
+          actions={(teacher) => <div className="flex items-center gap-1">{canEdit ? <Button type="button" size="icon-sm" variant="ghost" aria-label={`Edit teacher ${teacher.name}`} onClick={() => setEditingTeacher(teacher)}>✎</Button> : null}{renderActions(teacher, "icon")}</div>}
         />
       )}
 
       {!noMatch ? (
-        <p className="text-xs text-muted-foreground">
-          Showing {filtered.length} of {teachers.length} teachers.
-        </p>
+        <div className="flex flex-wrap items-center justify-end gap-3 text-sm text-muted-foreground">
+          <label htmlFor="teacher-page-size">Items per page:</label>
+          <select id="teacher-page-size" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} className="h-9 rounded-md border border-input bg-background px-2">
+            {[10, 25, 50].map((size) => <option key={size} value={size}>{size}</option>)}
+          </select>
+          <span>{teachers.length === 0 ? "0 of 0" : `${page * pageSize + 1}–${page * pageSize + teachers.length} of ${teachers.length}`}</span>
+          <Button type="button" size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(page - 1)} aria-label="Previous page">‹</Button>
+          <Button type="button" size="sm" variant="outline" disabled={teachers.length < pageSize} onClick={() => setPage(page + 1)} aria-label="Next page">›</Button>
+        </div>
       ) : null}
+
+      <TeacherEditSheet
+        teacher={editingTeacher}
+        open={editingTeacher !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingTeacher(null);
+        }}
+        onSaved={() => {
+          setEditingTeacher(null);
+          setNotice("Teacher profile saved.");
+        }}
+      />
     </div>
   );
 }

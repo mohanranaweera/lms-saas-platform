@@ -181,6 +181,11 @@ Reconciled from `TEN-1`/`TEN-2`/`TEN-3`'s own acceptance-criteria fields plus
   login/public pages), branding preview panel, theme presets, per-tenant favicon/certificate/invoice
   branding. Explicitly Phase 2. `TEN-2`'s "default branding/plan config" provisioning step only creates
   *default* values — it does not implement the branding editor.
+  - *Update 2026-10-29:* the public-page part of FR-TM-5/6 is now implemented as Tenant Admin →
+    Settings → Appearance: logo/favicon/receipt logo, hero banners, theme colors and presets, curated
+    Google fonts, logo display size, public home sections, and the teacher carousel. Contract, decisions and
+    acceptance status: `docs/specs/tenant-appearance-public-home-parity.md`. Certificate/invoice rendering of
+    the receipt logo is still not wired (no renderer reads it yet), and login pages keep platform styling.
 - **Custom-domain resolution** — `TEN-3` is subdomain-only for MVP; custom-domain-to-tenant resolution is
   Phase 2.
 - **FR-TM-4 plan-limit enforcement UI** — usage-vs-plan-limit is "MVP core, Phase 2 enforcement UI," and

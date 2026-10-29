@@ -13,7 +13,7 @@ export default function TenantAdminMediaPage() {
       basePath="/tenant-admin/media"
       dashboardHref="/tenant-admin/dashboard"
       canUpload={canManageMedia(role)}
-      settingsHref={canManageIntegrations(role) ? "/tenant-admin/settings/video-providers" : undefined}
+      settingsHref={canManageIntegrations(role) ? "/tenant-admin/settings/video" : undefined}
       scopeNote="Every document, image and lesson video your institute has uploaded."
     />
   );

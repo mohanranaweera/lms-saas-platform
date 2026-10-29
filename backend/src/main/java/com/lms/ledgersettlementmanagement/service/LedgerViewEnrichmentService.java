@@ -41,15 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class LedgerViewEnrichmentService {
 
-	private static final String FREE_PREFIX = "FREE-";
-
-	private static final String STAFF_GRANTED_PREFIX = "STAFF_GRANTED-";
-
-	private static final String SLIP_PREFIX = "SLIP-";
-
 	/** ADR-030: {@code ManualPaymentService#record}. */
-	private static final String MANUAL_RECEIPT_PREFIX = "MANUAL-";
-
 	private final PaymentStatusApi paymentStatusApi;
 
 	private final SlipStatusApi slipStatusApi;
@@ -121,22 +113,7 @@ public class LedgerViewEnrichmentService {
 
 	/** The single derivation of a payment's method from its reference prefix (also used by RPT-01). */
 	static PaymentMethod deriveMethod(String gatewayReference) {
-		if (gatewayReference == null) {
-			return null;
-		}
-		if (gatewayReference.startsWith(FREE_PREFIX)) {
-			return PaymentMethod.FREE;
-		}
-		if (gatewayReference.startsWith(STAFF_GRANTED_PREFIX)) {
-			return PaymentMethod.STAFF_GRANTED;
-		}
-		if (gatewayReference.startsWith(SLIP_PREFIX)) {
-			return PaymentMethod.MANUAL_SLIP;
-		}
-		if (gatewayReference.startsWith(MANUAL_RECEIPT_PREFIX)) {
-			return PaymentMethod.MANUAL_RECEIPT;
-		}
-		return PaymentMethod.GATEWAY;
+		return PaymentMethod.fromGatewayReference(gatewayReference);
 	}
 
 }

@@ -5,6 +5,8 @@ import type { Engine, EngineError, Media, PlaybackReport } from "./types";
 const SEEK_TOLERANCE_SECONDS = 2;
 /** Give up after this many failures in a row with no progress in between. */
 const MAX_CONSECUTIVE_ERRORS = 3;
+/** Pause before retrying a failed load, so a heartbeat can refresh the upstream URL. */
+const RETRY_DELAY_MS = 1500;
 
 /**
  * File engine for platform-hosted (INTERNAL) video behind a short-lived
@@ -77,12 +79,16 @@ export function fileEngine(
   video.addEventListener("error", () => {
     if (destroyed) return;
     errors += 1;
-    if (errors >= MAX_CONSECUTIVE_ERRORS || latestUrl === currentUrl) {
-      if (errors >= MAX_CONSECUTIVE_ERRORS) onError("The video couldn't be loaded. Press Play in the LMS again.");
+    if (errors >= MAX_CONSECUTIVE_ERRORS) {
+      onError("The video couldn't be loaded. Press Play in the LMS again.");
       return;
     }
-    // The signed URL expired: continue from the same point with the newest one.
-    resumeWith(latestUrl);
+    // Continue from the same point. Proxied files keep one opaque URL while Rust
+    // swaps the signed upstream on each heartbeat, so retrying that same URL is
+    // what picks the fresh one up; never fail silently on a black screen.
+    window.setTimeout(() => {
+      if (!destroyed) resumeWith(latestUrl);
+    }, RETRY_DELAY_MS);
   });
 
   function resumeWith(url: string) {

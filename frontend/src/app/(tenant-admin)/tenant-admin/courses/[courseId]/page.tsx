@@ -60,6 +60,7 @@ function TenantAdminCourseOverviewPageContent() {
               courseId={course.id}
               portal="tenant-admin"
               dashboardHref="/tenant-admin/dashboard"
+              showCharges={false}
             />
           </div>
         )}

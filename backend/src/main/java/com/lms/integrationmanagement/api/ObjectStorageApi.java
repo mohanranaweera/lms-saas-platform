@@ -1,6 +1,7 @@
 package com.lms.integrationmanagement.api;
 
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * The narrow port other domains depend on for external object storage (e.g.
@@ -17,6 +18,17 @@ public interface ObjectStorageApi {
 	void delete(String objectKey);
 
 	SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl);
+
+	/**
+	 * PAY-HUB-01: the content type recorded for {@code objectKey} at upload
+	 * (the server-sniffed MIME type), or empty when unknown/unreachable. A
+	 * read-only metadata lookup - it never fails the caller: any provider
+	 * error resolves to empty. Callers must not hold a database transaction
+	 * open around this call (it may be a network round trip).
+	 */
+	default Optional<String> findContentType(String objectKey) {
+		return Optional.empty();
+	}
 
 	/**
 	 * Signed GET URL whose response is served by the storage origin with the

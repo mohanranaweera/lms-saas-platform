@@ -3,6 +3,8 @@ package com.lms.enrollmentmanagement.api;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * The narrow, read-only contract other domains (namely {@code
@@ -83,5 +85,8 @@ public interface EnrollmentAccessApi {
 	 * {@code studentId}, in no particular guaranteed order.
 	 */
 	Set<UUID> listCurrentlyEnrolledCourseIds(UUID studentId);
+
+	/** Counts distinct currently enrolled students across each supplied course. */
+	Map<UUID, Long> countCurrentlyEnrolledStudents(Collection<UUID> courseIds);
 
 }

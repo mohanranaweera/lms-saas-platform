@@ -3,6 +3,7 @@ package com.lms.contentmanagement.library.web;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.contentmanagement.library.domain.MediaFileKind;
+import com.lms.contentmanagement.library.domain.MediaFileUsage;
 import com.lms.contentmanagement.library.service.MediaFileService;
 import com.lms.contentmanagement.library.service.MediaFileSummaryView;
 import com.lms.contentmanagement.library.service.MediaFileView;
@@ -72,8 +73,9 @@ public class MediaFileController {
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResponse<MediaFileResponse>> upload(
 			@RequestPart(value = "file", required = false) MultipartFile file,
-			@RequestParam(value = "title", required = false) @Size(max = 255) String title) {
-		MediaFileView view = mediaFileService.upload(file, title);
+			@RequestParam(value = "title", required = false) @Size(max = 255) String title,
+			@RequestParam(value = "usage", required = false) MediaFileUsage usage) {
+		MediaFileView view = mediaFileService.upload(file, title, usage);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(view)));
 	}
 

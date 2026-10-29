@@ -7,6 +7,7 @@ import com.lms.paymentmanagement.order.service.OrderView;
 import com.lms.paymentmanagement.order.web.dto.OrderCreateRequest;
 import com.lms.paymentmanagement.order.web.dto.OrderPaymentStatusResponse;
 import com.lms.paymentmanagement.order.web.dto.OrderResponse;
+import com.lms.paymentmanagement.order.web.dto.OrderLineResponse;
 import com.lms.paymentmanagement.order.web.dto.PaymentInitiationRequest;
 import com.lms.paymentmanagement.order.web.dto.PaymentInitiationResponse;
 import com.lms.paymentmanagement.payment.service.PaymentInitiationService;
@@ -19,6 +20,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -86,6 +88,13 @@ public class OrderController {
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
 	}
 
+	@GetMapping("/{id}/lines")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<List<OrderLineResponse>>> getOrderLines(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(orderService.getOrderLines(id).stream()
+			.map(line -> new OrderLineResponse(line.lineNo(), line.scope(), line.courseId(), line.courseTitle(), line.moduleId(), line.lessonId(), line.periodYear(), line.periodMonth(), line.billingPeriodId(), line.label(), line.unitAmount(), line.facilityFeeAmount(), line.discountAmount(), line.lineTotal(), line.currency(), line.createdAt())).toList()));
+	}
+
 	@GetMapping("/{id}/payment-status")
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResponse<OrderPaymentStatusResponse>> getPaymentStatus(@PathVariable UUID id) {
@@ -131,7 +140,7 @@ public class OrderController {
 
 	private static OrderResponse toResponse(OrderView view) {
 		return new OrderResponse(view.id(), view.orderNumber(), view.displayOrderNumber(), view.studentId(), view.courseId(), view.amount(), view.currency(),
-				view.billingPeriodId(), view.status(), view.createdAt(), view.updatedAt());
+				view.billingPeriodId(), view.status(), view.createdAt(), view.updatedAt(), view.subtotalAmount(), view.facilityFeeAmount(), view.postageAmount(), view.discountAmount());
 	}
 
 	private static PaymentSlipResponse toSlipResponse(PaymentSlipView view) {

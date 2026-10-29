@@ -22,6 +22,18 @@ const nextConfig: NextConfig = {
    * both. Dev-only - `allowedDevOrigins` has no effect on `next build`/`next start`.
    */
   allowedDevOrigins: ["**.test"],
+  /**
+   * Video providers + video settings were merged into Settings → Video. HTTP
+   * redirects (query string kept) so the YouTube connect callback, which the
+   * backend still returns to `/settings/video-providers?pending=…`
+   * (`OAuthConnectFlowService.TENANT_VIDEO_RETURN_PATH`), and old bookmarks keep working.
+   */
+  async redirects() {
+    return [
+      { source: "/tenant-admin/settings/video-providers", destination: "/tenant-admin/settings/video", permanent: false },
+      { source: "/tenant-admin/settings/video-configuration", destination: "/tenant-admin/settings/video", permanent: false },
+    ];
+  },
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${backendOrigin}/api/:path*` }];
   },

@@ -108,9 +108,9 @@ export function TenantYouTubeChannelCard({ view, canManage }: { view: VideoProvi
       className="flex flex-col gap-3 rounded-lg border border-border p-4"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <h2 id={headingId} className="text-base font-medium text-foreground">
+        <h3 id={headingId} className="text-base font-medium text-foreground">
           {view.name}
-        </h2>
+        </h3>
         <Badge variant={variant}>
           <Icon aria-hidden="true" />
           {label}

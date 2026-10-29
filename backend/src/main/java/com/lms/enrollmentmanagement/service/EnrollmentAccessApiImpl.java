@@ -67,6 +67,17 @@ public class EnrollmentAccessApiImpl implements EnrollmentAccessApi {
 
 	@Override
 	@Transactional(readOnly = true)
+	public Map<UUID, Long> countCurrentlyEnrolledStudents(java.util.Collection<UUID> courseIds) {
+		if (courseIds == null || courseIds.isEmpty()) return Map.of();
+		Map<UUID, java.util.Set<UUID>> students = new java.util.HashMap<>();
+		for (UUID courseId : courseIds) {
+			students.put(courseId, new java.util.HashSet<>(listCurrentlyEnrolledStudentIds(courseId)));
+		}
+		return students.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (long) e.getValue().size()));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public Set<UUID> listCurrentlyEnrolledCourseIds(UUID studentId) {
 		return currentlyActive(enrollmentRepository.findAllCurrentByStudentId(studentId)).stream()
 			.map(Enrollment::getCourseId)

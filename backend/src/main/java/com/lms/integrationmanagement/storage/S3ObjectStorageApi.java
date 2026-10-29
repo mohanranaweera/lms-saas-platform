@@ -10,6 +10,7 @@ import com.lms.integrationmanagement.config.ObjectStorageProperties;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
@@ -19,6 +20,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -123,6 +125,19 @@ public class S3ObjectStorageApi implements ObjectStorageApi {
 		}
 		catch (SdkException e) {
 			throw new ServiceUnavailableException(UNAVAILABLE_MESSAGE);
+		}
+	}
+
+	@Override
+	public Optional<String> findContentType(String objectKey) {
+		try {
+			String contentType = s3Client
+				.headObject(HeadObjectRequest.builder().bucket(bucket).key(objectKey).build())
+				.contentType();
+			return Optional.ofNullable(contentType).filter(type -> !type.isBlank());
+		}
+		catch (SdkException e) {
+			return Optional.empty();
 		}
 	}
 

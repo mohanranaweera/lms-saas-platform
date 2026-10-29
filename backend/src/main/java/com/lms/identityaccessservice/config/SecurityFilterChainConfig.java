@@ -139,7 +139,7 @@ public class SecurityFilterChainConfig {
 				// (MVP-008, GET-only) - tenant is still resolved server-side from
 				// the subdomain by TenantResolutionFilter; no client-supplied
 				// tenantId is ever accepted. See CoursePublicController.
-				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**")
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**", "/api/v1/public/teachers", "/api/v1/public/teachers/**")
 					.permitAll();
 				// Public, unauthenticated branding read path (Wave 1 - Tenant
 				// Admin IA + Configuration Framework) - tenant is still
@@ -148,7 +148,8 @@ public class SecurityFilterChainConfig {
 				// accepted. See PublicBrandingController for why this one
 				// endpoint deliberately bypasses BRANDING_SETTINGS's
 				// permission gate.
-				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding").permitAll();
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding",
+						"/api/v1/public/tenant-config/home").permitAll();
 				// Public, unauthenticated student-registration-policy read path
 				// (Wave 3 gap-fill) - same rationale as the branding read
 				// above, for ConfigDomain.STUDENT's registration-relevant

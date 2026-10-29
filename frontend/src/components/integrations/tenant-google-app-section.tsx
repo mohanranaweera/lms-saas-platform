@@ -92,9 +92,9 @@ export function TenantGoogleAppSection({ view, canManage }: { view: TenantGoogle
   return (
     <section aria-labelledby="tenant-google-app-heading" className="flex flex-col gap-4 rounded-lg border border-border p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 id="tenant-google-app-heading" className="text-base font-medium text-foreground">
+        <h3 id="tenant-google-app-heading" className="text-base font-medium text-foreground">
           Google app
-        </h2>
+        </h3>
         <Badge variant={view.source === "TENANT" ? "default" : view.source === "PLATFORM" ? "secondary" : "outline"}>
           {SOURCE_LABEL[view.source]}
         </Badge>

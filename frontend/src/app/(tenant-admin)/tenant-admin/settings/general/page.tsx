@@ -5,6 +5,7 @@ import { canManageInstituteConfig } from "@/lib/auth/permissions";
 import { useTenantConfigDomain } from "@/lib/api/tenant-config";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { GeneralConfigForm } from "./general-config-form";
+import { SettingsHeader } from "@/components/settings/settings-tab-strip";
 
 /**
  * Tenant Admin (and Read-only Auditor, view-only) General settings
@@ -36,12 +37,10 @@ export default function GeneralSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">General settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Institute name, support contact details, and the defaults applied across your tenant.
-        </p>
-      </div>
+      <SettingsHeader
+        active="/tenant-admin/settings/general"
+        description="Institute name, support contact details, and the defaults applied across your tenant."
+      />
 
       <QueryStateBoundary
         query={query}

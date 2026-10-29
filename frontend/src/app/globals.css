@@ -19,7 +19,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -150,4 +150,83 @@
   html {
     @apply font-sans;
   }
+}
+/*
+ * Tenant public theme scope (docs/specs/tenant-appearance-public-home-parity.md).
+ * `PublicThemeScope` sets the tenant tokens as inline custom properties on the
+ * `.tenant-public-theme` wrapper only — nothing here touches :root or `.dark`,
+ * so admin/student/teacher portals keep the platform defaults. Semantic
+ * destructive/warning tokens are intentionally not overridden.
+ */
+@layer base {
+  .tenant-public-theme {
+    --primary-hover: color-mix(in srgb, var(--primary) 86%, #000);
+    --primary-active: color-mix(in srgb, var(--primary) 76%, #000);
+    --tenant-accent-hover: color-mix(in srgb, var(--tenant-accent) 86%, #000);
+    --tenant-primary-soft: color-mix(in srgb, var(--primary) 8%, var(--background));
+    font-family: var(--font-body);
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  .tenant-public-theme :is(h1, h2, h3, h4) {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer utilities {
+  /* `font-heading` is mapped to --font-sans by @theme above; inside the tenant
+     scope it must follow the tenant heading font instead. */
+  .tenant-public-theme .font-heading,
+  .tenant-public-theme.font-heading {
+    font-family: var(--font-heading);
+  }
+  .tenant-public-theme .tenant-primary-hover:hover {
+    background-color: var(--primary-hover);
+  }
+  .tenant-public-theme .tenant-primary-hover:active {
+    background-color: var(--primary-active);
+  }
+}
+
+/*
+ * Tenant logo size tokens (spec §4): height x max-width, mobile below md /
+ * desktop at md+. Driven by a container query on the nearest
+ * `.public-chrome` (the public header/footer and the settings preview frames)
+ * so the 390 px settings preview renders the real mobile size at any viewport.
+ */
+.public-chrome {
+  container-name: public-chrome;
+  container-type: inline-size;
+}
+.public-logo {
+  --logo-h: 44px;
+  --logo-max-w: 170px;
+  height: var(--logo-h);
+  max-width: var(--logo-max-w);
+}
+.public-logo[data-size="SMALL"] {
+  --logo-h: 36px;
+  --logo-max-w: 140px;
+}
+.public-logo[data-size="LARGE"] {
+  --logo-h: 52px;
+  --logo-max-w: 200px;
+}
+@container public-chrome (min-width: 768px) {
+  .public-logo[data-size="SMALL"] {
+    --logo-h: 44px;
+    --logo-max-w: 180px;
+  }
+  .public-logo[data-size="STANDARD"] {
+    --logo-h: 56px;
+    --logo-max-w: 220px;
+  }
+  .public-logo[data-size="LARGE"] {
+    --logo-h: 68px;
+    --logo-max-w: 260px;
+  }
+}
+.public-logo[data-variant="footer"] {
+  --logo-h: 56px;
+  --logo-max-w: 220px;
 }

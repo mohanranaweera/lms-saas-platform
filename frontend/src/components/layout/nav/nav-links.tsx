@@ -11,6 +11,8 @@ export interface NavItem {
   href?: string;
   /** Optional trailing indicator (e.g. `<NotificationsNavBadge />`) rendered next to the label. Only meaningful when `href` is set. */
   badge?: ReactNode;
+  /** Extra routes (and their sub-routes) that also mark this item active, e.g. every Settings tab. */
+  activePrefixes?: string[];
 }
 
 /**
@@ -46,7 +48,9 @@ export function NavLinks({
           );
         }
 
-        const isActive = pathname === item.href;
+        const isActive =
+          pathname === item.href ||
+          (item.activePrefixes ?? []).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`));
 
         return (
           <li key={item.label}>

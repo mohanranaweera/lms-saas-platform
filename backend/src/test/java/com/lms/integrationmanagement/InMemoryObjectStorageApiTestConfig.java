@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -86,11 +87,16 @@ public class InMemoryObjectStorageApiTestConfig {
 
 		private final Map<String, byte[]> objects = new ConcurrentHashMap<>();
 
+		private final Map<String, String> contentTypes = new ConcurrentHashMap<>();
+
 		@Override
 		public StoredObject store(StoreObjectCommand command) {
 			String objectKey = UUID.randomUUID().toString();
 			try {
 				objects.put(objectKey, command.content().readAllBytes());
+				if (command.detectedMimeType() != null) {
+					contentTypes.put(objectKey, command.detectedMimeType());
+				}
 			}
 			catch (IOException e) {
 				throw new UncheckedIOException(e);
@@ -101,6 +107,12 @@ public class InMemoryObjectStorageApiTestConfig {
 		@Override
 		public void delete(String objectKey) {
 			objects.remove(objectKey);
+			contentTypes.remove(objectKey);
+		}
+
+		@Override
+		public Optional<String> findContentType(String objectKey) {
+			return Optional.ofNullable(contentTypes.get(objectKey));
 		}
 
 		@Override

@@ -14,11 +14,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class StudentLookupService implements StudentLookupApi {
 
 	private static final int INDEX_CHUNK = 1000;
+
+	private static final String STUDENT_ROLE = "STUDENT";
 
 	private final StudentProfileRepository studentProfileRepository;
 
@@ -95,6 +101,31 @@ public class StudentLookupService implements StudentLookupApi {
 	@Override
 	public List<UUID> listAllStudentUserIds() {
 		return studentProfileRepository.findAll().stream().map(StudentProfile::getUserId).toList();
+	}
+
+	@Override
+	public List<UUID> searchStudentUserIds(String term, int limit) {
+		if (term == null || term.isBlank() || limit <= 0) {
+			return List.of();
+		}
+		String pattern = "%" + term.strip().toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%")
+			.replace("_", "\\_") + "%";
+		// Name/mobile live on the profile; email on tenant_user (identity-access-
+		// service). Both reads are tenant-scoped. An email match counts only for a
+		// STUDENT-role user - checked by role, not by profile, so a student whose
+		// profile row is missing is still found by email.
+		Set<UUID> result = new LinkedHashSet<>(studentProfileRepository.findAll((root, query, cb) -> cb.or(
+				cb.like(cb.lower(root.get("name")), pattern, '\\'),
+				cb.like(cb.lower(cb.coalesce(root.get("mobile"), "")), pattern, '\\')),
+				PageRequest.of(0, limit, Sort.by("name", "id"))).map(StudentProfile::getUserId).getContent());
+		List<UUID> emailUserIds = userProvisioningApi.findTenantUserIdsByEmailContaining(term, limit);
+		if (!emailUserIds.isEmpty()) {
+			userProvisioningApi.findTenantUserSummaries(emailUserIds)
+				.stream()
+				.filter(summary -> STUDENT_ROLE.equals(summary.roleCode()))
+				.forEach(summary -> result.add(summary.userId()));
+		}
+		return result.stream().limit(limit).toList();
 	}
 
 	@Override

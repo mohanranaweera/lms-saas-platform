@@ -69,7 +69,16 @@ public class PaymentQueryService {
 		List<RefundVerificationView.Line> lineViews = lines.stream().map(line -> new RefundVerificationView.Line(line.lineNo(), line.courseId(), courseNames.getOrDefault(line.courseId(), "Unknown course"), line.label(), line.scope(), line.unitAmount(), line.facilityFee(), line.discountAmount(), line.lineTotal(), line.currency())).toList();
 		return new RefundVerificationView(payment.getId(), payment.getOrderId(), order.getOrderNumber(), order.getDisplayOrderNumber(), payment.getAmount(), payment.getCurrency(),
 				payment.getStatus().name(), payment.getGatewayReference(), payment.getCreatedAt(), refunded,
-				payment.getAmount().subtract(refunded).max(java.math.BigDecimal.ZERO), lineViews);
+				payment.getAmount().subtract(refunded).max(java.math.BigDecimal.ZERO), lineViews,
+				order.getPostageAmount(), deliveryOf(order));
+	}
+
+	/** PAY-HUB-01: the order's delivery snapshot, or {@code null} when no postage was selected. */
+	static RefundVerificationView.Delivery deliveryOf(StudentOrder order) {
+		StudentOrder.DeliverySnapshot delivery = order.getDelivery();
+		return delivery == null ? null
+				: new RefundVerificationView.Delivery(delivery.recipientName(), delivery.addressLine(), delivery.city(),
+						delivery.phone());
 	}
 
 	Payment loadPaymentForCaller(UUID id) {

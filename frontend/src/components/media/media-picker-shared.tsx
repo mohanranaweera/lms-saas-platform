@@ -15,7 +15,7 @@ export function AddedDate({ iso, className }: { iso: string; className?: string 
 }
 
 /** Where YouTube integrations are managed (same as the Tenant Admin Media Library page). */
-export const VIDEO_PROVIDERS_SETTINGS_HREF = "/tenant-admin/settings/video-providers";
+export const VIDEO_PROVIDERS_SETTINGS_HREF = "/tenant-admin/settings/video";
 /** VIDEO Phase 13: where a Tenant Admin sets up the DynTube account. */
 export const DYNTUBE_SETTINGS_HREF = "/tenant-admin/settings/integrations";
 

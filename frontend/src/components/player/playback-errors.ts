@@ -16,9 +16,33 @@ export interface PlaybackErrorCopy {
   suggestPairing?: boolean;
 }
 
+/**
+ * Lesson-access refusals (`LessonAccessDeniedException`): the lesson exists and
+ * the Student is in its course, so say why it won't open instead of a generic
+ * failure. Fixed copy per code — never the backend's message.
+ */
+const LESSON_ACCESS_COPY: Record<string, string> = {
+  NOT_ENROLLED: "Enroll in this course to watch its lessons.",
+  PAYMENT_REQUIRED: "This lesson needs a payment before you can watch it.",
+  PAYMENT_PENDING: "Your payment for this lesson is awaiting confirmation. You can watch once it's confirmed.",
+  NOT_STARTED: "This lesson hasn't started yet. Its videos open when the lesson starts.",
+  EXPIRED: "This lesson has ended, so its videos can no longer be watched.",
+  DEVICE_NOT_AUTHORIZED: "This course can only be watched on your registered devices, and this device isn't one of them.",
+};
+
+/** The lesson-access reason for a refused playback request, if that's what it was. */
+export function lessonAccessMessage(error: unknown): string | null {
+  if (!isApiClientError(error) || !error.code) return null;
+  return LESSON_ACCESS_COPY[error.code] ?? null;
+}
+
 export function playbackErrorMessage(error: unknown): PlaybackErrorCopy {
   if (!isApiClientError(error)) {
     return { message: "Couldn't load this video. Please try again.", retryable: true };
+  }
+  const lessonAccess = lessonAccessMessage(error);
+  if (lessonAccess) {
+    return { message: lessonAccess, retryable: false };
   }
   if (error.status === 403 || error.status === 404) {
     return { message: VIDEO_NOT_AVAILABLE, retryable: false };

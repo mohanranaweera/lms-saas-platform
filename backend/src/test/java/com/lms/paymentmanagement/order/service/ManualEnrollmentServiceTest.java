@@ -154,6 +154,7 @@ class ManualEnrollmentServiceTest {
 			.isInstanceOf(ConflictException.class);
 
 		verify(studentOrderRepository, never()).save(any());
+		verify(studentOrderRepository, never()).saveAndFlush(any());
 	}
 
 	/** The regression this suite was added to pin down - see class javadoc. */
@@ -165,6 +166,7 @@ class ManualEnrollmentServiceTest {
 		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
 			.thenReturn(EnrollmentAccessState.neverEnrolled());
 		when(studentOrderRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+		when(studentOrderRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
 		when(paymentRepository.save(any())).thenAnswer(inv -> {
 			Payment payment = inv.getArgument(0);
 			setId(payment, UUID.randomUUID());
@@ -200,6 +202,7 @@ class ManualEnrollmentServiceTest {
 		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
 			.thenReturn(EnrollmentAccessState.neverEnrolled());
 		when(studentOrderRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+		when(studentOrderRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
 		when(paymentRepository.save(any())).thenAnswer(inv -> {
 			Payment payment = inv.getArgument(0);
 			setId(payment, UUID.randomUUID());
@@ -233,6 +236,7 @@ class ManualEnrollmentServiceTest {
 		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
 			.thenReturn(EnrollmentAccessState.neverEnrolled());
 		when(studentOrderRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+		when(studentOrderRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
 		when(paymentRepository.save(any())).thenAnswer(inv -> {
 			Payment payment = inv.getArgument(0);
 			setId(payment, UUID.randomUUID());

@@ -155,9 +155,21 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const instituteConfigItems: NavItem[] = [];
   if (canViewInstituteConfig(role)) {
     instituteConfigItems.push(
-      { label: "General", href: "/tenant-admin/settings/general" },
-      { label: "Branding", href: "/tenant-admin/settings/branding" },
-      { label: "Student Fields", href: "/tenant-admin/settings/student-fields" }
+      // General, Student fields and Integrations are tabs inside Settings (settings-tab-strip.tsx).
+      {
+        label: "Settings",
+        href: "/tenant-admin/settings/general",
+        activePrefixes: [
+          "/tenant-admin/settings/student-fields",
+          "/tenant-admin/settings/site-media",
+          "/tenant-admin/settings/integrations",
+          "/tenant-admin/settings/video",
+          "/tenant-admin/settings/video-providers",
+          "/tenant-admin/settings/video-configuration",
+          "/tenant-admin/settings/branding",
+        ],
+      },
+      { label: "Appearance", href: "/tenant-admin/settings/appearance" }
     );
   }
   if (canViewPaymentGateway(role)) {
@@ -165,14 +177,9 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   // MEDIA-INT-01 - INTEGRATIONS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewIntegrations(role)) {
-    instituteConfigItems.push({ label: "Integrations", href: "/tenant-admin/settings/integrations" });
     // Wave 11 - SMS / WhatsApp provider accounts (same INTEGRATIONS grant).
     instituteConfigItems.push({ label: "Messaging (SMS & WhatsApp)", href: "/tenant-admin/settings/messaging" });
-    // VIDEO Phase 3 - the institute's YouTube channel and video settings (same INTEGRATIONS grant).
-    instituteConfigItems.push(
-      { label: "Video Providers", href: "/tenant-admin/settings/video-providers" },
-      { label: "Video Settings", href: "/tenant-admin/settings/video-configuration" }
-    );
+    // VIDEO Phase 3 - video providers and video settings are the Settings → Video tab now.
   }
   // TEN-DOM-01 - CUSTOM_DOMAINS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewCustomDomains(role)) {

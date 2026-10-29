@@ -317,6 +317,15 @@ public class CourseService {
 			spec = spec.and(CourseSpecifications.search(filter.search(),
 					viewAssembler.teacherIdsMatchingName(filter.search())));
 		}
+		if (filter.tagId() != null) {
+			spec = spec.and((root, query, cb) -> {
+				var subquery = query.subquery(UUID.class);
+				var assignment = subquery.from(com.lms.coursemanagement.course.domain.CourseTagAssignment.class);
+				subquery.select(assignment.get("id").get("courseId"));
+				subquery.where(cb.equal(assignment.get("id").get("tagId"), filter.tagId()));
+				return root.get("id").in(subquery);
+			});
+		}
 
 		Page<Course> page = courseRepository.findAll(spec, safePageable);
 		List<CourseView> views = viewAssembler.toViews(page.getContent(), isStaffView(principal),

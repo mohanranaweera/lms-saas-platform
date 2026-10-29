@@ -1,5 +1,6 @@
 package com.lms.paymentmanagement.payment.service;
 
+import com.lms.paymentmanagement.api.AdminOrderSummary;
 import com.lms.paymentmanagement.api.OrderLineSnapshot;
 import com.lms.paymentmanagement.api.OrderPaymentDetail;
 import com.lms.paymentmanagement.api.OrderRevenueBasis;
@@ -16,6 +17,7 @@ import com.lms.common.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +30,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -167,6 +171,26 @@ public class PaymentStatusApiImpl implements PaymentStatusApi {
 	@Override
 	public List<UUID> findAllOrderIdsForCurrentTenant() {
 		return studentOrderRepository.findAll().stream().map(StudentOrder::getId).toList();
+	}
+
+	@Override
+	public Page<AdminOrderSummary> searchOrders(Long orderNumber, Instant createdFrom, Instant createdBefore,
+			Pageable pageable) {
+		return studentOrderRepository.searchForAdmin(orderNumber, createdFrom, createdBefore, pageable)
+			.map(PaymentStatusApiImpl::toAdminSummary);
+	}
+
+	@Override
+	public List<AdminOrderSummary> searchAllOrders(Long orderNumber, Instant createdFrom, Instant createdBefore) {
+		return studentOrderRepository.searchAllForAdmin(orderNumber, createdFrom, createdBefore)
+			.stream()
+			.map(PaymentStatusApiImpl::toAdminSummary)
+			.toList();
+	}
+
+	private static AdminOrderSummary toAdminSummary(StudentOrder order) {
+		return new AdminOrderSummary(order.getId(), order.getOrderNumber(), order.getDisplayOrderNumber(),
+				order.getCreatedAt(), order.getStudentId(), order.getCourseId(), order.getAmount(), order.getCurrency());
 	}
 
 	@Override

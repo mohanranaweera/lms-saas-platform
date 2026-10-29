@@ -55,6 +55,10 @@ export type TenantConfigDomain =
 /** Mirrors `ConfigValueType`. No property in this wave uses `NUMBER`/`BOOLEAN`/`JSON` — every real `GENERAL`/`BRANDING` key is `STRING`. */
 export type TenantConfigValueType = "STRING" | "NUMBER" | "BOOLEAN" | "JSON";
 
+/** Curated tenant fonts (backend allowlist for `header_font_family`/`body_font_family`). */
+export { APPEARANCE_FONT_OPTIONS } from "@/lib/fonts/font-options";
+export type { AppearanceFontId as AppearanceFont } from "@/lib/fonts/font-options";
+
 /**
  * Mirrors `ConfigPropertyResponse` field-for-field. `value` is `null` for a
  * `sensitive` property regardless of caller — the backend never returns the

@@ -152,6 +152,22 @@ async function mockIntegrations(page: Page, initial: Record<string, unknown>[]) 
 }
 
 test.describe("Tenant Admin video providers", () => {
+  test("Settings → Video shows providers and video settings on one tab; old routes redirect there", async ({ page }) => {
+    await mockTenantSession(page, "TENANT_ADMIN", "admin-1");
+    await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL, connectedByUserId: "admin-1" })]);
+
+    await page.goto("/tenant-admin/settings/video-configuration");
+    await expect(page).toHaveURL(/\/tenant-admin\/settings\/video$/);
+    await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Settings sections" }).getByRole("link", { name: "Video" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("heading", { name: "Video providers", level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Video settings", level: 2 })).toBeVisible();
+    const sidebar = page.getByRole("navigation", { name: "Primary" }).first();
+    await expect(sidebar.getByRole("link", { name: "Video Providers", exact: true })).toHaveCount(0);
+    await expect(sidebar.getByRole("link", { name: "Video Settings", exact: true })).toHaveCount(0);
+    await expect(sidebar.getByRole("link", { name: "Settings", exact: true })).toHaveAttribute("aria-current", "page");
+  });
+
   test("a connected channel shows its details and never a token", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN", "admin-1");
     await mockProviders(page, [account({ status: "CONNECTED", connection: CHANNEL, connectedByUserId: "admin-1" })]);
@@ -209,7 +225,7 @@ test.describe("Tenant Admin video providers", () => {
 
     const panel = page.getByRole("region", { name: /Connect this YouTube channel/ });
     await expect(panel.getByText("UC-new")).toBeVisible();
-    await expect(page).toHaveURL(/\/tenant-admin\/settings\/video-providers$/);
+    await expect(page).toHaveURL(/\/tenant-admin\/settings\/video$/);
     expect(confirmBodies).toHaveLength(0);
 
     await panel.getByRole("button", { name: "Connect this channel" }).click();

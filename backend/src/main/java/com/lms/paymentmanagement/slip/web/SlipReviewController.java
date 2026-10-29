@@ -16,6 +16,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.lms.paymentmanagement.slip.web.dto.SlipPendingCountResponse;
+import jakarta.validation.constraints.Size;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/payment-slips")
+@Validated
 public class SlipReviewController {
 
 	private final SlipReviewService slipReviewService;
@@ -47,10 +51,18 @@ public class SlipReviewController {
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResponse<PageResponse<PaymentSlipResponse>>> getReviewQueue(
 			@RequestParam(required = false) PaymentSlipStatus status,
+			@RequestParam(required = false) @Size(max = 100) String search,
 			@PageableDefault(size = 20, sort = "submittedAt", direction = Sort.Direction.ASC) Pageable pageable) {
-		Page<PaymentSlipView> page = slipReviewService.getReviewQueue(status, pageable);
+		Page<PaymentSlipView> page = slipReviewService.getReviewQueue(status, search, pageable);
 		PageResponse<PaymentSlipResponse> response = PageResponse.from(page.map(SlipController::toResponse));
 		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
+	/** PAY-HUB-01: pending-review slip count for the Payments hub header/badge. */
+	@GetMapping("/review-queue/count")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<SlipPendingCountResponse>> getPendingCount() {
+		return ResponseEntity.ok(ApiResponse.success(new SlipPendingCountResponse(slipReviewService.countPendingReview())));
 	}
 
 	@PostMapping("/{slipId}/approve")

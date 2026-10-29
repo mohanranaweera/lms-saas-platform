@@ -86,7 +86,10 @@ test("course fees: inherit by default; switching it off and saving an override o
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([])) });
   });
 
+  // Facility fee and postage live on the course Settings tab, not Overview.
   await page.goto(`/tenant-admin/courses/${COURSE_ID}`);
+  await expect(page.getByTestId("course-charges")).toHaveCount(0);
+  await page.goto(`/tenant-admin/courses/${COURSE_ID}/settings`);
   const section = page.getByTestId("course-charges");
   await expect(section).toBeVisible();
   await expect(section.getByTestId("course-charges-tenant-default")).toHaveText("LKR 100.00");
@@ -125,7 +128,7 @@ test("course fees: PER_ORDER basis explains that course overrides don't apply", 
     const data = path.endsWith(`/api/v1/courses/${COURSE_ID}`) ? course({ facilityFeeBasis: "PER_ORDER" }) : [];
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(data)) });
   });
-  await page.goto(`/tenant-admin/courses/${COURSE_ID}`);
+  await page.goto(`/tenant-admin/courses/${COURSE_ID}/settings`);
   await expect(page.getByTestId("course-charges-override-note")).toContainText("a course facility fee isn't used");
 });
 

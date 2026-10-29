@@ -1,5 +1,6 @@
 package com.lms.ledgersettlementmanagement.service;
 
+import com.lms.ledgersettlementmanagement.api.OrderPaymentStateApi;
 import com.lms.ledgersettlementmanagement.api.PaymentOperationalState;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntry;
 import com.lms.ledgersettlementmanagement.domain.LedgerEntryType;
@@ -31,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional(readOnly = true)
-public class PaymentOperationalStateService {
+public class PaymentOperationalStateService implements OrderPaymentStateApi {
 
 	private final LedgerEntryRepository ledgerEntryRepository;
 
@@ -52,6 +53,7 @@ public class PaymentOperationalStateService {
 	 * PaymentStatusApi#findOrderPaymentDetails}) - a nonexistent/cross-tenant
 	 * order id is simply absent, mirroring that method's own contract.
 	 */
+	@Override
 	public Map<UUID, PaymentOperationalState> resolveForOrders(List<UUID> orderIds) {
 		if (orderIds.isEmpty()) {
 			return Map.of();

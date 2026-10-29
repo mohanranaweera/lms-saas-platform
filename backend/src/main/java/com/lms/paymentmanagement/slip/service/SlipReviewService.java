@@ -31,12 +31,17 @@ import com.lms.paymentmanagement.slip.domain.PaymentSlipStatus;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipFlagRepository;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
 import com.lms.paymentmanagement.support.PaymentDomainAccessGuard;
+import com.lms.paymentmanagement.api.OrderNumberFormat;
+import com.lms.usermanagement.api.StudentContact;
+import com.lms.usermanagement.api.StudentLookupApi;
+import com.lms.usermanagement.api.StudentSummary;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -92,6 +97,8 @@ public class SlipReviewService {
 
 	private static final Duration DOWNLOAD_URL_TTL = Duration.ofMinutes(5);
 
+	static final int SEARCH_STUDENT_LIMIT = 500;
+
 	private final PaymentSlipRepository paymentSlipRepository;
 
 	private final PaymentSlipFlagRepository paymentSlipFlagRepository;
@@ -124,6 +131,8 @@ public class SlipReviewService {
 
 	private final DiscountRedemptionService discountRedemptionService;
 
+	private final StudentLookupApi studentLookupApi;
+
 	public SlipReviewService(PaymentSlipRepository paymentSlipRepository,
 			PaymentSlipFlagRepository paymentSlipFlagRepository, StudentOrderRepository studentOrderRepository,
 			ObjectStorageApi slipStorageApi, PaymentDomainAccessGuard accessGuard,
@@ -131,7 +140,9 @@ public class SlipReviewService {
 			PermissionCheckService permissionCheckService, UserProvisioningApi userProvisioningApi,
 			TenantContext tenantContext, PaymentRepository paymentRepository, LedgerEntryApi ledgerEntryApi,
 			StudentOrderLineRepository studentOrderLineRepository, EntitlementGrantApi entitlementGrantApi,
-			CourseLookupApi courseLookupApi, DiscountRedemptionService discountRedemptionService) {
+			CourseLookupApi courseLookupApi, DiscountRedemptionService discountRedemptionService,
+			StudentLookupApi studentLookupApi) {
+		this.studentLookupApi = studentLookupApi;
 		this.courseLookupApi = courseLookupApi;
 		this.discountRedemptionService = discountRedemptionService;
 		this.studentOrderLineRepository = studentOrderLineRepository;
@@ -162,13 +173,49 @@ public class SlipReviewService {
 	 */
 	@Transactional(readOnly = true)
 	public Page<PaymentSlipView> getReviewQueue(PaymentSlipStatus status, Pageable pageable) {
+		return getReviewQueue(status, null, pageable);
+	}
+
+	/**
+	 * PAY-HUB-01: as {@link #getReviewQueue(PaymentSlipStatus, Pageable)},
+	 * optionally narrowed by a staff search term matched against the
+	 * student's name/email/mobile (via {@link StudentLookupApi}, capped at
+	 * {@value #SEARCH_STUDENT_LIMIT} students), the slip reference
+	 * (contains) and the order number (exact). Every lookup is tenant-scoped.
+	 */
+	@Transactional(readOnly = true)
+	public Page<PaymentSlipView> getReviewQueue(PaymentSlipStatus status, String search, Pageable pageable) {
 		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW);
-		Page<PaymentSlip> page = paymentSlipRepository.findReviewQueue(status, pageable);
+		Page<PaymentSlip> page;
+		if (search == null || search.isBlank()) {
+			page = paymentSlipRepository.findReviewQueue(status, pageable);
+		}
+		else {
+			String term = search.strip();
+			List<UUID> studentIds = studentLookupApi.searchStudentUserIds(term, SEARCH_STUDENT_LIMIT);
+			List<UUID> orderIds = new ArrayList<>();
+			OrderNumberFormat.parse(term)
+				.ifPresent(number -> studentOrderRepository.findByOrderNumber(number)
+					.ifPresent(order -> orderIds.add(order.getId())));
+			String referencePattern = "%" + term.toLowerCase(Locale.ROOT)
+				.replace("\\", "\\\\")
+				.replace("%", "\\%")
+				.replace("_", "\\_") + "%";
+			page = paymentSlipRepository.searchReviewQueue(status, studentIds, referencePattern, orderIds, pageable);
+		}
 		List<PaymentSlip> slips = page.getContent();
 		Map<UUID, StudentOrder> ordersById = loadOrdersById(slips);
 		Map<UUID, TenantUserSummary> usersById = loadUsersById(slips);
+		Map<UUID, StudentIdentity> studentsById = loadStudentsById(slips);
 		Map<UUID, List<PaymentSlipOrderLine>> linesByOrderId = loadLinesByOrderId(ordersById.keySet());
-		return page.map(slip -> toView(slip, ordersById, usersById, linesByOrderId));
+		return page.map(slip -> toView(slip, ordersById, usersById, studentsById, linesByOrderId));
+	}
+
+	/** PAY-HUB-01: pending-review ({@code SUBMITTED}/{@code UNDER_REVIEW}) slip count - staff {@code VIEW} only. */
+	@Transactional(readOnly = true)
+	public long countPendingReview() {
+		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW);
+		return paymentSlipRepository.countPendingReview();
 	}
 
 	/** Owner student OR staff {@code VIEW} (plan §10/§15) - see {@link PaymentDomainAccessGuard}. */
@@ -180,13 +227,24 @@ public class SlipReviewService {
 		return toView(slip);
 	}
 
-	/** Owner student OR staff {@code VIEW}, same guard as {@link #getSlipDetail}. */
-	@Transactional(readOnly = true)
-	public SignedDownloadUrl getDownloadUrl(UUID slipId) {
+	/**
+	 * Owner student OR staff {@code VIEW}, same guard as {@link #getSlipDetail}.
+	 * PAY-HUB-01 adds the stored content type (for the inline slip viewer).
+	 * Deliberately NOT {@code @Transactional}: the content-type lookup may be
+	 * a network round trip to object storage, which must never run inside a
+	 * database transaction ({@code .claude/rules/backend.md}). The slip read
+	 * is a single tenant-scoped repository call.
+	 */
+	public SlipDownloadLink getDownloadUrl(UUID slipId) {
 		PaymentSlip slip = paymentSlipRepository.findById(slipId)
 			.orElseThrow(() -> new NotFoundException("Payment slip not found"));
 		accessGuard.requireOwnerOrStaffView(slip.getStudentId());
-		return slipStorageApi.generateSignedDownloadUrl(slip.getStorageObjectKey(), DOWNLOAD_URL_TTL);
+		SignedDownloadUrl signed = slipStorageApi.generateSignedDownloadUrl(slip.getStorageObjectKey(),
+				DOWNLOAD_URL_TTL);
+		String contentType = slipStorageApi.findContentType(slip.getStorageObjectKey())
+			.filter(SlipContentSniffer::isAccepted)
+			.orElse(null);
+		return new SlipDownloadLink(signed.url(), signed.expiresAt(), contentType);
 	}
 
 	/**
@@ -389,17 +447,60 @@ public class SlipReviewService {
 		List<PaymentSlipFlagView> flagViews = flags.stream().map(SlipReviewService::toFlagView).toList();
 		List<PaymentSlipOrderLine> lines = order == null ? List.of()
 				: loadLinesByOrderId(Set.of(order.getId())).getOrDefault(order.getId(), List.of());
-		return buildView(slip, flagViews, order, usersById, lines);
+		return withStudentAndOrderNumber(buildView(slip, flagViews, order, usersById, lines),
+				loadStudentsById(List.of(slip)).get(slip.getStudentId()), order);
 	}
 
 	private PaymentSlipView toView(PaymentSlip slip, Map<UUID, StudentOrder> ordersById,
-			Map<UUID, TenantUserSummary> usersById, Map<UUID, List<PaymentSlipOrderLine>> linesByOrderId) {
+			Map<UUID, TenantUserSummary> usersById, Map<UUID, StudentIdentity> studentsById,
+			Map<UUID, List<PaymentSlipOrderLine>> linesByOrderId) {
 		List<PaymentSlipFlagView> flagViews = paymentSlipFlagRepository.findAllBySlipId(slip.getId())
 			.stream()
 			.map(SlipReviewService::toFlagView)
 			.toList();
-		return buildView(slip, flagViews, ordersById.get(slip.getOrderId()), usersById,
-				linesByOrderId.getOrDefault(slip.getOrderId(), List.of()));
+		StudentOrder order = ordersById.get(slip.getOrderId());
+		return withStudentAndOrderNumber(buildView(slip, flagViews, order, usersById,
+				linesByOrderId.getOrDefault(slip.getOrderId(), List.of())), studentsById.get(slip.getStudentId()),
+				order);
+	}
+
+	/** PAY-HUB-01: a student user's profile id, name and mobile. */
+	record StudentIdentity(UUID studentProfileId, String name, String mobile) {
+	}
+
+	private static PaymentSlipView withStudentAndOrderNumber(PaymentSlipView view, StudentIdentity student,
+			StudentOrder order) {
+		return new PaymentSlipView(view.id(), view.orderId(), view.studentId(), view.referenceNumber(), view.status(),
+				view.submittedAt(), view.reviewerId(), view.reviewedAt(), view.flags(), view.studentEmail(),
+				view.reviewerEmail(), view.orderAmount(), view.orderCurrency(), view.orderLines(), view.orderSubtotal(),
+				view.orderFacilityFee(), view.orderDiscount(), view.orderPostage(), view.orderDelivery(),
+				student != null ? student.studentProfileId() : null, student != null ? student.name() : null,
+				student != null ? student.mobile() : null, order != null ? order.getOrderNumber() : null,
+				order != null ? order.getDisplayOrderNumber() : null);
+	}
+
+	/**
+	 * Two batched, tenant-scoped {@link StudentLookupApi} reads for the whole
+	 * page (profile id + name, and mobile) - never one call per row.
+	 */
+	private Map<UUID, StudentIdentity> loadStudentsById(List<PaymentSlip> slips) {
+		Set<UUID> studentIds = new HashSet<>();
+		slips.forEach(slip -> studentIds.add(slip.getStudentId()));
+		if (studentIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<UUID, String> mobiles = new HashMap<>();
+		for (StudentContact contact : studentLookupApi.findContacts(studentIds)) {
+			if (contact.mobile() != null) {
+				mobiles.put(contact.userId(), contact.mobile());
+			}
+		}
+		Map<UUID, StudentIdentity> result = new HashMap<>();
+		for (StudentSummary summary : studentLookupApi.getStudentSummariesByUserId(studentIds)) {
+			result.put(summary.userId(),
+					new StudentIdentity(summary.studentProfileId(), summary.name(), mobiles.get(summary.userId())));
+		}
+		return result;
 	}
 
 	static PaymentSlipView buildView(PaymentSlip slip, List<PaymentSlipFlagView> flagViews, StudentOrder order,

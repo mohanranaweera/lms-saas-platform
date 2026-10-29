@@ -114,6 +114,9 @@ class SlipReviewServiceTest {
 	@Mock
 	private com.lms.paymentmanagement.discount.service.DiscountRedemptionService discountRedemptionService;
 
+	@Mock
+	private com.lms.usermanagement.api.StudentLookupApi studentLookupApi;
+
 	private SlipReviewService slipReviewService;
 
 	@BeforeEach
@@ -121,7 +124,8 @@ class SlipReviewServiceTest {
 		slipReviewService = new SlipReviewService(paymentSlipRepository, paymentSlipFlagRepository,
 				studentOrderRepository, slipStorageApi, accessGuard, enrollmentActivationApi, auditLogApi,
 				permissionCheckService, userProvisioningApi, tenantContext, paymentRepository, ledgerEntryApi,
-				studentOrderLineRepository, entitlementGrantApi, courseLookupApi, discountRedemptionService);
+				studentOrderLineRepository, entitlementGrantApi, courseLookupApi, discountRedemptionService,
+				studentLookupApi);
 	}
 
 	@AfterEach

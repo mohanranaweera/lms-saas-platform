@@ -1,30 +1,31 @@
 import { z } from "zod";
 
-/**
- * Zod schema for the Tenant Admin "Add teacher" form
- * (`/tenant-admin/teachers/new`).
- *
- * Mirrors `TeacherCreateRequest` (backend
- * `com.lms.usermanagement.teacher.web.dto.TeacherCreateRequest`) field-for-field:
- * `name`, `email`, `password`. This is a UX convenience only — the backend
- * independently and authoritatively re-validates every field (including
- * tenant-scoped email uniqueness, which surfaces as a `409 CONFLICT` this form
- * maps onto the `email` field), per `.claude/rules/frontend.md`.
- */
+const profileFields = {
+  firstName: z.string().trim().min(1, "First name is required.").max(120),
+  lastName: z.string().trim().min(1, "Last name is required.").max(120),
+  contactNumber: z.string().trim().min(1, "Contact number is required.").max(40),
+  instituteCommissionPercent: z.number().min(0, "Commission must be 0 or higher.").max(100, "Commission must be 100 or lower."),
+  qualifications: z.string().max(2000).optional(),
+  description: z.string().max(5000).optional(),
+  profileMediaFileId: z.string().optional(),
+  publicProfileDisabled: z.boolean(),
+};
+
 export const teacherCreateSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required.")
-    .max(255, "Name must be 255 characters or fewer."),
-  email: z
-    .string()
-    .min(1, "Email is required.")
-    .email("Enter a valid email address.")
-    .max(255, "Email must be 255 characters or fewer."),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters.")
-    .max(255, "Password must be 255 characters or fewer."),
+  name: z.string().trim().min(1).max(255),
+  firstName: profileFields.firstName,
+  lastName: profileFields.lastName,
+  contactNumber: profileFields.contactNumber,
+  instituteCommissionPercent: z.number().min(0, "Commission must be 0 or higher.").max(100, "Commission must be 100 or lower."),
+  qualifications: profileFields.qualifications,
+  description: profileFields.description,
+  profileMediaFileId: profileFields.profileMediaFileId,
+  publicProfileDisabled: profileFields.publicProfileDisabled,
+  email: z.string().trim().email("Enter a valid email address.").max(255),
+  password: z.string().min(8, "Password must be at least 8 characters.").max(255),
 });
 
+export const teacherUpdateSchema = z.object(profileFields);
+
 export type TeacherCreateFormValues = z.infer<typeof teacherCreateSchema>;
+export type TeacherUpdateFormValues = z.infer<typeof teacherUpdateSchema>;

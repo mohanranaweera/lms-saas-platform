@@ -65,6 +65,9 @@ class OrderServiceTest {
 
 	private static final UUID COURSE_ID = UUID.randomUUID();
 
+	@org.mockito.Mock
+	private com.lms.paymentmanagement.order.repository.StudentOrderLineRepository studentOrderLineRepository;
+
 	@Mock
 	private StudentOrderRepository studentOrderRepository;
 
@@ -104,7 +107,7 @@ class OrderServiceTest {
 	void setUp() {
 		service = new OrderService(studentOrderRepository, paymentRepository, courseLookupApi, tenantContext,
 				accessGuard, enrollmentAccessApi, enrollmentActivationApi, reactivationLinkingApi,
-				permissionCheckService, eventPublisher, ledgerEntryApi);
+				permissionCheckService, eventPublisher, ledgerEntryApi, studentOrderLineRepository);
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		when(courseLookupApi.getResolvedCheckoutAmount(COURSE_ID))
 			.thenReturn(Optional.of(new CheckoutAmount(new BigDecimal("99.99"), "USD", null, false, false)));
@@ -112,6 +115,7 @@ class OrderServiceTest {
 		AuthenticatedPrincipalHolder
 			.set(new AuthenticatedPrincipal(STUDENT_ID, TENANT_ID, "STUDENT", UUID.randomUUID()));
 		when(studentOrderRepository.save(any(StudentOrder.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(studentOrderRepository.saveAndFlush(any(StudentOrder.class))).thenAnswer(inv -> inv.getArgument(0));
 		when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> {
 			Payment payment = inv.getArgument(0);
 			if (payment.getId() == null) {
@@ -183,6 +187,7 @@ class OrderServiceTest {
 		org.mockito.Mockito.verify(reactivationLinkingApi, org.mockito.Mockito.never())
 			.linkApprovedRequestToNewOrder(any(), any(), any());
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	/**
@@ -203,6 +208,7 @@ class OrderServiceTest {
 		org.mockito.Mockito.verify(reactivationLinkingApi, org.mockito.Mockito.never())
 			.linkApprovedRequestToNewOrder(any(), any(), any());
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	// ------------------------------------------------------------------
@@ -294,6 +300,7 @@ class OrderServiceTest {
 			.hasMessageContaining("not priced as FREE");
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 		org.mockito.Mockito.verify(enrollmentAccessApi, org.mockito.Mockito.never()).resolveAccessState(any(), any());
 		org.mockito.Mockito.verify(paymentRepository, org.mockito.Mockito.never()).save(any());
 		org.mockito.Mockito.verify(enrollmentActivationApi, org.mockito.Mockito.never())
@@ -321,6 +328,7 @@ class OrderServiceTest {
 			.hasMessageContaining("not priced as FREE");
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 		org.mockito.Mockito.verify(enrollmentActivationApi, org.mockito.Mockito.never())
 			.activateOrReactivateFromConfirmedPayment(any(), any(), any(), any());
 	}
@@ -334,6 +342,7 @@ class OrderServiceTest {
 			.isInstanceOf(ConflictException.class);
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	@Test
@@ -346,6 +355,7 @@ class OrderServiceTest {
 		assertThatThrownBy(() -> service.createOrder(COURSE_ID, null)).isInstanceOf(ConflictException.class);
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	/**
@@ -370,6 +380,7 @@ class OrderServiceTest {
 			.isInstanceOf(AccessDeniedException.class);
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	@Test
@@ -431,6 +442,7 @@ class OrderServiceTest {
 			});
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 		org.mockito.Mockito.verify(paymentRepository, org.mockito.Mockito.never()).save(any());
 	}
 

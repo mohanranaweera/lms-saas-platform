@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -16,7 +15,6 @@ import {
 import { TenantGoogleAppSection } from "@/components/integrations/tenant-google-app-section";
 import { TenantYouTubeChannelCard } from "@/components/integrations/tenant-youtube-channel-card";
 import { VideoIntegrationSheet } from "@/components/integrations/video-integration-sheet";
-import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -103,9 +101,9 @@ function ConfirmChannelPanel({ pendingId, onDone }: { pendingId: string; onDone:
       aria-labelledby="confirm-channel-heading"
       className="flex max-w-2xl flex-col gap-3 rounded-lg border border-border p-4"
     >
-      <h2 id="confirm-channel-heading" className="text-base font-medium text-foreground">
+      <h3 id="confirm-channel-heading" className="text-base font-medium text-foreground">
         Connect this YouTube channel to &ldquo;{channel.integrationName}&rdquo;?
-      </h2>
+      </h3>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
         <dt className="text-muted-foreground">Channel</dt>
         <dd className="break-all text-foreground">{channel.channelTitle ?? "—"}</dd>
@@ -150,7 +148,7 @@ function ConfirmChannelPanel({ pendingId, onDone }: { pendingId: string; onDone:
   );
 }
 
-function VideoProvidersContent() {
+export function VideoProvidersSection() {
   const { session } = useAuth();
   const canManage = canManageIntegrations(session?.role ?? null);
   const query = useTenantVideoProviders();
@@ -160,15 +158,9 @@ function VideoProvidersContent() {
   const [result, clearResult] = useCallbackResult();
 
   return (
-    <div className="flex flex-col gap-6">
+    <section aria-labelledby="video-providers-heading" className="flex flex-col gap-6">
       <div>
-        <Link
-          href="/tenant-admin/settings"
-          className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
-        >
-          ← Institute configuration
-        </Link>
-        <h1 className="mt-2 text-xl font-semibold text-foreground">Video providers</h1>
+        <h2 id="video-providers-heading" className="text-lg font-semibold text-foreground">Video providers</h2>
         <p className="text-sm text-muted-foreground">
           Where your institute&apos;s lesson videos are stored. Access tokens are never shown or sent to your browser.
         </p>
@@ -255,15 +247,6 @@ function VideoProvidersContent() {
           );
         }}
       </QueryStateBoundary>
-    </div>
-  );
-}
-
-/** Tenant Admin → Institute configuration → Video providers (VIDEO Phase 3, ADR-018 Amendment 2). */
-export default function VideoProvidersPage() {
-  return (
-    <Suspense fallback={<LoadingState label="Loading video providers…" />}>
-      <VideoProvidersContent />
-    </Suspense>
+    </section>
   );
 }

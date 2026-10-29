@@ -9,6 +9,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
@@ -33,11 +34,33 @@ public class ConfigPropertyRegistry {
 
 	private static final double MIN_AA_CONTRAST_RATIO = 4.5;
 
+	/** WCAG 2.x AA minimum for large text / UI components (primary color on the page background). */
+	private static final double MIN_UI_CONTRAST_RATIO = 3.0;
+
+	/**
+	 * Curated public-page font allowlist (tenant appearance spec section 3). The
+	 * frontend maps each token to a predeclared self-hosted font; an arbitrary
+	 * family name, CSS fragment or URL can never be stored.
+	 */
+	public static final List<String> APPEARANCE_FONTS = List.of("INTER", "ROBOTO", "OPEN_SANS", "LATO", "POPPINS",
+			"MONTSERRAT", "NOTO_SANS", "NOTO_SERIF", "GEIST", "SYSTEM", "SERIF");
+
+	public static final String DEFAULT_APPEARANCE_FONT = "INTER";
+
+	/** Public header logo size tokens; the frontend owns the pixel dimensions. */
+	public static final List<String> LOGO_DISPLAY_SIZES = List.of("SMALL", "STANDARD", "LARGE");
+
+	public static final String DEFAULT_LOGO_DISPLAY_SIZE = "STANDARD";
+
 	/** Cap for free-text identity/contact fields - generous, not a UX limit, just a storage-pressure guard. */
 	private static final int MAX_TEXT_LENGTH = 255;
 
 	/** Cap for URL fields - generous enough for any real logo/favicon URL, including query strings. */
 	private static final int MAX_URL_LENGTH = 2048;
+
+	private static final int MAX_APPEARANCE_LIST_ITEMS = 50;
+
+	private static final int MAX_APPEARANCE_LIST_VALUE_LENGTH = 4096;
 
 	private final Map<ConfigDomain, List<ConfigPropertyDefinition>> propertiesByDomain = buildRegistry();
 
@@ -167,6 +190,48 @@ public class ConfigPropertyRegistry {
 		return value instanceof Boolean;
 	}
 
+	private static boolean isUrlList(Object value, Map<String, Object> batch) {
+		if (!(value instanceof List<?> values) || values.size() > MAX_APPEARANCE_LIST_ITEMS) {
+			return false;
+		}
+		return values.stream().allMatch(item -> item instanceof String s && !s.isBlank()
+				&& s.length() <= MAX_APPEARANCE_LIST_VALUE_LENGTH && isValidHttpUrl(s));
+	}
+
+	private static boolean isUuidList(Object value, Map<String, Object> batch) {
+		if (!(value instanceof List<?> values) || values.size() > MAX_APPEARANCE_LIST_ITEMS) {
+			return false;
+		}
+		return values.stream().allMatch(item -> {
+			if (!(item instanceof String s) || s.isBlank() || s.length() > 36) {
+				return false;
+			}
+			try {
+				UUID.fromString(s);
+				return true;
+			}
+			catch (IllegalArgumentException ex) {
+				return false;
+			}
+		});
+	}
+
+	private static boolean isYouTubeUrl(String value) {
+		try {
+			URI uri = new URI(value);
+			String host = uri.getHost();
+			if (!isValidHttpsUrl(value) || host == null) {
+				return false;
+			}
+			String normalized = host.toLowerCase(java.util.Locale.ROOT);
+			return normalized.equals("youtube.com") || normalized.endsWith(".youtube.com")
+					|| normalized.equals("youtu.be");
+		}
+		catch (URISyntaxException e) {
+			return false;
+		}
+	}
+
 	private static List<ConfigPropertyDefinition> generalProperties() {
 		return List.of(
 				// Required, no default - GET with no row set surfaces null/absent
@@ -192,13 +257,88 @@ public class ConfigPropertyRegistry {
 	private static List<ConfigPropertyDefinition> brandingProperties() {
 		return List.of(
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "primary_color", ConfigValueType.STRING, null,
-						(value, batch) -> value instanceof String s && HEX_COLOR_PATTERN.matcher(s).matches()),
+						ConfigPropertyRegistry::validatePrimaryColor),
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "secondary_color", ConfigValueType.STRING, null,
 						ConfigPropertyRegistry::validateSecondaryColor),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "accent_color", ConfigValueType.STRING, null,
+						(value, batch) -> isHexColor(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "background_color", ConfigValueType.STRING, null,
+						(value, batch) -> isHexColor(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "surface_color", ConfigValueType.STRING, null,
+						(value, batch) -> isHexColor(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "text_color", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::validateTextColor),
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "logo_url", ConfigValueType.STRING, null,
 						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "favicon_url", ConfigValueType.STRING, null,
-						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)));
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "receipt_logo_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "homepage_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "public_page_enabled", ConfigValueType.BOOLEAN, Boolean.TRUE,
+						ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "sub_hero_enabled", ConfigValueType.BOOLEAN, Boolean.TRUE,
+						ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "cta_enabled", ConfigValueType.BOOLEAN, Boolean.TRUE,
+						ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "featured_course_ids", ConfigValueType.JSON, List.of(),
+						ConfigPropertyRegistry::isUuidList),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "support_video_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isYouTubeUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "desktop_banner_urls", ConfigValueType.JSON, List.of(),
+						ConfigPropertyRegistry::isUrlList),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "mobile_banner_urls", ConfigValueType.JSON, List.of(),
+						ConfigPropertyRegistry::isUrlList),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "header_font_family", ConfigValueType.STRING,
+						DEFAULT_APPEARANCE_FONT, (value, batch) -> value instanceof String s && APPEARANCE_FONTS.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "body_font_family", ConfigValueType.STRING,
+						DEFAULT_APPEARANCE_FONT, (value, batch) -> value instanceof String s && APPEARANCE_FONTS.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "logo_display_size", ConfigValueType.STRING,
+						DEFAULT_LOGO_DISPLAY_SIZE,
+						(value, batch) -> value instanceof String s && LOGO_DISPLAY_SIZES.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "teacher_auto_rotate", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	private static boolean isHexColor(Object value) {
+		return value instanceof String s && HEX_COLOR_PATTERN.matcher(s).matches();
+	}
+
+	/**
+	 * {@code primary_color}: hex, and - when a valid {@code background_color}
+	 * is saved in the same batch - at least {@value #MIN_UI_CONTRAST_RATIO}:1
+	 * against it (buttons/links must stay visible on the public page). Like
+	 * {@link #validateSecondaryColor}, a single-key update is not cross-checked
+	 * against the already-persisted value.
+	 */
+	private static boolean validatePrimaryColor(Object value, Map<String, Object> batch) {
+		if (!isHexColor(value)) {
+			return false;
+		}
+		Object background = batch.get("background_color");
+		return !isHexColor(background)
+				|| WcagContrast.ratio((String) value, (String) background) >= MIN_UI_CONTRAST_RATIO;
+	}
+
+	/**
+	 * {@code text_color}: hex, and at least {@value #MIN_AA_CONTRAST_RATIO}:1
+	 * (WCAG AA body text) against {@code background_color} and against
+	 * {@code surface_color}, each checked only when that key carries a valid
+	 * hex in the same batch.
+	 */
+	private static boolean validateTextColor(Object value, Map<String, Object> batch) {
+		if (!isHexColor(value)) {
+			return false;
+		}
+		String text = (String) value;
+		for (String key : List.of("background_color", "surface_color")) {
+			Object other = batch.get(key);
+			if (isHexColor(other) && WcagContrast.ratio(text, (String) other) < MIN_AA_CONTRAST_RATIO) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

@@ -1,11 +1,14 @@
 package com.lms.paymentmanagement.api;
 
+import java.time.Instant;
 import java.time.YearMonth;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * The narrow, read-only contract other domains are permitted to depend on
@@ -150,5 +153,17 @@ public interface PaymentStatusApi {
 	 * from {@code course-management}'s lesson billing months). Read-only.
 	 */
 	Set<UUID> findOrderIdsWithLinesInMonths(Set<YearMonth> months, Collection<UUID> lessonIdsInMonths);
+
+
+	/**
+	 * PAY-HUB-01 "All Orders": the current tenant's orders, newest first,
+	 * optionally narrowed to an exact order number and a
+	 * {@code [createdFrom, createdBefore)} window (either bound nullable).
+	 */
+	Page<AdminOrderSummary> searchOrders(Long orderNumber, Instant createdFrom, Instant createdBefore,
+			Pageable pageable);
+
+	/** As {@link #searchOrders} but every match, for filters only resolvable outside this module. */
+	List<AdminOrderSummary> searchAllOrders(Long orderNumber, Instant createdFrom, Instant createdBefore);
 
 }
