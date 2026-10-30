@@ -11,8 +11,9 @@ import { ExamEnrollmentActions } from "@/components/exams/enrollment/exam-enroll
 import { ExamManagementHeader } from "@/components/exams/management/exam-management-header";
 import { EnrolledStudentsTable, PAGE_SIZES } from "@/components/exams/management/enrolled-students-table";
 import { percentText } from "@/components/exams/management/management-shared";
+import { NotifyMarksDialog } from "@/components/exams/management/notify-marks-dialog";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canAuthorExams } from "@/lib/auth/permissions";
+import { canAuthorExams, canManageExamResults } from "@/lib/auth/permissions";
 import { useExamDetail, type ExamDetail } from "@/lib/api/exam-config";
 import { useExamManagement, type ExamManagementSummary } from "@/lib/api/exam-management";
 
@@ -114,18 +115,11 @@ function HeaderSkeleton() {
  * `GET /exams/{id}/management`. Action visibility is UX only — the server
  * re-authorizes every write.
  */
-export function ExamManagementPage({
-  portal,
-  examId,
-  notifyMarks,
-}: {
-  portal: ExamPortal;
-  examId: string;
-  notifyMarks?: { onClick: () => void; disabledReason?: string | null };
-}) {
+export function ExamManagementPage({ portal, examId }: { portal: ExamPortal; examId: string }) {
   const paths = examPaths(portal);
   const { session } = useAuth();
   const canAuthor = canAuthorExams(session?.role ?? null);
+  const canNotify = canManageExamResults(session?.role ?? null);
   const detail = useExamDetail(examId);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -133,6 +127,8 @@ export function ExamManagementPage({
   const management = useExamManagement(examId, { search, page, size });
   const toast = useAdminToast();
   const showToast = toast.show;
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const resultsPublishedAt = management.data?.resultsPublishedAt ?? null;
 
   const onSearch = useCallback((value: string) => {
     setSearch(value);
@@ -163,7 +159,13 @@ export function ExamManagementPage({
           permissionDenied={{ dashboardHref: paths.directory }}
           genericErrorMessage="We couldn't load this exam."
         >
-          {(exam) => (
+          {(exam) => {
+            // UX only: the server answers 409 NOT_ENDED and re-checks APPROVE / owning teacher.
+            const serverNow = management.data?.serverNow ?? null;
+            const ended =
+              exam.status === "FINISHED" ||
+              (serverNow !== null && new Date(serverNow).getTime() >= new Date(exam.endAt).getTime());
+            return (
             <div className="flex min-w-0 flex-col gap-5">
               <ExamManagementHeader exam={exam} portal={portal} canAuthor={canAuthor} onToast={onToast} />
               <SummaryCards exam={exam} summary={management.data?.summary} loading={management.status === "pending"} />
@@ -180,10 +182,24 @@ export function ExamManagementPage({
                 onSize={onSize}
                 canAuthor={canAuthor}
                 onToast={onToast}
-                notifyMarks={notifyMarks}
+                notifyMarks={
+                  canNotify
+                    ? { onClick: () => setNotifyOpen(true), disabledReason: ended ? null : "Available after the exam ends" }
+                    : null
+                }
+                resultsPublishedAt={resultsPublishedAt}
               />
+              {notifyOpen ? (
+                <NotifyMarksDialog
+                  exam={exam}
+                  open
+                  onOpenChange={setNotifyOpen}
+                  onSent={(text) => onToast({ kind: "success", text })}
+                />
+              ) : null}
             </div>
-          )}
+            );
+          }}
         </QueryStateBoundary>
       )}
       <AdminToast message={toast.message} onDismiss={toast.dismiss} />

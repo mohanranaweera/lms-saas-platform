@@ -1,8 +1,8 @@
 "use client";
 
-import { ExamLeaderboardsPlaceholder } from "@/components/exams/config/exam-placeholder-pages";
+import { LeaderboardListPage } from "@/components/exams/leaderboards/leaderboard-list-page";
 
-/** Exam leaderboards — placeholder until Slice E. */
+/** Exam leaderboards (Slice E, D7): list, add, edit, delete. */
 export default function TeacherExamLeaderboardsPage() {
-  return <ExamLeaderboardsPlaceholder portal="teacher" />;
+  return <LeaderboardListPage portal="teacher" />;
 }

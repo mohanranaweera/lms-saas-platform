@@ -132,6 +132,8 @@ function participated(entry: MockRow): boolean {
 
 export interface ManagementMockOptions {
   rows: MockRow[];
+  /** Slice E: the management response's `resultsPublishedAt` (read on every GET). */
+  resultsPublishedAt?: () => string | null;
   /** Answer the next marks PUT with this 400 field error (server-only rule). */
   nextResultFieldError?: { field: string; message: string };
 }
@@ -213,7 +215,7 @@ export async function mockExamManagement(page: Page, config: ExamConfigMock, exa
         200,
         apiSuccess({
           serverNow: SERVER_NOW,
-          resultsPublishedAt: null,
+          resultsPublishedAt: options.resultsPublishedAt?.() ?? null,
           exam: examPayload(),
           summary: summary(),
           students: { content, page: page0, size, totalElements: list.length, totalPages: Math.ceil(list.length / size) },

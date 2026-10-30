@@ -222,6 +222,16 @@ export function canAuthorExams(role: string | null): boolean {
 }
 
 /**
+ * Roles that may publish/notify exam marks and create, edit or delete exam
+ * leaderboards (Klass Exam Module Slice E): staff with `DomainArea.EXAMS`
+ * write grants and the owning teacher. Teacher assistants are read-only here,
+ * unlike `canAuthorExams`. UX only — the server re-checks every write.
+ */
+export function canManageExamResults(role: string | null): boolean {
+  return role === "TEACHER" || role === "TENANT_ADMIN" || role === "EXAM_MANAGER";
+}
+
+/**
  * Roles that may submit a manual mark on a structured exam answer, per
  * `MarkingQueueService#requireMarkingAccess` — deliberately narrower than
  * `canAuthorExams` above, and NOT the same role set: marking authorization is

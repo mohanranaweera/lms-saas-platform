@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import {
+  BadgeCheck,
   ChevronFirst,
   ChevronLast,
   ChevronLeft,
@@ -49,6 +50,7 @@ import {
 } from "@/lib/api/exam-management";
 import type { ExamDetail } from "@/lib/api/exam-config";
 import type { ExamPortal } from "@/components/exams/config/exam-shared";
+import { formatExamDateTime } from "@/lib/exams/exam-time";
 
 export const PAGE_SIZES = [10, 25, 50] as const;
 
@@ -242,6 +244,7 @@ export function EnrolledStudentsTable({
   canAuthor,
   onToast,
   notifyMarks,
+  resultsPublishedAt = null,
 }: {
   exam: ExamDetail;
   portal: ExamPortal;
@@ -261,8 +264,10 @@ export function EnrolledStudentsTable({
   onSize: (size: number) => void;
   canAuthor: boolean;
   onToast: Toast;
-  /** Slice E wires Notify Marks; until then the button is disabled with a tooltip. */
-  notifyMarks?: { onClick: () => void; disabledReason?: string | null };
+  /** Notify Marks (Slice E): `null` hides the button (no authoring access); a `disabledReason` shows it disabled with a tooltip. */
+  notifyMarks?: { onClick: () => void; disabledReason?: string | null } | null;
+  /** Server fact: set once Notify Marks published the results. */
+  resultsPublishedAt?: string | null;
 }) {
   const searchId = useId();
   const [input, setInput] = useState(search);
@@ -473,7 +478,7 @@ export function EnrolledStudentsTable({
     );
   }
 
-  const notifyDisabledReason = notifyMarks ? (notifyMarks.disabledReason ?? null) : "Available after results are published";
+  const notifyDisabledReason = notifyMarks ? (notifyMarks.disabledReason ?? null) : "You don't have permission to notify students";
   const notifyButton = (
     <Button
       type="button"
@@ -525,9 +530,17 @@ export function EnrolledStudentsTable({
             <Download aria-hidden="true" />
             {exportCsv.isPending ? "Exporting…" : "Export as CSV"}
           </Button>
-          {notifyDisabledReason ? <Tooltip label={notifyDisabledReason}>{notifyButton}</Tooltip> : notifyButton}
+          {notifyMarks === null ? null : notifyDisabledReason ? <Tooltip label={notifyDisabledReason}>{notifyButton}</Tooltip> : notifyButton}
         </div>
       </div>
+      {resultsPublishedAt ? (
+        <p className="flex items-center gap-1.5 pt-3 text-sm text-muted-foreground" data-testid="exam-results-published">
+          <BadgeCheck className="size-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+          <span>
+            Results published on <time dateTime={resultsPublishedAt}>{formatExamDateTime(resultsPublishedAt)}</time>
+          </span>
+        </p>
+      ) : null}
       <div className="pt-3">{body}</div>
       {query.status === "success" && total > 0 ? (
         <Pagination page={page} size={size} total={total} onPage={onPage} onSize={onSize} />
@@ -549,6 +562,7 @@ export function EnrolledStudentsTable({
           examId={exam.id}
           row={activeRow}
           open
+          resultsPublished={Boolean(resultsPublishedAt)}
           onOpenChange={(open) => !open && setDialog(null)}
           onOpenDocument={(row, documentId) => void openFile({ kind: "answer", studentId: row.studentId, documentId })}
           onToast={onToast}

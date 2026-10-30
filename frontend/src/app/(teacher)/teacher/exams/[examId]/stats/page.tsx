@@ -1,10 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { ExamHeaderPage } from "@/components/exams/config/exam-placeholder-pages";
+import { ExamStatsPage } from "@/components/exams/stats/exam-stats-page";
 
-/** Exam statistics — header only in Slice B; Slice E adds the statistics. */
+/** Exam Stats (Slice E): summary tiles and, for MCQ, the question distribution and breakdown. */
 export default function TeacherExamStatsPage() {
   const params = useParams<{ examId: string }>();
-  return <ExamHeaderPage portal="teacher" examId={params.examId} view="stats" />;
+  return <ExamStatsPage portal="teacher" examId={params.examId} />;
 }

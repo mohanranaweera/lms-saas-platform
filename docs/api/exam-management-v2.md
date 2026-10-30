@@ -277,3 +277,16 @@ marks: "Ranks will appear once marks are entered."
   non-written documents), `RESULTS_PUBLISHED` (document delete), `MARKS_EXCEED_TOTAL`; 400 for attendance on WRITTEN
   or ABSENT with marks. Entering physical marks sets attendance PRESENT.
 - Uploads: multipart part `files[]` (or `files`); request size ceiling 26 MB → the UI uploads one file per request.
+
+### Slice E addendum (as implemented)
+
+- Notify preview → `{ recipients, withoutMarks, alreadyNotifiedAt, resultsPublishedAt, endAt, ended }`. Send → 200
+  `{ dispatchId, recipients, withoutMarks, resend, sentAt, resultsPublishedAt, replayed }`; 409 `NOT_ENDED`,
+  `ALREADY_NOTIFIED`, `NO_RECIPIENTS` (nothing published when no student has marks); 400 field `Idempotency-Key`.
+- Stats adds `examId`, `type`; preview/stats finalize overdue attempts first.
+- Ranks → `{ id, name, published, exams[{id,name,totalMarks,published}], rows[{rank, studentId, indexNumber, name,
+  totalMarks, maxPossible, share|null, perExam[{examId, marks|null}], self}], page, size, totalElements, totalPages,
+  hasPublishedMarks }`; empty `rows` + `hasPublishedMarks:false` → empty state. Students listed only if enrolled in
+  ≥1 included *published* exam. Student ranks mask other students' `studentId`, `indexNumber`, `perExam`.
+- Leaderboard list `[{id,name,examCount,published}]`; detail `{id,name,published,examIds,exams[...],createdAt,updatedAt}`;
+  student list `[{id,name,examCount}]`. Staff delete uses `EXAMS/CREATE_EDIT`; teacher assistants read-only.

@@ -104,10 +104,8 @@ test.describe("Exam management — MCQ", () => {
     await expect(tableRow(page, "0004").getByTestId("result-label")).toHaveText("Not participated");
     await expect(tableRow(page, "0001").getByTestId("row-index")).toHaveText("0001");
 
-    // Notify marks is Slice E: disabled with an explanation
-    await expect(page.getByTestId("exam-notify-marks")).toHaveAttribute("aria-disabled", "true");
-    await page.getByTestId("exam-notify-marks").hover();
-    await expect(page.getByTestId("tooltip")).toHaveText("Available after results are published");
+    // Notify marks (Slice E) is available once the exam has ended — see exams-results.spec.ts
+    await expect(page.getByTestId("exam-notify-marks")).not.toHaveAttribute("aria-disabled", "true");
 
     // Pagination
     await expect(page.getByTestId("students-range")).toHaveText("1-10 of 13");

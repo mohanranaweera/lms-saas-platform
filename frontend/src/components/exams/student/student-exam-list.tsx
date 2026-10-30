@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays, ClipboardList, History, ListTodo, Zap } from "lucide-react";
+import { CalendarDays, ClipboardList, History, ListTodo, Trophy, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
@@ -151,7 +151,16 @@ export function StudentExamList() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <ExamPageTitle title="My exams" icon={<ClipboardList className="size-5" aria-hidden="true" />} />
+      <ExamPageTitle
+        title="My exams"
+        icon={<ClipboardList className="size-5" aria-hidden="true" />}
+        actions={
+          <Link href="/student/exams/leaderboards" className={cn(buttonVariants({ variant: "outline" }))} data-testid="student-leaderboards-link">
+            <Trophy aria-hidden="true" />
+            Leaderboards
+          </Link>
+        }
+      />
       {query.status === "pending" ? (
         <ListSkeleton />
       ) : (

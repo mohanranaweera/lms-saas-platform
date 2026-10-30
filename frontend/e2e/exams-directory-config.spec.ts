@@ -503,7 +503,7 @@ test.describe("Exams — Teacher", () => {
     await expect(page.getByTestId("exam-header")).not.toContainText("secret");
     await page.getByTestId("exam-stats-link").click();
     await expect(page).toHaveURL(new RegExp(`/teacher/exams/${EXAM_MCQ_UPCOMING}/stats$`), NAV);
-    await expect(page.getByRole("heading", { level: 1, name: "Exam statistics" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Exam Stats" })).toBeVisible();
 
     await page.goto("/teacher/exams/leaderboards");
     await expect(page.getByRole("heading", { level: 1, name: "Leaderboards" })).toBeVisible(NAV);

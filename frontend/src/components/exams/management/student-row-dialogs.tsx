@@ -230,6 +230,7 @@ export function AnswerSheetDialog({
   examId,
   row,
   open,
+  resultsPublished = false,
   onOpenChange,
   onOpenDocument,
   onToast,
@@ -237,6 +238,8 @@ export function AnswerSheetDialog({
   examId: string;
   row: ManagedStudentRow | null;
   open: boolean;
+  /** Once results are published the server refuses deletes (409 `RESULTS_PUBLISHED`), so the control is hidden. */
+  resultsPublished?: boolean;
   onOpenChange: (open: boolean) => void;
   onOpenDocument: (row: ManagedStudentRow, documentId: string) => void;
   onToast: Toast;
@@ -312,6 +315,11 @@ export function AnswerSheetDialog({
           <h3 id="answer-docs-title" className="text-sm font-semibold text-foreground">
             Uploaded documents
           </h3>
+          {resultsPublished && documents.length > 0 ? (
+            <p className="text-xs text-muted-foreground" data-testid="exam-answer-docs-locked">
+              Results are published, so uploaded documents can no longer be deleted.
+            </p>
+          ) : null}
           {documents.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground" data-testid="exam-answer-docs-empty">
               No answer sheet has been uploaded yet.
@@ -327,7 +335,7 @@ export function AnswerSheetDialog({
                   <div className="min-w-0 flex-1">
                     <FileLinkButton fileName={document.fileName} onOpen={() => row && onOpenDocument(row, document.id)} />
                   </div>
-                  {confirmId === document.id ? (
+                  {resultsPublished ? null : confirmId === document.id ? (
                     <span className="flex items-center gap-1">
                       <span className="text-xs text-muted-foreground">Delete this file?</span>
                       <Button

@@ -14,6 +14,7 @@ export function examPaths(portal: ExamPortal) {
   return {
     directory: base,
     leaderboards: `${base}/leaderboards`,
+    leaderboard: (leaderboardId: string) => `${base}/leaderboards/${leaderboardId}`,
     manage: (examId: string) => `${base}/${examId}`,
     stats: (examId: string) => `${base}/${examId}/stats`,
     dashboard: `/${portal}/dashboard`,
