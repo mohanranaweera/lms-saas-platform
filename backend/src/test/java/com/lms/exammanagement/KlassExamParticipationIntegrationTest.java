@@ -534,6 +534,155 @@ class KlassExamParticipationIntegrationTest extends KlassExamTestSupport {
 			.isEmpty();
 	}
 
+	// ------------------------------------------------------------------
+	// Security-review regressions (M1, L1, L4).
+	// ------------------------------------------------------------------
+
+	private Map<String, Object> mcqUpdateBody(Setup s, String name, Instant start, Instant end) {
+		Map<String, Object> body = mcqBody(name, s.fx().course().id(), start, end, 3, 2,
+				List.of(quota(s.moduleId(), 3)));
+		body.put("durationMinutes", 30);
+		body.put("shuffleQuestions", false);
+		body.put("shuffleAnswers", false);
+		body.put("showAnswersWithResults", true);
+		body.put("password", null);
+		return body;
+	}
+
+	private UUID createMcqNamed(Setup s, String name, Instant start, Instant end) {
+		Map<String, Object> body = mcqUpdateBody(s, name, start, end);
+		body.put("password", PASSWORD);
+		return UUID.fromString(createExamOk(s.fx().host(), s.fx().teacherToken(), body).path("id").asString());
+	}
+
+	private String firstField(MvcResult result) {
+		return json(result).path("error").path("details").path("fields").get(0).asString();
+	}
+
+	@Test
+	void anEndedOrPublishedExamCannotBeReopenedButAnOpenOneCanBeExtended() {
+		Setup s = seed("kc-reopen");
+		ExamFixture fx = s.fx();
+		Instant start = T0.plus(1, ChronoUnit.HOURS);
+		Instant end = T0.plus(3, ChronoUnit.HOURS);
+		UUID examId = createMcqNamed(s, "Reopen", start, end);
+		enroll(fx, examId, fx.student().getId());
+
+		now.set(start.plus(5, ChronoUnit.MINUTES));
+		MvcResult started = start(fx.host(), fx.studentToken(), examId, PASSWORD);
+		assertThat(status(started)).as(rawContent(started)).isEqualTo(200);
+		UUID attemptId = UUID.fromString(data(started).path("id").asString());
+		assertThat(status(call(fx.host(), fx.studentToken(), post("/api/v1/student/attempts/{a}/submit", attemptId))))
+			.isEqualTo(200);
+
+		// Window open, results unpublished: a later end is still allowed (locked exam).
+		Instant extendedEnd = end.plus(1, ChronoUnit.HOURS);
+		MvcResult extended = updateExam(fx.host(), fx.teacherToken(), examId,
+				mcqUpdateBody(s, "Reopen", start, extendedEnd));
+		assertThat(status(extended)).as(rawContent(extended)).isEqualTo(200);
+		assertThat(Instant.parse(data(extended).path("endAt").asString())).isEqualTo(extendedEnd);
+
+		// Ended: the answer key is released to the student ...
+		now.set(extendedEnd);
+		MvcResult released = call(fx.host(), fx.studentToken(), get("/api/v1/student/attempts/{a}/result", attemptId));
+		assertThat(status(released)).as(rawContent(released)).isEqualTo(200);
+		assertThat(data(released).path("items").get(0).path("correctOptionId").asString()).isNotBlank();
+
+		// ... so the end can't move any more (later or earlier), and nothing is stored.
+		for (Instant newEnd : List.of(extendedEnd.plus(2, ChronoUnit.HOURS), extendedEnd.minusSeconds(60))) {
+			MvcResult reopened = updateExam(fx.host(), fx.teacherToken(), examId,
+					mcqUpdateBody(s, "Reopen", start, newEnd));
+			assertThat(status(reopened)).as(rawContent(reopened)).isEqualTo(409);
+			assertThat(errorCode(reopened)).isEqualTo("EXAM_ENDED");
+			assertThat(firstField(reopened)).isEqualTo("endAt");
+		}
+		assertThat(jdbcTemplate.queryForObject("SELECT scheduled_end FROM exam WHERE id = ?", java.sql.Timestamp.class,
+				examId)
+			.toInstant()).isEqualTo(extendedEnd);
+		assertThat(errorCode(start(fx.host(), fx.studentToken(), examId, PASSWORD))).isEqualTo("ALREADY_ATTEMPTED");
+		// Other editable fields still save with the end unchanged.
+		MvcResult renamed = updateExam(fx.host(), fx.teacherToken(), examId,
+				mcqUpdateBody(s, "Renamed after end", start, extendedEnd));
+		assertThat(status(renamed)).as(rawContent(renamed)).isEqualTo(200);
+
+		// Results published while the window is still open (unattempted exam): the end is frozen too.
+		Instant start2 = now.get().plus(1, ChronoUnit.HOURS);
+		Instant end2 = start2.plus(2, ChronoUnit.HOURS);
+		UUID published = createMcqNamed(s, "Published", start2, end2);
+		jdbcTemplate.update("UPDATE exam SET results_published_at = ? WHERE id = ?",
+				java.sql.Timestamp.from(now.get()), published);
+		MvcResult publishedMove = updateExam(fx.host(), fx.teacherToken(), published,
+				mcqUpdateBody(s, "Published", start2, end2.plus(1, ChronoUnit.HOURS)));
+		assertThat(status(publishedMove)).as(rawContent(publishedMove)).isEqualTo(409);
+		assertThat(errorCode(publishedMove)).isEqualTo("EXAM_ENDED");
+	}
+
+	@Test
+	void lockedExamRejectsAnyPasswordIdentically() {
+		Setup s = seed("kc-pwd-oracle");
+		ExamFixture fx = s.fx();
+		Instant start = T0.plus(1, ChronoUnit.HOURS);
+		Instant end = T0.plus(3, ChronoUnit.HOURS);
+		UUID examId = createMcqNamed(s, "Oracle", start, end);
+		insertAttempt(fx.tenant().getId(), examId, fx.student().getId());
+
+		Map<String, Object> wrongBody = mcqUpdateBody(s, "Oracle", start, end);
+		wrongBody.put("password", "not-the-password");
+		Map<String, Object> rightBody = mcqUpdateBody(s, "Oracle", start, end);
+		rightBody.put("password", PASSWORD);
+		MvcResult wrong = updateExam(fx.host(), fx.teacherToken(), examId, wrongBody);
+		MvcResult right = updateExam(fx.host(), fx.teacherToken(), examId, rightBody);
+		assertThat(status(wrong)).as(rawContent(wrong)).isEqualTo(409);
+		assertThat(status(right)).as(rawContent(right)).isEqualTo(409);
+		assertThat(errorCode(right)).isEqualTo("EXAM_LOCKED");
+		assertThat(json(right).path("error")).isEqualTo(json(wrong).path("error"));
+		assertThat(firstField(right)).isEqualTo("password");
+		// Blank keeps the password: the same edit without one succeeds.
+		MvcResult kept = updateExam(fx.host(), fx.teacherToken(), examId, mcqUpdateBody(s, "Oracle", start, end));
+		assertThat(status(kept)).as(rawContent(kept)).isEqualTo(200);
+	}
+
+	@Test
+	void anExamWideWrongPasswordCeilingBlocksEveryStudentAndIsLoggedOnce() {
+		Setup s = seed("kc-ceiling");
+		ExamFixture fx = s.fx();
+		Instant start = T0.plus(1, ChronoUnit.HOURS);
+		Instant end = T0.plus(3, ChronoUnit.HOURS);
+		UUID examId = createMcqNamed(s, "Ceiling", start, end);
+		enroll(fx, examId, fx.student().getId());
+		now.set(start.plus(30, ChronoUnit.MINUTES));
+
+		// 29 earlier failures inside the 10-minute exam window but outside the per-student minute.
+		for (int i = 0; i < 29; i++) {
+			jdbcTemplate.update("INSERT INTO exam_password_failure (id, tenant_id, exam_id, student_id, failed_at) "
+					+ "VALUES (?, ?, ?, ?, ?)", UUID.randomUUID(), fx.tenant().getId(), examId,
+					fx.student().getId(), java.sql.Timestamp.from(now.get().minus(5, ChronoUnit.MINUTES)));
+		}
+		String auditSql = "SELECT count(*) FROM audit_log WHERE action = 'exam.password_failure_ceiling_reached' "
+				+ "AND target_id = ?";
+		// The 30th failure is still an ordinary wrong password and reaches the ceiling (one audit entry).
+		MvcResult thirtieth = start(fx.host(), fx.studentToken(), examId, "nope");
+		assertThat(status(thirtieth)).as(rawContent(thirtieth)).isEqualTo(403);
+		assertThat(errorCode(thirtieth)).isEqualTo("WRONG_PASSWORD");
+		assertThat(countRows(auditSql, examId)).isEqualTo(1);
+
+		// Now even the right password is refused; no attempt is created, nothing more is recorded.
+		for (String password : List.of(PASSWORD, "nope")) {
+			MvcResult limited = start(fx.host(), fx.studentToken(), examId, password);
+			assertThat(status(limited)).as(rawContent(limited)).isEqualTo(429);
+			assertThat(errorCode(limited)).isEqualTo("RATE_LIMITED");
+		}
+		assertThat(countRows("SELECT count(*) FROM exam_attempt WHERE exam_id = ?", examId)).isZero();
+		assertThat(countRows("SELECT count(*) FROM exam_password_failure WHERE exam_id = ?", examId)).isEqualTo(30);
+		assertThat(countRows(auditSql, examId)).isEqualTo(1);
+
+		// Once the window has passed, the right password starts the exam.
+		now.set(now.get().plus(10, ChronoUnit.MINUTES).plusSeconds(1));
+		MvcResult started = start(fx.host(), fx.studentToken(), examId, PASSWORD);
+		assertThat(status(started)).as(rawContent(started)).isEqualTo(200);
+		assertThat(countRows(auditSql, examId)).isEqualTo(1);
+	}
+
 	private String rawContentOf(JsonNode node) {
 		return node.toString();
 	}

@@ -290,3 +290,13 @@ marks: "Ranks will appear once marks are entered."
   ≥1 included *published* exam. Student ranks mask other students' `studentId`, `indexNumber`, `perExam`.
 - Leaderboard list `[{id,name,examCount,published}]`; detail `{id,name,published,examIds,exams[...],createdAt,updatedAt}`;
   student list `[{id,name,examCount}]`. Staff delete uses `EXAMS/CREATE_EDIT`; teacher assistants read-only.
+
+### Security-review addendum (Slice F)
+
+- `PUT /exams/{id}`: changing `endAt` after the exam ended or after results were published → 409 `EXAM_ENDED`
+  (`details.fields = ["endAt"]`); extension only while open and unpublished.
+- Locked exam: any non-empty `password` → 409 `EXAM_LOCKED` (`fields: ["password"]`); blank/null keeps it.
+- Question images: teachers/assistants may only embed images they uploaded or that the question already references
+  (400 otherwise); staff with `EXAMS` keep tenant-wide access.
+- Start attempt: 429 `RATE_LIMITED` also when an exam reaches 30 wrong passwords in 10 minutes (all students);
+  first trip is audit-logged (`exam.password_failure_ceiling_reached`).

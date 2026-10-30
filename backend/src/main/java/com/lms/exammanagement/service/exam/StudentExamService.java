@@ -1,5 +1,7 @@
 package com.lms.exammanagement.service.exam;
 
+import com.lms.auditlogmanagement.api.AuditLogApi;
+import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.api.FieldError;
 import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
@@ -52,6 +54,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +62,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -74,7 +79,9 @@ import org.springframework.transaction.annotation.Transactional;
  * principal; an exam the student is not enrolled in, another tenant's exam, or another
  * student's attempt is 404. The password is verified server-side with a constant-time
  * comparison, rate-limited per student and exam ({@value #PASSWORD_FAILURE_LIMIT} failures per
- * minute, DB-backed) and never returned or logged. Student payloads never contain the answer
+ * minute, DB-backed) plus a per-exam ceiling across all students ({@value #EXAM_PASSWORD_FAILURE_CEILING}
+ * failures per 10 minutes; reaching it is audit- and SECURITY-logged once) and never returned or
+ * logged. Student payloads never contain the answer
  * key or explanations until released (score after {@code endAt}; correct answers and
  * explanations only when {@code showAnswersWithResults} and after {@code endAt}).
  *
@@ -88,6 +95,13 @@ public class StudentExamService {
 	static final int PASSWORD_FAILURE_LIMIT = 5;
 
 	static final Duration PASSWORD_FAILURE_WINDOW = Duration.ofMinutes(1);
+
+	/** Wrong passwords of all students of one exam that block every start until the window passes. */
+	static final int EXAM_PASSWORD_FAILURE_CEILING = 30;
+
+	static final Duration EXAM_PASSWORD_FAILURE_WINDOW = Duration.ofMinutes(10);
+
+	private static final Logger securityLog = LoggerFactory.getLogger("SECURITY");
 
 	static final Duration IMAGE_URL_TTL = Duration.ofMinutes(30);
 
@@ -127,13 +141,16 @@ public class StudentExamService {
 
 	private final Clock clock;
 
+	private final AuditLogApi auditLogApi;
+
 	public StudentExamService(ExamRepository examRepository, ExamEnrollmentRepository enrollmentRepository,
 			ExamAttemptRepository attemptRepository, ExamAttemptItemRepository itemRepository,
 			ExamPaperItemRepository paperItemRepository, ExamPaperOptionRepository paperOptionRepository,
 			ExamPasswordFailureRepository passwordFailureRepository, ExamEnrollmentService enrollmentService,
 			ExamAttemptFinalizer finalizer, ExamPaperRandomSource randomSource, ExamPasswordCipherApi passwordCipher,
 			ExamQuestionMediaApi mediaApi, ExamDocumentMediaApi documentApi, ExamResultRepository resultRepository,
-			CourseLookupApi courseLookupApi, TenantContext tenantContext, Clock clock) {
+			CourseLookupApi courseLookupApi, TenantContext tenantContext, Clock clock, AuditLogApi auditLogApi) {
+		this.auditLogApi = auditLogApi;
 		this.examRepository = examRepository;
 		this.enrollmentRepository = enrollmentRepository;
 		this.attemptRepository = attemptRepository;
@@ -393,6 +410,11 @@ public class StudentExamService {
 		if (exam.getPasswordCiphertext() == null) {
 			return;
 		}
+		if (passwordFailureRepository.countSinceForExam(exam.getId(),
+				now.minus(EXAM_PASSWORD_FAILURE_WINDOW)) >= EXAM_PASSWORD_FAILURE_CEILING) {
+			throw new ExamStateException(HttpStatus.TOO_MANY_REQUESTS, ExamStateException.RATE_LIMITED,
+					"Too many wrong passwords for this exam. Wait a few minutes and try again.");
+		}
 		if (passwordFailureRepository.countSince(exam.getId(), studentId,
 				now.minus(PASSWORD_FAILURE_WINDOW)) >= PASSWORD_FAILURE_LIMIT) {
 			throw new ExamStateException(HttpStatus.TOO_MANY_REQUESTS, ExamStateException.RATE_LIMITED,
@@ -410,11 +432,33 @@ public class StudentExamService {
 		byte[] expected = stored.getBytes(StandardCharsets.UTF_8);
 		byte[] given = (password == null ? "" : password).getBytes(StandardCharsets.UTF_8);
 		if (!MessageDigest.isEqual(expected, given)) {
-			passwordFailureRepository.save(new ExamPasswordFailure(tenantContext.getTenantId(), exam.getId(),
+			passwordFailureRepository.saveAndFlush(new ExamPasswordFailure(tenantContext.getTenantId(), exam.getId(),
 					studentId, now));
+			recordCeilingReached(exam, studentId, now);
 			throw new ExamStateException(HttpStatus.FORBIDDEN, ExamStateException.WRONG_PASSWORD,
 					"The exam password is incorrect");
 		}
+	}
+
+	/**
+	 * Called after each recorded failure, under the exam's configuration lock (so failures of one
+	 * exam are counted serially): the failure that makes the window count reach the ceiling writes
+	 * one audit entry and one SECURITY log line; later starts are refused before any new failure
+	 * is recorded, so the count can't pass the ceiling again within the same window.
+	 */
+	private void recordCeilingReached(Exam exam, UUID studentId, Instant now) {
+		long count = passwordFailureRepository.countSinceForExam(exam.getId(),
+				now.minus(EXAM_PASSWORD_FAILURE_WINDOW));
+		if (count != EXAM_PASSWORD_FAILURE_CEILING) {
+			return;
+		}
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("failures", count);
+		metadata.put("windowMinutes", EXAM_PASSWORD_FAILURE_WINDOW.toMinutes());
+		auditLogApi.record(new AuditLogEntry(studentId, "exam.password_failure_ceiling_reached", "exam",
+				exam.getId(), null, metadata));
+		securityLog.warn("event=exam_password_failure_ceiling tenantId={} examId={} lastStudentId={} failures={}",
+				exam.getTenantId(), exam.getId(), studentId, count);
 	}
 
 	/** D3/D2: every candidate gets the frozen paper, in its own order, shuffled once here when enabled. */

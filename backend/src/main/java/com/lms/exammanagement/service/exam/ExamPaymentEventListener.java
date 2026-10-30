@@ -4,7 +4,6 @@ import com.lms.common.tenant.TenantContextHolder;
 import com.lms.exammanagement.domain.ExamEnrollment;
 import com.lms.paymentmanagement.api.PaymentConfirmedEvent;
 import com.lms.paymentmanagement.api.PaymentRefundedEvent;
-import com.lms.paymentmanagement.payment.domain.PaymentStatus;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -34,7 +33,7 @@ public class ExamPaymentEventListener {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void onPaymentConfirmed(PaymentConfirmedEvent event) {
 		if (event.tenantId() == null || event.paymentId() == null || event.orderId() == null
-				|| event.newStatus() != PaymentStatus.CONFIRMED) {
+				|| !event.isConfirmed()) {
 			return;
 		}
 		runInTenant(event.tenantId(), () -> paymentEnrollmentService.enrollForConfirmedPayment(event.paymentId(),

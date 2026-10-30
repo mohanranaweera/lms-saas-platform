@@ -383,8 +383,10 @@ class ExamConfigIntegrationTest extends KlassExamTestSupport {
 			assertThat(status(result)).as(rawContent(result)).isEqualTo(409);
 			assertThat(json(result).path("error").path("code").asString()).isEqualTo("EXAM_LOCKED");
 		}
-		// Same password re-sent is not a change.
+		// Leaving the password blank keeps it; re-sending any password (even the stored one) is
+		// rejected - see KlassExamParticipationIntegrationTest#lockedExamRejectsAnyPasswordIdentically.
 		Map<String, Object> editable = defaultMcq(s);
+		editable.put("password", null);
 		editable.put("name", "Still editable");
 		editable.put("endAt", END.plusSeconds(3600).toString());
 		editable.put("cutoffMarks", 1);

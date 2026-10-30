@@ -281,6 +281,65 @@ class ModuleQuestionBankIntegrationTest extends ExamManagementTestSupport {
 	// ------------------------------------------------------------------
 
 	@Test
+	void aTeacherOrAssistantCannotEmbedAnotherUploadersImageButExistingReferencesAndStaffStillWork() {
+		Bank bank = seedBank("qb2-img-owner");
+		String teacherA = bank.fx().teacherToken();
+		UUID imageA = uploadImage(bank.host(), teacherA);
+		String imgA = "<p>see <img data-media-id=\"" + imageA + "\"></p>";
+		MvcResult own = createQuestion(bank, teacherA,
+				question(imgA, 1, null, opt("<p>right</p>", true), opt("<p>wrong</p>", false)));
+		assertThat(status(own)).as(rawContent(own)).isEqualTo(201);
+		UUID questionA = UUID.fromString(data(own).path("id").asString());
+
+		// Teacher B, in their own course of the same tenant, can't embed teacher A's image id.
+		TenantUser teacher2 = seedTenantUser(bank.fx().tenant().getId(), "teacher2@example.test", RAW_PASSWORD,
+				Role.TEACHER);
+		String teacherB = loginAndGetToken(bank.host(), "teacher2@example.test");
+		var courseB = createCourseOrFail(bank.host(), bank.fx().adminToken(),
+				newCourseRequest(uniqueSlug("qb2-img-b"), teacher2.getId(), CourseStatus.PUBLIC));
+		UUID moduleB = createModuleOrFail(bank.host(), bank.fx().adminToken(), courseB.id(), "M", 1).id();
+		Bank bankB = new Bank(bank.fx(), courseB.id(), moduleB);
+		for (Map<String, Object> body : List.of(
+				question(imgA, 1, null, opt("<p>a</p>", true), opt("<p>b</p>", false)),
+				question("<p>q</p>", 1, imgA, opt("<p>a</p>", true), opt("<p>b</p>", false)),
+				question("<p>q</p>", 1, null, opt(imgA, true), opt("<p>b</p>", false)))) {
+			MvcResult foreign = createQuestion(bankB, teacherB, body);
+			assertThat(status(foreign)).as(rawContent(foreign)).isEqualTo(400);
+		}
+		assertThat(countRows("SELECT count(*) FROM exam_question WHERE course_id = ?", courseB.id())).isZero();
+		// Their own upload works.
+		UUID imageB = uploadImage(bank.host(), teacherB);
+		MvcResult ownB = createQuestion(bankB, teacherB, question("<p><img data-media-id=\"" + imageB + "\"></p>", 1,
+				null, opt("<p>a</p>", true), opt("<p>b</p>", false)));
+		assertThat(status(ownB)).as(rawContent(ownB)).isEqualTo(201);
+
+		// A teacher assistant (tenant-wide authoring) can't add A's image to a new question ...
+		seedTenantUser(bank.fx().tenant().getId(), "ta-img@example.test", RAW_PASSWORD, Role.TEACHER_ASSISTANT);
+		String ta = loginAndGetToken(bank.host(), "ta-img@example.test");
+		MvcResult taForeign = createQuestion(bank, ta,
+				question(imgA, 1, null, opt("<p>a</p>", true), opt("<p>b</p>", false)));
+		assertThat(status(taForeign)).as(rawContent(taForeign)).isEqualTo(400);
+		// ... but can edit A's question that already contains it.
+		MvcResult taEdit = call(bank.host(), ta, put("/api/v1/exam-questions/{q}", questionA)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(question(imgA + "<p>edited by TA</p>", 2, null,
+					opt("<p>right</p>", true), opt("<p>wrong</p>", false)))));
+		assertThat(status(taEdit)).as(rawContent(taEdit)).isEqualTo(200);
+		assertThat(data(taEdit).path("bodyHtml").asString()).contains(imageA.toString()).contains("edited by TA");
+
+		// Staff with EXAMS authoring (tenant admin) keep tenant-wide image access.
+		MvcResult admin = createQuestion(bank, bank.fx().adminToken(),
+				question(imgA + "<p>admin</p>", 1, null, opt("<p>a</p>", true), opt("<p>b</p>", false)));
+		assertThat(status(admin)).as(rawContent(admin)).isEqualTo(201);
+
+		// Copy keeps the existing references (no re-validation of the uploader).
+		UUID ownSecondModule = createModuleOrFail(bank.host(), bank.fx().adminToken(), bank.courseId(), "M2", 2).id();
+		assertThat(status(copy(bank, teacherA, bank.courseId(), ownSecondModule))).isEqualTo(200);
+		assertThat(countRows("SELECT count(*) FROM exam_question WHERE module_id = ? AND body LIKE ?", ownSecondModule,
+				"%" + imageA + "%")).isEqualTo(2);
+	}
+
+	@Test
 	void copyDuplicatesEveryQuestionAsIndependentRowsAndCountsReflectIt() {
 		Bank bank = seedBank("qb2-copy");
 		String token = bank.fx().teacherToken();

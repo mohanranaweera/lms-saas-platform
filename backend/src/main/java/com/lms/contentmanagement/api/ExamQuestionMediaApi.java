@@ -31,6 +31,12 @@ public interface ExamQuestionMediaApi {
 	Set<UUID> findLiveImageIds(Collection<UUID> mediaIds);
 
 	/**
+	 * The live {@code EXAM_QUESTION} files of the caller's tenant among {@code mediaIds},
+	 * mapped to the user who uploaded each (unknown, deleted or other-tenant ids are absent).
+	 */
+	Map<UUID, UUID> findLiveImageUploaders(Collection<UUID> mediaIds);
+
+	/**
 	 * Short-lived inline signed URLs for the live {@code EXAM_QUESTION} files among
 	 * {@code mediaIds}; unknown, deleted or other-tenant ids are absent. A storage outage
 	 * degrades to "no URL" for that image rather than failing the read.

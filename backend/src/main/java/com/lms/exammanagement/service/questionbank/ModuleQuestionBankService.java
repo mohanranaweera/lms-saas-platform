@@ -187,11 +187,15 @@ public class ModuleQuestionBankService {
 	public QuestionView update(UUID questionId, QuestionInput input) {
 		ExamQuestion question = loadLive(questionId);
 		accessGuard.requireAuthoringAccess(question.getCourseId(), PermissionAction.CREATE_EDIT);
-		ValidQuestion valid = validator.validate(input);
-
 		Map<UUID, ExamQuestionOption> existing = optionRepository.findAllByQuestionId(questionId)
 			.stream()
 			.collect(Collectors.toMap(ExamQuestionOption::getId, Function.identity()));
+		Set<UUID> referencedMedia = new HashSet<>(RichContentSanitizer.mediaIdsIn(question.getBody()));
+		referencedMedia.addAll(RichContentSanitizer.mediaIdsIn(question.getExplanation()));
+		existing.values()
+			.forEach(option -> referencedMedia.addAll(RichContentSanitizer.mediaIdsIn(option.getOptionText())));
+		ValidQuestion valid = validator.validate(input, referencedMedia);
+
 		List<FieldError> idErrors = new ArrayList<>();
 		for (int i = 0; i < valid.options().size(); i++) {
 			UUID id = valid.options().get(i).id();

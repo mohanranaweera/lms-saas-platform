@@ -13,4 +13,10 @@ public interface ExamPasswordFailureRepository extends TenantAwareRepository<Exa
 				cb.equal(root.get("studentId"), studentId), cb.greaterThan(root.<Instant>get("failedAt"), since)));
 	}
 
+	/** Failures of every student of the exam after {@code since} (per-exam ceiling). */
+	default long countSinceForExam(UUID examId, Instant since) {
+		return count((root, query, cb) -> cb.and(cb.equal(root.get("examId"), examId),
+				cb.greaterThan(root.<Instant>get("failedAt"), since)));
+	}
+
 }

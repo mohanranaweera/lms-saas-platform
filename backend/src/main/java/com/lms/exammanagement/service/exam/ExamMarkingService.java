@@ -287,7 +287,11 @@ public class ExamMarkingService {
 		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
 		documentApi.uploadAll(java.util.Collections.singletonList(file), Purpose.MARKED_PAPER, stored -> {
 			lock(exam);
-			requireEnrolled(exam, studentId);
+			// Re-check under the exam lock: results may have been published while the file
+			// was being stored (outside any transaction).
+			Exam current = configService.loadKlassExam(examId);
+			requireEnrolled(current, studentId);
+			requireNotPublished(current);
 			ExamResult result = resultRepository.findByExamIdAndStudentId(examId, studentId)
 				.orElseGet(() -> new ExamResult(tenantContext.getTenantId(), examId, studentId));
 			UUID before = result.getMarkedPaperMediaId();

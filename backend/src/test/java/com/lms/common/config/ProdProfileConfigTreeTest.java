@@ -41,6 +41,8 @@ class ProdProfileConfigTreeTest {
 
 	private static final String PAYMENT_KEY = "MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI=";
 
+	private static final String EXAM_KEY = "MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM=";
+
 	@TempDir
 	Path secretsDir;
 
@@ -74,6 +76,7 @@ class ProdProfileConfigTreeTest {
 		secret("JWT_SECRET", "synthetic-jwt-signing-secret-with-enough-length\n");
 		secret("MEDIA_CREDENTIALS_ENCRYPTION_KEY", MEDIA_KEY + "\n");
 		secret("PAYMENT_CREDENTIALS_ENCRYPTION_KEY", PAYMENT_KEY);
+		secret("EXAM_PASSWORD_ENCRYPTION_KEY", EXAM_KEY + "\n");
 		secret("ZOOM_OAUTH_CLIENT_SECRET", "synthetic-zoom-secret\n");
 
 		try (ConfigurableApplicationContext context = startProd()) {
@@ -85,6 +88,7 @@ class ProdProfileConfigTreeTest {
 			// application.yml placeholders, untouched by this change
 			assertThat(env.getProperty("integrations.media.encryption-key")).isEqualTo(MEDIA_KEY);
 			assertThat(env.getProperty("payment.credentials.encryption-key")).isEqualTo(PAYMENT_KEY);
+			assertThat(env.getProperty("exam.password-encryption-key")).isEqualTo(EXAM_KEY);
 			assertThat(env.getProperty("integrations.media.zoom.client-secret")).isEqualTo("synthetic-zoom-secret");
 
 			// Behind the proxy the client IP comes from X-Forwarded-For (AUTH-PWD-01 review M-1).

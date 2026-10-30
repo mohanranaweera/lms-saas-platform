@@ -217,6 +217,7 @@ public class ExamConfigService {
 		lock(exam.getId());
 		boolean locked = participationReader.hasParticipation(exam.getId());
 		Config config = validate(input, exam, locked);
+		rejectReopening(exam, config);
 
 		LinkedHashMap<UUID, Integer> currentQuotas = currentQuotas(exam);
 		if (locked) {
@@ -710,6 +711,24 @@ public class ExamConfigService {
 		return mediaId;
 	}
 
+	/**
+	 * Once the exam has ended or its results are published, answers / marks may already be
+	 * visible to students, so the end can't move at all (409 {@code EXAM_ENDED}) - extending
+	 * it would reopen the window. Extension stays allowed only while the window is open and
+	 * results are unpublished.
+	 */
+	private void rejectReopening(Exam exam, Config config) {
+		Instant currentEnd = exam.getScheduledEnd();
+		if (currentEnd == null || config.endAt().equals(currentEnd)) {
+			return;
+		}
+		boolean ended = !clock.instant().isBefore(currentEnd);
+		if (ended || exam.getResultsPublishedAt() != null) {
+			throw new ExamEndedException(
+					"This exam has ended or its results are published, so its end time can't change", List.of("endAt"));
+		}
+	}
+
 	private void rejectLockedChanges(Exam exam, LinkedHashMap<UUID, Integer> currentQuotas, Config config) {
 		List<String> fields = new ArrayList<>();
 		if (config.type() != exam.getExamType()) {
@@ -736,8 +755,9 @@ public class ExamConfigService {
 		if (config.endAt().isBefore(exam.getScheduledEnd())) {
 			fields.add("endAt");
 		}
-		if (config.newPassword() != null && (exam.getPasswordCiphertext() == null || !config.newPassword()
-			.equals(passwordCipher.decrypt(exam.getPasswordCiphertext(), passwordContext(exam))))) {
+		// Any submitted password is rejected outright - never decrypted / compared, so the
+		// response can't be used as an equality oracle for the stored password.
+		if (config.newPassword() != null) {
 			fields.add("password");
 		}
 		if (config.shuffleQuestions() != exam.isShuffleQuestions()) {

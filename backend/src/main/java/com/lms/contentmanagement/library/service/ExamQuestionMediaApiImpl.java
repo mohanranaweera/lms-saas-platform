@@ -138,6 +138,19 @@ public class ExamQuestionMediaApiImpl implements ExamQuestionMediaApi {
 	}
 
 	@Override
+	public Map<UUID, UUID> findLiveImageUploaders(Collection<UUID> mediaIds) {
+		Map<UUID, UUID> uploaders = new HashMap<>();
+		if (mediaIds == null || mediaIds.isEmpty()) {
+			return uploaders;
+		}
+		for (MediaFile file : mediaFileRepository.findLiveByIdsAndUsage(Set.copyOf(mediaIds),
+				MediaFileUsage.EXAM_QUESTION)) {
+			uploaders.put(file.getId(), file.getUploadedBy());
+		}
+		return uploaders;
+	}
+
+	@Override
 	public Map<UUID, String> signImageUrls(Collection<UUID> mediaIds, Duration ttl) {
 		Map<UUID, String> urls = new HashMap<>();
 		if (mediaIds == null || mediaIds.isEmpty()) {

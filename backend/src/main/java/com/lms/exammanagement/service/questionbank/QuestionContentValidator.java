@@ -4,6 +4,8 @@ import com.lms.common.api.FieldError;
 import com.lms.common.error.FieldValidationException;
 import com.lms.contentmanagement.api.ExamQuestionMediaApi;
 import com.lms.exammanagement.service.questionbank.RichContentSanitizer.Sanitized;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,6 +21,9 @@ import org.springframework.stereotype.Component;
  * non-empty; {@code 0 < marks <= 100} with at most 2 decimals (absent = 1); 2-10 options,
  * each non-empty, <b>exactly one</b> correct (D1); explanation optional (empty = null);
  * every referenced image is a live {@code EXAM_QUESTION} media file of the caller's tenant.
+ * A TEACHER / TEACHER_ASSISTANT may only reference images they uploaded themselves or that
+ * the question already references (mirrors the exam-document rule in
+ * {@code ExamConfigService}); other staff with exam authoring access keep tenant-wide access.
  * Any failure is one 400 carrying every field error found.
  */
 @Component
@@ -29,6 +34,10 @@ public class QuestionContentValidator {
 	public static final int MAX_OPTIONS = 10;
 
 	public static final BigDecimal MAX_MARKS = new BigDecimal("100");
+
+	private static final String TEACHER_ROLE = "TEACHER";
+
+	private static final String TEACHER_ASSISTANT_ROLE = "TEACHER_ASSISTANT";
 
 	private final ExamQuestionMediaApi examQuestionMediaApi;
 
@@ -48,7 +57,16 @@ public class QuestionContentValidator {
 	public record ValidQuestion(String bodyHtml, BigDecimal marks, String explanationHtml, List<ValidOption> options) {
 	}
 
+	/** A new question: no image is referenced yet. */
 	public ValidQuestion validate(QuestionInput input) {
+		return validate(input, Set.of());
+	}
+
+	/**
+	 * @param existingMediaIds images the stored question already references (update) - a
+	 * teacher may keep these even when another user uploaded them
+	 */
+	public ValidQuestion validate(QuestionInput input, Set<UUID> existingMediaIds) {
 		List<FieldError> errors = new ArrayList<>();
 		Map<String, Set<UUID>> mediaByField = new LinkedHashMap<>();
 
@@ -104,9 +122,16 @@ public class QuestionContentValidator {
 		Set<UUID> allMedia = new HashSet<>();
 		mediaByField.values().forEach(allMedia::addAll);
 		if (!allMedia.isEmpty()) {
-			Set<UUID> live = examQuestionMediaApi.findLiveImageIds(allMedia);
+			Map<UUID, UUID> uploaders = examQuestionMediaApi.findLiveImageUploaders(allMedia);
+			AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+			boolean authorRole = TEACHER_ROLE.equals(principal.role())
+					|| TEACHER_ASSISTANT_ROLE.equals(principal.role());
 			mediaByField.forEach((field, ids) -> {
-				if (!live.containsAll(ids)) {
+				boolean usable = ids.stream()
+					.allMatch(id -> uploaders.containsKey(id) && (!authorRole || existingMediaIds.contains(id)
+							|| principal.userId().equals(uploaders.get(id))));
+				if (!usable) {
+					// Same message for missing and foreign images: no existence oracle.
 					errors.add(new FieldError(field, "An image is not available - upload it again"));
 				}
 			});
