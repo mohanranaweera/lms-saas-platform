@@ -25,6 +25,14 @@ public interface ExamAttemptRepository extends TenantAwareRepository<ExamAttempt
 				cb.equal(root.get("studentId"), studentId), cb.equal(root.get("status"), ExamAttemptStatus.IN_PROGRESS)));
 	}
 
+	/**
+	 * Klass exams (Slice B): "has this exam been attempted" - the lock that freezes the
+	 * paper and structural configuration, and blocks deleting the exam.
+	 */
+	default boolean existsByExamId(UUID examId) {
+		return exists((root, query, cb) -> cb.equal(root.get("examId"), examId));
+	}
+
 	/** Teacher/exam-manager's "all attempts for this exam" read pattern. */
 	default List<ExamAttempt> findAllByExamId(UUID examId) {
 		return findAll((root, query, cb) -> cb.equal(root.get("examId"), examId));

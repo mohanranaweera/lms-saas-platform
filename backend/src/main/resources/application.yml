@@ -104,6 +104,12 @@ payment:
     # Tenant storefront origin; {subdomain} comes from the tenant record.
     return-url-template: ${PAYHERE_RETURN_URL_TEMPLATE:}
 
+# Klass Exam Module (D6): AES-256 key (Base64 of 32 bytes) encrypting exam passwords at
+# rest. Empty = fail closed (503 on creating/revealing a password-protected exam) - must be
+# set via EXAM_PASSWORD_ENCRYPTION_KEY wherever exams are used. Never a real key here.
+exam:
+  password-encryption-key: ${EXAM_PASSWORD_ENCRYPTION_KEY:}
+
 live-class:
   provider:
     # Wave 4 live-class meeting-provider webhook HMAC secret - never a real

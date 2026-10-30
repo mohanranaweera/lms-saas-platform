@@ -4,10 +4,15 @@ import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamStatus;
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Tenant-scoped per {@code .claude/rules/tenancy.md} - never referenced
@@ -32,8 +37,9 @@ public interface ExamRepository extends TenantAwareRepository<Exam, UUID> {
 		if (courseIds.isEmpty()) {
 			return Page.empty(pageable);
 		}
-		return findAll((root, query, cb) -> cb.and(root.get("courseId").in(courseIds), root.get("status").in(statuses)),
-				pageable);
+		Specification<Exam> spec = (root, query, cb) -> cb.and(root.get("courseId").in(courseIds),
+				root.get("status").in(statuses));
+		return findAll(spec.and(legacyModel()), pageable);
 	}
 
 	/**
@@ -44,7 +50,8 @@ public interface ExamRepository extends TenantAwareRepository<Exam, UUID> {
 	 * view).
 	 */
 	default Page<Exam> findByCourseId(UUID courseId, Pageable pageable) {
-		return findAll((root, query, cb) -> cb.equal(root.get("courseId"), courseId), pageable);
+		Specification<Exam> spec = (root, query, cb) -> cb.equal(root.get("courseId"), courseId);
+		return findAll(spec.and(legacyModel()), pageable);
 	}
 
 	/**
@@ -55,7 +62,54 @@ public interface ExamRepository extends TenantAwareRepository<Exam, UUID> {
 	 * exists only to add the optional status filter on top.
 	 */
 	default Page<Exam> findByStatus(ExamStatus status, Pageable pageable) {
-		return findAll((root, query, cb) -> cb.equal(root.get("status"), status), pageable);
+		Specification<Exam> spec = (root, query, cb) -> cb.equal(root.get("status"), status);
+		return findAll(spec.and(legacyModel()), pageable);
+	}
+
+	/** Tenant-wide legacy list (every status) - the MVP-017 staff oversight screen. */
+	default Page<Exam> findAllLegacy(Pageable pageable) {
+		return findAll(legacyModel(), pageable);
+	}
+
+	/** A live (not soft-deleted) Klass exam of the current tenant. */
+	default Optional<Exam> findLiveKlassExam(UUID examId) {
+		Specification<Exam> byId = (root, query, cb) -> cb.equal(root.get("id"), examId);
+		return findOne(byId.and(klassModel()).and(live()));
+	}
+
+	/**
+	 * Live Klass exams of the current tenant for the directory; {@code courseIds == null}
+	 * means every course (staff / teacher assistant), otherwise only those courses (teacher).
+	 */
+	default List<Exam> findLiveKlassExams(Set<UUID> courseIds) {
+		Specification<Exam> spec = klassModel().and(live());
+		if (courseIds != null) {
+			if (courseIds.isEmpty()) {
+				return List.of();
+			}
+			spec = spec.and((root, query, cb) -> root.get("courseId").in(courseIds));
+		}
+		return findAll(spec);
+	}
+
+	/**
+	 * Transaction-scoped advisory lock serializing configuration writes (update, redraw,
+	 * delete) of one exam. The key is built by the caller from the context tenant and the
+	 * exam id.
+	 */
+	@Query(value = "SELECT pg_advisory_xact_lock(hashtextextended(:lockKey, 0))", nativeQuery = true)
+	void acquireExamConfigLock(@Param("lockKey") String lockKey);
+
+	private static Specification<Exam> legacyModel() {
+		return (root, query, cb) -> cb.equal(root.get("configVersion"), Exam.LEGACY_CONFIG_VERSION);
+	}
+
+	private static Specification<Exam> klassModel() {
+		return (root, query, cb) -> cb.equal(root.get("configVersion"), Exam.KLASS_CONFIG_VERSION);
+	}
+
+	private static Specification<Exam> live() {
+		return (root, query, cb) -> cb.isNull(root.get("deletedAt"));
 	}
 
 }

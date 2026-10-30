@@ -119,6 +119,10 @@ payment:
     notify-url: ${PAYHERE_NOTIFY_URL:}
     return-url-template: ${PAYHERE_RETURN_URL_TEMPLATE:http://{subdomain}.lms.test:3000}
 
+exam:
+  # Clearly-fake, dev-only key (Base64 of "dev-only-exam-password-key-32byt").
+  password-encryption-key: ${EXAM_PASSWORD_ENCRYPTION_KEY:ZGV2LW9ubHktZXhhbS1wYXNzd29yZC1rZXktMzJieXQ=}
+
 integrations:
   media:
     # Clearly-fake, dev-only key (Base64 of "dev-only-media-cred-key-32bytes!").

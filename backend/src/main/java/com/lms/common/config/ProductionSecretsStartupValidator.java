@@ -40,12 +40,14 @@ public class ProductionSecretsStartupValidator implements ApplicationContextInit
 			new CriticalSecret("spring.datasource.password", "DB_PASSWORD", false),
 			new CriticalSecret("app.security.jwt.secret", "JWT_SECRET", false),
 			new CriticalSecret("integrations.media.encryption-key", "MEDIA_CREDENTIALS_ENCRYPTION_KEY", true),
-			new CriticalSecret("payment.credentials.encryption-key", "PAYMENT_CREDENTIALS_ENCRYPTION_KEY", true));
+			new CriticalSecret("payment.credentials.encryption-key", "PAYMENT_CREDENTIALS_ENCRYPTION_KEY", true),
+			new CriticalSecret("exam.password-encryption-key", "EXAM_PASSWORD_ENCRYPTION_KEY", true));
 
 	/** The exact fallback values committed in application-local.yml. */
 	static final Set<String> DEV_ONLY_VALUES = Set.of("change_this_local_password",
 			"dev-only-placeholder-secret-change-me-before-any-real-deployment-32bytes+",
-			"ZGV2LW9ubHktbWVkaWEtY3JlZC1rZXktMzJieXRlcyE=", "ZGV2LW9ubHktcGF5bWVudC1jcmVkLWtleS0zMmJ5dGU=");
+			"ZGV2LW9ubHktbWVkaWEtY3JlZC1rZXktMzJieXRlcyE=", "ZGV2LW9ubHktcGF5bWVudC1jcmVkLWtleS0zMmJ5dGU=",
+			"ZGV2LW9ubHktZXhhbS1wYXNzd29yZC1rZXktMzJieXQ=");
 
 	/** Markers of an obviously non-production value, e.g. a copied or edited dev placeholder. */
 	private static final List<String> DEV_MARKERS = List.of("dev-only", "change_this", "change-me", "changeme",

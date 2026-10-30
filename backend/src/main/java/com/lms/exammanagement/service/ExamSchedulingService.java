@@ -113,6 +113,10 @@ public class ExamSchedulingService {
 	/** Rejected {@code 409} if {@code status != DRAFT} (plan §10/§13). */
 	public ExamView updateDraftExam(UUID examId, UpdateExamCommand command) {
 		Exam exam = loadExam(examId);
+		if (exam.isKlassExam()) {
+			// Klass exams are edited only through ExamConfigService (ExamController dispatches).
+			throw new NotFoundException("Exam not found");
+		}
 		examAccessGuard.requireAuthoringAccess(exam.getCourseId(), PermissionAction.CREATE_EDIT);
 		if (exam.getStatus() != ExamStatus.DRAFT) {
 			throw new ConflictException("Exam can only be edited while in DRAFT status");
@@ -142,6 +146,10 @@ public class ExamSchedulingService {
 	 */
 	public ExamView scheduleExam(UUID examId) {
 		Exam exam = loadExam(examId);
+		if (exam.isKlassExam()) {
+			// Klass exams have no stored lifecycle: their status follows the clock (V111).
+			throw new ConflictException("This exam opens and closes automatically at its start and end time");
+		}
 		examAccessGuard.requireLifecycleTransitionAccess(exam.getCourseId());
 		if (exam.getStatus() != ExamStatus.DRAFT) {
 			throw new ConflictException("Exam can only be scheduled from DRAFT status");
@@ -267,7 +275,7 @@ public class ExamSchedulingService {
 	public PageResponse<ExamSummaryView> listExamsForTenant(ExamStatus statusFilter, Pageable pageable) {
 		examAccessGuard.requireStaffTenantWideViewAccess();
 		Pageable safePageable = clampPageSize(pageable);
-		Page<Exam> page = statusFilter == null ? examRepository.findAll(safePageable)
+		Page<Exam> page = statusFilter == null ? examRepository.findAllLegacy(safePageable)
 				: examRepository.findByStatus(statusFilter, safePageable);
 		List<ExamSummaryView> content = page.getContent()
 			.stream()

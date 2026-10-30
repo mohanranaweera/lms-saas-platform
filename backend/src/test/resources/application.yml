@@ -61,6 +61,10 @@ payment:
     notify-url: "https://notify.example.test/api/v1/integrations/webhooks/payhere"
     return-url-template: "https://{subdomain}.example.test"
 
+exam:
+  # Test-only key (Base64 of "test-only-exam-password-key-32by").
+  password-encryption-key: "dGVzdC1vbmx5LWV4YW0tcGFzc3dvcmQta2V5LTMyYnk="
+
 live-class:
   provider:
     # Fixed, clearly-not-a-production test-only secret (Wave 4) - see

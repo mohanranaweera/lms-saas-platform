@@ -154,7 +154,9 @@ public class ModuleQuestionBankService {
 			Object[] row = totals.get(module.moduleId());
 			long count = row == null ? 0L : ((Number) row[1]).longValue();
 			BigDecimal marks = row == null ? BigDecimal.ZERO : toBigDecimal(row[2]);
-			return new ModuleQuestionCountView(module.moduleId(), module.title(), count, marks.setScale(2));
+			BigDecimal min = row == null || row[3] == null ? null : toBigDecimal(row[3]).setScale(2);
+			BigDecimal max = row == null || row[4] == null ? null : toBigDecimal(row[4]).setScale(2);
+			return new ModuleQuestionCountView(module.moduleId(), module.title(), count, marks.setScale(2), min, max);
 		}).toList();
 	}
 

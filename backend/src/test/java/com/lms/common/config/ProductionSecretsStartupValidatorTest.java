@@ -21,6 +21,8 @@ class ProductionSecretsStartupValidatorTest {
 
 	private static final String PAYMENT_KEY = "MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI=";
 
+	private static final String EXAM_KEY = "MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM=";
+
 	private final ProductionSecretsStartupValidator validator = new ProductionSecretsStartupValidator();
 
 	private static Map<String, Object> validSecrets() {
@@ -29,6 +31,7 @@ class ProductionSecretsStartupValidatorTest {
 		secrets.put("app.security.jwt.secret", "synthetic-jwt-signing-secret-with-enough-length-9Xk2");
 		secrets.put("integrations.media.encryption-key", MEDIA_KEY);
 		secrets.put("payment.credentials.encryption-key", PAYMENT_KEY);
+		secrets.put("exam.password-encryption-key", EXAM_KEY);
 		return secrets;
 	}
 

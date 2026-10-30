@@ -69,7 +69,7 @@ public interface ExamQuestionRepository extends TenantAwareRepository<ExamQuesti
 	}
 
 	/**
-	 * {@code [moduleId, questionCount, totalMarks]} per module of {@code courseId}
+	 * {@code [moduleId, questionCount, totalMarks, minMarks, maxMarks]} per module of {@code courseId}
 	 * that has live module questions. The tenant id is read from {@link
 	 * TenantContextHolder} here - never accepted from a caller.
 	 */
@@ -77,7 +77,7 @@ public interface ExamQuestionRepository extends TenantAwareRepository<ExamQuesti
 		return sumLiveByModuleForCourseUnchecked(new TenantContextHolder().getTenantId(), courseId);
 	}
 
-	@Query("SELECT q.moduleId, COUNT(q), COALESCE(SUM(q.marks), 0) FROM ExamQuestion q "
+	@Query("SELECT q.moduleId, COUNT(q), COALESCE(SUM(q.marks), 0), MIN(q.marks), MAX(q.marks) FROM ExamQuestion q "
 			+ "WHERE q.tenantId = :tenantId AND q.courseId = :courseId AND q.moduleId IS NOT NULL "
 			+ "AND q.deletedAt IS NULL GROUP BY q.moduleId")
 	List<Object[]> sumLiveByModuleForCourseUnchecked(@Param("tenantId") UUID tenantId,

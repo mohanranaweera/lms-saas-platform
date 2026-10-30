@@ -7,7 +7,9 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -127,6 +129,54 @@ public class ExamAccessGuard {
 			return;
 		}
 		permissionCheckService.requirePermission(DomainArea.EXAMS, action);
+	}
+
+	/**
+	 * Klass exam password reveal (D6, contract "staff CREATE_EDIT or owning teacher"): the
+	 * owning Teacher, or staff holding {@code DomainArea.EXAMS}/{@code CREATE_EDIT}. Teacher
+	 * Assistants are denied - they may author, but revealing a secret is not authoring.
+	 * Cross-tenant course is 404 first.
+	 */
+	public void requirePasswordRevealAccess(UUID courseId) {
+		requireNotTeacherAssistant(courseId);
+		requireAuthoringAccess(courseId, PermissionAction.CREATE_EDIT);
+	}
+
+	/**
+	 * Klass exam delete (spec §7: Teacher Assistants author and mark but never delete): the
+	 * owning Teacher, or staff holding {@code DomainArea.EXAMS}/{@code DELETE}.
+	 */
+	public void requireExamDeleteAccess(UUID courseId) {
+		requireNotTeacherAssistant(courseId);
+		requireAuthoringAccess(courseId, PermissionAction.DELETE);
+	}
+
+	/**
+	 * Which courses' exams the caller may list in the Klass exam directory: {@code null} =
+	 * every course of the tenant (Teacher Assistant, staff with {@code DomainArea.EXAMS}/
+	 * {@code VIEW}); otherwise the Teacher's own courses. Every other role (students) is 403.
+	 */
+	public Set<UUID> resolveDirectoryCourseScope() {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (TEACHER_ROLE.equals(principal.role())) {
+			return courseLookupApi.listCourseSummariesByTeacherId(principal.userId())
+				.stream()
+				.map(summary -> summary.id())
+				.collect(Collectors.toSet());
+		}
+		if (TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
+			return null;
+		}
+		permissionCheckService.requirePermission(DomainArea.EXAMS, PermissionAction.VIEW);
+		return null;
+	}
+
+	private void requireNotTeacherAssistant(UUID courseId) {
+		if (TEACHER_ASSISTANT_ROLE.equals(AuthenticatedPrincipalHolder.get().role())) {
+			// Same 404-before-403 order as every other check: an unknown course stays 404.
+			requireCourseExistsInTenant(courseId);
+			throw new AccessDeniedException("You do not have permission to perform this action");
+		}
 	}
 
 	private UUID requireCourseExistsInTenant(UUID courseId) {

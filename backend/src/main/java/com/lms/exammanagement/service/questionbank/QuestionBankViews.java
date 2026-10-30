@@ -23,8 +23,9 @@ public final class QuestionBankViews {
 			Instant createdAt, Instant updatedAt) {
 	}
 
+	/** {@code minMarks}/{@code maxMarks}: lowest/highest live question marks (Slice B); null for an empty module. */
 	public record ModuleQuestionCountView(UUID moduleId, String moduleName, long questionCount,
-			BigDecimal totalMarks) {
+			BigDecimal totalMarks, BigDecimal minMarks, BigDecimal maxMarks) {
 	}
 
 	public record CopyResultView(int copied) {
