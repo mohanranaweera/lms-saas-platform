@@ -192,7 +192,7 @@ function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail
             notEnrolled={notEnrolled}
           />
         ) : tab === "exams" ? (
-          <CourseExamsTab courseId={course.id} timeZone={timeZone} />
+          <CourseExamsTab courseId={course.id} courseName={course.name} />
         ) : tab === "live" ? (
           <CourseLiveClassesTab
             courseId={course.id}

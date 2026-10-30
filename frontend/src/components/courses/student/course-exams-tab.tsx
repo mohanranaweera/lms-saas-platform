@@ -1,58 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 import { LoadingState } from "@/components/states/loading-state";
 import { ErrorState } from "@/components/states/error-state";
-import { ExamStatusChip } from "@/components/exams/exam-status-chip";
+import { StudentExamCard } from "@/components/exams/student/student-exam-list";
 import { cn } from "@/lib/utils";
 import { isApiClientError } from "@/lib/api/error";
-import { useMyUpcomingExams, type ExamSummaryResponse } from "@/lib/api/exams";
-import { formatLessonDateTime } from "./student-format";
+import { useStudentExams, type StudentExam, type StudentExamList } from "@/lib/api/student-exams";
 
-type ExamBucket = "IN_PROGRESS" | "UPCOMING" | "PREVIOUS";
+type ExamBucket = "inProgress" | "upcoming" | "previous";
 
 const BUCKET_LABELS: Record<ExamBucket, string> = {
-  IN_PROGRESS: "In progress",
-  UPCOMING: "Upcoming",
-  PREVIOUS: "Previous",
+  inProgress: "In progress",
+  upcoming: "Upcoming",
+  previous: "Previous",
+};
+
+const BUCKET_TEST_IDS: Record<ExamBucket, string> = {
+  inProgress: "IN_PROGRESS",
+  upcoming: "UPCOMING",
+  previous: "PREVIOUS",
 };
 
 const EMPTY_COPY: Record<ExamBucket, { title: string; description: string }> = {
-  IN_PROGRESS: {
+  inProgress: {
     title: "No exams running right now",
-    description: "When your teacher starts an exam it will appear here.",
+    description: "When an exam you're enrolled in opens, it will appear here.",
   },
-  UPCOMING: {
+  upcoming: {
     title: "No upcoming exams",
-    description: "Scheduled exams for this course will appear here.",
+    description: "Exams of this course you're enrolled in will appear here before they open.",
   },
-  PREVIOUS: {
+  previous: {
     title: "No previous exams",
-    description: "Exams whose window has closed will appear here while they're still listed.",
+    description: "Exams of this course that have closed will appear here.",
   },
 };
 
-function bucketOf(exam: ExamSummaryResponse, now: number): ExamBucket {
-  const start = Date.parse(exam.scheduledStart);
-  const end = Date.parse(exam.scheduledEnd);
-  if (end < now) return "PREVIOUS";
-  if (exam.status === "PUBLISHED" && start <= now) return "IN_PROGRESS";
-  return "UPCOMING";
+/**
+ * `StudentExamResponse` has no `courseId` in the Slice C contract; match on it
+ * when the server sends one, otherwise on the course name.
+ */
+function belongsTo(exam: StudentExam, courseId: string, courseName: string): boolean {
+  if (exam.courseId) return exam.courseId === courseId;
+  return exam.courseName === courseName;
 }
 
 /**
- * Exams tab: the existing student exam list (`GET /api/v1/exams/my/upcoming`,
- * owner-only, server-filtered to the student's courses) narrowed to this
- * course. That endpoint never returns CLOSED exams, so "Previous" only holds
- * exams whose window ended but which the server still lists. Exam membership
- * follows the existing rule (D17/O-4), unchanged here.
+ * Exams tab of a student's course page: the student's exam-enrolled Klass
+ * exams (`GET /student/exams`, grouped by the server clock) for this course.
  */
-export function CourseExamsTab({ courseId, timeZone }: { courseId: string; timeZone: string | null }) {
-  const query = useMyUpcomingExams({ size: 100 });
-  const [bucket, setBucket] = useState<ExamBucket>("IN_PROGRESS");
-  const [now] = useState(() => Date.now());
+export function CourseExamsTab({ courseId, courseName }: { courseId: string; courseName: string }) {
+  const query = useStudentExams();
+  const [bucket, setBucket] = useState<ExamBucket>("inProgress");
 
   if (query.status === "pending") return <LoadingState label="Loading exams…" />;
   if (query.status === "error") {
@@ -65,10 +66,9 @@ export function CourseExamsTab({ courseId, timeZone }: { courseId: string; timeZ
     );
   }
 
-  const exams = query.data.content.filter((exam) => exam.courseId === courseId);
-  const counts: Record<ExamBucket, number> = { IN_PROGRESS: 0, UPCOMING: 0, PREVIOUS: 0 };
-  for (const exam of exams) counts[bucketOf(exam, now)] += 1;
-  const visible = exams.filter((exam) => bucketOf(exam, now) === bucket);
+  const data: StudentExamList = query.data;
+  const byBucket = (key: ExamBucket) => data[key].filter((exam) => belongsTo(exam, courseId, courseName));
+  const visible = byBucket(bucket);
 
   return (
     <section
@@ -83,61 +83,31 @@ export function CourseExamsTab({ courseId, timeZone }: { courseId: string; timeZ
             type="button"
             aria-pressed={bucket === value}
             onClick={() => setBucket(value)}
-            data-testid={`exam-bucket-${value}`}
+            data-testid={`exam-bucket-${BUCKET_TEST_IDS[value]}`}
             className={cn(
               "rounded-full border px-3 py-1 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               bucket === value
-                ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-200"
+                ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-foreground hover:bg-muted"
             )}
           >
-            {BUCKET_LABELS[value]} ({counts[value]})
+            {BUCKET_LABELS[value]} ({byBucket(value).length})
           </button>
         ))}
       </div>
 
       {visible.length === 0 ? (
-        <div
-          role="status"
-          className="flex flex-col items-center gap-2 px-6 py-12 text-center"
-          data-testid="course-exams-empty"
-        >
+        <div role="status" className="flex flex-col items-center gap-2 px-6 py-12 text-center" data-testid="course-exams-empty">
           <ClipboardList className="size-8 text-muted-foreground" aria-hidden="true" />
           <p className="text-sm font-medium text-foreground">{EMPTY_COPY[bucket].title}</p>
           <p className="text-sm text-muted-foreground">{EMPTY_COPY[bucket].description}</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {visible.map((exam) => {
-            const takeable = bucket === "IN_PROGRESS";
-            return (
-              <li
-                key={exam.id}
-                className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
-                data-testid="course-exam-row"
-              >
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium text-foreground">{exam.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {takeable
-                      ? `Closes ${formatLessonDateTime(exam.scheduledEnd, timeZone)}`
-                      : bucket === "UPCOMING"
-                        ? `Opens ${formatLessonDateTime(exam.scheduledStart, timeZone)}`
-                        : `Closed ${formatLessonDateTime(exam.scheduledEnd, timeZone)}`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <ExamStatusChip status={exam.status} />
-                  {takeable ? (
-                    <Link href={`/student/exams/${exam.id}/take`} className="text-sm font-medium text-blue-700 hover:underline dark:text-blue-300">
-                      Take exam →
-                    </Link>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="grid gap-4 md:grid-cols-2">
+          {visible.map((exam) => (
+            <StudentExamCard key={exam.id} exam={exam} serverNow={data.serverNow} />
+          ))}
+        </div>
       )}
     </section>
   );

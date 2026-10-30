@@ -18,6 +18,9 @@ import {
 } from "@/components/exams/config/exam-shared";
 import { formatDuration, formatExamDateTime } from "@/lib/exams/exam-time";
 import { useExamDetail, type ExamDetail } from "@/lib/api/exam-config";
+import { ExamEnrollmentActions } from "@/components/exams/enrollment/exam-enrollment-actions";
+import { useAuth } from "@/lib/auth/auth-context";
+import { canAuthorExams } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils";
 
 /** Exam header from `GET /exams/{id}` (title, type, status, course, window, size). Never shows the password (D6). */
@@ -97,6 +100,9 @@ export function ExamHeaderPage({ portal, examId, view }: { portal: ExamPortal; e
   const paths = examPaths(portal);
   const query = useExamDetail(examId);
   const isStats = view === "stats";
+  const { session } = useAuth();
+  // UX only: the enrollment endpoints re-check authoring access server-side.
+  const canEnroll = !isStats && canAuthorExams(session?.role ?? null);
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <Breadcrumbs
@@ -134,6 +140,7 @@ export function ExamHeaderPage({ portal, examId, view }: { portal: ExamPortal; e
           {(exam) => (
             <div className="flex flex-col gap-6">
               <ExamHeader exam={exam} />
+              {canEnroll ? <ExamEnrollmentActions exam={exam} /> : null}
               <EmptyState
                 title={isStats ? "Statistics are on the way" : "Student management is on the way"}
                 description={
