@@ -61,13 +61,13 @@ Status values: PASS / FAIL / BLOCKED / TODO. Rows are grouped; "Existing" = MVP-
 | QB8 | Copy all module questions to another authorized module | L | none | `POST …/modules/{mid}/questions/copy` | QA-QB-5 | PASS |
 | QB9 | CSV import with Klass template, row errors, limits, history, duplicate guard | L | none | `question_import` table | QA-QB-6 | PASS |
 | QB10 | Bank edit/delete never alters attempts | R | delete blocked if used; edit mutates in place | paper snapshot (D3) | QA-INT-3 | TODO |
-| EX1 | Directory tabs/counts/search/cards/actions | S | simple table | `GET /exams/directory` | QA-EX-1 | TODO |
-| EX2 | Server-derived status | R | status column advanced by scheduler | derived from server clock | QA-EX-1 | TODO |
-| EX3 | MCQ create/edit with module quotas, cutoff in marks | S,L | none | `exam_module_quota`, `cutoff_marks` | QA-EX-2 | TODO |
-| EX4 | Unequal-marks selection model | U | n/a | **D3** | QA-EX-2 | TODO |
-| EX5 | Written create with paper/scheme files | S | none | protected media refs | QA-EX-3 | TODO |
-| EX6 | Physical create | S | none | type PHYSICAL | QA-EX-4 | TODO |
-| EX7 | Lock structural edits once any attempt exists | R | partial (DRAFT only) | service guard | QA-EX-5 | TODO |
+| EX1 | Directory tabs/counts/search/cards/actions | S | simple table | `GET /exams/directory` | QA-EX-1 | PARTIAL (counts filled in C/D) |
+| EX2 | Server-derived status | R | status column advanced by scheduler | derived from server clock | QA-EX-1 | PASS |
+| EX3 | MCQ create/edit with module quotas, cutoff in marks | S,L | none | `exam_module_quota`, `cutoff_marks` | QA-EX-2 | PASS |
+| EX4 | Unequal-marks selection model | U | n/a | **D3** | QA-EX-2 | PASS |
+| EX5 | Written create with paper/scheme files | S | none | protected media refs | QA-EX-3 | PASS |
+| EX6 | Physical create | S | none | type PHYSICAL | QA-EX-4 | PASS |
+| EX7 | Lock structural edits once any attempt exists | R | partial (DRAFT only) | service guard | QA-EX-5 | PASS |
 | EN1 | Exam enrollment separate from course enrollment | R(ADR-028) | none (any course enrollee may sit) | `exam_enrollment` | QA-EN-1 | TODO |
 | EN2 | Enroll all (snapshot vs dynamic) | L(mutual exclusion) | none | **D4** | QA-EN-2 | TODO |
 | EN3 | Auto-enroll on payment, criteria by billing type | L | none | **D5** (change-controlled) | QA-EN-3 | TODO |

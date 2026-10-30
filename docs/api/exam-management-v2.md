@@ -190,3 +190,69 @@ sequence, bodyHtml, marks, awardedMarks, selectedOptionId, correctOptionId, expl
 (`items` only when answers are released).
 
 Staff view of attempts is part of Slice D/E management.
+
+### Slice B addendum — course payment configuration for the exam form
+
+`GET /api/v1/exams/course-config/{courseId}` (authoring access to the course) →
+`{ "courseId", "pricingModel": "FREE|ONE_TIME|MONTHLY|SESSION|CUSTOM|DAILY|MODULE|INSTALLMENT",
+   "paymentCriteriaKind": "MONTHS|MODULES|DATES|INSTALLMENT|FULL_FEE|null" }` — `null` means auto-enroll
+on payment is unsupported for this course (FREE/CUSTOM). Mapping per the field rules above.
+
+## Slice D — management, written & physical marking
+
+Participation facts per enrolled student (internal, never collapsed): *attended* (MCQ: attempt exists;
+WRITTEN: paper opened or answer sheet uploaded; PHYSICAL: attendance = PRESENT), *completed* (MCQ:
+finalized with ≥ 1 answer), *submitted* (WRITTEN: ≥ 1 answer document), *graded* (score/marks set),
+*published* (`results_published_at` set).
+
+`ResultLabel` (table "Result" column): `NOT_PARTICIPATED` (not attended; after end) · `PENDING`
+(not attended, exam not ended) · `IN_PROGRESS` · `AWAITING_MARKS` (attended/submitted, not graded) ·
+`PASSED` / `FAILED` (graded; cutoff set) · `MARKED` (graded, no cutoff) · `ABSENT` (physical).
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/exams/{id}/management?search=&page=0&size=10` | `{ exam: ExamDetailResponse-without-config-secrets, summary: { enrolled, attended, attendedPercent, completed, completedPercent, submitted, submittedPercent }, students: PageResponse<ManagedStudentRow> }` |
+| GET | `/api/v1/exams/{id}/export.csv?search=` | full filtered set, all pages |
+| PUT | `/api/v1/exams/{id}/results/{studentId}` | `{ "marks": 72.5|null, "attendance": "PRESENT|ABSENT"|null, "reason": "…" }` — WRITTEN/PHYSICAL only; `0 ≤ marks ≤ totalMarks`; `reason` required when changing existing marks; audit-logged before/after |
+| PUT | `/api/v1/exams/{id}/total-marks` | PHYSICAL only `{ "totalMarks" }` (D8); 409 if any marks exceed the new total |
+| POST | `/api/v1/exams/{id}/submissions/{studentId}/documents` | staff "Enter answer sheet" on behalf; multipart `files[]` (PDF/PNG/JPEG ≤ 20 MB each, ≤ 10) |
+| DELETE | `/api/v1/exams/{id}/submissions/{studentId}/documents/{docId}` | staff only, before marks published; audit-logged |
+| POST | `/api/v1/exams/{id}/results/{studentId}/marked-paper` | multipart `file` |
+| GET | `/api/v1/exams/{id}/submissions/{studentId}/documents/{docId}` | `{ url, fileName }` signed 10 min |
+| GET | `/api/v1/exams/{id}/results/{studentId}/marked-paper` | `{ url, fileName }` |
+| POST | `/api/v1/student/exams/{id}/answer-documents` | student upload, WRITTEN, while `startAt ≤ now < endAt` (+ attempt deadline: written uses an attempt row opened by GET paper; deadline = min(open + duration, endAt)) |
+| GET | `/api/v1/student/exams/{id}/paper` | WRITTEN, enrolled, in window, password verified via the same attempt start → `{ url, fileName }`; marks attended |
+| GET | `/api/v1/student/exams/{id}/my-documents` | own uploads |
+
+`ManagedStudentRow`: `{ studentId, indexNumber, firstName, lastName, result: ResultLabel, marks|null,
+attemptStatus|null, answeredCount|null, answerDocuments: [{ id, fileName }], markedPaper: { fileName }|null,
+attendance|null, enrollmentSource }`. Index numbers are strings (leading zeros preserved).
+
+CSV export columns: MCQ `Index Number,First Name,Last Name,Result,Marks`; WRITTEN adds
+`Answer Document,Marked Paper Document` (Yes/No); PHYSICAL adds `Attendance`. UTF-8 BOM; every cell
+starting with `= + - @ \t \r` is prefixed with `'`; index numbers written as text.
+
+## Slice E — results publication, Notify Marks, stats, leaderboards
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/exams/{id}/notify-marks/preview` | `{ recipients, withoutMarks, alreadyNotifiedAt|null }` — recipients = enrolled students with marks |
+| POST | `/api/v1/exams/{id}/notify-marks` | header `Idempotency-Key`; publishes results (sets `results_published_at` if null, only after `endAt`) and enqueues one notification per recipient via notification-management outbox; same key → original response, no resend; second send with a new key requires `{ "resend": true }`; staff APPROVE / owning teacher |
+| GET | `/api/v1/exams/{id}/stats` | below |
+| GET/POST | `/api/v1/exam-leaderboards` | list `{ id, name, examCount, published }` / create `{ name, examIds[≥2], published }` |
+| GET/PUT/DELETE | `/api/v1/exam-leaderboards/{id}` | delete is hard delete of the grouping only |
+| GET | `/api/v1/exam-leaderboards/{id}/ranks?search=&page&size` | `{ exams: [{ id, name, totalMarks, published }], rows: [{ rank, studentId, indexNumber, name, totalMarks, maxPossible, share, perExam: [{ examId, marks|null }] }] }` |
+| GET | `/api/v1/student/leaderboards` / `{id}/ranks` | published leaderboards whose exams include one of the student's enrollments |
+
+`ExamStatsResponse`: `{ population: { enrolled, attended, graded }, averageMarks|null, maxMarks|null,
+minMarks|null, passed|null, passedOf, cutoffMarks|null, totalMarks, questions: [ { sequence, bodyHtml,
+marks, correct, incorrect, unanswered, correctPercent, options: [ { id, html, correct, selectedCount } ] } ],
+frequentlyMissed: [ sequence… top 5 by incorrect+unanswered ] }` — average/min/max over *graded attended*
+students; `passed` = graded with marks ≥ cutoff, `passedOf` = attended (Klass "faced students"); null
+(rendered "—") when the population is empty — never NaN/undefined. `questions` only for MCQ.
+
+Leaderboard (D7): Σ published marks across included exams; a student appears if enrolled in ≥ 1 included
+exam; unattended enrolled exam = 0; ties share rank (1,1,3); `share` = totalMarks / maxPossible × 100
+(1 decimal), `maxPossible` = Σ totalMarks of included published exams the student was enrolled in.
+Unpublished exams are listed with `published:false` and contribute nothing. Empty state when no published
+marks: "Ranks will appear once marks are entered."

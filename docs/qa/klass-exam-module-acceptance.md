@@ -14,11 +14,11 @@ Screenshots: `docs/qa/klass-evidence/exams/` at 1440, 820, 390 px.
 | QA-QB-4 | Validation: empty body rejected; image-only / math-only body accepted; marks ≤0 rejected; <2 options rejected; correct-answer rule (D1) | IT + E2E | PASS | ModuleQuestionBankIntegrationTest, e2e/exams-question-bank.spec.ts |
 | QA-QB-5 | Copy all questions to another module in an authorized course; independent copies; unauthorized target → 404 | IT | PASS | ModuleQuestionBankIntegrationTest, e2e/exams-question-bank.spec.ts |
 | QA-QB-6 | CSV: Klass template valid; Unicode (Sinhala/Tamil) preserved; bad row → 422 with row numbers, nothing imported; size/row limit; same Idempotency-Key → no duplicate; history row & count | IT | PASS | ModuleQuestionBankIntegrationTest, e2e/exams-question-bank.spec.ts |
-| QA-EX-1 | Directory tabs counts == rows, status from server clock at boundaries, search within authorized set | IT + E2E | TODO | |
-| QA-EX-2 | MCQ create: modules after course, available counts, quotas sum == N, quota > available rejected, cutoff ≤ total marks (shown non-zero), no duplicate questions | IT + E2E | TODO | |
-| QA-EX-3 | Written create: paper required, scheme optional, total marks > 0; files protected | IT + E2E | TODO | |
-| QA-EX-4 | Physical create: schedule & duration; no password/question fields | E2E | TODO | |
-| QA-EX-5 | Edit after first attempt: structural fields locked (409), name editable; save/reload/reopen round-trip | IT + E2E | TODO | |
+| QA-EX-1 | Directory tabs counts == rows, status from server clock at boundaries, search within authorized set | IT + E2E | PARTIAL | ExamDirectoryClockIntegrationTest (counts pending C/D) |
+| QA-EX-2 | MCQ create: modules after course, available counts, quotas sum == N, quota > available rejected, cutoff ≤ total marks (shown non-zero), no duplicate questions | IT + E2E | PASS | ExamConfigIntegrationTest, e2e/exams-directory-config.spec.ts |
+| QA-EX-3 | Written create: paper required, scheme optional, total marks > 0; files protected | IT + E2E | PASS | ExamConfigIntegrationTest, e2e/exams-directory-config.spec.ts |
+| QA-EX-4 | Physical create: schedule & duration; no password/question fields | E2E | PASS | ExamConfigIntegrationTest, e2e/exams-directory-config.spec.ts |
+| QA-EX-5 | Edit after first attempt: structural fields locked (409), name editable; save/reload/reopen round-trip | IT + E2E | PASS | ExamConfigIntegrationTest, e2e/exams-directory-config.spec.ts |
 | QA-EN-1 | Course-enrolled but not exam-enrolled student cannot start; manual enroll/remove; remove after attempt → 409 | IT | TODO | |
 | QA-EN-2 | Enroll-all per D4 (late course enrollee) | IT | TODO | |
 | QA-EN-3 | Payment event → enrollment once; replayed event no duplicate; multi-course order enrolls only matching exams; Free Card per D5; refund per D5 | IT | TODO | |

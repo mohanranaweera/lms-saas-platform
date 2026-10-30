@@ -56,3 +56,13 @@ Handoff format per agent: Files changed | Completed requirements | Checks run | 
   history); module-scoped questions are invisible to the legacy MVP-017 course-level endpoints; signed
   image `src` expires after 30 min (bank page needs refresh). Cross-teacher access returns 403 (existing
   `ExamAccessGuard` rule), cross-tenant 404.
+- **B (done 2026-10-30)** — V111/V112 (applied on lms_dev). Klass exams are `config_version = 2`, stored
+  status always `DRAFT` (legacy scheduler/attempt flow ignore them) and hidden from MVP-017 lists;
+  GET/PUT `/exams/{id}` dispatch on the exam's version. Paper rows are immutable (DB trigger) and
+  undeletable once an attempt exists. Exam password key `EXAM_PASSWORD_ENCRYPTION_KEY` is a critical
+  prod secret (compose, reference, runbook, startup validator). Slice C must take
+  `ExamRepository.acquireExamConfigLock` when starting an attempt. Modules used by an exam quota can't be
+  deleted (409). **Open:** no staff role holds `EXAMS/DELETE` in the RBAC matrix, so only the owning
+  teacher can delete an exam; tenant-admin delete needs an RBAC grant (owner decision).
+- Pre-existing failures, not caused by this module: `e2e/course-builder-keyboard.spec.ts:82` and
+  `e2e/tenant-admin-nav.spec.ts:309,370` (copy changed by earlier course/teacher parity commits).
