@@ -19,7 +19,14 @@ import { nextSequence, sortBySequence } from "@/lib/courses/reorder";
  * sessions use the same full Session form as the Klass table. Ordering is
  * persisted with the dedicated atomic module/session order endpoints.
  */
-export function ModuleLessonEditor({ courseId }: { courseId: string }) {
+export function ModuleLessonEditor({
+  courseId,
+  questionsHref,
+}: {
+  courseId: string;
+  /** Builds the module question-bank link; omit to hide "Manage Questions". */
+  questionsHref?: (moduleId: string) => string;
+}) {
   const modulesQuery = useKlassModules(courseId);
   const timeZone = useTenantTimeZone();
   const { session } = useAuth();
@@ -92,6 +99,7 @@ export function ModuleLessonEditor({ courseId }: { courseId: string }) {
                       onMoveDown={() => handleMoveModule(module.id, "down")}
                       timeZone={timeZone}
                       dashboardHref={dashboardHref}
+                      questionsHref={questionsHref?.(module.id)}
                     />
                   </li>
                 ))}

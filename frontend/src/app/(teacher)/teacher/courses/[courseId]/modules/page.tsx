@@ -65,7 +65,10 @@ export default function CourseModulesPage() {
               Editing modules for{" "}
               <span className="font-medium text-foreground">{course.name}</span>.
             </p>
-            <ModuleLessonEditor courseId={course.id} />
+            <ModuleLessonEditor
+              courseId={course.id}
+              questionsHref={(moduleId) => `/teacher/courses/${course.id}/modules/${moduleId}/questions`}
+            />
           </div>
         )}
       </QueryStateBoundary>

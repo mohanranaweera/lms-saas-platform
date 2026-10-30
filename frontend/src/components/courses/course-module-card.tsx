@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowDown, ArrowUp, FileQuestionMark, Trash2 } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -36,6 +38,8 @@ interface CourseModuleCardProps {
   reorderBusy: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  /** When set, a "Manage Questions" link to this module's question bank is shown. */
+  questionsHref?: string;
 }
 
 /**
@@ -53,6 +57,7 @@ export function CourseModuleCard({
   onMoveDown,
   timeZone,
   dashboardHref,
+  questionsHref,
 }: CourseModuleCardProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const renameMutation = useUpdateKlassModule(courseId);
@@ -129,6 +134,18 @@ export function CourseModuleCard({
           />
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {questionsHref ? (
+            <Tooltip label="Manage Questions">
+              <Link
+                href={questionsHref}
+                className={buttonVariants({ variant: "outline", size: "icon-sm" })}
+                aria-label={`Manage questions of "${courseModule.title}"`}
+                data-testid="module-action-questions"
+              >
+                <FileQuestionMark aria-hidden="true" />
+              </Link>
+            </Tooltip>
+          ) : null}
           <Button
             type="button"
             variant="outline"

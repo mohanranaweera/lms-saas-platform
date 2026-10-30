@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FolderOpen, ListTree, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { FileQuestionMark, FolderOpen, ListTree, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
@@ -206,6 +207,16 @@ export function ModulesPanel({ courseId }: { courseId: string }) {
                             >
                               <ListTree className="text-green-700 dark:text-green-500" aria-hidden="true" />
                             </Link>
+                            <Tooltip label="Manage Questions">
+                              <Link
+                                href={`/tenant-admin/courses/${courseId}/modules/${module.id}/questions`}
+                                className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+                                aria-label={`Manage questions of ${module.title}`}
+                                data-testid="module-action-questions"
+                              >
+                                <FileQuestionMark className="text-foreground" aria-hidden="true" />
+                              </Link>
+                            </Tooltip>
                             <Button
                               type="button"
                               variant="ghost"
