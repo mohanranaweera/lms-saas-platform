@@ -28,6 +28,15 @@ public interface MediaFileRepository extends TenantAwareRepository<MediaFile, UU
 		return findOne(byId(id).and(live()).and(library()));
 	}
 
+	/** Live files of one usage area among {@code ids} (tenant-scoped; unknown / other-tenant ids are absent). */
+	default java.util.List<MediaFile> findLiveByIdsAndUsage(java.util.Collection<UUID> ids, MediaFileUsage usage) {
+		if (ids.isEmpty()) {
+			return java.util.List.of();
+		}
+		return findAll(live().and((root, query, cb) -> cb.and(root.get("id").in(ids),
+				cb.equal(root.get("usageArea"), usage))));
+	}
+
 	default Page<MediaFile> findLive(MediaFileKind kind, String search, Pageable pageable) {
 		Specification<MediaFile> spec = live().and(library());
 		if (kind != null) {

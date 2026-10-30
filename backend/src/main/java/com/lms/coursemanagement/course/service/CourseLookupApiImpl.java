@@ -400,6 +400,28 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	}
 
 	@Override
+	public List<com.lms.coursemanagement.api.CourseModuleSummary> findModules(UUID courseId) {
+		if (courseId == null) {
+			return List.of();
+		}
+		return courseModuleRepository.findByCourseId(courseId)
+			.stream()
+			.map(module -> new com.lms.coursemanagement.api.CourseModuleSummary(module.getId(), module.getCourseId(),
+					module.getTitle(), module.getSequence()))
+			.toList();
+	}
+
+	@Override
+	public Optional<com.lms.coursemanagement.api.CourseModuleSummary> findModule(UUID courseId, UUID moduleId) {
+		if (courseId == null || moduleId == null) {
+			return Optional.empty();
+		}
+		return courseModuleRepository.findByIdAndCourseId(moduleId, courseId)
+			.map(module -> new com.lms.coursemanagement.api.CourseModuleSummary(module.getId(), module.getCourseId(),
+					module.getTitle(), module.getSequence()));
+	}
+
+	@Override
 	public List<ModulePriceInfo> findModulePrices(UUID courseId) {
 		if (courseRepository.findById(courseId).isEmpty()) {
 			return List.of();

@@ -113,6 +113,22 @@ public class ExamAccessGuard {
 		permissionCheckService.requirePermission(DomainArea.EXAMS, PermissionAction.VIEW);
 	}
 
+	/**
+	 * Gates course-less question-bank helpers (Klass Exam Module Slice A: exam image
+	 * upload, CSV template) - the same role rule as {@link #requireAuthoringAccess}
+	 * without a course to own: Teacher and Teacher Assistant may author in general,
+	 * every other role needs {@code DomainArea.EXAMS}/{@code action} (students hold no
+	 * such grant and get 403). The content a caller later attaches these to is still
+	 * gated per course by {@link #requireAuthoringAccess}.
+	 */
+	public void requireAuthoringRole(PermissionAction action) {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
+			return;
+		}
+		permissionCheckService.requirePermission(DomainArea.EXAMS, action);
+	}
+
 	private UUID requireCourseExistsInTenant(UUID courseId) {
 		return courseLookupApi.getTeacherId(courseId).orElseThrow(() -> new NotFoundException("Course not found"));
 	}

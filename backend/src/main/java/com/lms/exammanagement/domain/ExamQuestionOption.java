@@ -36,6 +36,10 @@ public class ExamQuestionOption extends Auditable implements TenantOwned {
 	@Column(name = "is_correct", nullable = false)
 	private boolean isCorrect;
 
+	/** 1-based display order (V109); {@code null} for legacy MVP-017 options. */
+	@Column(name = "sequence")
+	private Integer sequence;
+
 	protected ExamQuestionOption() {
 	}
 
@@ -66,6 +70,25 @@ public class ExamQuestionOption extends Auditable implements TenantOwned {
 
 	public boolean isCorrect() {
 		return isCorrect;
+	}
+
+	public Integer getSequence() {
+		return sequence;
+	}
+
+	/** A module-bank option (Slice A): sanitized HTML text with an explicit position. */
+	public static ExamQuestionOption ordered(UUID tenantId, UUID questionId, String html, boolean correct,
+			int sequence) {
+		ExamQuestionOption option = new ExamQuestionOption(tenantId, questionId, html, correct);
+		option.sequence = sequence;
+		return option;
+	}
+
+	/** Slice A in-place edit of a kept option (its id survives the update). */
+	public void revise(String html, boolean correct, int sequence) {
+		this.optionText = html;
+		this.isCorrect = correct;
+		this.sequence = sequence;
 	}
 
 }

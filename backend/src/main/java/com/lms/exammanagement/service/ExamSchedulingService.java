@@ -313,6 +313,10 @@ public class ExamSchedulingService {
 			throw new InvalidExamScheduleException("One or more questionIds do not exist in this tenant");
 		}
 		for (ExamQuestion question : questions) {
+			if (question.isDeleted()) {
+				// A soft-deleted bank question (Slice A) can no longer be added to an exam.
+				throw new InvalidExamScheduleException("One or more questionIds do not exist in this tenant");
+			}
 			if (!question.getCourseId().equals(exam.getCourseId())) {
 				throw new InvalidExamScheduleException("One or more questionIds do not belong to this exam's course");
 			}

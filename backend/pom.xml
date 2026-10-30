@@ -90,6 +90,12 @@
 			<artifactId>libphonenumber</artifactId>
 			<version>9.0.32</version>
 		</dependency>
+		<!-- Klass Exam Module (Slice A): server-side HTML sanitizing of question rich content (MIT, offline). -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.17.2</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>

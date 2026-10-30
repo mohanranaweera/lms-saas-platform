@@ -230,6 +230,20 @@ public interface CourseLookupApi {
 	/** Public storefront courses assigned to an approved teacher, excluding archived and non-public courses. */
 	List<com.lms.coursemanagement.api.PublicCourseSummary> listPublicCourseSummariesByTeacherId(UUID teacherId);
 
+	/**
+	 * Klass Exam Module Slice A: every module of {@code courseId} in sequence order.
+	 * Tenant-scoped through the resolved {@link com.lms.common.tenant.TenantContext}; empty
+	 * for an unknown or cross-tenant course id.
+	 */
+	List<CourseModuleSummary> findModules(UUID courseId);
+
+	/**
+	 * Klass Exam Module Slice A: the module {@code moduleId} only if it belongs to {@code
+	 * courseId} in the caller's tenant - empty for an unknown id, a module of another
+	 * course, or any cross-tenant id (callers answer 404 for all of them alike).
+	 */
+	Optional<CourseModuleSummary> findModule(UUID courseId, UUID moduleId);
+
 	/** Upper bound of {@link #listCourseSummaries()}. */
 	int MAX_COURSE_SUMMARIES = 2000;
 
