@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { FormField, describedBy, fieldIds } from "@/components/courses/admin/form-field";
 import { StudentExamSummary, studentExamPaths } from "@/components/exams/student/student-exam-shared";
+import { StudentPhysicalExam, StudentWrittenExam } from "@/components/exams/student/student-written-exam";
 import { formatDuration, formatExamDateTime } from "@/lib/exams/exam-time";
 import { isApiClientError } from "@/lib/api/error";
 import {
@@ -156,18 +157,8 @@ function StartForm({ exam }: { exam: StudentExam }) {
 
 /** What the student can do next, from server facts only. */
 function StartAction({ exam }: { exam: StudentExam }) {
-  if (exam.type !== "MCQ") {
-    return (
-      <EmptyState
-        title={exam.type === "PHYSICAL" ? "This exam is held in class" : "Online submission isn't available yet"}
-        description={
-          exam.type === "PHYSICAL"
-            ? "Attend the exam at the scheduled time. Your teacher records your attendance and marks."
-            : "Written exam papers and answer-sheet uploads will be available here in a later update. Follow your teacher's instructions for this exam."
-        }
-      />
-    );
-  }
+  if (exam.type === "WRITTEN") return <StudentWrittenExam exam={exam} />;
+  if (exam.type === "PHYSICAL") return <StudentPhysicalExam exam={exam} />;
   const attempt = exam.attempt;
   if (attempt && attempt.status === "IN_PROGRESS" && exam.status === "IN_PROGRESS") {
     return (
@@ -219,7 +210,7 @@ function StartAction({ exam }: { exam: StudentExam }) {
   return <StartForm exam={exam} />;
 }
 
-/** Exam details + start (Slice C): rules summary, password, Start. */
+/** Exam details + start (Slice C; WRITTEN/PHYSICAL from Slice D): rules summary, password, Start / Open paper. */
 export function StudentExamStart({ examId }: { examId: string }) {
   const query = useStudentExam(examId);
   const router = useRouter();

@@ -60,9 +60,18 @@ export type StudentExamCta =
  * `resultAvailable`). Starting/resuming is still re-checked by the server.
  */
 export function studentExamCta(exam: StudentExam): StudentExamCta {
+  if (exam.type !== "MCQ" && exam.resultAvailable) {
+    return { kind: "link", label: "View result", href: studentExamPaths.result(exam.id), testId: "exam-cta-result" };
+  }
   if (exam.type === "PHYSICAL") return { kind: "text", text: "Sit this exam in class", testId: "exam-cta-info" };
   if (exam.type === "WRITTEN") {
-    return { kind: "link", label: "View details", href: studentExamPaths.details(exam.id), testId: "exam-cta-details" };
+    const open = exam.status === "IN_PROGRESS" && (!exam.attempt || exam.attempt.status === "IN_PROGRESS");
+    return {
+      kind: "link",
+      label: open ? (exam.attempt ? "Continue" : "Open") : "View details",
+      href: studentExamPaths.details(exam.id),
+      testId: "exam-cta-details",
+    };
   }
   const attempt = exam.attempt;
   if (attempt) {

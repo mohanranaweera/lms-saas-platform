@@ -13,6 +13,7 @@ import { RichContent } from "@/components/exams/rich-content";
 import { formatExamMarks } from "@/components/exams/config/exam-shared";
 import { optionLetter } from "@/components/exams/student/attempt-question";
 import { StudentExamSummary, studentExamPaths } from "@/components/exams/student/student-exam-shared";
+import { StudentMarksResult } from "@/components/exams/student/student-written-exam";
 import { formatExamDateTime } from "@/lib/exams/exam-time";
 import { marksNumber } from "@/lib/api/question-bank";
 import { isApiClientError } from "@/lib/api/error";
@@ -197,14 +198,7 @@ function ResultBody({ exam }: { exam: StudentExam }) {
   const router = useRouter();
   const query = useAttemptResult(attempt?.id ?? "", { enabled: Boolean(attempt) && exam.type === "MCQ" });
 
-  if (exam.type !== "MCQ") {
-    return (
-      <EmptyState
-        title="Results for this exam aren't shown here yet"
-        description="Your teacher publishes marks for written and in-class exams. You'll be notified when they're available."
-      />
-    );
-  }
+  if (exam.type !== "MCQ") return <StudentMarksResult exam={exam} />;
   if (!attempt) {
     return exam.status === "FINISHED" ? (
       <EmptyState title="You didn't attempt this exam" description="The exam closed without an attempt from you, so there's no result to show." />

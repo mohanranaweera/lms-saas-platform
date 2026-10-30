@@ -1,10 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { ExamHeaderPage } from "@/components/exams/config/exam-placeholder-pages";
+import { ExamManagementPage } from "@/components/exams/management/exam-management-page";
 
-/** Manage exam — header only in Slice B; Slice D adds student management. */
+/** Manage exam (Slice D): header, participation summary, enrolled students, marking. */
 export default function TeacherExamManagePage() {
   const params = useParams<{ examId: string }>();
-  return <ExamHeaderPage portal="teacher" examId={params.examId} view="manage" />;
+  return <ExamManagementPage portal="teacher" examId={params.examId} />;
 }

@@ -263,3 +263,17 @@ marks: "Ranks will appear once marks are entered."
 - `GET /exams/{id}/enrollment-candidates?search=` → `PageResponse<{ studentId, indexNumber, firstName, lastName }>` (page/size params, default size 20).
 - Too many wrong passwords → HTTP 429, `error.code = "RATE_LIMITED"`; wrong password → 403 `WRONG_PASSWORD`.
 - Item save response: `{ saved, stale, revision, serverNow }`.
+
+### Slice D addendum (as implemented)
+
+- Student WRITTEN start = `POST /api/v1/student/exams/{id}/attempts { password }` (same errors as MCQ) →
+  `AttemptResponse` with `items: []`, `deadlineAt = min(open + duration, endAt)`; repeat call resumes.
+  `GET /student/exams/{id}/paper` needs the open attempt (409 `NOT_STARTED` / `DEADLINE_PASSED` / `FINALIZED`);
+  uploads use the same codes; `POST /student/attempts/{id}/submit` ends a written attempt. PHYSICAL start → 409 `NOT_SUPPORTED`.
+- `GET /api/v1/student/exams/{id}/result` works for every type (physical has no attempt). `ResultResponse` adds
+  optional `markedPaper {url, fileName}` and `attendance`; written/physical → 409 `NOT_RELEASED` until published.
+- Management response adds `serverNow`, `resultsPublishedAt`; percentages are numbers with 1 decimal.
+- Marking errors: 409 `NOT_OPEN` (before start), `TOTAL_MARKS_REQUIRED` (physical), `NOT_SUPPORTED` (MCQ marks,
+  non-written documents), `RESULTS_PUBLISHED` (document delete), `MARKS_EXCEED_TOTAL`; 400 for attendance on WRITTEN
+  or ABSENT with marks. Entering physical marks sets attendance PRESENT.
+- Uploads: multipart part `files[]` (or `files`); request size ceiling 26 MB → the UI uploads one file per request.
