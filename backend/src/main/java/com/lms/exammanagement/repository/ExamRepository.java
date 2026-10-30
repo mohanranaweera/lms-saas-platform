@@ -92,6 +92,15 @@ public interface ExamRepository extends TenantAwareRepository<Exam, UUID> {
 		return findAll(spec);
 	}
 
+	/** Live Klass exams of the current tenant among {@code examIds}. */
+	default List<Exam> findLiveKlassExamsByIds(Collection<UUID> examIds) {
+		if (examIds.isEmpty()) {
+			return List.of();
+		}
+		Specification<Exam> byIds = (root, query, cb) -> root.get("id").in(examIds);
+		return findAll(byIds.and(klassModel()).and(live()));
+	}
+
 	/**
 	 * Transaction-scoped advisory lock serializing configuration writes (update, redraw,
 	 * delete) of one exam. The key is built by the caller from the context tenant and the

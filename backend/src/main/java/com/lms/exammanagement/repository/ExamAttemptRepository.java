@@ -3,6 +3,7 @@ package com.lms.exammanagement.repository;
 import com.lms.common.persistence.TenantAwareRepository;
 import com.lms.exammanagement.domain.ExamAttempt;
 import com.lms.exammanagement.domain.ExamAttemptStatus;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,7 +14,7 @@ import org.springframework.data.domain.Pageable;
  * Tenant-scoped per {@code .claude/rules/tenancy.md} - never referenced
  * outside {@code com.lms.exammanagement}.
  */
-public interface ExamAttemptRepository extends TenantAwareRepository<ExamAttempt, UUID> {
+public interface ExamAttemptRepository extends TenantAwareRepository<ExamAttempt, UUID>, ExamAttemptWrites {
 
 	/**
 	 * The "resume my in-progress attempt" read backing {@code
@@ -45,7 +46,39 @@ public interface ExamAttemptRepository extends TenantAwareRepository<ExamAttempt
 	 * client-supplied one).
 	 */
 	default Page<ExamAttempt> findByStudentId(UUID studentId, Pageable pageable) {
-		return findAll((root, query, cb) -> cb.equal(root.get("studentId"), studentId), pageable);
+		// Legacy MVP-017 history only: Klass attempts (V113) live under /api/v1/student/...
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("studentId"), studentId),
+				cb.isFalse(root.get("klassAttempt"))), pageable);
+	}
+
+	/** Klass (V113): the student's one attempt of {@code examId}, if any. */
+	default Optional<ExamAttempt> findKlassAttempt(UUID examId, UUID studentId) {
+		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("examId"), examId),
+				cb.equal(root.get("studentId"), studentId), cb.isTrue(root.get("klassAttempt"))));
+	}
+
+	/** Klass: the student's attempts of the given exams. */
+	default List<ExamAttempt> findKlassAttemptsOfStudent(UUID studentId, Collection<UUID> examIds) {
+		if (examIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("studentId"), studentId),
+				root.get("examId").in(examIds), cb.isTrue(root.get("klassAttempt"))));
+	}
+
+	/** Any attempt (Klass or legacy-shaped) of this student for this exam - blocks removing the enrollment. */
+	default boolean existsByExamIdAndStudentId(UUID examId, UUID studentId) {
+		return exists((root, query, cb) -> cb.and(cb.equal(root.get("examId"), examId),
+				cb.equal(root.get("studentId"), studentId)));
+	}
+
+	/** Klass attempts of the given exams (directory counts). */
+	default List<ExamAttempt> findKlassAttemptsOfExams(Collection<UUID> examIds) {
+		if (examIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll(
+				(root, query, cb) -> cb.and(root.get("examId").in(examIds), cb.isTrue(root.get("klassAttempt"))));
 	}
 
 }

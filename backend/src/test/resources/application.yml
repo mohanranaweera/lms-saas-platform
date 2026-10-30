@@ -64,6 +64,9 @@ payment:
 exam:
   # Test-only key (Base64 of "test-only-exam-password-key-32by").
   password-encryption-key: "dGVzdC1vbmx5LWV4YW0tcGFzc3dvcmQta2V5LTMyYnk="
+  # Slice C: tests drive ExamAttemptSweepService#sweep() directly with a fixed clock.
+  attempt-sweep:
+    scheduler-enabled: false
 
 live-class:
   provider:

@@ -108,10 +108,14 @@ public class ExamConfigService {
 
 	private final ObjectMapper objectMapper;
 
+	private final ExamEnrollmentService enrollmentService;
+
 	public ExamConfigService(ExamRepository examRepository, ExamModuleQuotaRepository quotaRepository,
 			ExamPaperService paperService, ExamParticipationReader participationReader, ExamAccessGuard accessGuard,
 			CourseLookupApi courseLookupApi, ExamDocumentMediaApi documentApi, ExamPasswordCipherApi passwordCipher,
-			AuditLogApi auditLogApi, TenantContext tenantContext, Clock clock, ObjectMapper objectMapper) {
+			AuditLogApi auditLogApi, TenantContext tenantContext, Clock clock, ObjectMapper objectMapper,
+			ExamEnrollmentService enrollmentService) {
+		this.enrollmentService = enrollmentService;
 		this.examRepository = examRepository;
 		this.quotaRepository = quotaRepository;
 		this.paperService = paperService;
@@ -199,6 +203,8 @@ public class ExamConfigService {
 		Map<String, Object> metadata = new LinkedHashMap<>(nonNull(auditSnapshot(exam, config.quotas())));
 		metadata.put("paperQuestionCount", paper == null ? 0 : paper.questions().size());
 		audit("exam.created", exam.getId(), metadata);
+		// D4: "Enroll all students" materializes the course's current participants on save.
+		enrollmentService.materializeEnrollAll(exam);
 		return toDetail(exam);
 	}
 
@@ -291,6 +297,7 @@ public class ExamConfigService {
 		metadata.put("passwordChanged", passwordChanged);
 		metadata.put("paperRedrawn", paper != null);
 		audit("exam.updated", exam.getId(), metadata);
+		enrollmentService.materializeEnrollAll(exam);
 		return toDetail(exam);
 	}
 
