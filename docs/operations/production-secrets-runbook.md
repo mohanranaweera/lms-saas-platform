@@ -38,6 +38,7 @@ openssl rand -base64 48 > JWT_SECRET
 openssl rand -base64 48 > VIDEO_PLAYBACK_TOKEN_SECRET
 openssl rand -base64 32 > MEDIA_CREDENTIALS_ENCRYPTION_KEY     # exactly 32 bytes - do not change the 32
 openssl rand -base64 32 > PAYMENT_CREDENTIALS_ENCRYPTION_KEY   # exactly 32 bytes - do not change the 32
+openssl rand -base64 32 > EXAM_PASSWORD_ENCRYPTION_KEY         # exactly 32 bytes
 openssl rand -base64 32 > LIVE_CLASS_PROVIDER_WEBHOOK_SECRET
 
 # 3. Secrets issued by a provider: paste the value with a text editor, or leave the file EMPTY
@@ -97,6 +98,7 @@ database. **If either is lost, that data can never be decrypted again**:
 |---|---|
 | `MEDIA_CREDENTIALS_ENCRYPTION_KEY` | Every teacher's Zoom/YouTube/Vimeo connection and every tenant's DynTube/Bunny.net account must be reconnected; since Wave 11 (ADR-023 J1) every tenant's SMS / WhatsApp provider credentials must also be re-entered |
 | `PAYMENT_CREDENTIALS_ENCRYPTION_KEY` | Every tenant's PayHere account must be entered again; online payments stop until then |
+| `EXAM_PASSWORD_ENCRYPTION_KEY` | Stored exam passwords can no longer be verified or revealed; staff must set a new password on every open exam |
 
 So, for each environment:
 1. Copy both key values into the organisation's password manager (restricted vault, named e.g.
