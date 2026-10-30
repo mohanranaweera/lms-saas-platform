@@ -66,3 +66,13 @@ Handoff format per agent: Files changed | Completed requirements | Checks run | 
   teacher can delete an exam; tenant-admin delete needs an RBAC grant (owner decision).
 - Pre-existing failures, not caused by this module: `e2e/course-builder-keyboard.spec.ts:82` and
   `e2e/tenant-admin-nav.spec.ts:309,370` (copy changed by earlier course/teacher parity commits).
+- **C (done 2026-10-30)** — V113 (enrollment, Klass attempts, attempt items, password-failure log;
+  DB triggers keep finalized attempts/items immutable; an attempt requires an enrollment by composite FK).
+  Payment listener per ADR-032; Free Card enrollments created lazily (no issue event) and only for MONTHS.
+  Legacy student exam pages replaced; legacy MVP-017 attempts no longer reachable from the student UI.
+  **Open defects:** (1) INSTALLMENT threshold counts cash of later-refunded payments (payment row stays
+  CONFIRMED) — must subtract `payment_refund` amounts; (2) enroll-all materialization uses direct course
+  participants while the eligibility check also accepts linked-parent-course participants; (3) no test of
+  one payment covering two courses; (4) first/last name are a split of the single `name` field.
+  Additional pre-existing failure: `e2e/student-course-content.spec.ts:234` (`catalog-view-enrolled` test id
+  absent in src).

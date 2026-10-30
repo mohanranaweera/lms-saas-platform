@@ -68,14 +68,14 @@ Status values: PASS / FAIL / BLOCKED / TODO. Rows are grouped; "Existing" = MVP-
 | EX5 | Written create with paper/scheme files | S | none | protected media refs | QA-EX-3 | PASS |
 | EX6 | Physical create | S | none | type PHYSICAL | QA-EX-4 | PASS |
 | EX7 | Lock structural edits once any attempt exists | R | partial (DRAFT only) | service guard | QA-EX-5 | PASS |
-| EN1 | Exam enrollment separate from course enrollment | R(ADR-028) | none (any course enrollee may sit) | `exam_enrollment` | QA-EN-1 | TODO |
-| EN2 | Enroll all (snapshot vs dynamic) | L(mutual exclusion) | none | **D4** | QA-EN-2 | TODO |
-| EN3 | Auto-enroll on payment, criteria by billing type | L | none | **D5** (change-controlled) | QA-EN-3 | TODO |
-| PA1 | Student list/details/eligibility/password/start/resume/save/submit | R | start/save/submit exist, no password/enrollment | extend `ExamAttemptService` | QA-PA-1 | TODO |
-| PA2 | Persisted per-attempt question & option order; stable option IDs | R | no shuffle | `exam_attempt_item` | QA-PA-2 | TODO |
-| PA3 | Deadline/late start/timeout/attempt limit | R | window only | **D2** | QA-PA-3 | TODO |
-| PA4 | Stale autosave cannot overwrite newer answer | R | last-write-wins | client `revision` monotonic check | QA-PA-4 | TODO |
-| PA5 | No key/explanation/scheme leakage before release | R | key not exposed today | release gate D2 | QA-SEC-1 | TODO |
+| EN1 | Exam enrollment separate from course enrollment | R(ADR-028) | none (any course enrollee may sit) | `exam_enrollment` | QA-EN-1 | PASS |
+| EN2 | Enroll all (snapshot vs dynamic) | L(mutual exclusion) | none | **D4** | QA-EN-2 | PASS |
+| EN3 | Auto-enroll on payment, criteria by billing type | L | none | **D5** (change-controlled) | QA-EN-3 | PARTIAL (see slice log C) |
+| PA1 | Student list/details/eligibility/password/start/resume/save/submit | R | start/save/submit exist, no password/enrollment | extend `ExamAttemptService` | QA-PA-1 | PASS |
+| PA2 | Persisted per-attempt question & option order; stable option IDs | R | no shuffle | `exam_attempt_item` | QA-PA-2 | PASS |
+| PA3 | Deadline/late start/timeout/attempt limit | R | window only | **D2** | QA-PA-3 | PASS |
+| PA4 | Stale autosave cannot overwrite newer answer | R | last-write-wins | client `revision` monotonic check | QA-PA-4 | PASS |
+| PA5 | No key/explanation/scheme leakage before release | R | key not exposed today | release gate D2 | QA-SEC-1 | PASS |
 | MG1 | Management page, summary cards, enrolled table, search, pagination | S | none | `GET /exams/{id}/management` | QA-MG-1 | TODO |
 | MG2 | Written: answer upload (student / staff on behalf), marks, marked paper | S,L | none | `exam_submission_document` | QA-MG-2 | TODO |
 | MG3 | Physical: attendance + marks | A | none | same result table, no attempt | QA-MG-3 | TODO |

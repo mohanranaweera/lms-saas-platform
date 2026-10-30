@@ -256,3 +256,10 @@ exam; unattended enrolled exam = 0; ties share rank (1,1,3); `share` = totalMark
 (1 decimal), `maxPossible` = Σ totalMarks of included published exams the student was enrolled in.
 Unpublished exams are listed with `published:false` and contribute nothing. Empty state when no published
 marks: "Ranks will appear once marks are entered."
+
+### Slice C addendum (contract clarifications)
+
+- `StudentExamResponse` also carries `courseId`.
+- `GET /exams/{id}/enrollment-candidates?search=` → `PageResponse<{ studentId, indexNumber, firstName, lastName }>` (page/size params, default size 20).
+- Too many wrong passwords → HTTP 429, `error.code = "RATE_LIMITED"`; wrong password → 403 `WRONG_PASSWORD`.
+- Item save response: `{ saved, stale, revision, serverNow }`.
