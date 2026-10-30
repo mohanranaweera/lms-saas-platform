@@ -4,6 +4,7 @@ import org.springframework.scheduling.annotation.Async;
 import com.lms.identityaccessservice.api.PasswordEmailRequestedEvent;
 import com.lms.identityaccessservice.api.PasswordTokenPurpose;
 import com.lms.common.tenant.TenantContextHolder;
+import com.lms.exammanagement.api.ExamMarksNotificationRequestedEvent;
 import com.lms.notificationmanagement.domain.NotificationEventType;
 import com.lms.notificationmanagement.domain.NotificationOutbox;
 import com.lms.notificationmanagement.repository.NotificationOutboxRepository;
@@ -11,8 +12,11 @@ import com.lms.paymentmanagement.api.PaymentConfirmedEvent;
 import com.lms.paymentmanagement.api.PaymentRefundedEvent;
 import com.lms.paymentmanagement.api.PaymentRejectedEvent;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -110,6 +114,39 @@ public class NotificationOutboxService {
 				? NotificationEventType.ACCOUNT_SETUP_INVITE : NotificationEventType.PASSWORD_RESET;
 		// No dedupe key: each forgot-password / invite request is its own event.
 		insertOutboxRow(event.tenantId(), type, event.userId(), new LinkedHashMap<>(), null);
+	}
+
+	/**
+	 * Klass Exam Module Slice E "Notify Marks": one {@code EXAM_MARKS_PUBLISHED} row per
+	 * recipient. Unlike the payment listeners this runs synchronously INSIDE the sender's
+	 * transaction ({@code MANDATORY}), so the exam's dispatch record, its audit entry and these
+	 * rows commit or roll back together. The request thread already carries the resolved tenant;
+	 * the event's tenant must equal it (a mismatch fails closed), and the ambient context is left
+	 * untouched. Dedupe key = dispatch + student, so an Idempotency-Key replay (which publishes
+	 * no event) can never double-queue, while a deliberate resend (new dispatch) does queue.
+	 */
+	@EventListener
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void onExamMarksNotificationRequested(ExamMarksNotificationRequestedEvent event) {
+		if (!TenantContextHolder.isSet() || !new TenantContextHolder().getTenantId().equals(event.tenantId())) {
+			throw new IllegalStateException("Exam marks notification tenant does not match the request tenant");
+		}
+		List<NotificationOutbox> rows = new ArrayList<>(event.recipients().size());
+		for (ExamMarksNotificationRequestedEvent.Recipient recipient : event.recipients()) {
+			if (recipient.studentId() == null) {
+				throw new IllegalStateException("Cannot queue an exam marks notification with no recipient");
+			}
+			Map<String, Object> variables = new LinkedHashMap<>();
+			variables.put("examName", recipient.examName());
+			variables.put("courseName", recipient.courseName() == null ? "" : recipient.courseName());
+			variables.put("marks", recipient.marks());
+			variables.put("totalMarks", recipient.totalMarks() == null ? "" : recipient.totalMarks());
+			variables.put("resultLine", recipient.result() == null ? "" : " Result: " + recipient.result() + ".");
+			rows.add(new NotificationOutbox(event.tenantId(), NotificationEventType.EXAM_MARKS_PUBLISHED,
+					recipient.studentId(), objectMapper.writeValueAsString(variables), event.requestedAt(),
+					"EXAM_MARKS:" + event.dispatchId() + ":" + recipient.studentId()));
+		}
+		notificationOutboxRepository.saveAll(rows);
 	}
 
 	private void insertOutboxRow(java.util.UUID tenantId, NotificationEventType eventType,

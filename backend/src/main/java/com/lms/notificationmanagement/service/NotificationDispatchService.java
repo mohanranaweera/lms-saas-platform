@@ -143,6 +143,9 @@ public class NotificationDispatchService {
 			if (credentialPurpose != null) {
 				templateSeedingService.seedCredentialTemplates(row.getTenantId());
 			}
+			if (row.getEventType() == NotificationEventType.EXAM_MARKS_PUBLISHED) {
+				templateSeedingService.seedExamTemplates(row.getTenantId());
+			}
 
 			NotificationTemplate template = notificationTemplateRepository.findByTemplateKey(row.getEventType().name())
 				.orElseThrow(() -> new TemplateNotFoundException(

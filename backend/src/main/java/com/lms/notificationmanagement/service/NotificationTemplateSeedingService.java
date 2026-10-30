@@ -98,6 +98,17 @@ public class NotificationTemplateSeedingService {
 	}
 
 	/**
+	 * Klass Exam Module Slice E: the default "Notify Marks" template, seeded lazily by the
+	 * dispatcher right before it sends one (every tenant, old or new; the caller has set the
+	 * TenantContext). Contains marks / total / pass state only - never answer keys.
+	 */
+	public void seedExamTemplates(UUID tenantId) {
+		seedIfAbsent(tenantId, NotificationEventType.EXAM_MARKS_PUBLISHED, "Your marks for {{examName}}",
+				"Hi,\n\nYour marks for {{examName}} ({{courseName}}) have been published: {{marks}} / {{totalMarks}}."
+						+ "{{resultLine}}\n\nSign in to see your result.\n");
+	}
+
+	/**
 	 * Defensive idempotency (in case {@link TenantRegisteredEvent} is ever
 	 * redelivered, or a template already exists via some other path) - never
 	 * overwrite an existing row, only insert if absent. Actually race-safe

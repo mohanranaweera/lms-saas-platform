@@ -19,6 +19,12 @@ public enum NotificationEventType {
 	ACCOUNT_SETUP_INVITE,
 
 	/** AUTH-PWD-01: forgot-password link. */
-	PASSWORD_RESET
+	PASSWORD_RESET,
+
+	/**
+	 * Klass Exam Module Slice E (V115): "Notify Marks" - one row per enrolled student with marks.
+	 * Payload: exam name, course name, marks / total and pass state; never answer keys.
+	 */
+	EXAM_MARKS_PUBLISHED
 
 }
