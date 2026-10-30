@@ -67,7 +67,7 @@ public class ExamDirectoryService {
 			.filter(exam -> needle.isEmpty() || exam.getTitle().toLowerCase(Locale.ROOT).contains(needle)
 					|| courseNames.getOrDefault(exam.getCourseId(), "").toLowerCase(Locale.ROOT).contains(needle))
 			.toList();
-		Map<UUID, Counts> counts = participationReader.countsFor(matching.stream().map(Exam::getId).toList());
+		Map<UUID, Counts> counts = participationReader.countsFor(matching);
 
 		List<ExamCardView> inProgress = new ArrayList<>();
 		List<ExamCardView> upcoming = new ArrayList<>();

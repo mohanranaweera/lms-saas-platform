@@ -2,6 +2,7 @@ package com.lms.exammanagement.service.exam;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.lms.exammanagement.domain.ExamAttemptStatus;
+import com.lms.exammanagement.domain.ExamAttendance;
 import com.lms.exammanagement.domain.ExamType;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -68,10 +69,18 @@ public final class StudentExamViews {
 			UUID selectedOptionId, UUID correctOptionId, String explanationHtml, List<OptionView> options) {
 	}
 
-	/** {@code items} is omitted unless answers are released (showAnswersWithResults and after endAt). */
+	/**
+	 * {@code items} is omitted unless answers are released (showAnswersWithResults and after endAt).
+	 * WRITTEN / PHYSICAL (Slice D, released once results are published): {@code score} = the
+	 * staff-entered marks (null if none), {@code attemptId} null for PHYSICAL, {@code markedPaper}
+	 * a 10-minute signed link when a marked paper exists, {@code attendance} for PHYSICAL; both
+	 * omitted when absent.
+	 */
 	public record ResultView(UUID examId, UUID attemptId, BigDecimal score, BigDecimal totalMarks,
 			BigDecimal cutoffMarks, Boolean passed, Integer answeredCount,
-			@JsonInclude(JsonInclude.Include.NON_NULL) List<ResultItemView> items) {
+			@JsonInclude(JsonInclude.Include.NON_NULL) List<ResultItemView> items,
+			@JsonInclude(JsonInclude.Include.NON_NULL) ExamViews.ExamDocumentLinkView markedPaper,
+			@JsonInclude(JsonInclude.Include.NON_NULL) ExamAttendance attendance) {
 	}
 
 }

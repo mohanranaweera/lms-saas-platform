@@ -34,6 +34,18 @@ public interface ExamEnrollmentRepository extends TenantAwareRepository<ExamEnro
 		return findAll((root, query, cb) -> cb.equal(root.get("studentId"), studentId));
 	}
 
+	default List<ExamEnrollment> findAllByExamId(UUID examId) {
+		return findAll((root, query, cb) -> cb.equal(root.get("examId"), examId));
+	}
+
+	/** Enrollments of several exams (Slice E stats / notify / leaderboards). */
+	default List<ExamEnrollment> findAllByExamIdIn(Collection<UUID> examIds) {
+		if (examIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("examId").in(examIds));
+	}
+
 	default List<UUID> findStudentIdsByExamId(UUID examId) {
 		return findAttributeValues((root, query, cb) -> cb.equal(root.get("examId"), examId), "studentId", UUID.class);
 	}

@@ -7,8 +7,10 @@ package com.lms.contentmanagement.library.domain;
  * (V109) are referenced only from sanitized exam question HTML and served through the exam
  * module's own authorization ({@code ExamQuestionMediaApi}). {@link #EXAM_QUESTION_PAPER} /
  * {@link #EXAM_MARKING_SCHEME} documents (V111) are attached to written exams and served
- * the same way ({@code ExamDocumentMediaApi}).
+ * the same way ({@code ExamDocumentMediaApi}), as are a written exam's per-student
+ * {@link #EXAM_ANSWER_SHEET} / {@link #EXAM_MARKED_PAPER} documents (V114).
  */
 public enum MediaFileUsage {
-	COURSE_LIBRARY, TEACHER_PROFILE, EXAM_QUESTION, EXAM_QUESTION_PAPER, EXAM_MARKING_SCHEME
+	COURSE_LIBRARY, TEACHER_PROFILE, EXAM_QUESTION, EXAM_QUESTION_PAPER, EXAM_MARKING_SCHEME,
+	EXAM_ANSWER_SHEET, EXAM_MARKED_PAPER
 }

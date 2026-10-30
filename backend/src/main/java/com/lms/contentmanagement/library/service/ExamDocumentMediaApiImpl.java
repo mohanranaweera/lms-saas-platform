@@ -24,12 +24,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,8 +44,9 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * {@link ExamDocumentMediaApi} on the shared {@code media_file} store, with the same
  * ordering as {@link ExamQuestionMediaApiImpl} (validate fully, store the bytes with no DB
- * transaction open, then insert + audit in one transaction, deleting the stored object
- * again if that transaction fails) and its own allow-list: PDF, PNG and JPEG only, sniffed
+ * transaction open, then insert + audit in one transaction, deleting the stored objects
+ * again if that transaction fails - for a multi-file upload every file is validated before
+ * any is stored, so a batch is all-or-nothing) and its own allow-list: PDF, PNG and JPEG only, sniffed
  * from the bytes (never the declared type or extension), at most 20 MB.
  */
 @Service
@@ -74,6 +79,89 @@ public class ExamDocumentMediaApiImpl implements ExamDocumentMediaApi {
 
 	@Override
 	public StoredDocument upload(MultipartFile file, Purpose purpose) {
+		return uploadAll(java.util.Collections.singletonList(file), purpose, documents -> {
+		}).get(0);
+	}
+
+	@Override
+	public List<StoredDocument> uploadAll(List<MultipartFile> files, Purpose purpose,
+			Consumer<List<StoredDocument>> inTransaction) {
+		if (files == null || files.isEmpty()) {
+			throw new FieldValidationException("A file is required",
+					List.of(new FieldError("file", "A PDF, PNG or JPEG file is required")));
+		}
+		MediaFileUsage usage = usageOf(purpose);
+		// 1. Validate every file before any byte is stored.
+		List<Validated> validated = new ArrayList<>();
+		for (MultipartFile file : files) {
+			validated.add(validate(file));
+		}
+		UUID tenantId = tenantContext.getTenantId();
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+
+		// 2. Store (no DB transaction open); a storage failure removes what was stored so far.
+		List<StoredObject> stored = new ArrayList<>();
+		try {
+			for (Validated file : validated) {
+				stored.add(objectStorageApi.store(new StoreObjectCommand(tenantId,
+						new ByteArrayInputStream(file.bytes()), file.contentType(), file.bytes().length,
+						file.originalFilename())));
+			}
+		}
+		catch (RuntimeException e) {
+			deleteStored(stored);
+			throw e;
+		}
+
+		// 3. One transaction: every row + audit + the caller's linking writes, or nothing.
+		try {
+			return transactionTemplate.execute(status -> {
+				List<StoredDocument> documents = new ArrayList<>();
+				for (int i = 0; i < validated.size(); i++) {
+					Validated file = validated.get(i);
+					StoredObject object = stored.get(i);
+					MediaFile created = mediaFileRepository.save(new MediaFile(tenantId,
+							MediaFileKind.fromSniffedContentType(file.contentType()), usage,
+							titleFrom(file.originalFilename()), file.originalFilename(), file.contentType(),
+							object.sizeBytes(), object.objectKey(), file.sha256(), actorId));
+					Map<String, Object> metadata = new LinkedHashMap<>();
+					metadata.put("usageArea", usage.name());
+					metadata.put("contentType", file.contentType());
+					metadata.put("sizeBytes", object.sizeBytes());
+					metadata.put("originalFilename", file.originalFilename());
+					metadata.put("sha256", file.sha256());
+					auditLogApi.record(new AuditLogEntry(actorId, "media_file.uploaded", "media_file", created.getId(),
+							null, metadata));
+					documents.add(toStored(created));
+				}
+				mediaFileRepository.flush();
+				List<StoredDocument> result = List.copyOf(documents);
+				inTransaction.accept(result);
+				return result;
+			});
+		}
+		catch (RuntimeException e) {
+			deleteStored(stored);
+			throw e;
+		}
+	}
+
+	@Override
+	public Map<UUID, StoredDocument> findLiveAll(Collection<UUID> mediaIds, Purpose purpose) {
+		if (mediaIds == null || mediaIds.isEmpty() || purpose == null) {
+			return Map.of();
+		}
+		Map<UUID, StoredDocument> documents = new HashMap<>();
+		for (MediaFile file : mediaFileRepository.findLiveByIdsAndUsage(Set.copyOf(mediaIds), usageOf(purpose))) {
+			documents.put(file.getId(), toStored(file));
+		}
+		return documents;
+	}
+
+	private record Validated(String originalFilename, byte[] bytes, String contentType, String sha256) {
+	}
+
+	private static Validated validate(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
 			throw new FieldValidationException("A file is required",
 					List.of(new FieldError("file", "A PDF, PNG or JPEG file is required")));
@@ -88,42 +176,19 @@ public class ExamDocumentMediaApiImpl implements ExamDocumentMediaApi {
 		if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
 			throw new UnsupportedMediaTypeException("The document must be a PDF, PNG or JPEG file");
 		}
-		MediaFileUsage usage = usageOf(purpose);
-		String sha256 = MediaFileService.sha256Hex(bytes);
-		String title = titleFrom(originalFilename);
-		UUID tenantId = tenantContext.getTenantId();
-		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		return new Validated(originalFilename, bytes, contentType, MediaFileService.sha256Hex(bytes));
+	}
 
-		StoredObject stored = objectStorageApi.store(new StoreObjectCommand(tenantId, new ByteArrayInputStream(bytes),
-				contentType, bytes.length, originalFilename));
-		MediaFile saved;
-		try {
-			saved = transactionTemplate.execute(status -> {
-				MediaFile created = mediaFileRepository.save(new MediaFile(tenantId,
-						MediaFileKind.fromSniffedContentType(contentType), usage, title, originalFilename, contentType,
-						stored.sizeBytes(), stored.objectKey(), sha256, actorId));
-				Map<String, Object> metadata = new LinkedHashMap<>();
-				metadata.put("usageArea", usage.name());
-				metadata.put("contentType", contentType);
-				metadata.put("sizeBytes", stored.sizeBytes());
-				metadata.put("originalFilename", originalFilename);
-				metadata.put("sha256", sha256);
-				auditLogApi.record(new AuditLogEntry(actorId, "media_file.uploaded", "media_file", created.getId(),
-						null, metadata));
-				return created;
-			});
-		}
-		catch (RuntimeException e) {
+	private void deleteStored(List<StoredObject> stored) {
+		for (StoredObject object : stored) {
 			try {
-				objectStorageApi.delete(stored.objectKey());
+				objectStorageApi.delete(object.objectKey());
 			}
 			catch (RuntimeException cleanup) {
-				log.warn("Failed to delete storage object {} after a failed exam document insert",
-						stored.objectKey(), cleanup);
+				log.warn("Failed to delete storage object {} after a failed exam document upload", object.objectKey(),
+						cleanup);
 			}
-			throw e;
 		}
-		return toStored(saved);
 	}
 
 	@Override
@@ -154,6 +219,8 @@ public class ExamDocumentMediaApiImpl implements ExamDocumentMediaApi {
 		return switch (purpose) {
 			case QUESTION_PAPER -> MediaFileUsage.EXAM_QUESTION_PAPER;
 			case MARKING_SCHEME -> MediaFileUsage.EXAM_MARKING_SCHEME;
+			case ANSWER_SHEET -> MediaFileUsage.EXAM_ANSWER_SHEET;
+			case MARKED_PAPER -> MediaFileUsage.EXAM_MARKED_PAPER;
 		};
 	}
 

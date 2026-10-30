@@ -171,6 +171,31 @@ public class ExamAccessGuard {
 		return null;
 	}
 
+	/**
+	 * Klass exam leaderboards (Slice E): which courses' exams the caller may group / see. {@code
+	 * null} = every course of the tenant (staff holding {@code DomainArea.EXAMS}/{@code action};
+	 * Teacher Assistant for {@code VIEW} only), otherwise the Teacher's own courses. Teacher
+	 * Assistants may not create, change or delete leaderboards (publishing is not authoring);
+	 * students and staff without the grant get 403.
+	 */
+	public Set<UUID> resolveLeaderboardScope(PermissionAction action) {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (TEACHER_ROLE.equals(principal.role())) {
+			return courseLookupApi.listCourseSummariesByTeacherId(principal.userId())
+				.stream()
+				.map(summary -> summary.id())
+				.collect(Collectors.toSet());
+		}
+		if (TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
+			if (action != PermissionAction.VIEW) {
+				throw new AccessDeniedException("You do not have permission to perform this action");
+			}
+			return null;
+		}
+		permissionCheckService.requirePermission(DomainArea.EXAMS, action);
+		return null;
+	}
+
 	private void requireNotTeacherAssistant(UUID courseId) {
 		if (TEACHER_ASSISTANT_ROLE.equals(AuthenticatedPrincipalHolder.get().role())) {
 			// Same 404-before-403 order as every other check: an unknown course stays 404.

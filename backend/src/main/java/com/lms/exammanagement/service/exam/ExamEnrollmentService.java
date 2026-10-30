@@ -12,7 +12,6 @@ import com.lms.enrollmentmanagement.api.UnpaidStudentsEnrollmentApi;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamEnrollment;
 import com.lms.exammanagement.domain.ExamEnrollmentSource;
-import com.lms.exammanagement.repository.ExamAttemptRepository;
 import com.lms.exammanagement.repository.ExamEnrollmentRepository;
 import com.lms.exammanagement.repository.ExamRepository;
 import com.lms.exammanagement.service.exam.StudentExamViews.EnrollResultView;
@@ -68,9 +67,9 @@ public class ExamEnrollmentService {
 
 	private final ExamEnrollmentRepository enrollmentRepository;
 
-	private final ExamAttemptRepository attemptRepository;
-
 	private final ExamPaymentEnrollmentService paymentEnrollmentService;
+
+	private final ExamParticipationReader participationReader;
 
 	private final ExamAccessGuard accessGuard;
 
@@ -87,14 +86,14 @@ public class ExamEnrollmentService {
 	private final Clock clock;
 
 	public ExamEnrollmentService(ExamRepository examRepository, ExamEnrollmentRepository enrollmentRepository,
-			ExamAttemptRepository attemptRepository, ExamPaymentEnrollmentService paymentEnrollmentService,
-			ExamAccessGuard accessGuard, ContentCoverageApi contentCoverageApi,
+			ExamPaymentEnrollmentService paymentEnrollmentService,
+			ExamParticipationReader participationReader, ExamAccessGuard accessGuard, ContentCoverageApi contentCoverageApi,
 			UnpaidStudentsEnrollmentApi participantsApi, StudentLookupApi studentLookupApi, AuditLogApi auditLogApi,
 			TenantContext tenantContext, Clock clock) {
 		this.examRepository = examRepository;
 		this.enrollmentRepository = enrollmentRepository;
-		this.attemptRepository = attemptRepository;
 		this.paymentEnrollmentService = paymentEnrollmentService;
+		this.participationReader = participationReader;
 		this.accessGuard = accessGuard;
 		this.contentCoverageApi = contentCoverageApi;
 		this.participantsApi = participantsApi;
@@ -161,7 +160,7 @@ public class ExamEnrollmentService {
 			throw ExamStateException.conflict(ExamStateException.ENROLL_ALL_ACTIVE,
 					"Every course student is enrolled in this exam. Turn off \"Enroll all students\" to remove one.");
 		}
-		if (attemptRepository.existsByExamIdAndStudentId(exam.getId(), studentId)) {
+		if (participationReader.hasStudentParticipation(exam.getId(), studentId)) {
 			throw ExamStateException.conflict(ExamStateException.HAS_ATTEMPT,
 					"This student has already attempted the exam, so they can't be removed");
 		}

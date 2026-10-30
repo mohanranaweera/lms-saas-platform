@@ -2,8 +2,10 @@ package com.lms.exammanagement.service.exam;
 
 import com.lms.exammanagement.domain.ExamAttempt;
 import com.lms.exammanagement.domain.ExamFinalizedReason;
+import com.lms.exammanagement.domain.ExamType;
 import com.lms.exammanagement.repository.ExamAttemptRepository;
 import com.lms.exammanagement.repository.ExamAttemptWrites.Grade;
+import com.lms.exammanagement.repository.ExamRepository;
 import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -26,8 +28,11 @@ public class ExamAttemptFinalizer {
 
 	private final ExamAttemptRepository attemptRepository;
 
-	public ExamAttemptFinalizer(ExamAttemptRepository attemptRepository) {
+	private final ExamRepository examRepository;
+
+	public ExamAttemptFinalizer(ExamAttemptRepository attemptRepository, ExamRepository examRepository) {
 		this.attemptRepository = attemptRepository;
+		this.examRepository = examRepository;
 	}
 
 	/**
@@ -76,12 +81,24 @@ public class ExamAttemptFinalizer {
 		return attemptRepository.prunePasswordFailuresAcrossTenants(before);
 	}
 
-	/** Caller holds the row lock and has seen {@code IN_PROGRESS}. */
+	/**
+	 * Caller holds the row lock and has seen {@code IN_PROGRESS}. A WRITTEN exam's attempt (paper
+	 * opened, Slice D) has no items and is never auto-graded: it is closed with no score - its
+	 * marks are entered by staff on {@code exam_result}.
+	 */
 	private void finalizeLocked(ExamAttempt attempt, ExamFinalizedReason reason, Instant now) {
-		Grade grade = attemptRepository.gradeItems(attempt.getId(), now);
 		Instant finalizedAt = reason == ExamFinalizedReason.TIMEOUT && attempt.getDeadlineAt().isBefore(now)
 				? attempt.getDeadlineAt() : now;
-		attempt.finalizeKlass(reason, finalizedAt, grade.score(), grade.answeredCount(), now);
+		boolean written = examRepository.findById(attempt.getExamId())
+			.map(exam -> exam.getExamType() == ExamType.WRITTEN)
+			.orElse(false);
+		if (written) {
+			attempt.finalizeUngraded(reason, finalizedAt);
+		}
+		else {
+			Grade grade = attemptRepository.gradeItems(attempt.getId(), now);
+			attempt.finalizeKlass(reason, finalizedAt, grade.score(), grade.answeredCount(), now);
+		}
 		attemptRepository.saveAndFlush(attempt);
 		log.atInfo()
 			.setMessage("exam.attempt.finalized")

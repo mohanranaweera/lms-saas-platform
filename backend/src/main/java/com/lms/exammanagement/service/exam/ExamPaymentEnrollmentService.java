@@ -10,7 +10,6 @@ import com.lms.enrollmentmanagement.api.CourseSummaryEnrollmentReportApi.FreeCar
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamEnrollment;
 import com.lms.exammanagement.domain.ExamEnrollmentSource;
-import com.lms.exammanagement.repository.ExamAttemptRepository;
 import com.lms.exammanagement.repository.ExamEnrollmentRepository;
 import com.lms.exammanagement.repository.ExamRepository;
 import com.lms.exammanagement.service.exam.ExamPaymentCriteriaMatcher.OrderFacts;
@@ -18,10 +17,12 @@ import com.lms.exammanagement.service.exam.ExamViews.PaymentCriteriaView;
 import com.lms.paymentmanagement.api.OrderLineSnapshot;
 import com.lms.paymentmanagement.api.OrderPaymentDetail;
 import com.lms.paymentmanagement.api.OrderRevenueBasis;
+import com.lms.paymentmanagement.api.PaymentRefundReportApi;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.tenantmanagement.api.ConfigDomain;
 import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.Instant;
@@ -74,9 +75,11 @@ public class ExamPaymentEnrollmentService {
 
 	private final ExamEnrollmentRepository enrollmentRepository;
 
-	private final ExamAttemptRepository attemptRepository;
+	private final ExamParticipationReader participationReader;
 
 	private final PaymentStatusApi paymentStatusApi;
+
+	private final PaymentRefundReportApi refundApi;
 
 	private final CourseLookupApi courseLookupApi;
 
@@ -93,14 +96,16 @@ public class ExamPaymentEnrollmentService {
 	private final ObjectMapper objectMapper;
 
 	public ExamPaymentEnrollmentService(ExamRepository examRepository, ExamEnrollmentRepository enrollmentRepository,
-			ExamAttemptRepository attemptRepository, PaymentStatusApi paymentStatusApi, CourseLookupApi courseLookupApi,
+			ExamParticipationReader participationReader, PaymentStatusApi paymentStatusApi,
+			PaymentRefundReportApi refundApi, CourseLookupApi courseLookupApi,
 			CourseSummaryEnrollmentReportApi freeCardApi, TenantConfigApi tenantConfigApi, AuditLogApi auditLogApi,
 			TenantContext tenantContext, Clock clock, ObjectMapper objectMapper) {
 		this.auditLogApi = auditLogApi;
 		this.examRepository = examRepository;
 		this.enrollmentRepository = enrollmentRepository;
-		this.attemptRepository = attemptRepository;
+		this.participationReader = participationReader;
 		this.paymentStatusApi = paymentStatusApi;
+		this.refundApi = refundApi;
 		this.courseLookupApi = courseLookupApi;
 		this.freeCardApi = freeCardApi;
 		this.tenantConfigApi = tenantConfigApi;
@@ -180,7 +185,7 @@ public class ExamPaymentEnrollmentService {
 		for (ExamEnrollment enrollment : enrollmentRepository.findAllByPaymentIdAndSource(paymentId,
 				ExamEnrollmentSource.PAYMENT)) {
 			examRepository.acquireExamConfigLock(ExamLocks.configKey(tenantContext.getTenantId(), enrollment.getExamId()));
-			if (attemptRepository.existsByExamIdAndStudentId(enrollment.getExamId(), enrollment.getStudentId())) {
+			if (participationReader.hasStudentParticipation(enrollment.getExamId(), enrollment.getStudentId())) {
 				log.atInfo()
 					.setMessage("exam.auto_enroll.refund_kept_attempted")
 					.addKeyValue("examTenantId", tenantContext.getTenantId())
@@ -317,25 +322,48 @@ public class ExamPaymentEnrollmentService {
 	/**
 	 * The student's cumulative confirmed cash for {@code courseId}: course shares of line orders
 	 * (ADR-029: never facility fees or postage; reward lines are worth 0) plus the full amount of
-	 * legacy single-course orders. Free Cards are never cash.
+	 * legacy single-course orders, each net of what has been refunded on its confirmed payment
+	 * (staff refunds and chargebacks; the payment row itself stays CONFIRMED). A partially refunded
+	 * line order keeps the unrefunded fraction of each course share. Free Cards are never cash.
 	 */
 	private BigDecimal cumulativeCourseCash(UUID studentId, UUID courseId) {
-		List<UUID> confirmedOrders = paymentStatusApi
-			.findOrderPaymentDetails(paymentStatusApi.findOrderIdsForStudent(studentId))
+		Map<UUID, UUID> paymentByOrder = new HashMap<>();
+		paymentStatusApi.findOrderPaymentDetails(paymentStatusApi.findOrderIdsForStudent(studentId))
 			.stream()
 			.filter(detail -> detail.confirmedPaymentId() != null)
-			.map(OrderPaymentDetail::orderId)
-			.toList();
+			.forEach(detail -> paymentByOrder.put(detail.orderId(), detail.confirmedPaymentId()));
+		if (paymentByOrder.isEmpty()) {
+			return BigDecimal.ZERO;
+		}
+		Map<UUID, BigDecimal> refunded = refundApi.findRefundedAmountsByPaymentIds(paymentByOrder.values());
 		BigDecimal total = BigDecimal.ZERO;
-		for (OrderRevenueBasis basis : paymentStatusApi.findOrderRevenueBases(confirmedOrders)) {
+		for (OrderRevenueBasis basis : paymentStatusApi.findOrderRevenueBases(List.copyOf(paymentByOrder.keySet()))) {
+			BigDecimal refund = refunded.getOrDefault(paymentByOrder.get(basis.orderId()), BigDecimal.ZERO);
 			if (basis.lineOrder()) {
-				total = total.add(basis.courseShares().getOrDefault(courseId, BigDecimal.ZERO));
+				BigDecimal share = basis.courseShares().getOrDefault(courseId, BigDecimal.ZERO);
+				total = total.add(netOfRefund(share, basis.orderAmount(), refund));
 			}
 			else if (courseId.equals(basis.legacyCourseId()) && basis.orderAmount() != null) {
-				total = total.add(basis.orderAmount());
+				total = total.add(nonNegative(basis.orderAmount().subtract(refund)));
 			}
 		}
 		return total;
+	}
+
+	/** {@code share} scaled by the unrefunded fraction of {@code orderAmount}. */
+	static BigDecimal netOfRefund(BigDecimal share, BigDecimal orderAmount, BigDecimal refund) {
+		if (refund.signum() <= 0) {
+			return share;
+		}
+		if (orderAmount == null || orderAmount.signum() <= 0 || refund.compareTo(orderAmount) >= 0) {
+			return BigDecimal.ZERO;
+		}
+		BigDecimal remaining = orderAmount.subtract(refund);
+		return share.multiply(remaining).divide(orderAmount, 2, RoundingMode.HALF_UP);
+	}
+
+	private static BigDecimal nonNegative(BigDecimal amount) {
+		return amount.signum() < 0 ? BigDecimal.ZERO : amount;
 	}
 
 	private Map<UUID, LocalDate> lessonDatesIfNeeded(PaymentCriteriaView criteria, Exam exam) {

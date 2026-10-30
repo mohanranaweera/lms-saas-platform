@@ -32,6 +32,27 @@ public class ExamStateException extends ApplicationException {
 
 	public static final String RATE_LIMITED = "RATE_LIMITED";
 
+	/** WRITTEN: the paper / answer upload needs the attempt opened with the password first. */
+	public static final String NOT_STARTED = "NOT_STARTED";
+
+	/** Answer documents can't be removed once results are published. */
+	public static final String RESULTS_PUBLISHED = "RESULTS_PUBLISHED";
+
+	/** PHYSICAL: marks need the exam's total marks first (D8). */
+	public static final String TOTAL_MARKS_REQUIRED = "TOTAL_MARKS_REQUIRED";
+
+	/** PHYSICAL: the new total marks are below an already entered mark. */
+	public static final String MARKS_EXCEED_TOTAL = "MARKS_EXCEED_TOTAL";
+
+	/** Slice E: results can only be published / notified at or after the exam end. */
+	public static final String NOT_ENDED = "NOT_ENDED";
+
+	/** Slice E: marks were already notified; a new send needs {@code "resend": true}. */
+	public static final String ALREADY_NOTIFIED = "ALREADY_NOTIFIED";
+
+	/** Slice E: no enrolled student has marks yet - nothing to notify. */
+	public static final String NO_RECIPIENTS = "NO_RECIPIENTS";
+
 	public ExamStateException(HttpStatus status, String code, String message) {
 		super(status, code, message);
 	}

@@ -4,16 +4,20 @@ import com.lms.common.api.FieldError;
 import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.contentmanagement.api.ExamDocumentMediaApi;
+import com.lms.contentmanagement.api.ExamDocumentMediaApi.Purpose;
 import com.lms.contentmanagement.api.ExamQuestionMediaApi;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CourseSummary;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamAttempt;
 import com.lms.exammanagement.domain.ExamAttemptItem;
+import com.lms.exammanagement.domain.ExamAttendance;
 import com.lms.exammanagement.domain.ExamEnrollment;
 import com.lms.exammanagement.domain.ExamPaperItem;
 import com.lms.exammanagement.domain.ExamPaperOption;
 import com.lms.exammanagement.domain.ExamPasswordFailure;
+import com.lms.exammanagement.domain.ExamResult;
 import com.lms.exammanagement.domain.ExamType;
 import com.lms.exammanagement.repository.ExamAttemptItemRepository;
 import com.lms.exammanagement.repository.ExamAttemptRepository;
@@ -22,6 +26,8 @@ import com.lms.exammanagement.repository.ExamPaperItemRepository;
 import com.lms.exammanagement.repository.ExamPaperOptionRepository;
 import com.lms.exammanagement.repository.ExamPasswordFailureRepository;
 import com.lms.exammanagement.repository.ExamRepository;
+import com.lms.exammanagement.repository.ExamResultRepository;
+import com.lms.exammanagement.service.exam.ExamViews.ExamDocumentLinkView;
 import com.lms.exammanagement.service.exam.StudentExamViews.AttemptItemView;
 import com.lms.exammanagement.service.exam.StudentExamViews.AttemptSummaryView;
 import com.lms.exammanagement.service.exam.StudentExamViews.AttemptView;
@@ -35,6 +41,7 @@ import com.lms.exammanagement.service.questionbank.RichContentSanitizer;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.integrationmanagement.api.ExamPasswordCipherApi;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -110,6 +117,10 @@ public class StudentExamService {
 
 	private final ExamQuestionMediaApi mediaApi;
 
+	private final ExamDocumentMediaApi documentApi;
+
+	private final ExamResultRepository resultRepository;
+
 	private final CourseLookupApi courseLookupApi;
 
 	private final TenantContext tenantContext;
@@ -121,7 +132,8 @@ public class StudentExamService {
 			ExamPaperItemRepository paperItemRepository, ExamPaperOptionRepository paperOptionRepository,
 			ExamPasswordFailureRepository passwordFailureRepository, ExamEnrollmentService enrollmentService,
 			ExamAttemptFinalizer finalizer, ExamPaperRandomSource randomSource, ExamPasswordCipherApi passwordCipher,
-			ExamQuestionMediaApi mediaApi, CourseLookupApi courseLookupApi, TenantContext tenantContext, Clock clock) {
+			ExamQuestionMediaApi mediaApi, ExamDocumentMediaApi documentApi, ExamResultRepository resultRepository,
+			CourseLookupApi courseLookupApi, TenantContext tenantContext, Clock clock) {
 		this.examRepository = examRepository;
 		this.enrollmentRepository = enrollmentRepository;
 		this.attemptRepository = attemptRepository;
@@ -134,6 +146,8 @@ public class StudentExamService {
 		this.randomSource = randomSource;
 		this.passwordCipher = passwordCipher;
 		this.mediaApi = mediaApi;
+		this.documentApi = documentApi;
+		this.resultRepository = resultRepository;
 		this.courseLookupApi = courseLookupApi;
 		this.tenantContext = tenantContext;
 		this.clock = clock;
@@ -196,9 +210,9 @@ public class StudentExamService {
 	public AttemptView start(UUID examId, String password) {
 		UUID studentId = requireStudent();
 		Exam exam = loadEnrolledExam(examId, studentId);
-		if (exam.getExamType() != ExamType.MCQ) {
+		if (exam.getExamType() == ExamType.PHYSICAL) {
 			throw ExamStateException.conflict(ExamStateException.NOT_SUPPORTED,
-					"This exam isn't answered online. Open it from the exam page.");
+					"This exam is sat in person at your institute.");
 		}
 		examRepository.acquireExamConfigLock(ExamLocks.configKey(tenantContext.getTenantId(), exam.getId()));
 		Instant now = clock.instant();
@@ -225,7 +239,11 @@ public class StudentExamService {
 		Instant deadline = byDuration.isBefore(exam.getScheduledEnd()) ? byDuration : exam.getScheduledEnd();
 		ExamAttempt attempt = attemptRepository.saveAndFlush(
 				ExamAttempt.klassAttempt(tenantContext.getTenantId(), exam.getId(), studentId, now, deadline));
-		createItems(exam, attempt);
+		if (exam.getExamType() == ExamType.MCQ) {
+			createItems(exam, attempt);
+		}
+		// WRITTEN (Slice D): the attempt row is the "paper opened" fact and carries the upload
+		// deadline; it has no items. The paper itself is served by GET /student/exams/{id}/paper.
 		return attemptView(attempt, now);
 	}
 
@@ -283,6 +301,9 @@ public class StudentExamService {
 		finalizer.finalizeIfDue(attempt, now);
 		Exam exam = examRepository.findById(attempt.getExamId())
 			.orElseThrow(() -> new NotFoundException("Attempt not found"));
+		if (exam.getExamType() != ExamType.MCQ) {
+			return publishedResult(exam, studentId, attempt.getId());
+		}
 		if (!attempt.isFinalized() || !resultReleased(exam, now)) {
 			throw ExamStateException.conflict(ExamStateException.NOT_RELEASED,
 					"Results are shown after the exam ends");
@@ -291,7 +312,53 @@ public class StudentExamService {
 				: attempt.getScore().compareTo(exam.getCutoffMarks()) >= 0;
 		List<ResultItemView> items = exam.isShowAnswersWithResults() ? resultItems(attempt) : null;
 		return new ResultView(exam.getId(), attempt.getId(), attempt.getScore(), exam.getTotalMarks(),
-				exam.getCutoffMarks(), passed, attempt.getAnsweredCount(), items);
+				exam.getCutoffMarks(), passed, attempt.getAnsweredCount(), items, null, null);
+	}
+
+	/**
+	 * The student's result of any Klass exam type ({@code GET /student/exams/{id}/result}, Slice
+	 * D): MCQ delegates to the attempt result (404 without an attempt); WRITTEN / PHYSICAL are
+	 * released once results are published (409 {@code NOT_RELEASED} before).
+	 */
+	public ResultView examResult(UUID examId) {
+		UUID studentId = requireStudent();
+		Exam exam = loadEnrolledExam(examId, studentId);
+		ExamAttempt attempt = attemptRepository.findKlassAttempt(exam.getId(), studentId).orElse(null);
+		if (exam.getExamType() == ExamType.MCQ) {
+			if (attempt == null) {
+				throw new NotFoundException("You did not sit this exam");
+			}
+			return result(attempt.getId());
+		}
+		if (attempt != null) {
+			finalizer.finalizeIfDue(attempt, clock.instant());
+		}
+		return publishedResult(exam, studentId, attempt == null ? null : attempt.getId());
+	}
+
+	/** D2: written / physical marks (and the marked paper) are visible once staff publish results. */
+	private ResultView publishedResult(Exam exam, UUID studentId, UUID attemptId) {
+		if (exam.getResultsPublishedAt() == null) {
+			throw ExamStateException.conflict(ExamStateException.NOT_RELEASED,
+					"Marks are shown once your institute publishes them");
+		}
+		ExamResult result = resultRepository.findByExamIdAndStudentId(exam.getId(), studentId).orElse(null);
+		BigDecimal score = result == null ? null : result.getMarks();
+		Boolean passed = exam.getCutoffMarks() == null || score == null ? null
+				: score.compareTo(exam.getCutoffMarks()) >= 0;
+		ExamDocumentLinkView markedPaper = null;
+		if (result != null && result.getMarkedPaperMediaId() != null) {
+			UUID mediaId = result.getMarkedPaperMediaId();
+			markedPaper = documentApi.findLive(mediaId, Purpose.MARKED_PAPER)
+				.flatMap(document -> documentApi
+					.signUrl(mediaId, Purpose.MARKED_PAPER, ExamDocumentService.DOCUMENT_URL_TTL)
+					.map(url -> new ExamDocumentLinkView(url, document.fileName())))
+				.orElse(null);
+		}
+		ExamAttendance attendance = exam.getExamType() == ExamType.PHYSICAL && result != null ? result.getAttendance()
+				: null;
+		return new ResultView(exam.getId(), attemptId, score, exam.getTotalMarks(), exam.getCutoffMarks(), passed, null,
+				null, markedPaper, attendance);
 	}
 
 	// ------------------------------------------------------------------
@@ -463,7 +530,9 @@ public class StudentExamService {
 		ExamWindowStatus status = ExamWindowStatus.of(now, exam.getScheduledStart(), exam.getScheduledEnd());
 		AttemptSummaryView summary = attempt == null ? null
 				: new AttemptSummaryView(attempt.getId(), attempt.getStatus(), attempt.getDeadlineAt());
-		boolean resultAvailable = attempt != null && attempt.isFinalized() && resultReleased(exam, now);
+		boolean resultAvailable = exam.getExamType() == ExamType.MCQ
+				? attempt != null && attempt.isFinalized() && resultReleased(exam, now)
+				: exam.getResultsPublishedAt() != null;
 		return new StudentExamView(exam.getId(), exam.getExamType(), exam.getTitle(), exam.getCourseId(), courseName,
 				exam.getScheduledStart(), exam.getScheduledEnd(), exam.getTimeLimitMinutes(),
 				exam.getExamType() == ExamType.MCQ ? exam.getQuestionCount() : null, exam.getTotalMarks(), status,

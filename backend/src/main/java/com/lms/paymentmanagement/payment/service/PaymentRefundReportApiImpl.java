@@ -8,11 +8,15 @@ import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.repository.PaymentRepository;
 import com.lms.paymentmanagement.refund.domain.PaymentRefund;
 import com.lms.paymentmanagement.refund.repository.PaymentRefundRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -62,5 +66,19 @@ public class PaymentRefundReportApiImpl implements PaymentRefundReportApi {
 					payment.getCreatedAt()));
 		}
 		return facts;
+	}
+
+	@Override
+	public Map<UUID, BigDecimal> findRefundedAmountsByPaymentIds(Collection<UUID> paymentIds) {
+		if (paymentIds == null || paymentIds.isEmpty()) {
+			return Map.of();
+		}
+		Set<UUID> ids = Set.copyOf(paymentIds);
+		Map<UUID, BigDecimal> totals = new HashMap<>();
+		for (PaymentRefund refund : refundRepository.findAll(
+				(root, query, cb) -> root.get("originalPaymentId").in(ids))) {
+			totals.merge(refund.getOriginalPaymentId(), refund.getAmount().abs(), BigDecimal::add);
+		}
+		return totals;
 	}
 }

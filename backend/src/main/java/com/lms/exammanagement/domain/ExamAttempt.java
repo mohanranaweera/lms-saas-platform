@@ -173,4 +173,15 @@ public class ExamAttempt extends Auditable implements TenantOwned {
 		this.gradedAt = gradedAt;
 	}
 
+	/**
+	 * Klass WRITTEN attempt finalization (Slice D): the same single {@code IN_PROGRESS ->
+	 * SUBMITTED|EXPIRED} transition, without a score - written marks are entered by staff on
+	 * {@code exam_result}, never computed here.
+	 */
+	public void finalizeUngraded(ExamFinalizedReason reason, Instant finalizedAt) {
+		this.status = reason == ExamFinalizedReason.SUBMITTED ? ExamAttemptStatus.SUBMITTED : ExamAttemptStatus.EXPIRED;
+		this.finalizedReason = reason;
+		this.submittedAt = finalizedAt;
+	}
+
 }
