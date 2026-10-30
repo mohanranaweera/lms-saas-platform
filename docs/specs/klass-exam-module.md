@@ -61,7 +61,7 @@ Status values: PASS / FAIL / BLOCKED / TODO. Rows are grouped; "Existing" = MVP-
 | QB8 | Copy all module questions to another authorized module | L | none | `POST …/modules/{mid}/questions/copy` | QA-QB-5 | PASS |
 | QB9 | CSV import with Klass template, row errors, limits, history, duplicate guard | L | none | `question_import` table | QA-QB-6 | PASS |
 | QB10 | Bank edit/delete never alters attempts | R | delete blocked if used; edit mutates in place | paper snapshot (D3) | QA-INT-3 | TODO |
-| EX1 | Directory tabs/counts/search/cards/actions | S | simple table | `GET /exams/directory` | QA-EX-1 | PARTIAL (counts filled in C/D) |
+| EX1 | Directory tabs/counts/search/cards/actions | S | simple table | `GET /exams/directory` | QA-EX-1 | PASS (mocked UI + backend IT; live E2E blocked) |
 | EX2 | Server-derived status | R | status column advanced by scheduler | derived from server clock | QA-EX-1 | PASS |
 | EX3 | MCQ create/edit with module quotas, cutoff in marks | S,L | none | `exam_module_quota`, `cutoff_marks` | QA-EX-2 | PASS |
 | EX4 | Unequal-marks selection model | U | n/a | **D3** | QA-EX-2 | PASS |
@@ -76,17 +76,17 @@ Status values: PASS / FAIL / BLOCKED / TODO. Rows are grouped; "Existing" = MVP-
 | PA3 | Deadline/late start/timeout/attempt limit | R | window only | **D2** | QA-PA-3 | PASS |
 | PA4 | Stale autosave cannot overwrite newer answer | R | last-write-wins | client `revision` monotonic check | QA-PA-4 | PASS |
 | PA5 | No key/explanation/scheme leakage before release | R | key not exposed today | release gate D2 | QA-SEC-1 | PASS |
-| MG1 | Management page, summary cards, enrolled table, search, pagination | S | none | `GET /exams/{id}/management` | QA-MG-1 | TODO |
-| MG2 | Written: answer upload (student / staff on behalf), marks, marked paper | S,L | none | `exam_submission_document` | QA-MG-2 | TODO |
-| MG3 | Physical: attendance + marks | A | none | same result table, no attempt | QA-MG-3 | TODO |
-| MG4 | Marks bounds + audit trail of manual changes | R | audit absent | `audit_log` per change | QA-MG-4 | TODO |
-| MG5 | Notify Marks: preview audience, idempotent, publication | S | none | notification-management reuse | QA-MG-5 | TODO |
-| MG6 | CSV export: full filtered set, leading zeros, formula escaping | S | none | server CSV | QA-MG-6 | TODO |
-| MG7 | Exam password protected, not in logs/exports/student payloads | R | n/a | **D6** | QA-SEC-2 | TODO |
-| ST1 | Stats with defined populations; no NaN/undefined | S,L | none | `GET /exams/{id}/stats` | QA-ST-1 | TODO |
-| ST2 | Question distribution chart + accessible table, breakdown | L | none | SVG chart + table | QA-ST-2 | TODO |
-| LB1 | Leaderboards CRUD (name + ≥2 exams), ranks | L | none | `exam_leaderboard`, **D7** | QA-LB-1 | TODO |
-| SEC1 | Tenant / teacher / student isolation on every endpoint & file | R | partial | guard reuse + tests | QA-SEC-4 | TODO |
+| MG1 | Management page, summary cards, enrolled table, search, pagination | S | none | `GET /exams/{id}/management` | QA-MG-1 | PASS (mocked UI + backend IT; live E2E blocked) |
+| MG2 | Written: answer upload (student / staff on behalf), marks, marked paper | S,L | none | `exam_submission_document` | QA-MG-2 | PASS (mocked UI + backend IT; live E2E blocked) |
+| MG3 | Physical: attendance + marks | A | none | same result table, no attempt | QA-MG-3 | PASS (mocked UI + backend IT; live E2E blocked) |
+| MG4 | Marks bounds + audit trail of manual changes | R | audit absent | `audit_log` per change | QA-MG-4 | PASS (mocked UI + backend IT; live E2E blocked) |
+| MG5 | Notify Marks: preview audience, idempotent, publication | S | none | notification-management reuse | QA-MG-5 | PASS (mocked UI + backend IT; live E2E blocked) |
+| MG6 | CSV export: full filtered set, leading zeros, formula escaping | S | none | server CSV | QA-MG-6 | PASS (mocked UI + backend IT; live E2E blocked) |
+| MG7 | Exam password protected, not in logs/exports/student payloads | R | n/a | **D6** | QA-SEC-2 | PASS (mocked UI + backend IT; live E2E blocked) |
+| ST1 | Stats with defined populations; no NaN/undefined | S,L | none | `GET /exams/{id}/stats` | QA-ST-1 | PASS (mocked UI + backend IT; live E2E blocked) |
+| ST2 | Question distribution chart + accessible table, breakdown | L | none | SVG chart + table | QA-ST-2 | PASS (mocked UI + backend IT; live E2E blocked) |
+| LB1 | Leaderboards CRUD (name + ≥2 exams), ranks | L | none | `exam_leaderboard`, **D7** | QA-LB-1 | PASS (mocked UI + backend IT; live E2E blocked) |
+| SEC1 | Tenant / teacher / student isolation on every endpoint & file | R | partial | guard reuse + tests | QA-SEC-4 | PASS (mocked UI + backend IT; live E2E blocked) |
 
 ## 4. Decision register
 

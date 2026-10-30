@@ -76,3 +76,10 @@ Handoff format per agent: Files changed | Completed requirements | Checks run | 
   one payment covering two courses; (4) first/last name are a split of the single `name` field.
   Additional pre-existing failure: `e2e/student-course-content.spec.ts:234` (`catalog-view-enrolled` test id
   absent in src).
+- **D/E (done 2026-10-31)** — V114/V115. Management, CSV export, written/physical marking, documents, Notify
+  Marks (outbox, idempotent, `NO_RECIPIENTS` guard), stats, leaderboards. Slice C defect (1) (refunded cash
+  in INSTALLMENT) fixed.
+- **F (2026-10-31)** — bounded security review: 0 Critical/High; M1 + L1–L4 + module-boundary import fixed
+  in `0510eb8` with regression tests. Live real-backend E2E BLOCKED: no synthetic `E2E_TENANT1_*`/`E2E_TENANT2_*`
+  credentials or approved dev tenants exist (see `frontend/e2e/README.md`). Open owner decisions: tenant-admin
+  exam delete (RBAC `EXAMS/DELETE`), minimum exam password length (4 vs 6).
