@@ -187,6 +187,8 @@ public class CheckoutComposerService {
 
 	private final PermissionCheckService permissionCheckService;
 
+	private final BankTransferPolicy bankTransferPolicy;
+
 	public CheckoutComposerService(CourseLookupApi courseLookupApi, ContentCoverageApi contentCoverageApi,
 			PaymentStatusApiImpl paymentStatusApi, TenantConfigApi tenantConfigApi,
 			PaymentGatewayAccountApi paymentGatewayAccountApi, StudentOrderRepository studentOrderRepository,
@@ -194,7 +196,9 @@ public class CheckoutComposerService {
 			StudentOrderCourseChargeRepository studentOrderCourseChargeRepository, StudentLookupApi studentLookupApi,
 			DiscountCheckoutService discountCheckoutService, DiscountPricingService discountPricingService,
 			DiscountRedemptionService discountRedemptionService, DiscountClock discountClock,
-			DiscountCodeAttemptLimiter discountCodeAttemptLimiter, PermissionCheckService permissionCheckService) {
+			DiscountCodeAttemptLimiter discountCodeAttemptLimiter, PermissionCheckService permissionCheckService,
+			BankTransferPolicy bankTransferPolicy) {
+		this.bankTransferPolicy = bankTransferPolicy;
 		this.permissionCheckService = permissionCheckService;
 		this.discountCodeAttemptLimiter = discountCodeAttemptLimiter;
 		this.discountCheckoutService = discountCheckoutService;
@@ -313,7 +317,7 @@ public class CheckoutComposerService {
 		requireCodeAttemptAllowed(cart, principal);
 		Priced priced = price(subject, cart, requireCartCourses(subject, cart));
 		recordCodeAttempt(priced, principal);
-		return toQuote(priced);
+		return toQuote(priced, subject);
 	}
 
 	/**
@@ -329,7 +333,7 @@ public class CheckoutComposerService {
 		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.APPROVE);
 		Subject subject = Subject.staffFor(studentUserId);
 		CheckoutCart staffCart = requireStaffCart(cart);
-		return toQuote(price(subject, staffCart, requireCartCourses(subject, staffCart)));
+		return toQuote(price(subject, staffCart, requireCartCourses(subject, staffCart)), subject);
 	}
 
 	/**
@@ -446,7 +450,7 @@ public class CheckoutComposerService {
 		}
 		if (!MessageDigest.isEqual(priced.quoteToken().getBytes(StandardCharsets.UTF_8),
 				quoteToken.strip().toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8))) {
-			throw new QuoteChangedException(toQuote(priced));
+			throw new QuoteChangedException(toQuote(priced, subject));
 		}
 		if (priced.blockingIssue() != null) {
 			// D3: no zero-total order (and so no new activation path).
@@ -1193,11 +1197,17 @@ public class CheckoutComposerService {
 		return tenantConfigApi.resolveDomain(tenantContext.getTenantId(), ConfigDomain.PAYMENT);
 	}
 
-	private CheckoutQuote toQuote(Priced priced) {
+	/**
+	 * {@code methods.slip} follows {@link BankTransferPolicy} for a student
+	 * checkout (SET-PAY-01); a staff-recorded payment (ADR-030) is never
+	 * affected by the tenant's bank-transfer switch.
+	 */
+	private CheckoutQuote toQuote(Priced priced, Subject subject) {
 		return new CheckoutQuote(priced.courseId(), priced.currency(), priced.lines(), priced.courses(),
 				priced.subtotal(), priced.facilityFeeTotal(), priced.postageTotal(), priced.discountTotal(),
 				priced.total(), priced.feeBasis(), priced.feeNote(), priced.deliveryRequired(), priced.delivery(),
-				priced.quoteToken(), new Methods(paymentGatewayAccountApi.isOnlinePaymentAvailable(), true),
+				priced.quoteToken(), new Methods(paymentGatewayAccountApi.isOnlinePaymentAvailable(),
+						subject.staff() || bankTransferPolicy.isSlipAllowed()),
 				bankDetails(), priced.discounts(), priced.codeResult(), priced.rewardOffers(), priced.notices(),
 				priced.blockingIssue(), priced.blockingIssue() == null ? null : ZERO_TOTAL_MESSAGE);
 	}

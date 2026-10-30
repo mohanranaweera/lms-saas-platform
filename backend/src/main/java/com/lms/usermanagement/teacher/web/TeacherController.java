@@ -26,6 +26,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
+import com.lms.identityaccessservice.api.LoginMobileResponse;
+import com.lms.identityaccessservice.api.LoginMobileRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -94,6 +97,22 @@ public class TeacherController {
 	public ResponseEntity<ApiResponse<TeacherResponse>> getTeacher(@PathVariable UUID id) {
 		TeacherAccount account = teacherService.getTeacher(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	/** ADR-031: the teacher's sign-in mobile. */
+	@GetMapping("/{id}/login-mobile")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
+	public ResponseEntity<ApiResponse<LoginMobileResponse>> getLoginMobile(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(new LoginMobileResponse(teacherService.getLoginMobile(id))));
+	}
+
+	/** ADR-031: set or remove (blank) the teacher's sign-in mobile. */
+	@PutMapping("/{id}/login-mobile")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<LoginMobileResponse>> setLoginMobile(@PathVariable UUID id,
+			@Valid @RequestBody LoginMobileRequest request) {
+		return ResponseEntity.ok(ApiResponse
+			.success(new LoginMobileResponse(teacherService.setLoginMobile(id, request.loginMobile()))));
 	}
 
 	@PatchMapping("/{id}")

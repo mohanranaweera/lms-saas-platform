@@ -31,6 +31,22 @@ export interface PublicHomeTheme {
   bodyFont: string | null;
 }
 
+/**
+ * SET-PAY-01: institute public information (Settings → General). Every field
+ * is `null` when unset. `introduction` is plain text (render as text, never
+ * HTML); the social links are backend-validated `https` URLs on
+ * facebook.com/fb.com and youtube.com/youtu.be.
+ */
+export interface PublicInstituteInfo {
+  introduction: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  postalCode: string | null;
+  facebookUrl: string | null;
+  youtubeUrl: string | null;
+}
+
 export interface PublicHomeResponse {
   publicPageEnabled: boolean;
   instituteName: string;
@@ -49,6 +65,17 @@ export interface PublicHomeResponse {
   teacherAutoRotate?: boolean | null;
   supportEmail?: string | null;
   supportPhone?: string | null;
+  institute?: PublicInstituteInfo | null;
+  /** LOGIN-01 Phase B: which institute policies are published (text via `usePublicPolicy`). */
+  policies?: PublicPolicyFlags | null;
+  /** ADR-031: whether the login page offers the MOBILE tab. */
+  loginOptions?: { mobileEnabled: boolean } | null;
+}
+
+export interface PublicPolicyFlags {
+  termsOfService: boolean;
+  refundPolicy: boolean;
+  privacyPolicy: boolean;
 }
 
 /**
@@ -76,5 +103,32 @@ export function usePublicHome() {
     retry: false,
     // Asset URLs are signed for 60 min server-side; refresh well before that.
     staleTime: 10 * 60_000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// LOGIN-01 Phase B: institute policies
+// ---------------------------------------------------------------------------
+
+export type PolicyKind = "terms" | "refund" | "privacy";
+
+/** Route, title and published-flag key for each policy kind. */
+export const POLICY_PAGES: Record<PolicyKind, { href: string; title: string; flag: keyof PublicPolicyFlags }> = {
+  terms: { href: "/terms", title: "Terms of Service", flag: "termsOfService" },
+  refund: { href: "/refund-policy", title: "Refund Policy", flag: "refundPolicy" },
+  privacy: { href: "/privacy", title: "Privacy Policy", flag: "privacyPolicy" },
+};
+
+/** `GET /api/v1/public/tenant-config/policies/{kind}` — `text` is plain text, `null` when unpublished. */
+export interface PublicPolicy {
+  kind: PolicyKind;
+  text: string | null;
+}
+
+export function usePublicPolicy(kind: PolicyKind) {
+  return useQuery({
+    queryKey: [...publicHomeKeys.host(currentHost()), "policy", kind] as const,
+    queryFn: () => apiFetch<PublicPolicy>(`/v1/public/tenant-config/policies/${kind}`),
+    retry: false,
   });
 }

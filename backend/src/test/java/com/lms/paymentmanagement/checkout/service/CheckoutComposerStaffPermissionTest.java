@@ -56,7 +56,8 @@ class CheckoutComposerStaffPermissionTest {
 				mock(TenantContext.class), mock(StudentOrderCourseChargeRepository.class), mock(StudentLookupApi.class),
 				mock(DiscountCheckoutService.class), mock(DiscountPricingService.class),
 				mock(DiscountRedemptionService.class), mock(DiscountClock.class),
-				mock(DiscountCodeAttemptLimiter.class), new PermissionCheckServiceImpl());
+				mock(DiscountCodeAttemptLimiter.class), new PermissionCheckServiceImpl(),
+				mock(BankTransferPolicy.class));
 	}
 
 	@AfterEach

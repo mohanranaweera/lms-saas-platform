@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
+import com.lms.identityaccessservice.api.LoginMobileResponse;
+import com.lms.identityaccessservice.api.LoginMobileRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -58,6 +61,22 @@ public class StaffController {
 	public ResponseEntity<ApiResponse<StaffResponse>> getStaff(@PathVariable UUID id) {
 		StaffAccount account = staffService.getStaff(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	/** ADR-031: the staff member's sign-in mobile. */
+	@GetMapping("/{id}/login-mobile")
+	@PreAuthorize("@permissionCheckService.hasPermission('STAFF_AND_ROLES', 'VIEW')")
+	public ResponseEntity<ApiResponse<LoginMobileResponse>> getLoginMobile(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(new LoginMobileResponse(staffService.getLoginMobile(id))));
+	}
+
+	/** ADR-031: set or remove (blank) the staff member's sign-in mobile. */
+	@PutMapping("/{id}/login-mobile")
+	@PreAuthorize("@permissionCheckService.hasPermission('STAFF_AND_ROLES', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<LoginMobileResponse>> setLoginMobile(@PathVariable UUID id,
+			@Valid @RequestBody LoginMobileRequest request) {
+		return ResponseEntity
+			.ok(ApiResponse.success(new LoginMobileResponse(staffService.setLoginMobile(id, request.loginMobile()))));
 	}
 
 	private static StaffResponse toResponse(StaffAccount account) {

@@ -72,7 +72,14 @@ public class PublicHomeController {
 						ConfigPropertyRegistry.DEFAULT_LOGO_DISPLAY_SIZE),
 				booleanValue(branding, "teacher_auto_rotate", false),
 				stringValue(general, "support_email", null),
-				stringValue(general, "support_phone", null));
+				stringValue(general, "support_phone", null),
+				new PublicHomeResponse.Institute(stringValue(general, "institute_introduction", null),
+						stringValue(general, "address_line1", null), stringValue(general, "address_line2", null),
+						stringValue(general, "city", null), stringValue(general, "postal_code", null),
+						stringValue(general, "facebook_url", null), stringValue(general, "youtube_url", null)),
+				new PublicHomeResponse.Policies(published(general, "terms_of_service"),
+						published(general, "refund_policy"), published(general, "privacy_policy")),
+				new PublicHomeResponse.LoginOptions(booleanValue(general, "mobile_login_enabled", true)));
 		return ResponseEntity.ok().cacheControl(CacheControl.noCache()).body(ApiResponse.success(response));
 	}
 
@@ -126,6 +133,10 @@ public class PublicHomeController {
 	private static String allowlisted(Map<String, Object> values, String key, List<String> allowed, String fallback) {
 		Object value = values.get(key);
 		return value instanceof String s && allowed.contains(s) ? s : fallback;
+	}
+
+	private static boolean published(Map<String, Object> values, String key) {
+		return values.get(key) instanceof String s && !s.isBlank();
 	}
 
 	private static boolean booleanValue(Map<String, Object> values, String key, boolean fallback) {

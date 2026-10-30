@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.lms.common.error.BankTransferDisabledException;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.PayloadTooLargeException;
 import com.lms.common.error.UnsupportedMediaTypeException;
@@ -23,6 +24,7 @@ import com.lms.paymentmanagement.order.service.OrderService;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipFlagRepository;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
+import com.lms.paymentmanagement.checkout.service.BankTransferPolicy;
 import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
 import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import java.io.InputStream;
@@ -87,13 +89,16 @@ class SlipUploadServiceTest {
 	@Mock
 	private SlipWriteService slipWriteService;
 
+	@Mock
+	private BankTransferPolicy bankTransferPolicy;
+
 	private SlipUploadService slipUploadService;
 
 	@BeforeEach
 	void setUp() {
 		slipUploadService = new SlipUploadService(orderService, paymentSlipRepository, paymentSlipFlagRepository,
 				slipStorageApi, slipDuplicateCheckService, userProvisioningApi, tenantContext, MAX_FILE_SIZE_BYTES,
-				checkoutComposerService, studentOrderLineRepository, slipWriteService);
+				checkoutComposerService, studentOrderLineRepository, slipWriteService, bankTransferPolicy);
 	}
 
 	@Test
@@ -140,6 +145,36 @@ class SlipUploadServiceTest {
 	 * the stream's own {@link AssertionError} instead of the expected {@link
 	 * PayloadTooLargeException}.
 	 */
+	@Test
+	void uploadSlipWhenBankTransferIsDisabledIsRejectedBeforeAnyStorageOrDbWrite() {
+		UUID orderId = UUID.randomUUID();
+		StudentOrder order = new StudentOrder(TENANT_ID, UUID.randomUUID(), UUID.randomUUID(), new BigDecimal("10.00"),
+				"LKR");
+		when(orderService.loadOrderOwnedByCurrentStudent(orderId)).thenReturn(order);
+		org.mockito.Mockito.doThrow(new BankTransferDisabledException("off")).when(bankTransferPolicy)
+			.requireSlipAllowed();
+		MockMultipartFile file = new MockMultipartFile("file", "slip.pdf", "application/pdf", validPdfBytes());
+
+		assertThatThrownBy(() -> slipUploadService.uploadSlip(orderId, "REF-OFF", file))
+			.isInstanceOf(BankTransferDisabledException.class);
+
+		verifyNoInteractions(slipStorageApi, slipDuplicateCheckService, slipWriteService);
+		verify(paymentSlipRepository, never()).existsActiveSlipForOrder(any());
+	}
+
+	@Test
+	void uploadSlipChecksOrderOwnershipBeforeTheBankTransferSwitch() {
+		UUID orderId = UUID.randomUUID();
+		when(orderService.loadOrderOwnedByCurrentStudent(orderId))
+			.thenThrow(new com.lms.common.error.NotFoundException("Order not found"));
+		MockMultipartFile file = new MockMultipartFile("file", "slip.pdf", "application/pdf", validPdfBytes());
+
+		assertThatThrownBy(() -> slipUploadService.uploadSlip(orderId, "REF-X", file))
+			.isInstanceOf(com.lms.common.error.NotFoundException.class);
+
+		verifyNoInteractions(bankTransferPolicy, slipStorageApi);
+	}
+
 	@Test
 	void uploadSlipWithAFileExceedingTheMaxSizeNeverBuffersTheFullOversizedFileBeforeRejecting() throws Exception {
 		UUID orderId = UUID.randomUUID();

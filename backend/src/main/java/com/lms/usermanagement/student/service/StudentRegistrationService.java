@@ -167,6 +167,13 @@ public class StudentRegistrationService {
 				StudentRegistrationStatus.SELF_REGISTERED, null, null, null, null, null, null);
 		StudentProfileFieldsService.applyRegistrationValues(profile, profileValues);
 		profile = studentProfileRepository.save(profile);
+		// ADR-031: the registration mobile is the sign-in mobile. Invalid (400)
+		// or already registered in this institute (409) rolls the whole
+		// registration back, with the error on the mobile field.
+		if (profileValues.get(StudentProfileField.MOBILE) instanceof String mobile && !mobile.isBlank()) {
+			userProvisioningApi.setLoginMobile(provisioned.userId(), mobile,
+					"profileFields." + StudentProfileField.MOBILE.name());
+		}
 
 		auditLogApi.record(AuditLogEntry.of(profile.getUserId(), "student.self_registered", "student_profile",
 				profile.getId()));

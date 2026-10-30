@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -53,9 +54,17 @@ public class UserProvisioningService implements UserProvisioningApi {
 
 	private final TenantContext tenantContext;
 
+	/**
+	 * Resolved on first use: LoginMobileService -> TenantConfigApi ->
+	 * AuditLogApi -> ... -> UserProvisioningApi would otherwise be a
+	 * constructor-injection cycle.
+	 */
+	private final ObjectProvider<LoginMobileService> loginMobileService;
+
 	public UserProvisioningService(TenantUserRepository tenantUserRepository,
 			PlatformAdminUserRepository platformAdminUserRepository, PasswordEncoder passwordEncoder,
-			TenantContext tenantContext) {
+			TenantContext tenantContext, ObjectProvider<LoginMobileService> loginMobileService) {
+		this.loginMobileService = loginMobileService;
 		this.tenantUserRepository = tenantUserRepository;
 		this.platformAdminUserRepository = platformAdminUserRepository;
 		this.passwordEncoder = passwordEncoder;
@@ -101,6 +110,16 @@ public class UserProvisioningService implements UserProvisioningApi {
 					PageRequest.of(0, limit, Sort.by("email")))
 			.map(TenantUser::getId)
 			.getContent();
+	}
+
+	@Override
+	public void setLoginMobile(UUID userId, String rawMobile, String field) {
+		loginMobileService.getObject().set(userId, rawMobile, field);
+	}
+
+	@Override
+	public java.util.Map<UUID, String> findLoginMobiles(Collection<UUID> userIds) {
+		return loginMobileService.getObject().find(userIds);
 	}
 
 	@Override

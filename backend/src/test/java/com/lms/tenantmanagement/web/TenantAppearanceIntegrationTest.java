@@ -235,6 +235,155 @@ class TenantAppearanceIntegrationTest extends CourseManagementTestSupport {
 	// Public home projection.
 	// ------------------------------------------------------------------
 
+	// ------------------------------------------------------------------
+	// SET-PAY-01: institute public information.
+	// ------------------------------------------------------------------
+
+	@Test
+	void freshTenantHomeHasAnEmptyInstituteBlock() {
+		Ctx ctx = setUp("home-inst-empty");
+
+		JsonNode institute = json(perform(authenticated(get(HOME), ctx.host(), null))).path("data").path("institute");
+
+		for (String field : List.of("introduction", "addressLine1", "addressLine2", "city", "postalCode",
+				"facebookUrl", "youtubeUrl")) {
+			assertThat(institute.path(field).isNull()).as(field).isTrue();
+		}
+	}
+
+	@Test
+	@Tag("cross-tenant")
+	void homeProjectsOnlyTheHostTenantsInstituteInformation() {
+		Ctx tenantA = setUp("home-inst-a");
+		Ctx tenantB = setUp("home-inst-b");
+		Map<String, Object> info = new LinkedHashMap<>();
+		info.put("institute_introduction", "We teach physics.\nSince 2001.");
+		info.put("address_line1", "School Junction");
+		info.put("address_line2", "Kodapaluwa");
+		info.put("city", "Alawwa");
+		info.put("postal_code", "60280");
+		info.put("facebook_url", "https://www.facebook.com/demo");
+		info.put("youtube_url", "https://www.youtube.com/@demo");
+		assertThat(putGeneral(tenantA.host(), tenantA.token(), info).getResponse().getStatus()).isEqualTo(200);
+
+		JsonNode a = json(perform(authenticated(get(HOME), tenantA.host(), null))).path("data").path("institute");
+		assertThat(a.path("introduction").asString()).isEqualTo("We teach physics.\nSince 2001.");
+		assertThat(a.path("addressLine1").asString()).isEqualTo("School Junction");
+		assertThat(a.path("addressLine2").asString()).isEqualTo("Kodapaluwa");
+		assertThat(a.path("city").asString()).isEqualTo("Alawwa");
+		assertThat(a.path("postalCode").asString()).isEqualTo("60280");
+		assertThat(a.path("facebookUrl").asString()).isEqualTo("https://www.facebook.com/demo");
+		assertThat(a.path("youtubeUrl").asString()).isEqualTo("https://www.youtube.com/@demo");
+
+		JsonNode b = json(perform(authenticated(get(HOME), tenantB.host(), null))).path("data").path("institute");
+		assertThat(b.path("addressLine1").isNull()).isTrue();
+		assertThat(b.path("introduction").isNull()).isTrue();
+	}
+
+	// ------------------------------------------------------------------
+	// LOGIN-01 Phase B: institute policies.
+	// ------------------------------------------------------------------
+
+	private static final String POLICIES = "/api/v1/public/tenant-config/policies/{kind}";
+
+	@Test
+	void unpublishedPoliciesAreFlaggedFalseAndReadAsNullAnonymously() {
+		Ctx ctx = setUp("policy-empty");
+
+		JsonNode flags = json(perform(authenticated(get(HOME), ctx.host(), null))).path("data").path("policies");
+		assertThat(flags.path("termsOfService").asBoolean()).isFalse();
+		assertThat(flags.path("refundPolicy").asBoolean()).isFalse();
+		assertThat(flags.path("privacyPolicy").asBoolean()).isFalse();
+		for (String kind : List.of("terms", "refund", "privacy")) {
+			MvcResult result = perform(authenticated(get(POLICIES, kind), ctx.host(), null));
+			assertThat(result.getResponse().getStatus()).as(kind).isEqualTo(200);
+			assertThat(json(result).path("data").path("kind").asString()).isEqualTo(kind);
+			assertThat(json(result).path("data").path("text").isNull()).as(kind).isTrue();
+		}
+	}
+
+	@Test
+	void publishedPoliciesAreServedAsPlainTextWithFlags() {
+		Ctx ctx = setUp("policy-set");
+		Map<String, Object> policies = new LinkedHashMap<>();
+		policies.put("terms_of_service", "1. Be kind.\n2. <b>No</b> sharing accounts.");
+		policies.put("privacy_policy", "We keep your data in Sri Lanka.");
+		assertThat(putGeneral(ctx.host(), ctx.token(), policies).getResponse().getStatus()).isEqualTo(200);
+
+		JsonNode flags = json(perform(authenticated(get(HOME), ctx.host(), null))).path("data").path("policies");
+		assertThat(flags.path("termsOfService").asBoolean()).isTrue();
+		assertThat(flags.path("refundPolicy").asBoolean()).isFalse();
+		assertThat(flags.path("privacyPolicy").asBoolean()).isTrue();
+		MvcResult terms = perform(authenticated(get(POLICIES, "terms"), ctx.host(), null));
+		assertThat(json(terms).path("data").path("text").asString())
+			.isEqualTo("1. Be kind.\n2. <b>No</b> sharing accounts.");
+		assertThat(terms.getResponse().getHeader(HttpHeaders.CACHE_CONTROL)).contains("no-cache");
+	}
+
+	@Test
+	void unknownPolicyKindIs404() {
+		Ctx ctx = setUp("policy-unknown");
+
+		assertThat(perform(authenticated(get(POLICIES, "cookies"), ctx.host(), null)).getResponse().getStatus())
+			.isEqualTo(404);
+		assertThat(perform(authenticated(get(POLICIES, "institute_name"), ctx.host(), null)).getResponse().getStatus())
+			.isEqualTo(404);
+	}
+
+	@Test
+	@Tag("cross-tenant")
+	void policiesAreServedOnlyForTheHostTenant() {
+		Ctx tenantA = setUp("policy-cross-a");
+		Ctx tenantB = setUp("policy-cross-b");
+		putGeneral(tenantA.host(), tenantA.token(), Map.of("refund_policy", "Tenant A refunds within 7 days."));
+
+		assertThat(json(perform(authenticated(get(POLICIES, "refund"), tenantA.host(), null))).path("data")
+			.path("text")
+			.asString()).isEqualTo("Tenant A refunds within 7 days.");
+		assertThat(json(perform(authenticated(get(POLICIES, "refund"), tenantB.host(), null))).path("data")
+			.path("text")
+			.isNull()).isTrue();
+		assertThat(json(perform(authenticated(get(HOME), tenantB.host(), null))).path("data")
+			.path("policies")
+			.path("refundPolicy")
+			.asBoolean()).isFalse();
+	}
+
+	@Test
+	void onlyTenantAdminCanPublishPolicies() {
+		Ctx ctx = setUp("policy-roles");
+		seedTenantUser(ctx.tenant().getId(), "auditor@example.test", RAW_PASSWORD, Role.READ_ONLY_AUDITOR);
+		String auditorToken = loginAndGetToken(ctx.host(), "auditor@example.test");
+
+		assertThat(putGeneral(ctx.host(), auditorToken, Map.of("privacy_policy", "x")).getResponse().getStatus())
+			.isEqualTo(403);
+		assertThat(rawContent(perform(authenticated(get(POLICIES, "privacy"), ctx.host(), null))))
+			.contains("\"text\":null");
+	}
+
+	@Test
+	void unsafeSocialLinksAreRejectedOverHttpAndNothingIsSaved() {
+		Ctx ctx = setUp("home-inst-invalid");
+
+		MvcResult result = putGeneral(ctx.host(), ctx.token(),
+				Map.of("facebook_url", "javascript:alert(1)", "city", "Alawwa"));
+
+		assertThat(result.getResponse().getStatus()).isEqualTo(400);
+		assertThat(rawContent(result)).contains("facebook_url");
+		JsonNode institute = json(perform(authenticated(get(HOME), ctx.host(), null))).path("data").path("institute");
+		assertThat(institute.path("city").isNull()).isTrue();
+	}
+
+	@Test
+	void studentCannotSaveInstituteInformation() {
+		Ctx ctx = setUp("home-inst-student");
+		seedActiveStudent(ctx.tenant().getId(), "student@example.test");
+		String studentToken = loginAndGetToken(ctx.host(), "student@example.test");
+
+		assertThat(putGeneral(ctx.host(), studentToken, Map.of("city", "Alawwa")).getResponse().getStatus())
+			.isEqualTo(403);
+	}
+
 	@Test
 	void freshTenantHomeResolvesThemeDefaults() {
 		Ctx ctx = setUp("home-default");
@@ -386,6 +535,12 @@ class TenantAppearanceIntegrationTest extends CourseManagementTestSupport {
 
 	private MvcResult list(String host, String token, String type) {
 		return perform(authenticated(get(ASSETS).param("type", type), host, token));
+	}
+
+	private MvcResult putGeneral(String host, String token, Map<String, Object> changes) {
+		return perform(authenticated(put("/api/v1/tenant-config/{domain}", "GENERAL")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(changes)), host, token));
 	}
 
 	private MvcResult putBranding(String host, String token, Map<String, Object> changes) {

@@ -154,3 +154,22 @@ them in the API and attachable to lessons, and differ per tenant. Branding image
 | R31 | Remove a teacher's profile photo | `DELETE /api/v1/teachers/{id}/profile-photo` (TEACHERS CREATE_EDIT, audited `teacher.profile_photo_removed`); "Remove photo" in the teacher form (applied on Save) | `MediaFileLibraryIntegrationTest` (13/13): 200 for admin, 403 teacher, 404 other tenant; `TeacherServiceTest` (34/34) | PASS |
 | R32 | Replaced or removed photos don't leave files behind | `TeacherService.discardUnusedPhoto` → `MediaFileService.discardTeacherProfilePhoto`: soft delete + audit, object removed after commit; only `TEACHER_PROFILE` files no teacher uses and no lesson references (a library image used as a photo is kept) | Integration + unit tests | PASS |
 | R33 | Delete every site file from Settings → Site media | Confirmed Delete/Remove for logo, favicon, receipt logo, each banner, teacher photos and the support video; shown only to roles allowed to change them (server re-checks) | Live in the synthetic academy tenant: 4 deletes via the UI, DB confirms all four (`35-*`) | PASS |
+
+## 10. LOGIN-01 (2026-10-29): sign-in branding, light/dark, policies
+
+- **Auth pages** (`(auth)` group: login, register, password flows) show the host institute's logo
+  (uploaded site logo, else legacy URL; institute-name monogram fallback) inside the tenant public
+  theme, from `GET /public/tenant-config/home`. Loading = neutral skeleton; unresolved = neutral
+  platform text. Platform Admin login keeps platform branding.
+- **Light/dark switch** (sun/moon, `aria-pressed`) top-right on auth pages, in the public header and
+  in the signed-in header. Preference per browser (`localStorage["lms-theme"]`, default = OS),
+  applied by an inline `<head>` script before first paint (no flash, no hydration mismatch).
+- **Dark tenant palette**: `PublicThemeScope` emits light (`--tl-*`) and dark (`--td-*`) token
+  sets; CSS picks one via `.dark`. Dark keeps the tenant primary/accent (lightened until ≥3:1 on the
+  dark background) and replaces the tenant's custom background/surface/text with dark tokens.
+- **Policies**: Settings → Policies (Terms of Service, Refund Policy, Privacy Policy; plain text).
+  Public `/terms`, `/refund-policy`, `/privacy`; consent line on auth pages linking published terms
+  and privacy policy; footer "Policies" links for every published policy.
+- **Mobile sign-in** (ADR-031): EMAIL / MOBILE tabs on the tenant login when
+  `loginOptions.mobileEnabled`; Settings → General → Login options (switch, phone number country,
+  own sign-in mobile); teacher profile and staff list "Sign-in mobile".

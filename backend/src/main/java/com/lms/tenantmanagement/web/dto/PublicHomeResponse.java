@@ -29,7 +29,10 @@ public record PublicHomeResponse(
 		String logoDisplaySize,
 		boolean teacherAutoRotate,
 		String supportEmail,
-		String supportPhone) {
+		String supportPhone,
+		Institute institute,
+		Policies policies,
+		LoginOptions loginOptions) {
 
 	public PublicHomeResponse {
 		desktopBannerUrls = desktopBannerUrls == null ? List.of() : List.copyOf(desktopBannerUrls);
@@ -44,6 +47,27 @@ public record PublicHomeResponse(
 	 */
 	public record Theme(String primaryColor, String accentColor, String backgroundColor, String surfaceColor,
 			String textColor, String headingFont, String bodyFont) {
+	}
+
+	/**
+	 * SET-PAY-01: the institute's public information (Settings -> General).
+	 * Every field is {@code null} when unset. {@code introduction} is plain
+	 * text; the social links are validated {@code https} URLs on allowlisted
+	 * hosts ({@code facebook.com}/{@code fb.com}, {@code youtube.com}/{@code youtu.be}).
+	 */
+	public record Institute(String introduction, String addressLine1, String addressLine2, String city,
+			String postalCode, String facebookUrl, String youtubeUrl) {
+	}
+
+	/**
+	 * LOGIN-01 Phase B: which institute policies are published (non-empty).
+	 * Only flags - the text itself is served by {@code PublicPolicyController}.
+	 */
+	public record Policies(boolean termsOfService, boolean refundPolicy, boolean privacyPolicy) {
+	}
+
+	/** ADR-031: whether the login page offers the MOBILE tab ({@code GENERAL.mobile_login_enabled}). */
+	public record LoginOptions(boolean mobileEnabled) {
 	}
 
 	public record FeaturedCourse(UUID id, String name, String slug, String category, String pricingModel,

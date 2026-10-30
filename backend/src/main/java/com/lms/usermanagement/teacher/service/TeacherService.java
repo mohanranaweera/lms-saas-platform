@@ -418,6 +418,26 @@ public class TeacherService {
 		return account;
 	}
 
+	/** ADR-031: the teacher's sign-in mobile (E.164), or {@code null}. {@code TEACHERS/VIEW}. */
+	@Transactional(readOnly = true)
+	public String getLoginMobile(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.VIEW);
+		UUID userId = loadProfile(id).getUserId();
+		return userProvisioningApi.findLoginMobiles(List.of(userId)).get(userId);
+	}
+
+	/**
+	 * ADR-031: sets (blank = removes) the teacher's sign-in mobile.
+	 * {@code TEACHERS/CREATE_EDIT}; identity validates, enforces per-tenant
+	 * uniqueness ({@code 409 MOBILE_ALREADY_REGISTERED}) and audit-logs.
+	 */
+	public String setLoginMobile(UUID id, String rawMobile) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		UUID userId = loadProfile(id).getUserId();
+		userProvisioningApi.setLoginMobile(userId, rawMobile, "loginMobile");
+		return userProvisioningApi.findLoginMobiles(List.of(userId)).get(userId);
+	}
+
 	private TeacherProfile loadProfile(UUID id) {
 		// TenantAwareRepository scopes findById to the resolved tenant
 		// context already - a tenant B teacher id is structurally invisible

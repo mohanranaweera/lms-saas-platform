@@ -10,6 +10,7 @@ import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
 import com.lms.integrationmanagement.api.StoredObject;
+import com.lms.paymentmanagement.checkout.service.BankTransferPolicy;
 import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
@@ -86,13 +87,16 @@ public class SlipUploadService {
 
 	private final SlipWriteService slipWriteService;
 
+	private final BankTransferPolicy bankTransferPolicy;
+
 	public SlipUploadService(OrderService orderService, PaymentSlipRepository paymentSlipRepository,
 			PaymentSlipFlagRepository paymentSlipFlagRepository, ObjectStorageApi slipStorageApi,
 			SlipDuplicateCheckService slipDuplicateCheckService, UserProvisioningApi userProvisioningApi,
 			TenantContext tenantContext,
 			@Value("${app.payment.slip.max-file-size-bytes}") long maxFileSizeBytes,
 			CheckoutComposerService checkoutComposerService, StudentOrderLineRepository studentOrderLineRepository,
-			SlipWriteService slipWriteService) {
+			SlipWriteService slipWriteService, BankTransferPolicy bankTransferPolicy) {
+		this.bankTransferPolicy = bankTransferPolicy;
 		this.slipWriteService = slipWriteService;
 		this.checkoutComposerService = checkoutComposerService;
 		this.studentOrderLineRepository = studentOrderLineRepository;
@@ -113,6 +117,11 @@ public class SlipUploadService {
 	 */
 	public PaymentSlipView uploadSlip(UUID orderId, String referenceNumber, MultipartFile file) {
 		StudentOrder order = orderService.loadOrderOwnedByCurrentStudent(orderId);
+
+		// SET-PAY-01: the tenant switched bank transfer off (and online payment
+		// is available) - 409 before any storage/DB write. Slips submitted
+		// earlier are unaffected and still go through review.
+		bankTransferPolicy.requireSlipAllowed();
 
 		// Friendly pre-check for the uq_payment_slip_tenant_order_active
 		// unique index (see PaymentSlipRepository#existsActiveSlipForOrder's

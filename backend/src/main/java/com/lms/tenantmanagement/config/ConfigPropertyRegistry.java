@@ -58,6 +58,15 @@ public class ConfigPropertyRegistry {
 	/** Cap for URL fields - generous enough for any real logo/favicon URL, including query strings. */
 	private static final int MAX_URL_LENGTH = 2048;
 
+	/** Cap for the public institute introduction (SET-PAY-01) - a few paragraphs of plain text. */
+	private static final int MAX_LONG_TEXT_LENGTH = 2000;
+
+	/** Cap for one institute policy document (LOGIN-01 Phase B) - a long plain-text document. */
+	public static final int MAX_POLICY_LENGTH = 50_000;
+
+	/** Policy keys in {@link ConfigDomain#GENERAL}, all public plain text (LOGIN-01 Phase B). */
+	public static final List<String> POLICY_KEYS = List.of("terms_of_service", "refund_policy", "privacy_policy");
+
 	private static final int MAX_APPEARANCE_LIST_ITEMS = 50;
 
 	private static final int MAX_APPEARANCE_LIST_VALUE_LENGTH = 4096;
@@ -97,7 +106,12 @@ public class ConfigPropertyRegistry {
 	 * facility_fee_amount} (a JSON number &gt;= 0 with at most 2 decimals,
 	 * default 0) are snapshotted onto each composer order. The four bank-slip
 	 * display fields have no default ({@code null} = not configured) - they are
-	 * shown to students on the slip tab only, never used to route money.
+	 * shown to students on the slip tab only, never used to route money; Tenant
+	 * Admin edits them on Settings -> Payments (SET-PAY-01), audit-logged like
+	 * every config change. {@code bank_transfer_enabled} (SET-PAY-01, default
+	 * {@code true}) is the tenant's raw switch only - whether a student may
+	 * actually submit a slip is decided by {@code BankTransferPolicy}, which
+	 * keeps slips available while online payment is unavailable.
 	 */
 	private static List<ConfigPropertyDefinition> paymentProperties() {
 		return List.of(
@@ -112,7 +126,9 @@ public class ConfigPropertyRegistry {
 				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_account_holder", ConfigValueType.STRING, null,
 						ConfigPropertyRegistry::isShortText),
 				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_account_number", ConfigValueType.STRING, null,
-						ConfigPropertyRegistry::isShortText));
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_transfer_enabled", ConfigValueType.BOOLEAN,
+						Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
 	}
 
 	private static boolean isShortText(Object value, Map<String, Object> batch) {
@@ -216,6 +232,22 @@ public class ConfigPropertyRegistry {
 		});
 	}
 
+	/** {@code https://} URL on {@code facebook.com}/{@code fb.com} or one of their subdomains. */
+	private static boolean isFacebookUrl(String value) {
+		try {
+			String host = new URI(value).getHost();
+			if (!isValidHttpsUrl(value) || host == null) {
+				return false;
+			}
+			String normalized = host.toLowerCase(java.util.Locale.ROOT);
+			return normalized.equals("facebook.com") || normalized.endsWith(".facebook.com")
+					|| normalized.equals("fb.com") || normalized.endsWith(".fb.com");
+		}
+		catch (URISyntaxException e) {
+			return false;
+		}
+	}
+
 	private static boolean isYouTubeUrl(String value) {
 		try {
 			URI uri = new URI(value);
@@ -251,7 +283,46 @@ public class ConfigPropertyRegistry {
 				// Shape-only ISO-4217 validation (^[A-Z]{3}$) - deliberately no
 				// hardcoded currency allowlist, per the brief.
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "default_currency", ConfigValueType.STRING, "USD",
-						(value, batch) -> value instanceof String s && CURRENCY_CODE_PATTERN.matcher(s).matches()));
+						(value, batch) -> value instanceof String s && CURRENCY_CODE_PATTERN.matcher(s).matches()),
+				// SET-PAY-01: institute public information (Klass parity). All
+				// optional and public - shown on the tenant's public home page.
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "address_line1", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "address_line2", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "city", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "postal_code", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "institute_introduction", ConfigValueType.STRING,
+						null, (value, batch) -> value instanceof String s && !s.isBlank()
+								&& s.length() <= MAX_LONG_TEXT_LENGTH),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "facebook_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isFacebookUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "youtube_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isYouTubeUrl(s)),
+				// LOGIN-01 Phase B: the institute's own policies, plain text,
+				// published on /terms, /refund-policy and /privacy.
+				policyProperty("terms_of_service"), policyProperty("refund_policy"),
+				policyProperty("privacy_policy"),
+				// ADR-031 login options. Email sign-in has no switch (an admin
+				// without a mobile can never be locked out).
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "mobile_login_enabled", ConfigValueType.BOOLEAN,
+						Boolean.TRUE, ConfigPropertyRegistry::isBoolean),
+				// Region for numbers written without a country code (ISO 3166-1
+				// alpha-2 known to libphonenumber, e.g. LK, IN, GB).
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "phone_region", ConfigValueType.STRING, "LK",
+						(value, batch) -> value instanceof String s
+								&& com.google.i18n.phonenumbers.PhoneNumberUtil.getInstance()
+									.getSupportedRegions()
+									.contains(s)));
+	}
+
+	private static ConfigPropertyDefinition policyProperty(String key) {
+		return ConfigPropertyDefinition.of(ConfigDomain.GENERAL, key, ConfigValueType.STRING, null,
+				(value, batch) -> value instanceof String s && !s.isBlank() && s.length() <= MAX_POLICY_LENGTH);
 	}
 
 	private static List<ConfigPropertyDefinition> brandingProperties() {

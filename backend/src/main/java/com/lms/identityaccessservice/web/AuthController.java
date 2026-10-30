@@ -15,6 +15,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.config.DeviceProperties;
 import com.lms.identityaccessservice.error.InvalidRefreshTokenException;
 import com.lms.identityaccessservice.service.AuthenticationService;
+import com.lms.identityaccessservice.service.TenantLoginService;
 import com.lms.identityaccessservice.service.LoginResult;
 import com.lms.identityaccessservice.service.RefreshTokenService;
 import com.lms.identityaccessservice.service.RotationResult;
@@ -51,7 +52,7 @@ public class AuthController {
 	 */
 	static final String DEVICE_COOKIE_NAME = "lms_device_id";
 
-	private final AuthenticationService authenticationService;
+	private final TenantLoginService tenantLoginService;
 
 	private final RefreshTokenService refreshTokenService;
 
@@ -70,10 +71,10 @@ public class AuthController {
 
 	private final DeviceProperties deviceProperties;
 
-	public AuthController(AuthenticationService authenticationService, RefreshTokenService refreshTokenService,
+	public AuthController(RefreshTokenService refreshTokenService,
 			PasswordTokenService passwordTokenService, PasswordResetService passwordResetService,
-			PasswordChangeService passwordChangeService, Environment environment, DeviceProperties deviceProperties) {
-		this.authenticationService = authenticationService;
+			PasswordChangeService passwordChangeService, Environment environment, DeviceProperties deviceProperties, TenantLoginService tenantLoginService) {
+		this.tenantLoginService = tenantLoginService;
 		this.refreshTokenService = refreshTokenService;
 		this.passwordTokenService = passwordTokenService;
 		this.passwordResetService = passwordResetService;
@@ -88,7 +89,10 @@ public class AuthController {
 			HttpServletResponse httpResponse) {
 		var device = new AuthenticationService.DeviceContext(deviceToken, httpRequest.getHeader("User-Agent"),
 				httpRequest.getRemoteAddr());
-		LoginResult result = authenticationService.login(request.email(), request.password(), device);
+		// ADR-031: email or mobile, throttled, institute switch applied (TenantLoginService).
+		LoginResult result = request.usesMobile()
+				? tenantLoginService.loginWithMobile(request.mobile(), request.password(), device)
+				: tenantLoginService.loginWithEmail(request.email(), request.password(), device);
 		RefreshCookieSupport.set(httpResponse, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawRefreshToken(),
 				result.refreshCookieMaxAge(), secureRefreshCookie);
 		RefreshCookieSupport.set(httpResponse, DEVICE_COOKIE_NAME, REFRESH_COOKIE_PATH, result.rawDeviceToken(),

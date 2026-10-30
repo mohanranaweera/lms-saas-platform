@@ -224,3 +224,47 @@ export function themeCssVariables(colors: ThemeColors): Record<string, string> {
     "--tenant-accent-foreground": readableLabelOn(accentColor),
   };
 }
+
+/**
+ * Dark-mode tenant palette (LOGIN-01 Phase A): the tenant's primary/accent
+ * are kept as brand colours, but the custom background/surface/text are
+ * replaced by dark tokens (a light-mode background chosen by the tenant can't
+ * work in dark mode). Primary and accent are lightened in steps until they
+ * reach 3:1 against the dark background, so buttons and links stay visible.
+ */
+export const DARK_THEME_BASE = {
+  backgroundColor: "#0B1120",
+  surfaceColor: "#111827",
+  textColor: "#E5E7EB",
+} as const;
+
+function liftForDarkBackground(color: string, background: string): string {
+  let candidate = color;
+  for (let step = 1; step <= 8 && contrastRatio(candidate, background) < 3; step += 1) {
+    candidate = mixHex(color, "#FFFFFF", step * 0.1);
+  }
+  return candidate;
+}
+
+export function darkThemeColors(colors: ThemeColors): ThemeColors {
+  return {
+    primaryColor: liftForDarkBackground(colors.primaryColor, DARK_THEME_BASE.backgroundColor),
+    accentColor: liftForDarkBackground(colors.accentColor, DARK_THEME_BASE.backgroundColor),
+    ...DARK_THEME_BASE,
+  };
+}
+
+/**
+ * Inline variables for `.tenant-public-theme`: the light set as `--tl-*` and
+ * the dark set as `--td-*`. `globals.css` maps them onto the real tokens
+ * (`--primary`, `--background`, …) with `.dark` choosing the dark set, so the
+ * correct palette applies before first paint with no client re-render.
+ */
+export function themeScopeCssVariables(colors: ThemeColors): Record<string, string> {
+  const light = themeCssVariables(colors);
+  const dark = themeCssVariables(darkThemeColors(colors));
+  const scoped: Record<string, string> = {};
+  for (const [name, value] of Object.entries(light)) scoped[`--tl-${name.slice(2)}`] = value;
+  for (const [name, value] of Object.entries(dark)) scoped[`--td-${name.slice(2)}`] = value;
+  return scoped;
+}

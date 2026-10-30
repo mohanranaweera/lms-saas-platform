@@ -50,6 +50,14 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 	@Column(name = "password_changed_at")
 	private Instant passwordChangedAt;
 
+	/**
+	 * ADR-031: sign-in mobile in E.164 form ({@code +94771234567}), unique per
+	 * tenant (V107); {@code null} = email sign-in only. Written only through
+	 * {@link #changeLoginMobile} by {@code UserProvisioningService}.
+	 */
+	@Column(name = "login_mobile")
+	private String loginMobile;
+
 	protected TenantUser() {
 	}
 
@@ -101,6 +109,15 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 
 	public boolean isMustChangePassword() {
 		return mustChangePassword;
+	}
+
+	public String getLoginMobile() {
+		return loginMobile;
+	}
+
+	/** ADR-031: already-normalised E.164 number, or {@code null} to remove mobile sign-in. */
+	public void changeLoginMobile(String e164) {
+		this.loginMobile = e164;
 	}
 
 	public String getTotpSecret() {

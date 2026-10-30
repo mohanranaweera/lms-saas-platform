@@ -10,6 +10,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
+import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.tenantmanagement.api.StudentProfileField;
 import com.lms.tenantmanagement.api.StudentProfileFieldConfigApi;
 import com.lms.tenantmanagement.api.StudentProfileFieldPolicy;
@@ -70,9 +71,13 @@ public class StudentProfileFieldsService {
 
 	private final AuditLogApi auditLogApi;
 
+	private final UserProvisioningApi userProvisioningApi;
+
 	public StudentProfileFieldsService(StudentProfileRepository studentProfileRepository,
 			StudentProfileFieldConfigApi fieldConfigApi, TenantContext tenantContext,
-			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi) {
+			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi,
+			UserProvisioningApi userProvisioningApi) {
+		this.userProvisioningApi = userProvisioningApi;
 		this.studentProfileRepository = studentProfileRepository;
 		this.fieldConfigApi = fieldConfigApi;
 		this.tenantContext = tenantContext;
@@ -89,6 +94,7 @@ public class StudentProfileFieldsService {
 		StudentProfile profile = ownProfile();
 		List<StudentProfileFieldPolicy> policies = policies();
 		List<StudentProfileField> changed = apply(profile, values, policies, true);
+		syncLoginMobile(profile, changed);
 		studentProfileRepository.save(profile);
 		log.info("Student profile {} details updated ({} fields) in tenant {} by self-service user {}",
 				profile.getId(), changed.size(), tenantContext.getTenantId(), profile.getUserId());
@@ -114,6 +120,7 @@ public class StudentProfileFieldsService {
 		StudentProfile profile = staffProfile(studentProfileId);
 		List<StudentProfileFieldPolicy> policies = policies();
 		List<StudentProfileField> changed = apply(profile, values, policies, false);
+		syncLoginMobile(profile, changed);
 		studentProfileRepository.save(profile);
 		if (!changed.isEmpty()) {
 			auditLogApi.record(new AuditLogEntry(AuthenticatedPrincipalHolder.get().userId(),
@@ -157,6 +164,19 @@ public class StudentProfileFieldsService {
 			throw new FieldValidationException("Registration is missing required fields for this institute", errors);
 		}
 		return parsed;
+	}
+
+	/**
+	 * ADR-031: a student's profile mobile is also their sign-in mobile. When
+	 * it changed, identity re-checks it in this same transaction: an invalid
+	 * number (400) or one another account uses (409) rolls the whole update
+	 * back, with the error on the mobile field.
+	 */
+	private void syncLoginMobile(StudentProfile profile, List<StudentProfileField> changed) {
+		if (changed.contains(StudentProfileField.MOBILE)) {
+			userProvisioningApi.setLoginMobile(profile.getUserId(),
+					(String) profile.readField(StudentProfileField.MOBILE), "values." + StudentProfileField.MOBILE.name());
+		}
 	}
 
 	/** Stores values returned by {@link #validateRegistrationValues} on a new profile. */

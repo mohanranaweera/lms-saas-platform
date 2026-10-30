@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.lms.paymentmanagement.slip.web.dto.PaymentSlipResponse;
 import java.math.BigDecimal;
@@ -95,6 +96,29 @@ class ManualPaymentIntegrationTest extends KlassManualPaymentTestSupport {
 	// ------------------------------------------------------------------
 	// C + L: recording a receipt (Finance Staff).
 	// ------------------------------------------------------------------
+
+	@Test
+	void bankTransferSwitchHidesTheStudentSlipMethodButNeverTheStaffOne() {
+		Fx fx = seed("mp-bt");
+		Map<String, Object> studentCart = new LinkedHashMap<>();
+		studentCart.put("courseId", fx.course());
+		studentCart.put("items", List.of(monthItem(fx.course(), CUR)));
+		assertThat(data(send(fx.host(), fx.studentToken(), post("/api/v1/checkout/quote"), studentCart))
+			.path("methods").path("slip").asBoolean()).isTrue();
+
+		MvcResult off = send(fx.host(), fx.adminToken(), put("/api/v1/tenant-config/PAYMENT"),
+				Map.of("bank_transfer_enabled", false));
+		assertThat(status(off)).as(rawContent(off)).isEqualTo(200);
+
+		// The test profile's fake gateway fallback makes online payment available, so the switch applies.
+		JsonNode studentQuote = data(send(fx.host(), fx.studentToken(), post("/api/v1/checkout/quote"), studentCart));
+		assertThat(studentQuote.path("methods").path("slip").asBoolean()).isFalse();
+		assertThat(studentQuote.path("methods").path("online").asBoolean()).isTrue();
+		MvcResult staff = staffQuote(fx.host(), fx.financeToken(), fx.studentProfileId(),
+				List.of(monthItem(fx.course(), CUR)), List.of());
+		assertThat(status(staff)).as(rawContent(staff)).isEqualTo(200);
+		assertThat(data(staff).path("methods").path("slip").asBoolean()).isTrue();
+	}
 
 	@Test
 	void financeStaffRecordsReceiptAsOneConfirmedPaymentLedgerEntryReceiptAndLineEntitlements() {

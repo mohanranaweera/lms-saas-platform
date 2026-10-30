@@ -36,7 +36,42 @@ until a later wave populates it.
 | `support_email` | STRING | none | basic email format, ≤255 chars |
 | `support_phone` | STRING | none | any string, ≤255 chars |
 | `default_timezone` | STRING | `"UTC"` | must be a valid IANA zone id |
-| `default_currency` | STRING | `"USD"` | `^[A-Z]{3}$` (shape only, no hardcoded allowlist) |
+| `default_currency` | STRING | `"USD"` | `^[A-Z]{3}$` (shape only, no hardcoded allowlist). Edited on Settings → Payments (SET-PAY-01). |
+| `address_line1`, `address_line2`, `city`, `postal_code` | STRING | none | non-blank, ≤255 chars (SET-PAY-01, public) |
+| `institute_introduction` | STRING | none | non-blank, ≤2000 chars; plain text shown on the public home page (SET-PAY-01) |
+| `facebook_url` | STRING | none | `https://` on `facebook.com`/`fb.com` or a subdomain, ≤2048 chars (SET-PAY-01) |
+| `youtube_url` | STRING | none | `https://` on `youtube.com`/`youtu.be` or a subdomain, ≤2048 chars (SET-PAY-01) |
+
+The SET-PAY-01 public keys are projected (nullable) by `GET /api/v1/public/tenant-config/home` as
+`institute { introduction, addressLine1, addressLine2, city, postalCode, facebookUrl, youtubeUrl }`.
+
+LOGIN-01 GENERAL keys:
+
+| Key | Type | Default | Validation |
+|---|---|---|---|
+| `terms_of_service`, `refund_policy`, `privacy_policy` | STRING | none | non-blank plain text, ≤50,000 chars (Settings → Policies) |
+| `mobile_login_enabled` | BOOLEAN | `true` | boolean (ADR-031; email sign-in has no switch) |
+| `phone_region` | STRING | `"LK"` | an ISO 3166-1 region known to libphonenumber (ADR-031) |
+
+`GET /api/v1/public/tenant-config/home` also returns `policies { termsOfService, refundPolicy,
+privacyPolicy }` (published flags) and `loginOptions { mobileEnabled }`.
+
+### `GET /api/v1/public/tenant-config/policies/{kind}` (LOGIN-01)
+
+Anonymous, host-resolved tenant, GET only. `kind` = `terms` | `refund` | `privacy`; any other
+value → `404`. Response `{ "kind": "terms", "text": "..." }`, `text` = `null` when not published.
+Plain text, rendered as text by the client. `Cache-Control: no-cache`.
+
+### PAYMENT properties (summary)
+
+`facility_fee_mode`, `facility_fee_amount`, `bank_name`, `bank_branch`, `bank_account_holder`,
+`bank_account_number` (see `docs/specs/klass-enrollment-payment-workflows.md`) and, since SET-PAY-01,
+`bank_transfer_enabled` (BOOLEAN, default `true`). The bank keys are edited on Settings → Payments →
+Bank details. `bank_transfer_enabled` is the tenant's raw switch; the effective rule is
+**slip allowed = switch on OR online payment unavailable** (`BankTransferPolicy`), used by
+`GET /api/v1/checkout/payment-options` (`bankSlip`), student checkout quotes (`methods.slip`; staff
+manual-payment quotes are always `true`) and `POST /api/v1/orders/{orderId}/slips`, which returns
+`409 BANK_TRANSFER_DISABLED` before any storage write when not allowed.
 
 ### BRANDING properties
 

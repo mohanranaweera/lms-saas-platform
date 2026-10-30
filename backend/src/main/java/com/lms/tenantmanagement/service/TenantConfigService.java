@@ -220,9 +220,11 @@ public class TenantConfigService implements TenantConfigApi {
 	@Transactional(readOnly = true)
 	public Optional<Object> resolveValue(UUID tenantId, ConfigDomain domain, String key) {
 		assertMatchesCurrentContext(tenantId);
+		// Optional.map (not Stream.map + findFirst, which throws on a null
+		// element): an unset key with no default resolves to empty.
 		return getDomain(domain).stream().filter(property -> property.key().equals(key))
-			.map(ConfigPropertyValue::value)
-			.findFirst();
+			.findFirst()
+			.map(ConfigPropertyValue::value);
 	}
 
 	@Override

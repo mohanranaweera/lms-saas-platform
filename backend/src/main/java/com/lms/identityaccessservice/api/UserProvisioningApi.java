@@ -153,4 +153,17 @@ public interface UserProvisioningApi {
 	 */
 	String resetPassword(UUID userId);
 
+	/**
+	 * ADR-031: sets the user's sign-in mobile (normalised with the tenant's
+	 * phone region), or clears it when {@code rawMobile} is blank. Invalid
+	 * number -> {@code 400} with a field error on {@code field}; a number
+	 * another account of this institute uses -> {@code 409
+	 * MOBILE_ALREADY_REGISTERED} with a field error on {@code field}.
+	 * Audit-logged (numbers masked). Joins the caller's transaction.
+	 */
+	void setLoginMobile(UUID userId, String rawMobile, String field);
+
+	/** ADR-031: userId -> sign-in mobile (E.164) for those of {@code userIds} in this tenant that have one. */
+	java.util.Map<UUID, String> findLoginMobiles(Collection<UUID> userIds);
+
 }

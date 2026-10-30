@@ -62,7 +62,7 @@ async function mockSession(page: Page, role: string): Promise<void> {
 
 async function mockCheckout(
   page: Page,
-  options: { online: boolean; address: boolean; formAction?: string }
+  options: { online: boolean; address: boolean; formAction?: string; bankSlip?: boolean }
 ): Promise<void> {
   await mockSession(page, "STUDENT");
   await mockJson(page, `**/api/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
@@ -71,7 +71,7 @@ async function mockCheckout(
     "**/v1/checkout/payment-options",
     200,
     apiSuccess({
-      bankSlip: true,
+      bankSlip: options.bankSlip ?? true,
       onlinePayment: options.online ? { provider: "PAYHERE", mode: "SANDBOX" } : null,
     })
   );
@@ -129,6 +129,15 @@ test.describe("student checkout — PayHere", () => {
     await expect(page.getByText("Online payment isn't available at your institute yet")).toBeVisible();
     await expect(page.getByRole("button", { name: "Pay online (PayHere)" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toBeEnabled();
+  });
+
+  test("hides bank transfer when the institute has switched it off (SET-PAY-01)", async ({ page }) => {
+    await mockCheckout(page, { online: true, address: true, bankSlip: false });
+
+    await page.goto(`/student/checkout/${COURSE.id}`);
+
+    await expect(page.getByRole("button", { name: "Pay online (PayHere)" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Pay by bank transfer" })).toHaveCount(0);
   });
 
   test("asks for a billing address before allowing online payment", async ({ page }) => {
@@ -344,7 +353,9 @@ test.describe("tenant admin — online payments settings", () => {
 
     await page.goto("/tenant-admin/settings/payments");
 
-    await expect(page.getByRole("heading", { name: "Online payments" })).toBeVisible();
+    // SET-PAY-01: online payments are the "Payment gateway — PayHere" section of Settings → Payments.
+    await expect(page.getByRole("heading", { name: "Payment gateway — PayHere" })).toBeVisible();
+    await expect(page.getByTestId("payment-gateway-settings").getByRole("alert")).toBeVisible();
     await expect(page.getByLabel("Merchant ID")).toHaveCount(0);
   });
 });

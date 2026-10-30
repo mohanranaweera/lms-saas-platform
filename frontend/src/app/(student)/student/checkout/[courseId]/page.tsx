@@ -85,6 +85,9 @@ export default function CheckoutPage() {
   const courseQuery = useCourse(courseId);
   const paymentOptionsQuery = useCheckoutPaymentOptions();
   const onlinePaymentAvailable = paymentOptionsQuery.data?.onlinePayment != null;
+  // SET-PAY-01: the backend reports whether the institute accepts bank transfer
+  // (and rejects a slip upload when it doesn't); unknown = offer it as before.
+  const bankSlipAvailable = paymentOptionsQuery.data?.bankSlip !== false;
   const billingAddressQuery = useOwnBillingAddress({ enabled: onlinePaymentAvailable });
   const billingAddressReady = hasBillingAddress(billingAddressQuery.data);
   const createOrder = useCreateOrder();
@@ -259,18 +262,22 @@ export default function CheckoutPage() {
                       </p>
                     )}
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handlePayBySlip}
-                      disabled={isSubmitting || !checkoutAvailable}
-                      aria-busy={mode === "slip"}
-                    >
-                      {mode === "slip" ? "Preparing…" : "Pay by bank transfer"}
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Already sent a bank transfer? Upload your payment slip instead of paying online.
-                    </p>
+                    {bankSlipAvailable ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handlePayBySlip}
+                          disabled={isSubmitting || !checkoutAvailable}
+                          aria-busy={mode === "slip"}
+                        >
+                          {mode === "slip" ? "Preparing…" : "Pay by bank transfer"}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Already sent a bank transfer? Upload your payment slip instead of paying online.
+                        </p>
+                      </>
+                    ) : null}
                   </div>
                 </>
               )}

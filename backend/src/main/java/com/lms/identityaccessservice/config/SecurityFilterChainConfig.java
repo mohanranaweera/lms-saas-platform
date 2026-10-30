@@ -148,8 +148,10 @@ public class SecurityFilterChainConfig {
 				// accepted. See PublicBrandingController for why this one
 				// endpoint deliberately bypasses BRANDING_SETTINGS's
 				// permission gate.
+				// LOGIN-01 Phase B adds the institute's published policy texts
+				// (PublicPolicyController) - same host-resolved tenant, GET only.
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding",
-						"/api/v1/public/tenant-config/home").permitAll();
+						"/api/v1/public/tenant-config/home", "/api/v1/public/tenant-config/policies/*").permitAll();
 				// Public, unauthenticated student-registration-policy read path
 				// (Wave 3 gap-fill) - same rationale as the branding read
 				// above, for ConfigDomain.STUDENT's registration-relevant

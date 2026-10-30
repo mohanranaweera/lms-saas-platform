@@ -56,10 +56,24 @@ handler runs; rejected upstream (see Tenant resolution) if unresolvable/suspende
 **Request body** (`LoginRequest`):
 
 ```jsonc
-{ "email": "user@example.com", "password": "..." } // both required; email must be valid format
+{ "email": "user@example.com", "password": "..." } // email sign-in
+{ "mobile": "077 123 4567", "password": "..." }     // ADR-031 mobile sign-in (any common format)
 ```
 
-No `tenant_id` field — never accepted.
+Exactly one of `email` / `mobile` (else `400 VALIDATION_ERROR`). No `tenant_id` field — never accepted.
+
+**Mobile sign-in (ADR-031).** The number is normalised to E.164 with the tenant's
+`GENERAL.phone_region` (default `LK`) and matched against `tenant_user.login_mobile` in the
+host tenant only. A wrong or unknown number answers exactly like a wrong password
+(`401 INVALID_CREDENTIALS`, message "Invalid mobile number or password", same Argon2 timing).
+When the institute switched it off (`GENERAL.mobile_login_enabled = false`):
+`400 MOBILE_LOGIN_DISABLED`. Everything after the account is found (suspension, device binding
+and limits, tokens) is the same as email sign-in.
+
+**Throttling (both identifiers, ADR-031).** Failed attempts are counted in Redis per
+(tenant, identifier) — 10 in 15 min — and per (tenant, client IP) — 50 in 15 min. Over either
+limit: `429 TOO_MANY_REQUESTS` before any password check. A success clears the identifier
+counter. If Redis is unavailable the limiter fails open (logged).
 
 **Success — `200`** (`ApiResponse<LoginResponse>`):
 
@@ -189,6 +203,9 @@ not try to parse a distinction between these two codes into different UX.
 | `INVALID_REFRESH_TOKEN` | 401 | Refresh cookie missing/invalid/expired/already-rotated |
 | `SESSION_REVOKED` | 401 | Valid JWT, invalid session (revoked/expired/tenant-mismatch/account-inactive, or its device was removed) |
 | `DEVICE_LIMIT_REACHED` | 403 | Wave 10: student sign-in from a new device with no free slot |
+| `TOO_MANY_REQUESTS` | 429 | ADR-031: too many failed sign-ins for this email/mobile or IP |
+| `MOBILE_LOGIN_DISABLED` | 400 | ADR-031: mobile sign-in attempted while the institute has it switched off |
+| `MOBILE_ALREADY_REGISTERED` | 409 | ADR-031: the sign-in mobile is another account's in this institute (field error on the mobile field) |
 | `DEVICE_NOT_AUTHORIZED` | 403 | Wave 10: course content opened on a device outside the course device limit |
 | `DEVICE_SELF_SERVICE_DISABLED` | 403 | Wave 10: a student tried to remove a device but the tenant manages devices |
 
@@ -313,3 +330,20 @@ Remove one of the caller's OTHER devices. `200` `DeviceSlotSummary`.
 
 Staff device management for one student lives under `/api/v1/students/{id}/devices`
 (`docs/api/user-management.md`).
+
+## ADR-031 — Sign-in mobile management
+
+Each institute user may have one sign-in mobile (`tenant_user.login_mobile`, E.164, unique per
+tenant; Platform Admin is email-only). Students: their profile mobile **is** their sign-in mobile —
+set at registration and on profile edits (self or staff); invalid → `400`, taken → `409
+MOBILE_ALREADY_REGISTERED` on `profileFields.MOBILE` / `values.MOBILE`, rolling the whole save back.
+Every change writes `identity.login_mobile_changed` (before/after masked to the last 3 digits).
+Existing students were backfilled by migration V108 where their profile mobile was valid and unique.
+
+| Endpoint | Permission | Body → response |
+|---|---|---|
+| `GET/PUT /api/v1/teachers/{id}/login-mobile` | `TEACHERS` VIEW / CREATE_EDIT | `{ "loginMobile": "077 123 4567" }` → `{ "loginMobile": "+94771234567" }` |
+| `GET/PUT /api/v1/staff/{id}/login-mobile` | `STAFF_AND_ROLES` VIEW / CREATE_EDIT | same |
+| `GET/PUT /api/v1/auth/me/login-mobile` | any signed-in non-student institute user (own account) | same; students `403` |
+
+`null`/blank removes mobile sign-in (response `loginMobile: null`). Another tenant's teacher/staff id is `404`.

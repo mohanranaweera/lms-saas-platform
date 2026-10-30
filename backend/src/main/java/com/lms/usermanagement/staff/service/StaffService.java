@@ -117,6 +117,33 @@ public class StaffService {
 			.toList();
 	}
 
+	/** ADR-031: the staff member's sign-in mobile (E.164), or {@code null}. {@code STAFF_AND_ROLES/VIEW}. */
+	@Transactional(readOnly = true)
+	public String getLoginMobile(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);
+		UUID userId = loadStaffUserId(id);
+		return userProvisioningApi.findLoginMobiles(List.of(userId)).get(userId);
+	}
+
+	/**
+	 * ADR-031: sets (blank = removes) the staff member's sign-in mobile.
+	 * {@code STAFF_AND_ROLES/CREATE_EDIT}; identity validates, enforces
+	 * per-tenant uniqueness and audit-logs.
+	 */
+	public String setLoginMobile(UUID id, String rawMobile) {
+		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.CREATE_EDIT);
+		UUID userId = loadStaffUserId(id);
+		userProvisioningApi.setLoginMobile(userId, rawMobile, "loginMobile");
+		return userProvisioningApi.findLoginMobiles(List.of(userId)).get(userId);
+	}
+
+	/** Tenant-scoped by TenantAwareRepository: another tenant's staff id is a 404. */
+	private UUID loadStaffUserId(UUID id) {
+		return staffProfileRepository.findById(id)
+			.orElseThrow(() -> new NotFoundException("Staff account not found"))
+			.getUserId();
+	}
+
 	@Transactional(readOnly = true)
 	public StaffAccount getStaff(UUID id) {
 		permissionCheckService.requirePermission(DomainArea.STAFF_AND_ROLES, PermissionAction.VIEW);

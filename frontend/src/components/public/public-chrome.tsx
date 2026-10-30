@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
-import { ChevronRight, Mail, Menu, Phone, X } from "lucide-react";
+import { ChevronRight, Mail, MapPin, Menu, Phone, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PublicLogo, toLogoDisplaySize, type LogoDisplaySize } from "@/components/branding/public-logo";
 import { PublicThemeScope } from "@/components/branding/public-theme-scope";
 import { PublicAccountActions, usePublicSession } from "@/components/layout/public-header-nav";
-import { usePublicHome, type PublicHomeResponse } from "@/lib/api/public-home";
+import { POLICY_PAGES, usePublicHome, type PolicyKind, type PublicHomeResponse } from "@/lib/api/public-home";
+import { InstituteSocialLinks, instituteAddressLines } from "@/components/public/institute-info";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useTenantDocumentTitle, useTenantFavicon } from "@/lib/branding/use-tenant-head";
 import { PLATFORM_DEFAULT_NAME, TENANT_FALLBACK_NAME } from "@/lib/branding/names";
 
@@ -87,9 +89,10 @@ function PublicSiteHeader({ home, pending, tenantResolved }: { home: PublicHomeR
             ))}
           </nav>
         </div>
-        <div className="hidden md:block">
+        <div className="hidden md:ml-auto md:block">
           <PublicAccountActions state={session} tenantResolved={tenantResolved} />
         </div>
+        <ThemeToggle className="ml-auto md:ml-0" />
         <button
           type="button"
           className="inline-flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
@@ -121,6 +124,8 @@ function PublicSiteFooter({ home }: { home: PublicHomeResponse | undefined }) {
   const name = home ? home.instituteName?.trim() || TENANT_FALLBACK_NAME : PLATFORM_DEFAULT_NAME;
   const phone = home?.supportPhone?.trim();
   const email = home?.supportEmail?.trim();
+  const address = instituteAddressLines(home?.institute);
+  const policyLinks = (Object.keys(POLICY_PAGES) as PolicyKind[]).filter((kind) => home?.policies?.[POLICY_PAGES[kind].flag]);
   const year = new Date().getFullYear();
 
   return (
@@ -129,6 +134,7 @@ function PublicSiteFooter({ home }: { home: PublicHomeResponse | undefined }) {
         <div className="flex flex-col gap-3">
           <PublicLogo logoUrl={home?.logoUrl} instituteName={name} variant="footer" />
           {home?.logoUrl ? <p className="font-heading text-base font-semibold">{name}</p> : null}
+          <InstituteSocialLinks info={home?.institute} instituteName={name} className="mt-1" />
         </div>
         <nav aria-labelledby="footer-sitemap-heading">
           <h2 id="footer-sitemap-heading" className="text-xs font-semibold uppercase tracking-widest text-foreground">
@@ -146,7 +152,7 @@ function PublicSiteFooter({ home }: { home: PublicHomeResponse | undefined }) {
             ))}
           </ul>
         </nav>
-        {phone || email ? (
+        {phone || email || address.length > 0 ? (
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">Contact us</h2>
             <span className="mt-2 block h-0.5 w-6 rounded bg-primary" aria-hidden="true" />
@@ -177,14 +183,46 @@ function PublicSiteFooter({ home }: { home: PublicHomeResponse | undefined }) {
                   </span>
                 </li>
               ) : null}
+              {address.length > 0 ? (
+                <li className="flex items-start gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <MapPin className="size-4" aria-hidden="true" />
+                  </span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">Address</span>
+                    <address className="text-sm not-italic" data-testid="footer-address">
+                      {address.map((line) => (
+                        <span key={line} className="block break-words">
+                          {line}
+                        </span>
+                      ))}
+                    </address>
+                  </span>
+                </li>
+              ) : null}
             </ul>
           </div>
         ) : null}
       </div>
       <div className="border-t border-border">
-        <p className="mx-auto max-w-7xl px-4 py-4 text-xs text-muted-foreground sm:px-6 lg:px-8">
-          &copy; {year} {name}. All rights reserved.
-        </p>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 text-xs text-muted-foreground sm:px-6 lg:px-8">
+          <p>
+            &copy; {year} {name}. All rights reserved.
+          </p>
+          {policyLinks.length > 0 ? (
+            <nav aria-label="Policies" data-testid="footer-policies">
+              <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                {policyLinks.map((kind) => (
+                  <li key={kind}>
+                    <Link href={POLICY_PAGES[kind].href} className="hover:text-primary hover:underline">
+                      {POLICY_PAGES[kind].title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
+        </div>
       </div>
     </footer>
   );

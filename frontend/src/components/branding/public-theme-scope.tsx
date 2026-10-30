@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { publicFont, SCRIPT_FALLBACK_FONT_CLASSES } from "@/lib/fonts/public-fonts";
-import { resolveThemeColors, themeCssVariables } from "@/lib/theme/color";
+import { resolveThemeColors, themeScopeCssVariables } from "@/lib/theme/color";
 
 export interface PublicThemeValues {
   primaryColor?: string | null;
@@ -43,7 +43,7 @@ export function PublicThemeScope({
   const heading = publicFont(theme?.headingFont);
   const body = publicFont(theme?.bodyFont);
   const style = {
-    ...themeCssVariables(colors),
+    ...themeScopeCssVariables(colors),
     "--font-heading": heading.stack,
     "--font-body": body.stack,
     "--font-sans": body.stack,

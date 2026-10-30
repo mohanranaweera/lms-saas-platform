@@ -10,6 +10,8 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { StaffStatusBadge } from "@/components/staff/staff-status-badge";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { CreateStaffSheet } from "./create-staff-sheet";
+import { SignInMobileCard } from "@/components/auth/sign-in-mobile-card";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 /**
  * Staff Management list (MVP-005, `STAFF-1`, Tenant Admin/Read-only
@@ -32,6 +34,8 @@ export default function StaffListPage() {
   const staffQuery = useStaffList();
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  // ADR-031: the staff member whose sign-in mobile sheet is open.
+  const [mobileFor, setMobileFor] = useState<StaffResponse | null>(null);
   const [createdNotice, setCreatedNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,6 +57,22 @@ export default function StaffListPage() {
       header: "Status",
       cell: (staff) => <StaffStatusBadge status={staff.status} />,
       hideOnCard: true,
+    },
+    {
+      key: "signInMobile",
+      header: "Sign-in mobile",
+      cell: (staff) => (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          aria-haspopup="dialog"
+          aria-label={`Sign-in mobile for ${staff.name}`}
+          onClick={() => setMobileFor(staff)}
+        >
+          {canManage ? "Set" : "View"}
+        </Button>
+      ),
     },
   ];
 
@@ -107,6 +127,28 @@ export default function StaffListPage() {
           />
         )}
       </QueryStateBoundary>
+
+      <Sheet open={mobileFor !== null} onOpenChange={(open) => (open ? null : setMobileFor(null))}>
+        <SheetContent
+          side="right"
+          className="w-full data-[side=right]:w-full data-[side=right]:sm:max-w-full data-[side=right]:md:max-w-md"
+        >
+          <SheetHeader>
+            <SheetTitle>{mobileFor ? `Sign-in mobile — ${mobileFor.name}` : "Sign-in mobile"}</SheetTitle>
+            <SheetDescription>{mobileFor?.email}</SheetDescription>
+          </SheetHeader>
+          {mobileFor ? (
+            <div className="px-4 pb-4">
+              <SignInMobileCard
+                path={`/v1/staff/${mobileFor.id}/login-mobile`}
+                description="Lets this staff member sign in with a mobile number instead of their email."
+                canEdit={canManage}
+                idPrefix="staff-login-mobile"
+              />
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
 
       {canManage ? (
         <CreateStaffSheet open={sheetOpen} onOpenChange={setSheetOpen} onCreated={handleCreated} />

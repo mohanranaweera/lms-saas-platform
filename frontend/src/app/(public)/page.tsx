@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, CircleHelp, LifeBuoy, LogIn, Mail, Phone, UserPlus } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, CircleHelp, LifeBuoy, LogIn, Mail, MapPin, Phone, UserPlus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { TeacherCarousel } from "@/components/public/teacher-carousel";
+import { InstituteSocialLinks, instituteAddressLines } from "@/components/public/institute-info";
 import { TENANT_FALLBACK_NAME } from "@/lib/branding/names";
 import { getCoursePriceLabel } from "@/components/courses/course-price-display";
 import { usePublicHome, type PublicHomeResponse } from "@/lib/api/public-home";
@@ -21,7 +22,8 @@ import { cn } from "@/lib/utils";
  * Tenant public home — body only; the header/footer/theme come from
  * `(public)/layout.tsx` (`PublicChrome`). Sections follow the Appearance
  * settings: hero (uploaded banners or a branded hero), optional sub-hero,
- * featured courses, teacher carousel, support (#support), optional CTA.
+ * about (institute introduction, SET-PAY-01), featured courses, teacher
+ * carousel, support (#support), optional CTA.
  * Nothing here grants access: pricing labels are display-only and every
  * action links into backend-authorized flows.
  */
@@ -61,6 +63,7 @@ export default function HomePage() {
     <div className="flex flex-col">
       <Hero config={config} name={name} />
       {config.subHeroEnabled ? <SubHero /> : null}
+      <AboutSection config={config} name={name} />
       <FeaturedCourses config={config} />
       <TeacherCarousel autoRotate={config.teacherAutoRotate === true} />
       <SupportSection config={config} />
@@ -329,6 +332,35 @@ function CourseCard({ course }: { course: CourseCardData }) {
         </Link>
       </div>
     </article>
+  );
+}
+
+/** SET-PAY-01: the institute introduction (plain text, line breaks kept). Hidden when not set. */
+function AboutSection({ config, name }: { config: PublicHomeResponse; name: string }) {
+  const introduction = config.institute?.introduction?.trim();
+  if (!introduction) return null;
+  const address = instituteAddressLines(config.institute);
+  return (
+    <section className="mx-auto w-full max-w-4xl px-4 py-14 sm:px-6 lg:px-8" aria-labelledby="about-heading" data-testid="about-section">
+      <p className="text-xs font-semibold uppercase tracking-widest text-primary">About us</p>
+      <h2 id="about-heading" className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+        {name}
+      </h2>
+      <p className="mt-4 whitespace-pre-line text-muted-foreground" data-testid="about-introduction">
+        {introduction}
+      </p>
+      {address.length > 0 || config.institute?.facebookUrl || config.institute?.youtubeUrl ? (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+          {address.length > 0 ? (
+            <address className="flex items-start gap-2 text-sm not-italic text-muted-foreground">
+              <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              <span>{address.join(", ")}</span>
+            </address>
+          ) : null}
+          <InstituteSocialLinks info={config.institute} instituteName={name} />
+        </div>
+      ) : null}
+    </section>
   );
 }
 

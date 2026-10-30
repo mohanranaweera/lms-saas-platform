@@ -7,13 +7,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, Eye, EyeOff, Info } from "lucide-react";
-import { loginSchema, type LoginFormValues } from "@/lib/validation/auth";
+import { tenantLoginSchema } from "@/lib/validation/auth";
 import { useAuth, type LoginResult } from "@/lib/auth/auth-context";
-import type { PrincipalKind } from "@/lib/api/auth";
+import type { LoginRequest, PrincipalKind } from "@/lib/api/auth";
+import { usePublicHome } from "@/lib/api/public-home";
 import { isApiClientError } from "@/lib/api/error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -36,11 +38,24 @@ interface LoginFormProps {
   showRegisterLink?: boolean;
 }
 
+type LoginMethod = "email" | "mobile";
+
+interface LoginFields {
+  email: string;
+  mobile: string;
+  password: string;
+}
+
 /**
  * Shared real login form for both the tenant-branded (`/login`) and Platform
  * Admin (`/platform-admin/login`) sign-in pages — same validation, loading,
  * error, and accessibility behavior, differing only in copy, which endpoint
  * `kind` calls, and the post-login redirect rule.
+ *
+ * ADR-031: tenant sign-in offers EMAIL / MOBILE tabs (Klass parity) unless the
+ * institute switched mobile sign-in off (`loginOptions.mobileEnabled` from the
+ * host tenant's public home). Platform Admin sign-in stays email-only. The
+ * backend still refuses a mobile sign-in when the switch is off.
  */
 export function LoginForm({
   kind,
@@ -54,19 +69,25 @@ export function LoginForm({
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [unresolvedRole, setUnresolvedRole] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<LoginMethod>("email");
+  const home = usePublicHome();
+  const mobileOffered = kind === "tenant" && home.data?.loginOptions?.mobileEnabled !== false && home.isSuccess;
+  const method: LoginMethod = mobileOffered ? selectedMethod : "email";
 
   const {
     register,
     handleSubmit,
     setError,
+    clearErrors,
     formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+  } = useForm<LoginFields>({
+    // The schema follows the selected tab; the other identifier is ignored.
+    resolver: zodResolver(tenantLoginSchema(method)),
+    defaultValues: { email: "", mobile: "", password: "" },
   });
 
-  const mutation = useMutation<LoginResult, unknown, LoginFormValues>({
-    mutationFn: (values) => login(kind, values),
+  const mutation = useMutation<LoginResult, unknown, LoginRequest>({
+    mutationFn: (request) => login(kind, request),
     onSuccess: (result) => {
       // AUTH-PWD-01: a temporary password must be replaced first (the backend
       // refuses everything else with 403 PASSWORD_CHANGE_REQUIRED anyway).
@@ -84,7 +105,7 @@ export function LoginForm({
     onError: (error) => {
       if (isApiClientError(error) && error.fieldErrors.length > 0) {
         for (const fieldError of error.fieldErrors) {
-          if (fieldError.field === "email" || fieldError.field === "password") {
+          if (fieldError.field === "email" || fieldError.field === "mobile" || fieldError.field === "password") {
             setError(fieldError.field, { type: "server", message: fieldError.message });
           }
         }
@@ -92,8 +113,58 @@ export function LoginForm({
     },
   });
 
+  const onSubmit = handleSubmit((values) =>
+    mutation.mutate(
+      method === "mobile"
+        ? { mobile: values.mobile.trim(), password: values.password }
+        : { email: values.email, password: values.password }
+    )
+  );
+
   const sessionExpired = searchParams.get("reason") === "session_expired";
   const apiError = isApiClientError(mutation.error) ? mutation.error : null;
+
+  const emailField = (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="login-email">Email</Label>
+      <Input
+        id="login-email"
+        type="email"
+        autoComplete="email"
+        aria-invalid={!!errors.email}
+        aria-describedby={errors.email ? "login-email-error" : undefined}
+        disabled={mutation.isPending}
+        {...register("email")}
+      />
+      {errors.email ? (
+        <p id="login-email-error" className="text-xs text-destructive">
+          {errors.email.message}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  const mobileField = (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="login-mobile">Mobile number</Label>
+      <Input
+        id="login-mobile"
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder="e.g. 077 123 4567"
+        aria-invalid={!!errors.mobile}
+        aria-describedby={errors.mobile ? "login-mobile-error" : undefined}
+        disabled={mutation.isPending}
+        {...register("mobile")}
+      />
+      {errors.mobile ? (
+        <p id="login-mobile-error" className="text-xs text-destructive">
+          {errors.mobile.message}
+        </p>
+      ) : null}
+    </div>
+  );
 
   return (
     <Card>
@@ -114,7 +185,11 @@ export function LoginForm({
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
             <AlertTitle>
-              {apiError.code === "DEVICE_LIMIT_REACHED" ? "Device limit reached" : "Sign-in failed"}
+              {apiError.code === "DEVICE_LIMIT_REACHED"
+                ? "Device limit reached"
+                : apiError.code === "TOO_MANY_REQUESTS"
+                  ? "Too many attempts"
+                  : "Sign-in failed"}
             </AlertTitle>
             {/* Backend copy only — never invent a more specific message than
                 `error.message` here (docs/api/identity-access-service.md: the
@@ -135,28 +210,24 @@ export function LoginForm({
           </Alert>
         ) : null}
 
-        <form
-          className="flex flex-col gap-4"
-          noValidate
-          onSubmit={handleSubmit((values) => mutation.mutate(values))}
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="login-email">Email</Label>
-            <Input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              aria-invalid={!!errors.email}
-              aria-describedby={errors.email ? "login-email-error" : undefined}
-              disabled={mutation.isPending}
-              {...register("email")}
+        <form className="flex flex-col gap-4" noValidate onSubmit={onSubmit}>
+          {mobileOffered ? (
+            <Tabs
+              aria-label="Sign in with"
+              value={method}
+              onValueChange={(next) => {
+                setSelectedMethod(next as LoginMethod);
+                clearErrors();
+                mutation.reset();
+              }}
+              items={[
+                { value: "email", label: "Email", content: emailField },
+                { value: "mobile", label: "Mobile", content: mobileField },
+              ]}
             />
-            {errors.email ? (
-              <p id="login-email-error" className="text-xs text-destructive">
-                {errors.email.message}
-              </p>
-            ) : null}
-          </div>
+          ) : (
+            emailField
+          )}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="login-password">Password</Label>

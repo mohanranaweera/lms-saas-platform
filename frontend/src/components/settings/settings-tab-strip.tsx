@@ -3,22 +3,31 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canViewIntegrations } from "@/lib/auth/permissions";
+import { canViewInstituteConfig, canViewIntegrations, canViewPaymentGateway } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils";
 
 /**
  * Settings section tabs (links, not an ARIA tablist — each tab is its own
- * route). The sidebar has a single "Settings" entry; General, Appearance,
- * Student fields, Integrations and Video live here as tabs. Integrations and Video keep their
- * own visibility rule (UX only — the backend re-checks every request).
+ * route). The sidebar has a single "Settings" entry; General, Payments,
+ * Appearance, Student fields, Integrations and Video live here as tabs. Each
+ * tab has its own visibility rule (UX only — the backend re-checks every
+ * request). Payments (SET-PAY-01) is also shown to Finance Staff, who can see
+ * the PayHere status but no institute configuration.
  * `/settings/branding` redirects to Appearance, so it has no tab of its own.
  */
 const SETTINGS_TABS = [
-  { label: "General", href: "/tenant-admin/settings/general" },
-  { label: "Appearance", href: "/tenant-admin/settings/appearance" },
-  { label: "Student fields", href: "/tenant-admin/settings/student-fields" },
+  { label: "General", href: "/tenant-admin/settings/general", visible: canViewInstituteConfig },
+  {
+    label: "Payments",
+    href: "/tenant-admin/settings/payments",
+    visible: (role: string | null) => canViewInstituteConfig(role) || canViewPaymentGateway(role),
+  },
+  { label: "Appearance", href: "/tenant-admin/settings/appearance", visible: canViewInstituteConfig },
+  { label: "Student fields", href: "/tenant-admin/settings/student-fields", visible: canViewInstituteConfig },
   // Site files (logos, banners, teacher photos, support video): never in the Media Library.
-  { label: "Site media", href: "/tenant-admin/settings/site-media" },
+  { label: "Site media", href: "/tenant-admin/settings/site-media", visible: canViewInstituteConfig },
+  // LOGIN-01 Phase B: Terms of Service, Refund Policy, Privacy Policy.
+  { label: "Policies", href: "/tenant-admin/settings/policies", visible: canViewInstituteConfig },
   { label: "Integrations", href: "/tenant-admin/settings/integrations", visible: canViewIntegrations },
   // Video providers + video settings share the INTEGRATIONS grant.
   { label: "Video", href: "/tenant-admin/settings/video", visible: canViewIntegrations },
@@ -29,7 +38,7 @@ export type SettingsTabHref = (typeof SETTINGS_TABS)[number]["href"];
 export function SettingsTabStrip({ active }: { active: SettingsTabHref }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const tabs = SETTINGS_TABS.filter((tab) => !("visible" in tab) || tab.visible(role));
+  const tabs = SETTINGS_TABS.filter((tab) => tab.visible(role));
   return (
     <nav aria-label="Settings sections" className="-mx-1 overflow-x-auto">
       <ul className="flex min-w-max gap-1 border-b border-border px-1">

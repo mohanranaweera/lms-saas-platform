@@ -5,6 +5,7 @@ import { canManageInstituteConfig } from "@/lib/auth/permissions";
 import { useTenantConfigDomain } from "@/lib/api/tenant-config";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { GeneralConfigForm } from "./general-config-form";
+import { LoginOptionsSection } from "./login-options-section";
 import { SettingsHeader } from "@/components/settings/settings-tab-strip";
 
 /**
@@ -17,10 +18,10 @@ import { SettingsHeader } from "@/components/settings/settings-tab-strip";
  * (`tenant-admin-nav.tsx`, gated on `canViewInstituteConfig`) is pure UX
  * convenience only.
  *
- * `GENERAL`'s 5 registered keys (`institute_name`, `support_email`,
- * `support_phone`, `default_timezone`, `default_currency`) are fixed by
- * `ConfigPropertyRegistry` and always come back as a 5-element array (values
- * `null` until first set) — there is no genuine "zero data" case to build an
+ * `GENERAL`'s registered keys are fixed by `ConfigPropertyRegistry` and
+ * always all come back (values `null` until first set). This tab edits all of
+ * them except `default_currency`, which is edited on Settings → Payments
+ * (SET-PAY-01) — there is no genuine "zero data" case to build an
  * `EmptyState` for here, unlike a list screen, so no `isEmpty`/`emptyState`
  * prop is passed to `QueryStateBoundary`.
  *
@@ -39,7 +40,7 @@ export default function GeneralSettingsPage() {
     <div className="flex flex-col gap-6">
       <SettingsHeader
         active="/tenant-admin/settings/general"
-        description="Institute name, support contact details, and the defaults applied across your tenant."
+        description="Institute name, time zone, and the contact details and address shown on your public page."
       />
 
       <QueryStateBoundary
@@ -48,7 +49,12 @@ export default function GeneralSettingsPage() {
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
       >
-        {(properties) => <GeneralConfigForm properties={properties} canManage={canManage} />}
+        {(properties) => (
+          <div className="flex flex-col gap-6">
+            <GeneralConfigForm properties={properties} canManage={canManage} />
+            <LoginOptionsSection properties={properties} canManage={canManage} />
+          </div>
+        )}
       </QueryStateBoundary>
     </div>
   );

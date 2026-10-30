@@ -82,17 +82,34 @@ public class AuthenticationService {
 	 */
 	@Transactional
 	public LoginResult login(String email, String rawPassword, DeviceContext device) {
-		Optional<TenantUser> userOpt = tenantUserRepository.findByEmail(email);
+		return complete(tenantUserRepository.findByEmail(email), rawPassword, device, InvalidCredentialsException::new);
+	}
+
+	/**
+	 * ADR-031: sign-in by mobile. {@code e164} is the already-normalised
+	 * number, or {@code null} when what the user typed isn't a valid number -
+	 * the password is still verified against the dummy hash so the response
+	 * and its timing match a wrong password. Everything after the user is
+	 * found is the same path as email sign-in.
+	 */
+	@Transactional
+	public LoginResult loginWithMobile(String e164, String rawPassword, DeviceContext device) {
+		Optional<TenantUser> userOpt = e164 == null ? Optional.empty() : tenantUserRepository.findByLoginMobile(e164);
+		return complete(userOpt, rawPassword, device, InvalidCredentialsException::forMobile);
+	}
+
+	private LoginResult complete(Optional<TenantUser> userOpt, String rawPassword, DeviceContext device,
+			java.util.function.Supplier<InvalidCredentialsException> invalid) {
 		String hashToVerify = userOpt.map(TenantUser::getPasswordHash).orElse(DUMMY_HASH);
 		boolean passwordMatches = passwordEncoder.matches(rawPassword, hashToVerify);
 
 		if (userOpt.isEmpty() || !passwordMatches) {
-			throw new InvalidCredentialsException();
+			throw invalid.get();
 		}
 		TenantUser user = userOpt.get();
 		if (user.getStatus() == AccountStatus.INVITED) {
 			// ADR-020: indistinguishable from a wrong password (no account-state disclosure).
-			throw new InvalidCredentialsException();
+			throw invalid.get();
 		}
 		if (user.getStatus() == AccountStatus.SUSPENDED) {
 			throw new UserSuspendedException();

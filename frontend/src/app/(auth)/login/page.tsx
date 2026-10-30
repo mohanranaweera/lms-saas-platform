@@ -4,6 +4,7 @@ import { tenantDashboardPath } from "@/lib/auth/dashboard-paths";
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoadingState } from "@/components/states/loading-state";
+import { usePublicHome } from "@/lib/api/public-home";
 
 
 /**
@@ -13,12 +14,14 @@ import { LoadingState } from "@/components/states/loading-state";
  * receives a `tenant_id`.
  */
 export default function LoginPage() {
+  // Same cached host-tenant read as the auth shell's logo (no extra request).
+  const instituteName = usePublicHome().data?.instituteName?.trim();
   return (
     <Suspense fallback={<LoadingState label="Loading sign-in…" />}>
       <LoginForm
         kind="tenant"
         title="Sign in"
-        description="Access your LMS Platform account."
+        description={instituteName ? `Access your ${instituteName} account.` : "Access your account."}
         resolveDashboardPath={tenantDashboardPath}
         showRegisterLink
       />

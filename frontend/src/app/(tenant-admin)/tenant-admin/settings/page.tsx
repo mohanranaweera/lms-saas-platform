@@ -34,7 +34,28 @@ export default function InstituteConfigurationIndexPage() {
             <CardHeader>
               <CardTitle>General</CardTitle>
               <CardDescription>
-                Institute name, support contact details, default time zone, and default currency.
+                Institute name, time zone, and the contact details, address and introduction shown on your
+                public page.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/payments" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Payments</CardTitle>
+              <CardDescription>
+                Currency, facility fee, PayHere online payments, and your bank account for bank transfers.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/tenant-admin/settings/policies" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Policies</CardTitle>
+              <CardDescription>
+                Your Terms of Service, Refund Policy and Privacy Policy, shown on your public site.
               </CardDescription>
             </CardHeader>
           </Card>

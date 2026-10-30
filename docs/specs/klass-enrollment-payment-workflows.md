@@ -61,6 +61,11 @@ Pay now (uses the server's `requiredPurchase`) open one "Make Payment" dialog:
 - Upload a payment slip → bank details from tenant PAYMENT config (`bank_name`, `bank_branch`,
   `bank_account_holder`, `bank_account_number`; absent → slip disabled), deposit reference number (required
   by the duplicate-reference check) and image/PDF file → order + slip → "Submitted — pending approval".
+- Bank transfer switch (SET-PAY-01): `PAYMENT.bank_transfer_enabled` (default on, Settings → Payments).
+  When off **and** online payment is available, checkout hides the slip method and the student slip upload
+  returns `409 BANK_TRANSFER_DISABLED` (no storage write). While online payment is unavailable bank transfer
+  stays open regardless, so students always have a way to pay. Slips already submitted are still reviewed;
+  staff-recorded manual payments and free enrollment (ADR-028) are unaffected.
 - Already-paid, pending, foreign or unknown items → 422 (`ITEM_ALREADY_PAID`, `ITEM_PENDING`,
   `ITEM_NOT_ELIGIBLE`, `EMPTY_SELECTION`). Starting a payment or slip re-checks coverage under advisory locks;
   a second live payment attempt on the same order → 409 `ORDER_PAYMENT_IN_PROGRESS`. Legacy `POST /orders`

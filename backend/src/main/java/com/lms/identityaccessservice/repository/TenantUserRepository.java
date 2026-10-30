@@ -27,4 +27,9 @@ public interface TenantUserRepository extends TenantAwareRepository<TenantUser, 
 		return findOne((root, query, cb) -> cb.equal(root.get("email"), email));
 	}
 
+	/** ADR-031: {@code e164} must already be normalised; tenant-scoped like {@link #findByEmail}. */
+	default Optional<TenantUser> findByLoginMobile(String e164) {
+		return findOne((root, query, cb) -> cb.equal(root.get("loginMobile"), e164));
+	}
+
 }

@@ -237,8 +237,10 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
         ["Audit Log", entry.auditLog],
         ["Staff", entry.staff],
         ["Roles & Permissions", entry.staff],
-        // General, Student Fields and Integrations are tabs inside Settings now, not sidebar items.
-        ["Settings", entry.instituteConfig],
+        // General, Payments, Student Fields and Integrations are tabs inside Settings now, not sidebar items.
+        // SET-PAY-01: Finance Staff (PAYMENT_GATEWAY/VIEW) get Settings too, landing on the Payments tab.
+        ["Settings", entry.instituteConfig || entry.role === "FINANCE_STAFF"],
+        ["Online Payments", false],
         ["Appearance", entry.instituteConfig],
         ["General", false],
         ["Branding", false],

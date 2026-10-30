@@ -212,6 +212,15 @@ public final class ApiErrorCodes {
 	/** Wave 11 - the requested messaging provider adapter is not enabled in this environment. */
 	public static final String MESSAGING_PROVIDER_NOT_AVAILABLE = "MESSAGING_PROVIDER_NOT_AVAILABLE";
 
+	/** SET-PAY-01 - the tenant has switched off bank transfer and online payment is available. */
+	public static final String BANK_TRANSFER_DISABLED = "BANK_TRANSFER_DISABLED";
+
+	/** ADR-031 - the sign-in mobile is already used by another account in this institute. */
+	public static final String MOBILE_ALREADY_REGISTERED = "MOBILE_ALREADY_REGISTERED";
+
+	/** ADR-031 - the institute has switched mobile-number sign-in off. */
+	public static final String MOBILE_LOGIN_DISABLED = "MOBILE_LOGIN_DISABLED";
+
 	private ApiErrorCodes() {
 	}
 

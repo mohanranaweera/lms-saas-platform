@@ -159,6 +159,50 @@
  * destructive/warning tokens are intentionally not overridden.
  */
 @layer base {
+  /* Light/dark tenant palettes come in as --tl-* / --td-* (PublicThemeScope,
+     LOGIN-01 Phase A); the active mode picks one before first paint. */
+  .tenant-public-theme {
+    --primary: var(--tl-primary);
+    --primary-foreground: var(--tl-primary-foreground);
+    --ring: var(--tl-ring);
+    --background: var(--tl-background);
+    --foreground: var(--tl-foreground);
+    --card: var(--tl-card);
+    --card-foreground: var(--tl-card-foreground);
+    --popover: var(--tl-popover);
+    --popover-foreground: var(--tl-popover-foreground);
+    --muted: var(--tl-muted);
+    --muted-foreground: var(--tl-muted-foreground);
+    --secondary: var(--tl-secondary);
+    --secondary-foreground: var(--tl-secondary-foreground);
+    --accent: var(--tl-accent);
+    --accent-foreground: var(--tl-accent-foreground);
+    --border: var(--tl-border);
+    --input: var(--tl-input);
+    --tenant-accent: var(--tl-tenant-accent);
+    --tenant-accent-foreground: var(--tl-tenant-accent-foreground);
+  }
+  .dark .tenant-public-theme {
+    --primary: var(--td-primary);
+    --primary-foreground: var(--td-primary-foreground);
+    --ring: var(--td-ring);
+    --background: var(--td-background);
+    --foreground: var(--td-foreground);
+    --card: var(--td-card);
+    --card-foreground: var(--td-card-foreground);
+    --popover: var(--td-popover);
+    --popover-foreground: var(--td-popover-foreground);
+    --muted: var(--td-muted);
+    --muted-foreground: var(--td-muted-foreground);
+    --secondary: var(--td-secondary);
+    --secondary-foreground: var(--td-secondary-foreground);
+    --accent: var(--td-accent);
+    --accent-foreground: var(--td-accent-foreground);
+    --border: var(--td-border);
+    --input: var(--td-input);
+    --tenant-accent: var(--td-tenant-accent);
+    --tenant-accent-foreground: var(--td-tenant-accent-foreground);
+  }
   .tenant-public-theme {
     --primary-hover: color-mix(in srgb, var(--primary) 86%, #000);
     --primary-active: color-mix(in srgb, var(--primary) 76%, #000);

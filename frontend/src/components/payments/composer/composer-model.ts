@@ -364,6 +364,8 @@ export function composerErrorMessage(error: unknown): string {
         return "Too many incorrect discount codes. Remove the code and try again later.";
       case "ORDER_TOTAL_ZERO":
         return "Your discounts cover the whole amount, and an order with a zero total can't be placed. Remove a discount or add another item to continue.";
+      case "BANK_TRANSFER_DISABLED":
+        return "Your institute no longer accepts bank transfers. Please pay online instead.";
       case "NETWORK_ERROR":
         return "We couldn't reach the server. Check your connection and try again.";
       default:

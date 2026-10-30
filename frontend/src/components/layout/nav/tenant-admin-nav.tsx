@@ -154,11 +154,13 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const instituteConfigItems: NavItem[] = [];
   if (canViewInstituteConfig(role)) {
     instituteConfigItems.push(
-      // General, Student fields and Integrations are tabs inside Settings (settings-tab-strip.tsx).
+      // General, Payments, Student fields and Integrations are tabs inside Settings (settings-tab-strip.tsx).
       {
         label: "Settings",
         href: "/tenant-admin/settings/general",
         activePrefixes: [
+          "/tenant-admin/settings/payments",
+          "/tenant-admin/settings/policies",
           "/tenant-admin/settings/student-fields",
           "/tenant-admin/settings/site-media",
           "/tenant-admin/settings/integrations",
@@ -170,9 +172,10 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
       },
       { label: "Appearance", href: "/tenant-admin/settings/appearance" }
     );
-  }
-  if (canViewPaymentGateway(role)) {
-    instituteConfigItems.push({ label: "Online Payments", href: "/tenant-admin/settings/payments" });
+  } else if (canViewPaymentGateway(role)) {
+    // SET-PAY-01: online payments are the Settings → Payments tab now. Finance
+    // Staff (PAYMENT_GATEWAY/VIEW, no institute config) land straight on it.
+    instituteConfigItems.push({ label: "Settings", href: "/tenant-admin/settings/payments" });
   }
   // MEDIA-INT-01 - INTEGRATIONS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewIntegrations(role)) {

@@ -52,7 +52,7 @@ class UserProvisioningServiceActorExistsTest {
 	@BeforeEach
 	void setUp() {
 		service = new UserProvisioningService(tenantUserRepository, platformAdminUserRepository, passwordEncoder,
-				tenantContext);
+				tenantContext, org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class));
 	}
 
 	@AfterEach

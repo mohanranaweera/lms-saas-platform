@@ -75,6 +75,30 @@ function isValidHttpUrl(value: string): boolean {
   }
 }
 
+/** `https://` URL whose host is one of `hosts` or a subdomain of one (mirrors `isFacebookUrl`/`isYouTubeUrl`). */
+function isHttpsUrlOnHosts(value: string, hosts: readonly string[]): boolean {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    return url.protocol === "https:" && hosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+  } catch {
+    return false;
+  }
+}
+
+/** Mirrors `ConfigPropertyRegistry#isShortText` (255 chars); "" means "not set". */
+const MAX_TEXT_LENGTH = 255;
+/** Mirrors `MAX_LONG_TEXT_LENGTH` for `institute_introduction`. */
+export const MAX_INTRODUCTION_LENGTH = 2000;
+
+function optionalText(max: number, label: string) {
+  return z.string().max(max, `${label} must be ${max} characters or fewer.`);
+}
+
+function optionalSocialUrl(hosts: readonly string[], message: string) {
+  return z.string().refine((value) => value === "" || isHttpsUrlOnHosts(value.trim(), hosts), { message });
+}
+
 function optionalPattern(pattern: RegExp, message: string) {
   return z.string().refine((value) => value === "" || pattern.test(value), { message });
 }
@@ -91,9 +115,19 @@ export const generalConfigSchema = z.object({
   default_timezone: z.string().refine((value) => value === "" || isValidIanaTimeZone(value), {
     message: 'Enter a valid IANA time zone id, e.g. "Asia/Colombo".',
   }),
-  default_currency: optionalPattern(
-    CURRENCY_CODE_PATTERN,
-    'Enter a 3-letter currency code, e.g. "USD".'
+  // SET-PAY-01: institute public information (shown on the public home page).
+  address_line1: optionalText(MAX_TEXT_LENGTH, "Address line 1"),
+  address_line2: optionalText(MAX_TEXT_LENGTH, "Address line 2"),
+  city: optionalText(MAX_TEXT_LENGTH, "City"),
+  postal_code: optionalText(MAX_TEXT_LENGTH, "Postal code"),
+  institute_introduction: optionalText(MAX_INTRODUCTION_LENGTH, "Institute introduction"),
+  facebook_url: optionalSocialUrl(
+    ["facebook.com", "fb.com"],
+    "Enter your Facebook page link, starting with https://facebook.com/"
+  ),
+  youtube_url: optionalSocialUrl(
+    ["youtube.com", "youtu.be"],
+    "Enter your YouTube channel link, starting with https://youtube.com/"
   ),
 });
 
@@ -117,7 +151,9 @@ export type BrandingConfigFormValues = z.infer<typeof brandingConfigSchema>;
  * `ConfigValueType.STRING`) with the loaded `TenantConfigProperty.value`
  * coerced to a display string (`null`/`undefined` treated as `""`, matching
  * how the form itself was initialized from that same property list) — an
- * untouched field is never resent.
+ * untouched field is never resent. A field emptied by the user is sent as
+ * `null`, which is how the backend clears an optional key (an empty string
+ * fails most keys' validators); `institute_name` stays required server-side.
  */
 export function toChangedConfigEntries<T extends Record<string, string>>(
   formValues: T,
@@ -128,7 +164,7 @@ export function toChangedConfigEntries<T extends Record<string, string>>(
     const current = currentValues[key];
     const currentAsString = current === null || current === undefined ? "" : String(current);
     if (value !== currentAsString) {
-      changes[key] = value;
+      changes[key] = value === "" ? null : value;
     }
   }
   return changes;
@@ -187,3 +223,68 @@ export function toFacilityFeeChanges(
   if (amount !== Number(current.facility_fee_amount)) changes.facility_fee_amount = amount;
   return changes;
 }
+
+// ---------------------------------------------------------------------------
+// SET-PAY-01: Settings -> Payments (currency, bank details, bank transfer)
+// ---------------------------------------------------------------------------
+
+/**
+ * Currencies offered in the "Currency students are charged in" select. The
+ * backend accepts any ISO-4217-shaped code (`^[A-Z]{3}$`), so a tenant whose
+ * stored code is not listed here still sees it as an extra option.
+ */
+export const CURRENCY_OPTIONS = [
+  { code: "LKR", label: "Sri Lankan Rupee (LKR)" },
+  { code: "USD", label: "US Dollar (USD)" },
+  { code: "EUR", label: "Euro (EUR)" },
+  { code: "GBP", label: "British Pound (GBP)" },
+  { code: "AUD", label: "Australian Dollar (AUD)" },
+  { code: "CAD", label: "Canadian Dollar (CAD)" },
+  { code: "INR", label: "Indian Rupee (INR)" },
+  { code: "SGD", label: "Singapore Dollar (SGD)" },
+  { code: "AED", label: "UAE Dirham (AED)" },
+  { code: "MVR", label: "Maldivian Rufiyaa (MVR)" },
+] as const;
+
+export const currencyConfigSchema = z.object({
+  default_currency: z.string().regex(CURRENCY_CODE_PATTERN, "Choose a currency."),
+});
+
+export type CurrencyConfigFormValues = z.infer<typeof currencyConfigSchema>;
+
+export const BANK_DETAIL_KEYS = ["bank_account_holder", "bank_account_number", "bank_name", "bank_branch"] as const;
+
+/** Mirrors the four `PAYMENT.bank_*` keys (`isShortText`, 255 chars); "" clears the key. */
+export const bankDetailsSchema = z.object({
+  bank_account_holder: optionalText(MAX_TEXT_LENGTH, "Account holder"),
+  bank_account_number: optionalText(MAX_TEXT_LENGTH, "Account number"),
+  bank_name: optionalText(MAX_TEXT_LENGTH, "Bank name"),
+  bank_branch: optionalText(MAX_TEXT_LENGTH, "Branch"),
+});
+
+export type BankDetailsFormValues = z.infer<typeof bankDetailsSchema>;
+
+/** Current (persisted or default) value of one config key. */
+export function configValue(
+  properties: { key: string; value: unknown; defaultValue: unknown }[],
+  key: string
+): unknown {
+  const property = properties.find((entry) => entry.key === key);
+  return property ? (property.value ?? property.defaultValue) : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// LOGIN-01 Phase B: Settings -> Policies (GENERAL policy keys)
+// ---------------------------------------------------------------------------
+
+/** Mirrors `ConfigPropertyRegistry.MAX_POLICY_LENGTH`. */
+export const MAX_POLICY_LENGTH = 50_000;
+
+/** Plain text, "" = not published (sent as `null`, clearing the key). */
+export const policiesConfigSchema = z.object({
+  terms_of_service: optionalText(MAX_POLICY_LENGTH, "Terms of Service"),
+  refund_policy: optionalText(MAX_POLICY_LENGTH, "Refund Policy"),
+  privacy_policy: optionalText(MAX_POLICY_LENGTH, "Privacy Policy"),
+});
+
+export type PoliciesConfigFormValues = z.infer<typeof policiesConfigSchema>;

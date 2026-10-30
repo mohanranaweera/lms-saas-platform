@@ -22,6 +22,34 @@ export const loginSchema = z.object({
 });
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
+/**
+ * ADR-031 mobile sign-in. Only a light shape check here (digits, spaces,
+ * dashes, brackets, a leading +); the backend normalises the number with the
+ * institute's country and answers a wrong number exactly like a wrong password.
+ */
+export const mobileLoginSchema = z.object({
+  mobile: z
+    .string()
+    .trim()
+    .min(1, "Mobile number is required.")
+    .max(40, "Enter a valid mobile number.")
+    .regex(/^\+?[\d\s\-()]{6,}$/, "Enter a valid mobile number."),
+  password: z.string().min(1, "Password is required."),
+});
+export type MobileLoginFormValues = z.infer<typeof mobileLoginSchema>;
+
+/**
+ * The tenant login form's fields for the selected tab: only that tab's
+ * identifier is validated; the other one is ignored (never sent).
+ */
+export function tenantLoginSchema(method: "email" | "mobile") {
+  return z.object({
+    email: method === "email" ? loginSchema.shape.email : z.string(),
+    mobile: method === "mobile" ? mobileLoginSchema.shape.mobile : z.string(),
+    password: loginSchema.shape.password,
+  });
+}
+
 export const forgotPasswordSchema = z.object({
   email: z.string().min(1, "Email is required.").email("Enter a valid email address."),
 });

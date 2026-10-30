@@ -3,6 +3,7 @@
 import { cloneElement, isValidElement, useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
   Sheet,
   SheetContent,
@@ -106,7 +107,10 @@ export function DashboardShell({
           <div className="flex min-w-0 flex-auto flex-wrap items-center justify-between gap-3">
             {/* Below `sm` the header nav drops to its own row so the actions never push the page sideways. */}
             {headerNav ? <div className="order-last flex w-full items-center gap-1 sm:order-none sm:w-auto">{headerNav}</div> : <span />}
-            {headerActions}
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+              <ThemeToggle className="shrink-0" />
+              {headerActions}
+            </div>
           </div>
         </header>
 

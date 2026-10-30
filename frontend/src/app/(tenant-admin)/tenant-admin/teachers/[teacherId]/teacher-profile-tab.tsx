@@ -8,6 +8,7 @@ import { TeacherStatusBadge } from "../status-badge";
 import { TeacherDecisionDialog } from "../teacher-decision-dialog";
 import { TeacherSuspendDialog } from "../teacher-suspend-dialog";
 import { TeacherProfileForm } from "./teacher-profile-form";
+import { SignInMobileCard } from "@/components/auth/sign-in-mobile-card";
 
 /**
  * Profile tab (Wave 3 tabbed rebuild) — editable teacher accounts open
@@ -34,6 +35,14 @@ export function TeacherProfileTab({ teacher }: { teacher: Teacher }) {
       <div role="status" aria-live="polite">
         {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
       </div>
+
+      {/* ADR-031: TEACHERS VIEW/CREATE_EDIT server-side; canEdit is UX only. */}
+      <SignInMobileCard
+        path={`/v1/teachers/${teacher.id}/login-mobile`}
+        description="Lets this teacher sign in with a mobile number instead of their email."
+        canEdit={canEdit}
+        idPrefix="teacher-login-mobile"
+      />
 
       {canEdit ? (
         <TeacherProfileForm

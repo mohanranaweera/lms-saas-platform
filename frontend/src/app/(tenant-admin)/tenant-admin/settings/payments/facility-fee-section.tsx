@@ -24,6 +24,7 @@ import {
   type FacilityFeeConfigFormValues,
   type FacilityFeeMode,
 } from "@/lib/validation/tenant-config";
+import { PaymentSettingsCard } from "./payment-settings-card";
 
 const MODE_LABELS: Record<FacilityFeeMode, { title: string; help: string }> = {
   NONE: { title: "No facility fee", help: "Students pay only course fees and any postage." },
@@ -42,7 +43,7 @@ const MODE_LABELS: Record<FacilityFeeMode, { title: string; help: string }> = {
 };
 
 /**
- * Tenant Admin → Payments → Facility fee (multi-course checkout, V90). Reads
+ * Tenant Admin → Settings → Payments → Service fee (multi-course checkout, V90). Reads
  * and writes the existing tenant config `PAYMENT` domain
  * (`facility_fee_mode`, `facility_fee_amount`) - `BRANDING_SETTINGS`
  * VIEW/CREATE_EDIT server-side. `canManageInstituteConfig` only decides
@@ -56,15 +57,12 @@ export function FacilityFeeSection() {
   const query = useTenantConfigDomain("PAYMENT");
 
   return (
-    <section aria-labelledby="facility-fee-heading" className="flex max-w-2xl flex-col gap-4" data-testid="facility-fee-settings">
-      <div>
-        <h2 id="facility-fee-heading" className="text-base font-medium text-foreground">
-          Facility fee
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          An extra fee added at checkout on top of course fees. Changes apply to new payments only.
-        </p>
-      </div>
+    <PaymentSettingsCard
+      id="facility-fee"
+      title="Service fee (facility fee)"
+      description="An extra fee added at checkout on top of course fees, kept by the institute. Changes apply to new payments only."
+      testId="facility-fee-settings"
+    >
       <QueryStateBoundary
         query={query}
         loadingLabel="Loading facility fee settings…"
@@ -74,7 +72,7 @@ export function FacilityFeeSection() {
       >
         {(properties) => <FacilityFeeForm properties={properties} canManage={canManage} />}
       </QueryStateBoundary>
-    </section>
+    </PaymentSettingsCard>
   );
 }
 
@@ -134,7 +132,7 @@ function FacilityFeeForm({ properties, canManage }: { properties: TenantConfigPr
 
   if (!canManage) {
     return (
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-lg border border-border p-4 text-sm" data-testid="facility-fee-readonly">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm" data-testid="facility-fee-readonly">
         <dt className="text-muted-foreground">Charged</dt>
         <dd className="text-foreground">{MODE_LABELS[current.facility_fee_mode].title}</dd>
         <dt className="text-muted-foreground">Default amount</dt>
@@ -145,7 +143,7 @@ function FacilityFeeForm({ properties, canManage }: { properties: TenantConfigPr
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate aria-busy={pending} className="flex flex-col gap-4 rounded-lg border border-border p-4">
+    <form onSubmit={onSubmit} noValidate aria-busy={pending} className="flex max-w-2xl flex-col gap-4">
       {pageError ? <ErrorState message={pageError.message} code={pageError.code} /> : null}
 
       <fieldset disabled={pending} className="flex flex-col gap-2">
