@@ -86,7 +86,7 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
     academicItems.push({ label: "Mark Attendance", href: "/tenant-admin/attendance/mark" });
   }
   if (canViewExamsStaff(role)) {
-    academicItems.push({ label: "Exams", href: "/tenant-admin/exams" });
+    academicItems.push({ label: "Exams", href: "/tenant-admin/exams", activePrefixes: ["/tenant-admin/exams"] });
   }
   if (canViewLiveClassesStaff(role)) {
     academicItems.push({ label: "Live Classes", href: "/tenant-admin/live-classes" });

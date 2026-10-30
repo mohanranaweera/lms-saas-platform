@@ -68,6 +68,9 @@ export interface ModuleQuestionCount {
   moduleName: string;
   questionCount: number;
   totalMarks: number | string;
+  /** Slice B: smallest / largest single-question marks in the module (null/absent when it has no questions). */
+  minMarks?: number | string | null;
+  maxMarks?: number | string | null;
 }
 
 export interface ExamMediaUploadResponse {
