@@ -43,6 +43,8 @@ public class ReportTemplates {
 	public static final String STUDENT_BEHAVIOR = "reports/student-behavior-report";
 	public static final String UNDO_PAYMENTS = "reports/undo-payments-report";
 
+	public static final String TIMETABLE = "reports/timetable";
+
 	private static final Logger log = LoggerFactory.getLogger(ReportTemplates.class);
 
 	private final JasperReport summary;
@@ -62,6 +64,8 @@ public class ReportTemplates {
 	private final JasperReport studentBehavior;
 	private final JasperReport undoPayments;
 
+	private final JasperReport timetable;
+
 	public ReportTemplates() {
 		this.summary = load(SUMMARY);
 		this.payslip = load(PAYSLIP);
@@ -72,6 +76,7 @@ public class ReportTemplates {
 		this.registrations = load(REGISTRATIONS);
 		this.studentBehavior = load(STUDENT_BEHAVIOR);
 		this.undoPayments = load(UNDO_PAYMENTS);
+		this.timetable = load(TIMETABLE);
 	}
 
 	public JasperReport summary() {
@@ -112,6 +117,11 @@ public class ReportTemplates {
 
 	public JasperReport undoPayments() {
 		return undoPayments;
+	}
+
+	/** CAL-01 Class Timetable (landscape A4). */
+	public JasperReport timetable() {
+		return timetable;
 	}
 
 	static JasperReport load(String base) {

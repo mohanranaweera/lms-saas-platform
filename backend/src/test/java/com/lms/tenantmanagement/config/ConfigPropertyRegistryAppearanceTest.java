@@ -177,6 +177,16 @@ class ConfigPropertyRegistryAppearanceTest {
 		assertThat(valid("teacher_auto_rotate", 1)).isFalse();
 	}
 
+	@Test
+	void showTodaysClassesIsABooleanDefaultingToTrue() {
+		ConfigPropertyDefinition definition = definition("show_todays_classes");
+		assertThat(definition.valueType()).isEqualTo(ConfigValueType.BOOLEAN);
+		assertThat(definition.defaultValue()).isEqualTo(Boolean.TRUE);
+		assertThat(valid("show_todays_classes", true)).isTrue();
+		assertThat(valid("show_todays_classes", false)).isTrue();
+		assertThat(valid("show_todays_classes", "false")).isFalse();
+	}
+
 	// ------------------------------------------------------------------
 	// Helpers.
 	// ------------------------------------------------------------------

@@ -150,6 +150,9 @@ public class SecurityFilterChainConfig {
 				// permission gate.
 				// LOGIN-01 Phase B adds the institute's published policy texts
 				// (PublicPolicyController) - same host-resolved tenant, GET only.
+				// CAL-01: anonymous "Today's Classes" (PUBLIC courses only) - same
+				// host-resolved tenant, GET only. See PublicCalendarController.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/calendar/today").permitAll();
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding",
 						"/api/v1/public/tenant-config/home", "/api/v1/public/tenant-config/policies/*").permitAll();
 				// Public, unauthenticated student-registration-policy read path

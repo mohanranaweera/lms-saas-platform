@@ -79,7 +79,8 @@ public class PublicHomeController {
 						stringValue(general, "facebook_url", null), stringValue(general, "youtube_url", null)),
 				new PublicHomeResponse.Policies(published(general, "terms_of_service"),
 						published(general, "refund_policy"), published(general, "privacy_policy")),
-				new PublicHomeResponse.LoginOptions(booleanValue(general, "mobile_login_enabled", true)));
+				new PublicHomeResponse.LoginOptions(booleanValue(general, "mobile_login_enabled", true)),
+				booleanValue(branding, "show_todays_classes", true));
 		return ResponseEntity.ok().cacheControl(CacheControl.noCache()).body(ApiResponse.success(response));
 	}
 

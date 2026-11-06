@@ -32,7 +32,8 @@ public record PublicHomeResponse(
 		String supportPhone,
 		Institute institute,
 		Policies policies,
-		LoginOptions loginOptions) {
+		LoginOptions loginOptions,
+		boolean showTodaysClasses) {
 
 	public PublicHomeResponse {
 		desktopBannerUrls = desktopBannerUrls == null ? List.of() : List.copyOf(desktopBannerUrls);

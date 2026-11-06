@@ -369,7 +369,10 @@ public class ConfigPropertyRegistry {
 						DEFAULT_LOGO_DISPLAY_SIZE,
 						(value, batch) -> value instanceof String s && LOGO_DISPLAY_SIZES.contains(s)),
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "teacher_auto_rotate", ConfigValueType.BOOLEAN,
-						Boolean.FALSE, ConfigPropertyRegistry::isBoolean));
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				// CAL-01: "Today's Classes" section on the public home.
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "show_todays_classes", ConfigValueType.BOOLEAN,
+						Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
 	}
 
 	private static boolean isHexColor(Object value) {

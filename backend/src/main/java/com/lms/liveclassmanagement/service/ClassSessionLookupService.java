@@ -61,6 +61,22 @@ public class ClassSessionLookupService implements ClassSessionLookupApi {
 			.toList();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<ClassSessionSummary> findOverlapping(Collection<UUID> courseIds, Instant from, Instant to) {
+		if (courseIds == null || courseIds.isEmpty()) {
+			return List.of();
+		}
+		Set<UUID> ids = Set.copyOf(courseIds);
+		return classSessionRepository
+			.findAll((root, query, cb) -> cb.and(root.get("courseId").in(ids),
+					cb.lessThan(root.get("scheduledStart"), to), cb.greaterThan(root.get("scheduledEnd"), from)),
+					org.springframework.data.domain.Sort.by("scheduledStart", "id"))
+			.stream()
+			.map(ClassSessionLookupService::toSummary)
+			.toList();
+	}
+
 	private static ClassSessionSummary toSummary(ClassSession session) {
 		return new ClassSessionSummary(session.getId(), session.getCourseId(), session.getTeacherId(),
 				session.getLessonId(), session.getTitle(), session.getScheduledStart(), session.getScheduledEnd(),

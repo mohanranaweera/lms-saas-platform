@@ -42,4 +42,15 @@ public interface ClassSessionLookupApi {
 	 */
 	java.util.List<ClassSessionSummary> findByLessonId(UUID lessonId);
 
+	/**
+	 * CAL-01: every session of the caller's tenant (any status, CANCELLED
+	 * included) belonging to one of {@code courseIds} whose half-open interval
+	 * {@code [scheduledStart, scheduledEnd)} overlaps {@code [from, to)}, by
+	 * scheduled start then id. No authorization - the class calendar has
+	 * already resolved the caller's course scope. An empty {@code courseIds}
+	 * returns an empty list.
+	 */
+	java.util.List<ClassSessionSummary> findOverlapping(Collection<UUID> courseIds, java.time.Instant from,
+			java.time.Instant to);
+
 }
