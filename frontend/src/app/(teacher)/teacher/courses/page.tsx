@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,8 @@ import {
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
 import { TeacherCourseCardGrid } from "@/components/courses/teacher-course-card-grid";
+import { EditClassScheduleDialog } from "@/components/calendar/edit-class-schedule-dialog";
+import { AdminToast, useAdminToast } from "@/components/courses/admin/admin-toast";
 import { useCourses, type CourseResponse, type CourseStatus } from "@/lib/api/courses";
 import {
   TEACHER_NO_ASSIGNED_COURSES_TITLE,
@@ -48,6 +50,10 @@ export default function TeacherCoursesPage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | CourseStatus>("all");
+  // CAL-01: the dialog loads `canEdit` from GET class-schedule and is read-only when false.
+  const [scheduleCourse, setScheduleCourse] = useState<CourseResponse | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const toast = useAdminToast();
 
   const categories = useMemo(() => {
     const values = new Set((query.data?.content ?? []).map((course) => course.category));
@@ -191,6 +197,20 @@ export default function TeacherCoursesPage() {
                       >
                         Roster
                       </Link>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setScheduleCourse(course);
+                          setScheduleOpen(true);
+                        }}
+                        aria-label={`Class schedule for ${course.name}`}
+                        data-testid="teacher-course-class-schedule"
+                      >
+                        <CalendarDays aria-hidden="true" />
+                        Class schedule
+                      </Button>
                     </>
                   )}
                 />
@@ -203,6 +223,17 @@ export default function TeacherCoursesPage() {
           );
         }}
       </QueryStateBoundary>
+
+      {scheduleCourse ? (
+        <EditClassScheduleDialog
+          courseId={scheduleCourse.id}
+          courseName={scheduleCourse.name}
+          open={scheduleOpen}
+          onOpenChange={setScheduleOpen}
+          onSaved={() => toast.show({ kind: "success", text: `Class schedule saved for “${scheduleCourse.name}”.` })}
+        />
+      ) : null}
+      <AdminToast message={toast.message} onDismiss={toast.dismiss} />
     </div>
   );
 }

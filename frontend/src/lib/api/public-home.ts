@@ -63,6 +63,8 @@ export interface PublicHomeResponse {
   theme?: PublicHomeTheme | null;
   logoDisplaySize?: "SMALL" | "STANDARD" | "LARGE" | null;
   teacherAutoRotate?: boolean | null;
+  /** CAL-01: `BRANDING.show_todays_classes` (default true). `null`/absent = shown. */
+  showTodaysClasses?: boolean | null;
   supportEmail?: string | null;
   supportPhone?: string | null;
   institute?: PublicInstituteInfo | null;

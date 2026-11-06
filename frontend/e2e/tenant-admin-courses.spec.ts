@@ -252,7 +252,7 @@ test.describe("tenant admin course list — content and filters", () => {
 
     const row = page.getByTestId("course-row").filter({ hasText: "Intro to Biology" });
     const menu = await openCourseActions(page, row);
-    await expect(menu.getByTestId("course-action-schedule")).toHaveAttribute(
+    await expect(menu.getByTestId("course-action-sessions")).toHaveAttribute(
       "href",
       `/tenant-admin/courses/${COURSES[0].id}/sessions`
     );
@@ -316,7 +316,7 @@ test.describe("tenant admin course workspace — Overview tab", () => {
 });
 
 test.describe("tenant admin course workspace — placeholder tabs", () => {
-  test("Schedule/Recordings/Analytics are visible, clickable, and show an honest not-yet-available state", async ({
+  test("Recordings/Analytics are visible, clickable, and show an honest not-yet-available state", async ({
     page,
   }) => {
     // Live classes is no longer a placeholder as of Wave 4 (PAR-19-03/live-class-
@@ -329,7 +329,6 @@ test.describe("tenant admin course workspace — placeholder tabs", () => {
     await gotoCourseDetail(page, course);
 
     for (const [label, expectedTitle] of [
-      ["Schedule", "Schedule isn't available yet"],
       ["Recordings", "Recordings isn't available yet"],
       ["Analytics", "Analytics isn't available yet"],
     ] as const) {
@@ -338,6 +337,41 @@ test.describe("tenant admin course workspace — placeholder tabs", () => {
       await expect(page.getByText(expectedTitle)).toBeVisible();
       await expect(page.getByText("Coming in a later release.")).toBeVisible();
     }
+  });
+});
+
+test.describe("tenant admin course workspace — Schedule tab (CAL-01)", () => {
+  test("shows the weekly class schedule summary with the shared editor", async ({ page }) => {
+    const course = COURSES[0];
+    await loginAsTenantAdmin(page);
+    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
+    await mockJson(page, `**/v1/courses/${course.id}`, 200, apiSuccess(course));
+    await mockJson(
+      page,
+      `**/v1/courses/${course.id}/class-schedule`,
+      200,
+      apiSuccess({
+        courseId: course.id,
+        courseName: course.name,
+        timezone: "Asia/Colombo",
+        revisionId: "rev-1",
+        effectiveFrom: null,
+        effectiveTo: null,
+        updatedAt: null,
+        updatedByName: null,
+        canEdit: true,
+        slots: [{ id: "slot-1", dayOfWeek: "MONDAY", startTime: "08:00", endTime: "10:00" }],
+      })
+    );
+    await gotoCourseDetail(page, course);
+
+    await gotoTab(page, "Schedule");
+    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${course.id}/schedule$`));
+    const panel = page.getByTestId("class-schedule-panel");
+    await expect(panel.getByRole("list", { name: "Weekly class times" })).toContainText("Monday");
+    await expect(panel.getByRole("list", { name: "Weekly class times" })).toContainText("8:00 AM – 10:00 AM");
+    await panel.getByTestId("class-schedule-edit").click();
+    await expect(page.getByTestId("edit-class-schedule-dialog")).toBeVisible();
   });
 });
 

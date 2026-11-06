@@ -7,6 +7,7 @@ export function StudentNav({ onNavigate }: { onNavigate?: () => void }) {
     // Klass catalog's Available view (free enrollment, ADR-028); the old
     // /student/browse route only redirects here.
     { label: "Available Courses", href: "/student/courses?view=available" },
+    { label: "Calendar", href: "/student/calendar" },
     { label: "My Attendance", href: "/student/attendance" },
     { label: "Exams", href: "/student/exams" },
     { label: "Reactivation", href: "/student/payments/reactivation" },

@@ -62,6 +62,7 @@ export const appearanceConfigSchema = z
     sub_hero_enabled: z.boolean(),
     cta_enabled: z.boolean(),
     teacher_auto_rotate: z.boolean(),
+    show_todays_classes: z.boolean(),
     featured_course_ids: z.array(z.string().min(1)).max(24, "Choose at most 24 featured courses."),
     support_video_url: z
       .string()
@@ -100,6 +101,7 @@ export const APPEARANCE_DEFAULT_VALUES: AppearanceConfigFormValues = {
   sub_hero_enabled: true,
   cta_enabled: true,
   teacher_auto_rotate: false,
+  show_todays_classes: true,
   featured_course_ids: [],
   support_video_url: "",
   logo_display_size: "STANDARD",
@@ -148,6 +150,7 @@ export function appearanceFormValues(properties: { key: string; value: unknown }
       case "public_page_enabled":
       case "sub_hero_enabled":
       case "cta_enabled":
+      case "show_todays_classes":
         values[key] = value !== false;
         break;
       case "teacher_auto_rotate":

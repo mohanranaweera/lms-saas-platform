@@ -7,6 +7,7 @@ import {
   Archive,
   ArchiveRestore,
   CalendarClock,
+  CalendarDays,
   EyeOff,
   Globe,
   ListTree,
@@ -48,6 +49,7 @@ import { useSetCourseRegistration, type KlassCourse } from "@/lib/api/klass-admi
 import { ConfirmDeleteDialog, mutationErrorMessage } from "@/components/courses/admin/confirm-delete-dialog";
 import type { AdminToastMessage } from "@/components/courses/admin/admin-toast";
 import { isApiClientError } from "@/lib/api/error";
+import { EditClassScheduleDialog } from "@/components/calendar/edit-class-schedule-dialog";
 
 export const REGISTRATION_HELP =
   "Turning this off blocks new enrollments only. Students already enrolled keep their access and anything they paid for. Students only see the course in Available Courses once it is Published (and not archived).";
@@ -174,7 +176,8 @@ export function RegistrationSwitch({
 
 /**
  * Overflow ("⋯") actions menu for one course row (G5): Modules, Edit, Edit
- * class schedule (the course's live-class sessions), Roster,
+ * Class Schedule (CAL-01 weekly timetable dialog), Live classes (the course's
+ * live-class sessions), Roster,
  * Publish/Unpublish, Archive/Unarchive, Delete. Keyboard: Enter/Space/arrow
  * keys open and move through the menu, Escape closes it and focus returns to
  * the trigger. Tute Management is omitted until that module exists (R2-D4).
@@ -190,6 +193,7 @@ export function CourseRowActions({
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const publish = usePublishCourse(course.id);
   const unpublish = useUnpublishCourse(course.id);
   const published = course.status === "PUBLIC";
@@ -263,9 +267,13 @@ export function CourseRowActions({
             <Pencil className="text-primary" aria-hidden="true" />
             Edit
           </DropdownMenuLinkItem>
-          <DropdownMenuLinkItem render={<Link href={`${base}/sessions`} />} data-testid="course-action-schedule">
+          <DropdownMenuItem onClick={() => setScheduleOpen(true)} data-testid="course-action-class-schedule">
+            <CalendarDays className="text-primary" aria-hidden="true" />
+            Edit Class Schedule
+          </DropdownMenuItem>
+          <DropdownMenuLinkItem render={<Link href={`${base}/sessions`} />} data-testid="course-action-sessions">
             <CalendarClock aria-hidden="true" />
-            Edit class schedule
+            Live classes
           </DropdownMenuLinkItem>
           <DropdownMenuLinkItem render={<Link href={`${base}/roster`} />} data-testid="course-action-roster">
             <Users aria-hidden="true" />
@@ -313,6 +321,13 @@ export function CourseRowActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <EditClassScheduleDialog
+        courseId={course.id}
+        courseName={course.name}
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        onSaved={() => onToast({ kind: "success", text: `Class schedule saved for “${course.name}”.` })}
+      />
       <ConfirmDeleteDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

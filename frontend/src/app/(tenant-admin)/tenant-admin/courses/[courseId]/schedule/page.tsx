@@ -2,9 +2,9 @@
 
 import { useParams } from "next/navigation";
 import { CourseWorkspaceShell } from "@/components/courses/course-workspace-shell";
-import { CourseWorkspacePlaceholder } from "@/components/courses/course-workspace-placeholder";
+import { ClassSchedulePanel } from "@/components/calendar/class-schedule-panel";
 
-/** Deliberate Wave 2 scope-boundary placeholder — see `CourseWorkspacePlaceholder`'s doc comment. */
+/** CAL-01: the course's weekly class schedule (summary + shared editor). */
 export default function TenantAdminCourseSchedulePage() {
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
@@ -15,10 +15,12 @@ export default function TenantAdminCourseSchedulePage() {
       basePath={`/tenant-admin/courses/${courseId}`}
       dashboardHref="/tenant-admin/dashboard"
     >
-      {() => (
-        <CourseWorkspacePlaceholder
-          title="Schedule isn't available yet"
-          description="Class scheduling for this course will live here in a later release."
+      {(course) => (
+        <ClassSchedulePanel
+          courseId={courseId}
+          courseName={course.name}
+          calendarHref="/tenant-admin/calendar"
+          dashboardHref="/tenant-admin/dashboard"
         />
       )}
     </CourseWorkspaceShell>

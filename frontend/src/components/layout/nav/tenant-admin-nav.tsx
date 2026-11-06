@@ -76,6 +76,8 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
     academicItems.push({ label: "Teachers", href: "/tenant-admin/teachers" });
   }
   academicItems.push({ label: "Courses", href: "/tenant-admin/courses" });
+  // CAL-01 - scope is server-derived; the calendar endpoints re-check COURSES/VIEW.
+  academicItems.push({ label: "Calendar", href: "/tenant-admin/calendar" });
   if (canViewMedia(role)) {
     academicItems.push({ label: "Media Library", href: "/tenant-admin/media" });
   }

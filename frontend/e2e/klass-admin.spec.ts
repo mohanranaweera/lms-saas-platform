@@ -559,22 +559,22 @@ test("R2-G5: the course row menu is fully operable by keyboard (open, move, acti
   await page.keyboard.press("Enter");
   const menu = page.getByTestId("course-actions-menu-content");
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole("menuitem")).toHaveCount(7);
+  await expect(menu.getByRole("menuitem")).toHaveCount(8);
   // Element capture: a viewport capture taken while the menu is open renders blank (reported in R2-T6a).
   await menu.screenshot({ path: `${EVIDENCE_DIR}/19-course-row-menu.png` });
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(trigger).toBeFocused();
 
-  // Arrow keys move through the items; Enter activates "Edit class schedule".
+  // Arrow keys move through the items; Enter activates "Live classes".
   await page.keyboard.press("ArrowDown");
   await expect(menu).toBeVisible();
   const items = menu.getByRole("menuitem");
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    if ((await items.filter({ hasText: "Edit class schedule" }).getAttribute("data-highlighted")) !== null) break;
+    if ((await items.filter({ hasText: "Live classes" }).getAttribute("data-highlighted")) !== null) break;
     await page.keyboard.press("ArrowDown");
   }
-  await expect(items.filter({ hasText: "Edit class schedule" })).toBeFocused();
+  await expect(items.filter({ hasText: "Live classes" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${course.id}/sessions$`));
 });

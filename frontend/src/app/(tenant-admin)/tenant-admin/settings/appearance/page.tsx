@@ -52,6 +52,7 @@ const FIELD_LABELS: Record<string, string> = {
   surface_color: "Surface / card background",
   text_color: "Main text",
   teacher_auto_rotate: "Auto-rotate teachers",
+  show_todays_classes: "Show Today's Classes",
 };
 
 const COLOR_ROWS: { key: ColorFieldKey; label: string; description: string }[] = [
@@ -345,6 +346,19 @@ function AppearanceForm({ properties, canManage }: { properties: TenantConfigPro
             <SwitchRow
               title="Auto-rotate teachers"
               description="Rotates the teacher carousel every 6 seconds; visitors can pause it, and it never moves for people who prefer reduced motion. Off by default."
+              checked={field.value}
+              onChange={field.onChange}
+              disabled={disabled}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="show_todays_classes"
+          render={({ field }) => (
+            <SwitchRow
+              title="Show Today's Classes"
+              description="Show today's scheduled classes for public courses on your public home page, with Live now / Scheduled / Over based on the class schedule. On by default."
               checked={field.value}
               onChange={field.onChange}
               disabled={disabled}

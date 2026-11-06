@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { TeacherCarousel } from "@/components/public/teacher-carousel";
+import { TodaysClasses } from "@/components/public/todays-classes";
 import { InstituteSocialLinks, instituteAddressLines } from "@/components/public/institute-info";
 import { TENANT_FALLBACK_NAME } from "@/lib/branding/names";
 import { getCoursePriceLabel } from "@/components/courses/course-price-display";
@@ -63,6 +64,7 @@ export default function HomePage() {
     <div className="flex flex-col">
       <Hero config={config} name={name} />
       {config.subHeroEnabled ? <SubHero /> : null}
+      {config.showTodaysClasses !== false ? <TodaysClasses /> : null}
       <AboutSection config={config} name={name} />
       <FeaturedCourses config={config} />
       <TeacherCarousel autoRotate={config.teacherAutoRotate === true} />
