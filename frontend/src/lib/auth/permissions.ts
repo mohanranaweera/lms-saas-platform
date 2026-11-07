@@ -559,3 +559,21 @@ export function canIssueFreeCard(role: string | null): boolean {
 export function canRevokeFreeCard(role: string | null): boolean {
   return role === "TENANT_ADMIN";
 }
+
+/**
+ * STU-MGMT-02 - `STUDENTS`/`DELETE` (remove a student from this tenant, soft):
+ * Tenant Admin only per `PermissionCheckServiceImpl`. UX only - `DELETE
+ * /students/{id}` re-checks.
+ */
+export function canDeleteStudents(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * ADR-033 - `STUDENT_IMPERSONATION`/`CREATE_EDIT` ("Log as Student" support
+ * session): Tenant Admin only. Hides the row action for every other role; the
+ * backend refuses the start request for them regardless.
+ */
+export function canImpersonateStudents(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}

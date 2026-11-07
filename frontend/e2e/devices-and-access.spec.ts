@@ -1,3 +1,4 @@
+import { mockStudentProfile } from "./fixtures/student-profile-mocks";
 import { test, expect, type Page } from "@playwright/test";
 import { apiError, apiPageSuccess, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
@@ -159,6 +160,7 @@ test.describe("student - My Devices", () => {
 async function gotoDevicesTab(page: Page, role: string) {
   await mockTenantSession(page, role);
   await mockJson(page, `**/v1/students/${STUDENT.id}`, 200, apiSuccess(STUDENT));
+  await mockStudentProfile(page, STUDENT);
   await mockJson(page, `**/v1/students/${STUDENT.id}/devices`, 200, apiSuccess(summary()));
   // VIDEO Phase 8: the tab also lists the student's AOC Players.
   await mockJson(page, `**/v1/students/${STUDENT.id}/player-installations`, 200, apiSuccess([]));
@@ -219,6 +221,7 @@ test.describe("tenant admin - student Devices tab", () => {
   test("a finance user has no Devices tab", async ({ page }) => {
     await mockTenantSession(page, "FINANCE_STAFF");
     await mockJson(page, `**/v1/students/${STUDENT.id}`, 200, apiSuccess(STUDENT));
+    await mockStudentProfile(page, STUDENT);
     await page.goto(`/tenant-admin/students/${STUDENT.id}`);
     await expect(page.getByRole("heading", { name: STUDENT.name })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Devices" })).toHaveCount(0);
@@ -249,6 +252,7 @@ test.describe("tenant admin - extend access", () => {
   test("an expired enrollment can be extended with a date and reason", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${STUDENT.id}`, 200, apiSuccess(STUDENT));
+    await mockStudentProfile(page, STUDENT);
     await mockJson(page, `**/v1/students/${STUDENT.id}/enrollments`, 200, apiSuccess([expiredRow]));
     let sent: { newExpiresAt: string; reason: string } | null = null;
     await page.route(`**/v1/enrollments/${expiredRow.enrollmentId}/extensions`, async (route) => {
@@ -293,6 +297,7 @@ test.describe("tenant admin - extend access", () => {
   test("Student Support sees the enrollment but not the Extend action", async ({ page }) => {
     await mockTenantSession(page, "STUDENT_SUPPORT");
     await mockJson(page, `**/v1/students/${STUDENT.id}`, 200, apiSuccess(STUDENT));
+    await mockStudentProfile(page, STUDENT);
     await mockJson(page, `**/v1/students/${STUDENT.id}/enrollments`, 200, apiSuccess([expiredRow]));
     await page.goto(`/tenant-admin/students/${STUDENT.id}?tab=enrollments`);
     await expect(page.getByText("Access ended").first()).toBeVisible();

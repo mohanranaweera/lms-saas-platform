@@ -1,3 +1,4 @@
+import { mockStudentProfile } from "./fixtures/student-profile-mocks";
 import { test, expect, type Page } from "@playwright/test";
 import { apiError, apiPageSuccess, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
@@ -30,6 +31,7 @@ test.describe("student actions — activate/deactivate", () => {
       const current = deactivated ? { ...ACTIVE_STUDENT, status: "SUSPENDED" } : ACTIVE_STUDENT;
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(current)) });
     });
+    await mockStudentProfile(page, () => (deactivated ? { ...ACTIVE_STUDENT, status: "SUSPENDED" } : ACTIVE_STUDENT));
     await page.route(`**/v1/students/${ACTIVE_STUDENT.id}/deactivate`, async (route) => {
       deactivated = true;
       await route.fulfill({
@@ -61,6 +63,7 @@ test.describe("student actions — activate/deactivate", () => {
   test("activating a suspended student succeeds", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${SUSPENDED_STUDENT.id}`, 200, apiSuccess(SUSPENDED_STUDENT));
+    await mockStudentProfile(page, SUSPENDED_STUDENT);
     await mockJson(
       page,
       `**/v1/students/${SUSPENDED_STUDENT.id}/activate`,
@@ -78,6 +81,7 @@ test.describe("student actions — activate/deactivate", () => {
   test("a 403 on deactivate is surfaced inline, dialog stays open", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${ACTIVE_STUDENT.id}`, 200, apiSuccess(ACTIVE_STUDENT));
+    await mockStudentProfile(page, ACTIVE_STUDENT);
     await mockJson(
       page,
       `**/v1/students/${ACTIVE_STUDENT.id}/deactivate`,
@@ -99,6 +103,7 @@ test.describe("student actions — enroll", () => {
   test("enrolling requires a course and a reason before submitting", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${ACTIVE_STUDENT.id}`, 200, apiSuccess(ACTIVE_STUDENT));
+    await mockStudentProfile(page, ACTIVE_STUDENT);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([{ id: "course-1", teacherId: "t1", name: "Intro to Biology", slug: "intro-bio", category: "Science", subject: null, stream: null, grade: null, academicYear: null, description: null, price: 49.99, accessDurationDays: null, enrollmentRule: null, status: "PUBLIC", pricingModel: "ONE_TIME", archivedAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), resolvedAmount: 49.99, currency: "USD", requiresManualQuote: false }]));
 
     let enrollRequestMade = false;
@@ -111,7 +116,7 @@ test.describe("student actions — enroll", () => {
     await page.getByRole("button", { name: "Enroll" }).click();
     await expect(page.getByRole("dialog").getByRole("heading", { name: `Enroll ${ACTIVE_STUDENT.name}` })).toBeVisible();
 
-    await page.getByRole("button", { name: "Enroll", exact: true }).last().click();
+    await page.getByRole("button", { name: "Enroll", exact: true }).last().dispatchEvent("click"); // the dev-tools badge can overlap the sheet footer in `next dev`
     await expect(page.getByText("Choose a course.")).toBeVisible();
     await expect(page.getByText("A reason is required.")).toBeVisible();
     expect(enrollRequestMade).toBe(false);
@@ -120,6 +125,7 @@ test.describe("student actions — enroll", () => {
   test("a successful enroll closes the sheet", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${ACTIVE_STUDENT.id}`, 200, apiSuccess(ACTIVE_STUDENT));
+    await mockStudentProfile(page, ACTIVE_STUDENT);
     await mockJson(
       page,
       "**/v1/courses*",
@@ -165,10 +171,10 @@ test.describe("student actions — enroll", () => {
     // fields — this mirrors that same micro-pattern).
     await expect(page.getByRole("dialog").getByText("Reason (required)")).toBeVisible();
     await expect(page.getByLabel("Reason")).toHaveAttribute("aria-required", "true");
-    await page.getByLabel("Course").click();
+    await page.getByRole("combobox", { name: "Course" }).click();
     await page.getByRole("option", { name: "Intro to Biology" }).click();
     await page.getByLabel("Reason").fill("Scholarship grant approved by finance");
-    await page.getByRole("button", { name: "Enroll", exact: true }).last().click();
+    await page.getByRole("button", { name: "Enroll", exact: true }).last().dispatchEvent("click"); // the dev-tools badge can overlap the sheet footer in `next dev`
 
     await expect(page.getByRole("dialog")).toBeHidden();
     expect(enrollBody).toEqual({ courseId: "course-1", reason: "Scholarship grant approved by finance" });
@@ -183,6 +189,7 @@ test.describe("student actions — reset password", () => {
   test("resetting shows the one-time temporary password in a dismissible dialog", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${ACTIVE_STUDENT.id}`, 200, apiSuccess(ACTIVE_STUDENT));
+    await mockStudentProfile(page, ACTIVE_STUDENT);
     await mockJson(
       page,
       `**/v1/students/${ACTIVE_STUDENT.id}/reset-password`,
@@ -204,6 +211,7 @@ test.describe("student actions — reset password", () => {
   }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${ACTIVE_STUDENT.id}`, 200, apiSuccess(ACTIVE_STUDENT));
+    await mockStudentProfile(page, ACTIVE_STUDENT);
     await mockJson(
       page,
       `**/v1/students/${ACTIVE_STUDENT.id}/reset-password`,
@@ -226,6 +234,7 @@ test.describe("student actions — reset password", () => {
   test("an Escape press while the reset is in flight does not dismiss the dialog", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(page, `**/v1/students/${ACTIVE_STUDENT.id}`, 200, apiSuccess(ACTIVE_STUDENT));
+    await mockStudentProfile(page, ACTIVE_STUDENT);
     await page.route(`**/v1/students/${ACTIVE_STUDENT.id}/reset-password`, async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
       await route.fulfill({

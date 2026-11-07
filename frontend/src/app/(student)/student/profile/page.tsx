@@ -20,6 +20,9 @@ import { AdditionalDetailsSection } from "./additional-details-section";
 import { PaymentHistoryPanel } from "@/components/students/payment-history-panel";
 import { StudentAttendancePanel } from "@/components/students/student-attendance-panel";
 import { StudentCourseCatalog } from "@/components/courses/student/student-course-catalog";
+import { StudentAvatar } from "@/components/students/student-avatar";
+import { ProfilePhotoEditor } from "@/components/students/profile-photo-editor";
+import { useStudentPhoto } from "@/lib/api/student-management";
 
 const TABS = [
   ["general", "General", UserRound],
@@ -56,13 +59,18 @@ function StudentProfileWorkspace({ profile, tab, onTabChange }: { profile: Stude
 }
 
 function ProfileHeader({ profile, tab, onTabChange }: { profile: StudentResponse; tab: Tab; onTabChange: (tab: Tab) => void }) {
-  const initials = profile.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-  return <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"><div className="h-24 bg-gradient-to-r from-primary/80 to-primary/30" /><div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-end sm:gap-6"><div className="-mt-12 flex size-24 shrink-0 items-center justify-center rounded-full border-4 border-card bg-primary/10 text-2xl font-bold text-primary shadow-md">{initials || <UserRound aria-hidden="true" />}</div><div className="min-w-0 pb-1"><h1 className="text-2xl font-bold text-foreground">{profile.name}</h1><p className="mt-1 text-sm text-muted-foreground">{profile.email}</p></div><StudentStatusBadge status={profile.status} /></div><div role="tablist" aria-label="Student profile sections" className="flex flex-nowrap overflow-x-auto border-t border-border px-2">{TABS.map(([value, label, Icon]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => onTabChange(value)} className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium ${tab === value ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}><Icon className="size-4" aria-hidden="true" />{label}</button>)}</div></section>;
+  return <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"><div className="h-24 bg-gradient-to-r from-primary/80 to-primary/30" /><div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-end sm:gap-6"><OwnAvatar name={profile.name} /><div className="min-w-0 pb-1"><h1 className="text-2xl font-bold text-foreground">{profile.name}</h1><p className="mt-1 text-sm text-muted-foreground">{profile.email}</p></div><StudentStatusBadge status={profile.status} /></div><div role="tablist" aria-label="Student profile sections" className="flex flex-nowrap overflow-x-auto border-t border-border px-2">{TABS.map(([value, label, Icon]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => onTabChange(value)} className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium ${tab === value ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}><Icon className="size-4" aria-hidden="true" />{label}</button>)}</div></section>;
+}
+
+/** STU-MGMT-02: the student's own photo in the header slot, initials otherwise. */
+function OwnAvatar({ name }: { name: string }) {
+  const photoUrl = useStudentPhoto({ kind: "self" }).data?.url ?? null;
+  return <StudentAvatar name={name} photoUrl={photoUrl} size="xl" className="-mt-12 size-24 border-4 border-card shadow-md" />;
 }
 
 function GeneralTab({ profile }: { profile: StudentResponse }) {
   const showBillingCard = useShowBillingCard();
-  return <div className="flex flex-col gap-6"><ProfileCompletionBanner showLink={false} /><ProfileForm profile={profile} /><AdditionalDetailsSection />{showBillingCard ? <BillingAddressForm /> : null}</div>;
+  return <div className="flex flex-col gap-6"><ProfileCompletionBanner showLink={false} /><section className="rounded-xl border border-border bg-card p-5 shadow-sm"><h2 className="mb-4 text-lg font-semibold text-foreground">Profile photo</h2><ProfilePhotoEditor owner={{ kind: "self" }} name={profile.name} /></section><ProfileForm profile={profile} /><AdditionalDetailsSection />{showBillingCard ? <BillingAddressForm /> : null}</div>;
 }
 
 function useShowBillingCard(): boolean {

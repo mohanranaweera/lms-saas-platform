@@ -56,9 +56,12 @@ function errorText(error: unknown): string {
 export function BroadcastComposer({
   mode,
   onSent,
+  initialStudentIds,
 }: {
   mode: "staff" | "teacher";
   onSent: (broadcast: BroadcastView) => void;
+  /** STU-MGMT-02 "Send Message": preselect these students with the SELECTED_STUDENTS audience (staff only). */
+  initialStudentIds?: string[];
 }) {
   const isTeacher = mode === "teacher";
   const channelsQuery = useCommunicationChannels();
@@ -67,10 +70,13 @@ export function BroadcastComposer({
   const preview = useAudiencePreview();
   const send = useSendBroadcast();
 
-  const [audienceType, setAudienceType] = useState<AudienceType>(isTeacher ? "COURSE" : "ALL_STUDENTS");
+  const preselected = !isTeacher && initialStudentIds && initialStudentIds.length > 0 ? initialStudentIds : null;
+  const [audienceType, setAudienceType] = useState<AudienceType>(
+    isTeacher ? "COURSE" : preselected ? "SELECTED_STUDENTS" : "ALL_STUDENTS"
+  );
   const [courseId, setCourseId] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatusFilter>("PENDING");
-  const [studentIds, setStudentIds] = useState<Set<string>>(new Set());
+  const [studentIds, setStudentIds] = useState<Set<string>>(() => new Set(preselected ?? []));
   const [templateId, setTemplateId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");

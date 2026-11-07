@@ -1,3 +1,4 @@
+import { mockStudentProfile } from "./fixtures/student-profile-mocks";
 import { test, expect, type Page } from "@playwright/test";
 import { apiError, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
@@ -63,6 +64,7 @@ async function gotoWatchTimeTab(page: Page, role: string, videos: () => unknown[
   await page.route(`**/v1/students/${STUDENT_PROFILE_ID}/watch-time`, (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess(videos())) })
   );
+  await mockStudentProfile(page, { id: STUDENT_PROFILE_ID, name: "Ada Lovelace", email: "ada@example-institute.test", status: "ACTIVE" });
   await page.goto(`/tenant-admin/students/${STUDENT_PROFILE_ID}?tab=watch-time`);
   await expect(page.getByRole("heading", { name: "Ada Lovelace" })).toBeVisible();
 }
@@ -123,7 +125,7 @@ test.describe("student watch time (Tenant Admin)", () => {
 
   test("read-only roles see watch time but cannot add time", async ({ page }) => {
     await gotoWatchTimeTab(page, "STUDENT_SUPPORT", () => [exhaustedVideo()]);
-    await expect(page.getByText("Week 1 lecture")).toBeVisible();
+    await expect(page.getByTestId("profile-manage").getByText("Week 1 lecture")).toBeVisible();
     await expect(page.getByRole("button", { name: /Add watch time/ })).toHaveCount(0);
   });
 

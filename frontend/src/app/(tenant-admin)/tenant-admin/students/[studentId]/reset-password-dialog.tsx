@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { isApiClientError } from "@/lib/api/error";
-import { useResetStudentPassword, type StudentResponse } from "@/lib/api/students";
+import { useResetStudentPassword } from "@/lib/api/students";
 
 /**
  * "Reset password" action (Wave 3, PAR-03-05) — `POST
@@ -28,9 +28,24 @@ import { useResetStudentPassword, type StudentResponse } from "@/lib/api/student
  * sibling principle (a value only the backend generated and returned once is
  * treated with the same one-shot discipline).
  */
-export function ResetPasswordDialog({ student }: { student: StudentResponse }) {
+export function ResetPasswordDialog({
+  student,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  student: { id: string; name: string };
+  /** STU-MGMT-02: when controlled (e.g. opened from the directory row menu) no trigger button is rendered. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const mutation = useResetStudentPassword(student.id);
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next);
+    else setUncontrolledOpen(next);
+  };
   const [copied, setCopied] = useState(false);
 
   const errorMessage = mutation.isError
@@ -69,10 +84,12 @@ export function ResetPasswordDialog({ student }: { student: StudentResponse }) {
         }
       }}
     >
-      <AlertDialogTrigger render={<Button type="button" variant="outline" />}>
-        <KeyRound aria-hidden="true" />
-        Reset password
-      </AlertDialogTrigger>
+      {isControlled ? null : (
+        <AlertDialogTrigger render={<Button type="button" variant="outline" />}>
+          <KeyRound aria-hidden="true" />
+          Reset password
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent>
         {mutation.data ? (
           <>

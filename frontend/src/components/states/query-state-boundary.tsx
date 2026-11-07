@@ -9,6 +9,7 @@ import { ErrorState } from "./error-state";
 import { PermissionDeniedState } from "./permission-denied-state";
 import { classifyQueryError } from "@/lib/api/query-status";
 import { isApiClientError, type ApiClientError } from "@/lib/api/error";
+import { isImpersonationTab } from "@/lib/auth/impersonation-marker";
 
 interface EmptyStateContent {
   title: string;
@@ -84,7 +85,9 @@ export function QueryStateBoundary<T>({
   const kind = query.status === "error" ? classifyQueryError(query.error) : null;
 
   useEffect(() => {
-    if (kind === "unauthenticated" && loginPath) {
+    // ADR-033: a support tab never redirects to the login page — its
+    // RouteGuard renders "Support session ended" instead.
+    if (kind === "unauthenticated" && loginPath && !isImpersonationTab()) {
       router.replace(`${loginPath}?reason=session_expired`);
     }
   }, [kind, loginPath, router]);

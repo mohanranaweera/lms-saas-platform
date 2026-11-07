@@ -1,3 +1,4 @@
+import { mockStudentProfile } from "./fixtures/student-profile-mocks";
 import { test, expect, type Page } from "@playwright/test";
 import { apiError, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
@@ -273,7 +274,9 @@ test.describe("staff view of a student's additional details", () => {
   async function gotoStudent(page: Page, role: string) {
     await mockSession(page, role);
     await mockJson(page, `**/v1/students/${STUDENT_ID}`, 200, apiSuccess(STUDENT));
-    await page.goto(`/tenant-admin/students/${STUDENT_ID}`);
+    await mockStudentProfile(page, STUDENT);
+    // STU-MGMT-02: additional details live in the profile's Manage › "Additional details" tab.
+    await page.goto(`/tenant-admin/students/${STUDENT_ID}?tab=details`);
     await expect(page.getByRole("heading", { name: STUDENT.name })).toBeVisible();
   }
 

@@ -7,6 +7,8 @@ import type { PrincipalKind } from "@/lib/api/auth";
 import { LoadingState } from "@/components/states/loading-state";
 import { ErrorState } from "@/components/states/error-state";
 import { isApiClientError } from "@/lib/api/error";
+import { IMPERSONATION_ENDED_CODE } from "@/lib/auth/auth-context";
+import { SupportSessionEnded } from "./support-session-ended";
 
 interface RouteGuardProps {
   kind: PrincipalKind;
@@ -27,7 +29,7 @@ interface RouteGuardProps {
  * (see QueryStateBoundary) rather than relying on this guard alone.
  */
 export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
-  const { ensureAccessToken } = useAuth();
+  const { ensureAccessToken, impersonationEnded } = useAuth();
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [authError, setAuthError] = useState<unknown>(null);
@@ -58,6 +60,11 @@ export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
       .catch((error: unknown) => {
         if (cancelled) return;
 
+        // ADR-033: an ended support session renders its own page below, never the login redirect.
+        if (isApiClientError(error) && error.code === IMPERSONATION_ENDED_CODE) {
+          return;
+        }
+
         if (isApiClientError(error) && error.status === 401) {
           latest.current.router.replace(`${loginPath}?reason=session_expired`);
           return;
@@ -69,6 +76,10 @@ export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
       cancelled = true;
     };
   }, [kind, loginPath, retryNumber]);
+
+  if (impersonationEnded) {
+    return <SupportSessionEnded />;
+  }
 
   if (!ready) {
     if (authError) {

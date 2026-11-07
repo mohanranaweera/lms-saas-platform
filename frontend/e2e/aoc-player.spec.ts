@@ -1,3 +1,4 @@
+import { mockStudentProfile } from "./fixtures/student-profile-mocks";
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { apiError, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 import {
@@ -467,6 +468,7 @@ async function gotoDevicesTab(page: Page, role: string, installations: unknown) 
   await page.route(`**/v1/students/${STUDENT_PROFILE_ID}/player-installations`, (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(installations) })
   );
+  await mockStudentProfile(page, { id: STUDENT_PROFILE_ID, name: "Ada Lovelace", email: "ada@example-institute.test", status: "ACTIVE" });
   await page.goto(`/tenant-admin/students/${STUDENT_PROFILE_ID}?tab=devices`);
   await expect(page.getByRole("heading", { name: "Ada Lovelace" })).toBeVisible();
 }

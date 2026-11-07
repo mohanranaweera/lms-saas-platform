@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canSendCommunications } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,7 +14,18 @@ import { BroadcastComposer } from "@/components/communications/broadcast-compose
  * composer - UX only; the backend 403 on send is the real enforcement.
  */
 export default function NewBroadcastPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewBroadcastContent />
+    </Suspense>
+  );
+}
+
+function NewBroadcastContent() {
   const router = useRouter();
+  // STU-MGMT-02: `?studentId=` (repeatable) preselects recipients for "Send Message".
+  const searchParams = useSearchParams();
+  const initialStudentIds = searchParams.getAll("studentId").filter(Boolean);
   const { session } = useAuth();
   if (!canSendCommunications(session?.role ?? null)) {
     return (
@@ -27,6 +39,7 @@ export default function NewBroadcastPage() {
       <PageHeader title="New broadcast" description="Choose who receives it, write the message, then pick channels." />
       <BroadcastComposer
         mode="staff"
+        initialStudentIds={initialStudentIds}
         onSent={(broadcast) => router.push(`/tenant-admin/communications/${broadcast.id}`)}
       />
     </div>

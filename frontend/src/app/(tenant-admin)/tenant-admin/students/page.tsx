@@ -1,220 +1,525 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  Eye,
+  FileText,
+  KeyRound,
+  LogIn,
+  MessageSquare,
+  MoreVertical,
+  Pencil,
+  Plus,
+  QrCode,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canManageStudents } from "@/lib/auth/permissions";
-import { useStudents, type StudentResponse } from "@/lib/api/students";
-import { Button } from "@/components/ui/button";
+import {
+  canDeleteStudents,
+  canImpersonateStudents,
+  canManageStudents,
+  canSendCommunications,
+} from "@/lib/auth/permissions";
+import {
+  DIRECTORY_FIELD_OPTIONS,
+  useApproveStudent,
+  useExportDirectoryCsv,
+  useStudentDirectory,
+  studentErrorMessage,
+  type DirectoryField,
+  type DirectoryTab,
+  type StudentDirectoryRow,
+} from "@/lib/api/student-management";
+import { useTenantTimeZone } from "@/lib/api/klass-admin";
+import { isApiClientError } from "@/lib/api/error";
+import { formatZonedDateTime } from "@/lib/datetime";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip } from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
-import { StudentStatusBadge } from "@/components/students/student-status-badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLinkItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { EmptyState } from "@/components/states/empty-state";
-import { CreateStudentSheet } from "./create-student-sheet";
+import { cn } from "@/lib/utils";
+import { StudentFormSheet } from "./student-form-sheet";
+import { StudentDetailsDrawer } from "./student-details-drawer";
+import { BulkQrDialog } from "./bulk-qr-dialog";
+import {
+  DeleteStudentDialog,
+  LogAsStudentDialog,
+  type StudentRef,
+} from "./student-action-dialogs";
+import { ResetPasswordDialog } from "./[studentId]/reset-password-dialog";
+
+const PAGE_SIZE = 20;
+const DEBOUNCE_MS = 300;
+
+type DialogState =
+  | { kind: "delete"; student: StudentRef }
+  | { kind: "impersonate"; student: StudentRef }
+  | { kind: "reset"; student: StudentRef }
+  | null;
+
+function fullName(row: Pick<StudentDirectoryRow, "firstName" | "lastName" | "email">): string {
+  const name = [row.firstName, row.lastName].filter(Boolean).join(" ").trim();
+  return name || row.email;
+}
+
+function toRef(row: StudentDirectoryRow): StudentRef {
+  return { id: row.id, name: fullName(row), indexNumber: row.indexNumber };
+}
+
+function useDebounced<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timeout);
+  }, [value, delay]);
+  return debounced;
+}
 
 /**
- * Student List (MVP-006, Tenant Admin). Fetches the full tenant-scoped list
- * from `GET /v1/students` (no server-side pagination/search/filter exists —
- * see `StudentController`) and applies search/status filtering client-side,
- * same pattern as the platform-admin tenants scaffold
- * (`app/(platform-admin)/platform-admin/tenants/page.tsx`), which this page
- * also borrows the canonical responsive table/card pattern from (now
- * extracted into `components/ui/data-table.tsx`).
+ * Students directory (STU-MGMT-02, Klass parity): Active / Pending / Black
+ * List (not available) tabs, server-side search by field with a 300 ms
+ * debounce, server pagination, CSV/QR export, and per-row actions. Visibility
+ * of actions is UX only — every endpoint re-checks permissions server-side.
  */
-
-type StatusFilter = "all" | "ACTIVE" | "SUSPENDED";
-
-const STATUS_FILTER_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
-  { value: "all", label: "All statuses" },
-  { value: "ACTIVE", label: "Active" },
-  { value: "SUSPENDED", label: "Suspended" },
-];
-
-export default function StudentListPage() {
+export default function StudentDirectoryPage() {
   const { session } = useAuth();
-  const studentsQuery = useStudents();
+  const role = session?.role ?? null;
+  const canManage = canManageStudents(role);
+  const canDelete = canDeleteStudents(role);
+  const canImpersonate = canImpersonateStudents(role);
+  const canMessage = canSendCommunications(role);
+  const { timeZone } = useTenantTimeZone();
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [createdNotice, setCreatedNotice] = useState<string | null>(null);
+  const [tab, setTab] = useState<DirectoryTab>("ACTIVE");
+  const [field, setField] = useState<DirectoryField>("ALL");
+  const [searchInput, setSearchInput] = useState("");
+  const q = useDebounced(searchInput, DEBOUNCE_MS);
+  const [page, setPage] = useState(0);
+  // Any filter change goes back to the first page (React's "adjust state on prop change" pattern).
+  const filterKey = `${tab}|${field}|${q.trim()}`;
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey);
+  if (filterKey !== lastFilterKey) {
+    setLastFilterKey(filterKey);
+    setPage(0);
+  }
 
-  const canManage = canManageStudents(session?.role ?? null);
+  const params = useMemo(() => ({ tab, field, q: q.trim(), page, size: PAGE_SIZE }), [tab, field, q, page]);
+  const directoryQuery = useStudentDirectory(params);
+  const exportCsv = useExportDirectoryCsv();
+  const approve = useApproveStudent();
 
-  const clearFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-  };
-
-  // A newly-created student could otherwise be invisible right after the
-  // sheet closes if an active search/status filter happens to exclude it
-  // (e.g. status filter set to "Suspended") — reset filters so the new row
-  // is guaranteed visible, and announce success since the sheet closing
-  // alone gives no positive confirmation.
+  const [formState, setFormState] = useState<{ open: boolean; mode: { kind: "create" } | { kind: "edit"; studentId: string } }>({
+    open: false,
+    mode: { kind: "create" },
+  });
+  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [dialog, setDialog] = useState<DialogState>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
-    if (!createdNotice) return;
-    const timeout = setTimeout(() => setCreatedNotice(null), 5000);
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(null), 6000);
     return () => clearTimeout(timeout);
-  }, [createdNotice]);
+  }, [notice]);
 
-  const handleCreated = (student: StudentResponse) => {
-    clearFilters();
-    setCreatedNotice(`${student.name} was added.`);
+  const openCreate = () => setFormState({ open: true, mode: { kind: "create" } });
+  const openEdit = (id: string) => setFormState({ open: true, mode: { kind: "edit", studentId: id } });
+
+  const approveRow = (row: StudentDirectoryRow) => {
+    approve.mutate(row.id, {
+      onSuccess: () => setNotice(`${fullName(row)} was approved.`),
+      onError: (error) =>
+        setNotice(studentErrorMessage(error, "The student couldn't be approved. Please try again.")),
+    });
   };
 
-  const columns: DataTableColumn<StudentResponse>[] = [
-    { key: "name", header: "Name", cell: (student) => student.name, hideOnCard: true },
-    { key: "email", header: "Email", cell: (student) => student.email },
+  const renderActions = (row: StudentDirectoryRow) => (
+    <RowActions
+      row={row}
+      tab={tab}
+      canManage={canManage}
+      canDelete={canDelete}
+      canImpersonate={canImpersonate}
+      canMessage={canMessage}
+      approving={approve.isPending && approve.variables === row.id}
+      onApprove={() => approveRow(row)}
+      onView={() => setDrawerId(row.id)}
+      onEdit={() => openEdit(row.id)}
+      onDialog={(kind) => setDialog({ kind, student: toRef(row) })}
+    />
+  );
+
+  const columns: DataTableColumn<StudentDirectoryRow>[] = [
     {
-      key: "status",
-      header: "Status",
-      cell: (student) => <StudentStatusBadge status={student.status} />,
-      hideOnCard: true,
+      key: "index",
+      header: "Index Number",
+      cell: (row) => <span className="font-mono tabular-nums">{row.indexNumber ?? "—"}</span>,
     },
+    { key: "firstName", header: "First Name", cell: (row) => row.firstName ?? "—", hideOnCard: true },
+    { key: "lastName", header: "Last Name", cell: (row) => row.lastName ?? "—", hideOnCard: true },
+    { key: "email", header: "Email", cell: (row) => <span className="break-all">{row.email}</span> },
+    { key: "mobile", header: "Mobile", cell: (row) => <span className="tabular-nums">{row.mobile ?? "—"}</span> },
     {
-      key: "actions",
-      header: "Actions",
-      cell: (student) => (
-        <Link
-          href={`/tenant-admin/students/${student.id}`}
-          aria-label={`View ${student.name}`}
-          className="font-medium text-foreground hover:underline"
-        >
-          View
-        </Link>
-      ),
-      hideOnCard: true,
+      key: "lastLogin",
+      header: "Last Login",
+      cell: (row) => <span className="whitespace-nowrap tabular-nums">{formatZonedDateTime(row.lastLoginAt, timeZone, "Never")}</span>,
     },
+    { key: "actions", header: "Actions", cell: renderActions, hideOnCard: true },
   ];
+
+  const trimmedQuery = q.trim();
+  const clearSearch = () => {
+    setSearchInput("");
+    setField("ALL");
+  };
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Students</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage this institute&apos;s student accounts.
-          </p>
+          <p className="text-sm text-muted-foreground">Register, find and support this institute&apos;s students.</p>
         </div>
-        {canManage ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button render={<Link href="/tenant-admin/students/bulk-import" />} variant="outline">
-              <Upload aria-hidden="true" />
-              Bulk import
-            </Button>
-            <Button
-              type="button"
-              aria-haspopup="dialog"
-              aria-expanded={sheetOpen}
-              onClick={() => setSheetOpen(true)}
-            >
-              <Plus aria-hidden="true" />
-              Add student
-            </Button>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={exportCsv.isPending}
+            aria-busy={exportCsv.isPending}
+            onClick={() => exportCsv.mutate({ tab, field, q: trimmedQuery })}
+          >
+            <Download aria-hidden="true" />
+            {exportCsv.isPending ? "Exporting…" : "Export as CSV"}
+          </Button>
+          <Button type="button" variant="outline" aria-haspopup="dialog" onClick={() => setQrOpen(true)}>
+            <QrCode aria-hidden="true" />
+            Export QRs
+          </Button>
+          {canManage ? (
+            <>
+              <Link href="/tenant-admin/students/bulk-import" className={buttonVariants({ variant: "outline" })}>
+                <Upload aria-hidden="true" />
+                Bulk import
+              </Link>
+              <Button type="button" aria-haspopup="dialog" onClick={openCreate}>
+                <Plus aria-hidden="true" />
+                Add Student
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
+      {exportCsv.isError ? (
+        <Alert variant="destructive">
+          <AlertDescription role="alert">
+            {isApiClientError(exportCsv.error) ? exportCsv.error.message : "The CSV export failed. Please try again."}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div role="status" aria-live="polite">
-        {createdNotice ? <p className="text-sm text-muted-foreground">{createdNotice}</p> : null}
+        {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+      </div>
+
+      <div role="tablist" aria-label="Student lists" className="flex gap-1 border-b border-border">
+        {(
+          [
+            ["ACTIVE", "Active"],
+            ["PENDING", "Pending"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={tab === value}
+            data-testid={`students-tab-${value.toLowerCase()}`}
+            onClick={() => setTab(value)}
+            className={cn(
+              "-mb-px border-b-2 px-4 py-2 text-sm font-medium uppercase tracking-wide",
+              tab === value ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {label}
+          </button>
+        ))}
+        <Tooltip label="Not available">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={false}
+            aria-disabled="true"
+            data-testid="students-tab-blacklist"
+            onClick={(event) => event.preventDefault()}
+            className="-mb-px cursor-not-allowed border-b-2 border-transparent px-4 py-2 text-sm font-medium uppercase tracking-wide text-muted-foreground/60"
+          >
+            Black List
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="student-search">Search</Label>
-          <Input
-            id="student-search"
-            type="search"
-            placeholder="Search by name or email"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5 sm:w-56">
-          <Label htmlFor="student-status-filter">Status</Label>
+        <div className="flex flex-col gap-1.5 sm:w-52">
+          <Label htmlFor="student-search-field">Search Field</Label>
           <select
-            id="student-status-filter"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            id="student-search-field"
+            value={field}
+            onChange={(event) => setField(event.target.value as DirectoryField)}
             className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
           >
-            {STATUS_FILTER_OPTIONS.map((option) => (
+            {DIRECTORY_FIELD_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
           </select>
         </div>
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Label htmlFor="student-search">Search</Label>
+          <Input
+            id="student-search"
+            type="search"
+            placeholder="Search students"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+          />
+        </div>
       </div>
 
       <QueryStateBoundary
-        query={studentsQuery}
+        query={directoryQuery}
         loadingLabel="Loading students…"
-        isEmpty={(students) => students.length === 0}
-        emptyState={{
-          title: "No students yet",
-          description: canManage
-            ? "This institute doesn't have any student accounts yet. Add your first student to get started."
-            : "This institute doesn't have any student accounts yet.",
-          action: canManage ? { label: "Add student", onClick: () => setSheetOpen(true) } : undefined,
-        }}
+        isEmpty={(data) => data.content.length === 0}
+        emptyState={
+          trimmedQuery
+            ? {
+                title: "No students match your search",
+                description: `No ${tab === "PENDING" ? "pending" : "active"} student matches “${trimmedQuery}”. Try another search field or term.`,
+                action: { label: "Clear search", onClick: clearSearch },
+              }
+            : tab === "PENDING"
+              ? {
+                  title: "No pending registrations",
+                  description: "Self-registrations waiting for approval appear here when approval is required.",
+                }
+              : {
+                  title: "No students yet",
+                  description: canManage
+                    ? "Add your first student, or bulk-import a CSV of existing students."
+                    : "This institute doesn't have any students yet.",
+                  action: canManage ? { label: "Add Student", onClick: openCreate } : undefined,
+                }
+        }
         permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
         loginPath="/login"
+        genericErrorMessage="Students couldn't be loaded."
       >
-        {(students) => {
-          const query = search.trim().toLowerCase();
-          const filtered = students.filter((student) => {
-            const matchesQuery =
-              query.length === 0 ||
-              student.name.toLowerCase().includes(query) ||
-              student.email.toLowerCase().includes(query);
-            const matchesStatus = statusFilter === "all" || student.status === statusFilter;
-            return matchesQuery && matchesStatus;
-          });
-
-          if (filtered.length === 0) {
-            return (
-              <EmptyState
-                title="No students match your filters"
-                description="No students match your current search and status filter. Try a different search term or clear the status filter."
-                action={{ label: "Clear filters", onClick: clearFilters }}
-              />
-            );
-          }
-
-          return (
-            <>
-              <DataTable
-                columns={columns}
-                rows={filtered}
-                rowKey={(student) => student.id}
-                caption="Students"
-                cardHeading={(student) => student.name}
-                cardHeadingAdornment={(student) => <StudentStatusBadge status={student.status} />}
-                cardFooter={(student) => (
-                  <Link
-                    href={`/tenant-admin/students/${student.id}`}
-                    aria-label={`View ${student.name}`}
-                    className="text-sm font-medium text-foreground hover:underline"
-                  >
-                    View
-                  </Link>
-                )}
-              />
-              <p role="status" aria-live="polite" className="text-xs text-muted-foreground">
-                Showing {filtered.length} of {students.length} students.
+        {(data) => (
+          <div className="flex flex-col gap-3" aria-busy={directoryQuery.isFetching}>
+            <DataTable
+              columns={columns}
+              rows={data.content}
+              rowKey={(row) => row.id}
+              caption={tab === "PENDING" ? "Pending students" : "Active students"}
+              cardHeading={(row) => fullName(row)}
+              cardFooter={renderActions}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground" role="status" aria-live="polite" data-testid="directory-summary">
+                {data.totalElements} student{data.totalElements === 1 ? "" : "s"} · Page {data.page + 1} of{" "}
+                {Math.max(data.totalPages, 1)}
+                {directoryQuery.isFetching ? " · Updating…" : ""}
               </p>
-            </>
-          );
-        }}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0 || directoryQuery.isFetching}
+                  onClick={() => setPage((current) => Math.max(0, current - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={data.page + 1 >= data.totalPages || directoryQuery.isFetching}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </QueryStateBoundary>
 
       {canManage ? (
-        <CreateStudentSheet open={sheetOpen} onOpenChange={setSheetOpen} onCreated={handleCreated} />
+        <StudentFormSheet
+          open={formState.open}
+          mode={formState.mode}
+          onOpenChange={(open) => setFormState((current) => ({ ...current, open }))}
+          onSaved={(message) => setNotice(message)}
+        />
       ) : null}
+
+      <StudentDetailsDrawer
+        studentId={drawerId}
+        onClose={() => setDrawerId(null)}
+        canManage={canManage}
+        onEdit={(id) => {
+          setDrawerId(null);
+          openEdit(id);
+        }}
+        onNotice={setNotice}
+      />
+
+      <BulkQrDialog open={qrOpen} onOpenChange={setQrOpen} />
+
+      {dialog?.kind === "delete" ? (
+        <DeleteStudentDialog
+          student={dialog.student}
+          open
+          onOpenChange={(open) => !open && setDialog(null)}
+          onDeleted={setNotice}
+        />
+      ) : null}
+      {dialog?.kind === "impersonate" ? (
+        <LogAsStudentDialog student={dialog.student} open onOpenChange={(open) => !open && setDialog(null)} />
+      ) : null}
+      {dialog?.kind === "reset" ? (
+        <ResetPasswordDialog
+          student={{ id: dialog.student.id, name: dialog.student.name }}
+          open
+          onOpenChange={(open) => !open && setDialog(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function IconAction({
+  label,
+  name,
+  onClick,
+  children,
+}: {
+  label: string;
+  name: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip label={label}>
+      <Button type="button" variant="ghost" size="icon-sm" aria-label={`${label}: ${name}`} onClick={onClick}>
+        {children}
+      </Button>
+    </Tooltip>
+  );
+}
+
+function RowActions({
+  row,
+  tab,
+  canManage,
+  canDelete,
+  canImpersonate,
+  canMessage,
+  approving,
+  onApprove,
+  onView,
+  onEdit,
+  onDialog,
+}: {
+  row: StudentDirectoryRow;
+  tab: DirectoryTab;
+  canManage: boolean;
+  canDelete: boolean;
+  canImpersonate: boolean;
+  canMessage: boolean;
+  approving: boolean;
+  onApprove: () => void;
+  onView: () => void;
+  onEdit: () => void;
+  onDialog: (kind: "delete" | "impersonate" | "reset") => void;
+}) {
+  const name = fullName(row);
+  return (
+    <div className="flex items-center gap-0.5" data-testid={`student-row-actions-${row.id}`}>
+      {tab === "PENDING" && canManage ? (
+        <Button type="button" size="sm" variant="outline" disabled={approving} onClick={onApprove} aria-label={`Approve: ${name}`}>
+          <CheckCircle2 aria-hidden="true" />
+          {approving ? "Approving…" : "Approve"}
+        </Button>
+      ) : null}
+      {tab === "ACTIVE" && canImpersonate ? (
+        <IconAction label="Login As Student" name={name} onClick={() => onDialog("impersonate")}>
+          <LogIn aria-hidden="true" />
+        </IconAction>
+      ) : null}
+      <IconAction label="View Student Details" name={name} onClick={onView}>
+        <Eye aria-hidden="true" />
+      </IconAction>
+      {canManage ? (
+        <IconAction label="Edit Student" name={name} onClick={onEdit}>
+          <Pencil aria-hidden="true" />
+        </IconAction>
+      ) : null}
+      <DropdownMenu>
+        <Tooltip label="More actions">
+          <DropdownMenuTrigger
+            render={<Button type="button" variant="ghost" size="icon-sm" aria-label={`More actions: ${name}`} />}
+          >
+            <MoreVertical aria-hidden="true" />
+          </DropdownMenuTrigger>
+        </Tooltip>
+        <DropdownMenuContent>
+          <DropdownMenuLinkItem render={<Link href={`/tenant-admin/students/${row.id}`} />}>
+            <FileText aria-hidden="true" />
+            Comprehensive Report
+          </DropdownMenuLinkItem>
+          {canMessage ? (
+            <DropdownMenuLinkItem
+              render={<Link href={`/tenant-admin/communications/new?studentId=${encodeURIComponent(row.id)}`} />}
+            >
+              <MessageSquare aria-hidden="true" />
+              Send Message
+            </DropdownMenuLinkItem>
+          ) : null}
+          {canManage ? (
+            <DropdownMenuItem onClick={() => onDialog("reset")}>
+              <KeyRound aria-hidden="true" />
+              Reset Password
+            </DropdownMenuItem>
+          ) : null}
+          {canDelete ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDialog("delete")}>
+                <Trash2 aria-hidden="true" />
+                Delete Student
+              </DropdownMenuItem>
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
