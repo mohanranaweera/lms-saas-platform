@@ -171,7 +171,9 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			.grant(DomainArea.DISCOUNTS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT)
 			// ADR-030 (F1) - only the Tenant Admin issues / revokes Free Cards.
 			.grant(DomainArea.FREE_CARDS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-					PermissionAction.DELETE)));
+					PermissionAction.DELETE)
+			// ADR-033 - only the Tenant Admin may start a "Log as Student" support session.
+			.grant(DomainArea.STUDENT_IMPERSONATION, PermissionAction.CREATE_EDIT)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
 			.grant(DomainArea.COURSES, PermissionAction.VIEW)

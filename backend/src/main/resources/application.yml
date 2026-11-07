@@ -285,6 +285,10 @@ app:
     device:
       plan-default-limit: 2
       cookie-max-age: 400d
+    # ADR-033 "Log as Student": absolute lifetime of a read-only support session
+    # (its impersonation access tokens never outlive it and are never refreshable).
+    impersonation:
+      ttl: 30m
   content:
     material:
       # MVP working default - accepted file types/size limit are not defined

@@ -27,6 +27,12 @@ public interface TenantUserRepository extends TenantAwareRepository<TenantUser, 
 		return findOne((root, query, cb) -> cb.equal(root.get("email"), email));
 	}
 
+	/** Tenant-scoped, case-insensitive: does any account use this mailbox in any letter case? */
+	default boolean existsByEmailIgnoreCase(String email) {
+		String lower = email.strip().toLowerCase(java.util.Locale.ROOT);
+		return count((root, query, cb) -> cb.equal(cb.lower(root.get("email")), lower)) > 0;
+	}
+
 	/** ADR-031: {@code e164} must already be normalised; tenant-scoped like {@link #findByEmail}. */
 	default Optional<TenantUser> findByLoginMobile(String e164) {
 		return findOne((root, query, cb) -> cb.equal(root.get("loginMobile"), e164));

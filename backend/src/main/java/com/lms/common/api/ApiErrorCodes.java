@@ -221,6 +221,18 @@ public final class ApiErrorCodes {
 	/** ADR-031 - the institute has switched mobile-number sign-in off. */
 	public static final String MOBILE_LOGIN_DISABLED = "MOBILE_LOGIN_DISABLED";
 
+	/** ADR-033: a support (impersonation) session may only read. */
+	public static final String IMPERSONATION_READ_ONLY = "IMPERSONATION_READ_ONLY";
+
+	/** ADR-033: a support session cannot be started from inside another support session. */
+	public static final String IMPERSONATION_NOT_ALLOWED = "IMPERSONATION_NOT_ALLOWED";
+
+	/** ADR-033: the support session (or its handoff cookie) is unknown, ended or expired. */
+	public static final String IMPERSONATION_SESSION_INVALID = "IMPERSONATION_SESSION_INVALID";
+
+	/** STU-MGMT-02: the student is pending approval, removed or suspended for this action. */
+	public static final String STUDENT_NOT_ACTIVE = "STUDENT_NOT_ACTIVE";
+
 	private ApiErrorCodes() {
 	}
 

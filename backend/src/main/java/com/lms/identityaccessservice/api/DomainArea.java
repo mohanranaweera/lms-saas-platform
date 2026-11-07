@@ -118,6 +118,14 @@ public enum DomainArea {
 	 * never implies issuing cards. Never a payment/ledger mutation grant
 	 * ({@code .claude/rules/payments.md} §8).
 	 */
-	FREE_CARDS
+	FREE_CARDS,
+
+	/**
+	 * STU-MGMT-02 / ADR-033: "Log as Student" - start an audited, read-only support
+	 * session that sees the platform as one student. {@code CREATE_EDIT} is Tenant
+	 * Admin only; no other role (staff sub-roles, teachers, students, Platform Admin)
+	 * holds it.
+	 */
+	STUDENT_IMPERSONATION
 
 }

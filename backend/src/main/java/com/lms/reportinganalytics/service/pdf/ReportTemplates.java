@@ -45,6 +45,8 @@ public class ReportTemplates {
 
 	public static final String TIMETABLE = "reports/timetable";
 
+	public static final String STUDENT_QR_LABELS = "reports/student-qr-labels";
+
 	private static final Logger log = LoggerFactory.getLogger(ReportTemplates.class);
 
 	private final JasperReport summary;
@@ -66,6 +68,8 @@ public class ReportTemplates {
 
 	private final JasperReport timetable;
 
+	private final JasperReport studentQrLabels;
+
 	public ReportTemplates() {
 		this.summary = load(SUMMARY);
 		this.payslip = load(PAYSLIP);
@@ -77,6 +81,7 @@ public class ReportTemplates {
 		this.studentBehavior = load(STUDENT_BEHAVIOR);
 		this.undoPayments = load(UNDO_PAYMENTS);
 		this.timetable = load(TIMETABLE);
+		this.studentQrLabels = load(STUDENT_QR_LABELS);
 	}
 
 	public JasperReport summary() {
@@ -122,6 +127,11 @@ public class ReportTemplates {
 	/** CAL-01 Class Timetable (landscape A4). */
 	public JasperReport timetable() {
 		return timetable;
+	}
+
+	/** STU-MGMT-02 student QR label sheet (portrait A4, 3 x 7). */
+	public JasperReport studentQrLabels() {
+		return studentQrLabels;
 	}
 
 	static JasperReport load(String base) {

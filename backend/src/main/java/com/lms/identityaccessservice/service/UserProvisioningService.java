@@ -10,6 +10,7 @@ import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.domain.TenantUser;
 import com.lms.identityaccessservice.error.InvalidRoleCodeException;
+import com.lms.identityaccessservice.repository.DeviceSessionLoginQuery;
 import com.lms.identityaccessservice.repository.PlatformAdminUserRepository;
 import com.lms.identityaccessservice.repository.TenantUserRepository;
 import java.security.SecureRandom;
@@ -61,10 +62,17 @@ public class UserProvisioningService implements UserProvisioningApi {
 	 */
 	private final ObjectProvider<LoginMobileService> loginMobileService;
 
+	private final DeviceSessionLoginQuery deviceSessionLoginQuery;
+
+	private final ObjectProvider<RefreshTokenService> refreshTokenService;
+
 	public UserProvisioningService(TenantUserRepository tenantUserRepository,
 			PlatformAdminUserRepository platformAdminUserRepository, PasswordEncoder passwordEncoder,
-			TenantContext tenantContext, ObjectProvider<LoginMobileService> loginMobileService) {
+			TenantContext tenantContext, ObjectProvider<LoginMobileService> loginMobileService,
+			DeviceSessionLoginQuery deviceSessionLoginQuery, ObjectProvider<RefreshTokenService> refreshTokenService) {
 		this.loginMobileService = loginMobileService;
+		this.deviceSessionLoginQuery = deviceSessionLoginQuery;
+		this.refreshTokenService = refreshTokenService;
 		this.tenantUserRepository = tenantUserRepository;
 		this.platformAdminUserRepository = platformAdminUserRepository;
 		this.passwordEncoder = passwordEncoder;
@@ -123,8 +131,24 @@ public class UserProvisioningService implements UserProvisioningApi {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
+	public java.util.Map<UUID, java.time.Instant> findLastLoginAt(Collection<UUID> userIds) {
+		return deviceSessionLoginQuery.findLastLoginAt(userIds);
+	}
+
+	@Override
+	public void revokeAllSessions(UUID userId) {
+		refreshTokenService.getObject().revokeAllTenantSessions(userId, null);
+	}
+
+	@Override
 	public boolean existsByEmail(String email) {
 		return tenantUserRepository.findByEmail(email).isPresent();
+	}
+
+	@Override
+	public boolean existsByEmailIgnoreCase(String email) {
+		return email != null && tenantUserRepository.existsByEmailIgnoreCase(email);
 	}
 
 	@Override

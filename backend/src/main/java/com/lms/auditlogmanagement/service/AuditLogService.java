@@ -137,9 +137,28 @@ public class AuditLogService implements AuditLogApi {
 		}
 		requireKnownActor(entry.actorId());
 		AuditLog auditLog = new AuditLog(tenantContext.getTenantId(), entry.actorId(), entry.action(),
-				entry.targetEntity(), entry.targetId(), entry.reason(), serializeMetadata(entry.metadata()),
-				Instant.now());
+				entry.targetEntity(), entry.targetId(), entry.reason(),
+				serializeMetadata(withImpersonationContext(entry.metadata())), Instant.now());
 		auditLogRepository.save(auditLog);
+	}
+
+	/**
+	 * ADR-033 / security.md: anything written during a support-impersonation request
+	 * records the impersonating admin and the session distinctly from the student
+	 * actor, never collapsed into one id.
+	 */
+	private static java.util.Map<String, Object> withImpersonationContext(java.util.Map<String, Object> metadata) {
+		if (!com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder.isImpersonating()) {
+			return metadata;
+		}
+		var principal = com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder.get();
+		java.util.Map<String, Object> merged = new java.util.LinkedHashMap<>();
+		if (metadata != null) {
+			merged.putAll(metadata);
+		}
+		merged.put("impersonatorUserId", principal.actorUserId().toString());
+		merged.put("impersonationSessionId", principal.sessionId().toString());
+		return merged;
 	}
 
 	/**

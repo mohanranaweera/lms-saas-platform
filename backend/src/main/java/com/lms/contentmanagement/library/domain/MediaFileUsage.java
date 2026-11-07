@@ -12,5 +12,8 @@ package com.lms.contentmanagement.library.domain;
  */
 public enum MediaFileUsage {
 	COURSE_LIBRARY, TEACHER_PROFILE, EXAM_QUESTION, EXAM_QUESTION_PAPER, EXAM_MARKING_SCHEME,
-	EXAM_ANSWER_SHEET, EXAM_MARKED_PAPER
+	EXAM_ANSWER_SHEET, EXAM_MARKED_PAPER,
+
+	/** STU-MGMT-02 (V117): a student profile photo, served only through user-management. */
+	STUDENT_PROFILE
 }

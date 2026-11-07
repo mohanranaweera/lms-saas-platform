@@ -13,7 +13,9 @@ import com.lms.identityaccessservice.repository.DeviceSessionRepository;
 import com.lms.identityaccessservice.repository.PlatformAdminSessionRepository;
 import com.lms.identityaccessservice.repository.PlatformAdminUserRepository;
 import com.lms.identityaccessservice.repository.TenantUserRepository;
+import com.lms.identityaccessservice.domain.Role;
 import com.lms.identityaccessservice.service.DeviceSessionCacheService;
+import com.lms.identityaccessservice.service.ImpersonationService;
 import com.lms.identityaccessservice.service.ParsedToken;
 import com.lms.identityaccessservice.service.TokenService;
 import io.jsonwebtoken.JwtException;
@@ -75,11 +77,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final ObjectMapper objectMapper;
 
+	private final ImpersonationService impersonationService;
+
 	public JwtAuthenticationFilter(TokenService tokenService, TenantContext tenantContext,
 			DeviceSessionRepository deviceSessionRepository,
 			PlatformAdminSessionRepository platformAdminSessionRepository, TenantUserRepository tenantUserRepository,
 			PlatformAdminUserRepository platformAdminUserRepository, DeviceSessionCacheService cacheService,
-			ObjectMapper objectMapper) {
+			ObjectMapper objectMapper, ImpersonationService impersonationService) {
+		this.impersonationService = impersonationService;
 		this.tokenService = tokenService;
 		this.tenantContext = tenantContext;
 		this.deviceSessionRepository = deviceSessionRepository;
@@ -115,10 +120,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		}
 
 		AuthenticatedPrincipal principal = parsedToken.isPlatformAdmin() ? resolvePlatformAdminPrincipal(parsedToken)
-				: resolveTenantPrincipal(parsedToken, request);
+				: parsedToken.impersonation() ? resolveImpersonationPrincipal(parsedToken)
+						: resolveTenantPrincipal(parsedToken, request);
 
 		if (principal == null) {
 			unauthorized(response, ApiErrorCodes.SESSION_REVOKED, "Your session is no longer valid. Please sign in again.");
+			return;
+		}
+
+		// ADR-033: a support session is read-only. Every state-changing request (so also
+		// password changes, payments, enrollment, exam submits, attendance, watch time,
+		// playback tokens, logout and refresh) is refused, except ending the session.
+		if (principal.isImpersonation() && (!isReadOnlyMethod(request) || recordsStudentActivity(request))
+				&& !IMPERSONATION_END_PATH.equals(request.getRequestURI())) {
+			FilterApiResponseWriter.write(response, objectMapper, HttpStatus.FORBIDDEN,
+					ApiErrorCodes.IMPERSONATION_READ_ONLY, "A support session is read-only.");
 			return;
 		}
 
@@ -143,6 +159,58 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			SecurityContextHolder.clearContext();
 			AuthenticatedPrincipalHolder.clear();
 		}
+	}
+
+	static final String IMPERSONATION_END_PATH = "/api/v1/auth/impersonation/end";
+
+	/**
+	 * GET endpoints that nevertheless record student activity (a lesson material's signed
+	 * download URL counts against the student's download limit) - refused in a support
+	 * session too, so support browsing is never recorded as the student's activity.
+	 */
+	private static boolean recordsStudentActivity(HttpServletRequest request) {
+		// Decoded + normalised (";params" stripped) - the raw URI would let
+		// ".../download%2Durl" reach the handler while skipping this check.
+		String path = DECODING_PATH_HELPER.getPathWithinApplication(request);
+		return path.endsWith("/download-url") || path.endsWith("/download-url/");
+	}
+
+	private static final org.springframework.web.util.UrlPathHelper DECODING_PATH_HELPER = new org.springframework.web.util.UrlPathHelper();
+
+	private static boolean isReadOnlyMethod(HttpServletRequest request) {
+		String method = request.getMethod();
+		return "GET".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method) || "OPTIONS".equalsIgnoreCase(method);
+	}
+
+	/**
+	 * ADR-033: an impersonation token is valid only while its support session is open
+	 * and unexpired, the admin account is ACTIVE and the admin's own device session is
+	 * usable (checked by {@link ImpersonationService}); the subject must still be an
+	 * ACTIVE student of this tenant. No device session is involved for the student, so
+	 * a support session has no last-login or device-slot side effects.
+	 */
+	private AuthenticatedPrincipal resolveImpersonationPrincipal(ParsedToken parsedToken) {
+		UUID resolvedTenantId;
+		try {
+			resolvedTenantId = tenantContext.getTenantId();
+		}
+		catch (TenantContextNotResolvedException notResolved) {
+			return null;
+		}
+		if (!resolvedTenantId.equals(parsedToken.tenantId())) {
+			return null;
+		}
+		if (!impersonationService.isTokenSessionUsable(parsedToken.sessionId(), parsedToken.subject(),
+				parsedToken.actorUserId())) {
+			return null;
+		}
+		Optional<TenantUser> subject = tenantUserRepository.findById(parsedToken.subject());
+		if (subject.isEmpty() || subject.get().getStatus() != AccountStatus.ACTIVE
+				|| subject.get().getRole() != Role.STUDENT) {
+			return null;
+		}
+		return new AuthenticatedPrincipal(subject.get().getId(), resolvedTenantId, Role.STUDENT.name(),
+				parsedToken.sessionId(), parsedToken.actorUserId());
 	}
 
 	/** Paths an account that must change its password can still use. */

@@ -182,6 +182,9 @@ public class StudentService {
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
 		userProvisioningApi.activateTenantUser(profile.getUserId());
+		// STU-MGMT-02: activating a pending self-registration also approves it.
+		profile.approve();
+		studentProfileRepository.save(profile);
 		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.activated",
 				"student_profile", profile.getId()));
 		return requireStudentAccount(profile);

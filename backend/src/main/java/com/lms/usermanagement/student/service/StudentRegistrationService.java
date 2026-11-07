@@ -166,6 +166,10 @@ public class StudentRegistrationService {
 		StudentProfile profile = new StudentProfile(tenantContext.getTenantId(), provisioned.userId(), request.name(),
 				StudentRegistrationStatus.SELF_REGISTERED, null, null, null, null, null, null);
 		StudentProfileFieldsService.applyRegistrationValues(profile, profileValues);
+		if (approvalRequired) {
+			// STU-MGMT-02: listed on the Pending tab until staff approve it.
+			profile.markPendingApproval();
+		}
 		profile = studentProfileRepository.save(profile);
 		// ADR-031: the registration mobile is the sign-in mobile. Invalid (400)
 		// or already registered in this institute (409) rolls the whole

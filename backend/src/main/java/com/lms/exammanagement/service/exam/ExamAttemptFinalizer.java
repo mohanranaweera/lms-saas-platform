@@ -45,6 +45,11 @@ public class ExamAttemptFinalizer {
 		if (!attempt.isKlassAttempt() || attempt.isFinalized() || now.isBefore(attempt.getDeadlineAt())) {
 			return false;
 		}
+		// ADR-033: a read-only support session never finalizes the student's attempt
+		// (reads still show it as due; the overdue sweep or the student finalizes it).
+		if (com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder.isImpersonating()) {
+			return false;
+		}
 		attemptRepository.lockAndRefresh(attempt);
 		if (attempt.isFinalized()) {
 			return false;

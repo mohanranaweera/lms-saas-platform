@@ -10,6 +10,7 @@ import com.lms.coursemanagement.api.CourseCatalogApi.CatalogQuery;
 import com.lms.coursemanagement.api.CourseCatalogApi.CatalogSort;
 import com.lms.coursemanagement.api.CourseCatalogInfo;
 import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.enrollmentmanagement.domain.CourseParticipation;
 import com.lms.enrollmentmanagement.domain.CourseParticipationSource;
 import com.lms.enrollmentmanagement.repository.CourseParticipationRepository;
@@ -34,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
  * entitlement.
  */
 @Service
-public class CourseParticipationService {
+public class CourseParticipationService implements CourseParticipationApi {
 
 	public static final String AUDIT_ACTION = "course.participation_created";
 
@@ -99,6 +100,33 @@ public class CourseParticipationService {
 							CourseParticipationSource.SELF_ENROLL.name())));
 		}
 		return new SelfEnrollResult(courseId, participation.getEnrolledAt(), created);
+	}
+
+	@Override
+	@Transactional
+	public boolean enrollOnBehalf(UUID studentUserId, UUID courseId) {
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		CourseCatalogInfo course = courseLookupApi.findCatalogInfo(courseId)
+			.filter(info -> !info.archived() && !"DRAFT".equals(info.status()))
+			.orElseThrow(() -> new NotFoundException("Course not found"));
+		int inserted = participationRepository.insertIfAbsent(studentUserId, course.courseId(),
+				CourseParticipationSource.STAFF_GRANT, Instant.now());
+		if (inserted != 1) {
+			return false;
+		}
+		CourseParticipation participation = participationRepository
+			.findByStudentIdAndCourseId(studentUserId, course.courseId())
+			.orElseThrow(() -> new IllegalStateException("Participation row missing after upsert"));
+		auditLogApi.record(new AuditLogEntry(actorId, AUDIT_ACTION, "course_participation", participation.getId(),
+				null, Map.of("courseId", course.courseId().toString(), "studentId", studentUserId.toString(),
+						"source", CourseParticipationSource.STAFF_GRANT.name(), "via", "student_management")));
+		return true;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Set<UUID> findParticipatingCourseIds(UUID studentUserId) {
+		return participationRepository.findCourseIdsByStudentId(studentUserId);
 	}
 
 	/**

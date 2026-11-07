@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  STU-MGMT-02 student QR label sheet (docs/specs/student-management-parity.md section 7).
+  Portrait A4, 3 x 7 grid of 60 mm (170 pt) x 38.8 mm (110 pt) cells filled left to right.
+  Each cell: a 32 mm (91 pt) black-on-white QR image whose 4-module quiet zone is part of the
+  image, then the tenant name, the student's full name and index number. Cells never split
+  across pages (splitType=Prevent). Display-only typed-bean template: no SQL, scriptlets or
+  arithmetic. Never carries NIC, contact or credential data.
+-->
+<jasperReport name="student-qr-labels" columnCount="3" printOrder="Horizontal" pageWidth="595" pageHeight="842"
+		columnWidth="170" columnSpacing="0" leftMargin="42" rightMargin="43" topMargin="36" bottomMargin="36"
+		whenNoDataType="AllSectionsNoDetail">
+	<property name="net.sf.jasperreports.export.pdf.glyph.renderer.blocks.lms" value="sinhala,tamil"/>
+	<style name="Base" default="true" fontName="LMS Sans" fontSize="8.0" forecolor="#000000"/>
+	<field name="tenantName" class="java.lang.String"/>
+	<field name="fullName" class="java.lang.String"/>
+	<field name="indexNumber" class="java.lang.String"/>
+	<field name="qrImage" class="java.awt.Image"/>
+	<detail>
+		<band height="110" splitType="Prevent">
+			<element kind="rectangle" x="0" y="0" width="170" height="110" mode="Transparent"><pen lineWidth="0.25" lineStyle="Dashed" lineColor="#BBBBBB"/></element>
+			<element kind="image" x="4" y="9" width="91" height="91" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle"><expression><![CDATA[$F{qrImage}]]></expression></element>
+			<element kind="textField" x="99" y="10" width="67" height="22" fontSize="6.5" forecolor="#4B5563" textAdjust="ScaleFont"><expression><![CDATA[$F{tenantName}]]></expression></element>
+			<element kind="textField" x="99" y="34" width="67" height="40" fontSize="8.5" bold="true" textAdjust="ScaleFont"><expression><![CDATA[$F{fullName}]]></expression></element>
+			<element kind="textField" x="99" y="78" width="67" height="16" fontSize="10.0" bold="true" textAdjust="ScaleFont"><expression><![CDATA[$F{indexNumber}]]></expression></element>
+		</band>
+	</detail>
+</jasperReport>

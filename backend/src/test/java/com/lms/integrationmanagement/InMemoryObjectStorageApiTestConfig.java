@@ -140,6 +140,11 @@ public class InMemoryObjectStorageApiTestConfig {
 			return new SignedDownloadUrl(url.toString(), Instant.now().plus(ttl));
 		}
 
+		/** Test-only observability: the stored bytes of an object (null when absent). */
+		public byte[] bytes(String objectKey) {
+			return objects.get(objectKey);
+		}
+
 		/** Test-only observability: is this object key still present in the in-memory backing store? */
 		public boolean containsKey(String objectKey) {
 			return objects.containsKey(objectKey);

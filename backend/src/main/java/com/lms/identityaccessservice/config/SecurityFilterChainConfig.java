@@ -8,6 +8,7 @@ import com.lms.identityaccessservice.repository.PlatformAdminSessionRepository;
 import com.lms.identityaccessservice.repository.PlatformAdminUserRepository;
 import com.lms.identityaccessservice.repository.TenantUserRepository;
 import com.lms.identityaccessservice.service.DeviceSessionCacheService;
+import com.lms.identityaccessservice.service.ImpersonationService;
 import com.lms.identityaccessservice.service.TokenService;
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -69,10 +70,10 @@ public class SecurityFilterChainConfig {
 			DeviceSessionRepository deviceSessionRepository,
 			PlatformAdminSessionRepository platformAdminSessionRepository, TenantUserRepository tenantUserRepository,
 			PlatformAdminUserRepository platformAdminUserRepository, DeviceSessionCacheService cacheService,
-			ObjectMapper objectMapper) {
+			ObjectMapper objectMapper, ImpersonationService impersonationService) {
 		return new JwtAuthenticationFilter(tokenService, tenantContext, deviceSessionRepository,
 				platformAdminSessionRepository, tenantUserRepository, platformAdminUserRepository, cacheService,
-				objectMapper);
+				objectMapper, impersonationService);
 	}
 
 	@Bean
@@ -173,6 +174,14 @@ public class SecurityFilterChainConfig {
 							"/api/v1/students/register/otp/send", "/api/v1/students/register/otp/verify")
 					.permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
+				// ADR-033: the support-session handoff. /token is authorised only by the
+				// HttpOnly, SameSite=Strict lms_impersonation cookie (scoped to this path);
+				// /end accepts that cookie and/or the impersonation bearer token. The tenant
+				// is still resolved from the host by TenantResolutionFilter.
+				authorize
+					.requestMatchers(HttpMethod.POST, "/api/v1/auth/impersonation/token",
+							"/api/v1/auth/impersonation/end")
+					.permitAll();
 				// AUTH-PWD-01 / ADR-020: one-time account-setup / reset links and
 				// forgot password. Anonymous by nature; the tenant is still
 				// resolved from the host by TenantResolutionFilter, the link's

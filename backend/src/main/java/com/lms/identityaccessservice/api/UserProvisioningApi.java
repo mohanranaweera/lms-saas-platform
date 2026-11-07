@@ -55,6 +55,13 @@ public interface UserProvisioningApi {
 	boolean existsByEmail(String email);
 
 	/**
+	 * Tenant-scoped, case-insensitive variant of {@link #existsByEmail}: a mailbox is
+	 * one person regardless of letter case, so creation paths refuse a case variant of
+	 * an existing account. Stored emails and login matching are unchanged.
+	 */
+	boolean existsByEmailIgnoreCase(String email);
+
+	/**
 	 * Tenant-scoped batch read of {@code tenant_user} summaries for the given
 	 * ids, for a caller composing a list/detail view against its own
 	 * locally-owned table (e.g. {@code staff_profile} rows keyed by {@code
@@ -165,5 +172,18 @@ public interface UserProvisioningApi {
 
 	/** ADR-031: userId -> sign-in mobile (E.164) for those of {@code userIds} in this tenant that have one. */
 	java.util.Map<UUID, String> findLoginMobiles(Collection<UUID> userIds);
+
+	/**
+	 * STU-MGMT-02: userId -> latest sign-in time (latest {@code device_session.issued_at})
+	 * for those of {@code userIds} in this tenant that ever signed in. One batched query;
+	 * support (impersonation) sessions never count.
+	 */
+	java.util.Map<UUID, java.time.Instant> findLastLoginAt(Collection<UUID> userIds);
+
+	/**
+	 * STU-MGMT-02: revokes every active session of the given account in this tenant
+	 * (e.g. when a student is removed from the tenant). Joins the caller's transaction.
+	 */
+	void revokeAllSessions(UUID userId);
 
 }

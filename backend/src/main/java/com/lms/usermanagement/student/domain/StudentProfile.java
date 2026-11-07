@@ -8,6 +8,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import com.lms.tenantmanagement.api.StudentProfileField;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.annotations.Generated;
@@ -143,6 +144,40 @@ public class StudentProfile extends Auditable implements TenantOwned {
 	@Column(name = "index_number", insertable = false, updatable = false, length = 20)
 	private String indexNumber;
 
+	// STU-MGMT-02 (V117).
+	@Column(name = "first_name", length = 120)
+	private String firstName;
+
+	@Column(name = "last_name", length = 120)
+	private String lastName;
+
+	@Column(name = "guardian_nic", length = 20)
+	private String guardianNic;
+
+	@Column(name = "profile_media_file_id")
+	private UUID profileMediaFileId;
+
+	/** Opaque QR identification token (spec section 7); never derived from any student data. */
+	@Column(name = "qr_token", nullable = false, length = 64)
+	private String qrToken;
+
+	@Column(name = "qr_rotated_at")
+	private Instant qrRotatedAt;
+
+	@Column(name = "pending_approval", nullable = false)
+	private boolean pendingApproval;
+
+	@Column(name = "removed_at")
+	private Instant removedAt;
+
+	@Column(name = "removed_by")
+	private UUID removedBy;
+
+	@Column(name = "removal_reason", length = 500)
+	private String removalReason;
+
+	private static final String WHITESPACE = "\\s+";
+
 	protected StudentProfile() {
 	}
 
@@ -154,8 +189,9 @@ public class StudentProfile extends Auditable implements TenantOwned {
 			String guardianName, String guardianPhone, String school, String grade, String stream, String mobile) {
 		this.tenantId = tenantId;
 		this.userId = userId;
-		this.name = name;
 		this.registrationStatus = registrationStatus;
+		this.qrToken = StudentQrTokens.newToken();
+		rename(name);
 		this.guardianName = guardianName;
 		this.guardianPhone = guardianPhone;
 		this.school = school;
@@ -227,7 +263,152 @@ public class StudentProfile extends Auditable implements TenantOwned {
 	 * userId}, which are immutable identity fields set only at construction.
 	 */
 	public void rename(String name) {
-		this.name = name;
+		String trimmed = name == null ? "" : name.strip();
+		String[] parts = trimmed.split(WHITESPACE, 2);
+		this.name = trimmed;
+		this.firstName = truncate(parts[0], 120);
+		this.lastName = parts.length > 1 ? truncate(parts[1], 120) : null;
+	}
+
+	/** STU-MGMT-02: sets both name parts; {@code name} is kept as "first last" for other modules. */
+	public void renameParts(String firstName, String lastName) {
+		this.firstName = firstName.strip();
+		this.lastName = (lastName == null || lastName.isBlank()) ? null : lastName.strip();
+		this.name = this.lastName == null ? this.firstName : this.firstName + " " + this.lastName;
+	}
+
+	private static String truncate(String value, int max) {
+		return value.length() > max ? value.substring(0, max) : value;
+	}
+
+	/** First name; falls back to the first word of {@code name} for rows written outside the application. */
+	public String getFirstName() {
+		if (firstName != null) {
+			return firstName;
+		}
+		return name == null ? null : name.strip().split(WHITESPACE, 2)[0];
+	}
+
+	public String getLastName() {
+		if (firstName != null) {
+			return lastName;
+		}
+		if (name == null) {
+			return null;
+		}
+		String[] parts = name.strip().split(WHITESPACE, 2);
+		return parts.length > 1 ? parts[1] : null;
+	}
+
+	public String getGuardianNic() {
+		return guardianNic;
+	}
+
+	public UUID getProfileMediaFileId() {
+		return profileMediaFileId;
+	}
+
+	public void setProfileMediaFileId(UUID profileMediaFileId) {
+		this.profileMediaFileId = profileMediaFileId;
+	}
+
+	public String getQrToken() {
+		return qrToken;
+	}
+
+	public Instant getQrRotatedAt() {
+		return qrRotatedAt;
+	}
+
+	/** Replaces the QR token (revokes every printed card carrying the old one). */
+	public void rotateQrToken(Instant now) {
+		this.qrToken = StudentQrTokens.newToken();
+		this.qrRotatedAt = now;
+	}
+
+	public boolean isPendingApproval() {
+		return pendingApproval;
+	}
+
+	public void markPendingApproval() {
+		this.pendingApproval = true;
+	}
+
+	public void approve() {
+		this.pendingApproval = false;
+	}
+
+	public Instant getRemovedAt() {
+		return removedAt;
+	}
+
+	public UUID getRemovedBy() {
+		return removedBy;
+	}
+
+	public String getRemovalReason() {
+		return removalReason;
+	}
+
+	public boolean isRemoved() {
+		return removedAt != null;
+	}
+
+	/** Soft removal from the tenant: the row and all history stay. */
+	public void markRemoved(UUID actorId, Instant now, String reason) {
+		this.removedAt = now;
+		this.removedBy = actorId;
+		this.removalReason = reason;
+	}
+
+	public LocalDate getDateOfBirth() {
+		return dateOfBirth;
+	}
+
+	public String getFixedPhone() {
+		return fixedPhone;
+	}
+
+	public String getAddressLine2() {
+		return addressLine2;
+	}
+
+	public String getPostalCode() {
+		return postalCode;
+	}
+
+	public Short getAlYear() {
+		return alYear;
+	}
+
+	/**
+	 * STU-MGMT-02 staff edit of the allowlisted Klass form fields (spec section 3). Values
+	 * are already validated/normalised by the caller; {@code null} clears a field. Never
+	 * touches identity, index number, QR token or flags.
+	 */
+	public void updateManagedDetails(ManagedDetails details) {
+		renameParts(details.firstName(), details.lastName());
+		this.whatsappNumber = details.whatsappNumber();
+		this.dateOfBirth = details.dateOfBirth();
+		this.mobile = details.mobile();
+		this.addressLine = details.addressLine1();
+		this.addressLine2 = details.addressLine2();
+		this.city = details.city();
+		this.postalCode = details.postalCode();
+		this.guardianName = details.guardianName();
+		this.guardianPhone = details.guardianPhone();
+		this.guardianNic = details.guardianNic();
+		this.fixedPhone = details.homePhone();
+		this.school = details.school();
+		this.alYear = details.alYear();
+		this.stream = details.alStream();
+	}
+
+	/** The allowlisted staff-managed fields of the STU-MGMT-02 form. */
+	public record ManagedDetails(String firstName, String lastName, String whatsappNumber, LocalDate dateOfBirth,
+			String mobile, String addressLine1, String addressLine2, String city, String postalCode,
+			String guardianName, String guardianPhone, String guardianNic, String homePhone, String school,
+			Short alYear, String alStream) {
 	}
 
 	public String getAddressLine() {

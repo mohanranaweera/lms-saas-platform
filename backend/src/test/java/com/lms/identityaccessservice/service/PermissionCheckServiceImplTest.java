@@ -168,6 +168,25 @@ class PermissionCheckServiceImplTest {
 	}
 
 	@Test
+	void studentImpersonationIsTenantAdminCreateEditOnly() {
+		// ADR-033: only the Tenant Admin may start a "Log as Student" support session.
+		for (Role role : Role.values()) {
+			AuthenticatedPrincipalHolder.set(principalFor(role));
+			try {
+				for (PermissionAction action : PermissionAction.values()) {
+					boolean expected = role == Role.TENANT_ADMIN && action == PermissionAction.CREATE_EDIT;
+					assertThat(service.hasPermission(DomainArea.STUDENT_IMPERSONATION, action))
+						.as("%s / %s", role, action)
+						.isEqualTo(expected);
+				}
+			}
+			finally {
+				AuthenticatedPrincipalHolder.clear();
+			}
+		}
+	}
+
+	@Test
 	void teacherTeacherAssistantStudentAlwaysDenied() {
 		// Teacher / Teacher Assistant / Student are deliberately absent from this
 		// domain-flat V/C/E/D/A matrix: their permission models are
@@ -358,7 +377,9 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.DISCOUNTS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT),
 							// ADR-030 (F1) - "Free Cards" row.
 							cell(DomainArea.FREE_CARDS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-									PermissionAction.DELETE))),
+									PermissionAction.DELETE),
+							// ADR-033 - "Log as Student" support impersonation.
+							cell(DomainArea.STUDENT_IMPERSONATION, PermissionAction.CREATE_EDIT))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
