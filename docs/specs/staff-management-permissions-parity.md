@@ -211,3 +211,77 @@ Known, accepted or open:
   exact parity.
 - Pre-existing failures, unrelated (also fail on clean `main`): `TeacherManagementIntegrationTest` (4)
   and `e2e/tenant-admin-nav.spec.ts` Teachers mocks (2).
+
+## 6. STAFF-MGMT-03 — more configurable roles and unlocks (owner decisions 2026-11-08)
+
+Owner decisions:
+- Promote the 7 existing fixed roles (FINANCE_STAFF, COURSE_COORDINATOR, STUDENT_SUPPORT, CONTENT_MANAGER,
+  EXAM_MANAGER, ATTENDANCE_OPERATOR, READ_ONLY_AUDITOR) to configurable matrix columns.
+- Unlock: teacher wallet/settlement actions; Free Cards + Enroll Students; Update Payment Rules + Log as
+  Student. Gateway/integration credentials, staff management and the Add Timetable alias stay LOCKED.
+- Delegated roles may set the price on course **create** (edits stay blocked).
+
+### 6.1 Seeded roles (the promoted 7)
+- **Default grant** for a capability = the role's static matrix already holds the capability's primary
+  pair. With no override row, behaviour is exactly as before: no elevation, so no silent broadening.
+- **Explicit grant** (row `granted = true`) elevates the capability's implied pairs for that request,
+  as for Operator/Manager. **Explicit revoke** (row `granted = false`) gives 403 on that capability's
+  endpoints even though the static matrix holds the pair.
+- **Unannotated endpoints** keep the static matrix unchanged (the matrix governs only listed capabilities).
+- READ_ONLY_AUDITOR is configurable only for capabilities whose primary action is VIEW (keeps the
+  static "never a write" invariant).
+- Assignable in Add User / Change role: OPERATOR, MANAGER and the 7. Never TENANT_ADMIN/TEACHER/
+  TEACHER_ASSISTANT/STUDENT. Delegation, self-edit and protected-membership rules are unchanged.
+
+### 6.2 Newly ENFORCED (were LOCKED/UNAVAILABLE) — as implemented
+Primary = the endpoint's existing gate (static access unchanged); implied = exactly what the code path checks.
+Seeded roles are configurable for every Operator/Manager row (Read-only Auditor: view-only rows only).
+
+| Capability | Endpoint(s) | Primary (+implied) | Notes |
+|---|---|---|---|
+| FINANCE_CALCULATE_SETTLEMENTS | POST /finance/teacher-settlements | FINANCE_EXPENSES/CREATE_EDIT | idempotent: an overlapping/already-settled period is 409, no new rows |
+| FINANCE_MARK_SETTLEMENT_PAID | POST /finance/teacher-settlements/{id}/mark-paid | FINANCE_EXPENSES/CREATE_EDIT | row-locked, once only (409) |
+| FINANCE_ADJUST_SETTLEMENT | POST /finance/teacher-settlements/{id}/adjustments | FINANCE_EXPENSES/CREATE_EDIT | new ADJUSTMENT row referencing the original; original untouched |
+| FINANCE_EDIT_SHARE_RATES | POST /finance/teacher-share-rates | FINANCE_EXPENSES/CREATE_EDIT | append-only, effective-dated (GET rates now carries TEACHERS_VIEW_WALLET) |
+| FINANCE_ADD_EXPENSE | POST /finance/expenses | FINANCE_EXPENSES/CREATE_EDIT | (GET attachment-url now carries FINANCE_VIEW_EXPENSES) |
+| FINANCE_VOID_EXPENSE | POST /finance/expenses/{id}/void | FINANCE_EXPENSES/DELETE | void = state change, no row delete |
+| FINANCE_ACCOUNT_VIEW_CONFIGURATION | GET /payment-gateway-accounts | PAYMENT_GATEWAY/VIEW | status only, never the secret; change/update/delete stay LOCKED |
+| FINANCE_DASHBOARD_ANNUAL_STATS | GET /finance/reports/periods | FINANCE_EXPENSES/VIEW | monthly income/expense buckets |
+| FINANCE_DASHBOARD_PENDING_PAYMENTS | GET /ledger/outstanding | PAYMENTS_SLIPS/VIEW | orders awaiting payment |
+| PAYMENTS_REVOKE_FREE_CARDS | POST /free-cards/{id}/revoke | FREE_CARDS/DELETE | reason required, once only; Issue never implies Revoke |
+| COURSES_ENROLL_STUDENTS | POST /students/{id}/enroll | STUDENTS/CREATE_EDIT (+PAYMENTS_SLIPS/APPROVE) | static default holder: Tenant Admin only (the only role holding both) |
+| PAYMENTS_UPDATE_RULES | PUT /access-policy, PUT /access-policy/courses/{id} | ACCESS_EXPIRY/CREATE_EDIT | a course device-limit change still needs DEVICES/CREATE_EDIT (not implied → 403); GETs unannotated |
+| STUDENTS_LOG_AS | POST /students/{id}/impersonation | STUDENT_IMPERSONATION/CREATE_EDIT | ADR-033 amended: actor ≠ subject, start/end audited; the session's actor is re-checked each request (Tenant Admin or role still granted), a revoke ends it |
+| MODULES_QUESTIONS_VIEW | GET courses/{c}/modules/{m}/questions, modules/question-counts, GET exam-questions/{id} | EXAMS/VIEW | teacher ownership unchanged (not teacher-configurable) |
+| MODULES_QUESTIONS_ADD | POST …/questions, POST …/questions/copy, POST /exam-media | EXAMS/CREATE_EDIT | |
+| MODULES_QUESTIONS_EDIT | PUT /exam-questions/{id} | EXAMS/CREATE_EDIT | |
+| MODULES_QUESTIONS_IMPORT | POST/GET …/question-imports, GET /question-imports/template.csv | EXAMS/CREATE_EDIT (+EXAMS/VIEW) | |
+| EXAMS_SCHEDULE | POST /exams, POST /exams/courses/{c}/exams | EXAMS/CREATE_EDIT (+VIEW) | create; DRAFT→SCHEDULED (APPROVE) not delegated |
+| EXAMS_EDIT | PUT /exams/{id} | EXAMS/CREATE_EDIT (+VIEW) | |
+| EXAMS_MANAGE | POST/DELETE /exams/{id}/enrollments, GET enrollment-candidates, POST enrollments/sync-payments | EXAMS/CREATE_EDIT (+VIEW) | |
+| EXAMS_CREATE_LEADERBOARD | POST/PUT/DELETE /exam-leaderboards | EXAMS/CREATE_EDIT | |
+| EXAMS_GENERATE_REPORT | GET /exams/{id}/export.csv | EXAMS/VIEW | |
+| COURSES_VIEW_ARCHIVED | GET /courses?archived=true / includeArchived=true | COURSES/VIEW | CourseService check for staff; Teachers unaffected |
+| STUDENTS_VIEW_PENDING | GET /students/directory(?/export.csv) tab=PENDING | STUDENTS/VIEW | StudentDirectoryService check |
+
+Left UNAVAILABLE (reason shown in the matrix):
+- TEACHERS_WALLET_ACTIONS ("Disable Wallet", key kept) — no wallet disable operation; the real wallet actions are the four settlement rows above.
+- MODULES_QUESTIONS_DELETE, EXAMS_DELETE — need EXAMS/DELETE, which no staff role (not even Tenant Admin) holds; owning teacher only.
+- EXAMS_START, EXAMS_STOP — exams open/close on their schedule; no manual operation.
+- MODULES_IMPORT — no module import operation.
+- FINANCE_DASHBOARD_RECENT_PAYMENTS, _REGISTRATION_PAYMENTS, _TRANSACTIONS — part of the payments dashboard / order list (View Payments).
+- Tute, course reviews, Delete Teacher, scheduled notifications, single-student notification, media folders.
+
+Still LOCKED: account credential change/update/delete, Integrations, STAFF_*, Add Timetable alias, Zoom/YouTube provider ops.
+
+Delegation guards (pricing edits, teacher commission, manual-payment adjustment) now apply to any actor holding the
+pair only through a grant (`PermissionCheckService.isDelegated`): Operator/Manager as before, and a seeded role whose
+static matrix lacks the pair. Static holders are unaffected. Migration V120 widens the grant table's role CHECK.
+
+### 6.3 Results (2026-11-08)
+Live B1, B2, B4, B5, B6 PASS. B3 PASS for every unlock except the end-to-end settlement run, which is
+BLOCKED for lack of closed-period revenue in a synthetic tenant and covered by
+`TeacherSettlementIntegrationTest`. Security and ledger review: no Critical/High. The two Medium
+by-id bypasses (archived courses, pending students) are fixed (77db3e7). QA follow-ups are fixed:
+overrides equal to the default are deleted, and the matrix no longer causes page-level sideways
+scroll. Details: `docs/qa/staff-management-acceptance.md`.

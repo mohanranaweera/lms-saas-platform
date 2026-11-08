@@ -7,5 +7,14 @@
   "invId": "01a1b99f-472b-7721-bd25-588c651fa8c9",
   "bStaffId": "01a1b99f-3019-71bd-bd26-c5216fc2fb7b",
   "tEmail": "teacher2-mw7e8adx@example.test",
-  "bCourseId": "01a1b9a2-b82c-7434-bd83-4256d84e1b44"
+  "bCourseId": "01a1b9a2-b82c-7434-bd83-4256d84e1b44",
+  "m03": {
+    "tag": "mw7ve682",
+    "financeEmail": "finance-staff-mw7ve682@example.test",
+    "financeId": "01a1bb5a-968a-7398-98b1-c4927b02ee82",
+    "pendingId": "01a1bb5a-aae8-760c-a4cd-3f50bfef1fc1",
+    "stuProfileId": "01a1bb5a-b022-7582-a032-f44f9df43156",
+    "expenseId": "01a1bb5a-b3ac-7283-8279-2df744a7b604",
+    "cardId": "01a1bb5a-b5cb-7c53-a469-604fe714de19"
+  }
 }

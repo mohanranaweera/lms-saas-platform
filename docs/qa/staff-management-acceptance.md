@@ -53,3 +53,57 @@ Evidence:
 - Add User: same fields and order (First/Last, Email/Mobile, Role) with the same Cancel/Create User actions. Ours adds an explanatory line about the invite email. Klass uses icon-prefixed outlined fields; ours uses labelled inputs above the fields.
 - Permissions: same Manage Permissions card, OPERATOR/MANAGER/TEACHER columns, per-group "Select all" and SAVE CHANGES. Material differences (by design per spec §3): LOCKED cells show a lock and UNAVAILABLE cells show "—" instead of an editable checkbox. Ours adds an unsaved count, Discard and a confirmation dialog with a per-role summary. The matrix scrolls with the page, while Klass uses an inner scroll pane. On mobile, a "Role column" selector shows one role at a time.
 - Activities: there is no Klass reference image to compare against. See observation 2.
+
+---
+
+# STAFF-MGMT-03 — Seeded roles configurable + unlocks (B1–B6)
+
+Commits fa471c9, 77db3e7 and e939303. Contract: spec §6. Verified 2026-11-08 on the same local stack.
+
+Preconditions: Flyway **V120** `seeded roles configurable capabilities` (`success = t`, 12:22:54), and
+`GET /staff/permission-matrix` returns **10 role columns**. The running backend includes the commits.
+
+Evidence:
+- API log: `docs/qa/staff-management-evidence/api-evidence.md`, section **"STAFF-MGMT-03"** (run `mw7ve682`) and two settlement follow-ups.
+- Screenshots: `m03-*.png` (desktop 1440×900, mobile 390×844).
+- Browser data: `m03-desktop-report.json`, `m03-mobile-report.json`, `m03-finance-staff-nav.json`. Baseline: `m03-matrix-baseline.json`.
+- Browser spec (opt-in): `frontend/e2e/staff-management-m03-live.spec.ts`. Run with `STAFF_LIVE=1 STAFF_LIVE_FINANCE_EMAIL=<finance staff>`. Result: **3 passed (27.5s)**.
+
+Fixtures: the Finance Staff user was created through Add User and the invite link from Mailpit. The Operator is the existing STAFF-MGMT-02 synthetic account. The pending student was created through public self-registration, with `approval_required` turned on temporarily and then restored to `false`.
+
+| # | Requirement | Result | Evidence (excerpt) |
+|---|---|---|---|
+| B1 | Finance Staff with no overrides: unchanged access; still denied staff management | **PASS** (11/11) | Created 201, invite received, setup 204, login 200. Review queue 200. Slip approve on an absent id → **404** (passed the gate). Expenses list 200. Teacher-settlements list 200. `GET/POST /staff`, matrix GET/PUT and activities → **403**. `POST /courses` → 403 (unchanged). |
+| B2 | Seeded-role edit | **PASS** (11/11) | Revoke `FINANCE_STAFF/PAYMENTS_APPROVE_PENDING`: the same token's next approve → **403**, while the review queue stays 200 (narrow). Regrant → 404 (passes the gate). Grant `COURSES_ADD` → `POST /courses` **201** on the same token; revoke → 403. `READ_ONLY_AUDITOR` + `COURSES_ADD`, `PAYMENTS_APPROVE_PENDING`, `STUDENTS_LOG_AS` or `FINANCE_ADD_EXPENSE` → **400** "not configurable for READ_ONLY_AUDITOR", and the version is unchanged. |
+| B3 | Operator unlocks: 403 before grant → allowed → 403 after revoke (same token) | **PASS for 8 capabilities; BLOCKED for the settlement business path** | **PASS:** `FINANCE_ADD_EXPENSE` 403/201/403. `FINANCE_VOID_EXPENSE` 403/200/403, and the voided row remains (state change, no delete). `PAYMENTS_ISSUE_FREE_CARDS` 403/201/403, and Issue alone does not authorize Revoke (403). `PAYMENTS_REVOKE_FREE_CARDS` 403/200/403. `COURSES_ENROLL_STUDENTS` 403/200/403. `PAYMENTS_UPDATE_RULES` 403/200/403 (same value; the policy is unchanged). `FINANCE_EDIT_SHARE_RATES` 403/201/403. `STUDENTS_LOG_AS`: 403, then 201 with a handoff cookie and `current` 200. The audit entry `student.impersonation_started` records `actorName:"Olive Operator…"`, `actorRole:"Operator"`, target `student_profile`, so actor ≠ subject. After revoke, the live impersonation token → **401**, the cookie cannot mint a new token (401), and a new start → 403. Operator price on **create** → 201; price **edit** → 403. **Gate only:** `FINANCE_CALCULATE_SETTLEMENTS`, `FINANCE_ADJUST_SETTLEMENT` and `FINANCE_MARK_SETTLEMENT_PAID` were each 403 before grant and 403 after revoke. With the grant, each request passed the gate into business validation: "No revenue share rate", then 409 "no unsettled ledger entries", then 400 "Period is not closed". End-to-end calculate-twice / adjust-new-row / mark-paid-once could not run: settlements need revenue dated in a **closed** period for a synthetic teacher, and `demo` has none (all synthetic revenue is dated today). Reaching the synthetic `course-summary-seed` tenant needs a Host mapping that isn't configured locally and wasn't authorised in this session. |
+| B4 | By-id bypass fixes | **PASS** (15/15) | Finance Staff by default: archived course detail 200. After revoking `COURSES_VIEW_ARCHIVED`: `GET /courses/{archived}`, `/modules` and `/roster` → **403**; the list stays 200; regrant → 200. Pending student by default: detail 200. After revoking `STUDENTS_VIEW_PENDING`: `/students/{id}`, `/detail`, `/profile-fields` and `/devices` → **403**; directory `tab=PENDING` → 403; QR export of the pending id is silently skipped (832-byte sheet, byte-identical to an unknown id); regrant → 200. |
+| B5 | Assignable roles = 9 with descriptions; forged roles; cross-tenant | **PASS** (14/14 + UI) | API returns 9 roles `{code, displayName}`. Descriptions are frontend copy: the role helper under the select and the "What each role can do" guide list all 9, each with a description (`m03-*-05-add-user-role-guide.png`). Create with `TENANT_ADMIN`, `TEACHER`, `TEACHER_ASSISTANT`, `STUDENT` or `PLATFORM_ADMIN` → 400. Change role → `TENANT_ADMIN` → 400. Finance Staff → Read-only Auditor → 200 (then restored). Tenant-B staff GET/PUT role → 404. Finance Staff on a tenant-B course, a tenant-B student, or an unknown settlement → 404. |
+| B6 | Browser: Roles shown (all 10), Add User role descriptions, Finance Staff nav after revoke | **PASS with 1 layout defect** | Default shows "4 of 10 roles shown" (Operator, Manager, Teacher, Finance Staff); after "All" it shows 10/10 with the right headers, a sideways-scrolling pane, and sticky Permission column and header (`m03-desktop-01..04`). On mobile, the role selector offers all 10 (`m03-mobile-03`), and Add User is a full-screen sheet (`m03-mobile-05`). Finance Staff nav before: 15 links including Expenses and Teacher Payouts. After revoking `FINANCE_VIEW_EXPENSES` and `TEACHERS_VIEW_WALLET`, Expenses and Teacher Payouts are gone, and Staff never appears (`m03-*-06-*`). **Defect:** with 10 roles at 1440×900, the page scrolls horizontally by 147 px (`m03-desktop-07-page-horizontal-overflow.png`). |
+
+## STAFF-MGMT-03 defects / observations
+
+1. **The page overflows horizontally by 147 px with "Roles shown" = 10 at 1440×900.**
+   - Files: `frontend/src/app/(tenant-admin)/tenant-admin/staff/permissions-tab.tsx:621` (the `sr-only` span in non-editable cells) and `:442` (the scroll pane, which has no `relative`).
+   - Cause: 129 `sr-only` spans in "—"/lock cells beyond the pane's visible width are positioned against a containing block outside `permission-matrix-scroll`, so the pane's `overflow-auto` does not clip them.
+   - Repro: log in as Tenant Admin → Staff → Permissions → Roles shown → All. `document.documentElement.scrollWidth - innerWidth` = 147, and `window.scrollTo(10000, 0)` gives `scrollX` = 147. With 4 roles it is 0.
+   - Likely fix: add `relative` to the pane or the cell.
+2. **There is no "reset to default" for seeded-role cells.** A revoke followed by a regrant leaves an explicit `granted = true` override row. Seven such rows now exist in `demo`: FINANCE_STAFF × 6 and TEACHER/MODULES_ADD. The effective matrix equals the baseline (0 cell differences, version 20→66), and for these capabilities the implied pairs are within the static pairs, so behaviour is identical. However, per §6.1 an explicit grant *elevates* implied pairs, so for a capability whose implied pairs exceed the role's static pairs, "un-revoking" would broaden access. This is a design observation; consider a "restore default" action that deletes the row.
+3. **Synthetic financial rows created, and they are append-only so they can't be removed:**
+   - two CONFIRMED manual enrollments of `m03-stu-mw7ve682@example.test`, one on a course taught by the demo teacher `sampath@gmail.com`;
+   - one voided expense;
+   - one revoked free card;
+   - a 70% share rate for the synthetic `teacher3-mw7e8adx` (from 2019-01-01).
+
+### STAFF-MGMT-03 follow-up fixes (2026-11-08)
+
+- **B6 defect fixed:** the permission matrix pane is now `relative`, so screen-reader text in
+  locked/unavailable cells stays inside the scroll pane. Live rerun of
+  `e2e/staff-management-m03-live.spec.ts` (Tenant Admin screens): `pageOverflowPx = 0` at 1440×900 and
+  390×844 with all 10 roles shown (`m03-desktop-report.json`, `m03-mobile-report.json`).
+- **Override rows fixed:** saving a value equal to the role's default now deletes the override instead of
+  storing it. At runtime, an explicit grant only elevates a promoted role when its default is off, so the
+  7 rows already in `demo` cannot widen access. Covered in `CapabilityEnforcementIntegrationTest` 19/19,
+  where a revoke then regrant leaves no row.
+- **B3 settlements:** live end-to-end is BLOCKED by the lack of closed-period revenue in a reachable
+  synthetic tenant. Calculate-twice idempotency and adjustment-as-new-row are covered by
+  `TeacherSettlementIntegrationTest` (10/10, Testcontainers), and the live grant/deny gates PASS.
