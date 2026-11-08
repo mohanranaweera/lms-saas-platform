@@ -7,6 +7,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DeviceManagementApi;
 import com.lms.identityaccessservice.api.DeviceSlotSummary;
 import com.lms.identityaccessservice.api.DeviceView;
+import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.usermanagement.student.domain.StudentProfile;
 import com.lms.usermanagement.student.repository.StudentProfileRepository;
 import java.util.Map;
@@ -31,11 +32,15 @@ public class StudentDeviceService {
 
 	private final AuditLogApi auditLogApi;
 
+	private final PermissionCheckService permissionCheckService;
+
 	public StudentDeviceService(StudentProfileRepository studentProfileRepository,
-			DeviceManagementApi deviceManagementApi, AuditLogApi auditLogApi) {
+			DeviceManagementApi deviceManagementApi, AuditLogApi auditLogApi,
+			PermissionCheckService permissionCheckService) {
 		this.studentProfileRepository = studentProfileRepository;
 		this.deviceManagementApi = deviceManagementApi;
 		this.auditLogApi = auditLogApi;
+		this.permissionCheckService = permissionCheckService;
 	}
 
 	@Transactional(readOnly = true)
@@ -72,8 +77,10 @@ public class StudentDeviceService {
 	}
 
 	private StudentProfile requireProfile(UUID studentProfileId) {
-		return studentProfileRepository.findById(studentProfileId)
+		StudentProfile profile = studentProfileRepository.findById(studentProfileId)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
+		return profile;
 	}
 
 	private void recordOnProfile(StudentProfile profile, String action, String reason, Map<String, Object> metadata) {

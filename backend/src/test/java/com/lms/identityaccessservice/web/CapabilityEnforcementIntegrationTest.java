@@ -736,6 +736,118 @@ class CapabilityEnforcementIntegrationTest extends StudentManagementTestSupport 
 		}
 	}
 
+	// ------------------------------------------------------------------ STAFF-MGMT-03 review: by-id bypasses
+
+	@Test
+	void aRevokedViewPendingCapabilityBlocksEveryByIdReadOfAPendingStudent() throws Exception {
+		Fx fx = fixture("cap-pending-id");
+		UUID pending = createStudentId(fx, "Pend", "Ing");
+		UUID active = createStudentId(fx, "Act", "Ive");
+		String payload = body(call(HttpMethod.GET, "/api/v1/students/" + pending + "/qr", fx, fx.adminToken(), null),
+				200).path("payload").asString();
+		jdbcTemplate.update("UPDATE student_profile SET pending_approval = true WHERE id = ?", pending);
+		String support = staffToken(fx, Role.STUDENT_SUPPORT);
+		List<String> paths = List.of("/api/v1/students/%s", "/api/v1/students/%s/detail",
+				"/api/v1/students/%s/profile-fields", "/api/v1/students/%s/photo", "/api/v1/students/%s/remarks",
+				"/api/v1/students/%s/qr", "/api/v1/students/%s/devices",
+				"/api/v1/students/%s/enrollments", "/api/v1/students/%s/ledger");
+
+		// Default (static Student Support holds it): nothing changes.
+		for (String path : paths) {
+			assertThat(statusOf(HttpMethod.GET, path.formatted(pending), fx, support)).as(path).isNotIn(401, 403);
+		}
+		grant(fx, "STUDENT_SUPPORT", false, "STUDENTS_VIEW_PENDING");
+		for (String path : paths) {
+			assertThat(statusOf(HttpMethod.GET, path.formatted(pending), fx, support)).as(path).isEqualTo(403);
+			// An active student stays readable; Tenant Admin is unchanged.
+			assertThat(statusOf(HttpMethod.GET, path.formatted(active), fx, support)).as(path).isNotIn(401, 403);
+			assertThat(statusOf(HttpMethod.GET, path.formatted(pending), fx, fx.adminToken())).as(path)
+				.isNotIn(401, 403);
+		}
+		// The payload is "LMS-STU:1:<hex>" (URI-template safe; the builder encodes it).
+		String resolve = "/api/v1/students/qr/resolve?payload=" + payload;
+		status(call(HttpMethod.GET, resolve, fx, support, null), 403);
+		status(call(HttpMethod.GET, resolve, fx, fx.adminToken(), null), 200);
+
+		// QR labels: the pending student is silently skipped (same contract as other-tenant ids).
+		Map<String, Object> labels = Map.of("studentIds", List.of(pending.toString(), active.toString()));
+		String text = pdfText(call(HttpMethod.POST, "/api/v1/students/qr-export", fx, support, labels).getResponse()
+			.getContentAsByteArray());
+		assertThat(text).contains("Act Ive").doesNotContain("Pend Ing");
+		String adminText = pdfText(call(HttpMethod.POST, "/api/v1/students/qr-export", fx, fx.adminToken(), labels)
+			.getResponse()
+			.getContentAsByteArray());
+		assertThat(adminText).contains("Act Ive", "Pend Ing");
+
+		grant(fx, "STUDENT_SUPPORT", true, "STUDENTS_VIEW_PENDING");
+		for (String path : paths) {
+			assertThat(statusOf(HttpMethod.GET, path.formatted(pending), fx, support)).as(path).isNotIn(401, 403);
+		}
+		status(call(HttpMethod.GET, resolve, fx, support, null), 200);
+
+		// Activity is Tenant Admin / Auditor only: checked with the Auditor.
+		String auditor = staffToken(fx, Role.READ_ONLY_AUDITOR);
+		String activity = "/api/v1/students/" + pending + "/activity";
+		assertThat(statusOf(HttpMethod.GET, activity, fx, auditor)).isEqualTo(200);
+		grant(fx, "READ_ONLY_AUDITOR", false, "STUDENTS_VIEW_PENDING");
+		assertThat(statusOf(HttpMethod.GET, activity, fx, auditor)).isEqualTo(403);
+		assertThat(statusOf(HttpMethod.GET, "/api/v1/students/" + active + "/activity", fx, auditor)).isEqualTo(200);
+	}
+
+	@Test
+	void aRevokedViewArchivedCapabilityBlocksEveryByIdReadOfAnArchivedCourse() {
+		Fx fx = fixture("cap-archived-id");
+		UUID course = fx.courseId();
+		String moduleId = body(call(HttpMethod.POST, "/api/v1/courses/" + course + "/modules", fx, fx.adminToken(),
+				Map.of("title", "Week 1")), 201).path("id").asString();
+		status(call(HttpMethod.POST, "/api/v1/courses/" + course + "/archive", fx, fx.adminToken(), null), 200);
+		String op = staffToken(fx, Role.OPERATOR);
+		String examManager = staffToken(fx, Role.EXAM_MANAGER);
+		List<String> paths = List.of("/api/v1/courses/%s", "/api/v1/courses/%s/modules",
+				"/api/v1/courses/%s/modules/" + moduleId + "/lessons", "/api/v1/courses/%s/roster",
+				"/api/v1/courses/%s/class-schedule");
+		grant(fx, "OPERATOR", true, "COURSES_VIEW", "MODULES_VIEW", "COURSES_VIEW_STUDENTS", "TIMETABLE_VIEW");
+
+		for (String path : paths) {
+			assertThat(statusOf(HttpMethod.GET, path.formatted(course), fx, op)).as(path).isEqualTo(403);
+			assertThat(statusOf(HttpMethod.GET, path.formatted(course), fx, fx.adminToken())).as(path)
+				.isNotIn(401, 403);
+		}
+		String config = "/api/v1/exams/course-config/" + course;
+		assertThat(statusOf(HttpMethod.GET, config, fx, examManager)).isNotIn(401, 403);
+		grant(fx, "EXAM_MANAGER", false, "COURSES_VIEW_ARCHIVED");
+		assertThat(statusOf(HttpMethod.GET, config, fx, examManager)).isEqualTo(403);
+		assertThat(statusOf(HttpMethod.GET, config, fx, fx.adminToken())).isNotIn(401, 403);
+
+		grant(fx, "OPERATOR", true, "COURSES_VIEW_ARCHIVED");
+		for (String path : paths) {
+			assertThat(statusOf(HttpMethod.GET, path.formatted(course), fx, op)).as(path).isNotIn(401, 403);
+		}
+		// The owning Teacher is unaffected.
+		String teacher = loginAndGetToken(fx.host(), "teacher@example.test");
+		status(call(HttpMethod.GET, "/api/v1/courses/" + course, fx, teacher, null), 200);
+	}
+
+	private int statusOf(HttpMethod method, String path, Fx fx, String token) {
+		return call(method, path, fx, token, null).getResponse().getStatus();
+	}
+
+	private static String pdfText(byte[] bytes) throws Exception {
+		com.lowagie.text.pdf.PdfReader reader = new com.lowagie.text.pdf.PdfReader(bytes);
+		try {
+			StringBuilder text = new StringBuilder();
+			com.lowagie.text.pdf.parser.PdfTextExtractor extractor = new com.lowagie.text.pdf.parser.PdfTextExtractor(
+					reader);
+			for (int page = 1; page <= reader.getNumberOfPages(); page++) {
+				text.append(extractor.getTextFromPage(page)).append('\n');
+			}
+			return text.toString();
+		}
+		finally {
+			reader.close();
+		}
+	}
+
 	// ------------------------------------------------------------------ helpers
 
 	private MvcResult call(HttpMethod method, String path, Fx fx, String token, Object requestBody) {

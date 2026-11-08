@@ -298,8 +298,10 @@ public class StudentProfileFieldsService {
 
 	private StudentProfile staffProfile(UUID studentProfileId) {
 		// Tenant-scoped findById: another tenant's id is structurally invisible (404).
-		return studentProfileRepository.findById(studentProfileId)
+		StudentProfile profile = studentProfileRepository.findById(studentProfileId)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
+		return profile;
 	}
 
 }

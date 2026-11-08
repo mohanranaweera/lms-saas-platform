@@ -64,6 +64,10 @@ public class CourseRosterService {
 				&& !permissionCheckService.hasPermission(DomainArea.COURSES, PermissionAction.VIEW)) {
 			throw new AccessDeniedException("You do not have permission to perform this action");
 		}
+		else if (courseLookupApi.findCatalogInfo(courseId).map(info -> info.archived()).orElse(false)) {
+			// STAFF-MGMT-03 §6.2: an archived course's roster needs View Archived Courses for staff.
+			permissionCheckService.requireCapability(com.lms.identityaccessservice.api.Capability.COURSES_VIEW_ARCHIVED);
+		}
 
 		List<UUID> enrolledUserIds = enrollmentAccessApi.listCurrentlyEnrolledStudentIds(courseId);
 		List<StudentSummary> summaries = studentLookupApi.getStudentSummariesByUserId(enrolledUserIds);

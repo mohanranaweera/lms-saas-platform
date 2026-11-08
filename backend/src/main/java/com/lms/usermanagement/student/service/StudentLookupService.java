@@ -8,6 +8,7 @@ import com.lms.usermanagement.api.RegistrationReportStudent;
 import com.lms.usermanagement.api.StudentLookupApi;
 import com.lms.usermanagement.api.UnpaidStudentProfile;
 import com.lms.usermanagement.api.StudentSummary;
+import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.usermanagement.student.domain.StudentProfile;
 import com.lms.usermanagement.student.repository.StudentProfileRepository;
 import java.util.ArrayList;
@@ -48,10 +49,13 @@ public class StudentLookupService implements StudentLookupApi {
 
 	private final UserProvisioningApi userProvisioningApi;
 
+	private final PermissionCheckService permissionCheckService;
+
 	public StudentLookupService(StudentProfileRepository studentProfileRepository,
-			UserProvisioningApi userProvisioningApi) {
+			UserProvisioningApi userProvisioningApi, PermissionCheckService permissionCheckService) {
 		this.studentProfileRepository = studentProfileRepository;
 		this.userProvisioningApi = userProvisioningApi;
+		this.permissionCheckService = permissionCheckService;
 	}
 
 	@Override
@@ -59,7 +63,11 @@ public class StudentLookupService implements StudentLookupApi {
 		// findById is tenant-scoped by TenantAwareRepositoryImpl - a
 		// cross-tenant studentProfileId is structurally invisible here,
 		// resolving to empty, never a cross-tenant id leak.
-		return studentProfileRepository.findById(studentProfileId).map(StudentProfile::getUserId);
+		// STAFF-MGMT-03: staff resolving a pending student by profile id (payment history, enroll,
+		// attendance, ...) need View Pending Students; Teacher/Student/background callers unchanged.
+		Optional<StudentProfile> profile = studentProfileRepository.findById(studentProfileId);
+		profile.ifPresent(p -> PendingStudentAccess.require(permissionCheckService, p));
+		return profile.map(StudentProfile::getUserId);
 	}
 
 	@Override

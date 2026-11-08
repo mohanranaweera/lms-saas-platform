@@ -6,6 +6,7 @@ import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.error.RequestRefusedException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.common.tenant.TenantContextHolder;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.Capability;
@@ -183,7 +184,8 @@ public class ImpersonationService implements ImpersonationApi {
 	 */
 	@Transactional(noRollbackFor = RequestRefusedException.class)
 	public TokenGrant exchange(String rawSecret) {
-		if (rawSecret == null || rawSecret.isBlank()) {
+		if (rawSecret == null || rawSecret.isBlank() || !TenantContextHolder.isSet()) {
+			// No resolved tenant: fail closed (401) before any tenant-scoped lookup.
 			throw invalidSession();
 		}
 		ImpersonationSession session = sessionRepository
@@ -255,6 +257,9 @@ public class ImpersonationService implements ImpersonationApi {
 	 */
 	@Transactional
 	public boolean isTokenSessionUsable(UUID sessionId, UUID subjectUserId, UUID actorUserId) {
+		if (!TenantContextHolder.isSet()) {
+			return false;
+		}
 		Optional<ImpersonationSession> found = sessionRepository.findById(sessionId);
 		if (found.isEmpty()) {
 			return false;
@@ -274,6 +279,11 @@ public class ImpersonationService implements ImpersonationApi {
 		if (session.isEnded()) {
 			return false;
 		}
+		// Fail closed (never a 500, never a write) without a resolved tenant or for a session of
+		// another tenant: the actor's role and grants can only be re-checked in its own tenant.
+		if (!TenantContextHolder.isSet() || !session.getTenantId().equals(tenantContext.getTenantId())) {
+			return false;
+		}
 		if (!now.isBefore(session.getExpiresAt())) {
 			endAndAudit(session, EndReason.EXPIRED, now, session.getActorUserId());
 			return false;
@@ -286,8 +296,8 @@ public class ImpersonationService implements ImpersonationApi {
 			// rejects a token presented on another tenant's host before this runs).
 			.map(actor -> actor.getStatus() == AccountStatus.ACTIVE
 					&& (actor.getRole() == Role.TENANT_ADMIN
-							|| (session.getTenantId().equals(tenantContext.getTenantId()) && permissionCheckService
-								.roleHoldsCapability(actor.getRole().name(), Capability.STUDENTS_LOG_AS))))
+							|| permissionCheckService.roleHoldsCapability(actor.getRole().name(),
+									Capability.STUDENTS_LOG_AS)))
 			.orElse(false);
 		if (!actorActive || !isActorSessionUsable(session.getActorSessionId(), now)) {
 			endAndAudit(session, EndReason.ACTOR_REVOKED, now, session.getActorUserId());

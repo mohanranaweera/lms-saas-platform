@@ -196,6 +196,17 @@ public class ExamAccessGuard {
 		return null;
 	}
 
+	/**
+	 * STAFF-MGMT-03 §6.2: staff reading an archived course's data need View Archived Courses
+	 * (Teacher ownership and Teacher Assistant paths unchanged).
+	 */
+	public void requireArchivedCourseAccess(boolean archived) {
+		String role = AuthenticatedPrincipalHolder.get().role();
+		if (archived && !TEACHER_ROLE.equals(role) && !TEACHER_ASSISTANT_ROLE.equals(role)) {
+			permissionCheckService.requireCapability(com.lms.identityaccessservice.api.Capability.COURSES_VIEW_ARCHIVED);
+		}
+	}
+
 	private void requireNotTeacherAssistant(UUID courseId) {
 		if (TEACHER_ASSISTANT_ROLE.equals(AuthenticatedPrincipalHolder.get().role())) {
 			// Same 404-before-403 order as every other check: an unknown course stays 404.

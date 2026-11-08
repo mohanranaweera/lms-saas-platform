@@ -10,6 +10,7 @@ import com.lms.enrollmentmanagement.api.CourseAccessDecision;
 import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
@@ -66,6 +67,12 @@ public class CourseAccessGuard {
 		this.lessonAccessApi = lessonAccessApi;
 	}
 
+	/** Not a Teacher, Teacher Assistant or Student (their access models are ownership/enrollment). */
+	private static boolean isStaffCaller(AuthenticatedPrincipal principal) {
+		return !TEACHER_ROLE.equals(principal.role()) && !STUDENT_ROLE.equals(principal.role())
+				&& !"TEACHER_ASSISTANT".equals(principal.role());
+	}
+
 	public void requireCourseAccess(Course course, PermissionAction action) {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		if (TEACHER_ROLE.equals(principal.role())) {
@@ -78,6 +85,13 @@ public class CourseAccessGuard {
 				throw new AccessDeniedException("You do not have permission to perform this action");
 			}
 			return; // ownership confirmed, Teacher may proceed
+		}
+		if (action == PermissionAction.VIEW && course.isArchived() && isStaffCaller(principal)) {
+			// STAFF-MGMT-03 §6.2: an archived course read by id (detail, modules, lessons, class
+			// schedule, billing) needs View Archived Courses for staff - checked before the PUBLIC
+			// shortcut so a revoked capability cannot be bypassed by id. Static roles hold it
+			// exactly when they hold COURSES/VIEW; Teacher (ownership) and Student paths unchanged.
+			permissionCheckService.requireCapability(Capability.COURSES_VIEW_ARCHIVED);
 		}
 		if (action == PermissionAction.VIEW && course.getStatus() == CourseStatus.PUBLIC) {
 			// A PUBLIC course is already visible to anyone, unauthenticated,

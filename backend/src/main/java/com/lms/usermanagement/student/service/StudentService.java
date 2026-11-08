@@ -142,6 +142,7 @@ public class StudentService {
 		// here, surfacing as empty (-> 404), never a cross-tenant read.
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
 		StudentAccount account = toStudentAccount(profile, summariesByUserId);
 		if (account == null) {
@@ -158,6 +159,7 @@ public class StudentService {
 
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		profile.rename(name);
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
 		StudentAccount account = toStudentAccount(profile, summariesByUserId);
@@ -181,6 +183,7 @@ public class StudentService {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		userProvisioningApi.activateTenantUser(profile.getUserId());
 		// STU-MGMT-02: activating a pending self-registration also approves it.
 		profile.approve();
@@ -195,6 +198,7 @@ public class StudentService {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		userProvisioningApi.suspendTenantUser(profile.getUserId());
 		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.deactivated",
 				"student_profile", profile.getId()));
@@ -211,6 +215,7 @@ public class StudentService {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		String temporaryPassword = userProvisioningApi.resetPassword(profile.getUserId());
 		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.password_reset",
 				"student_profile", profile.getId()));
@@ -228,9 +233,9 @@ public class StudentService {
 	 */
 	@Transactional(readOnly = true)
 	public PageResponse<AuditActivityEntry> listActivity(UUID id, Pageable pageable) {
-		if (!studentProfileRepository.existsById(id)) {
-			throw new NotFoundException("Student account not found");
-		}
+		StudentProfile target = studentProfileRepository.findById(id)
+			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, target);
 		Page<AuditActivityEntry> page = auditLogApi.findForTarget("student_profile", id, pageable);
 		return PageResponse.from(page);
 	}

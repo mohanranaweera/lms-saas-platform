@@ -157,6 +157,7 @@ public class ExamConfigService {
 		accessGuard.requireAuthoringAccess(courseId, PermissionAction.VIEW);
 		CourseCatalogInfo info = courseLookupApi.findCatalogInfo(courseId)
 			.orElseThrow(() -> new NotFoundException("Course not found"));
+		accessGuard.requireArchivedCourseAccess(info.archived());
 		return new CourseExamConfigView(courseId, info.pricingModel(), criteriaKindFor(info.pricingModel()));
 	}
 

@@ -211,7 +211,9 @@ public class StudentManagementService implements StudentQrLabelApi {
 
 	public StudentDetail approve(UUID id) {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
-		StudentProfile profile = requireManagedStudent(id);
+		// Approval is the pending-student operation itself (STUDENTS_APPROVE_PENDING), so it loads
+		// without the View Pending Students gate.
+		StudentProfile profile = findManagedStudent(id);
 		if (!profile.isPendingApproval()) {
 			throw new ConflictException("This student is not awaiting approval");
 		}
@@ -295,6 +297,7 @@ public class StudentManagementService implements StudentQrLabelApi {
 		StudentProfile profile = studentProfileRepository
 			.findOne((root, query, cb) -> cb.and(cb.equal(root.get("qrToken"), token), cb.isNull(root.get("removedAt"))))
 			.orElseThrow(() -> new NotFoundException("Student not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		return new ResolvedStudent(profile.getId(), profile.getIndexNumber(), profile.getName());
 	}
 
@@ -317,6 +320,8 @@ public class StudentManagementService implements StudentQrLabelApi {
 		return studentProfileRepository.findAllById(ids)
 			.stream()
 			.filter(profile -> !profile.isRemoved())
+			// Silent skip (same contract as other-tenant ids): pending students need View Pending.
+			.filter(profile -> PendingStudentAccess.canSee(permissionCheckService, profile))
 			.sorted(java.util.Comparator
 				.comparingInt((StudentProfile profile) -> String.valueOf(profile.getIndexNumber()).length())
 				.thenComparing(profile -> String.valueOf(profile.getIndexNumber())))
@@ -329,9 +334,18 @@ public class StudentManagementService implements StudentQrLabelApi {
 	// Shared helpers (also used by the photo / remark / impersonation services).
 	// ------------------------------------------------------------------
 
-	/** A non-removed student of this tenant, else 404. */
+	/**
+	 * A non-removed student of this tenant, else 404; a pending student additionally needs View
+	 * Pending Students for staff callers (403), STAFF-MGMT-03.
+	 */
 	@Transactional(readOnly = true)
 	public StudentProfile requireManagedStudent(UUID id) {
+		StudentProfile profile = findManagedStudent(id);
+		PendingStudentAccess.require(permissionCheckService, profile);
+		return profile;
+	}
+
+	private StudentProfile findManagedStudent(UUID id) {
 		return studentProfileRepository.findById(id)
 			.filter(profile -> !profile.isRemoved())
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
