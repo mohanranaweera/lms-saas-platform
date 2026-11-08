@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.exammanagement.service.exam.ExamEnrollmentService;
@@ -35,6 +37,7 @@ public class ExamEnrollmentController {
 
 	@PostMapping("/enrollments")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_MANAGE)
 	public ResponseEntity<ApiResponse<EnrollResultView>> enroll(@PathVariable UUID examId,
 			@RequestBody ExamEnrollRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(enrollmentService.enroll(examId, request.studentIds())));
@@ -42,6 +45,7 @@ public class ExamEnrollmentController {
 
 	@DeleteMapping("/enrollments/{studentId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_MANAGE)
 	public ResponseEntity<Void> remove(@PathVariable UUID examId, @PathVariable UUID studentId) {
 		enrollmentService.remove(examId, studentId);
 		return ResponseEntity.noContent().build();
@@ -49,6 +53,7 @@ public class ExamEnrollmentController {
 
 	@GetMapping("/enrollment-candidates")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_MANAGE)
 	public ResponseEntity<ApiResponse<PageResponse<EnrollmentCandidateView>>> candidates(@PathVariable UUID examId,
 			@RequestParam(required = false) String search, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size) {
@@ -57,6 +62,7 @@ public class ExamEnrollmentController {
 
 	@PostMapping("/enrollments/sync-payments")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_MANAGE)
 	public ResponseEntity<ApiResponse<SyncResultView>> syncPayments(@PathVariable UUID examId) {
 		return ResponseEntity.ok(ApiResponse.success(enrollmentService.syncPayments(examId)));
 	}

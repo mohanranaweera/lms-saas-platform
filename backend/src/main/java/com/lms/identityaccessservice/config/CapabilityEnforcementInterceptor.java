@@ -7,7 +7,6 @@ import com.lms.identityaccessservice.api.RequiresCapability;
 import com.lms.identityaccessservice.service.CapabilityElevationHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.Set;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.method.HandlerMethod;
@@ -21,6 +20,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * <li>OPERATOR/MANAGER: no tenant grant -&gt; 403; granted -&gt; the capability's implied pairs
  * are elevated on this thread for this request only;
  * <li>TEACHER: a revoked teacher-configurable capability -&gt; 403 (never elevates);
+ * <li>seeded staff sub-roles (STAFF-MGMT-03 §6.1): an explicit tenant grant elevates like
+ * Operator/Manager, an explicit revoke -&gt; 403, no override row -&gt; no-op (static matrix);
  * <li>every other role: no-op.
  * </ul>
  * The elevation is cleared at the start of every request and in {@link #afterCompletion}, which
@@ -28,8 +29,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * throws), so it never leaks to the next request served by this pooled thread.
  */
 public class CapabilityEnforcementInterceptor implements HandlerInterceptor {
-
-	private static final Set<String> CONFIGURABLE_STAFF_ROLES = Set.of("OPERATOR", "MANAGER");
 
 	private final PermissionCheckService permissionCheckService;
 
@@ -49,16 +48,12 @@ public class CapabilityEnforcementInterceptor implements HandlerInterceptor {
 			return true;
 		}
 		Capability capability = annotation.value();
-		String role = AuthenticatedPrincipalHolder.get().role();
-		if (role != null && CONFIGURABLE_STAFF_ROLES.contains(role)) {
-			if (!permissionCheckService.hasCapability(capability)) {
-				throw new AccessDeniedException("You do not have permission to perform this action");
+		switch (permissionCheckService.capabilityGate(capability)) {
+			case DENY -> throw new AccessDeniedException("You do not have permission to perform this action");
+			case ELEVATE -> CapabilityElevationHolder.set(capability.implied());
+			case PASS -> {
+				// The endpoint's existing static / service checks decide.
 			}
-			CapabilityElevationHolder.set(capability.implied());
-		}
-		else if ("TEACHER".equals(role) && capability.isTeacherConfigurable()
-				&& !permissionCheckService.hasCapability(capability)) {
-			throw new AccessDeniedException("You do not have permission to perform this action");
 		}
 		return true;
 	}

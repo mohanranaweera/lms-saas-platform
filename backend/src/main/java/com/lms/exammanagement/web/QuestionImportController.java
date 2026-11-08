@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.exammanagement.service.questionbank.QuestionBankViews.ImportOutcome;
@@ -40,6 +42,7 @@ public class QuestionImportController {
 
 	@GetMapping("/question-imports/template.csv")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_IMPORT)
 	public ResponseEntity<byte[]> template() {
 		byte[] body = service.template();
 		return ResponseEntity.ok()
@@ -52,6 +55,7 @@ public class QuestionImportController {
 	@PostMapping(path = "/courses/{courseId}/modules/{moduleId}/question-imports",
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_IMPORT)
 	public ResponseEntity<ApiResponse<QuestionImportView>> importCsv(@PathVariable UUID courseId,
 			@PathVariable UUID moduleId, @RequestPart(name = "file", required = false) MultipartFile file,
 			@RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
@@ -62,6 +66,7 @@ public class QuestionImportController {
 
 	@GetMapping("/courses/{courseId}/modules/{moduleId}/question-imports")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_IMPORT)
 	public ResponseEntity<ApiResponse<PageResponse<QuestionImportView>>> history(@PathVariable UUID courseId,
 			@PathVariable UUID moduleId, @RequestParam(required = false) String search,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {

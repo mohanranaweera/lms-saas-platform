@@ -121,8 +121,8 @@ class StaffManagementIntegrationTest extends StaffApiTestSupport {
 	@Test
 	void forgedLegacyOrAdminRolesAreRejectedWith400AndWriteNothing() {
 		Fx fx = tenantWithAdmin("staff-forged");
-		for (String role : List.of("TENANT_ADMIN", "PLATFORM_ADMIN", "STUDENT", "TEACHER", "FINANCE_STAFF",
-				"READ_ONLY_AUDITOR", "operator", "BOGUS")) {
+		for (String role : List.of("TENANT_ADMIN", "PLATFORM_ADMIN", "STUDENT", "TEACHER", "TEACHER_ASSISTANT",
+				"operator", "finance_staff", "BOGUS")) {
 			String email = uniqueEmail("forged");
 			JsonNode body = expect(call(HttpMethod.POST, STAFF, fx.host(), fx.adminToken(), Map.of("firstName", "F",
 					"lastName", "R", "email", email, "mobileNumber", "0771234567", "roleCode", role)), 400);
@@ -134,14 +134,34 @@ class StaffManagementIntegrationTest extends StaffApiTestSupport {
 	}
 
 	@Test
-	void assignableRolesAreOperatorAndManagerOnly() {
+	void assignableRolesAreOperatorManagerAndTheSevenSeededRoles() {
 		Fx fx = tenantWithAdmin("staff-assignable");
 		JsonNode roles = expect(call(HttpMethod.GET, STAFF + "/assignable-roles", fx.host(), fx.adminToken(), null),
 				200).path("data");
-		assertThat(roles).hasSize(2);
-		assertThat(roles.get(0).path("code").asString()).isEqualTo("OPERATOR");
+		List<String> codes = new ArrayList<>();
+		roles.forEach(r -> codes.add(r.path("code").asString()));
+		// STAFF-MGMT-03 §6.1: 9 roles; never Tenant Admin / Teacher / Teacher Assistant / Student.
+		assertThat(codes).containsExactly("OPERATOR", "MANAGER", "FINANCE_STAFF", "COURSE_COORDINATOR",
+				"STUDENT_SUPPORT", "CONTENT_MANAGER", "EXAM_MANAGER", "ATTENDANCE_OPERATOR", "READ_ONLY_AUDITOR");
 		assertThat(roles.get(0).path("displayName").asString()).isEqualTo("Operator");
-		assertThat(roles.get(1).path("code").asString()).isEqualTo("MANAGER");
+		assertThat(roles.get(2).path("displayName").asString()).isEqualTo("Finance Staff");
+	}
+
+	@Test
+	void aSeededRoleCanBeInvitedAndAssignedButTenantAdminIsStillRejected() {
+		Fx fx = tenantWithAdmin("staff-seeded");
+		JsonNode created = createStaff(fx, "Fin", "Ance", uniqueEmail("fin"), "FINANCE_STAFF");
+		assertThat(created.path("roleCode").asString()).isEqualTo("FINANCE_STAFF");
+		String id = created.path("id").asString();
+		assertThat(expect(call(HttpMethod.PUT, STAFF + "/" + id + "/role", fx.host(), fx.adminToken(),
+				Map.of("roleCode", "READ_ONLY_AUDITOR")), 200).path("data").path("roleCode").asString())
+			.isEqualTo("READ_ONLY_AUDITOR");
+		for (String forged : List.of("TENANT_ADMIN", "TEACHER", "TEACHER_ASSISTANT", "STUDENT")) {
+			expect(call(HttpMethod.PUT, STAFF + "/" + id + "/role", fx.host(), fx.adminToken(),
+					Map.of("roleCode", forged)), 400);
+		}
+		assertThat(jdbcTemplate.queryForObject("SELECT role FROM tenant_user WHERE id = (SELECT user_id FROM "
+				+ "staff_profile WHERE id = ?::uuid)", String.class, id)).isEqualTo("READ_ONLY_AUDITOR");
 	}
 
 	// ------------------------------------------------------------------ list / search
@@ -209,7 +229,7 @@ class StaffManagementIntegrationTest extends StaffApiTestSupport {
 		assertThat(metadata).contains("\"from\"").contains("OPERATOR").contains("MANAGER");
 
 		// Forged target roles.
-		for (String role : List.of("TENANT_ADMIN", "FINANCE_STAFF", "STUDENT")) {
+		for (String role : List.of("TENANT_ADMIN", "TEACHER", "STUDENT")) {
 			expect(call(HttpMethod.PUT, STAFF + "/" + id + "/role", fx.host(), fx.adminToken(),
 					Map.of("roleCode", role)), 400);
 		}

@@ -13,6 +13,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.Capability;
 import com.lms.identityaccessservice.api.CapabilityAvailability;
+import com.lms.identityaccessservice.api.CapabilityGate;
 import com.lms.identityaccessservice.api.ConfigurableRole;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
@@ -112,7 +113,8 @@ class CapabilitySemanticsTest {
 			}
 			AuthenticatedPrincipalHolder.clear();
 		}
-		verify(store, never()).findOverridesForRole(anyString());
+		// Tenant Admin is never configurable: its grants are never read.
+		verify(store, never()).findOverridesForRole("TENANT_ADMIN");
 	}
 
 	@Test
@@ -183,6 +185,150 @@ class CapabilitySemanticsTest {
 		assertThat(service.hasCapability(Capability.COURSES_VIEW)).isFalse();
 		assertThatThrownBy(() -> service.requireCapability(Capability.COURSES_VIEW))
 			.isInstanceOf(AccessDeniedException.class);
+	}
+
+	// ------------------------------------------------------------------ seeded sub-roles (STAFF-MGMT-03 §6.1)
+
+	private static final Set<Role> SEEDED = EnumSet.of(Role.FINANCE_STAFF, Role.COURSE_COORDINATOR,
+			Role.STUDENT_SUPPORT, Role.CONTENT_MANAGER, Role.EXAM_MANAGER, Role.ATTENDANCE_OPERATOR,
+			Role.READ_ONLY_AUDITOR);
+
+	@Test
+	void seededRolesWithoutOverridesKeepExactlyTheirStaticAccess() {
+		// No tenant override rows: rollout must not change anyone's access.
+		when(store.findOverridesForRole(anyString())).thenReturn(Map.of());
+		PermissionCheckServiceImpl staticOnly = new PermissionCheckServiceImpl();
+		for (Role role : SEEDED) {
+			ConfigurableRole column = ConfigurableRole.valueOf(role.name());
+			assertThat(column.isSeeded()).isTrue();
+			as(role);
+			for (Capability capability : Capability.values()) {
+				if (capability.availability() != CapabilityAvailability.ENFORCED) {
+					continue;
+				}
+				// Default = the static matrix holds the primary pair (the only ENFORCED capability with
+				// an extra static allowlist is Enroll Students, whose path also needs PAYMENTS_SLIPS/APPROVE).
+				boolean expected = service.hasPermission(capability.primary().area(), capability.primary().action())
+						&& (capability.staticRoleAllowlist() == null
+								|| capability.staticRoleAllowlist().contains(role.name()));
+				assertThat(service.hasCapability(capability)).as("%s %s", role, capability).isEqualTo(expected);
+				assertThat(PermissionCheckServiceImpl.defaultGrant(column, capability)).as("%s %s", role, capability)
+					.isEqualTo(expected);
+				// No override row: the interceptor is a no-op (no elevation, no denial).
+				assertThat(service.capabilityGate(capability)).as("%s %s", role, capability)
+					.isEqualTo(CapabilityGate.PASS);
+			}
+			for (DomainArea area : DomainArea.values()) {
+				for (PermissionAction action : PermissionAction.values()) {
+					PermissionPair pair = PermissionPair.of(area, action);
+					assertThat(service.hasPermission(area, action)).as("%s %s", role, pair)
+						.isEqualTo(PermissionCheckServiceImpl.staticMatrixGrants(role, pair));
+					assertThat(service.isDelegated(area, action)).as("%s %s", role, pair).isFalse();
+				}
+			}
+			// Same answers as the static-matrix-only instance.
+			assertThat(service.effectiveCapabilities()).isEqualTo(staticOnly.effectiveCapabilities());
+			AuthenticatedPrincipalHolder.clear();
+		}
+		assertThat(Stream.of(Capability.values())
+			.filter(c -> c.availability() == CapabilityAvailability.ENFORCED && c.staticRoleAllowlist() != null))
+			.containsExactly(Capability.COURSES_ENROLL_STUDENTS);
+	}
+
+	@Test
+	void everyOperatorCapabilityIsConfigurableForTheSeededRolesAndTheAuditorOnlyForViewOnes() {
+		for (Capability capability : Capability.values()) {
+			boolean operator = capability.isConfigurableFor(ConfigurableRole.OPERATOR);
+			boolean viewOnly = capability.implied().stream().allMatch(pair -> pair.action() == PermissionAction.VIEW);
+			for (ConfigurableRole role : ConfigurableRole.values()) {
+				if (!role.isSeeded()) {
+					continue;
+				}
+				boolean expected = operator && (role != ConfigurableRole.READ_ONLY_AUDITOR || viewOnly);
+				assertThat(capability.isConfigurableFor(role)).as("%s %s", role, capability).isEqualTo(expected);
+			}
+		}
+		assertThat(Capability.STUDENTS_VIEW.isConfigurableFor(ConfigurableRole.READ_ONLY_AUDITOR)).isTrue();
+		assertThat(Capability.STUDENTS_ADD.isConfigurableFor(ConfigurableRole.READ_ONLY_AUDITOR)).isFalse();
+		assertThat(Capability.STUDENTS_ADD.isConfigurableFor(ConfigurableRole.FINANCE_STAFF)).isTrue();
+		// Teacher's set is unchanged by the promotion.
+		assertThat(Capability.STUDENTS_ADD.isTeacherConfigurable()).isFalse();
+	}
+
+	@Test
+	void aSeededExplicitGrantElevatesAndAnExplicitRevokeDeniesOnlyTheAnnotatedEndpoint() {
+		when(store.findOverridesForRole("FINANCE_STAFF"))
+			.thenReturn(Map.of("PAYMENTS_APPROVE_PENDING", false, "COURSES_ADD", true));
+		as(Role.FINANCE_STAFF);
+
+		// Revoke: the annotated endpoint is denied...
+		assertThat(service.capabilityGate(Capability.PAYMENTS_APPROVE_PENDING)).isEqualTo(CapabilityGate.DENY);
+		assertThat(service.hasCapability(Capability.PAYMENTS_APPROVE_PENDING)).isFalse();
+		// ...but unannotated endpoints keep the static matrix.
+		assertThat(service.hasPermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.APPROVE)).isTrue();
+		// A sibling capability on the same pair is unaffected.
+		assertThat(service.capabilityGate(Capability.PAYMENTS_UNDO)).isEqualTo(CapabilityGate.PASS);
+		assertThat(service.hasCapability(Capability.PAYMENTS_UNDO)).isTrue();
+
+		// Grant: elevates the implied pairs for the request only.
+		assertThat(service.capabilityGate(Capability.COURSES_ADD)).isEqualTo(CapabilityGate.ELEVATE);
+		assertThat(service.hasCapability(Capability.COURSES_ADD)).isTrue();
+		assertThat(service.hasPermission(DomainArea.COURSES, PermissionAction.CREATE_EDIT)).isFalse();
+		CapabilityElevationHolder.set(Capability.COURSES_ADD.implied());
+		assertThat(service.hasPermission(DomainArea.COURSES, PermissionAction.CREATE_EDIT)).isTrue();
+		assertThat(service.isDelegated(DomainArea.COURSES, PermissionAction.CREATE_EDIT)).isTrue();
+		// A statically held pair is never "delegated".
+		assertThat(service.isDelegated(DomainArea.COURSES, PermissionAction.VIEW)).isFalse();
+		assertThat(service.hasPermission(DomainArea.COURSES, PermissionAction.DELETE)).isFalse();
+		CapabilityElevationHolder.clear();
+		assertThat(service.hasPermission(DomainArea.COURSES, PermissionAction.CREATE_EDIT)).isFalse();
+
+		// No row: static default.
+		assertThat(service.capabilityGate(Capability.PAYMENTS_VIEW)).isEqualTo(CapabilityGate.PASS);
+		assertThat(service.hasCapability(Capability.STUDENTS_ADD)).isFalse();
+	}
+
+	@Test
+	void readOnlyAuditorNeverGainsAWriteEvenWithAStrayRowOrElevation() {
+		when(store.findOverridesForRole("READ_ONLY_AUDITOR"))
+			.thenReturn(Map.of("STUDENTS_ADD", true, "STUDENTS_VIEW", false));
+		as(Role.READ_ONLY_AUDITOR);
+		assertThat(service.hasCapability(Capability.STUDENTS_ADD)).isFalse();
+		assertThat(service.capabilityGate(Capability.STUDENTS_ADD)).isEqualTo(CapabilityGate.PASS);
+		// View capabilities are configurable (revocable) for the auditor.
+		assertThat(service.capabilityGate(Capability.STUDENTS_VIEW)).isEqualTo(CapabilityGate.DENY);
+		CapabilityElevationHolder.set(Capability.STUDENTS_ADD.implied());
+		assertThat(service.hasPermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT)).isFalse();
+		assertThat(service.isDelegated(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT)).isFalse();
+	}
+
+	@Test
+	void operatorAndManagerAreAlwaysDelegatedAndTheGateIsElevateOrDeny() {
+		when(store.findOverridesForRole("OPERATOR")).thenReturn(Map.of("STUDENTS_VIEW", true));
+		as(Role.OPERATOR);
+		assertThat(service.capabilityGate(Capability.STUDENTS_VIEW)).isEqualTo(CapabilityGate.ELEVATE);
+		assertThat(service.capabilityGate(Capability.STUDENTS_ADD)).isEqualTo(CapabilityGate.DENY);
+		assertThat(service.isDelegated(DomainArea.COURSES, PermissionAction.CREATE_EDIT)).isTrue();
+		AuthenticatedPrincipalHolder.clear();
+		as(Role.TENANT_ADMIN);
+		assertThat(service.capabilityGate(Capability.STUDENTS_VIEW)).isEqualTo(CapabilityGate.PASS);
+		assertThat(service.isDelegated(DomainArea.COURSES, PermissionAction.CREATE_EDIT)).isFalse();
+	}
+
+	@Test
+	void roleHoldsCapabilityUsesTheResolvedTenantsGrantsWithoutAPrincipal() {
+		when(store.findOverridesForRole("MANAGER")).thenReturn(Map.of("STUDENTS_LOG_AS", true));
+		TenantContextHolder.set(TENANT);
+		assertThat(service.roleHoldsCapability("MANAGER", Capability.STUDENTS_LOG_AS)).isTrue();
+		assertThat(service.roleHoldsCapability("OPERATOR", Capability.STUDENTS_LOG_AS)).isFalse();
+		assertThat(service.roleHoldsCapability("TENANT_ADMIN", Capability.STUDENTS_LOG_AS)).isTrue();
+		assertThat(service.roleHoldsCapability("STUDENT_SUPPORT", Capability.STUDENTS_LOG_AS)).isFalse();
+		assertThat(service.roleHoldsCapability("STUDENT", Capability.STUDENTS_LOG_AS)).isFalse();
+		assertThat(service.roleHoldsCapability("PLATFORM_ADMIN", Capability.STUDENTS_LOG_AS)).isFalse();
+		assertThat(service.roleHoldsCapability(null, Capability.STUDENTS_LOG_AS)).isFalse();
+		TenantContextHolder.clear();
+		// No resolved tenant: configurable roles fail closed.
+		assertThat(service.roleHoldsCapability("MANAGER", Capability.STUDENTS_LOG_AS)).isFalse();
 	}
 
 	// ------------------------------------------------------------------ Teacher and others

@@ -8,6 +8,7 @@ import com.lms.common.error.RequestRefusedException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.ImpersonationApi;
 import com.lms.identityaccessservice.api.PermissionAction;
@@ -278,9 +279,15 @@ public class ImpersonationService implements ImpersonationApi {
 			return false;
 		}
 		boolean actorActive = tenantUserRepository.findById(session.getActorUserId())
-			// Still ACTIVE and still a Tenant Admin (the only STUDENT_IMPERSONATION
-			// holder) - a mid-session demotion ends support access immediately.
-			.map(actor -> actor.getStatus() == AccountStatus.ACTIVE && actor.getRole() == Role.TENANT_ADMIN)
+			// Still ACTIVE and still holding Log as Student: a Tenant Admin, or (STAFF-MGMT-03)
+			// a member whose role the tenant has granted STUDENTS_LOG_AS. A mid-session demotion
+			// or a revoked grant ends support access on the next request. Grants are read for
+			// the trusted resolved tenant (the session's own tenant - JwtAuthenticationFilter
+			// rejects a token presented on another tenant's host before this runs).
+			.map(actor -> actor.getStatus() == AccountStatus.ACTIVE
+					&& (actor.getRole() == Role.TENANT_ADMIN
+							|| (session.getTenantId().equals(tenantContext.getTenantId()) && permissionCheckService
+								.roleHoldsCapability(actor.getRole().name(), Capability.STUDENTS_LOG_AS))))
 			.orElse(false);
 		if (!actorActive || !isActorSessionUsable(session.getActorSessionId(), now)) {
 			endAndAudit(session, EndReason.ACTOR_REVOKED, now, session.getActorUserId());

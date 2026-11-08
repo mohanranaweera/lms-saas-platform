@@ -76,6 +76,7 @@ public class ExamController {
 
 	@PostMapping("/courses/{courseId}/exams")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_SCHEDULE)
 	public ResponseEntity<ApiResponse<ExamResponse>> createDraftExam(@PathVariable UUID courseId,
 			@Valid @RequestBody ExamCreateRequest request) {
 		ExamView view = examSchedulingService.createDraftExam(courseId, request.title());
@@ -84,6 +85,7 @@ public class ExamController {
 
 	@PutMapping("/{examId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_EDIT)
 	public ResponseEntity<ApiResponse<Object>> updateExam(@PathVariable UUID examId, @RequestBody JsonNode body) {
 		if (examConfigService.isKlassExam(examId)) {
 			ExamUpsertRequest request = readBody(body, ExamUpsertRequest.class);

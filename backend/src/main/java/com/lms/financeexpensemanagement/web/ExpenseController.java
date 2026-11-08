@@ -74,6 +74,7 @@ public class ExpenseController {
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_ADD_EXPENSE)
 	public ResponseEntity<ApiResponse<ExpenseView>> create(@Valid @ModelAttribute ExpenseCreateRequest request,
 			@RequestPart(value = "attachment", required = false) MultipartFile attachment) {
 		ExpenseView view = expenseService.create(new NewExpenseCommand(request.categoryId(), request.expenseDate(),
@@ -83,6 +84,7 @@ public class ExpenseController {
 
 	@PostMapping("/{expenseId}/void")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VOID_EXPENSE)
 	public ResponseEntity<ApiResponse<ExpenseView>> voidExpense(@PathVariable UUID expenseId,
 			@Valid @RequestBody ExpenseVoidRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(expenseService.voidExpense(expenseId, request.reason())));
@@ -90,6 +92,7 @@ public class ExpenseController {
 
 	@GetMapping("/{expenseId}/attachment-url")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_EXPENSES)
 	public ResponseEntity<ApiResponse<AttachmentUrlResponse>> attachmentUrl(@PathVariable UUID expenseId) {
 		SignedDownloadUrl signed = expenseService.attachmentUrl(expenseId);
 		return ResponseEntity.ok(ApiResponse.success(new AttachmentUrlResponse(signed.url(), signed.expiresAt())));

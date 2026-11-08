@@ -35,7 +35,8 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 		assertThat(m.path("version").asLong()).isZero();
 		List<String> roles = new ArrayList<>();
 		m.path("roles").forEach(r -> roles.add(r.path("code").asString()));
-		assertThat(roles).containsExactly("OPERATOR", "MANAGER", "TEACHER");
+		assertThat(roles).containsExactly("OPERATOR", "MANAGER", "TEACHER", "FINANCE_STAFF", "COURSE_COORDINATOR",
+				"STUDENT_SUPPORT", "CONTENT_MANAGER", "EXAM_MANAGER", "ATTENDANCE_OPERATOR", "READ_ONLY_AUDITOR");
 		assertThat(m.path("groups").get(0).path("label").asString()).isEqualTo("Finance");
 		assertThat(m.path("groups").get(m.path("groups").size() - 1).path("key").asString()).isEqualTo("STAFF");
 
@@ -46,7 +47,47 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 			.isEqualTo("Teacher access is ownership-scoped");
 		assertThat(cell(m, "TUTE_CREATE", "OPERATOR").path("state").asString()).isEqualTo("UNAVAILABLE");
 		assertThat(cell(m, "STAFF_PERMISSIONS_EDIT", "MANAGER").path("state").asString()).isEqualTo("LOCKED");
-		assertThat(cell(m, "STUDENTS_LOG_AS", "OPERATOR").path("state").asString()).isEqualTo("LOCKED");
+		assertThat(cell(m, "FINANCE_ACCOUNT_UPDATE", "OPERATOR").path("state").asString()).isEqualTo("LOCKED");
+		// STAFF-MGMT-03: newly enforced rows are editable; Log as Student defaults to not granted.
+		assertThat(cell(m, "STUDENTS_LOG_AS", "OPERATOR").path("state").asString()).isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "TEACHERS_WALLET_ACTIONS", "MANAGER").path("state").asString()).isEqualTo("UNAVAILABLE");
+
+		// Seeded roles show their static default (primary gate held) until overridden.
+		assertThat(cell(m, "PAYMENTS_APPROVE_PENDING", "FINANCE_STAFF").path("state").asString())
+			.isEqualTo("GRANTED");
+		assertThat(cell(m, "FINANCE_CALCULATE_SETTLEMENTS", "FINANCE_STAFF").path("state").asString())
+			.isEqualTo("GRANTED");
+		assertThat(cell(m, "COURSES_ADD", "FINANCE_STAFF").path("state").asString()).isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "COURSES_ADD", "COURSE_COORDINATOR").path("state").asString()).isEqualTo("GRANTED");
+		// Enroll Students also needs PAYMENTS_SLIPS/APPROVE, so no seeded role holds it by default.
+		assertThat(cell(m, "COURSES_ENROLL_STUDENTS", "STUDENT_SUPPORT").path("state").asString())
+			.isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "STUDENTS_VIEW", "READ_ONLY_AUDITOR").path("state").asString()).isEqualTo("GRANTED");
+		assertThat(cell(m, "STUDENTS_ADD", "READ_ONLY_AUDITOR").path("state").asString()).isEqualTo("LOCKED");
+		assertThat(cell(m, "STUDENTS_ADD", "READ_ONLY_AUDITOR").path("reason").asString())
+			.isEqualTo("Read-only Auditor can only hold view permissions");
+		assertThat(cell(m, "STAFF_VIEW", "READ_ONLY_AUDITOR").path("state").asString()).isEqualTo("LOCKED");
+	}
+
+	@Test
+	void seededRoleCellsShowTheirEffectiveStateAfterAnOverride() {
+		Fx fx = tenantWithAdmin("perm-seeded");
+		expect(saveMatrix(fx, fx.adminToken(), 0, List.of(change("FINANCE_STAFF", "PAYMENTS_APPROVE_PENDING", false),
+				change("FINANCE_STAFF", "COURSES_ADD", true), change("READ_ONLY_AUDITOR", "STUDENTS_VIEW", false))),
+				200);
+		JsonNode m = matrix(fx);
+		assertThat(cell(m, "PAYMENTS_APPROVE_PENDING", "FINANCE_STAFF").path("state").asString())
+			.isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "COURSES_ADD", "FINANCE_STAFF").path("state").asString()).isEqualTo("GRANTED");
+		assertThat(cell(m, "STUDENTS_VIEW", "READ_ONLY_AUDITOR").path("state").asString()).isEqualTo("NOT_GRANTED");
+		// Other seeded cells keep their default.
+		assertThat(cell(m, "PAYMENTS_UNDO", "FINANCE_STAFF").path("state").asString()).isEqualTo("GRANTED");
+		// Re-saving a default value is a no-op (no row, no version bump).
+		expect(saveMatrix(fx, fx.adminToken(), 1, List.of(change("FINANCE_STAFF", "PAYMENTS_UNDO", true))), 200);
+		assertThat(matrix(fx).path("version").asLong()).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM tenant_role_capability_grant WHERE tenant_id = ? AND role_code = 'FINANCE_STAFF'",
+				Long.class, fx.tenantId())).isEqualTo(2);
 	}
 
 	@Test
@@ -98,9 +139,13 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 				List.of(valid, change("MANAGER", "TUTE_CREATE", true)),
 				List.of(valid, change("OPERATOR", "NOT_A_CAPABILITY", true)),
 				List.of(valid, change("TENANT_ADMIN", "STUDENTS_VIEW", true)),
-				List.of(valid, change("FINANCE_STAFF", "STUDENTS_VIEW", true)),
+				List.of(valid, change("TEACHER_ASSISTANT", "STUDENTS_VIEW", true)),
+				// Read-only Auditor: view capabilities only (static "never a write" invariant).
+				List.of(valid, change("READ_ONLY_AUDITOR", "STUDENTS_ADD", true)),
+				List.of(valid, change("READ_ONLY_AUDITOR", "FINANCE_CALCULATE_SETTLEMENTS", true)),
 				List.of(valid, change("TEACHER", "STUDENTS_VIEW", true)),
-				List.of(valid, change("OPERATOR", "STUDENTS_LOG_AS", true)),
+				List.of(valid, change("OPERATOR", "FINANCE_ACCOUNT_UPDATE", true)),
+				List.of(valid, change("FINANCE_STAFF", "TEACHERS_WALLET_ACTIONS", true)),
 				List.of(valid, change("OPERATOR", "STUDENTS_VIEW", false)));
 		for (List<Map<String, Object>> batch : invalid) {
 			JsonNode body = expect(saveMatrix(fx, fx.adminToken(), 0, batch), 400);

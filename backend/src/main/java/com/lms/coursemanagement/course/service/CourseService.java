@@ -25,6 +25,7 @@ import com.lms.coursemanagement.course.repository.CourseSpecifications;
 import com.lms.coursemanagement.course.service.CourseRelationsService.CommissionChange;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
@@ -87,9 +88,6 @@ public class CourseService {
 	private static final String TENANT_ADMIN_ROLE = "TENANT_ADMIN";
 
 	private static final String STUDENT_ROLE = "STUDENT";
-
-	/** STAFF-MGMT-02: tenant-configurable staff roles (grants only, never pricing). */
-	private static final Set<String> CONFIGURABLE_STAFF_ROLES = Set.of("OPERATOR", "MANAGER");
 
 	static final String DEFAULT_CATEGORY = "General";
 
@@ -314,6 +312,11 @@ public class CourseService {
 		}
 		else {
 			permissionCheckService.requirePermission(DomainArea.COURSES, PermissionAction.VIEW);
+			// STAFF-MGMT-03 §6.2: archived courses are a separate capability for staff (Teachers keep
+			// their own archived courses). Static roles hold it exactly when they hold COURSES/VIEW.
+			if (Boolean.TRUE.equals(filter.archived()) || (filter.archived() == null && filter.includeArchived())) {
+				permissionCheckService.requireCapability(Capability.COURSES_VIEW_ARCHIVED);
+			}
 			spec = spec.and(CourseSpecifications.withTeacherId(filter.teacherId()));
 		}
 		if (!isBlank(filter.search())) {
@@ -467,7 +470,9 @@ public class CourseService {
 	 */
 	private void requireNoPricingChangeByConfigurableStaff(Course course, CourseEditCommand command,
 			AuthenticatedPrincipal principal) {
-		if (!CONFIGURABLE_STAFF_ROLES.contains(principal.role())) {
+		// Operator/Manager, or a seeded sub-role holding COURSES/CREATE_EDIT only through a
+		// delegated COURSES_EDIT grant (STAFF-MGMT-03); static holders are unaffected.
+		if (!permissionCheckService.isDelegated(DomainArea.COURSES, PermissionAction.CREATE_EDIT)) {
 			return;
 		}
 		CourseSettingsInput settings = command.settings();

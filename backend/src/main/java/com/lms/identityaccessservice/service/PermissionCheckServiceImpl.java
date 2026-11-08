@@ -5,6 +5,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.Capability;
 import com.lms.identityaccessservice.api.CapabilityAvailability;
+import com.lms.identityaccessservice.api.CapabilityGate;
 import com.lms.identityaccessservice.api.ConfigurableRole;
 import com.lms.identityaccessservice.api.PermissionPair;
 import com.lms.identityaccessservice.repository.CapabilityGrantStore;
@@ -79,6 +80,14 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 	/** STAFF-MGMT-02: roles whose permissions are tenant-configured grants only. */
 	private static final Set<Role> CONFIGURABLE_STAFF_ROLES = EnumSet.of(Role.OPERATOR, Role.MANAGER);
 
+	/**
+	 * STAFF-MGMT-03 §6.1: the seven legacy sub-roles promoted to configurable matrix columns.
+	 * They keep their static matrix; a tenant override only changes annotated endpoints.
+	 */
+	private static final Set<Role> SEEDED_ROLES = EnumSet.of(Role.FINANCE_STAFF, Role.COURSE_COORDINATOR,
+			Role.STUDENT_SUPPORT, Role.CONTENT_MANAGER, Role.EXAM_MANAGER, Role.ATTENDANCE_OPERATOR,
+			Role.READ_ONLY_AUDITOR);
+
 	/** {@code null} only for plain unit tests constructing this class directly (grants then deny). */
 	private final CapabilityGrantStore grantStore;
 
@@ -110,6 +119,9 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// otherwise surface as an unhandled 500) - deny in both cases.
 			return false;
 		}
+		if (domainArea == null || action == null) {
+			return false;
+		}
 		// Teacher/Teacher Assistant/Student are deliberately absent from the
 		// matrix: their permission models are ownership/assignment-scoped,
 		// not domain-flat V/C/E/D/A, and Teacher Assistant's boundary is
@@ -119,11 +131,26 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// STAFF-MGMT-02 §2.3: Operator/Manager hold no static grant. A pair is true only
 			// while CapabilityEnforcementInterceptor has elevated it for THIS request (the
 			// handler's @RequiresCapability was granted); every non-annotated endpoint fails closed.
-			return domainArea != null && action != null
-					&& CapabilityElevationHolder.get().contains(PermissionPair.of(domainArea, action));
+			return isElevated(role, domainArea, action);
 		}
-		Set<PermissionAction> grants = MATRIX.getOrDefault(role, Map.of()).getOrDefault(domainArea, Set.of());
-		return grants.contains(action);
+		if (MATRIX.getOrDefault(role, Map.of()).getOrDefault(domainArea, Set.of()).contains(action)) {
+			return true;
+		}
+		// STAFF-MGMT-03 §6.1: a seeded sub-role additionally holds the pairs elevated for THIS
+		// request by an explicit tenant grant of the handler's capability (never off-request).
+		return SEEDED_ROLES.contains(role) && isElevated(role, domainArea, action);
+	}
+
+	/**
+	 * The interceptor's per-request elevation. Read-only Auditor never receives a write-class
+	 * pair even if one were elevated (defence in depth behind the catalog's view-only rule, so
+	 * the static "auditor never writes" invariant above holds at runtime too).
+	 */
+	private static boolean isElevated(Role role, DomainArea domainArea, PermissionAction action) {
+		if (role == Role.READ_ONLY_AUDITOR && action != PermissionAction.VIEW) {
+			return false;
+		}
+		return CapabilityElevationHolder.get().contains(PermissionPair.of(domainArea, action));
 	}
 
 	@Override
@@ -136,10 +163,10 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			return false;
 		}
 		return switch (role) {
-			case OPERATOR, MANAGER -> configuredGrant(capability, role);
-			case TEACHER -> capability.isTeacherConfigurable() && configuredGrant(capability, role);
+			case OPERATOR, MANAGER, TEACHER -> configuredGrant(capability, role, overridesFor(role));
 			case TEACHER_ASSISTANT, STUDENT -> false;
-			default -> staticCapability(capability, role);
+			default -> SEEDED_ROLES.contains(role) ? seededGrant(capability, role, overridesFor(role))
+					: staticCapability(capability, role);
 		};
 	}
 
@@ -166,6 +193,78 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 		return result;
 	}
 
+	@Override
+	public CapabilityGate capabilityGate(Capability capability) {
+		if (capability == null || !AuthenticatedPrincipalHolder.isSet()) {
+			return CapabilityGate.PASS;
+		}
+		Role role = parseRole(AuthenticatedPrincipalHolder.get().role());
+		if (role == null) {
+			return CapabilityGate.PASS;
+		}
+		if (CONFIGURABLE_STAFF_ROLES.contains(role)) {
+			return hasCapability(capability) ? CapabilityGate.ELEVATE : CapabilityGate.DENY;
+		}
+		if (role == Role.TEACHER) {
+			return capability.isTeacherConfigurable() && !hasCapability(capability) ? CapabilityGate.DENY
+					: CapabilityGate.PASS;
+		}
+		if (SEEDED_ROLES.contains(role)) {
+			ConfigurableRole configurableRole = ConfigurableRole.valueOf(role.name());
+			Map<String, Boolean> overrides = overridesFor(role);
+			Boolean explicit = (overrides == null || !capability.isConfigurableFor(configurableRole)) ? null
+					: overrides.get(capability.key());
+			if (explicit == null) {
+				return CapabilityGate.PASS;
+			}
+			return explicit ? CapabilityGate.ELEVATE : CapabilityGate.DENY;
+		}
+		return CapabilityGate.PASS;
+	}
+
+	@Override
+	public boolean isDelegated(DomainArea domainArea, PermissionAction action) {
+		if (!AuthenticatedPrincipalHolder.isSet() || domainArea == null || action == null) {
+			return false;
+		}
+		Role role = parseRole(AuthenticatedPrincipalHolder.get().role());
+		if (role == null) {
+			return false;
+		}
+		if (CONFIGURABLE_STAFF_ROLES.contains(role)) {
+			return true;
+		}
+		return SEEDED_ROLES.contains(role) && !staticMatrixGrants(role, PermissionPair.of(domainArea, action))
+				&& isElevated(role, domainArea, action);
+	}
+
+	@Override
+	public boolean roleHoldsCapability(String roleCode, Capability capability) {
+		Role role = parseRole(roleCode);
+		if (role == null || capability == null) {
+			return false;
+		}
+		return switch (role) {
+			case OPERATOR, MANAGER, TEACHER -> configuredGrant(capability, role, currentTenantOverrides(role));
+			case TEACHER_ASSISTANT, STUDENT -> false;
+			default -> SEEDED_ROLES.contains(role) ? seededGrant(capability, role, currentTenantOverrides(role))
+					: staticCapability(capability, role);
+		};
+	}
+
+	/**
+	 * Default grant of {@code role} for {@code capability} when the tenant has no override row
+	 * (also used by the permission matrix view): seeded sub-roles - the static matrix holds the
+	 * capability's primary gate (plus its static allowlist); Teacher - granted; Operator/Manager -
+	 * not granted.
+	 */
+	public static boolean defaultGrant(ConfigurableRole role, Capability capability) {
+		if (role.isSeeded()) {
+			return staticCapability(capability, Role.valueOf(role.name()));
+		}
+		return role.defaultGranted();
+	}
+
 	/** Tenant Admin / legacy sub-roles: the capability's primary static gate (+ allowlist). */
 	private static boolean staticCapability(Capability capability, Role role) {
 		if (capability.availability() == CapabilityAvailability.UNAVAILABLE || capability.primary() == null) {
@@ -179,16 +278,31 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 	}
 
 	/** Operator/Manager/Teacher: ENFORCED + configurable for the role + the tenant's grant (or default). */
-	private boolean configuredGrant(Capability capability, Role role) {
-		ConfigurableRole configurableRole = ConfigurableRole.valueOf(role.name());
-		if (!capability.isConfigurableFor(configurableRole)) {
+	private static boolean configuredGrant(Capability capability, Role role, Map<String, Boolean> overrides) {
+		if (role == Role.TEACHER && !capability.isTeacherConfigurable()) {
 			return false;
 		}
-		Map<String, Boolean> overrides = overridesFor(role);
-		if (overrides == null) {
+		ConfigurableRole configurableRole = ConfigurableRole.valueOf(role.name());
+		if (!capability.isConfigurableFor(configurableRole) || overrides == null) {
 			return false;
 		}
 		return overrides.getOrDefault(capability.key(), configurableRole.defaultGranted());
+	}
+
+	/**
+	 * Seeded sub-role (STAFF-MGMT-03 §6.1): an explicit tenant row (grant or revoke) wins for a
+	 * capability configurable for the role; otherwise - including when no grant store / tenant is
+	 * available - the static default, i.e. exactly the pre-STAFF-MGMT-03 behaviour.
+	 */
+	private static boolean seededGrant(Capability capability, Role role, Map<String, Boolean> overrides) {
+		ConfigurableRole configurableRole = ConfigurableRole.valueOf(role.name());
+		if (overrides != null && capability.isConfigurableFor(configurableRole)) {
+			Boolean explicit = overrides.get(capability.key());
+			if (explicit != null) {
+				return explicit;
+			}
+		}
+		return staticCapability(capability, role);
 	}
 
 	/**
@@ -221,6 +335,14 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			attributes.setAttribute(key, overrides, RequestAttributes.SCOPE_REQUEST);
 		}
 		return overrides;
+	}
+
+	/** Like {@link #overridesFor} but principal-independent and never memoised. */
+	private Map<String, Boolean> currentTenantOverrides(Role role) {
+		if (grantStore == null || !TenantContextHolder.isSet()) {
+			return null;
+		}
+		return Map.copyOf(grantStore.findOverridesForRole(role.name()));
 	}
 
 	/** Does {@code role}'s static matrix hold {@code pair}? (Also used by the catalog invariant test.) */

@@ -66,6 +66,7 @@ public class FreeCardController {
 
 	@PostMapping("/{id}/revoke")
 	@PreAuthorize(REVOKE)
+	@RequiresCapability(Capability.PAYMENTS_REVOKE_FREE_CARDS)
 	public ResponseEntity<ApiResponse<FreeCardView>> revoke(@PathVariable UUID id,
 			@RequestBody(required = false) RevokeFreeCardRequest request) {
 		return ResponseEntity

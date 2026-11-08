@@ -67,6 +67,7 @@ public class ExamManagementController {
 
 	@GetMapping("/export.csv")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_GENERATE_REPORT)
 	public ResponseEntity<byte[]> export(@PathVariable UUID examId, @RequestParam(required = false) String search) {
 		CsvExport export = managementService.export(examId, search);
 		return ResponseEntity.ok()

@@ -56,6 +56,7 @@ public class ExamConfigController {
 
 	@PostMapping("/exams")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_SCHEDULE)
 	public ResponseEntity<ApiResponse<ExamDetailView>> create(@RequestBody ExamUpsertRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse.success(configService.create(request.toInput())));

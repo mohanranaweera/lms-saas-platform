@@ -123,6 +123,7 @@ public class LedgerController {
 
 	@GetMapping("/outstanding")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_DASHBOARD_PENDING_PAYMENTS)
 	public ResponseEntity<ApiResponse<PageResponse<OutstandingOrderResponse>>> getOutstanding(
 			@PageableDefault(size = 20) Pageable pageable) {
 		Page<OutstandingOrderView> page = ledgerQueryService.getOutstanding(pageable);

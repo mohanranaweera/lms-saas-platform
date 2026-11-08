@@ -1,5 +1,7 @@
 package com.lms.enrollmentmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.enrollmentmanagement.service.AccessPolicyAdminService;
 import com.lms.enrollmentmanagement.service.AccessPolicyAdminService.CourseAccessPolicyView;
@@ -42,6 +44,7 @@ public class AccessPolicyController {
 
 	@PutMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('ACCESS_EXPIRY', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.PAYMENTS_UPDATE_RULES)
 	public ResponseEntity<ApiResponse<TenantAccessPolicyView>> updateTenantPolicy(
 			@Valid @RequestBody TenantAccessPolicyRequest request) {
 		return ResponseEntity
@@ -57,6 +60,7 @@ public class AccessPolicyController {
 	/** Returns the saved override, or {@code null} data when both values were cleared. */
 	@PutMapping("/courses/{courseId}")
 	@PreAuthorize("@permissionCheckService.hasPermission('ACCESS_EXPIRY', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.PAYMENTS_UPDATE_RULES)
 	public ResponseEntity<ApiResponse<CourseAccessPolicyView>> upsertCoursePolicy(@PathVariable UUID courseId,
 			@Valid @RequestBody CourseAccessPolicyRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(accessPolicyAdminService

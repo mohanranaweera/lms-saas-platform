@@ -259,6 +259,7 @@ public class StudentManagementController {
 
 	@PostMapping("/{id}/impersonation")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENT_IMPERSONATION', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_LOG_AS)
 	public ResponseEntity<ApiResponse<ImpersonationStartResponse>> startImpersonation(@PathVariable UUID id,
 			@Valid @RequestBody ImpersonationStartRequest request) {
 		StudentImpersonationService.Started started = impersonationService.start(id, request.reason());

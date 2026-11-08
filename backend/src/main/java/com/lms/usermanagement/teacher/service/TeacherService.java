@@ -63,9 +63,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class TeacherService {
 
-	/** STAFF-MGMT-02: tenant-configurable staff roles - may never change commission. */
-	private static final Set<String> CONFIGURABLE_STAFF_ROLES = Set.of("OPERATOR", "MANAGER");
-
 	/**
 	 * Approval-authority enforcement path (approved plan §2/§21-item-1,
 	 * recommendation (a)): {@code TEACHERS}/{@code CREATE_EDIT} alone also
@@ -343,13 +340,15 @@ public class TeacherService {
 	 * course pricing in {@code CourseService} - a tenant-configurable role (Operator/Manager)
 	 * granted TEACHERS_ADD/EDIT may not set or change it. Static roles are unaffected.
 	 */
-	/** True only for an authenticated Operator/Manager; false off-request (no principal). */
-	private static boolean isConfigurableStaffActor() {
-		return AuthenticatedPrincipalHolder.isSet()
-				&& CONFIGURABLE_STAFF_ROLES.contains(AuthenticatedPrincipalHolder.get().role());
+	/**
+	 * True for an authenticated Operator/Manager, or a seeded sub-role holding TEACHERS/CREATE_EDIT
+	 * only through a delegated grant (STAFF-MGMT-03); false off-request and for static holders.
+	 */
+	private boolean isConfigurableStaffActor() {
+		return permissionCheckService.isDelegated(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
 	}
 
-	private static void requireCommissionUnchangedByConfigurableRole(java.math.BigDecimal current,
+	private void requireCommissionUnchangedByConfigurableRole(java.math.BigDecimal current,
 			java.math.BigDecimal requested) {
 		if (!isConfigurableStaffActor() || requested == null) {
 			return;

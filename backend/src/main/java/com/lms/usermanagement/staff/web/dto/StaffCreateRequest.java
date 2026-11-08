@@ -10,8 +10,8 @@ import jakarta.validation.constraints.Size;
  * {@code POST /api/v1/staff} body (STAFF-MGMT-02 §2.5, Klass "Add Staff"). All five fields
  * are required. There is deliberately NO password (the invitee sets it through the
  * account-setup email) and no {@code tenantId}/{@code status} (server-derived). {@code roleCode}
- * is validated against the server's assignable set (Operator, Manager) by {@code StaffService};
- * anything else is a 400.
+ * is validated against the server's assignable set (Operator, Manager and the seven seeded
+ * staff sub-roles) by {@code StaffService}; anything else - e.g. a forged TENANT_ADMIN - is a 400.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record StaffCreateRequest(

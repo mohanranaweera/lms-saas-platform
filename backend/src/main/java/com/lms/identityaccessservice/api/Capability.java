@@ -3,6 +3,7 @@ package com.lms.identityaccessservice.api;
 import static com.lms.identityaccessservice.api.CapabilitySpec.locked;
 import static com.lms.identityaccessservice.api.CapabilitySpec.lockedFor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.om;
+import static com.lms.identityaccessservice.api.CapabilitySpec.omFor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omt;
 import static com.lms.identityaccessservice.api.CapabilitySpec.p;
 import static com.lms.identityaccessservice.api.CapabilitySpec.unavailable;
@@ -43,6 +44,8 @@ import java.util.Set;
  * primary); elevated for one request only when an Operator/Manager holds the tenant grant;
  * <li>{@link #configurableFor()} and {@link #availability()} (+ {@link #reason()}).
  * </ul>
+ * Seeded staff sub-roles (STAFF-MGMT-03 §6.1) are configurable for every Operator/Manager
+ * capability (Read-only Auditor: view-only capabilities only); their default is the primary gate.
  * Invariant (unit-tested): every ENFORCED capability's implied pairs are held by Tenant Admin,
  * so a configurable role can never exceed Tenant Admin. Keys ({@link #key()}) are persisted in
  * {@code tenant_role_capability_grant.capability_key}; never rename a constant.
@@ -50,23 +53,28 @@ import java.util.Set;
 public enum Capability {
 
 	// ---------------------------------------------------------------- Finance
-	FINANCE_DASHBOARD_ANNUAL_STATS(CapabilityGroup.FINANCE, "View Annual Stats",
-			unavailable("Not a separable dashboard widget")),
+	// GET /finance/reports/periods: calendar-month income/expense buckets.
+	FINANCE_DASHBOARD_ANNUAL_STATS(CapabilityGroup.FINANCE, "View Annual Stats", om(p(FINANCE_EXPENSES, VIEW))),
 	FINANCE_VIEW_INCOME_SUMMARY(CapabilityGroup.FINANCE, "View Income Summary", om(p(FINANCE_EXPENSES, VIEW))),
+	// GET /ledger/outstanding: orders still awaiting payment.
 	FINANCE_DASHBOARD_PENDING_PAYMENTS(CapabilityGroup.FINANCE, "View Pending Payments",
-			unavailable("Not a separable dashboard widget")),
+			om(p(PAYMENTS_SLIPS, VIEW))),
 	FINANCE_DASHBOARD_RECENT_PAYMENTS(CapabilityGroup.FINANCE, "View Recent Payments",
-			unavailable("Not a separable dashboard widget")),
+			unavailable("Part of the payments dashboard (View Payments); no separate operation")),
 	FINANCE_DASHBOARD_REGISTRATION_PAYMENTS(CapabilityGroup.FINANCE, "View Registration Payments",
-			unavailable("Not a separable dashboard widget")),
+			unavailable("Part of the payments dashboard (View Payments); no separate operation")),
 	FINANCE_VIEW_EXPENSES(CapabilityGroup.FINANCE, "View Expenses", om(p(FINANCE_EXPENSES, VIEW))),
 	FINANCE_DASHBOARD_TRANSACTIONS(CapabilityGroup.FINANCE, "View Transactions",
-			unavailable("Not a separable dashboard widget")),
+			unavailable("Part of the payments dashboard / order list (View Payments); no separate operation")),
+	// Expenses are append-only; void is a state change (never a row delete).
+	FINANCE_ADD_EXPENSE(CapabilityGroup.FINANCE, "Add Expense", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	FINANCE_VOID_EXPENSE(CapabilityGroup.FINANCE, "Void Expense", om(p(FINANCE_EXPENSES, DELETE))),
 	FINANCE_DELETE_CATEGORY(CapabilityGroup.FINANCE, "Delete Category", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	FINANCE_ACCOUNT_CHANGE_CONFIGURATION(CapabilityGroup.FINANCE, "Change Account Configuration",
 			locked("Payment gateway credentials are Tenant Admin only (ADR-017)", p(PAYMENT_GATEWAY, CREATE_EDIT))),
+	// GET /payment-gateway-accounts: status only; the merchant secret is never returned (ADR-017).
 	FINANCE_ACCOUNT_VIEW_CONFIGURATION(CapabilityGroup.FINANCE, "View Account Configuration",
-			locked("Payment gateway credentials are Tenant Admin only (ADR-017)", p(PAYMENT_GATEWAY, VIEW))),
+			om(p(PAYMENT_GATEWAY, VIEW))),
 	FINANCE_VIEW_CATEGORY(CapabilityGroup.FINANCE, "View Categories", om(p(FINANCE_EXPENSES, VIEW))),
 	FINANCE_ADD_CATEGORY(CapabilityGroup.FINANCE, "Add Category", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	FINANCE_ACCOUNT_UPDATE(CapabilityGroup.FINANCE, "Update Account",
@@ -79,30 +87,37 @@ public enum Capability {
 	TEACHERS_ADD(CapabilityGroup.TEACHERS, "Add Teachers", om(p(TEACHERS, CREATE_EDIT))),
 	TEACHERS_EDIT(CapabilityGroup.TEACHERS, "Edit Teachers", om(p(TEACHERS, CREATE_EDIT))),
 	TEACHERS_VIEW_WALLET(CapabilityGroup.TEACHERS, "View Wallet", om(p(FINANCE_EXPENSES, VIEW))),
+	// Kept for the Klass "Disable Wallet" row (key never renamed). The real wallet actions are the
+	// FINANCE_*_SETTLEMENT(S) / FINANCE_EDIT_SHARE_RATES rows below (STAFF-MGMT-03 §6.2).
 	TEACHERS_WALLET_ACTIONS(CapabilityGroup.TEACHERS, "Disable Wallet",
-			locked("Settlement actions are ledger actions (Tenant Admin / Finance Staff)",
-					p(FINANCE_EXPENSES, CREATE_EDIT))),
+			unavailable("There is no wallet disable operation; settlement actions are separate rows")),
+	// Settlement runs are idempotent (a period is never settled twice) and append-only:
+	// adjustments are new rows referencing the original, which is never changed.
+	FINANCE_CALCULATE_SETTLEMENTS(CapabilityGroup.TEACHERS, "Calculate Settlements",
+			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	FINANCE_MARK_SETTLEMENT_PAID(CapabilityGroup.TEACHERS, "Mark Settlement Paid",
+			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	FINANCE_ADJUST_SETTLEMENT(CapabilityGroup.TEACHERS, "Adjust Settlement", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	FINANCE_EDIT_SHARE_RATES(CapabilityGroup.TEACHERS, "Edit Share Rates", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	TEACHERS_DELETE(CapabilityGroup.TEACHERS, "Delete Teacher",
 			unavailable("Teachers are suspended, never deleted")),
 
 	// ---------------------------------------------------------------- Courses
 	COURSES_VIEW(CapabilityGroup.COURSES, "View Courses", omt(p(COURSES, VIEW))),
 	COURSES_VIEW_STUDENTS(CapabilityGroup.COURSES, "View Course Students", omt(p(COURSES, VIEW))),
-	COURSES_VIEW_ARCHIVED(CapabilityGroup.COURSES, "View Archived Courses",
-			unavailable("Archived courses are a filter of View Courses, not a separate operation")),
+	// Checked by CourseService when GET /courses asks for archived courses (not for Teachers).
+	COURSES_VIEW_ARCHIVED(CapabilityGroup.COURSES, "View Archived Courses", om(p(COURSES, VIEW))),
 	COURSES_ADD(CapabilityGroup.COURSES, "Add Course", om(p(COURSES, CREATE_EDIT), p(COURSES, VIEW))),
 	COURSES_EDIT(CapabilityGroup.COURSES, "Edit Course", om(p(COURSES, CREATE_EDIT), p(COURSES, VIEW))),
 	COURSES_ARCHIVE(CapabilityGroup.COURSES, "Archive Course", om(p(COURSES, CREATE_EDIT))),
 	COURSES_TOGGLE_REGISTRATION(CapabilityGroup.COURSES, "Toggle Course Registration Button",
 			om(p(COURSES, CREATE_EDIT))),
 	COURSES_DELETE(CapabilityGroup.COURSES, "Delete Course", om(p(COURSES, DELETE))),
-	// POST /students/{id}/enroll records a staff-granted CONFIRMED payment + ledger entry and a
-	// paid entitlement (PAYMENTS_SLIPS/APPROVE), so it is not a delegable "free enrollment".
-	// Free (ADR-028) staff enrollment is part of Add/Edit Student (course selection).
-	COURSES_ENROLL_STUDENTS(CapabilityGroup.COURSES, "Enroll Students", lockedFor(
-			"Staff enrollment records a staff-granted payment (Tenant Admin only); "
-					+ "free enrollment is done from Add/Edit Student",
-			p(STUDENTS, CREATE_EDIT), "TENANT_ADMIN")),
+	// POST /students/{id}/enroll checks STUDENTS/CREATE_EDIT (@PreAuthorize) and then
+	// PAYMENTS_SLIPS/APPROVE (it records a staff-granted CONFIRMED payment + ledger entry and the
+	// paid entitlement). Only Tenant Admin holds both statically, so it is the only default holder.
+	COURSES_ENROLL_STUDENTS(CapabilityGroup.COURSES, "Enroll Students",
+			omFor(new String[] { "TENANT_ADMIN" }, p(STUDENTS, CREATE_EDIT), p(PAYMENTS_SLIPS, APPROVE))),
 	COURSES_ADD_TIMETABLE(CapabilityGroup.COURSES, "Add Timetable",
 			locked("Same operation as Timetable - Edit Timetable", p(COURSES, CREATE_EDIT))),
 	COURSES_REVIEWS_VIEW(CapabilityGroup.COURSES, "View Reviews", unavailable("No course review feature")),
@@ -115,17 +130,15 @@ public enum Capability {
 	MODULES_VIEW(CapabilityGroup.MODULES, "View Modules", omt(p(COURSES, VIEW))),
 	MODULES_ADD(CapabilityGroup.MODULES, "Add Module", omt(p(COURSES, CREATE_EDIT))),
 	MODULES_DELETE(CapabilityGroup.MODULES, "Delete Module", omt(p(COURSES, CREATE_EDIT))),
-	MODULES_QUESTIONS_VIEW(CapabilityGroup.MODULES, "View Questions",
-			unavailable("The question bank is teacher/exam-owned")),
-	MODULES_QUESTIONS_ADD(CapabilityGroup.MODULES, "Add Questions",
-			unavailable("The question bank is teacher/exam-owned")),
-	MODULES_QUESTIONS_EDIT(CapabilityGroup.MODULES, "Edit Questions",
-			unavailable("The question bank is teacher/exam-owned")),
+	// Module question bank (ExamAccessGuard: Teachers stay ownership-scoped; not teacher-configurable).
+	MODULES_QUESTIONS_VIEW(CapabilityGroup.MODULES, "View Questions", om(p(EXAMS, VIEW))),
+	MODULES_QUESTIONS_ADD(CapabilityGroup.MODULES, "Add Questions", om(p(EXAMS, CREATE_EDIT))),
+	MODULES_QUESTIONS_EDIT(CapabilityGroup.MODULES, "Edit Questions", om(p(EXAMS, CREATE_EDIT))),
 	MODULES_QUESTIONS_DELETE(CapabilityGroup.MODULES, "Delete Questions",
-			unavailable("The question bank is teacher/exam-owned")),
+			unavailable("Deleting a question needs exam DELETE, which no staff role holds (owning teacher only)")),
 	MODULES_IMPORT(CapabilityGroup.MODULES, "Import Modules", unavailable("No module import operation")),
 	MODULES_QUESTIONS_IMPORT(CapabilityGroup.MODULES, "Import Questions",
-			unavailable("The question bank is teacher/exam-owned")),
+			om(p(EXAMS, CREATE_EDIT), p(EXAMS, VIEW))),
 
 	// ---------------------------------------------------------------- Students
 	STUDENTS_VIEW(CapabilityGroup.STUDENTS, "View Students", om(p(STUDENTS, VIEW))),
@@ -138,30 +151,35 @@ public enum Capability {
 			unavailable("No single-student send operation")),
 	STUDENTS_RESET_PASSWORD(CapabilityGroup.STUDENTS, "Reset Password", om(p(STUDENTS, CREATE_EDIT))),
 	STUDENTS_DELETE(CapabilityGroup.STUDENTS, "Delete Student", om(p(STUDENTS, DELETE))),
-	STUDENTS_VIEW_PENDING(CapabilityGroup.STUDENTS, "View Pending Students",
-			unavailable("Pending students are a filter of View Students")),
+	// Checked by StudentDirectoryService when the PENDING tab is requested (list + CSV export).
+	STUDENTS_VIEW_PENDING(CapabilityGroup.STUDENTS, "View Pending Students", om(p(STUDENTS, VIEW))),
 	STUDENTS_APPROVE_PENDING(CapabilityGroup.STUDENTS, "Approve Reject Pending Students",
 			om(p(STUDENTS, CREATE_EDIT))),
 	STUDENTS_EXPORT_CSV(CapabilityGroup.STUDENTS, "Export Students (CSV)", om(p(STUDENTS, VIEW))),
 	STUDENTS_EXPORT_QR(CapabilityGroup.STUDENTS, "Export Student QR Labels", om(p(STUDENTS, VIEW))),
-	STUDENTS_LOG_AS(CapabilityGroup.STUDENTS, "Log as Student",
-			locked("Tenant Admin only (ADR-033)", p(STUDENT_IMPERSONATION, CREATE_EDIT))),
+	// ADR-033 (amended by STAFF-MGMT-03): actor and subject stay distinct; start/end audited.
+	STUDENTS_LOG_AS(CapabilityGroup.STUDENTS, "Log as Student", om(p(STUDENT_IMPERSONATION, CREATE_EDIT))),
 
 	// ---------------------------------------------------------------- Exams
 	EXAMS_VIEW(CapabilityGroup.EXAMS, "View Exams", omt(p(EXAMS, VIEW))),
-	EXAMS_SCHEDULE(CapabilityGroup.EXAMS, "Schedule New Exam",
-			unavailable("Exam authoring stays with teachers / Exam Manager")),
-	EXAMS_MANAGE(CapabilityGroup.EXAMS, "Manage Exams", unavailable("Exam authoring stays with teachers / Exam Manager")),
-	EXAMS_EDIT(CapabilityGroup.EXAMS, "Edit Exam", unavailable("Exam authoring stays with teachers / Exam Manager")),
-	EXAMS_DELETE(CapabilityGroup.EXAMS, "Delete Exam", unavailable("Exam authoring stays with teachers / Exam Manager")),
-	EXAMS_START(CapabilityGroup.EXAMS, "Start Exam", unavailable("Exam authoring stays with teachers / Exam Manager")),
-	EXAMS_STOP(CapabilityGroup.EXAMS, "Stop Exam", unavailable("Exam authoring stays with teachers / Exam Manager")),
+	// POST /exams, POST /exams/courses/{courseId}/exams.
+	EXAMS_SCHEDULE(CapabilityGroup.EXAMS, "Schedule New Exam", om(p(EXAMS, CREATE_EDIT), p(EXAMS, VIEW))),
+	// Exam enrollments: enroll / remove / candidates / sync paid students.
+	EXAMS_MANAGE(CapabilityGroup.EXAMS, "Manage Exams", om(p(EXAMS, CREATE_EDIT), p(EXAMS, VIEW))),
+	// PUT /exams/{examId}.
+	EXAMS_EDIT(CapabilityGroup.EXAMS, "Edit Exam", om(p(EXAMS, CREATE_EDIT), p(EXAMS, VIEW))),
+	EXAMS_DELETE(CapabilityGroup.EXAMS, "Delete Exam",
+			unavailable("Deleting an exam needs exam DELETE, which no staff role holds (owning teacher only)")),
+	EXAMS_START(CapabilityGroup.EXAMS, "Start Exam",
+			unavailable("Exams open on their schedule; there is no manual start operation")),
+	EXAMS_STOP(CapabilityGroup.EXAMS, "Stop Exam",
+			unavailable("Exams close on their schedule; there is no manual stop operation")),
 	EXAMS_VIEW_RESULTS(CapabilityGroup.EXAMS, "View Results", om(p(EXAMS, VIEW))),
-	EXAMS_CREATE_LEADERBOARD(CapabilityGroup.EXAMS, "Create Leaderboard",
-			unavailable("Exam authoring stays with teachers / Exam Manager")),
+	// POST / PUT / DELETE /exam-leaderboards (all EXAMS/CREATE_EDIT in ExamLeaderboardService).
+	EXAMS_CREATE_LEADERBOARD(CapabilityGroup.EXAMS, "Create Leaderboard", om(p(EXAMS, CREATE_EDIT))),
 	EXAMS_VIEW_ANSWERS(CapabilityGroup.EXAMS, "View Answers", om(p(EXAMS, VIEW))),
-	EXAMS_GENERATE_REPORT(CapabilityGroup.EXAMS, "Generate Report",
-			unavailable("Exam authoring stays with teachers / Exam Manager")),
+	// GET /exams/{examId}/export.csv (results report).
+	EXAMS_GENERATE_REPORT(CapabilityGroup.EXAMS, "Generate Report", om(p(EXAMS, VIEW))),
 
 	// ---------------------------------------------------------------- Attendance
 	ATTENDANCE_VIEW(CapabilityGroup.ATTENDANCE, "View Attendance", om(p(ATTENDANCE, VIEW))),
@@ -171,12 +189,15 @@ public enum Capability {
 	PAYMENTS_VIEW(CapabilityGroup.PAYMENTS, "View Payments", om(p(PAYMENTS_SLIPS, VIEW), p(FREE_CARDS, VIEW))),
 	PAYMENTS_ADD(CapabilityGroup.PAYMENTS, "Add Payment", om(p(PAYMENTS_SLIPS, APPROVE), p(PAYMENTS_SLIPS, VIEW))),
 	PAYMENTS_ISSUE_FREE_CARDS(CapabilityGroup.PAYMENTS, "Issue Free Cards", om(p(FREE_CARDS, CREATE_EDIT))),
+	// Revoke is a state change on the card (reason required, once only); never a row delete.
+	PAYMENTS_REVOKE_FREE_CARDS(CapabilityGroup.PAYMENTS, "Revoke Free Cards", om(p(FREE_CARDS, DELETE))),
 	PAYMENTS_LIST_UNDO(CapabilityGroup.PAYMENTS, "List Undo Payments", om(p(PAYMENTS_SLIPS, VIEW))),
 	PAYMENTS_UNDO(CapabilityGroup.PAYMENTS, "Undo Payments", om(p(PAYMENTS_SLIPS, APPROVE))),
 	PAYMENTS_APPROVE_PENDING(CapabilityGroup.PAYMENTS, "Approve Reject Pending Payments",
 			om(p(PAYMENTS_SLIPS, APPROVE))),
-	PAYMENTS_UPDATE_RULES(CapabilityGroup.PAYMENTS, "Update Payment Rules",
-			locked("Access policy and gateway settings are Tenant Admin only", p(ACCESS_EXPIRY, CREATE_EDIT))),
+	// PUT /access-policy, /access-policy/courses/{id}. A course device-limit change additionally
+	// needs DEVICES/CREATE_EDIT, which this capability deliberately does not imply.
+	PAYMENTS_UPDATE_RULES(CapabilityGroup.PAYMENTS, "Update Payment Rules", om(p(ACCESS_EXPIRY, CREATE_EDIT))),
 
 	// ---------------------------------------------------------------- Media Library
 	MEDIA_VIEW(CapabilityGroup.MEDIA_LIBRARY, "View Media Library", om(p(MATERIALS, VIEW))),

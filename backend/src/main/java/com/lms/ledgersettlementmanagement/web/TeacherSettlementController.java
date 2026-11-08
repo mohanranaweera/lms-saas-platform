@@ -57,12 +57,14 @@ public class TeacherSettlementController {
 
 	@GetMapping("/teacher-share-rates")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<List<RateView>>> listRates(@RequestParam(required = false) UUID teacherId) {
 		return ResponseEntity.ok(ApiResponse.success(settlementService.listRates(teacherId)));
 	}
 
 	@PostMapping("/teacher-share-rates")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_EDIT_SHARE_RATES)
 	public ResponseEntity<ApiResponse<RateView>> addRate(@Valid @RequestBody TeacherShareRateRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse.success(settlementService.addRate(request.teacherId(), request.sharePercent(),
@@ -83,6 +85,7 @@ public class TeacherSettlementController {
 
 	@PostMapping("/teacher-settlements")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_CALCULATE_SETTLEMENTS)
 	public ResponseEntity<ApiResponse<SettlementDetail>> calculate(
 			@Valid @RequestBody TeacherSettlementCalculateRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
@@ -99,6 +102,7 @@ public class TeacherSettlementController {
 
 	@PostMapping("/teacher-settlements/{settlementId}/mark-paid")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_MARK_SETTLEMENT_PAID)
 	public ResponseEntity<ApiResponse<SettlementDetail>> markPaid(@PathVariable UUID settlementId,
 			@Valid @RequestBody(required = false) TeacherSettlementMarkPaidRequest request) {
 		String reference = (request == null) ? null : request.payoutReference();
@@ -107,6 +111,7 @@ public class TeacherSettlementController {
 
 	@PostMapping("/teacher-settlements/{settlementId}/adjustments")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_ADJUST_SETTLEMENT)
 	public ResponseEntity<ApiResponse<SettlementDetail>> adjust(@PathVariable UUID settlementId,
 			@Valid @RequestBody TeacherSettlementAdjustmentRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)

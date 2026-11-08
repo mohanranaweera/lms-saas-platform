@@ -13,6 +13,7 @@ import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.error.InvalidPermissionChangeException;
 import com.lms.identityaccessservice.error.PermissionsStaleException;
 import com.lms.identityaccessservice.repository.CapabilityGrantStore;
+import com.lms.identityaccessservice.service.PermissionCheckServiceImpl;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -31,6 +32,11 @@ import org.springframework.transaction.annotation.Transactional;
  * the version counter is advanced optimistically ({@code 409 PERMISSIONS_STALE} when another
  * editor saved first); the audit entry is written in the same transaction, so a rolled-back
  * save leaves no entry. Tenant identity always comes from the trusted {@link TenantContext}.
+ *
+ * <p>STAFF-MGMT-03 §6.1: the seven seeded sub-roles are columns too. Their cell shows the
+ * effective state: the tenant override when one exists, otherwise the static default (the role's
+ * matrix holds the capability's primary gate). Read-only Auditor cells of non-view capabilities
+ * are LOCKED.
  */
 @Service
 public class RolePermissionMatrixService {
@@ -42,6 +48,8 @@ public class RolePermissionMatrixService {
 	static final String TEACHER_OWNERSHIP_REASON = "Teacher access is ownership-scoped";
 
 	static final String NOT_CONFIGURABLE_REASON = "Not configurable for this role";
+
+	static final String AUDITOR_VIEW_ONLY_REASON = "Read-only Auditor can only hold view permissions";
 
 	static final int MAX_CHANGES = 1000;
 
@@ -162,7 +170,7 @@ public class RolePermissionMatrixService {
 			Capability capability) {
 		return Optional.ofNullable(overrides.get(role.name()))
 			.map(m -> m.get(capability.key()))
-			.orElse(role.defaultGranted());
+			.orElseGet(() -> PermissionCheckServiceImpl.defaultGrant(role, capability));
 	}
 
 	private static PermissionMatrixView build(long version, Map<String, Map<String, Boolean>> overrides) {
@@ -195,8 +203,12 @@ public class RolePermissionMatrixService {
 			return new PermissionMatrixView.Cell("LOCKED", capability.reason());
 		}
 		if (!capability.isConfigurableFor(role)) {
-			return new PermissionMatrixView.Cell("LOCKED",
-					role == ConfigurableRole.TEACHER ? TEACHER_OWNERSHIP_REASON : NOT_CONFIGURABLE_REASON);
+			String reason = switch (role) {
+				case TEACHER -> TEACHER_OWNERSHIP_REASON;
+				case READ_ONLY_AUDITOR -> AUDITOR_VIEW_ONLY_REASON;
+				default -> NOT_CONFIGURABLE_REASON;
+			};
+			return new PermissionMatrixView.Cell("LOCKED", reason);
 		}
 		return new PermissionMatrixView.Cell(effectiveGrant(overrides, role, capability) ? "GRANTED" : "NOT_GRANTED",
 				null);

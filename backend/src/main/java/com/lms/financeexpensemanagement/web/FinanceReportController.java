@@ -60,6 +60,7 @@ public class FinanceReportController {
 
 	@GetMapping("/periods")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_DASHBOARD_ANNUAL_STATS)
 	public ResponseEntity<ApiResponse<PeriodReport>> periods(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {

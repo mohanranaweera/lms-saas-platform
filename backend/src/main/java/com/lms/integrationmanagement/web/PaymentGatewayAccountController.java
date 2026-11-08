@@ -1,5 +1,7 @@
 package com.lms.integrationmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.integrationmanagement.service.PaymentGatewayAccountService;
 import com.lms.integrationmanagement.service.PaymentGatewayAccountView;
@@ -34,6 +36,7 @@ public class PaymentGatewayAccountController {
 	}
 
 	@GetMapping
+	@RequiresCapability(Capability.FINANCE_ACCOUNT_VIEW_CONFIGURATION)
 	public ResponseEntity<ApiResponse<List<PaymentGatewayAccountView>>> list() {
 		return ResponseEntity.ok(ApiResponse.success(service.listForCurrentTenant()));
 	}

@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.exammanagement.service.exam.ExamLeaderboardService;
 import com.lms.exammanagement.service.exam.ExamResultsViews.LeaderboardDetailView;
@@ -44,6 +46,7 @@ public class ExamLeaderboardController {
 
 	@PostMapping("/api/v1/exam-leaderboards")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_CREATE_LEADERBOARD)
 	public ResponseEntity<ApiResponse<LeaderboardDetailView>> create(@RequestBody ExamLeaderboardRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse
@@ -58,6 +61,7 @@ public class ExamLeaderboardController {
 
 	@PutMapping("/api/v1/exam-leaderboards/{leaderboardId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_CREATE_LEADERBOARD)
 	public ResponseEntity<ApiResponse<LeaderboardDetailView>> update(@PathVariable UUID leaderboardId,
 			@RequestBody ExamLeaderboardRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(
@@ -66,6 +70,7 @@ public class ExamLeaderboardController {
 
 	@DeleteMapping("/api/v1/exam-leaderboards/{leaderboardId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_CREATE_LEADERBOARD)
 	public ResponseEntity<Void> delete(@PathVariable UUID leaderboardId) {
 		leaderboardService.delete(leaderboardId);
 		return ResponseEntity.noContent().build();

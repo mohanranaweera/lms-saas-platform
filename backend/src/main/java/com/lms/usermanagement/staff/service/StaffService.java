@@ -46,8 +46,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class StaffService {
 
-	/** Roles this flow may assign (server-derived; never the client's list). */
-	static final List<String> ASSIGNABLE_ROLES = List.of("OPERATOR", "MANAGER");
+	/**
+	 * Roles this flow may assign (server-derived; never the client's list): Operator, Manager and
+	 * the seven seeded staff sub-roles (STAFF-MGMT-03 §6.1). Never Tenant Admin, Teacher, Teacher
+	 * Assistant or Student.
+	 */
+	static final List<String> ASSIGNABLE_ROLES = List.of("OPERATOR", "MANAGER", "FINANCE_STAFF",
+			"COURSE_COORDINATOR", "STUDENT_SUPPORT", "CONTENT_MANAGER", "EXAM_MANAGER", "ATTENDANCE_OPERATOR",
+			"READ_ONLY_AUDITOR");
 
 	/** Memberships this flow must never touch (owner/admin, teachers, students). */
 	static final Set<String> PROTECTED_ROLES = Set.of("TENANT_ADMIN", "TEACHER", "TEACHER_ASSISTANT", "STUDENT");
@@ -111,7 +117,7 @@ public class StaffService {
 		return load(id).account();
 	}
 
-	/** Server-derived list of roles this flow may assign: [OPERATOR, MANAGER] with display names. */
+	/** Server-derived list of roles this flow may assign ({@link #ASSIGNABLE_ROLES}) with display names. */
 	@Transactional(readOnly = true)
 	public List<AssignableRole> assignableRoles() {
 		permissionCheckService.requireCapability(Capability.STAFF_MANAGE);
@@ -191,8 +197,8 @@ public class StaffService {
 
 	/**
 	 * Reassigns the membership's role (STAFF_ASSIGN_ROLES). Never self; never a Tenant Admin /
-	 * Teacher / Student membership; target role must be server-assignable. Legacy staff
-	 * sub-role members may be moved to Operator/Manager. Effective on the member's next request.
+	 * Teacher / Student membership; target role must be server-assignable (Operator, Manager or a
+	 * seeded staff sub-role). Effective on the member's next request.
 	 */
 	public StaffAccount changeRole(UUID id, String roleCode) {
 		permissionCheckService.requireCapability(Capability.STAFF_ASSIGN_ROLES);

@@ -1,6 +1,7 @@
 package com.lms.usermanagement.student.service;
 
 import com.lms.common.api.PageResponse;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
@@ -81,6 +82,7 @@ public class StudentDirectoryService {
 
 	public PageResponse<StudentDirectoryRow> directory(Tab tab, Field field, String q, int page, int size) {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.VIEW);
+		requirePendingTabAccess(tab);
 		int boundedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 		Page<StudentProfile> profiles = studentProfileRepository.findAll(spec(tab, field, q),
 				PageRequest.of(Math.max(page, 0), boundedSize));
@@ -97,6 +99,7 @@ public class StudentDirectoryService {
 	@org.springframework.transaction.annotation.Transactional
 	public byte[] exportCsv(Tab tab, Field field, String q) {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.VIEW);
+		requirePendingTabAccess(tab);
 		ZoneId zone = studentManagementService.tenantZone();
 		StringBuilder csv = new StringBuilder("﻿");
 		csv.append("Index Number,First Name,Last Name,Email,Mobile,Last Login,Status\r\n");
@@ -204,6 +207,16 @@ public class StudentDirectoryService {
 			}
 			return cb.and(predicates.toArray(Predicate[]::new));
 		};
+	}
+
+	/**
+	 * STAFF-MGMT-03 §6.2: the PENDING tab (students awaiting approval) needs View Pending
+	 * Students; static roles hold it exactly when they hold STUDENTS/VIEW.
+	 */
+	private void requirePendingTabAccess(Tab tab) {
+		if (tab == Tab.PENDING) {
+			permissionCheckService.requireCapability(Capability.STUDENTS_VIEW_PENDING);
+		}
 	}
 
 }

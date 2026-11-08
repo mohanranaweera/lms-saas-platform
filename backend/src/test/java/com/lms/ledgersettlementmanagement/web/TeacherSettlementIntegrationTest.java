@@ -9,6 +9,7 @@ import com.lms.common.api.PageResponse;
 import com.lms.coursemanagement.course.web.dto.CourseResponse;
 import com.lms.financeexpensemanagement.FinanceTestSupport;
 import com.lms.identityaccessservice.HttpResult;
+import com.lms.identityaccessservice.domain.Role;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementKind;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementStatus;
 import com.lms.ledgersettlementmanagement.repository.TeacherRevenueShareRateRepository;
@@ -366,6 +367,128 @@ class TeacherSettlementIntegrationTest extends FinanceTestSupport {
 				perform(authenticated(get("/api/v1/finance/teachers"), b.host(), b.financeToken())), Map.class);
 		assertThat(otherTenant.getBody().data()).noneSatisfy(
 				row -> assertThat(row.get("userId")).isEqualTo(adaUserId.toString()));
+	}
+
+	// ------------------------------------------------------------------
+	// STAFF-MGMT-03 §6.2: delegated settlement capabilities.
+	// ------------------------------------------------------------------
+
+	@Test
+	void delegatedSettlementActionsNeedEachOwnGrantStayIdempotentAndAppendOnly() {
+		Fixture f = seedFixture("stl-deleg");
+		FinanceTenant t = f.tenant();
+		UUID teacherId = t.teacher().getId();
+		String operator = delegatedToken(t, Role.OPERATOR);
+
+		// No grant: every settlement action is 403 and writes nothing.
+		assertThat(calculate(t, operator, teacherId, MARCH_1, MARCH_31).getStatusCode())
+			.isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(addRate(t, operator, teacherId, "45.00", LocalDate.of(2026, 1, 1)).getStatusCode())
+			.isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(settlementCount(t)).isZero();
+
+		// Sibling grants never authorize calculation.
+		setGrants(t, "OPERATOR", true, "FINANCE_EDIT_SHARE_RATES", "FINANCE_MARK_SETTLEMENT_PAID",
+				"TEACHERS_VIEW_WALLET");
+		assertThat(calculate(t, operator, teacherId, MARCH_1, MARCH_31).getStatusCode())
+			.isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(addRate(t, operator, teacherId, "45.00", LocalDate.of(2026, 1, 1)).getStatusCode())
+			.isEqualTo(HttpStatus.CREATED);
+		assertThat(listRates(t, operator).getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		setGrants(t, "OPERATOR", true, "FINANCE_CALCULATE_SETTLEMENTS");
+		HttpResult<SettlementDetail> march = calculate(t, operator, teacherId, MARCH_1, MARCH_31);
+		assertThat(march.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		UUID marchId = march.getBody().data().settlement().id();
+		assertThat(march.getBody().data().settlement().shareAmount()).isEqualByComparingTo("96.00");
+
+		// Idempotent run: a second calculation is 409 and creates no settlement / payout item rows.
+		long settlements = settlementCount(t);
+		long items = itemCount(t);
+		assertThat(calculate(t, operator, teacherId, MARCH_1, MARCH_31).getStatusCode())
+			.isEqualTo(HttpStatus.CONFLICT);
+		assertThat(settlementCount(t)).isEqualTo(settlements);
+		assertThat(itemCount(t)).isEqualTo(items);
+
+		// Mark Paid / Calculate never imply Adjust.
+		assertThat(adjust(t, operator, marchId, "5.00", "Late bonus").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+		setGrants(t, "OPERATOR", true, "FINANCE_ADJUST_SETTLEMENT");
+		Map<String, Object> originalBefore = settlementRow(marchId);
+		assertThat(adjust(t, operator, marchId, "5.00", "Late bonus").getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		// The adjustment is a NEW row referencing the original; the original row is unchanged.
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM teacher_settlement WHERE adjusts_settlement_id = ? AND kind = 'ADJUSTMENT'",
+				Long.class, marchId)).isEqualTo(1);
+		assertThat(settlementRow(marchId)).isEqualTo(originalBefore);
+
+		assertThat(markPaid(t, operator, marchId, "PAYOUT-1").getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(auditCount(marchId, "teacher_settlement.marked_paid")).isEqualTo(1);
+
+		// Revoke applies to the same token on the next request.
+		setGrants(t, "OPERATOR", false, "FINANCE_ADJUST_SETTLEMENT", "FINANCE_CALCULATE_SETTLEMENTS");
+		assertThat(adjust(t, operator, marchId, "1.00", "Another bonus").getStatusCode())
+			.isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(calculate(t, operator, teacherId, LocalDate.of(2025, 4, 1), LocalDate.of(2025, 4, 9))
+			.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+		// Cross-tenant: tenant B's settlement / teacher ids are 404 for tenant A's granted operator.
+		Fixture other = seedFixture("stl-deleg-b");
+		UUID otherSettlement = calculate(other.tenant(), other.tenant().financeToken(), other.tenant().teacher().getId(),
+				MARCH_1, MARCH_31)
+			.getBody()
+			.data()
+			.settlement()
+			.id();
+		setGrants(t, "OPERATOR", true, "FINANCE_ADJUST_SETTLEMENT", "FINANCE_CALCULATE_SETTLEMENTS");
+		assertThat(markPaid(t, operator, otherSettlement, "X").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(adjust(t, operator, otherSettlement, "1.00", "Cross tenant").getStatusCode())
+			.isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(calculate(t, operator, other.tenant().teacher().getId(), MARCH_1, MARCH_31).getStatusCode())
+			.isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(settlementRow(otherSettlement).get("status")).isEqualTo("CALCULATED");
+	}
+
+	@Test
+	void aSeededFinanceStaffRevokeBlocksSettlementsButKeepsTheStaticReadPaths() {
+		Fixture f = seedFixture("stl-seeded");
+		FinanceTenant t = f.tenant();
+		UUID teacherId = t.teacher().getId();
+		setGrants(t, "FINANCE_STAFF", false, "FINANCE_CALCULATE_SETTLEMENTS");
+		assertThat(calculate(t, t.financeToken(), teacherId, MARCH_1, MARCH_31).getStatusCode())
+			.isEqualTo(HttpStatus.FORBIDDEN);
+		// Unrevoked siblings and the static matrix are unchanged.
+		assertThat(listSettlements(t, t.financeToken()).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(addRate(t, t.financeToken(), teacherId, "41.00", LocalDate.of(2026, 2, 1)).getStatusCode())
+			.isEqualTo(HttpStatus.CREATED);
+		setGrants(t, "FINANCE_STAFF", true, "FINANCE_CALCULATE_SETTLEMENTS");
+		assertThat(calculate(t, t.financeToken(), teacherId, MARCH_1, MARCH_31).getStatusCode())
+			.isEqualTo(HttpStatus.CREATED);
+	}
+
+	private String delegatedToken(FinanceTenant t, Role role) {
+		String email = role.name().toLowerCase() + "-" + UUID.randomUUID().toString().substring(0, 8)
+				+ "@example.test";
+		seedTenantUser(t.tenant().getId(), email, RAW_PASSWORD, role);
+		return loginAndGetToken(t.host(), email);
+	}
+
+	private Map<String, Object> settlementRow(UUID id) {
+		return jdbcTemplate.queryForMap("SELECT kind, share_amount::text AS share, gross_amount::text AS gross, "
+				+ "status, adjusts_settlement_id, reason FROM teacher_settlement WHERE id = ?", id);
+	}
+
+	/** Grants (or revokes) capabilities for a configurable role as the tenant admin (matrix PUT). */
+	private void setGrants(FinanceTenant t, String role, boolean granted, String... capabilities) {
+		var current = perform(authenticated(get("/api/v1/staff/permission-matrix"), t.host(), t.adminToken()));
+		long version = objectMapper.readTree(rawContent(current)).path("data").path("version").asLong();
+		List<Map<String, Object>> changes = java.util.Arrays.stream(capabilities)
+			.map(capability -> Map.<String, Object>of("roleCode", role, "capabilityKey", capability, "granted",
+					granted))
+			.toList();
+		var saved = perform(authenticated(json(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+			.put("/api/v1/staff/permission-matrix"), Map.of("expectedVersion", version, "changes", changes)), t.host(),
+				t.adminToken()));
+		assertThat(saved.getResponse().getStatus()).as(rawContent(saved)).isEqualTo(200);
 	}
 
 	// ------------------------------------------------------------------

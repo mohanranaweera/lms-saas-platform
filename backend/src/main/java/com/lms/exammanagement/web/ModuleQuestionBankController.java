@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.exammanagement.service.questionbank.ModuleQuestionBankService;
@@ -47,6 +49,7 @@ public class ModuleQuestionBankController {
 
 	@GetMapping("/courses/{courseId}/modules/{moduleId}/questions")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<QuestionView>>> list(@PathVariable UUID courseId,
 			@PathVariable UUID moduleId, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "50") int size) {
@@ -55,6 +58,7 @@ public class ModuleQuestionBankController {
 
 	@PostMapping("/courses/{courseId}/modules/{moduleId}/questions")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_ADD)
 	public ResponseEntity<ApiResponse<QuestionView>> create(@PathVariable UUID courseId, @PathVariable UUID moduleId,
 			@Valid @RequestBody QuestionUpsertRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
@@ -63,6 +67,7 @@ public class ModuleQuestionBankController {
 
 	@PostMapping("/courses/{courseId}/modules/{moduleId}/questions/copy")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_ADD)
 	public ResponseEntity<ApiResponse<CopyResultView>> copy(@PathVariable UUID courseId, @PathVariable UUID moduleId,
 			@Valid @RequestBody QuestionCopyRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(
@@ -71,18 +76,21 @@ public class ModuleQuestionBankController {
 
 	@GetMapping("/courses/{courseId}/modules/question-counts")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_VIEW)
 	public ResponseEntity<ApiResponse<List<ModuleQuestionCountView>>> questionCounts(@PathVariable UUID courseId) {
 		return ResponseEntity.ok(ApiResponse.success(service.questionCounts(courseId)));
 	}
 
 	@GetMapping("/exam-questions/{questionId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_VIEW)
 	public ResponseEntity<ApiResponse<QuestionView>> get(@PathVariable UUID questionId) {
 		return ResponseEntity.ok(ApiResponse.success(service.get(questionId)));
 	}
 
 	@PutMapping("/exam-questions/{questionId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_EDIT)
 	public ResponseEntity<ApiResponse<QuestionView>> update(@PathVariable UUID questionId,
 			@Valid @RequestBody QuestionUpsertRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(service.update(questionId, toInput(request))));
@@ -97,6 +105,7 @@ public class ModuleQuestionBankController {
 
 	@PostMapping(path = "/exam-media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_QUESTIONS_ADD)
 	public ResponseEntity<ApiResponse<ExamMediaView>> uploadImage(@RequestPart("file") MultipartFile file) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(service.uploadImage(file)));
 	}

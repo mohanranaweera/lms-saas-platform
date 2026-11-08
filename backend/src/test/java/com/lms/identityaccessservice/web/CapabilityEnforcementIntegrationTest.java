@@ -29,7 +29,9 @@ import tools.jackson.databind.JsonNode;
  * the same request passes the endpoint's existing static/service gates; after a revoke the SAME
  * token is denied on the next request; a sibling capability never authorizes the operation;
  * a grant in tenant A never reaches tenant B's ids (404); and a Teacher's module grant only
- * narrows ownership-scoped access (never another teacher's course).
+ * narrows ownership-scoped access (never another teacher's course). STAFF-MGMT-03 adds the
+ * seeded sub-roles (default = static matrix, explicit grant elevates, explicit revoke denies)
+ * and the newly enforced finance / payment / question-bank / exam / Log as Student capabilities.
  *
  * <p>Where a random id is used ("passes authorization, then 404"), the service performs its own
  * permission check before the lookup, so the 404 proves the elevated pair satisfied it.
@@ -121,7 +123,7 @@ class CapabilityEnforcementIntegrationTest extends StudentManagementTestSupport 
 		grant(fx, "OPERATOR", true, "STUDENTS_RESET_PASSWORD");
 		assertThat(body(call(HttpMethod.POST, reset, fx, op, null), 200).path("temporaryPassword").asString())
 			.isNotBlank();
-		// Reset Password never implies Log as Student (Tenant Admin only, ADR-033).
+		// Reset Password never implies Log as Student (its own capability, STAFF-MGMT-03).
 		status(call(HttpMethod.POST, "/api/v1/students/" + student + "/impersonation", fx, op,
 				Map.of("reason", "Support request 123")), 403);
 
@@ -382,6 +384,356 @@ class CapabilityEnforcementIntegrationTest extends StudentManagementTestSupport 
 		// A tenant-A token presented on tenant B's host is rejected outright.
 		assertThat(call(HttpMethod.GET, "/api/v1/courses/" + b.courseId(), b, opA, null).getResponse().getStatus())
 			.isIn(401, 403);
+	}
+
+	// ------------------------------------------------------------------ STAFF-MGMT-03: seeded roles (§6.1)
+
+	@Test
+	void aSeededRoleRevokeDeniesTheSameTokenNextRequestAndAnExplicitGrantElevates() {
+		Fx fx = fixture("cap-seeded");
+		String finance = staffToken(fx, Role.FINANCE_STAFF);
+		String approve = "/api/v1/payment-slips/" + UUID.randomUUID() + "/approve";
+		String refund = "/api/v1/payments/" + UUID.randomUUID() + "/refunds";
+		Map<String, Object> refundBody = Map.of("amount", new BigDecimal("1.00"), "reason", "Duplicate payment");
+
+		// Default (no override row): the static matrix decides - passes PAYMENTS_SLIPS/APPROVE, unknown slip 404.
+		status(call(HttpMethod.POST, approve, fx, finance, null), 404);
+
+		grant(fx, "FINANCE_STAFF", false, "PAYMENTS_APPROVE_PENDING");
+		// Same token, next request: 403 on the annotated endpoint...
+		status(call(HttpMethod.POST, approve, fx, finance, null), 403);
+		status(call(HttpMethod.POST, "/api/v1/payment-slips/" + UUID.randomUUID() + "/reject", fx, finance,
+				Map.of("reason", "Blurred slip image")), 403);
+		// ...while a sibling capability on the same static pair is untouched.
+		status(call(HttpMethod.POST, refund, fx, finance, refundBody), 404);
+
+		grant(fx, "FINANCE_STAFF", true, "PAYMENTS_APPROVE_PENDING");
+		status(call(HttpMethod.POST, approve, fx, finance, null), 404);
+
+		// An explicit grant elevates beyond the static matrix (Finance Staff has COURSES/VIEW only).
+		Map<String, Object> create = Map.of("name", "Finance Course", "price", new BigDecimal("12.00"), "teacherId",
+				fx.teacher().getId().toString());
+		status(call(HttpMethod.POST, "/api/v1/courses", fx, finance, create), 403);
+		grant(fx, "FINANCE_STAFF", true, "COURSES_ADD");
+		String courseId = body(call(HttpMethod.POST, "/api/v1/courses", fx, finance, create), 201).path("id")
+			.asString();
+		// Delegated, so the price stays editable only by static holders; Add never implies Edit / Delete.
+		status(call(HttpMethod.PATCH, "/api/v1/courses/" + courseId, fx, finance, Map.of("description", "x")), 403);
+		status(call(HttpMethod.DELETE, "/api/v1/courses/" + courseId, fx, finance, null), 403);
+		grant(fx, "FINANCE_STAFF", false, "COURSES_ADD");
+		status(call(HttpMethod.POST, "/api/v1/courses", fx, finance, create), 403);
+
+		// Read-only Auditor: a non-VIEW capability is not configurable (400), nothing written.
+		long version = body(call(HttpMethod.GET, MATRIX, fx, fx.adminToken(), null), 200).path("version").asLong();
+		status(call(HttpMethod.PUT, MATRIX, fx, fx.adminToken(), Map.of("expectedVersion", version, "changes",
+				List.of(Map.of("roleCode", "READ_ONLY_AUDITOR", "capabilityKey", "STUDENTS_ADD", "granted", true)))),
+				400);
+		assertThat(count("SELECT count(*) FROM tenant_role_capability_grant WHERE tenant_id = ? "
+				+ "AND role_code = 'READ_ONLY_AUDITOR'", fx.tenant().getId())).isZero();
+	}
+
+	@Test
+	void aCourseCoordinatorWithAnExplicitEditGrantIsStillAStaticPricingHolder() {
+		// Static holders stay static holders: an explicit re-grant never turns them "delegated".
+		Fx fx = fixture("cap-seeded-price");
+		String coordinator = staffToken(fx, Role.COURSE_COORDINATOR);
+		grant(fx, "COURSE_COORDINATOR", false, "COURSES_EDIT");
+		status(call(HttpMethod.PATCH, "/api/v1/courses/" + fx.courseId(), fx, coordinator,
+				Map.of("description", "Blocked")), 403);
+		grant(fx, "COURSE_COORDINATOR", true, "COURSES_EDIT");
+		status(call(HttpMethod.PATCH, "/api/v1/courses/" + fx.courseId(), fx, coordinator,
+				Map.of("price", new BigDecimal("77.00"))), 200);
+	}
+
+	// ------------------------------------------------------------------ STAFF-MGMT-03: newly enforced (§6.2)
+
+	@Test
+	@Tag("cross-tenant")
+	void expenseAddAndVoidAreSeparateGrantsAndVoidIsAStateChange() {
+		Fx a = fixture("cap-exp-a");
+		Fx b = fixture("cap-exp-b");
+		String op = staffToken(a, Role.OPERATOR);
+		UUID category = UUID.fromString(body(call(HttpMethod.POST, "/api/v1/finance/expense-categories", a,
+				a.adminToken(), Map.of("name", "Rent")), 201).path("id").asString());
+		UUID categoryB = UUID.fromString(body(call(HttpMethod.POST, "/api/v1/finance/expense-categories", b,
+				b.adminToken(), Map.of("name", "Rent")), 201).path("id").asString());
+		String expenseB = body(createExpense(b, b.adminToken(), categoryB), 201).path("id").asString();
+
+		status(createExpense(a, op, category), 403);
+		// Viewing expenses never implies adding them.
+		grant(a, "OPERATOR", true, "FINANCE_VIEW_EXPENSES", "FINANCE_VOID_EXPENSE");
+		status(createExpense(a, op, category), 403);
+
+		grant(a, "OPERATOR", true, "FINANCE_ADD_EXPENSE");
+		String expense = body(createExpense(a, op, category), 201).path("id").asString();
+		Map<String, Object> reason = Map.of("reason", "Entered twice");
+		grant(a, "OPERATOR", false, "FINANCE_VOID_EXPENSE");
+		// Add never implies Void.
+		status(call(HttpMethod.POST, "/api/v1/finance/expenses/" + expense + "/void", a, op, reason), 403);
+		grant(a, "OPERATOR", true, "FINANCE_VOID_EXPENSE");
+		status(call(HttpMethod.POST, "/api/v1/finance/expenses/" + expense + "/void", a, op, reason), 200);
+		// Void keeps the row (append-only): it is a state change, never a delete.
+		assertThat(count("SELECT count(*) FROM expense WHERE id = ?::uuid AND voided_at IS NOT NULL", expense))
+			.isEqualTo(1);
+		// Cross-tenant id: 404, tenant B's expense untouched.
+		status(call(HttpMethod.POST, "/api/v1/finance/expenses/" + expenseB + "/void", a, op, reason), 404);
+		assertThat(count("SELECT count(*) FROM expense WHERE id = ?::uuid AND voided_at IS NULL", expenseB))
+			.isEqualTo(1);
+
+		grant(a, "OPERATOR", false, "FINANCE_ADD_EXPENSE");
+		status(createExpense(a, op, category), 403);
+	}
+
+	@Test
+	@Tag("cross-tenant")
+	void enrollStudentsUpdatePaymentRulesAndRevokeFreeCardsAreDelegable() {
+		Fx a = fixture("cap-pay3-a");
+		Fx b = fixture("cap-pay3-b");
+		UUID student = createStudentId(a, "Enrol", "Me");
+		UUID studentB = createStudentId(b, "Other", "Tenant");
+		UUID secondCourse = createCourseOrFail(a.host(), a.adminToken(),
+				newCourseRequest(uniqueSlug("enrol"), a.teacher().getId(), CourseStatus.PUBLIC)).id();
+		String op = staffToken(a, Role.MANAGER);
+		String enroll = "/api/v1/students/" + student + "/enroll";
+		Map<String, Object> enrollBody = Map.of("courseId", secondCourse.toString(), "reason", "Walk-in enrollment");
+
+		status(call(HttpMethod.POST, enroll, a, op, enrollBody), 403);
+		// Edit Student (STUDENTS/CREATE_EDIT) and Add Payment (PAYMENTS_SLIPS/APPROVE) never imply it.
+		grant(a, "MANAGER", true, "STUDENTS_EDIT", "PAYMENTS_ADD");
+		status(call(HttpMethod.POST, enroll, a, op, enrollBody), 403);
+		grant(a, "MANAGER", true, "COURSES_ENROLL_STUDENTS");
+		status(call(HttpMethod.POST, enroll, a, op, enrollBody), 200);
+		status(call(HttpMethod.POST, "/api/v1/students/" + studentB + "/enroll", a, op,
+				Map.of("courseId", b.courseId().toString(), "reason", "Cross tenant")), 404);
+		grant(a, "MANAGER", false, "COURSES_ENROLL_STUDENTS");
+		status(call(HttpMethod.POST, enroll, a, op, enrollBody), 403);
+
+		// Update Payment Rules: grace period yes; a course device-limit change still needs DEVICES/CREATE_EDIT.
+		status(call(HttpMethod.PUT, "/api/v1/access-policy", a, op, Map.of("gracePeriodDays", 5)), 403);
+		grant(a, "MANAGER", true, "PAYMENTS_UPDATE_RULES");
+		status(call(HttpMethod.PUT, "/api/v1/access-policy", a, op, Map.of("gracePeriodDays", 5)), 200);
+		status(call(HttpMethod.PUT, "/api/v1/access-policy/courses/" + a.courseId(), a, op,
+				Map.of("gracePeriodDays", 3)), 200);
+		status(call(HttpMethod.PUT, "/api/v1/access-policy/courses/" + a.courseId(), a, op,
+				Map.of("gracePeriodDays", 3, "maxDevices", 4)), 403);
+		status(call(HttpMethod.PUT, "/api/v1/access-policy/courses/" + b.courseId(), a, op,
+				Map.of("gracePeriodDays", 3)), 404);
+		// Viewing the policy is unannotated: the static matrix (no grant for Manager) still decides.
+		status(call(HttpMethod.GET, "/api/v1/access-policy", a, op, null), 403);
+
+		// Revoke Free Cards: Issue never implies Revoke.
+		String revoke = "/api/v1/free-cards/" + UUID.randomUUID() + "/revoke";
+		Map<String, Object> why = Map.of("reason", "Issued by mistake");
+		grant(a, "MANAGER", true, "PAYMENTS_ISSUE_FREE_CARDS");
+		status(call(HttpMethod.POST, revoke, a, op, why), 403);
+		grant(a, "MANAGER", true, "PAYMENTS_REVOKE_FREE_CARDS");
+		// Passes FREE_CARDS/DELETE in FreeCardService, then the (tenant-scoped) lookup is 404.
+		status(call(HttpMethod.POST, revoke, a, op, why), 404);
+		grant(a, "MANAGER", false, "PAYMENTS_REVOKE_FREE_CARDS");
+		status(call(HttpMethod.POST, revoke, a, op, why), 403);
+	}
+
+	@Test
+	void financeDashboardAndGatewayStatusRowsAreSeparateReadGrants() {
+		Fx fx = fixture("cap-fin-dash");
+		String op = staffToken(fx, Role.OPERATOR);
+		String periods = "/api/v1/finance/reports/periods";
+		String outstanding = "/api/v1/ledger/outstanding";
+		String gateway = "/api/v1/payment-gateway-accounts";
+
+		status(call(HttpMethod.GET, periods, fx, op, null), 403);
+		grant(fx, "OPERATOR", true, "FINANCE_VIEW_INCOME_SUMMARY", "PAYMENTS_VIEW", "FINANCE_VIEW_EXPENSES");
+		status(call(HttpMethod.GET, periods, fx, op, null), 403);
+		status(call(HttpMethod.GET, outstanding, fx, op, null), 403);
+		status(call(HttpMethod.GET, gateway, fx, op, null), 403);
+
+		grant(fx, "OPERATOR", true, "FINANCE_DASHBOARD_ANNUAL_STATS", "FINANCE_DASHBOARD_PENDING_PAYMENTS",
+				"FINANCE_ACCOUNT_VIEW_CONFIGURATION");
+		status(call(HttpMethod.GET, periods, fx, op, null), 200);
+		status(call(HttpMethod.GET, outstanding, fx, op, null), 200);
+		MvcResult accounts = call(HttpMethod.GET, gateway, fx, op, null);
+		status(accounts, 200);
+		assertThat(content(accounts)).doesNotContainIgnoringCase("secret\":\"");
+		// Viewing the account never implies changing it (LOCKED, Tenant Admin only).
+		status(call(HttpMethod.PUT, gateway + "/payhere", fx, op,
+				Map.of("merchantId", "1211149", "merchantSecret", "x", "mode", "SANDBOX")), 403);
+
+		grant(fx, "OPERATOR", false, "FINANCE_DASHBOARD_ANNUAL_STATS");
+		status(call(HttpMethod.GET, periods, fx, op, null), 403);
+		status(call(HttpMethod.GET, outstanding, fx, op, null), 200);
+	}
+
+	@Test
+	void archivedCoursesAndPendingStudentsAreFilterLevelCapabilities() {
+		Fx fx = fixture("cap-filters");
+		String op = staffToken(fx, Role.OPERATOR);
+		String auditor = staffToken(fx, Role.READ_ONLY_AUDITOR);
+		grant(fx, "OPERATOR", true, "COURSES_VIEW", "STUDENTS_VIEW");
+
+		status(call(HttpMethod.GET, "/api/v1/courses", fx, op, null), 200);
+		status(call(HttpMethod.GET, "/api/v1/courses?archived=false", fx, op, null), 200);
+		status(call(HttpMethod.GET, "/api/v1/courses?archived=true", fx, op, null), 403);
+		status(call(HttpMethod.GET, "/api/v1/courses?includeArchived=true", fx, op, null), 403);
+		status(call(HttpMethod.GET, "/api/v1/students/directory?tab=ACTIVE", fx, op, null), 200);
+		status(call(HttpMethod.GET, "/api/v1/students/directory?tab=PENDING", fx, op, null), 403);
+
+		grant(fx, "OPERATOR", true, "COURSES_VIEW_ARCHIVED", "STUDENTS_VIEW_PENDING");
+		status(call(HttpMethod.GET, "/api/v1/courses?archived=true", fx, op, null), 200);
+		status(call(HttpMethod.GET, "/api/v1/students/directory?tab=PENDING", fx, op, null), 200);
+
+		// Static default for a seeded role: held (it holds COURSES/VIEW + STUDENTS/VIEW); revocable.
+		status(call(HttpMethod.GET, "/api/v1/students/directory?tab=PENDING", fx, auditor, null), 200);
+		grant(fx, "READ_ONLY_AUDITOR", false, "STUDENTS_VIEW_PENDING");
+		status(call(HttpMethod.GET, "/api/v1/students/directory?tab=PENDING", fx, auditor, null), 403);
+		status(call(HttpMethod.GET, "/api/v1/students/directory?tab=ACTIVE", fx, auditor, null), 200);
+		// A Teacher's own archived courses are unaffected.
+		String teacher = loginAndGetToken(fx.host(), "teacher@example.test");
+		status(call(HttpMethod.GET, "/api/v1/courses?archived=true", fx, teacher, null), 200);
+	}
+
+	@Test
+	@Tag("cross-tenant")
+	void questionBankAndExamAuthoringCapabilitiesAreSeparateAndTenantScoped() {
+		Fx a = fixture("cap-qb-a");
+		Fx b = fixture("cap-qb-b");
+		String op = staffToken(a, Role.OPERATOR);
+		String moduleId = body(call(HttpMethod.POST, "/api/v1/courses/" + a.courseId() + "/modules", a,
+				a.adminToken(), Map.of("title", "Week 1")), 201).path("id").asString();
+		String questions = "/api/v1/courses/" + a.courseId() + "/modules/" + moduleId + "/questions";
+		String questionsB = "/api/v1/courses/" + b.courseId() + "/modules/" + UUID.randomUUID() + "/questions";
+		String template = "/api/v1/question-imports/template.csv";
+
+		status(call(HttpMethod.GET, questions, a, op, null), 403);
+		// Module view never implies the question bank.
+		grant(a, "OPERATOR", true, "MODULES_VIEW", "EXAMS_VIEW");
+		status(call(HttpMethod.GET, questions, a, op, null), 403);
+		grant(a, "OPERATOR", true, "MODULES_QUESTIONS_VIEW");
+		status(call(HttpMethod.GET, questions, a, op, null), 200);
+		status(call(HttpMethod.GET, "/api/v1/courses/" + a.courseId() + "/modules/question-counts", a, op, null), 200);
+		status(call(HttpMethod.GET, questionsB, a, op, null), 404);
+		status(call(HttpMethod.GET, template, a, op, null), 403);
+		status(call(HttpMethod.PUT, "/api/v1/exam-questions/" + UUID.randomUUID(), a, op, Map.of()), 403);
+
+		grant(a, "OPERATOR", true, "MODULES_QUESTIONS_IMPORT");
+		status(call(HttpMethod.GET, template, a, op, null), 200);
+		grant(a, "OPERATOR", false, "MODULES_QUESTIONS_VIEW");
+		status(call(HttpMethod.GET, questions, a, op, null), 403);
+
+		// Exams: Schedule New Exam (create) is its own grant; Edit / Manage / Report / Leaderboard separate.
+		String createExam = "/api/v1/exams/courses/" + a.courseId() + "/exams";
+		status(call(HttpMethod.POST, createExam, a, op, Map.of("title", "Mid-term")), 403);
+		grant(a, "OPERATOR", true, "EXAMS_SCHEDULE");
+		String examId = body(call(HttpMethod.POST, createExam, a, op, Map.of("title", "Mid-term")), 200).path("id")
+			.asString();
+		status(call(HttpMethod.POST, "/api/v1/exams/courses/" + b.courseId() + "/exams", a, op,
+				Map.of("title", "Cross")), 404);
+		String examB = body(call(HttpMethod.POST, "/api/v1/exams/courses/" + b.courseId() + "/exams", b,
+				b.adminToken(), Map.of("title", "B exam")), 200).path("id").asString();
+
+		String candidates = "/api/v1/exams/" + examId + "/enrollment-candidates";
+		String export = "/api/v1/exams/" + examId + "/export.csv";
+		status(call(HttpMethod.PUT, "/api/v1/exams/" + examId, a, op, Map.of("title", "Renamed")), 403);
+		status(call(HttpMethod.GET, candidates, a, op, null), 403);
+		status(call(HttpMethod.GET, export, a, op, null), 403);
+		status(call(HttpMethod.POST, "/api/v1/exam-leaderboards", a, op,
+				Map.of("name", "Top", "examIds", List.of(examId))), 403);
+
+		grant(a, "OPERATOR", true, "EXAMS_EDIT", "EXAMS_MANAGE", "EXAMS_GENERATE_REPORT", "EXAMS_CREATE_LEADERBOARD");
+		assertThat(call(HttpMethod.PUT, "/api/v1/exams/" + examId, a, op, Map.of("title", "Renamed")).getResponse()
+			.getStatus()).isNotIn(401, 403);
+		assertThat(call(HttpMethod.GET, candidates, a, op, null).getResponse().getStatus()).isNotIn(401, 403);
+		assertThat(call(HttpMethod.GET, export, a, op, null).getResponse().getStatus()).isNotIn(401, 403);
+		assertThat(call(HttpMethod.POST, "/api/v1/exam-leaderboards", a, op,
+				Map.of("name", "Top", "examIds", List.of(examId))).getResponse().getStatus()).isNotIn(401, 403);
+		// Tenant B's exam id: 404.
+		status(call(HttpMethod.PUT, "/api/v1/exams/" + examB, a, op, Map.of("title", "x")), 404);
+		status(call(HttpMethod.GET, "/api/v1/exams/" + examB + "/enrollment-candidates", a, op, null), 404);
+		status(call(HttpMethod.GET, "/api/v1/exams/" + examB + "/export.csv", a, op, null), 404);
+
+		grant(a, "OPERATOR", false, "EXAMS_EDIT", "EXAMS_SCHEDULE");
+		status(call(HttpMethod.PUT, "/api/v1/exams/" + examId, a, op, Map.of("title", "Again")), 403);
+		status(call(HttpMethod.POST, createExam, a, op, Map.of("title", "Final")), 403);
+	}
+
+	@Test
+	@Tag("cross-tenant")
+	void aManagerGrantedLogAsStudentStartsAnAuditedSupportSessionOnlyInItsTenant() {
+		Fx a = fixture("cap-logas-a");
+		Fx b = fixture("cap-logas-b");
+		UUID student = createStudentId(a, "Sub", "Ject");
+		UUID studentB = createStudentId(b, "Other", "Tenant");
+		String managerEmail = email("manager");
+		TenantUser manager = seedTenantUser(a.tenant().getId(), managerEmail, RAW_PASSWORD, Role.MANAGER);
+		String token = loginAndGetToken(a.host(), managerEmail);
+		String start = "/api/v1/students/" + student + "/impersonation";
+		Map<String, Object> reason = Map.of("reason", "Support ticket 4711");
+
+		status(call(HttpMethod.POST, start, a, token, reason), 403);
+		// Reset Password / Edit Student never imply Log as Student.
+		grant(a, "MANAGER", true, "STUDENTS_RESET_PASSWORD", "STUDENTS_EDIT");
+		status(call(HttpMethod.POST, start, a, token, reason), 403);
+
+		grant(a, "MANAGER", true, "STUDENTS_LOG_AS");
+		MvcResult started = call(HttpMethod.POST, start, a, token, reason);
+		status(started, 201);
+		String cookie = started.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+		assertThat(cookie).contains("lms_impersonation=");
+
+		// Audit: actor (the manager) and subject (the student) are recorded distinctly.
+		UUID subjectUser = userIdOf(student);
+		Map<String, Object> audit = jdbcTemplate.queryForMap(
+				"SELECT actor_id, target_id, metadata::text AS metadata FROM audit_log WHERE tenant_id = ? "
+						+ "AND action = 'student.impersonation_started'",
+				a.tenant().getId());
+		assertThat(audit.get("actor_id")).isEqualTo(manager.getId());
+		assertThat(audit.get("target_id")).isEqualTo(student);
+		JsonNode meta = objectMapper.readTree((String) audit.get("metadata"));
+		assertThat(meta.path("actorUserId").asString()).isEqualTo(manager.getId().toString());
+		assertThat(meta.path("subjectUserId").asString()).isEqualTo(subjectUser.toString());
+		assertThat(manager.getId()).isNotEqualTo(subjectUser);
+		Map<String, Object> session = jdbcTemplate.queryForMap(
+				"SELECT actor_user_id, subject_user_id FROM impersonation_session WHERE tenant_id = ?",
+				a.tenant().getId());
+		assertThat(session.get("actor_user_id")).isEqualTo(manager.getId());
+		assertThat(session.get("subject_user_id")).isEqualTo(subjectUser);
+
+		// The handoff exchange still works for a granted (non-Tenant-Admin) actor.
+		String secret = cookie.substring(cookie.indexOf('=') + 1, cookie.indexOf(';'));
+		MvcResult exchanged = perform(MockMvcRequestBuilders.post("/api/v1/auth/impersonation/token")
+			.header(HttpHeaders.HOST, a.host())
+			.cookie(new jakarta.servlet.http.Cookie("lms_impersonation", secret)));
+		status(exchanged, 200);
+
+		// A student of another tenant: 404, no session or audit row there.
+		status(call(HttpMethod.POST, "/api/v1/students/" + studentB + "/impersonation", a, token, reason), 404);
+		assertThat(count("SELECT count(*) FROM impersonation_session WHERE tenant_id = ?", b.tenant().getId()))
+			.isZero();
+
+		// Revoking the grant ends support access: the exchange is refused and the session is ended (audited).
+		grant(a, "MANAGER", false, "STUDENTS_LOG_AS");
+		status(call(HttpMethod.POST, start, a, token, reason), 403);
+		MvcResult refused = perform(MockMvcRequestBuilders.post("/api/v1/auth/impersonation/token")
+			.header(HttpHeaders.HOST, a.host())
+			.cookie(new jakarta.servlet.http.Cookie("lms_impersonation", secret)));
+		assertThat(refused.getResponse().getStatus()).isIn(401, 403);
+		assertThat(count("SELECT count(*) FROM audit_log WHERE tenant_id = ? AND action = 'student.impersonation_ended'",
+				a.tenant().getId())).isEqualTo(1);
+	}
+
+	private MvcResult createExpense(Fx fx, String token, UUID categoryId) {
+		try {
+			return mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/finance/expenses")
+				.param("categoryId", categoryId.toString())
+				.param("expenseDate", java.time.LocalDate.now().minusDays(1).toString())
+				.param("amount", "25.00")
+				.param("method", "CASH")
+				.param("description", "Office rent")
+				.header(HttpHeaders.HOST, fx.host())
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + token)).andReturn();
+		}
+		catch (Exception e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	// ------------------------------------------------------------------ helpers
