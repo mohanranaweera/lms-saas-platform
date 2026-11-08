@@ -155,8 +155,8 @@ Tokens, passwords and invite tokens are redacted. Bodies truncated.
 
 ## A9 pre-grant: Operator existing token denied
 
-  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"Mohan Ranaweera","firstName":"Mohan","lastName":"Ranaweera","email":"mohanranaweera@gmail.com","contactNumber":"0722262628","instituteCommissio`
-  - `GET /students/directory?size=1` (A) → **200** `{"success":true,"data":{"content":[{"id":"01a0d48c-f9f6-7a22-bab0-08626d4e0812","indexNumber":"0001","firstName":"Demo","lastName":"Student","email":"demostudent@gmail.com","mobile":null,"lastLoginAt":"2026-10-29T07:47:3`
+  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"[redacted-name]","firstName":"[redacted]","lastName":"[redacted]","email":"[redacted-email]","contactNumber":"[redacted-phone]","instituteCommissio`
+  - `GET /students/directory?size=1` (A) → **200** `{"success":true,"data":{"content":[{"id":"01a0d48c-f9f6-7a22-bab0-08626d4e0812","indexNumber":"0001","firstName":"Demo","lastName":"Student","email":"[redacted-email]","mobile":null,"lastLoginAt":"2026-10-29T07:47:3`
   - A student id=01a0d48c-f9f6-7a22-bab0-08626d4e0812; row keys=id,indexNumber,firstName,lastName,email,mobile,lastLoginAt,status,hasPhoto
   - `POST /courses` (A body={"name":"OP course mw7e3ceo 8u3u","status":"PUBLIC","pricingModel":"FREE","teacherIds":["01a0fcc9-2745-79a9-8cb6-3dfef15a4efa"]}) → **403** `{"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"You do not have permission to perform this action","fieldErrors":[]},"timestamp":"2026-11-08T05:26:26.380217700Z","traceId":"57677ff4-5d48-4cd2-98bd-1bd`
 - **PASS** [A9] before grant: courseAdd → 403 — got 403
@@ -185,7 +185,7 @@ Tokens, passwords and invite tokens are redacted. Bodies truncated.
 - **PASS** [A9] COURSES_ADD does not authorize student view (403)
   - `GET /staff/permission-matrix` (A) → **200** `{"success":true,"data":{"version":1,"roles":[{"code":"OPERATOR","displayName":"Operator"},{"code":"MANAGER","displayName":"Manager"},{"code":"TEACHER","displayName":"Teacher"}],"groups":[{"key":"FINANCE","label":"Finance`
   - `PUT /staff/permission-matrix` (A body={"expectedVersion":1,"changes":[{"roleCode":"OPERATOR","capabilityKey":"STUDENTS_VIEW","granted":true}]}) → **200** `{"success":true,"data":{"version":2,"roles":[{"code":"OPERATOR","displayName":"Operator"},{"code":"MANAGER","displayName":"Manager"},{"code":"TEACHER","displayName":"Teacher"}],"groups":[{"key":"FINANCE","label":"Finance`
-  - `GET /students/directory?size=5` (A) → **200** `{"success":true,"data":{"content":[{"id":"01a0d48c-f9f6-7a22-bab0-08626d4e0812","indexNumber":"0001","firstName":"Demo","lastName":"Student","email":"demostudent@gmail.com","mobile":null,"lastLoginAt":"2026-10-29T07:47:3`
+  - `GET /students/directory?size=5` (A) → **200** `{"success":true,"data":{"content":[{"id":"01a0d48c-f9f6-7a22-bab0-08626d4e0812","indexNumber":"0001","firstName":"Demo","lastName":"Student","email":"[redacted-email]","mobile":null,"lastLoginAt":"2026-10-29T07:47:3`
 - **PASS** [A9] after STUDENTS_VIEW: directory → 200 — got 200
   - `GET /students/directory/export.csv` (A) → **403** `{"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"You do not have permission to perform this action","fieldErrors":[]},"timestamp":"2026-11-08T05:26:26.868290Z","traceId":"bc694f50-708e-4c84-8b1c-cd34db`
 - **PASS** [A9] sibling: STUDENTS_VIEW ≠ STUDENTS_EXPORT_CSV (csv 403) — got 403
@@ -212,8 +212,8 @@ Tokens, passwords and invite tokens are redacted. Bodies truncated.
   - `GET /staff/permission-matrix` (A) → **200** `{"success":true,"data":{"version":4,"roles":[{"code":"OPERATOR","displayName":"Operator"},{"code":"MANAGER","displayName":"Manager"},{"code":"TEACHER","displayName":"Teacher"}],"groups":[{"key":"FINANCE","label":"Finance`
   - `PUT /staff/permission-matrix` (A body={"expectedVersion":4,"changes":[{"roleCode":"OPERATOR","capabilityKey":"STUDENTS_EXPORT_CSV","granted":true},{"roleCode":"OPERATOR","capabilityKey":"STUDENTS_EX) → **200** `{"success":true,"data":{"version":5,"roles":[{"code":"OPERATOR","displayName":"Operator"},{"code":"MANAGER","displayName":"Manager"},{"code":"TEACHER","displayName":"Teacher"}],"groups":[{"key":"FINANCE","label":"Finance`
   - `GET /students/directory/export.csv` (A) → **200** `﻿Index Number,First Name,Last Name,Email,Mobile,Last Login,Status
-0001,Demo,Student,demostudent@gmail.com,,2026-10-29 13:17,ACTIVE
-0002,Demo,Student,student@demo.test,0722262629,2026-11-06 23:04,ACTIVE
+0001,Demo,Student,[redacted-email],,2026-10-29 13:17,ACTIVE
+0002,Demo,Student,student@demo.test,[redacted-phone],2026-11-06 23:04,ACTIVE
 0003,Kasunmw6ex`
 - **PASS** [A9] after STUDENTS_EXPORT_CSV: csv → 200 text/csv — got 200 text/csv;charset=UTF-8
   - `POST /students/qr-export` (A body={"studentIds":["01a0d48c-f9f6-7a22-bab0-08626d4e0812"]}) → **200** `<29692 bytes application/pdf>`
@@ -234,8 +234,8 @@ Tokens, passwords and invite tokens are redacted. Bodies truncated.
   - `POST /students/qr-export` (A body={"studentIds":["01a1b99f-31e5-77a0-8043-1c6ad7d905c4"]}) → **200** `<832 bytes application/pdf>`
 - **FAIL** [A9] Operator QR export with tenant-B student id → not a B label (4xx) — got 200 application/pdf
   - `GET /students/directory/export.csv` (A) → **200** `﻿Index Number,First Name,Last Name,Email,Mobile,Last Login,Status
-0001,Demo,Student,demostudent@gmail.com,,2026-10-29 13:17,ACTIVE
-0002,Demo,Student,student@demo.test,0722262629,2026-11-06 23:04,ACTIVE
+0001,Demo,Student,[redacted-email],,2026-10-29 13:17,ACTIVE
+0002,Demo,Student,student@demo.test,[redacted-phone],2026-11-06 23:04,ACTIVE
 0003,Kasunmw6ex`
 - **PASS** [A9] Operator CSV export contains no tenant-B student
   - `GET /courses?size=100` (A) → **200** `{"success":true,"data":{"content":[{"id":"01a0a8c1-c4fd-755c-8fc5-c993482707a4","teacherId":"01a0fcc9-2745-79a9-8cb6-3dfef15a4efa","name":"2028 Biology Theory Class","slug":"2028-biology-theory-class","category":"Biology`
@@ -436,7 +436,7 @@ Tokens, passwords and invite tokens are redacted. Bodies truncated.
 - **PASS** [A10] teacher onboarded (create 201 + approve 200) — 201/200
   - `POST /auth/login` (A teacher2-mw7e8adx@example.test) → **200** `{"success":true,"data":{"accessToken":"<redacted>","expiresInSeconds":900,"sessionId":"01a1b9a2-c440-74b6-9817-d005fd3c26ad","mustChangePass`
 - **PASS** [A10] approved teacher signs in — got 200
-  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"Mohan Ranaweera","firstName":"Mohan","lastName":"Ranaweera","email":"mohanranaweera@gmail.com","contactNumber":"0722262628","instituteCommissio`
+  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"[redacted-name]","firstName":"[redacted]","lastName":"[redacted]","email":"[redacted-email]","contactNumber":"[redacted-phone]","instituteCommissio`
   - `POST /courses` (A body={"name":"T own mw7e8adx","status":"PUBLIC","pricingModel":"FREE","teacherIds":["01a1b9a2-c290-79c5-9e56-345387e35784"]}) → **201** `{"success":true,"data":{"id":"01a1b9a2-c6eb-76a0-86ed-cac26729ffb9","teacherId":"01a1b9a2-c290-79c5-9e56-345387e35784","name":"T own mw7e8adx","slug":"t-own-mw7e8adx","category":"General","subject":null,"stream":null,"gr`
   - `POST /courses` (A body={"name":"T other mw7e8adx","status":"PUBLIC","pricingModel":"FREE","teacherIds":["01a0fcc9-2745-79a9-8cb6-3dfef15a4efa"]}) → **201** `{"success":true,"data":{"id":"01a1b9a2-c77f-7d42-8a51-9d2834dbae15","teacherId":"01a0fcc9-2745-79a9-8cb6-3dfef15a4efa","name":"T other mw7e8adx","slug":"t-other-mw7e8adx","category":"General","subject":null,"stream":null`
   - `GET /me/permissions` (A) → **403** `{"success":false,"data":null,"error":{"code":"PASSWORD_CHANGE_REQUIRED","message":"You must change your password before continuing.","fieldErrors":[]},"timestamp":"2026-11-08T05:30:15.405953400Z","traceId":"001fbf51-e97f`
@@ -501,7 +501,7 @@ Tokens, passwords and invite tokens are redacted. Bodies truncated.
 - **PASS** [A10] approved teacher signs in — got 200
   - `POST /auth/password` (A body={"currentPassword":"<redacted>","newPassword":"<redacted>"}) → **200** `{"success":true,"data":{"accessToken":"<redacted>","expiresInSeconds":900},"error":null,"timestamp":"2026-11-08T05:30:46.390383200Z","traceId":"42fc416d-1438-4780-a723-ecc7473a700f"}`
 - **PASS** [A10] first-login password change (onboarding) → 200 — got 200
-  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"Mohan Ranaweera","firstName":"Mohan","lastName":"Ranaweera","email":"mohanranaweera@gmail.com","contactNumber":"0722262628","instituteCommissio`
+  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"[redacted-name]","firstName":"[redacted]","lastName":"[redacted]","email":"[redacted-email]","contactNumber":"[redacted-phone]","instituteCommissio`
   - `POST /courses` (A body={"name":"T own mw7e91cu","status":"PUBLIC","pricingModel":"FREE","teacherIds":["01a1b9a3-3c4e-70f4-af96-0ca02bb853b3"]}) → **201** `{"success":true,"data":{"id":"01a1b9a3-4392-7633-ac65-d55503e4ed07","teacherId":"01a1b9a3-3c4e-70f4-af96-0ca02bb853b3","name":"T own mw7e91cu","slug":"t-own-mw7e91cu","category":"General","subject":null,"stream":null,"gr`
   - `POST /courses` (A body={"name":"T other mw7e91cu","status":"PUBLIC","pricingModel":"FREE","teacherIds":["01a0fcc9-2745-79a9-8cb6-3dfef15a4efa"]}) → **201** `{"success":true,"data":{"id":"01a1b9a3-4403-7c09-8b0f-cf3703ed3c65","teacherId":"01a0fcc9-2745-79a9-8cb6-3dfef15a4efa","name":"T other mw7e91cu","slug":"t-other-mw7e91cu","category":"General","subject":null,"stream":null`
   - `GET /me/permissions` (A) → **200** `{"success":true,"data":{"role":"TEACHER","capabilities":["COURSES_VIEW","COURSES_VIEW_STUDENTS","MODULES_VIEW","MODULES_ADD","MODULES_DELETE","EXAMS_VIEW"],"permissionVersion":14},"error":null,"timestamp":"2026-11-08T05:`
@@ -599,7 +599,7 @@ Authorization probes on ids that do not exist (`RAND`) distinguish **403 = denie
 - **PASS** [B1] Finance Staff PUT /staff/permission-matrix → 403 — got 403
   - `GET /staff/activities` (A) → **403** `{"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"You do not have permission to perform this action","fieldErrors":[]},"timestamp":"2026-11-08T13:30:41.529866100Z","traceId":"60e7122d-d2b7-4d3d-be31-038`
 - **PASS** [B1] Finance Staff GET /staff/activities → 403 — got 403
-  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"Mohan Ranaweera","firstName":"Mohan","lastName":"Ranaweera","email":"mohanranaweera@gmail.com","contactNumber":"0722262628","instituteCommissio`
+  - `GET /teachers` (A) → **200** `{"success":true,"data":[{"id":"01a0a8be-0d10-7e63-83fe-4ba9f31cbfc9","name":"[redacted-name]","firstName":"[redacted]","lastName":"[redacted]","email":"[redacted-email]","contactNumber":"[redacted-phone]","instituteCommissio`
   - `POST /courses` (A body={"name":"FS course0 mw7ve682","status":"PUBLIC","pricingModel":"FREE","teacherIds":["01a0fcc9-2745-79a9-8cb6-3dfef15a4efa"]}) → **403** `{"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"You do not have permission to perform this action","fieldErrors":[]},"timestamp":"2026-11-08T13:30:42.093418200Z","traceId":"38a0cef5-2edd-4b8c-a126-156`
 - **PASS** [B1] Finance Staff cannot add course by default (403) — got 403
 
@@ -692,7 +692,7 @@ Authorization probes on ids that do not exist (`RAND`) distinguish **403 = denie
   - paid course 201 01a1bb5a-aef7-7b94-9edd-05260024bca2; student 201 user=01a1bb5a-b022-7582-a032-f44f9df43156 profile=01a1bb5a-b022-7582-a032-f44f9df43156
   - `GET /finance/expense-categories` (A) → **200** `{"success":true,"data":[],"error":null,"timestamp":"2026-11-08T13:30:45.225038600Z","traceId":"26647b41-149b-4227-8193-f4c1093a4c51"}`
   - `POST /finance/expense-categories` (A body={"name":"M03 cat mw7ve682"}) → **201** `{"success":true,"data":{"id":"01a1bb5a-b084-7e7b-9150-ae62c825e5a6","name":"M03 cat mw7ve682","description":null,"archived":false,"createdAt":"2026-11-08T13:30:45.254452200Z","updatedAt":"2026-11-08T13:30:45.254452200Z"}`
-  - `GET /finance/teachers` (A) → **200** `{"success":true,"data":[{"userId":"01a0a8be-e505-7c21-bd1c-0b8165282a73","name":"Ashoka Madurasinghe","email":"ashoka@gmail.com"},{"userId":"01a0a8be-0cee-77ae-80eb-2e5ea43e7f50","name":"Mohan Ranaweera","email":"mohanra`
+  - `GET /finance/teachers` (A) → **200** `{"success":true,"data":[{"userId":"01a0a8be-e505-7c21-bd1c-0b8165282a73","name":"Ashoka Madurasinghe","email":"[redacted-email]"},{"userId":"01a0a8be-0cee-77ae-80eb-2e5ea43e7f50","name":"[redacted-name]","email":"mohanra`
   - payee keys=userId,name,email id=01a1b9a3-3c4e-70f4-af96-0ca02bb853b3; category=01a1bb5a-b084-7e7b-9150-ae62c825e5a6
   - `POST /finance/teacher-settlements` (A body={"teacherId":"01a1b9a3-3c4e-70f4-af96-0ca02bb853b3","periodStart":"2019-01-01","periodEnd":"2019-01-31"}) → **403** `{"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"You do not have permission to perform this action","fieldErrors":[]},"timestamp":"2026-11-08T13:30:45.323068900Z","traceId":"a2b1309c-0c0d-4eb1-865a-c2d`
 - **PASS** [B3] FINANCE_CALCULATE_SETTLEMENTS before grant: POST /finance/teacher-settlements → 403 — got 403
@@ -863,7 +863,7 @@ First pass: calculate returned 400 "No revenue share rate is in effect" for the 
 
   - `POST /auth/login` (A tenantadmin@demo.test) → **200** `{"success":true,"data":{"accessToken":"<redacted>","expiresInSeconds":900,"sessionId":"01a1bb5b-5fcc-7944-8c19-244ac4f3aaf8","mustChangePass`
   - `POST /auth/login` (A op-mw7e3ceo@example.test) → **200** `{"success":true,"data":{"accessToken":"<redacted>","expiresInSeconds":900,"sessionId":"01a1bb5b-60a0-7c50-9f0c-0378a147a9ed","mustChangePass`
-  - `GET /finance/teachers` (A) → **200** `{"success":true,"data":[{"userId":"01a0a8be-e505-7c21-bd1c-0b8165282a73","name":"Ashoka Madurasinghe","email":"ashoka@gmail.com"},{"userId":"01a0a8be-0cee-77ae-80eb-2e5ea43e7f50","name":"Mohan Ranaweera","email":"mohanra`
+  - `GET /finance/teachers` (A) → **200** `{"success":true,"data":[{"userId":"01a0a8be-e505-7c21-bd1c-0b8165282a73","name":"Ashoka Madurasinghe","email":"[redacted-email]"},{"userId":"01a0a8be-0cee-77ae-80eb-2e5ea43e7f50","name":"[redacted-name]","email":"mohanra`
   - payee teacher3-mw7e91cu@example.test 01a1b9a3-3c4e-70f4-af96-0ca02bb853b3
 
 ## B3 FINANCE_EDIT_SHARE_RATES
@@ -944,7 +944,7 @@ First pass: calculate returned 400 "No revenue share rate is in effect" for the 
 
   - `POST /auth/login` (A tenantadmin@demo.test) → **200** `{"success":true,"data":{"accessToken":"<redacted>","expiresInSeconds":900,"sessionId":"01a1bb5b-a571-7439-a3e2-f5a3e30b416d","mustChangePass`
   - `POST /auth/login` (A op-mw7e3ceo@example.test) → **200** `{"success":true,"data":{"accessToken":"<redacted>","expiresInSeconds":900,"sessionId":"01a1bb5b-a62d-78d4-bdda-cc779dfe079a","mustChangePass`
-  - `GET /finance/teachers` (A) → **200** `{"success":true,"data":[{"userId":"01a0a8be-e505-7c21-bd1c-0b8165282a73","name":"Ashoka Madurasinghe","email":"ashoka@gmail.com"},{"userId":"01a0a8be-0cee-77ae-80eb-2e5ea43e7f50","name":"Mohan Ranaweera","email":"mohanra`
+  - `GET /finance/teachers` (A) → **200** `{"success":true,"data":[{"userId":"01a0a8be-e505-7c21-bd1c-0b8165282a73","name":"Ashoka Madurasinghe","email":"[redacted-email]"},{"userId":"01a0a8be-0cee-77ae-80eb-2e5ea43e7f50","name":"[redacted-name]","email":"mohanra`
   - payee teacher3-mw7e91cu@example.test 01a1b9a3-3c4e-70f4-af96-0ca02bb853b3
 
 ## B3 settlement fixture (admin): paid course for synthetic teacher + manual enroll = confirmed payment/ledger revenue

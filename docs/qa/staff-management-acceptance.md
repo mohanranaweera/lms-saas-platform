@@ -89,7 +89,7 @@ Fixtures: the Finance Staff user was created through Add User and the invite lin
    - Likely fix: add `relative` to the pane or the cell.
 2. **There is no "reset to default" for seeded-role cells.** A revoke followed by a regrant leaves an explicit `granted = true` override row. Seven such rows now exist in `demo`: FINANCE_STAFF × 6 and TEACHER/MODULES_ADD. The effective matrix equals the baseline (0 cell differences, version 20→66), and for these capabilities the implied pairs are within the static pairs, so behaviour is identical. However, per §6.1 an explicit grant *elevates* implied pairs, so for a capability whose implied pairs exceed the role's static pairs, "un-revoking" would broaden access. This is a design observation; consider a "restore default" action that deletes the row.
 3. **Synthetic financial rows created, and they are append-only so they can't be removed:**
-   - two CONFIRMED manual enrollments of `m03-stu-mw7ve682@example.test`, one on a course taught by the demo teacher `sampath@gmail.com`;
+   - two CONFIRMED manual enrollments of `m03-stu-mw7ve682@example.test`, one on a course taught by the demo teacher `[redacted-email]`;
    - one voided expense;
    - one revoked free card;
    - a 70% share rate for the synthetic `teacher3-mw7e8adx` (from 2019-01-01).
