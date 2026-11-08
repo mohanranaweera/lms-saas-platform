@@ -217,7 +217,12 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			if (explicit == null) {
 				return CapabilityGate.PASS;
 			}
-			return explicit ? CapabilityGate.ELEVATE : CapabilityGate.DENY;
+			if (!explicit) {
+				return CapabilityGate.DENY;
+			}
+			// An explicit grant only elevates when it adds something the role does not hold by
+			// default; a grant equal to the default must never widen access (STAFF-MGMT-03 QA).
+			return defaultGrant(configurableRole, capability) ? CapabilityGate.PASS : CapabilityGate.ELEVATE;
 		}
 		return CapabilityGate.PASS;
 	}

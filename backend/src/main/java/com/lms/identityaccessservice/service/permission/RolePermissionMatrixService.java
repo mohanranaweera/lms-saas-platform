@@ -123,7 +123,13 @@ public class RolePermissionMatrixService {
 		List<Map<String, Object>> granted = new ArrayList<>();
 		List<Map<String, Object>> revoked = new ArrayList<>();
 		for (Validated v : effective) {
-			grantStore.upsert(v.role().name(), v.capability().key(), v.granted(), actor.userId());
+			if (v.granted() == PermissionCheckServiceImpl.defaultGrant(v.role(), v.capability())) {
+				// Back to the role's default: store no override, so nothing is elevated.
+				grantStore.deleteOverride(v.role().name(), v.capability().key());
+			}
+			else {
+				grantStore.upsert(v.role().name(), v.capability().key(), v.granted(), actor.userId());
+			}
 			Map<String, Object> entry = Map.of("role", v.role().name(), "capability", v.capability().key());
 			(v.granted() ? granted : revoked).add(entry);
 		}

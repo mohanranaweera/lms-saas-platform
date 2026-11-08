@@ -81,4 +81,13 @@ public class CapabilityGrantStore {
 				capabilityKey, granted, Timestamp.from(Instant.now()), actorId);
 	}
 
+	/**
+	 * Removes this tenant's override for one role/capability, so the catalog default applies again.
+	 * This is permission configuration, not business history; the change is audited by the caller.
+	 */
+	public void deleteOverride(String roleCode, String capabilityKey) {
+		jdbc.update("DELETE FROM tenant_role_capability_grant WHERE tenant_id = ? AND role_code = ? "
+				+ "AND capability_key = ?", tenantContext.getTenantId(), roleCode, capabilityKey);
+	}
+
 }

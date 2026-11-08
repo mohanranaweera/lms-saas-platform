@@ -409,6 +409,9 @@ class CapabilityEnforcementIntegrationTest extends StudentManagementTestSupport 
 
 		grant(fx, "FINANCE_STAFF", true, "PAYMENTS_APPROVE_PENDING");
 		status(call(HttpMethod.POST, approve, fx, finance, null), 404);
+		// Re-granting the default stores no override, so nothing beyond the static matrix is elevated.
+		assertThat(count("SELECT count(*) FROM tenant_role_capability_grant WHERE tenant_id = ? "
+				+ "AND role_code = 'FINANCE_STAFF'", fx.tenant().getId())).isZero();
 
 		// An explicit grant elevates beyond the static matrix (Finance Staff has COURSES/VIEW only).
 		Map<String, Object> create = Map.of("name", "Finance Course", "price", new BigDecimal("12.00"), "teacherId",
@@ -422,6 +425,8 @@ class CapabilityEnforcementIntegrationTest extends StudentManagementTestSupport 
 		status(call(HttpMethod.DELETE, "/api/v1/courses/" + courseId, fx, finance, null), 403);
 		grant(fx, "FINANCE_STAFF", false, "COURSES_ADD");
 		status(call(HttpMethod.POST, "/api/v1/courses", fx, finance, create), 403);
+		assertThat(count("SELECT count(*) FROM tenant_role_capability_grant WHERE tenant_id = ? "
+				+ "AND role_code = 'FINANCE_STAFF'", fx.tenant().getId())).isZero();
 
 		// Read-only Auditor: a non-VIEW capability is not configurable (400), nothing written.
 		long version = body(call(HttpMethod.GET, MATRIX, fx, fx.adminToken(), null), 200).path("version").asLong();
