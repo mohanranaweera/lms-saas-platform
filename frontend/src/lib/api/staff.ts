@@ -213,11 +213,13 @@ export function useStaffLifecycle() {
 }
 
 /** `GET /v1/staff/permission-matrix` - STAFF_VIEW. */
-export function usePermissionMatrix() {
+export function usePermissionMatrix(options: { enabled?: boolean } = {}) {
   const { authorizedFetch } = useAuth();
   return useQuery({
     queryKey: staffKeys.matrix,
     queryFn: () => authorizedFetch<PermissionMatrix>("tenant", "/v1/staff/permission-matrix"),
+    // `enabled: false` = observe the cache only (the page's unsaved-edits guard).
+    enabled: options.enabled ?? true,
     // Never refetch behind an editor's back; Reload is explicit.
     refetchOnWindowFocus: false,
   });

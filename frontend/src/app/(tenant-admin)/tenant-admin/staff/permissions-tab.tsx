@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Check, Lock, Minus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -76,10 +76,13 @@ type SaveFeedback =
 
 export function PermissionsTab({
   canEdit,
+  capabilitiesLoaded,
   edits,
   setEdits,
 }: {
   canEdit: boolean;
+  /** False while `GET /v1/me/permissions` is in flight: no read-only notice yet, no editing either. */
+  capabilitiesLoaded: boolean;
   edits: Map<string, boolean>;
   setEdits: (next: Map<string, boolean>) => void;
 }) {
@@ -94,16 +97,7 @@ export function PermissionsTab({
   const changes = useMemo(() => pendingChanges(matrix, edits), [matrix, edits]);
   const dirty = canEdit && changes.length > 0;
 
-  // Warn before leaving the page with unsaved edits.
-  useEffect(() => {
-    if (!dirty) return;
-    const handler = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  // Leaving with unsaved edits (reload/close and in-app links) is guarded by the page (page.tsx).
 
   const effective = useCallback(
     (roleCode: string, row: PermissionMatrixRow): boolean => {
@@ -123,7 +117,8 @@ export function PermissionsTab({
       else next.set(key, granted);
     }
     setEdits(next);
-    setAnnouncement("");
+    const count = pendingChanges(matrix, next).length;
+    setAnnouncement(count === 0 ? "No unsaved changes." : `${count} unsaved ${count === 1 ? "change" : "changes"}.`);
   };
 
   const discard = () => {
@@ -183,7 +178,7 @@ export function PermissionsTab({
           <h2 id="manage-permissions-heading" className="text-lg font-medium text-foreground">
             Manage Permissions
           </h2>
-          {!canEdit ? (
+          {capabilitiesLoaded && !canEdit ? (
             <p className="text-sm text-muted-foreground">
               Read-only: only a Tenant Admin can change role permissions.
             </p>
@@ -292,17 +287,18 @@ export function PermissionsTab({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Save permission changes?</AlertDialogTitle>
-            <AlertDialogDescription>
-              These changes apply to everyone with the role, from their next request.
+            {/* The per-role summary is part of the description so it is read when the dialog opens. */}
+            <AlertDialogDescription render={<div />} className="flex flex-col gap-2">
+              <span>These changes apply to everyone with the role, from their next request.</span>
+              <ul className="flex flex-col gap-1 text-sm text-foreground" data-testid="save-summary">
+                {summary.map(({ role, granted, revoked }) => (
+                  <li key={role.code}>
+                    <span className="font-medium">{role.displayName}</span>: {granted} granted, {revoked} revoked
+                  </li>
+                ))}
+              </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <ul className="flex flex-col gap-1 text-sm" data-testid="save-summary">
-            {summary.map(({ role, granted, revoked }) => (
-              <li key={role.code}>
-                <span className="font-medium">{role.displayName}</span>: {granted} granted, {revoked} revoked
-              </li>
-            ))}
-          </ul>
           <AlertDialogFooter>
             <Button type="button" variant="outline" disabled={save.isPending} onClick={() => setConfirmOpen(false)}>
               Cancel
@@ -424,13 +420,13 @@ function GroupBody({
                 type="button"
                 role="checkbox"
                 aria-checked={state}
-                aria-label={`${all ? "Deselect" : "Select"} all ${group.label} — ${role.displayName}`}
+                aria-label={`All ${group.label} — ${role.displayName}`}
                 disabled={!canEdit}
                 onClick={() =>
                   onSet(editableRows.map((row) => ({ roleCode: role.code, row, granted: !all })))
                 }
                 data-testid={`select-all-${group.key}-${role.code}`}
-                className="inline-flex items-center gap-1.5 rounded-sm text-xs underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                className="inline-flex min-h-6 min-w-6 items-center gap-1.5 rounded-sm px-1.5 py-1 text-xs underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
               >
                 <span
                   aria-hidden="true"
@@ -507,8 +503,10 @@ function MatrixCell({
   const reason = cell?.reason || row.reason || (locked ? "System-managed" : "Not available");
   return (
     <Tooltip label={reason}>
-      <span
-        className="inline-flex items-center justify-center text-muted-foreground"
+      {/* A focusable info control (never a checkbox) so keyboard users can reach the reason tooltip. */}
+      <button
+        type="button"
+        className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         data-testid={`cell-${row.key}-${roleCode}`}
         data-state={locked ? "locked" : "unavailable"}
       >
@@ -516,7 +514,7 @@ function MatrixCell({
         <span className="sr-only">
           {label}: {locked ? "locked" : "not available"} — {reason}
         </span>
-      </span>
+      </button>
     </Tooltip>
   );
 }

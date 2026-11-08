@@ -72,9 +72,12 @@ function useDebounced<T>(value: T, delay: number): T {
 export function UsersTab({
   canManage,
   canAssignRoles,
+  capabilitiesLoaded,
 }: {
   canManage: boolean;
   canAssignRoles: boolean;
+  /** False while my permissions load: the Add User slot shows a placeholder instead of flickering. */
+  capabilitiesLoaded: boolean;
 }) {
   const { timeZone } = useTenantTimeZone();
   const [searchInput, setSearchInput] = useState("");
@@ -93,7 +96,31 @@ export function UsersTab({
   const lifecycle = useStaffLifecycle();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [dialog, setDialog] = useState<RowDialog>(null);
+  // The last row dialog target stays mounted after close (exit animation + focus return); `dialogOpen` drives it.
+  const [dialog, setDialogState] = useState<RowDialog>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogSeq, setDialogSeq] = useState(0);
+  const setDialog = (next: RowDialog) => {
+    if (next) {
+      setDialogState(next);
+      setDialogSeq((current) => current + 1);
+      setDialogOpen(true);
+    } else {
+      setDialogOpen(false);
+    }
+  };
+  const closeDialog = (open: boolean) => {
+    if (!open) setDialogOpen(false);
+  };
+  /** Focus target after a row dialog closes: that row's visible Actions button, else the search box. */
+  const returnFocus = (): HTMLElement | null => {
+    if (dialog) {
+      const buttons = document.querySelectorAll<HTMLElement>(`[data-testid="staff-actions-${dialog.staff.id}"]`);
+      const visible = Array.from(buttons).find((button) => button.offsetParent !== null && !button.hasAttribute("disabled"));
+      if (visible) return visible;
+    }
+    return document.getElementById("staff-search");
+  };
   const [notice, setNotice] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -141,6 +168,11 @@ export function UsersTab({
     const showDeactivate = canManage && a.canDeactivate;
     const showReactivate = canManage && a.canReactivate;
     const showResend = canManage && a.canResendInvite;
+    // ADR-031 sign-in mobile is an edit; view-only viewers never get a control that would 403.
+    const showMobile = canManage && a.canEdit;
+    if (!showEdit && !showRole && !showDeactivate && !showReactivate && !showResend && !showMobile) {
+      return <span className="text-xs text-muted-foreground">No actions</span>;
+    }
     const lifecycleBusy = lifecycle.isPending && lifecycle.variables?.id === staff.id;
     return (
       <DropdownMenu>
@@ -183,10 +215,12 @@ export function UsersTab({
               Reactivate
             </DropdownMenuItem>
           ) : null}
-          <DropdownMenuItem onClick={() => setDialog({ kind: "mobile", staff })}>
-            <KeyRound aria-hidden="true" />
-            Sign-in mobile
-          </DropdownMenuItem>
+          {showMobile ? (
+            <DropdownMenuItem onClick={() => setDialog({ kind: "mobile", staff })}>
+              <KeyRound aria-hidden="true" />
+              Sign-in mobile
+            </DropdownMenuItem>
+          ) : null}
           {showDeactivate ? (
             <>
               <DropdownMenuSeparator />
@@ -276,7 +310,9 @@ export function UsersTab({
             />
           </div>
         </div>
-        {canManage ? (
+        {!capabilitiesLoaded ? (
+          <Skeleton className="h-8 w-28" aria-hidden="true" data-testid="add-user-placeholder" />
+        ) : canManage ? (
           <Button type="button" aria-haspopup="dialog" onClick={() => setAddOpen(true)} className="uppercase">
             Add User
           </Button>
@@ -398,15 +434,36 @@ export function UsersTab({
         />
       ) : null}
       {dialog?.kind === "edit" ? (
-        <EditStaffDialog staff={dialog.staff} onOpenChange={(open) => !open && setDialog(null)} onSaved={setNotice} />
+        <EditStaffDialog
+          key={`edit-${dialogSeq}`}
+          staff={dialog.staff}
+          open={dialogOpen}
+          onOpenChange={closeDialog}
+          onSaved={setNotice}
+          finalFocus={returnFocus}
+        />
       ) : null}
       {dialog?.kind === "role" ? (
-        <ChangeRoleDialog staff={dialog.staff} onOpenChange={(open) => !open && setDialog(null)} onSaved={setNotice} />
+        <ChangeRoleDialog
+          key={`role-${dialogSeq}`}
+          staff={dialog.staff}
+          open={dialogOpen}
+          onOpenChange={closeDialog}
+          onSaved={setNotice}
+          finalFocus={returnFocus}
+        />
       ) : null}
       {dialog?.kind === "deactivate" ? (
-        <DeactivateStaffDialog staff={dialog.staff} onOpenChange={(open) => !open && setDialog(null)} onDone={setNotice} />
+        <DeactivateStaffDialog
+          key={`deactivate-${dialogSeq}`}
+          staff={dialog.staff}
+          open={dialogOpen}
+          onOpenChange={closeDialog}
+          onDone={setNotice}
+          finalFocus={returnFocus}
+        />
       ) : null}
-      <Sheet open={dialog?.kind === "mobile"} onOpenChange={(open) => (open ? null : setDialog(null))}>
+      <Sheet open={dialogOpen && dialog?.kind === "mobile"} onOpenChange={closeDialog}>
         <SheetContent
           side="right"
           className="w-full data-[side=right]:w-full data-[side=right]:sm:max-w-full data-[side=right]:md:max-w-md"
@@ -422,7 +479,7 @@ export function UsersTab({
               <SignInMobileCard
                 path={`/v1/staff/${dialog.staff.id}/login-mobile`}
                 description="Lets this staff member sign in with a mobile number instead of their email."
-                canEdit={canManage}
+                canEdit={canManage && dialog.staff.actions.canEdit}
                 idPrefix="staff-login-mobile"
               />
             </div>

@@ -341,6 +341,8 @@ test.describe("Staff — Users", () => {
     await confirm.getByRole("button", { name: "Deactivate" }).click();
     await expect(confirm).toBeHidden();
     expect(log.lifecycle).toEqual([`deactivate:${ANN.id}`]);
+    // Focus returns to that row's Actions button.
+    await expect(page.getByRole("button", { name: "Actions for Ann Perera" }).first()).toBeFocused();
 
     await page.getByRole("button", { name: "Actions for Ben Silva" }).first().click();
     await expect(page.getByRole("menuitem", { name: "Resend invite" })).toBeVisible();
@@ -377,10 +379,14 @@ test.describe("Staff — Permissions", () => {
     await expect(cell).not.toBeChecked();
     await cell.check();
     await expect(page.getByTestId("unsaved-count")).toHaveText("1 unsaved change");
+    // Announced politely, not only shown.
+    await expect(page.locator('[role="status"][aria-live="polite"]').filter({ hasText: "1 unsaved change." })).toHaveCount(1);
 
     await page.getByRole("button", { name: "Save changes" }).click();
     const confirm = page.getByRole("alertdialog");
     await expect(confirm.getByTestId("save-summary")).toContainText("Operator: 1 granted, 0 revoked");
+    // The summary is part of the dialog's accessible description (read on open).
+    await expect(confirm).toHaveAccessibleDescription(/Operator: 1 granted, 0 revoked/);
     await confirm.getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByTestId("unsaved-count")).toHaveCount(0);
@@ -424,7 +430,10 @@ test.describe("Staff — Permissions", () => {
     const locked = page.getByTestId("cell-STAFF_VIEW-OPERATOR");
     await expect(locked).toHaveAttribute("data-state", "locked");
     await expect(locked).toContainText("Tenant Admin only");
-    await locked.click({ force: true });
+    // Keyboard-reachable info control, never a checkbox.
+    await locked.focus();
+    await expect(locked).toBeFocused();
+    await locked.click();
     await expect(page.getByTestId("unsaved-count")).toHaveCount(0);
 
     const unavailable = page.getByTestId("cell-STUDENTS_VIEW-TEACHER");
@@ -452,6 +461,25 @@ test.describe("Staff — Permissions", () => {
     await expect(page.getByTestId("unsaved-count")).toHaveText("1 unsaved change");
   });
 
+  test("leaving through an in-app link with unsaved edits asks for confirmation", async ({ page }) => {
+    await setUp(page);
+    await page.goto("/tenant-admin/staff?tab=permissions");
+
+    await page.getByRole("checkbox", { name: "Add Student — Operator" }).check();
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Dashboard", exact: true }).click();
+    const confirm = page.getByRole("alertdialog");
+    await expect(confirm.getByText("Leave without saving?")).toBeVisible();
+    await expect(confirm).toContainText("1 unsaved permission change");
+
+    await confirm.getByRole("button", { name: "Stay on page" }).click();
+    await expect(page).toHaveURL(/\/tenant-admin\/staff\?tab=permissions$/);
+    await expect(page.getByTestId("unsaved-count")).toHaveText("1 unsaved change");
+
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Dashboard", exact: true }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Leave" }).click();
+    await expect(page).toHaveURL(/\/tenant-admin\/dashboard$/);
+  });
+
   test("a viewer without STAFF_PERMISSIONS_EDIT sees a read-only matrix and no Add User", async ({ page }) => {
     await setUp(page, { role: "READ_ONLY_AUDITOR", capabilities: ["STAFF_VIEW", "STAFF_ACTIVITY_VIEW"] });
     await page.goto("/tenant-admin/staff?tab=permissions");
@@ -463,6 +491,8 @@ test.describe("Staff — Permissions", () => {
     await page.getByRole("tab", { name: "Users" }).click();
     await expect(page.getByRole("table").getByText("Ann", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add User" })).toHaveCount(0);
+    // No sign-in mobile (or any other) row control a view-only viewer couldn't use.
+    await expect(page.getByRole("button", { name: "Actions for Ann Perera" })).toHaveCount(0);
   });
 });
 

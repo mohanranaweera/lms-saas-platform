@@ -280,10 +280,14 @@ export function AddUserDialog({
 /** Edit a staff member's name and contact number (`PATCH /v1/staff/{id}`). */
 export function EditStaffDialog({
   staff,
+  open,
   onOpenChange,
   onSaved,
+  finalFocus,
 }: {
   staff: StaffResponse;
+  open: boolean;
+  finalFocus?: () => HTMLElement | null;
   onOpenChange: (open: boolean) => void;
   onSaved: (message: string) => void;
 }) {
@@ -324,7 +328,8 @@ export function EditStaffDialog({
 
   return (
     <StaffFormDialog
-      open
+      open={open}
+      finalFocus={finalFocus}
       onOpenChange={(next) => (!next && mutation.isPending ? undefined : onOpenChange(next))}
       title="Edit details"
       icon={<Pencil className="size-5 text-primary" aria-hidden="true" />}
@@ -396,10 +401,14 @@ export function EditStaffDialog({
 /** Change a staff member's role (`PUT /v1/staff/{id}/role`); options are the server's assignable set. */
 export function ChangeRoleDialog({
   staff,
+  open,
   onOpenChange,
   onSaved,
+  finalFocus,
 }: {
   staff: StaffResponse;
+  open: boolean;
+  finalFocus?: () => HTMLElement | null;
   onOpenChange: (open: boolean) => void;
   onSaved: (message: string) => void;
 }) {
@@ -433,7 +442,8 @@ export function ChangeRoleDialog({
 
   return (
     <StaffFormDialog
-      open
+      open={open}
+      finalFocus={finalFocus}
       onOpenChange={(next) => (!next && mutation.isPending ? undefined : onOpenChange(next))}
       title="Change role"
       icon={<UserCog className="size-5 text-primary" aria-hidden="true" />}
@@ -467,6 +477,7 @@ export function ChangeRoleDialog({
             id="change-role-select"
             className={SELECT_CLASS}
             disabled={mutation.isPending || rolesQuery.status !== "success"}
+            aria-required="true"
             aria-invalid={errors.roleCode ? true : undefined}
             aria-describedby={describedBy("change-role-select", errors.roleCode)}
             {...register("roleCode")}
@@ -491,10 +502,14 @@ export function ChangeRoleDialog({
 /** Confirmation before deactivating (revokes the member's sessions server-side). */
 export function DeactivateStaffDialog({
   staff,
+  open,
   onOpenChange,
   onDone,
+  finalFocus,
 }: {
   staff: StaffResponse;
+  open: boolean;
+  finalFocus?: () => HTMLElement | null;
   onOpenChange: (open: boolean) => void;
   onDone: (message: string) => void;
 }) {
@@ -515,8 +530,8 @@ export function DeactivateStaffDialog({
   };
 
   return (
-    <AlertDialog open onOpenChange={(next) => (!next && mutation.isPending ? undefined : onOpenChange(next))}>
-      <AlertDialogContent>
+    <AlertDialog open={open} onOpenChange={(next) => (!next && mutation.isPending ? undefined : onOpenChange(next))}>
+      <AlertDialogContent finalFocus={finalFocus}>
         <AlertDialogHeader>
           <AlertDialogTitle>Deactivate {name}?</AlertDialogTitle>
           <AlertDialogDescription>

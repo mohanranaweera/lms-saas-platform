@@ -23,6 +23,7 @@ export function StaffFormDialog({
   testId,
   icon,
   className,
+  finalFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +34,8 @@ export function StaffFormDialog({
   testId?: string;
   icon?: ReactNode;
   className?: string;
+  /** Where focus goes on close (defaults to Base UI's: the previously focused element). */
+  finalFocus?: () => HTMLElement | null;
 }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
@@ -40,6 +43,7 @@ export function StaffFormDialog({
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/30 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <DialogPrimitive.Popup
           data-testid={testId}
+          finalFocus={finalFocus}
           className={cn(
             "fixed inset-0 z-50 flex flex-col bg-popover text-sm text-popover-foreground shadow-lg outline-none transition duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border sm:border-border",
             className
