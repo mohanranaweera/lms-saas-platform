@@ -439,7 +439,7 @@ function MatrixTable({
 
   return (
     <div
-      className="max-h-[70vh] w-0 min-w-full overflow-auto rounded-lg border border-border"
+      className="relative max-h-[70vh] w-0 min-w-full overflow-auto rounded-lg border border-border"
       data-testid="permission-matrix-scroll"
       tabIndex={0}
       role="region"
