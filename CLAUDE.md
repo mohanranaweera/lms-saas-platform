@@ -108,3 +108,26 @@ Before editing code, report:
 - security impact
 - tenant impact
 - tests required
+
+
+## Codebase Analysis and Token Efficiency
+
+- Use the installed untangle-codebase skill for unfamiliar,
+  cross-module, or high-risk changes when relevant.
+- Analyze the requested module and immediate dependencies first;
+  do not scan the entire repository by default.
+- Reuse existing architecture, APIs, components, services,
+  and permission patterns.
+- Read existing architecture or module documentation before
+  repeating exploration.
+- Exclude generated outputs, dependencies, build folders,
+  and unrelated references from routine analysis.
+- Produce concise findings: entry points, dependencies,
+  reuse candidates, risks, and relevant file paths.
+- Delegate bounded implementation tasks to the existing
+  specialized agents.
+- Do not perform refactoring or broad repository
+  modifications without approval.
+- Run focused tests before wider validation.
+- Update module documentation only when verified
+  architecture or behavior changes.

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "untangle-codebase": {
+      "source": "caldoai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/untangle-codebase/SKILL.md",
+      "computedHash": "72ed3e75cb6b771b69b084772322d9c715fe843c28733f54091f0c3000fe5052"
+    }
+  }
+}
