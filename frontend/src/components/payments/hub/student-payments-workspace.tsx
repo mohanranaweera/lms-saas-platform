@@ -22,6 +22,8 @@ import { isApiClientError } from "@/lib/api/error";
 import { useStaffPaymentContext, type PaymentContext } from "@/lib/api/staff-payments";
 import { useStudents } from "@/lib/api/students";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import {
   canIssueFreeCard,
   canProcessRefunds,
@@ -241,9 +243,10 @@ function StudentWorkspace({
 }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const canRecord = canRecordManualPayment(role);
-  const canRefund = canProcessRefunds(role);
-  const canIssue = canIssueFreeCard(role);
+  const { can } = useCapabilities();
+  const canRecord = can(CAP.PAYMENTS_ADD, canRecordManualPayment(role));
+  const canRefund = can(CAP.PAYMENTS_UNDO, canProcessRefunds(role));
+  const canIssue = can(CAP.PAYMENTS_ISSUE_FREE_CARDS, canIssueFreeCard(role));
   const canRevoke = canRevokeFreeCard(role);
   const canSeeFreeCards = canViewFreeCards(role);
   const [addOpen, setAddOpen] = useState(false);

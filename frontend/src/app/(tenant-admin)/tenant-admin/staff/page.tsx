@@ -1,158 +1,105 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
-import { useAuth } from "@/lib/auth/auth-context";
-import { canManageStaff } from "@/lib/auth/permissions";
-import { useStaffList, type StaffResponse } from "@/lib/api/staff";
-import { Button } from "@/components/ui/button";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
-import { StaffStatusBadge } from "@/components/staff/staff-status-badge";
-import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { CreateStaffSheet } from "./create-staff-sheet";
-import { SignInMobileCard } from "@/components/auth/sign-in-mobile-card";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ListChecks, ShieldCheck, ShieldHalf, Users } from "lucide-react";
+import { Tabs, type TabItem } from "@/components/ui/tabs";
+import { LoadingState } from "@/components/states/loading-state";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { UsersTab } from "./users-tab";
+import { PermissionsTab, usePermissionEditsState } from "./permissions-tab";
+import { ActivitiesTab } from "./activities-tab";
+
+type StaffTab = "users" | "permissions" | "activities";
+const TABS: readonly StaffTab[] = ["users", "permissions", "activities"];
+
+function isStaffTab(value: string | null): value is StaffTab {
+  return value !== null && (TABS as readonly string[]).includes(value);
+}
 
 /**
- * Staff Management list (MVP-005, `STAFF-1`, Tenant Admin/Read-only
- * Auditor). `GET /api/v1/staff` is enforced server-side
- * (`STAFF_AND_ROLES`/`VIEW`) — this page issues the real request
- * unconditionally and lets `QueryStateBoundary` render
- * `PermissionDeniedState` on an actual `403`; the nav entry
- * (`tenant-admin-nav.tsx`, gated on `canViewStaff`) is pure UX convenience
- * only, and "Add staff" is additionally gated on `canManageStaff` (Tenant
- * Admin only — Read-only Auditor sees the list but no create action).
- *
- * No server-side pagination/search/filter exists on this endpoint (see
- * `StaffController`), matching `students/page.tsx`'s equivalent note — this
- * list renders the full tenant-scoped result set as-is, no client-side
- * filtering added since this module's scope doesn't call for it.
+ * Staff Management (STAFF-MGMT-02, Klass parity): Users | Permissions |
+ * Activities, the active tab in `?tab=`. Every in-page action is gated on my
+ * effective capabilities (`GET /v1/me/permissions`) - UX only; each endpoint
+ * re-checks its capability server-side and a real 403 renders the
+ * permission-denied state.
  */
-export default function StaffListPage() {
-  const { session } = useAuth();
-  const canManage = canManageStaff(session?.role ?? null);
-  const staffQuery = useStaffList();
+export default function StaffPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Loading staff…" />}>
+      <StaffPageContent />
+    </Suspense>
+  );
+}
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  // ADR-031: the staff member whose sign-in mobile sheet is open.
-  const [mobileFor, setMobileFor] = useState<StaffResponse | null>(null);
-  const [createdNotice, setCreatedNotice] = useState<string | null>(null);
+function StaffPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { has, loaded } = useCapabilities({ fetchForAllRoles: true });
+  const { edits, setEdits } = usePermissionEditsState();
 
-  useEffect(() => {
-    if (!createdNotice) return;
-    const timeout = setTimeout(() => setCreatedNotice(null), 5000);
-    return () => clearTimeout(timeout);
-  }, [createdNotice]);
+  const canManage = has(CAP.STAFF_MANAGE);
+  const canAssignRoles = has(CAP.STAFF_ASSIGN_ROLES);
+  const canEditPermissions = has(CAP.STAFF_PERMISSIONS_EDIT);
+  // Hidden only once my permissions are known to lack it; a direct visit still
+  // makes the real request and renders the server's 403.
+  const showActivities = !loaded || has(CAP.STAFF_ACTIVITY_VIEW);
 
-  const handleCreated = (staff: StaffResponse) => {
-    setCreatedNotice(`${staff.name} was added.`);
-  };
+  const tabParam = searchParams.get("tab");
+  const activeTab: StaffTab = isStaffTab(tabParam) ? tabParam : "users";
 
-  const columns: DataTableColumn<StaffResponse>[] = [
-    { key: "name", header: "Name", cell: (staff) => staff.name, hideOnCard: true },
-    { key: "email", header: "Email", cell: (staff) => staff.email },
-    { key: "roleCode", header: "Role", cell: (staff) => staff.roleCode },
+  function handleTabChange(next: string) {
+    const search = new URLSearchParams(searchParams);
+    if (next === "users") search.delete("tab");
+    else search.set("tab", next);
+    const qs = search.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  const items: TabItem[] = [
     {
-      key: "status",
-      header: "Status",
-      cell: (staff) => <StaffStatusBadge status={staff.status} />,
-      hideOnCard: true,
+      value: "users",
+      label: "Users",
+      icon: <Users className="size-4" aria-hidden="true" />,
+      content: <UsersTab canManage={canManage} canAssignRoles={canAssignRoles} />,
     },
     {
-      key: "signInMobile",
-      header: "Sign-in mobile",
-      cell: (staff) => (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          aria-haspopup="dialog"
-          aria-label={`Sign-in mobile for ${staff.name}`}
-          onClick={() => setMobileFor(staff)}
-        >
-          {canManage ? "Set" : "View"}
-        </Button>
-      ),
+      value: "permissions",
+      label: "Permissions",
+      icon: <ShieldHalf className="size-4" aria-hidden="true" />,
+      content: <PermissionsTab canEdit={canEditPermissions} edits={edits} setEdits={setEdits} />,
     },
   ];
+  if (showActivities || activeTab === "activities") {
+    items.push({
+      value: "activities",
+      label: "Activities",
+      icon: <ListChecks className="size-4" aria-hidden="true" />,
+      content: <ActivitiesTab />,
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Staff</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage this institute&apos;s staff accounts and their assigned roles.
-          </p>
-        </div>
-        {canManage ? (
-          <Button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={sheetOpen}
-            onClick={() => setSheetOpen(true)}
-          >
-            <Plus aria-hidden="true" />
-            Add staff
-          </Button>
-        ) : null}
-      </div>
-
-      <div role="status" aria-live="polite">
-        {createdNotice ? <p className="text-sm text-muted-foreground">{createdNotice}</p> : null}
-      </div>
-
-      <QueryStateBoundary
-        query={staffQuery}
-        loadingLabel="Loading staff…"
-        loginPath="/login"
-        permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
-        isEmpty={(staff) => staff.length === 0}
-        emptyState={{
-          title: "No staff accounts yet",
-          description: canManage
-            ? "This institute doesn't have any staff accounts yet. Add your first staff member to get started."
-            : "This institute doesn't have any staff accounts yet.",
-          action: canManage ? { label: "Add staff", onClick: () => setSheetOpen(true) } : undefined,
-        }}
-      >
-        {(staff) => (
-          <DataTable
-            columns={columns}
-            rows={staff}
-            rowKey={(member) => member.id}
-            caption="Staff"
-            cardHeading={(member) => member.name}
-            cardHeadingAdornment={(member) => <StaffStatusBadge status={member.status} />}
-          />
-        )}
-      </QueryStateBoundary>
-
-      <Sheet open={mobileFor !== null} onOpenChange={(open) => (open ? null : setMobileFor(null))}>
-        <SheetContent
-          side="right"
-          className="w-full data-[side=right]:w-full data-[side=right]:sm:max-w-full data-[side=right]:md:max-w-md"
+      <div className="flex items-center gap-3">
+        <span
+          className="inline-flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+          aria-hidden="true"
         >
-          <SheetHeader>
-            <SheetTitle>{mobileFor ? `Sign-in mobile — ${mobileFor.name}` : "Sign-in mobile"}</SheetTitle>
-            <SheetDescription>{mobileFor?.email}</SheetDescription>
-          </SheetHeader>
-          {mobileFor ? (
-            <div className="px-4 pb-4">
-              <SignInMobileCard
-                path={`/v1/staff/${mobileFor.id}/login-mobile`}
-                description="Lets this staff member sign in with a mobile number instead of their email."
-                canEdit={canManage}
-                idPrefix="staff-login-mobile"
-              />
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
-
-      {canManage ? (
-        <CreateStaffSheet open={sheetOpen} onOpenChange={setSheetOpen} onCreated={handleCreated} />
-      ) : null}
+          <ShieldCheck className="size-5" />
+        </span>
+        <h1 className="text-xl font-semibold text-foreground">Staff</h1>
+      </div>
+      <Tabs
+        aria-label="Staff sections"
+        idPrefix="staff-"
+        items={items}
+        value={activeTab}
+        onValueChange={handleTabChange}
+        listClassName="uppercase tracking-wide"
+      />
     </div>
   );
 }

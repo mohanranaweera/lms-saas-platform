@@ -18,6 +18,8 @@ import {
   Upload,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import {
   canDeleteStudents,
   canImpersonateStudents,
@@ -99,10 +101,20 @@ function useDebounced<T>(value: T, delay: number): T {
 export default function StudentDirectoryPage() {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const canManage = canManageStudents(role);
-  const canDelete = canDeleteStudents(role);
-  const canImpersonate = canImpersonateStudents(role);
-  const canMessage = canSendCommunications(role);
+  // UX only. Static roles keep their role helpers; Operator / Manager follow
+  // their effective capabilities (STAFF-MGMT-02). Log as Student is never
+  // available to them (ADR-033, LOCKED).
+  const { can, isCapabilityRole } = useCapabilities();
+  const legacyManage = canManageStudents(role);
+  const canManage = can(CAP.STUDENTS_EDIT, legacyManage);
+  const canAdd = can(CAP.STUDENTS_ADD, legacyManage);
+  const canApprove = can(CAP.STUDENTS_APPROVE_PENDING, legacyManage);
+  const canResetPassword = can(CAP.STUDENTS_RESET_PASSWORD, legacyManage);
+  const canExportCsv = can(CAP.STUDENTS_EXPORT_CSV, true);
+  const canExportQr = can(CAP.STUDENTS_EXPORT_QR, true);
+  const canDelete = can(CAP.STUDENTS_DELETE, canDeleteStudents(role));
+  const canImpersonate = !isCapabilityRole && canImpersonateStudents(role);
+  const canMessage = can(CAP.STUDENTS_SEND_NOTIFICATION, canSendCommunications(role));
   const { timeZone } = useTenantTimeZone();
 
   const [tab, setTab] = useState<DirectoryTab>("ACTIVE");
@@ -153,6 +165,8 @@ export default function StudentDirectoryPage() {
       row={row}
       tab={tab}
       canManage={canManage}
+      canApprove={canApprove}
+      canResetPassword={canResetPassword}
       canDelete={canDelete}
       canImpersonate={canImpersonate}
       canMessage={canMessage}
@@ -196,21 +210,25 @@ export default function StudentDirectoryPage() {
           <p className="text-sm text-muted-foreground">Register, find and support this institute&apos;s students.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={exportCsv.isPending}
-            aria-busy={exportCsv.isPending}
-            onClick={() => exportCsv.mutate({ tab, field, q: trimmedQuery })}
-          >
-            <Download aria-hidden="true" />
-            {exportCsv.isPending ? "Exporting…" : "Export as CSV"}
-          </Button>
-          <Button type="button" variant="outline" aria-haspopup="dialog" onClick={() => setQrOpen(true)}>
-            <QrCode aria-hidden="true" />
-            Export QRs
-          </Button>
-          {canManage ? (
+          {canExportCsv ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={exportCsv.isPending}
+              aria-busy={exportCsv.isPending}
+              onClick={() => exportCsv.mutate({ tab, field, q: trimmedQuery })}
+            >
+              <Download aria-hidden="true" />
+              {exportCsv.isPending ? "Exporting…" : "Export as CSV"}
+            </Button>
+          ) : null}
+          {canExportQr ? (
+            <Button type="button" variant="outline" aria-haspopup="dialog" onClick={() => setQrOpen(true)}>
+              <QrCode aria-hidden="true" />
+              Export QRs
+            </Button>
+          ) : null}
+          {canAdd ? (
             <>
               <Link href="/tenant-admin/students/bulk-import" className={buttonVariants({ variant: "outline" })}>
                 <Upload aria-hidden="true" />
@@ -320,10 +338,10 @@ export default function StudentDirectoryPage() {
                 }
               : {
                   title: "No students yet",
-                  description: canManage
+                  description: canAdd
                     ? "Add your first student, or bulk-import a CSV of existing students."
                     : "This institute doesn't have any students yet.",
-                  action: canManage ? { label: "Add Student", onClick: openCreate } : undefined,
+                  action: canAdd ? { label: "Add Student", onClick: openCreate } : undefined,
                 }
         }
         permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
@@ -371,7 +389,7 @@ export default function StudentDirectoryPage() {
         )}
       </QueryStateBoundary>
 
-      {canManage ? (
+      {canManage || canAdd ? (
         <StudentFormSheet
           open={formState.open}
           mode={formState.mode}
@@ -439,6 +457,8 @@ function RowActions({
   row,
   tab,
   canManage,
+  canApprove,
+  canResetPassword,
   canDelete,
   canImpersonate,
   canMessage,
@@ -451,6 +471,8 @@ function RowActions({
   row: StudentDirectoryRow;
   tab: DirectoryTab;
   canManage: boolean;
+  canApprove: boolean;
+  canResetPassword: boolean;
   canDelete: boolean;
   canImpersonate: boolean;
   canMessage: boolean;
@@ -463,7 +485,7 @@ function RowActions({
   const name = fullName(row);
   return (
     <div className="flex items-center gap-0.5" data-testid={`student-row-actions-${row.id}`}>
-      {tab === "PENDING" && canManage ? (
+      {tab === "PENDING" && canApprove ? (
         <Button type="button" size="sm" variant="outline" disabled={approving} onClick={onApprove} aria-label={`Approve: ${name}`}>
           <CheckCircle2 aria-hidden="true" />
           {approving ? "Approving…" : "Approve"}
@@ -503,7 +525,7 @@ function RowActions({
               Send Message
             </DropdownMenuLinkItem>
           ) : null}
-          {canManage ? (
+          {canResetPassword ? (
             <DropdownMenuItem onClick={() => onDialog("reset")}>
               <KeyRound aria-hidden="true" />
               Reset Password

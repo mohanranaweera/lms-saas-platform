@@ -21,6 +21,10 @@ export const DASHBOARD_PATH_BY_ROLE: Record<string, string> = {
   EXAM_MANAGER: "/tenant-admin/dashboard",
   ATTENDANCE_OPERATOR: "/tenant-admin/dashboard",
   READ_ONLY_AUDITOR: "/tenant-admin/dashboard",
+  // STAFF-MGMT-02: tenant-configurable roles. What they can see inside the
+  // portal follows their effective capabilities (GET /v1/me/permissions).
+  OPERATOR: "/tenant-admin/dashboard",
+  MANAGER: "/tenant-admin/dashboard",
   // TEACHER_ASSISTANT intentionally omitted — its portal is an open,
   // unratified decision (docs/plans/MVP-006 Student Management.md §21 item 8;
   // user-roles-and-permissions.md §3), not something to guess here.

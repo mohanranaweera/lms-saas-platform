@@ -9,6 +9,8 @@ import { Tabs } from "@/components/ui/tabs";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { AdminToast, useAdminToast, type AdminToastMessage } from "@/components/courses/admin/admin-toast";
 import { CourseCreateDialog } from "@/components/courses/admin/course-create-dialog";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import {
   CourseRowActions,
   CourseStatusBadge,
@@ -54,6 +56,9 @@ function primaryTeacherName(course: KlassCourse): string {
  * rendered (D20).
  */
 export function CourseListPanel() {
+  // UX only: legacy roles keep "Add course" as before; Operator / Manager need COURSES_ADD.
+  const { can } = useCapabilities();
+  const canAddCourse = can(CAP.COURSES_ADD, true);
   const [tab, setTab] = useState<TabValue>("active");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -102,7 +107,7 @@ export function CourseListPanel() {
       onTagIdChange={(next) => { setTagId(next); setPage(0); }}
       onPageChange={setPage}
       onClearSearch={() => setSearchInput("")}
-      onAddCourse={openCreate}
+      onAddCourse={canAddCourse ? openCreate : undefined}
       onToast={toast.show}
     />
   );
@@ -134,10 +139,12 @@ export function CourseListPanel() {
             <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
-        <Button type="button" onClick={openCreate} data-testid="courses-add-course">
-          <Plus aria-hidden="true" />
-          Add course
-        </Button>
+        {canAddCourse ? (
+          <Button type="button" onClick={openCreate} data-testid="courses-add-course">
+            <Plus aria-hidden="true" />
+            Add course
+          </Button>
+        ) : null}
       </div>
 
       <Tabs
@@ -197,7 +204,8 @@ function CourseTable({
   onTagIdChange: (tagId: string | null) => void;
   onPageChange: (page: number) => void;
   onClearSearch: () => void;
-  onAddCourse: () => void;
+  /** Absent when the viewer may not add courses (STAFF-MGMT-02 COURSES_ADD for Operator / Manager). */
+  onAddCourse?: () => void;
   onToast: (message: AdminToastMessage) => void;
 }) {
   const query = useKlassCourses({ archived, search, page, size: PAGE_SIZE, tagId });
@@ -244,7 +252,7 @@ function CourseTable({
                 <Button type="button" size="sm" variant="outline" onClick={onClearSearch}>
                   Clear search
                 </Button>
-              ) : !archived ? (
+              ) : !archived && onAddCourse ? (
                 <Button type="button" size="sm" onClick={onAddCourse}>
                   <Plus aria-hidden="true" />
                   Add course

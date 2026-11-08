@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/states/empty-state";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { formatDateTime } from "@/lib/format";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import { canProcessRefunds } from "@/lib/auth/permissions";
 import { useLedgerDashboard, type LedgerHistoryEntryResponse } from "@/lib/api/ledger";
 import { RefundDialog } from "./refund-dialog";
@@ -29,7 +31,8 @@ const PAGE_SIZE = 20;
  */
 export function RefundsTab() {
   const { session } = useAuth();
-  const canRefund = canProcessRefunds(session?.role ?? null);
+  const { can } = useCapabilities();
+  const canRefund = can(CAP.PAYMENTS_UNDO, canProcessRefunds(session?.role ?? null));
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [method, setMethod] = useState<"GATEWAY" | "MANUAL_SLIP" | "FREE" | "STAFF_GRANTED" | "">("");

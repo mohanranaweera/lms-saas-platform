@@ -10,6 +10,8 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { SlipStatusBadge, SlipFlagBadge } from "@/components/payments/status-badges";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import { canReviewSlips } from "@/lib/auth/permissions";
 import { isApiClientError } from "@/lib/api/error";
 import { useSlip, useSlipDownloadUrl } from "@/lib/api/payment-slips";
@@ -80,7 +82,8 @@ export default function TenantAdminSlipDetailPage() {
   const params = useParams<{ slipId: string }>();
   const slipId = params.slipId;
   const { session } = useAuth();
-  const canReview = canReviewSlips(session?.role ?? null);
+  const { can } = useCapabilities();
+  const canReview = can(CAP.PAYMENTS_APPROVE_PENDING, canReviewSlips(session?.role ?? null));
 
   const query = useSlip(slipId);
 

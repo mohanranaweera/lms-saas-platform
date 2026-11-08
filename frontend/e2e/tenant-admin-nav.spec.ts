@@ -236,7 +236,8 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
         ["Exams", entry.exams],
         ["Audit Log", entry.auditLog],
         ["Staff", entry.staff],
-        ["Roles & Permissions", entry.staff],
+        // STAFF-MGMT-02: Roles & Permissions moved into Staff → Permissions.
+        ["Roles & Permissions", false],
         // General, Payments, Student Fields and Integrations are tabs inside Settings now, not sidebar items.
         // SET-PAY-01: Finance Staff (PAYMENT_GATEWAY/VIEW) get Settings too, landing on the Payments tab.
         ["Settings", entry.instituteConfig || entry.role === "FINANCE_STAFF"],

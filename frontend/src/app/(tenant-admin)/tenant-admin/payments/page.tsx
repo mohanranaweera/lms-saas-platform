@@ -11,6 +11,8 @@ import { FreeCardsTab } from "@/components/payments/hub/free-cards-tab";
 import { PaymentSlipsTab } from "@/components/payments/hub/payment-slips-tab";
 import { RefundsTab } from "@/components/payments/hub/refunds-tab";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import {
   canProcessRefunds,
   canViewFreeCards,
@@ -49,7 +51,9 @@ function PaymentsHubContent() {
   const { session } = useAuth();
   const role = session?.role ?? null;
 
-  const canSeeOrdersAndSlips = canViewPaymentDashboard(role);
+  // UX only; Operator / Manager follow PAYMENTS_VIEW (STAFF-MGMT-02).
+  const { can } = useCapabilities();
+  const canSeeOrdersAndSlips = can(CAP.PAYMENTS_VIEW, canViewPaymentDashboard(role));
   const pendingCount = useSlipPendingCount({ enabled: canSeeOrdersAndSlips });
   const pending = pendingCount.data?.pending ?? null;
 
@@ -67,12 +71,12 @@ function PaymentsHubContent() {
       ) : undefined,
     });
   }
-  if (canViewStudentPayments(role) || canViewFreeCards(role)) {
+  if (can(CAP.PAYMENTS_VIEW, canViewStudentPayments(role) || canViewFreeCards(role))) {
     items.push({ value: "free-cards", label: "Free Cards", content: <FreeCardsTab /> });
   }
   // Viewers (PAYMENTS_SLIPS/VIEW) see refundable payments read-only; the Refund
   // action itself is gated inside the tab (and enforced by the backend).
-  if (canSeeOrdersAndSlips || canProcessRefunds(role)) {
+  if (canSeeOrdersAndSlips || can(CAP.PAYMENTS_UNDO, canProcessRefunds(role))) {
     items.push({ value: "refunds", label: "Refunds", content: <RefundsTab /> });
   }
 

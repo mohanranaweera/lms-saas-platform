@@ -18,6 +18,8 @@ import { SlipOrderBreakdown } from "@/components/payments/slips/slip-order-break
 import { SlipViewerDialog } from "@/components/payments/slips/slip-viewer-dialog";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import { canAddSlipNotes, canReviewSlips } from "@/lib/auth/permissions";
 import {
   useSlipNotes,
@@ -50,7 +52,8 @@ const SEARCH_DEBOUNCE_MS = 300;
 export function PaymentSlipsTab() {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const canReview = canReviewSlips(role);
+  const { can } = useCapabilities();
+  const canReview = can(CAP.PAYMENTS_APPROVE_PENDING, canReviewSlips(role));
   const canNote = canAddSlipNotes(role);
   const [view, setView] = useState<SlipView>("pending");
   const [searchInput, setSearchInput] = useState("");

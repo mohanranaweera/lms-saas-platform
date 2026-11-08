@@ -247,17 +247,47 @@ test.describe("tenant admin", () => {
 
   test("a staff member's sign-in mobile is set from the staff list", async ({ page }) => {
     await mockAdmin(page);
+    // STAFF-MGMT-02: paginated list with server-computed row actions.
+    await page.route(/\/v1\/staff(\?.*)?$/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          apiSuccess({
+            content: [
+              {
+                id: "staff-1",
+                firstName: "Finance",
+                lastName: "Person",
+                name: "Finance Person",
+                email: "finance@example.test",
+                contactNumber: null,
+                roleCode: "FINANCE_STAFF",
+                roleName: "Finance Staff",
+                status: "ACTIVE",
+                lastLoginAt: null,
+                actions: { canEdit: true, canChangeRole: false, canDeactivate: true, canReactivate: false, canResendInvite: false },
+              },
+            ],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+          })
+        ),
+      });
+    });
     await mockJson(
       page,
-      "**/v1/staff",
+      "**/v1/me/permissions",
       200,
-      apiSuccess([{ id: "staff-1", name: "Finance Person", email: "finance@example.test", roleCode: "FINANCE_STAFF", status: "ACTIVE" }])
+      apiSuccess({ role: "TENANT_ADMIN", capabilities: ["STAFF_VIEW", "STAFF_MANAGE"], permissionVersion: 1 })
     );
-    await mockJson(page, "**/v1/roles*", 200, apiSuccess([]));
     const puts = await mockLoginMobile(page, "**/v1/staff/staff-1/login-mobile", null);
     await page.goto("/tenant-admin/staff");
 
-    await page.getByRole("button", { name: "Sign-in mobile for Finance Person" }).first().click();
+    await page.getByRole("button", { name: "Actions for Finance Person" }).first().click();
+    await page.getByRole("menuitem", { name: "Sign-in mobile" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText("Sign-in mobile — Finance Person")).toBeVisible();
     await dialog.getByLabel("Mobile number").fill("0705551234");

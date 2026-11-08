@@ -3,6 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import { canViewFreeCards, canViewStudentPayments } from "@/lib/auth/permissions";
 import { FreeCardsList } from "./free-cards-list";
 import { StudentPaymentsWorkspaceView } from "./student-payments-workspace";
@@ -22,8 +24,9 @@ export function FreeCardsTab() {
   const searchParams = useSearchParams();
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const showWorkspace = canViewStudentPayments(role);
-  const showList = canViewFreeCards(role);
+  const { can } = useCapabilities();
+  const showWorkspace = can(CAP.PAYMENTS_VIEW, canViewStudentPayments(role));
+  const showList = can(CAP.PAYMENTS_VIEW, canViewFreeCards(role));
   const requested = searchParams.get("view");
   const view: FreeCardsView =
     !showWorkspace || (requested === "all" && showList) ? "all" : "student";

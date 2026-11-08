@@ -8,6 +8,8 @@ import { useLedgerDashboard } from "@/lib/api/ledger";
 import { useTenantCourseCounts } from "@/lib/api/tenant-overview";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canViewPaymentDashboard } from "@/lib/auth/permissions";
+import { isCapabilityRole } from "@/lib/auth/capabilities";
+import { CapabilityRoleDashboard } from "./capability-role-dashboard";
 
 /**
  * Tenant Admin Overview (MVP-015 TADASH-1 — rebuild of the prior static
@@ -23,6 +25,16 @@ import { canViewPaymentDashboard } from "@/lib/auth/permissions";
  * built).
  */
 export default function TenantAdminDashboardPage() {
+  const { session } = useAuth();
+  // STAFF-MGMT-02: OPERATOR / MANAGER hold only tenant-granted capabilities,
+  // so they get a capability-driven welcome instead of widgets that would 403.
+  if (isCapabilityRole(session?.role ?? null)) {
+    return <CapabilityRoleDashboard />;
+  }
+  return <StaticRoleDashboard />;
+}
+
+function StaticRoleDashboard() {
   const { session } = useAuth();
   const role = session?.role ?? null;
   const canViewPayments = canViewPaymentDashboard(role);
