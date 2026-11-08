@@ -265,7 +265,25 @@ class CapabilityEnforcementIntegrationTest extends StudentManagementTestSupport 
 
 		// A static Tenant Admin is unaffected.
 		withCommission.put("email", "admin-commission-" + java.util.UUID.randomUUID() + "@example.test");
-		status(call(HttpMethod.POST, "/api/v1/teachers", fx, fx.adminToken(), withCommission), 201);
+		withCommission.put("firstName", "Commission");
+		withCommission.put("lastName", "Teacher");
+		withCommission.put("contactNumber", "+94770000001");
+		String teacherId = body(call(HttpMethod.POST, "/api/v1/teachers", fx, fx.adminToken(), withCommission), 201)
+			.path("id").asString();
+
+		// TEACHERS_EDIT: changing the commission is refused; omitting it keeps the current value.
+		grant(fx, "OPERATOR", true, "TEACHERS_EDIT");
+		Map<String, Object> edit = new LinkedHashMap<>();
+		edit.put("firstName", "Renamed");
+		edit.put("lastName", "Teacher");
+		edit.put("contactNumber", "+94770000002");
+		edit.put("instituteCommissionPercent", 10);
+		status(call(HttpMethod.PATCH, "/api/v1/teachers/" + teacherId, fx, op, edit), 403);
+		edit.remove("instituteCommissionPercent");
+		status(call(HttpMethod.PATCH, "/api/v1/teachers/" + teacherId, fx, op, edit), 200);
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT institute_commission_percent FROM teacher_profile WHERE id = ?::uuid", BigDecimal.class,
+				teacherId)).isEqualByComparingTo("25");
 	}
 
 	// ------------------------------------------------------------------ exams

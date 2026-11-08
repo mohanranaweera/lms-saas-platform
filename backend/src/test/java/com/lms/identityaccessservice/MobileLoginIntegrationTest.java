@@ -226,9 +226,9 @@ class MobileLoginIntegrationTest extends AuthIntegrationTestSupport {
 		Fixture t = newTenant("ml-staff");
 		register(t, uniqueEmail("ml-staff-student"), "0771234567");
 		String staffEmail = uniqueEmail("ml-staff");
-		MvcResult created = call(HttpMethod.POST, "/api/v1/staff", t.host(), t.adminToken(),
-				Map.of("name", "Finance Person", "email", staffEmail, "password", RAW_PASSWORD, "roleCode", "FINANCE_STAFF"));
+		MvcResult created = createStaff(t.host(), t.adminToken(), "Finance", "Person", staffEmail);
 		String staffId = data(created).path("id").asText();
+		completeAccountSetup(staffEmail);
 		String path = "/api/v1/staff/" + staffId + "/login-mobile";
 
 		MvcResult taken = call(HttpMethod.PUT, path, t.host(), t.adminToken(), Map.of("loginMobile", "0771234567"));
@@ -254,8 +254,7 @@ class MobileLoginIntegrationTest extends AuthIntegrationTestSupport {
 	void anotherInstitutesStaffOrTeacherIdIsNotFound() {
 		Fixture a = newTenant("ml-ids-a");
 		Fixture b = newTenant("ml-ids-b");
-		MvcResult created = call(HttpMethod.POST, "/api/v1/staff", a.host(), a.adminToken(), Map.of("name", "A Staff",
-				"email", uniqueEmail("ml-ids"), "password", RAW_PASSWORD, "roleCode", "FINANCE_STAFF"));
+		MvcResult created = createStaff(a.host(), a.adminToken(), "A", "Staff", uniqueEmail("ml-ids"));
 		String staffId = data(created).path("id").asText();
 
 		assertThat(status(call(HttpMethod.PUT, "/api/v1/staff/" + staffId + "/login-mobile", b.host(), b.adminToken(),
@@ -270,8 +269,7 @@ class MobileLoginIntegrationTest extends AuthIntegrationTestSupport {
 		String financeEmail = uniqueEmail("ml-perm-fin");
 		seedTenantUser(t.tenant().getId(), financeEmail, RAW_PASSWORD, Role.FINANCE_STAFF);
 		String financeToken = token(t.host(), financeEmail, RAW_PASSWORD);
-		MvcResult created = call(HttpMethod.POST, "/api/v1/staff", t.host(), t.adminToken(), Map.of("name", "Other",
-				"email", uniqueEmail("ml-perm-other"), "password", RAW_PASSWORD, "roleCode", "EXAM_MANAGER"));
+		MvcResult created = createStaff(t.host(), t.adminToken(), "Other", "Staff", uniqueEmail("ml-perm-other"));
 
 		assertThat(status(call(HttpMethod.PUT, "/api/v1/staff/" + data(created).path("id").asText() + "/login-mobile",
 				t.host(), financeToken, Map.of("loginMobile", "0705551234")))).isEqualTo(HttpStatus.FORBIDDEN);
@@ -376,6 +374,19 @@ class MobileLoginIntegrationTest extends AuthIntegrationTestSupport {
 		List<String> fields = new ArrayList<>();
 		body(result).path("error").path("fieldErrors").forEach(error -> fields.add(error.path("field").asText()));
 		return fields;
+	}
+
+
+	/** STAFF-MGMT-02: staff are invited (no password); the role must be Operator or Manager. */
+	private MvcResult createStaff(String host, String adminToken, String firstName, String lastName, String email) {
+		return call(HttpMethod.POST, "/api/v1/staff", host, adminToken, Map.of("firstName", firstName, "lastName",
+				lastName, "email", email, "mobileNumber", "0711111111", "roleCode", "OPERATOR"));
+	}
+
+	/** Stands in for the invitee completing the emailed account-setup link with {@code RAW_PASSWORD}. */
+	private void completeAccountSetup(String email) {
+		jdbcTemplate.update("UPDATE tenant_user SET password_hash = ?, status = 'active' WHERE email = ?",
+				passwordEncoder.encode(RAW_PASSWORD), email);
 	}
 
 }

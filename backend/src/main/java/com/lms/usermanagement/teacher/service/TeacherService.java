@@ -317,6 +317,11 @@ public class TeacherService {
 		TeacherProfile profile = loadProfile(id);
 		requireCommissionUnchangedByConfigurableRole(profile.getInstituteCommissionPercent(),
 				instituteCommissionPercent);
+		if (instituteCommissionPercent == null && isConfigurableStaffActor()) {
+			// An omitted commission from a delegated role keeps the current value - it must never
+			// clear it (payment-ledger review, STAFF-MGMT-02).
+			instituteCommissionPercent = profile.getInstituteCommissionPercent();
+		}
 		String before = profile.getName();
 		UUID previousPhoto = profile.getProfileMediaFileId();
 		profile.updateProfile(firstName, lastName, contactNumber, qualifications, description, instituteCommissionPercent,
@@ -338,9 +343,15 @@ public class TeacherService {
 	 * course pricing in {@code CourseService} - a tenant-configurable role (Operator/Manager)
 	 * granted TEACHERS_ADD/EDIT may not set or change it. Static roles are unaffected.
 	 */
+	/** True only for an authenticated Operator/Manager; false off-request (no principal). */
+	private static boolean isConfigurableStaffActor() {
+		return AuthenticatedPrincipalHolder.isSet()
+				&& CONFIGURABLE_STAFF_ROLES.contains(AuthenticatedPrincipalHolder.get().role());
+	}
+
 	private static void requireCommissionUnchangedByConfigurableRole(java.math.BigDecimal current,
 			java.math.BigDecimal requested) {
-		if (!CONFIGURABLE_STAFF_ROLES.contains(AuthenticatedPrincipalHolder.get().role()) || requested == null) {
+		if (!isConfigurableStaffActor() || requested == null) {
 			return;
 		}
 		java.math.BigDecimal base = (current == null) ? java.math.BigDecimal.ZERO : current;
