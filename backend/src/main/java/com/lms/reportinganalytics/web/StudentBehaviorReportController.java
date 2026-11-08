@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.StudentBehaviorReport;
 import com.lms.reportinganalytics.service.StudentBehaviorReportService;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/reports/student-behavior")
+@RequiresCapability(Capability.REPORTS_STUDENT_BEHAVIOR)
 public class StudentBehaviorReportController {
     private final StudentBehaviorReportService service;
     public StudentBehaviorReportController(StudentBehaviorReportService service) { this.service = service; }

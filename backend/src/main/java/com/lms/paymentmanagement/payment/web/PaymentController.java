@@ -1,5 +1,7 @@
 package com.lms.paymentmanagement.payment.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.paymentmanagement.payment.service.PaymentQueryService;
 import com.lms.paymentmanagement.payment.service.PaymentView;
@@ -25,6 +27,7 @@ public class PaymentController {
 
 	@GetMapping("/{id}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(@PathVariable UUID id) {
 		PaymentView view = paymentQueryService.getPayment(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
@@ -32,6 +35,7 @@ public class PaymentController {
 
 	@GetMapping("/{id}/refund-verification")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_LIST_UNDO)
 	public ResponseEntity<ApiResponse<RefundVerificationView>> getRefundVerification(@PathVariable UUID id) {
 		return ResponseEntity.ok(ApiResponse.success(paymentQueryService.getRefundVerification(id)));
 	}

@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.CourseSummaryReport;
 import com.lms.reportinganalytics.service.CourseSummaryReportService;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Thin RPT-05 HTTP adapter; authorization and tenant ownership live in service. */
 @RestController
 @RequestMapping("/api/v1/reports/course-summary")
+@RequiresCapability(Capability.REPORTS_COURSE_SUMMARY)
 public class CourseSummaryReportController {
 
 	private final CourseSummaryReportService service;

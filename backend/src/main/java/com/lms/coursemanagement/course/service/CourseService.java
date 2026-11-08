@@ -88,6 +88,9 @@ public class CourseService {
 
 	private static final String STUDENT_ROLE = "STUDENT";
 
+	/** STAFF-MGMT-02: tenant-configurable staff roles (grants only, never pricing). */
+	private static final Set<String> CONFIGURABLE_STAFF_ROLES = Set.of("OPERATOR", "MANAGER");
+
 	static final String DEFAULT_CATEGORY = "General";
 
 	private static final int MAX_SLUG_LENGTH = 160;
@@ -368,6 +371,7 @@ public class CourseService {
 		courseAccessGuard.requireCourseAccess(course, PermissionAction.CREATE_EDIT);
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		CourseSettingsInput settings = command.settings();
+		requireNoPricingChangeByConfigurableStaff(course, command, principal);
 		Map<String, Object> changes = new LinkedHashMap<>();
 
 		if (!isBlank(command.slug())) {
@@ -451,6 +455,62 @@ public class CourseService {
 			publishAudit(principal, "course.updated", "course", course.getId(), changes);
 		}
 		return toView(course);
+	}
+
+	/**
+	 * STAFF-MGMT-02 spec §3 (Courses - Edit Course): an Operator/Manager granted
+	 * {@code COURSES_EDIT} may edit the course but never its pricing - price,
+	 * pricing model, enrollment fee, commission rate and facility/postage charges
+	 * stay with Tenant Admin / the legacy static roles. Checked before anything is
+	 * written; resubmitting the current values is not a change. Other roles are
+	 * unaffected.
+	 */
+	private void requireNoPricingChangeByConfigurableStaff(Course course, CourseEditCommand command,
+			AuthenticatedPrincipal principal) {
+		if (!CONFIGURABLE_STAFF_ROLES.contains(principal.role())) {
+			return;
+		}
+		CourseSettingsInput settings = command.settings();
+		boolean pricingChange = (command.price() != null && !isCurrentPrice(course, command.price()))
+				|| (settings.pricingModel() != null && settings.pricingModel() != course.getPricingModel())
+				|| (settings.enrollmentFee() != null
+						&& course.getEnrollmentFee().compareTo(settings.enrollmentFee()) != 0)
+				|| (settings.commissionRate() != null && relationsService.currentCommissionRate(course.getId())
+					.map(current -> current.compareTo(settings.commissionRate()) != 0)
+					.orElse(true))
+				|| chargesChange(course, command.charges());
+		if (pricingChange) {
+			throw new AccessDeniedException("Only a Tenant Admin can change course pricing");
+		}
+	}
+
+	private boolean isCurrentPrice(Course course, BigDecimal price) {
+		return switch (course.getPricingModel()) {
+			case ONE_TIME -> course.getPrice() != null && course.getPrice().compareTo(price) == 0;
+			case MONTHLY -> billingConfigurationRepository.findByCourseId(course.getId())
+				.flatMap(config -> billingPeriodRepository.findCurrentOpenByBillingConfigurationId(config.getId()))
+				.map(period -> period.getAmount().compareTo(price) == 0)
+				.orElse(false);
+			default -> price.signum() == 0;
+		};
+	}
+
+	private static boolean chargesChange(Course course, CourseChargesInput charges) {
+		if (charges == null || charges.isEmpty()) {
+			return false;
+		}
+		if (Boolean.TRUE.equals(charges.facilityFeeInherit())) {
+			if (course.getFacilityFeeOverride() != null) {
+				return true;
+			}
+		}
+		else if (Boolean.FALSE.equals(charges.facilityFeeInherit()) || charges.facilityFeeOverride() != null) {
+			if (charges.facilityFeeOverride() == null || course.getFacilityFeeOverride() == null
+					|| course.getFacilityFeeOverride().compareTo(charges.facilityFeeOverride()) != 0) {
+				return true;
+			}
+		}
+		return charges.postageFee() != null && course.getPostageFee().compareTo(charges.postageFee()) != 0;
 	}
 
 	/**

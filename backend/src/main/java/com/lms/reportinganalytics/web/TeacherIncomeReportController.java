@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.TeacherIncomeReport;
 import com.lms.reportinganalytics.service.TeacherIncomeReportService;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/reports/teacher-income")
+@RequiresCapability(Capability.REPORTS_TEACHER_INCOME)
 public class TeacherIncomeReportController {
 
 	private final TeacherIncomeReportService service;

@@ -1,5 +1,7 @@
 package com.lms.paymentmanagement.manualpayment.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.paymentmanagement.checkout.service.CheckoutViews.CheckoutCart;
 import com.lms.paymentmanagement.checkout.service.CheckoutViews.CheckoutOffers;
@@ -54,12 +56,14 @@ public class ManualPaymentController {
 
 	@GetMapping("/payment-context")
 	@PreAuthorize(VIEW)
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PaymentContext>> paymentContext(@PathVariable UUID studentId) {
 		return ResponseEntity.ok(ApiResponse.success(queryService.paymentContext(studentId)));
 	}
 
 	@GetMapping("/payment-offers")
 	@PreAuthorize(VIEW)
+	@RequiresCapability(Capability.PAYMENTS_ADD)
 	public ResponseEntity<ApiResponse<CheckoutOffers>> paymentOffers(@PathVariable UUID studentId,
 			@RequestParam UUID courseId, @RequestParam String scope, @RequestParam(required = false) Integer year) {
 		return ResponseEntity.ok(ApiResponse.success(queryService.offers(studentId, courseId, scope, year)));
@@ -67,6 +71,7 @@ public class ManualPaymentController {
 
 	@GetMapping("/payment-history")
 	@PreAuthorize(VIEW)
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<List<HistoryEntry>>> paymentHistory(@PathVariable UUID studentId,
 			@RequestParam UUID courseId) {
 		return ResponseEntity.ok(ApiResponse.success(queryService.history(studentId, courseId)));
@@ -74,6 +79,7 @@ public class ManualPaymentController {
 
 	@PostMapping("/manual-payments/quote")
 	@PreAuthorize(APPROVE)
+	@RequiresCapability(Capability.PAYMENTS_ADD)
 	public ResponseEntity<ApiResponse<CheckoutQuote>> quote(@PathVariable UUID studentId,
 			@Valid @RequestBody ManualPaymentQuoteRequest request) {
 		CheckoutCart cart = new CheckoutCart(null, selections(request.items()), request.postageCourseIds(), null,
@@ -84,6 +90,7 @@ public class ManualPaymentController {
 	/** 201 for a new receipt; 200 for an idempotency-key replay (same receipt returned). */
 	@PostMapping("/manual-payments")
 	@PreAuthorize(APPROVE)
+	@RequiresCapability(Capability.PAYMENTS_ADD)
 	public ResponseEntity<ApiResponse<ReceiptView>> record(@PathVariable UUID studentId,
 			@Valid @RequestBody ManualPaymentRecordRequest request) {
 		ReceiptView receipt = manualPaymentService.record(studentId,

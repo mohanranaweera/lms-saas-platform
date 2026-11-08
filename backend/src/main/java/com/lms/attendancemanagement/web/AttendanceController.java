@@ -1,5 +1,7 @@
 package com.lms.attendancemanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.attendancemanagement.service.AttendanceClassSessionRosterView;
 import com.lms.attendancemanagement.service.AttendanceClassSessionService;
 import com.lms.attendancemanagement.service.AttendanceMarkCommand;
@@ -81,6 +83,7 @@ public class AttendanceController {
 
 	@GetMapping("/class-sessions/{classSessionId}/roster")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.ATTENDANCE_VIEW)
 	public ResponseEntity<ApiResponse<ClassSessionRosterResponse>> getClassSessionRoster(
 			@PathVariable UUID classSessionId) {
 		AttendanceClassSessionRosterView view = attendanceClassSessionService.getRoster(classSessionId);
@@ -89,6 +92,7 @@ public class AttendanceController {
 
 	@PostMapping("/class-sessions/{classSessionId}/records")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.ATTENDANCE_ADD)
 	public ResponseEntity<ApiResponse<List<AttendanceMarkResultResponse>>> markClassSessionAttendance(
 			@PathVariable UUID classSessionId, @Valid @RequestBody MarkAttendanceRequest request) {
 		List<AttendanceMarkOutcome> outcomes = attendanceClassSessionService.markAttendance(classSessionId,
@@ -99,6 +103,7 @@ public class AttendanceController {
 	/** Per-student attendance percentages for one course (Teacher-owner or staff {@code ATTENDANCE}/{@code VIEW}). */
 	@GetMapping("/summary")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.ATTENDANCE_VIEW)
 	public ResponseEntity<ApiResponse<List<AttendanceSummaryRowResponse>>> courseSummary(
 			@RequestParam UUID courseId, @RequestParam(required = false) Instant from,
 			@RequestParam(required = false) Instant to) {
@@ -123,6 +128,7 @@ public class AttendanceController {
 	@Deprecated
 	@GetMapping("/sessions/{sessionId}/roster")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.ATTENDANCE_VIEW)
 	public ResponseEntity<ApiResponse<AttendanceRosterResponse>> getSessionRoster(@PathVariable UUID sessionId) {
 		AttendanceRosterView view = attendanceReportService.getSessionRoster(sessionId);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
@@ -132,6 +138,7 @@ public class AttendanceController {
 	@Deprecated
 	@PostMapping("/sessions/{sessionId}/records")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.ATTENDANCE_ADD)
 	public ResponseEntity<ApiResponse<List<AttendanceMarkResultResponse>>> markAttendance(
 			@PathVariable UUID sessionId, @Valid @RequestBody MarkAttendanceRequest request) {
 		List<AttendanceMarkOutcome> outcomes = attendanceMarkingService.markAttendance(sessionId, toCommands(request));
@@ -155,6 +162,7 @@ public class AttendanceController {
 
 	@GetMapping("/reports")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.ATTENDANCE_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<AttendanceRecordResponse>>> attendanceReports(
 			@PageableDefault(size = 20, sort = "markedAt", direction = Sort.Direction.DESC) Pageable pageable,
 			@RequestParam(required = false) UUID courseId, @RequestParam(required = false) Instant from,
@@ -167,6 +175,7 @@ public class AttendanceController {
 	/** Wave 3 staff-facing, studentId-scoped attendance report - see {@link AttendanceReportService#getReportForStudent}. */
 	@GetMapping("/students/{id}/report")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.ATTENDANCE_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<AttendanceRecordResponse>>> attendanceReportForStudent(
 			@PathVariable UUID id,
 			@PageableDefault(size = 20, sort = "markedAt", direction = Sort.Direction.DESC) Pageable pageable,

@@ -1,5 +1,7 @@
 package com.lms.coursemanagement.calendar.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.coursemanagement.calendar.service.ClassScheduleService;
 import com.lms.coursemanagement.calendar.service.ClassScheduleValidator.SlotInput;
@@ -35,12 +37,14 @@ public class ClassScheduleController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TIMETABLE_VIEW)
 	public ResponseEntity<ApiResponse<ClassScheduleResponse>> getSchedule(@PathVariable UUID courseId) {
 		return ResponseEntity.ok(ApiResponse.success(toResponse(classScheduleService.getSchedule(courseId))));
 	}
 
 	@PutMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TIMETABLE_EDIT)
 	public ResponseEntity<ApiResponse<ClassScheduleResponse>> saveSchedule(@PathVariable UUID courseId,
 			@RequestBody ClassScheduleSaveRequest request) {
 		List<SlotInput> slots = request.slots() == null ? null

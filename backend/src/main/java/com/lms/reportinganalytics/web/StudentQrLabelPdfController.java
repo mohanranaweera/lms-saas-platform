@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.Capability;
+import com.lms.identityaccessservice.api.RequiresCapability;
 import com.lms.common.tenant.TenantContext;
 import com.lms.reportinganalytics.service.pdf.StudentQrLabelPdfRenderer;
 import com.lms.tenantmanagement.api.ConfigDomain;
@@ -61,6 +63,7 @@ public class StudentQrLabelPdfController {
 
 	@PostMapping("/api/v1/students/qr-export")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_EXPORT_QR)
 	public ResponseEntity<byte[]> export(@Valid @RequestBody QrExportRequest request) {
 		List<StudentQrLabel> labels = studentQrLabelApi.findQrLabels(request.studentIds());
 		byte[] pdf = renderer.render(tenantName(), labels);

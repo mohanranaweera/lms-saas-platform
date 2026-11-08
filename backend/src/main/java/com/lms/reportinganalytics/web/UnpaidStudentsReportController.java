@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.UnpaidStudentsGrouping.RowsPage;
 import com.lms.reportinganalytics.service.UnpaidStudentsReport;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Thin, no-store endpoints for owner-bound Unpaid Students snapshots. */
 @RestController
 @RequestMapping("/api/v1/reports/unpaid-students")
+@RequiresCapability(Capability.REPORTS_UNPAID_STUDENTS)
 public class UnpaidStudentsReportController {
 
 	private final UnpaidStudentsReportService service;

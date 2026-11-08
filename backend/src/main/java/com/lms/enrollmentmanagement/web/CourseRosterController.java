@@ -1,5 +1,7 @@
 package com.lms.enrollmentmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.enrollmentmanagement.service.CourseRosterEntryView;
 import com.lms.enrollmentmanagement.service.CourseRosterService;
@@ -30,6 +32,7 @@ public class CourseRosterController {
 
 	@GetMapping("/{courseId}/roster")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_VIEW_STUDENTS)
 	public ResponseEntity<ApiResponse<List<CourseRosterEntryResponse>>> getRoster(@PathVariable UUID courseId) {
 		List<CourseRosterEntryResponse> response = courseRosterService.getRoster(courseId)
 			.stream()

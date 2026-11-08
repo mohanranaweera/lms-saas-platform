@@ -58,6 +58,13 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 	@Column(name = "login_mobile")
 	private String loginMobile;
 
+	/**
+	 * STAFF-MGMT-02 (V119): the account was still {@link AccountStatus#INVITED} when it was
+	 * suspended, so {@link #activate()} returns it to INVITED while it has never set a password.
+	 */
+	@Column(name = "suspended_while_invited", nullable = false)
+	private boolean suspendedWhileInvited;
+
 	protected TenantUser() {
 	}
 
@@ -163,6 +170,17 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 	}
 
 	/**
+	 * STAFF-MGMT-02: reassigns the membership's single role. Takes effect on the next request
+	 * ({@code JwtAuthenticationFilter} re-reads the role from this row every request).
+	 */
+	public void changeRole(Role newRole) {
+		if (newRole == null) {
+			throw new IllegalArgumentException("role is required");
+		}
+		this.role = newRole;
+	}
+
+	/**
 	 * Transitions this row's login-gate status to {@link AccountStatus#SUSPENDED}.
 	 * Added for {@code UserProvisioningApi#suspendTenantUser} (MVP-007 Teacher
 	 * Management) - a narrow, purpose-named mutator rather than a raw public
@@ -170,16 +188,24 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 	 * otherwise only ever set via the constructor).
 	 */
 	public void suspend() {
+		if (status == AccountStatus.INVITED) {
+			this.suspendedWhileInvited = true;
+		}
 		this.status = AccountStatus.SUSPENDED;
 	}
 
 	/**
-	 * Transitions this row's login-gate status to {@link AccountStatus#ACTIVE}.
-	 * Added for {@code UserProvisioningApi#activateTenantUser} (MVP-007
-	 * Teacher Management).
+	 * Transitions this row's login-gate status to {@link AccountStatus#ACTIVE}
+	 * (or back to {@link AccountStatus#INVITED}, see below). Added for {@code
+	 * UserProvisioningApi#activateTenantUser} (MVP-007 Teacher Management).
 	 */
 	public void activate() {
-		this.status = AccountStatus.ACTIVE;
+		// STAFF-MGMT-02: an invitee suspended before completing account setup still has only an
+		// unusable password - reactivating it restores INVITED (setup link / resend invite), never
+		// ACTIVE. Setting a password while suspended (setOwnPassword) records passwordChangedAt.
+		boolean stillInvited = suspendedWhileInvited && passwordChangedAt == null;
+		this.status = stillInvited ? AccountStatus.INVITED : AccountStatus.ACTIVE;
+		this.suspendedWhileInvited = false;
 	}
 
 	/**

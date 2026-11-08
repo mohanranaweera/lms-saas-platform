@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import java.util.Arrays;
 import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,14 +15,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Pure Bean Validation unit coverage for {@link StaffCreateRequest} - no
- * Spring context, exercises {@code jakarta.validation} directly the same way
- * {@code @Valid} does at the controller boundary. The {@code roleCode}
- * {@code @Pattern} is deliberately given its own targeted rejection cases
- * (not just a generic invalid string), since excluding
- * {@code TENANT_ADMIN}/{@code TEACHER}/{@code TEACHER_ASSISTANT}/{@code
- * STUDENT} from staff-assignable roles is the most security-relevant part of
- * this DTO's contract.
+ * Bean Validation coverage for the STAFF-MGMT-02 "Add Staff" body: five required fields and no
+ * password field at all. Role restriction (Operator/Manager only) is a service rule, covered by
+ * {@code StaffManagementIntegrationTest}.
  */
 class StaffCreateRequestValidationTest {
 
@@ -40,113 +36,56 @@ class StaffCreateRequestValidationTest {
 		validatorFactory.close();
 	}
 
+	private static StaffCreateRequest valid() {
+		return new StaffCreateRequest("Jane", "Staff", "jane@example.test", "+94 77 123 4567", "OPERATOR");
+	}
+
 	@Test
 	void aFullyValidRequestHasNoViolations() {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "jane@example.test", "password123",
-				"FINANCE_STAFF");
+		assertThat(validator.validate(valid())).isEmpty();
+	}
 
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).isEmpty();
+	@Test
+	void theRequestHasNoPasswordField() {
+		assertThat(Arrays.stream(StaffCreateRequest.class.getRecordComponents()).map(c -> c.getName()))
+			.containsExactly("firstName", "lastName", "email", "mobileNumber", "roleCode")
+			.noneMatch(name -> name.toLowerCase().contains("password"));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = { "", "   " })
-	void blankNameIsRejected(String blankName) {
-		StaffCreateRequest request = new StaffCreateRequest(blankName, "jane@example.test", "password123",
-				"FINANCE_STAFF");
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).anySatisfy(v -> assertThat(v.getPropertyPath().toString()).isEqualTo("name"));
+	void everyFieldIsRequired(String blank) {
+		assertThat(violations(new StaffCreateRequest(blank, "Staff", "jane@example.test", "0771234567", "OPERATOR")))
+			.contains("firstName");
+		assertThat(violations(new StaffCreateRequest("Jane", blank, "jane@example.test", "0771234567", "OPERATOR")))
+			.contains("lastName");
+		assertThat(violations(new StaffCreateRequest("Jane", "Staff", blank, "0771234567", "OPERATOR")))
+			.contains("email");
+		assertThat(violations(new StaffCreateRequest("Jane", "Staff", "jane@example.test", blank, "OPERATOR")))
+			.contains("mobileNumber");
+		assertThat(violations(new StaffCreateRequest("Jane", "Staff", "jane@example.test", "0771234567", blank)))
+			.contains("roleCode");
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "", "   " })
-	void blankEmailIsRejected(String blankEmail) {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", blankEmail, "password123", "FINANCE_STAFF");
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).anySatisfy(v -> assertThat(v.getPropertyPath().toString()).isEqualTo("email"));
-	}
-
-	@Test
-	void malformedEmailIsRejected() {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "not-an-email", "password123",
-				"FINANCE_STAFF");
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).anySatisfy(v -> assertThat(v.getPropertyPath().toString()).isEqualTo("email"));
+	@ValueSource(strings = { "not-an-email", "a@", "@b.test" })
+	void malformedEmailIsRejected(String email) {
+		assertThat(violations(new StaffCreateRequest("Jane", "Staff", email, "0771234567", "OPERATOR")))
+			.contains("email");
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "", "   " })
-	void blankPasswordIsRejected(String blankPassword) {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "jane@example.test", blankPassword,
-				"FINANCE_STAFF");
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).anySatisfy(v -> assertThat(v.getPropertyPath().toString()).isEqualTo("password"));
+	@ValueSource(strings = { "abc", "12", "+94-<script>" })
+	void malformedMobileIsRejected(String mobile) {
+		assertThat(violations(new StaffCreateRequest("Jane", "Staff", "jane@example.test", mobile, "OPERATOR")))
+			.contains("mobileNumber");
 	}
 
-	@Test
-	void passwordUnderEightCharsIsRejected() {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "jane@example.test", "short1",
-				"FINANCE_STAFF");
-
+	private static Set<String> violations(StaffCreateRequest request) {
 		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).anySatisfy(v -> assertThat(v.getPropertyPath().toString()).isEqualTo("password"));
-	}
-
-	@Test
-	void passwordOfExactlyEightCharsIsAccepted() {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "jane@example.test", "12345678",
-				"FINANCE_STAFF");
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).isEmpty();
-	}
-
-	@ParameterizedTest
-	@ValueSource(strings = { "FINANCE_STAFF", "COURSE_COORDINATOR", "STUDENT_SUPPORT", "CONTENT_MANAGER",
-			"EXAM_MANAGER", "ATTENDANCE_OPERATOR", "READ_ONLY_AUDITOR" })
-	void eachOfTheSevenAssignableStaffRoleCodesIsAccepted(String roleCode) {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "jane@example.test", "password123",
-				roleCode);
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).isEmpty();
-	}
-
-	@Test
-	void tenantAdminRoleCodeIsSpecificallyRejectedAsTheMostSecurityRelevantCase() {
-		// TENANT_ADMIN is a real Role enum value elsewhere, but must never be
-		// assignable through Staff Management - this is the single most
-		// important rejection case for this @Pattern, not just a generic
-		// invalid-string case.
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "jane@example.test", "password123",
-				"TENANT_ADMIN");
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).anySatisfy(v -> assertThat(v.getPropertyPath().toString()).isEqualTo("roleCode"));
-	}
-
-	@ParameterizedTest
-	@ValueSource(strings = { "STUDENT", "TEACHER", "TEACHER_ASSISTANT", "not_a_real_role", "" })
-	void everyOtherOutOfPatternRoleCodeIsRejected(String roleCode) {
-		StaffCreateRequest request = new StaffCreateRequest("Jane Staff", "jane@example.test", "password123",
-				roleCode);
-
-		Set<ConstraintViolation<StaffCreateRequest>> violations = validator.validate(request);
-
-		assertThat(violations).anySatisfy(v -> assertThat(v.getPropertyPath().toString()).isEqualTo("roleCode"));
+		return violations.stream()
+			.map(v -> v.getPropertyPath().toString())
+			.collect(java.util.stream.Collectors.toSet());
 	}
 
 }

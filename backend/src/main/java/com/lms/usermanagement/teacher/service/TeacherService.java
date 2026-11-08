@@ -63,6 +63,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class TeacherService {
 
+	/** STAFF-MGMT-02: tenant-configurable staff roles - may never change commission. */
+	private static final Set<String> CONFIGURABLE_STAFF_ROLES = Set.of("OPERATOR", "MANAGER");
+
 	/**
 	 * Approval-authority enforcement path (approved plan §2/§21-item-1,
 	 * recommendation (a)): {@code TEACHERS}/{@code CREATE_EDIT} alone also
@@ -128,6 +131,7 @@ public class TeacherService {
 			String contactNumber, java.math.BigDecimal instituteCommissionPercent, String qualifications, String description,
 			UUID profileMediaFileId, Boolean publicProfileDisabled) {
 		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		requireCommissionUnchangedByConfigurableRole(java.math.BigDecimal.ZERO, instituteCommissionPercent);
 
 		// Friendlier pre-check for the common case; NOT the race-safe guard -
 		// identity-access-service's UNIQUE (tenant_id, email) constraint,
@@ -311,6 +315,8 @@ public class TeacherService {
 			throw new NotFoundException("Profile image not found");
 		}
 		TeacherProfile profile = loadProfile(id);
+		requireCommissionUnchangedByConfigurableRole(profile.getInstituteCommissionPercent(),
+				instituteCommissionPercent);
 		String before = profile.getName();
 		UUID previousPhoto = profile.getProfileMediaFileId();
 		profile.updateProfile(firstName, lastName, contactNumber, qualifications, description, instituteCommissionPercent,
@@ -327,6 +333,22 @@ public class TeacherService {
 	 * Removes a teacher's profile photo (Settings -> Site media, teacher profile).
 	 * The photo file itself is deleted when no other teacher uses it.
 	 */
+	/**
+	 * STAFF-MGMT-02 / ADR-034: the institute commission feeds teacher settlements, so - like
+	 * course pricing in {@code CourseService} - a tenant-configurable role (Operator/Manager)
+	 * granted TEACHERS_ADD/EDIT may not set or change it. Static roles are unaffected.
+	 */
+	private static void requireCommissionUnchangedByConfigurableRole(java.math.BigDecimal current,
+			java.math.BigDecimal requested) {
+		if (!CONFIGURABLE_STAFF_ROLES.contains(AuthenticatedPrincipalHolder.get().role()) || requested == null) {
+			return;
+		}
+		java.math.BigDecimal base = (current == null) ? java.math.BigDecimal.ZERO : current;
+		if (base.compareTo(requested) != 0) {
+			throw new AccessDeniedException("Only a Tenant Admin can change a teacher's commission");
+		}
+	}
+
 	public TeacherAccount removeProfilePhoto(UUID id) {
 		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
 		TeacherProfile profile = loadProfile(id);

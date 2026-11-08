@@ -1,5 +1,7 @@
 package com.lms.usermanagement.student.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.common.qr.QrCodes;
@@ -87,6 +89,7 @@ public class StudentManagementController {
 
 	@GetMapping("/directory")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<StudentDirectoryRow>>> directory(
 			@RequestParam(defaultValue = "ACTIVE") String tab, @RequestParam(defaultValue = "ALL") String field,
 			@RequestParam(required = false) String q, @RequestParam(defaultValue = "0") int page,
@@ -97,6 +100,7 @@ public class StudentManagementController {
 
 	@GetMapping("/directory/export.csv")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_EXPORT_CSV)
 	public ResponseEntity<byte[]> exportCsv(@RequestParam(defaultValue = "ACTIVE") String tab,
 			@RequestParam(defaultValue = "ALL") String field, @RequestParam(required = false) String q) {
 		byte[] csv = directoryService.exportCsv(tab(tab), field(field), q);
@@ -112,6 +116,7 @@ public class StudentManagementController {
 
 	@PostMapping("/v2")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_ADD)
 	public ResponseEntity<ApiResponse<StudentCreatedResponse>> create(@Valid @RequestBody StudentRegistrationForm form) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.cacheControl(CacheControl.noStore())
@@ -120,12 +125,14 @@ public class StudentManagementController {
 
 	@GetMapping("/{id}/detail")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW_PROFILE)
 	public ResponseEntity<ApiResponse<StudentDetail>> detail(@PathVariable UUID id) {
 		return ResponseEntity.ok(ApiResponse.success(managementService.detail(id)));
 	}
 
 	@PutMapping("/{id}/detail")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_EDIT)
 	public ResponseEntity<ApiResponse<StudentDetail>> update(@PathVariable UUID id,
 			@Valid @RequestBody StudentRegistrationForm form) {
 		return ResponseEntity.ok(ApiResponse.success(managementService.update(id, form)));
@@ -133,12 +140,14 @@ public class StudentManagementController {
 
 	@PostMapping("/{id}/approve")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_APPROVE_PENDING)
 	public ResponseEntity<ApiResponse<StudentDetail>> approve(@PathVariable UUID id) {
 		return ResponseEntity.ok(ApiResponse.success(managementService.approve(id)));
 	}
 
 	@DeleteMapping("/{id}")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'DELETE')")
+	@RequiresCapability(Capability.STUDENTS_DELETE)
 	public ResponseEntity<Void> remove(@PathVariable UUID id, @Valid @RequestBody StudentRemovalRequest request) {
 		managementService.remove(id, request.reason());
 		return ResponseEntity.noContent().build();
@@ -148,6 +157,7 @@ public class StudentManagementController {
 
 	@PostMapping(path = "/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_EDIT)
 	public ResponseEntity<ApiResponse<StudentDetail>> uploadPhoto(@PathVariable UUID id,
 			@RequestPart("file") MultipartFile file) {
 		return ResponseEntity.ok(ApiResponse.success(photoService.uploadForStudent(id, file)));
@@ -155,6 +165,7 @@ public class StudentManagementController {
 
 	@DeleteMapping("/{id}/photo")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_EDIT)
 	public ResponseEntity<Void> removePhoto(@PathVariable UUID id) {
 		photoService.removeForStudent(id);
 		return ResponseEntity.noContent().build();
@@ -162,6 +173,7 @@ public class StudentManagementController {
 
 	@GetMapping("/{id}/photo")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW_PROFILE)
 	public ResponseEntity<ApiResponse<PhotoUrlResponse>> photo(@PathVariable UUID id) {
 		return photoResponse(photoService.urlForStudent(id));
 	}
@@ -189,6 +201,7 @@ public class StudentManagementController {
 
 	@GetMapping("/{id}/remarks")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW_PROFILE)
 	public ResponseEntity<ApiResponse<PageResponse<RemarkResponse>>> remarks(@PathVariable UUID id,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
@@ -198,6 +211,7 @@ public class StudentManagementController {
 
 	@PostMapping("/{id}/remarks")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_EDIT)
 	public ResponseEntity<ApiResponse<RemarkResponse>> addRemark(@PathVariable UUID id,
 			@Valid @RequestBody RemarkCreateRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)

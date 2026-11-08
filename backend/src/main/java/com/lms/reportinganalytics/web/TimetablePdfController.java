@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.FieldError;
 import com.lms.common.error.FieldValidationException;
 import com.lms.common.tenant.TenantContext;
@@ -52,6 +54,7 @@ public class TimetablePdfController {
 
 	@GetMapping("/api/v1/calendar/timetable.pdf")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TIMETABLE_VIEW)
 	public ResponseEntity<byte[]> timetable(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
 			@RequestParam(required = false) UUID courseId,

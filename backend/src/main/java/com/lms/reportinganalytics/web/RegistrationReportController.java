@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.RegistrationReport;
 import com.lms.reportinganalytics.service.RegistrationReportService;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Thin no-store endpoints for owner-bound Registration Report snapshots. */
 @RestController
 @RequestMapping("/api/v1/reports/registrations")
+@RequiresCapability(Capability.REPORTS_REGISTRATIONS)
 public class RegistrationReportController {
 	private final RegistrationReportService service;
 	public RegistrationReportController(RegistrationReportService service) { this.service = service; }

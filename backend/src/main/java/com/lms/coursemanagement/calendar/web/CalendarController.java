@@ -1,5 +1,7 @@
 package com.lms.coursemanagement.calendar.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.coursemanagement.api.CalendarOccurrences;
 import com.lms.coursemanagement.calendar.service.ClassOccurrenceService;
@@ -36,6 +38,7 @@ public class CalendarController {
 
 	@GetMapping("/occurrences")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TIMETABLE_VIEW)
 	public ResponseEntity<ApiResponse<CalendarOccurrencesResponse>> occurrences(
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -56,6 +59,7 @@ public class CalendarController {
 
 	@GetMapping("/courses")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TIMETABLE_VIEW)
 	public ResponseEntity<ApiResponse<List<CalendarCourseOptionResponse>>> courses() {
 		return ResponseEntity.ok(ApiResponse.success(occurrenceService.listCallerCourses()
 			.stream()

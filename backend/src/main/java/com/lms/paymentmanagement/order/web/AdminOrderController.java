@@ -1,5 +1,7 @@
 package com.lms.paymentmanagement.order.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.paymentmanagement.order.service.AdminOrderDetailView;
 import com.lms.paymentmanagement.order.service.AdminOrderQueryService;
@@ -29,6 +31,7 @@ public class AdminOrderController {
 
 	@GetMapping("/{id}/admin-detail")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<AdminOrderDetailView>> getAdminOrderDetail(@PathVariable UUID id) {
 		return ResponseEntity.ok(ApiResponse.success(adminOrderQueryService.getOrderDetail(id)));
 	}

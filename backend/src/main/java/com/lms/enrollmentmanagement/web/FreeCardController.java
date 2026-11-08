@@ -1,5 +1,7 @@
 package com.lms.enrollmentmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.enrollmentmanagement.service.FreeCardService;
@@ -42,6 +44,7 @@ public class FreeCardController {
 
 	@GetMapping
 	@PreAuthorize(VIEW)
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<FreeCardView>>> list(
 			@RequestParam(required = false) UUID studentId, @RequestParam(required = false) UUID courseId,
 			@RequestParam(required = false) String status, @RequestParam(defaultValue = "0") int page,
@@ -52,6 +55,7 @@ public class FreeCardController {
 	/** 201 for a new card; 200 for an idempotency-key replay (same card returned). */
 	@PostMapping
 	@PreAuthorize(ISSUE)
+	@RequiresCapability(Capability.PAYMENTS_ISSUE_FREE_CARDS)
 	public ResponseEntity<ApiResponse<FreeCardView>> issue(@RequestBody IssueFreeCardRequest request) {
 		FreeCardView card = freeCardService.issue(new IssueCommand(request.studentId(), request.courseId(),
 				request.cardType(), request.validFrom(), request.validTo(), request.reason(),

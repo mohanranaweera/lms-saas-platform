@@ -1,5 +1,7 @@
 package com.lms.usermanagement.teacher.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.auditlogmanagement.api.AuditActivityEntry;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
@@ -57,6 +59,7 @@ public class TeacherController {
 
 	@PostMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.TEACHERS_ADD)
 	public ResponseEntity<ApiResponse<TeacherResponse>> createTeacher(
 			@Valid @RequestBody TeacherCreateRequest request) {
 		TeacherAccount account = teacherService.createTeacher(request.name(), request.firstName(), request.lastName(),
@@ -67,6 +70,7 @@ public class TeacherController {
 
 	@GetMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
+	@RequiresCapability(Capability.TEACHERS_VIEW)
 	public ResponseEntity<ApiResponse<?>> listTeachers(
 			@RequestParam(required = false) ApprovalStatus approvalStatus,
 			@RequestParam(required = false) String q,
@@ -94,6 +98,7 @@ public class TeacherController {
 
 	@GetMapping("/{id}")
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
+	@RequiresCapability(Capability.TEACHERS_VIEW)
 	public ResponseEntity<ApiResponse<TeacherResponse>> getTeacher(@PathVariable UUID id) {
 		TeacherAccount account = teacherService.getTeacher(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
@@ -117,6 +122,7 @@ public class TeacherController {
 
 	@PatchMapping("/{id}")
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.TEACHERS_EDIT)
 	public ResponseEntity<ApiResponse<TeacherResponse>> updateTeacher(@PathVariable UUID id,
 			@Valid @RequestBody TeacherUpdateRequest request) {
 		TeacherAccount account = teacherService.updateTeacher(id, request.firstName(), request.lastName(),

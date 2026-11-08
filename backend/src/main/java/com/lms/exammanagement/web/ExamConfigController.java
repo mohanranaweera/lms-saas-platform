@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.exammanagement.service.exam.ExamConfigService;
 import com.lms.exammanagement.service.exam.ExamDirectoryService;
@@ -61,6 +63,7 @@ public class ExamConfigController {
 
 	@GetMapping("/exams/directory")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_VIEW)
 	public ResponseEntity<ApiResponse<ExamDirectoryView>> directory(
 			@RequestParam(required = false) String search) {
 		return ResponseEntity.ok(ApiResponse.success(directoryService.directory(search)));
@@ -95,6 +98,7 @@ public class ExamConfigController {
 
 	@GetMapping("/exams/{examId}/documents/{purpose}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_VIEW_ANSWERS)
 	public ResponseEntity<ApiResponse<ExamDocumentLinkView>> document(@PathVariable UUID examId,
 			@PathVariable String purpose) {
 		return ResponseEntity.ok()

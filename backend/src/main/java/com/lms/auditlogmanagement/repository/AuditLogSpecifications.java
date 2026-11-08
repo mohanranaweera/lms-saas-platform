@@ -43,6 +43,30 @@ public final class AuditLogSpecifications {
 		return (root, query, cb) -> cb.equal(root.get("action"), action);
 	}
 
+	/**
+	 * STAFF-MGMT-02: free-text match on {@code action} / {@code target_entity} (case-insensitive,
+	 * LIKE wildcards matched literally) OR {@code actor_id} in {@code actorIds}.
+	 */
+	public static Specification<AuditLog> matchingText(String text, java.util.Collection<java.util.UUID> actorIds) {
+		if (text == null || text.isBlank()) {
+			return Specification.unrestricted();
+		}
+		String pattern = "%" + text.strip()
+			.toLowerCase(java.util.Locale.ROOT)
+			.replace("\\", "\\\\")
+			.replace("%", "\\%")
+			.replace("_", "\\_") + "%";
+		return (root, query, cb) -> {
+			java.util.List<jakarta.persistence.criteria.Predicate> any = new java.util.ArrayList<>();
+			any.add(cb.like(cb.lower(root.get("action")), pattern, '\\'));
+			any.add(cb.like(cb.lower(root.get("targetEntity")), pattern, '\\'));
+			if (actorIds != null && !actorIds.isEmpty()) {
+				any.add(root.get("actorId").in(actorIds));
+			}
+			return cb.or(any.toArray(jakarta.persistence.criteria.Predicate[]::new));
+		};
+	}
+
 	public static Specification<AuditLog> withTargetEntity(String targetEntity) {
 		if (targetEntity == null) {
 			return Specification.unrestricted();

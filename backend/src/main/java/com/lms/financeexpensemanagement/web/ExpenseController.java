@@ -1,5 +1,7 @@
 package com.lms.financeexpensemanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.financeexpensemanagement.domain.ExpenseMethod;
@@ -51,6 +53,7 @@ public class ExpenseController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_EXPENSES)
 	public ResponseEntity<ApiResponse<PageResponse<ExpenseView>>> list(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -64,6 +67,7 @@ public class ExpenseController {
 
 	@GetMapping("/{expenseId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_EXPENSES)
 	public ResponseEntity<ApiResponse<ExpenseView>> get(@PathVariable UUID expenseId) {
 		return ResponseEntity.ok(ApiResponse.success(expenseService.get(expenseId)));
 	}

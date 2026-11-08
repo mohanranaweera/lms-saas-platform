@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.AttendanceReport;
 import com.lms.reportinganalytics.service.AttendanceReportService;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** RPT-03 Attendance Report endpoints. Authorization and tenant scope are service-owned. */
 @RestController
 @RequestMapping("/api/v1/reports/attendance")
+@RequiresCapability(Capability.REPORTS_ATTENDANCE)
 public class AttendanceReportController {
 
 	private final AttendanceReportService service;

@@ -1,5 +1,7 @@
 package com.lms.usermanagement.student.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.auditlogmanagement.api.AuditActivityEntry;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
@@ -88,6 +90,7 @@ public class StudentController {
 
 	@PostMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_ADD)
 	public ResponseEntity<ApiResponse<StudentResponse>> createStudent(
 			@Valid @RequestBody StudentCreateRequest request) {
 		StudentAccount account = studentService.createStudent(request.name(), request.email(), request.password());
@@ -96,6 +99,7 @@ public class StudentController {
 
 	@GetMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW)
 	public ResponseEntity<ApiResponse<List<StudentResponse>>> listStudents() {
 		List<StudentResponse> students = studentService.listStudents()
 			.stream()
@@ -106,6 +110,7 @@ public class StudentController {
 
 	@GetMapping("/{id}")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW_PROFILE)
 	public ResponseEntity<ApiResponse<StudentResponse>> getStudent(@PathVariable UUID id) {
 		StudentAccount account = studentService.getStudent(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
@@ -113,6 +118,7 @@ public class StudentController {
 
 	@PatchMapping("/{id}")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_EDIT)
 	public ResponseEntity<ApiResponse<StudentResponse>> updateStudent(@PathVariable UUID id,
 			@Valid @RequestBody StudentUpdateRequest request) {
 		StudentAccount account = studentService.updateStudent(id, request.name());
@@ -135,6 +141,7 @@ public class StudentController {
 
 	@PostMapping("/{id}/reset-password")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_RESET_PASSWORD)
 	public ResponseEntity<ApiResponse<TemporaryPasswordResponse>> resetPassword(@PathVariable UUID id) {
 		String temporaryPassword = studentService.resetStudentPassword(id);
 		return ResponseEntity.ok(ApiResponse.success(new TemporaryPasswordResponse(temporaryPassword)));
@@ -201,6 +208,7 @@ public class StudentController {
 	/** STU-PROF-01: staff view of a student's tenant-configured profile fields. */
 	@GetMapping("/{id}/profile-fields")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW_PROFILE)
 	public ResponseEntity<ApiResponse<StudentProfileFieldsResponse>> getStudentProfileFields(@PathVariable UUID id) {
 		return ResponseEntity
 			.ok(ApiResponse.success(toFieldsResponse(studentProfileFieldsService.getStudentFields(id))));
@@ -208,6 +216,7 @@ public class StudentController {
 
 	@PutMapping("/{id}/profile-fields")
 	@PreAuthorize("@permissionCheckService.hasPermission('STUDENTS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_EDIT)
 	public ResponseEntity<ApiResponse<StudentProfileFieldsResponse>> updateStudentProfileFields(@PathVariable UUID id,
 			@Valid @RequestBody StudentProfileFieldsUpdateRequest request) {
 		return ResponseEntity.ok(ApiResponse

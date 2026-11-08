@@ -1,5 +1,7 @@
 package com.lms.usermanagement.student.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.identityaccessservice.api.DeviceSlotSummary;
 import com.lms.identityaccessservice.api.DeviceView;
@@ -37,12 +39,14 @@ public class StudentDeviceController {
 
 	@GetMapping("/devices")
 	@PreAuthorize("@permissionCheckService.hasPermission('DEVICES', 'VIEW')")
+	@RequiresCapability(Capability.STUDENTS_VIEW_DEVICES)
 	public ResponseEntity<ApiResponse<DeviceSlotSummary>> getDevices(@PathVariable UUID studentId) {
 		return ResponseEntity.ok(ApiResponse.success(studentDeviceService.getDevices(studentId)));
 	}
 
 	@PostMapping("/devices/{deviceId}/reset")
 	@PreAuthorize("@permissionCheckService.hasPermission('DEVICES', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_DELETE_DEVICE)
 	public ResponseEntity<ApiResponse<DeviceView>> resetDevice(@PathVariable UUID studentId,
 			@PathVariable UUID deviceId, @Valid @RequestBody DeviceResetRequest request) {
 		return ResponseEntity
@@ -51,6 +55,7 @@ public class StudentDeviceController {
 
 	@PostMapping("/devices/reset")
 	@PreAuthorize("@permissionCheckService.hasPermission('DEVICES', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.STUDENTS_DELETE_DEVICE)
 	public ResponseEntity<ApiResponse<DeviceResetAllResponse>> resetAllDevices(@PathVariable UUID studentId,
 			@Valid @RequestBody DeviceResetRequest request) {
 		int count = studentDeviceService.resetAllDevices(studentId, request.reason());

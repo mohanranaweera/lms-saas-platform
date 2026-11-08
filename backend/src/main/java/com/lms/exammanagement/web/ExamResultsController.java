@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.exammanagement.service.exam.ExamNotifyMarksService;
 import com.lms.exammanagement.service.exam.ExamResultsViews.ExamStatsView;
@@ -58,6 +60,7 @@ public class ExamResultsController {
 
 	@GetMapping("/stats")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_VIEW_RESULTS)
 	public ResponseEntity<ApiResponse<ExamStatsView>> stats(@PathVariable UUID examId) {
 		return ResponseEntity.ok()
 			.cacheControl(CacheControl.noStore())

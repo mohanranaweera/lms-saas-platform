@@ -1,6 +1,13 @@
 package com.lms.identityaccessservice.service;
 
+import com.lms.common.tenant.TenantContextHolder;
+import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.Capability;
+import com.lms.identityaccessservice.api.CapabilityAvailability;
+import com.lms.identityaccessservice.api.ConfigurableRole;
+import com.lms.identityaccessservice.api.PermissionPair;
+import com.lms.identityaccessservice.repository.CapabilityGrantStore;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
@@ -10,9 +17,13 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 /**
  * RBAC-2's server-side permission enforcement mechanism. Evaluates the
@@ -62,6 +73,25 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 		}
 	}
 
+	/** Request-attribute prefix for the per-request memo of a role's tenant grants. */
+	private static final String GRANTS_ATTRIBUTE = PermissionCheckServiceImpl.class.getName() + ".grants:";
+
+	/** STAFF-MGMT-02: roles whose permissions are tenant-configured grants only. */
+	private static final Set<Role> CONFIGURABLE_STAFF_ROLES = EnumSet.of(Role.OPERATOR, Role.MANAGER);
+
+	/** {@code null} only for plain unit tests constructing this class directly (grants then deny). */
+	private final CapabilityGrantStore grantStore;
+
+	/** Static-matrix-only instance (unit tests): Operator/Manager/Teacher grants all read as denied. */
+	public PermissionCheckServiceImpl() {
+		this(null);
+	}
+
+	@Autowired
+	public PermissionCheckServiceImpl(CapabilityGrantStore grantStore) {
+		this.grantStore = grantStore;
+	}
+
 	@Override
 	public boolean hasPermission(DomainArea domainArea, PermissionAction action) {
 		String roleClaim = AuthenticatedPrincipalHolder.get().role();
@@ -85,8 +115,126 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 		// not domain-flat V/C/E/D/A, and Teacher Assistant's boundary is
 		// explicitly unratified (plan §2.3). Map.getOrDefault naturally
 		// denies (empty set) for these roles without special-casing.
+		if (CONFIGURABLE_STAFF_ROLES.contains(role)) {
+			// STAFF-MGMT-02 §2.3: Operator/Manager hold no static grant. A pair is true only
+			// while CapabilityEnforcementInterceptor has elevated it for THIS request (the
+			// handler's @RequiresCapability was granted); every non-annotated endpoint fails closed.
+			return domainArea != null && action != null
+					&& CapabilityElevationHolder.get().contains(PermissionPair.of(domainArea, action));
+		}
 		Set<PermissionAction> grants = MATRIX.getOrDefault(role, Map.of()).getOrDefault(domainArea, Set.of());
 		return grants.contains(action);
+	}
+
+	@Override
+	public boolean hasCapability(Capability capability) {
+		if (capability == null || !AuthenticatedPrincipalHolder.isSet()) {
+			return false;
+		}
+		Role role = parseRole(AuthenticatedPrincipalHolder.get().role());
+		if (role == null) {
+			return false;
+		}
+		return switch (role) {
+			case OPERATOR, MANAGER -> configuredGrant(capability, role);
+			case TEACHER -> capability.isTeacherConfigurable() && configuredGrant(capability, role);
+			case TEACHER_ASSISTANT, STUDENT -> false;
+			default -> staticCapability(capability, role);
+		};
+	}
+
+	@Override
+	public boolean hasCapability(String capabilityKey) {
+		return Capability.fromKey(capabilityKey).map(this::hasCapability).orElse(false);
+	}
+
+	@Override
+	public void requireCapability(Capability capability) {
+		if (!hasCapability(capability)) {
+			throw new AccessDeniedException("You do not have permission to perform this action");
+		}
+	}
+
+	@Override
+	public Set<Capability> effectiveCapabilities() {
+		Set<Capability> result = EnumSet.noneOf(Capability.class);
+		for (Capability capability : Capability.values()) {
+			if (hasCapability(capability)) {
+				result.add(capability);
+			}
+		}
+		return result;
+	}
+
+	/** Tenant Admin / legacy sub-roles: the capability's primary static gate (+ allowlist). */
+	private static boolean staticCapability(Capability capability, Role role) {
+		if (capability.availability() == CapabilityAvailability.UNAVAILABLE || capability.primary() == null) {
+			return false;
+		}
+		Set<String> allowlist = capability.staticRoleAllowlist();
+		if (allowlist != null && !allowlist.contains(role.name())) {
+			return false;
+		}
+		return staticMatrixGrants(role, capability.primary());
+	}
+
+	/** Operator/Manager/Teacher: ENFORCED + configurable for the role + the tenant's grant (or default). */
+	private boolean configuredGrant(Capability capability, Role role) {
+		ConfigurableRole configurableRole = ConfigurableRole.valueOf(role.name());
+		if (!capability.isConfigurableFor(configurableRole)) {
+			return false;
+		}
+		Map<String, Boolean> overrides = overridesFor(role);
+		if (overrides == null) {
+			return false;
+		}
+		return overrides.getOrDefault(capability.key(), configurableRole.defaultGranted());
+	}
+
+	/**
+	 * The current tenant's explicit grant rows for {@code role}, read from the database once
+	 * per HTTP request (memoised as a request attribute, so it never outlives the request nor
+	 * is seen by another one; no memo off-request). {@code null} = fail closed: no grant store,
+	 * no tenant context, or a principal whose tenant differs from the resolved tenant.
+	 */
+	private Map<String, Boolean> overridesFor(Role role) {
+		if (grantStore == null || !TenantContextHolder.isSet()) {
+			return null;
+		}
+		UUID tenantId = new TenantContextHolder().getTenantId();
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (principal.tenantId() == null || !principal.tenantId().equals(tenantId)) {
+			return null;
+		}
+		String key = GRANTS_ATTRIBUTE + tenantId + ":" + principal.userId() + ":" + role.name();
+		RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+		if (attributes != null) {
+			Object cached = attributes.getAttribute(key, RequestAttributes.SCOPE_REQUEST);
+			if (cached instanceof Map<?, ?> map) {
+				@SuppressWarnings("unchecked")
+				Map<String, Boolean> typed = (Map<String, Boolean>) map;
+				return typed;
+			}
+		}
+		Map<String, Boolean> overrides = Map.copyOf(grantStore.findOverridesForRole(role.name()));
+		if (attributes != null) {
+			attributes.setAttribute(key, overrides, RequestAttributes.SCOPE_REQUEST);
+		}
+		return overrides;
+	}
+
+	/** Does {@code role}'s static matrix hold {@code pair}? (Also used by the catalog invariant test.) */
+	public static boolean staticMatrixGrants(Role role, PermissionPair pair) {
+		return MATRIX.getOrDefault(role, Map.of()).getOrDefault(pair.area(), Set.of()).contains(pair.action());
+	}
+
+	private static Role parseRole(String roleClaim) {
+		try {
+			return Role.valueOf(roleClaim);
+		}
+		catch (IllegalArgumentException | NullPointerException ex) {
+			return null;
+		}
 	}
 
 	@Override

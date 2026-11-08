@@ -1,5 +1,7 @@
 package com.lms.coursemanagement.course.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.coursemanagement.course.service.CourseLessonService;
 import com.lms.coursemanagement.course.service.CourseLessonView;
@@ -39,6 +41,7 @@ public class CourseLessonController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_VIEW)
 	public ResponseEntity<ApiResponse<List<CourseLessonResponse>>> listLessons(@PathVariable UUID courseId,
 			@PathVariable UUID moduleId) {
 		List<CourseLessonResponse> lessons = courseLessonService.listLessons(courseId, moduleId)

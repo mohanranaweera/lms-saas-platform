@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.UndoPaymentReport;
 import com.lms.reportinganalytics.service.UndoPaymentReportService;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/reports/undo-payments")
+@RequiresCapability(Capability.REPORTS_UNDO_PAYMENTS)
 public class UndoPaymentReportController {
 	private final UndoPaymentReportService service;
 	public UndoPaymentReportController(UndoPaymentReportService service) { this.service = service; }

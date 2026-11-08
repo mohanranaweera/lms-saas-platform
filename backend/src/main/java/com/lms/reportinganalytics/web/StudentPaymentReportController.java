@@ -1,5 +1,7 @@
 package com.lms.reportinganalytics.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.reportinganalytics.service.StudentPaymentGrouping.RowsPage;
 import com.lms.reportinganalytics.service.StudentPaymentReport;
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/reports/student-payments")
+@RequiresCapability(Capability.REPORTS_STUDENT_PAYMENTS)
 public class StudentPaymentReportController {
 
 	static final String PDF_FILENAME = "student-payment-report.pdf";

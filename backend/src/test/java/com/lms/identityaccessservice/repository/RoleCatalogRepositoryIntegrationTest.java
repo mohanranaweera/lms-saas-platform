@@ -28,7 +28,7 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 
 	private static final List<String> EXPECTED_CODES = List.of("PLATFORM_ADMIN", "TENANT_ADMIN", "FINANCE_STAFF",
 			"COURSE_COORDINATOR", "STUDENT_SUPPORT", "CONTENT_MANAGER", "EXAM_MANAGER", "ATTENDANCE_OPERATOR",
-			"READ_ONLY_AUDITOR", "TEACHER", "TEACHER_ASSISTANT", "STUDENT");
+			"READ_ONLY_AUDITOR", "TEACHER", "TEACHER_ASSISTANT", "STUDENT", "OPERATOR", "MANAGER");
 
 	@Autowired
 	private RoleCatalogRepository roleCatalogRepository;
@@ -43,14 +43,14 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 	void v7SeedsExactlyTheTwelveExpectedCatalogRowsWithCorrectScope() {
 		List<RoleCatalogEntry> all = roleCatalogRepository.findAll();
 
-		assertThat(all).hasSize(12);
+		assertThat(all).hasSize(14);
 		assertThat(all).extracting(RoleCatalogEntry::getCode).containsExactlyInAnyOrderElementsOf(EXPECTED_CODES);
 
 		RoleCatalogEntry platformAdmin = findByCode(all, "PLATFORM_ADMIN");
 		assertThat(platformAdmin.getScope()).isEqualTo(RoleScope.PLATFORM);
 
 		List<RoleCatalogEntry> everyOtherRow = all.stream().filter(row -> !"PLATFORM_ADMIN".equals(row.getCode())).toList();
-		assertThat(everyOtherRow).hasSize(11);
+		assertThat(everyOtherRow).hasSize(13);
 		assertThat(everyOtherRow).allSatisfy(row -> assertThat(row.getScope()).isEqualTo(RoleScope.TENANT));
 	}
 
@@ -65,7 +65,7 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 		assertThat(teacherAssistant.isProvisional()).isTrue();
 
 		List<RoleCatalogEntry> everyOtherRow = all.stream().filter(row -> !"TEACHER_ASSISTANT".equals(row.getCode())).toList();
-		assertThat(everyOtherRow).hasSize(11);
+		assertThat(everyOtherRow).hasSize(13);
 		assertThat(everyOtherRow).allSatisfy(row -> assertThat(row.isProvisional()).isFalse());
 	}
 
@@ -73,7 +73,7 @@ class RoleCatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 	void findByScopeAndIsActiveTrueReturnsOnlyTheElevenTenantAssignableActiveRolesInSortOrder() {
 		List<RoleCatalogEntry> tenantRoles = roleCatalogRepository.findByScopeAndIsActiveTrueOrderBySortOrderAsc(RoleScope.TENANT);
 
-		assertThat(tenantRoles).hasSize(11);
+		assertThat(tenantRoles).hasSize(13);
 		assertThat(tenantRoles).extracting(RoleCatalogEntry::getCode).doesNotContain("PLATFORM_ADMIN");
 		assertThat(tenantRoles).allSatisfy(row -> {
 			assertThat(row.getScope()).isEqualTo(RoleScope.TENANT);

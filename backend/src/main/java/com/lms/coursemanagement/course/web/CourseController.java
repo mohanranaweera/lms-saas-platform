@@ -1,5 +1,7 @@
 package com.lms.coursemanagement.course.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.coursemanagement.api.LessonResourceTypeCatalog;
@@ -67,6 +69,7 @@ public class CourseController {
 
 	@PostMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_ADD)
 	public ResponseEntity<ApiResponse<CourseResponse>> createCourse(@Valid @RequestBody CourseCreateRequest request,
 			@RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
 		NewCourseCommand command = new NewCourseCommand(request.name(), request.slug(), request.category(),
@@ -90,6 +93,7 @@ public class CourseController {
 	 */
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<CourseResponse>>> listCourses(
 			@PageableDefault(size = 20) Pageable pageable, @RequestParam(required = false) CourseStatus status,
 			@RequestParam(required = false) String category, @RequestParam(required = false) UUID teacherId,
@@ -126,6 +130,7 @@ public class CourseController {
 
 	@GetMapping("/{id}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_VIEW)
 	public ResponseEntity<ApiResponse<CourseResponse>> getCourse(@PathVariable UUID id) {
 		CourseView view = courseService.getCourse(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
@@ -133,6 +138,7 @@ public class CourseController {
 
 	@PatchMapping("/{id}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_EDIT)
 	public ResponseEntity<ApiResponse<CourseResponse>> updateCourse(@PathVariable UUID id,
 			@Valid @RequestBody CourseUpdateRequest request) {
 		CourseEditCommand command = new CourseEditCommand(request.name(), request.slug(), request.category(),
@@ -150,6 +156,7 @@ public class CourseController {
 	/** KLASS-T4a: "Enabled for Registration" switch (audited; never revokes existing access). */
 	@PatchMapping("/{id}/registration")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_TOGGLE_REGISTRATION)
 	public ResponseEntity<ApiResponse<CourseResponse>> setRegistration(@PathVariable UUID id,
 			@Valid @RequestBody RegistrationRequest request) {
 		CourseView view = courseService.setRegistrationEnabled(id, request.enabled());
@@ -159,6 +166,7 @@ public class CourseController {
 	/** KLASS-T4a: cover image upload - multipart {@code file}, JPEG/PNG/WebP (sniffed), at most 5 MB. */
 	@PostMapping(value = "/{id}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_EDIT)
 	public ResponseEntity<ApiResponse<CourseResponse>> uploadCover(@PathVariable UUID id,
 			@RequestPart("file") MultipartFile file) {
 		courseCoverService.uploadCover(id, file);
@@ -168,6 +176,7 @@ public class CourseController {
 	/** KLASS-T4a: back to the default cover. */
 	@DeleteMapping("/{id}/cover")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_EDIT)
 	public ResponseEntity<ApiResponse<CourseResponse>> removeCover(@PathVariable UUID id) {
 		courseCoverService.removeCover(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(courseService.getCourse(id))));
@@ -209,6 +218,7 @@ public class CourseController {
 
 	@DeleteMapping("/{id}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_DELETE)
 	public ResponseEntity<ApiResponse<Void>> deleteCourse(@PathVariable UUID id) {
 		courseService.deleteCourse(id);
 		return ResponseEntity.ok(ApiResponse.success(null));
@@ -224,6 +234,7 @@ public class CourseController {
 
 	@PostMapping("/{id}/archive")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_ARCHIVE)
 	public ResponseEntity<ApiResponse<CourseResponse>> archiveCourse(@PathVariable UUID id) {
 		CourseView view = courseService.archiveCourse(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
@@ -231,6 +242,7 @@ public class CourseController {
 
 	@PostMapping("/{id}/unarchive")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.COURSES_ARCHIVE)
 	public ResponseEntity<ApiResponse<CourseResponse>> unarchiveCourse(@PathVariable UUID id) {
 		CourseView view = courseService.unarchiveCourse(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));

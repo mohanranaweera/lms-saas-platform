@@ -35,4 +35,26 @@ public interface PermissionCheckService {
 	 */
 	void requirePermission(DomainArea domainArea, PermissionAction action);
 
+	/**
+	 * STAFF-MGMT-02 §2.2: does the current actor hold {@code capability}?
+	 * <ul>
+	 * <li>Tenant Admin / legacy staff sub-roles: {@code hasPermission(primary)} (plus the
+	 * capability's static-role allowlist, if any) - unchanged access;
+	 * <li>Operator / Manager: ENFORCED, configurable for the role and granted by the tenant;
+	 * <li>Teacher: teacher-configurable and not revoked by the tenant (default granted);
+	 * <li>anyone else (Teacher Assistant, Student, Platform Admin, no tenant context): false.
+	 * </ul>
+	 * Tenant grants are read from the database once per request.
+	 */
+	boolean hasCapability(Capability capability);
+
+	/** SpEL-safe overload: an unknown or null key denies ({@code false}), never throws. */
+	boolean hasCapability(String capabilityKey);
+
+	/** Throws {@link org.springframework.security.access.AccessDeniedException} unless {@link #hasCapability}. */
+	void requireCapability(Capability capability);
+
+	/** Every capability the current actor holds (empty for Platform Admin / unknown roles). */
+	java.util.Set<Capability> effectiveCapabilities();
+
 }

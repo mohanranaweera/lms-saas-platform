@@ -54,7 +54,11 @@ class UserProvisioningServiceActorExistsTest {
 		service = new UserProvisioningService(tenantUserRepository, platformAdminUserRepository, passwordEncoder,
 				tenantContext, org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class),
 				org.mockito.Mockito.mock(com.lms.identityaccessservice.repository.DeviceSessionLoginQuery.class),
-				org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class));
+				org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class),
+				org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class),
+				org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class),
+				org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class),
+				org.mockito.Mockito.mock(com.lms.identityaccessservice.repository.RoleCatalogRepository.class));
 	}
 
 	@AfterEach

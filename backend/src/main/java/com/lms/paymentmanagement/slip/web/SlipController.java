@@ -1,5 +1,7 @@
 package com.lms.paymentmanagement.slip.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.paymentmanagement.slip.service.PaymentSlipView;
 import com.lms.paymentmanagement.slip.service.SlipDownloadLink;
@@ -43,6 +45,7 @@ public class SlipController {
 
 	@GetMapping("/{slipId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PaymentSlipResponse>> getSlip(@PathVariable UUID slipId) {
 		PaymentSlipView view = slipReviewService.getSlipDetail(slipId);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
@@ -50,6 +53,7 @@ public class SlipController {
 
 	@GetMapping("/{slipId}/download-url")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<SlipDownloadUrlResponse>> getDownloadUrl(@PathVariable UUID slipId) {
 		SlipDownloadLink link = slipReviewService.getDownloadUrl(slipId);
 		return ResponseEntity

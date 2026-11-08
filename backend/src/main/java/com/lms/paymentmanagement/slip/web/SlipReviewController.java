@@ -1,5 +1,7 @@
 package com.lms.paymentmanagement.slip.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipStatus;
@@ -49,6 +51,7 @@ public class SlipReviewController {
 
 	@GetMapping("/review-queue")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<PaymentSlipResponse>>> getReviewQueue(
 			@RequestParam(required = false) PaymentSlipStatus status,
 			@RequestParam(required = false) @Size(max = 100) String search,
@@ -61,12 +64,14 @@ public class SlipReviewController {
 	/** PAY-HUB-01: pending-review slip count for the Payments hub header/badge. */
 	@GetMapping("/review-queue/count")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<SlipPendingCountResponse>> getPendingCount() {
 		return ResponseEntity.ok(ApiResponse.success(new SlipPendingCountResponse(slipReviewService.countPendingReview())));
 	}
 
 	@PostMapping("/{slipId}/approve")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_APPROVE_PENDING)
 	public ResponseEntity<ApiResponse<PaymentSlipResponse>> approve(@PathVariable UUID slipId,
 			@Valid @RequestBody(required = false) SlipApproveRequest request) {
 		String overrideReason = (request != null) ? request.overrideReason() : null;
@@ -76,6 +81,7 @@ public class SlipReviewController {
 
 	@PostMapping("/{slipId}/reject")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_APPROVE_PENDING)
 	public ResponseEntity<ApiResponse<PaymentSlipResponse>> reject(@PathVariable UUID slipId,
 			@Valid @RequestBody SlipRejectRequest request) {
 		PaymentSlipView view = slipReviewService.reject(slipId, request.reason());

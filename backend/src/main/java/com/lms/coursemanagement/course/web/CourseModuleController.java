@@ -1,5 +1,7 @@
 package com.lms.coursemanagement.course.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.coursemanagement.course.service.CourseModuleService;
 import com.lms.coursemanagement.course.service.CourseModuleView;
@@ -39,6 +41,7 @@ public class CourseModuleController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_VIEW)
 	public ResponseEntity<ApiResponse<List<CourseModuleResponse>>> listModules(@PathVariable UUID courseId) {
 		List<CourseModuleResponse> modules = courseModuleService.listModules(courseId)
 			.stream()
@@ -49,6 +52,7 @@ public class CourseModuleController {
 
 	@PostMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_ADD)
 	public ResponseEntity<ApiResponse<CourseModuleResponse>> createModule(@PathVariable UUID courseId,
 			@Valid @RequestBody CourseModuleRequest request) {
 		CourseModuleView view = courseModuleService.createModule(courseId, request.title(), request.sequence(),
@@ -79,6 +83,7 @@ public class CourseModuleController {
 
 	@DeleteMapping("/{moduleId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MODULES_DELETE)
 	public ResponseEntity<ApiResponse<Void>> deleteModule(@PathVariable UUID courseId, @PathVariable UUID moduleId) {
 		courseModuleService.deleteModule(courseId, moduleId);
 		return ResponseEntity.ok(ApiResponse.success(null));

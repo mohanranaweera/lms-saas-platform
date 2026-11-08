@@ -28,8 +28,20 @@ public class StaffProfile extends Auditable implements TenantOwned {
 	@Column(name = "user_id", nullable = false, updatable = false)
 	private UUID userId;
 
+	/** Maintained as "first last" for every existing reader (V10 column, NOT NULL). */
 	@Column(name = "name", nullable = false)
 	private String name;
+
+	/** STAFF-MGMT-02 (V118); {@code null} only on rows written before V118 or by raw SQL. */
+	@Column(name = "first_name")
+	private String firstName;
+
+	@Column(name = "last_name")
+	private String lastName;
+
+	/** Contact phone as entered (string, never a number type); not the sign-in mobile. */
+	@Column(name = "contact_number")
+	private String contactNumber;
 
 	protected StaffProfile() {
 	}
@@ -38,6 +50,20 @@ public class StaffProfile extends Auditable implements TenantOwned {
 		this.tenantId = tenantId;
 		this.userId = userId;
 		this.name = name;
+	}
+
+	public StaffProfile(UUID tenantId, UUID userId, String firstName, String lastName, String contactNumber) {
+		this.tenantId = tenantId;
+		this.userId = userId;
+		updateProfile(firstName, lastName, contactNumber);
+	}
+
+	/** STAFF-MGMT-02: replaces the profile fields and re-derives {@code name}. */
+	public void updateProfile(String firstName, String lastName, String contactNumber) {
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.contactNumber = contactNumber;
+		this.name = (lastName == null || lastName.isBlank()) ? firstName : firstName + " " + lastName;
 	}
 
 	@Override
@@ -56,6 +82,30 @@ public class StaffProfile extends Auditable implements TenantOwned {
 
 	public String getName() {
 		return name;
+	}
+
+	/** First name, or (legacy rows with only {@code name}) its first word. */
+	public String displayFirstName() {
+		if (firstName != null && !firstName.isBlank()) {
+			return firstName;
+		}
+		String trimmed = (name == null) ? "" : name.strip();
+		int space = trimmed.indexOf(' ');
+		return (space < 0) ? trimmed : trimmed.substring(0, space);
+	}
+
+	/** Last name, or (legacy rows with only {@code name}) everything after its first word. */
+	public String displayLastName() {
+		if (firstName != null && !firstName.isBlank()) {
+			return lastName;
+		}
+		String trimmed = (name == null) ? "" : name.strip();
+		int space = trimmed.indexOf(' ');
+		return (space < 0) ? null : trimmed.substring(space + 1).strip();
+	}
+
+	public String getContactNumber() {
+		return contactNumber;
 	}
 
 }

@@ -1,5 +1,7 @@
 package com.lms.paymentmanagement.payment.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.paymentmanagement.payment.service.PaymentRefundView;
 import com.lms.paymentmanagement.payment.service.RefundService;
@@ -37,6 +39,7 @@ public class RefundController {
 
 	@PostMapping("/{id}/refunds")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_UNDO)
 	public ResponseEntity<ApiResponse<RefundResponse>> createRefund(@PathVariable UUID id,
 			@Valid @RequestBody RefundCreateRequest request) {
 		PaymentRefundView view = refundService.processRefund(id, request.amount(), request.reason(),
@@ -46,6 +49,7 @@ public class RefundController {
 
 	@GetMapping("/{id}/refunds")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_LIST_UNDO)
 	public ResponseEntity<ApiResponse<List<RefundResponse>>> listRefunds(@PathVariable UUID id) {
 		List<RefundResponse> responses = refundService.listRefunds(id).stream().map(RefundController::toResponse).toList();
 		return ResponseEntity.ok(ApiResponse.success(responses));

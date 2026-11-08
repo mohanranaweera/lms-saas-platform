@@ -237,6 +237,25 @@ public class AuditLogService implements AuditLogApi {
 				auditLog.getOccurredAt()));
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public Page<AuditActivityEntry> searchTenantActivity(String text, java.util.Collection<UUID> actorIds,
+			Instant from, Instant to, Pageable pageable) {
+		permissionCheckService.requirePermission(DomainArea.AUDIT_LOG, PermissionAction.VIEW);
+		AuditViewerAccessGuard.requireViewerRole();
+		int size = Math.min(Math.max(pageable.getPageSize(), 1), MAX_PAGE_SIZE);
+		Pageable safePageable = PageRequest.of(Math.max(pageable.getPageNumber(), 0), size,
+				org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Order.desc("occurredAt"),
+						org.springframework.data.domain.Sort.Order.desc("id")));
+		Specification<AuditLog> spec = AuditLogSpecifications.matchingText(text, actorIds)
+			.and(AuditLogSpecifications.occurredAtFrom(from))
+			.and(AuditLogSpecifications.occurredAtTo(to));
+		return auditLogRepository.findAll(spec, safePageable)
+			.map(auditLog -> new AuditActivityEntry(auditLog.getId(), auditLog.getActorId(), null,
+					auditLog.getAction(), auditLog.getTargetEntity(), auditLog.getTargetId(), auditLog.getReason(),
+					deserializeMetadata(auditLog.getMetadata()), auditLog.getOccurredAt()));
+	}
+
 	private Map<String, Object> deserializeMetadata(String metadata) {
 		if (metadata == null) {
 			return null;

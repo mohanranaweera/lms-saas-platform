@@ -1,5 +1,7 @@
 package com.lms.ledgersettlementmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementKind;
@@ -48,6 +50,7 @@ public class TeacherSettlementController {
 
 	@GetMapping("/teachers")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<List<TeacherLookupApi.TeacherSummary>>> listPayees() {
 		return ResponseEntity.ok(ApiResponse.success(settlementService.listPayees()));
 	}
@@ -68,6 +71,7 @@ public class TeacherSettlementController {
 
 	@GetMapping("/teacher-settlements")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<PageResponse<SettlementView>>> list(
 			@RequestParam(required = false) UUID teacherId,
 			@RequestParam(required = false) TeacherSettlementStatus status,
@@ -88,6 +92,7 @@ public class TeacherSettlementController {
 
 	@GetMapping("/teacher-settlements/{settlementId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<SettlementDetail>> get(@PathVariable UUID settlementId) {
 		return ResponseEntity.ok(ApiResponse.success(settlementService.get(settlementId)));
 	}

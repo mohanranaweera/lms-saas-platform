@@ -1,5 +1,7 @@
 package com.lms.ledgersettlementmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
@@ -79,6 +81,7 @@ public class LedgerController {
 	 */
 	@GetMapping("/dashboard")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<LedgerHistoryEntryResponse>>> getDashboard(
 			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
 			@RequestParam(required = false) PaymentOperationalState status,
@@ -105,6 +108,7 @@ public class LedgerController {
 	 */
 	@GetMapping("/orders")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<AdminOrderRowResponse>>> getOrders(
 			@PageableDefault(size = 20) Pageable pageable,
 			@RequestParam(required = false) String orderNumber,

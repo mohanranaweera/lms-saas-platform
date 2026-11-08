@@ -73,6 +73,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ManualPaymentService {
 
+	/** STAFF-MGMT-02: tenant-configurable staff roles - never record an adjustment. */
+	private static final Set<String> CONFIGURABLE_STAFF_ROLES = Set.of("OPERATOR", "MANAGER");
+
+
 	static final String GATEWAY_REFERENCE_PREFIX = "MANUAL-";
 
 	static final String AUDIT_ACTION = "manual_payment.recorded";
@@ -147,6 +151,13 @@ public class ManualPaymentService {
 		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.APPROVE);
 		UUID studentUserId = support.requireStudentUserId(studentProfileId);
 		Validated input = validate(command, LocalDate.now(support.tenantZone()));
+		if (input.adjustment().signum() > 0
+				&& CONFIGURABLE_STAFF_ROLES.contains(AuthenticatedPrincipalHolder.get().role())) {
+			// STAFF-MGMT-02 / ADR-034: a delegated PAYMENTS_ADD grant records what was received; a
+			// discount adjustment could approach a Free Card (ADR-030), so it stays with static roles.
+			throw new org.springframework.security.access.AccessDeniedException(
+					"Only a Tenant Admin or Finance Staff can record a payment with an adjustment");
+		}
 		UUID tenantId = tenantContext.getTenantId();
 		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
 

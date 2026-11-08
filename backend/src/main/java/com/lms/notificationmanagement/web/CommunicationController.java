@@ -1,5 +1,7 @@
 package com.lms.notificationmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.notificationmanagement.domain.Broadcast.AudienceType;
@@ -93,11 +95,13 @@ public class CommunicationController {
 	// ---- channels / audience ----
 
 	@GetMapping("/channels")
+	@RequiresCapability(Capability.NOTIFICATIONS_PUBLISH)
 	public ResponseEntity<ApiResponse<List<ChannelOption>>> channels() {
 		return ResponseEntity.ok(ApiResponse.success(broadcastService.channels()));
 	}
 
 	@PostMapping("/audience-preview")
+	@RequiresCapability(Capability.NOTIFICATIONS_PUBLISH)
 	public ResponseEntity<ApiResponse<AudiencePreview>> preview(@Valid @RequestBody AudienceRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(broadcastService.preview(request.toSpec())));
 	}
@@ -105,6 +109,7 @@ public class CommunicationController {
 	// ---- broadcasts ----
 
 	@GetMapping("/broadcasts")
+	@RequiresCapability(Capability.NOTIFICATIONS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<BroadcastView>>> listBroadcasts(
 			@PageableDefault(size = 20) Pageable pageable) {
 		return ResponseEntity.ok(ApiResponse.success(broadcastService.list(pageable)));
@@ -112,6 +117,7 @@ public class CommunicationController {
 
 	/** 201 for a new broadcast; 200 when {@code clientRequestId} was already used by this sender (replay). */
 	@PostMapping("/broadcasts")
+	@RequiresCapability(Capability.NOTIFICATIONS_PUBLISH)
 	public ResponseEntity<ApiResponse<BroadcastView>> send(@Valid @RequestBody SendBroadcastRequest request) {
 		BroadcastView view = broadcastService.send(new SendCommand(request.clientRequestId(), request.subject(),
 				request.body(), request.smsBody(), request.templateId(), request.channels(),
@@ -121,11 +127,13 @@ public class CommunicationController {
 	}
 
 	@GetMapping("/broadcasts/{id}")
+	@RequiresCapability(Capability.NOTIFICATIONS_VIEW)
 	public ResponseEntity<ApiResponse<BroadcastView>> getBroadcast(@PathVariable UUID id) {
 		return ResponseEntity.ok(ApiResponse.success(broadcastService.get(id)));
 	}
 
 	@GetMapping("/broadcasts/{id}/deliveries")
+	@RequiresCapability(Capability.NOTIFICATIONS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<DeliveryView>>> deliveries(@PathVariable UUID id,
 			@RequestParam(required = false) NotificationDelivery.Status status,
 			@RequestParam(required = false) DeliveryChannel channel, @PageableDefault(size = 50) Pageable pageable) {
@@ -142,6 +150,7 @@ public class CommunicationController {
 	// ---- broadcast templates ----
 
 	@GetMapping("/templates")
+	@RequiresCapability(Capability.NOTIFICATIONS_VIEW)
 	public ResponseEntity<ApiResponse<List<TemplateView>>> templates(
 			@RequestParam(defaultValue = "false") boolean includeArchived) {
 		return ResponseEntity.ok(ApiResponse.success(templateService.list(includeArchived)));

@@ -7,31 +7,24 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Staff account creation request body (MVP-005, {@code STAFF-1}).
- *
- * <p>Deliberately has no {@code tenantId}, {@code status}, or {@code
- * mustChangePassword} field - tenant is always resolved server-side from the
- * authenticated session context, and every admin-created staff account
- * always starts with {@code mustChangePassword = true} (no client choice).
- *
- * <p>{@code roleCode}'s {@code @Pattern} restricts to exactly the 7
- * assignable staff sub-roles at the DTO layer, as defense in depth on top of
- * {@code StaffService}'s own service-layer check - deliberately excludes
- * {@code TENANT_ADMIN}/{@code TEACHER}/{@code TEACHER_ASSISTANT}/{@code
- * STUDENT} even though those are valid {@code Role} values elsewhere, since
- * those accounts are provisioned by other flows, not this one.
+ * {@code POST /api/v1/staff} body (STAFF-MGMT-02 §2.5, Klass "Add Staff"). All five fields
+ * are required. There is deliberately NO password (the invitee sets it through the
+ * account-setup email) and no {@code tenantId}/{@code status} (server-derived). {@code roleCode}
+ * is validated against the server's assignable set (Operator, Manager) by {@code StaffService};
+ * anything else is a 400.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record StaffCreateRequest(
 
-		@NotBlank @Size(max = 255) String name,
+		@NotBlank @Size(max = 120) String firstName,
+
+		@NotBlank @Size(max = 120) String lastName,
 
 		@NotBlank @Email @Size(max = 255) String email,
 
-		@NotBlank @Size(min = 8, max = 255) String password,
+		@NotBlank @Size(max = 32) @Pattern(regexp = StaffUpdateRequest.PHONE_PATTERN,
+				message = "must be a valid phone number") String mobileNumber,
 
-		@NotBlank @Pattern(regexp = "FINANCE_STAFF|COURSE_COORDINATOR|STUDENT_SUPPORT|CONTENT_MANAGER|EXAM_MANAGER"
-				+ "|ATTENDANCE_OPERATOR|READ_ONLY_AUDITOR",
-				message = "roleCode must be one of the 7 assignable staff sub-roles") String roleCode) {
+		@NotBlank @Size(max = 50) String roleCode) {
 
 }

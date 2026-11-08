@@ -1,5 +1,7 @@
 package com.lms.financeexpensemanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.financeexpensemanagement.service.FinanceReportService;
 import com.lms.financeexpensemanagement.service.FinanceReportService.CourseRevenueReport;
@@ -33,6 +35,7 @@ public class FinanceReportController {
 
 	@GetMapping("/summary")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_INCOME_SUMMARY)
 	public ResponseEntity<ApiResponse<FinanceSummary>> summary(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {

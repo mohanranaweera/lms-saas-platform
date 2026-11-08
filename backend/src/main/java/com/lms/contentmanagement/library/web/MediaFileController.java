@@ -1,5 +1,7 @@
 package com.lms.contentmanagement.library.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.contentmanagement.library.domain.MediaFileKind;
@@ -52,6 +54,7 @@ public class MediaFileController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MEDIA_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<MediaFileResponse>>> list(
 			@RequestParam(name = "q", required = false) @Size(max = 200) String search,
 			@RequestParam(required = false) MediaFileKind kind, @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -63,6 +66,7 @@ public class MediaFileController {
 
 	@GetMapping("/summary")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MEDIA_VIEW)
 	public ResponseEntity<ApiResponse<MediaFileSummaryResponse>> summary() {
 		MediaFileSummaryView view = mediaFileService.summary();
 		return ResponseEntity.ok(ApiResponse
@@ -71,6 +75,7 @@ public class MediaFileController {
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MEDIA_ADD)
 	public ResponseEntity<ApiResponse<MediaFileResponse>> upload(
 			@RequestPart(value = "file", required = false) MultipartFile file,
 			@RequestParam(value = "title", required = false) @Size(max = 255) String title,
@@ -88,6 +93,7 @@ public class MediaFileController {
 
 	@DeleteMapping("/{id}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MEDIA_DELETE)
 	public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
 		mediaFileService.delete(id);
 		return ResponseEntity.ok(ApiResponse.success(null));
@@ -95,6 +101,7 @@ public class MediaFileController {
 
 	@GetMapping("/{id}/open-url")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MEDIA_VIEW)
 	public ResponseEntity<ApiResponse<MediaFileOpenUrlResponse>> openUrl(@PathVariable UUID id) {
 		SignedDownloadUrl signed = mediaFileService.openUrl(id);
 		return ResponseEntity.ok(ApiResponse.success(new MediaFileOpenUrlResponse(signed.url(), signed.expiresAt())));

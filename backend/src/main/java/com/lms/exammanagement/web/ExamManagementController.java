@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.exammanagement.service.exam.ExamManagementService;
 import com.lms.exammanagement.service.exam.ExamManagementViews.CsvExport;
@@ -56,6 +58,7 @@ public class ExamManagementController {
 
 	@GetMapping("/management")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_VIEW_RESULTS)
 	public ResponseEntity<ApiResponse<ExamManagementView>> management(@PathVariable UUID examId,
 			@RequestParam(required = false) String search, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size) {

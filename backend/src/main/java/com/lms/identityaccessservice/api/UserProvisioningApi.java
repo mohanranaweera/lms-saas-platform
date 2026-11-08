@@ -107,7 +107,9 @@ public interface UserProvisioningApi {
 	/**
 	 * Re-activates the given {@code tenant_user} row (restores login
 	 * capability) - the same tenant-scoping and extension-policy contract as
-	 * {@link #suspendTenantUser} applies here.
+	 * {@link #suspendTenantUser} applies here. STAFF-MGMT-02: an account that was
+	 * suspended while still {@code INVITED} and has never set a password returns to
+	 * {@code INVITED} (it must still complete account setup), not {@code ACTIVE}.
 	 *
 	 * @throws com.lms.common.error.NotFoundException if {@code userId} does
 	 * not resolve to a {@code tenant_user} row in the caller's own resolved
@@ -185,5 +187,31 @@ public interface UserProvisioningApi {
 	 * (e.g. when a student is removed from the tenant). Joins the caller's transaction.
 	 */
 	void revokeAllSessions(UUID userId);
+
+	/**
+	 * STAFF-MGMT-02: creates an {@code INVITED} {@code tenant_user} in the current tenant with an
+	 * unusable password and queues the account-setup email (the invitee chooses the password).
+	 * {@code email} is trimmed and lower-cased. Any existing account of this tenant using the
+	 * mailbox (any letter case) -> {@link com.lms.common.error.ConflictException} with a generic
+	 * message; the {@code UNIQUE (tenant_id, email)} constraint makes this race safe. Other
+	 * tenants are never consulted. The caller restricts which roles it may assign.
+	 */
+	ProvisionedUser inviteTenantUser(String email, String roleCode);
+
+	/**
+	 * STAFF-MGMT-02: re-sends the account-setup email of a still-{@code INVITED} account of this
+	 * tenant (old links stop working). At most once a minute per account
+	 * ({@link com.lms.common.error.TooManyRequestsException}); not invited -> {@code 409}.
+	 */
+	void resendInvite(UUID userId);
+
+	/**
+	 * STAFF-MGMT-02: changes the role of a {@code tenant_user} of this tenant (404 otherwise).
+	 * The caller enforces which transitions are allowed. Effective on the next request.
+	 */
+	void changeRole(UUID userId, String roleCode);
+
+	/** STAFF-MGMT-02: tenant-scope role code -> display name, from the platform role catalog (V7). */
+	java.util.Map<String, String> roleDisplayNames();
 
 }

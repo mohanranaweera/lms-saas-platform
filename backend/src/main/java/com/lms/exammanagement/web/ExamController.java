@@ -1,5 +1,7 @@
 package com.lms.exammanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.FieldError;
 import com.lms.common.api.PageResponse;
@@ -123,6 +125,7 @@ public class ExamController {
 
 	@GetMapping("/{examId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_VIEW)
 	public ResponseEntity<ApiResponse<Object>> getExam(@PathVariable UUID examId) {
 		if (examConfigService.isKlassExam(examId)) {
 			return ResponseEntity.ok(ApiResponse.success(examConfigService.get(examId)));
@@ -139,6 +142,7 @@ public class ExamController {
 	 */
 	@GetMapping("/courses/{courseId}/exams")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<ExamSummaryResponse>>> listExamsForCourse(
 			@PathVariable UUID courseId, @PageableDefault(size = 20, sort = "scheduledStart") Pageable pageable) {
 		PageResponse<ExamSummaryView> page = examSchedulingService.listExamsForCourse(courseId, pageable);
@@ -154,6 +158,7 @@ public class ExamController {
 	 */
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.EXAMS_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<ExamSummaryResponse>>> listExamsForTenant(
 			@RequestParam(required = false) ExamStatus status,
 			@PageableDefault(size = 20, sort = "scheduledStart") Pageable pageable) {
