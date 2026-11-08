@@ -855,3 +855,14 @@ leave it.
 module — backend or frontend — may begin implementation until Modules 2 (`identity-access-service`), 3
 (RBAC), and 4 (`tenant-management`, specifically `TEN-1`/`TEN-2`/`TEN-3`) exist and are merged with their
 own passing tests.*
+
+---
+
+## Update 2026-11-07 — STAFF-MGMT-02 (Klass parity)
+
+Implemented on `feat/staff-management-permissions`. It supersedes the open items above where they
+overlap: staff are invited (no admin-typed password), can be edited, reassigned (Operator/Manager)
+and deactivated/reactivated, and per-role permissions are tenant-configurable. Contract, capability
+matrix and acceptance results are in `docs/specs/staff-management-permissions-parity.md`. The
+decision record is `docs/adr/ADR-034-tenant-configurable-role-permissions.md`, and the evidence is in
+`docs/qa/staff-management-evidence/`.

@@ -1,0 +1,20 @@
+{
+  "desktop": {
+    "url": "http://demo.lms.test:3000/tenant-admin/dashboard",
+    "links": [
+      "Dashboard",
+      "Students",
+      "Courses",
+      "Students",
+      "Courses"
+    ]
+  },
+  "mobile": {
+    "url": "http://demo.lms.test:3000/tenant-admin/dashboard",
+    "links": [
+      "Dashboard",
+      "Students",
+      "Courses"
+    ]
+  }
+}
