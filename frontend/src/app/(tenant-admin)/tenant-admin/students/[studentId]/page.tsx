@@ -35,6 +35,8 @@ import {
   SessionViewsSection,
 } from "./profile-sections";
 import { StudentStatusToggle } from "./student-status-toggle";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { EnrollStudentSheet } from "./enroll-student-sheet";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 import { ProfileFieldsSection } from "./profile-fields-section";
@@ -96,7 +98,9 @@ function StudentProfileContent() {
 function StudentProfileBody({ detail }: { detail: StudentDetail }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const canManage = canManageStudents(role);
+  // STAFF-MGMT-03: STUDENTS_EDIT for capability-driven roles (UX only).
+  const { can } = useCapabilities();
+  const canManage = can(CAP.STUDENTS_EDIT, canManageStudents(role));
   const { timeZone } = useTenantTimeZone();
   const courseName = useCourseNames();
   const queryClient = useQueryClient();
@@ -250,7 +254,14 @@ function ManageSection({
   const tabParam = searchParams.get("tab");
   const activeTab: TabValue = isTabValue(tabParam) ? tabParam : "enrollments";
   const [enrollOpen, setEnrollOpen] = useState(false);
-  const canManage = canManageStudents(role);
+  // STAFF-MGMT-03: each action follows its capability for capability-driven
+  // roles. Enroll needs COURSES_ENROLL_STUDENTS (by default only Tenant Admin
+  // holds it). UX only; every endpoint re-checks.
+  const { can } = useCapabilities();
+  const legacyManage = canManageStudents(role);
+  const canManage = can(CAP.STUDENTS_EDIT, legacyManage);
+  const canResetPassword = can(CAP.STUDENTS_RESET_PASSWORD, legacyManage);
+  const canEnroll = can(CAP.COURSES_ENROLL_STUDENTS, legacyManage);
   const extendAccess = canManageAccessPolicy(role);
 
   // Legacy account-level controls still take the old `StudentResponse` shape.
@@ -307,19 +318,21 @@ function ManageSection({
           Manage
           <StudentStatusBadge status={detail.status} />
         </h2>
-        {canManage ? (
+        {canManage || canEnroll || canResetPassword ? (
           <div className="flex flex-wrap items-center gap-2">
-            <StudentStatusToggle student={student} onSuccess={onNotice} />
-            <Button type="button" variant="outline" onClick={() => setEnrollOpen(true)}>
-              <UserPlus aria-hidden="true" />
-              Enroll
-            </Button>
-            <ResetPasswordDialog student={student} />
+            {canManage ? <StudentStatusToggle student={student} onSuccess={onNotice} /> : null}
+            {canEnroll ? (
+              <Button type="button" variant="outline" onClick={() => setEnrollOpen(true)}>
+                <UserPlus aria-hidden="true" />
+                Enroll
+              </Button>
+            ) : null}
+            {canResetPassword ? <ResetPasswordDialog student={student} /> : null}
           </div>
         ) : null}
       </div>
       <Tabs items={items} value={activeTab} onValueChange={handleTabChange} aria-label="Student detail sections" />
-      {canManage ? (
+      {canEnroll ? (
         <EnrollStudentSheet
           student={student}
           open={enrollOpen}

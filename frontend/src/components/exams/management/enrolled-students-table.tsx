@@ -131,6 +131,7 @@ function RowActions({
   exam,
   row,
   canAuthor,
+  canManageEnrollment = canAuthor,
   openDialog,
   onToast,
   onRemoved,
@@ -138,6 +139,8 @@ function RowActions({
   exam: ExamDetail;
   row: ManagedStudentRow;
   canAuthor: boolean;
+  /** Remove-from-exam (EXAMS_MANAGE); defaults to `canAuthor`. */
+  canManageEnrollment?: boolean;
   openDialog: (dialog: NonNullable<Dialog>) => void;
   onToast: Toast;
   onRemoved: () => void;
@@ -195,7 +198,7 @@ function RowActions({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
-      {canAuthor ? (
+      {canManageEnrollment ? (
         <RemoveEnrollmentButton
           examId={exam.id}
           studentId={row.studentId}
@@ -242,6 +245,8 @@ export function EnrolledStudentsTable({
   onPage,
   onSize,
   canAuthor,
+  canManageEnrollment = canAuthor,
+  canExport = true,
   onToast,
   notifyMarks,
   resultsPublishedAt = null,
@@ -263,6 +268,10 @@ export function EnrolledStudentsTable({
   onPage: (page: number) => void;
   onSize: (size: number) => void;
   canAuthor: boolean;
+  /** Remove-from-exam (EXAMS_MANAGE); defaults to `canAuthor`. */
+  canManageEnrollment?: boolean;
+  /** Export as CSV (EXAMS_GENERATE_REPORT); shown by default. */
+  canExport?: boolean;
   onToast: Toast;
   /** Notify Marks (Slice E): `null` hides the button (no authoring access); a `disabledReason` shows it disabled with a tooltip. */
   notifyMarks?: { onClick: () => void; disabledReason?: string | null } | null;
@@ -405,6 +414,7 @@ export function EnrolledStudentsTable({
         exam={exam}
         row={row}
         canAuthor={canAuthor}
+        canManageEnrollment={canManageEnrollment}
         openDialog={setDialog}
         onToast={onToast}
         onRemoved={() => void query.refetch()}
@@ -468,6 +478,7 @@ export function EnrolledStudentsTable({
               exam={exam}
               row={row}
               canAuthor={canAuthor}
+              canManageEnrollment={canManageEnrollment}
               openDialog={setDialog}
               onToast={onToast}
               onRemoved={() => void query.refetch()}
@@ -519,17 +530,19 @@ export function EnrolledStudentsTable({
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void runExport()}
-            disabled={exportCsv.isPending}
-            aria-busy={exportCsv.isPending}
-            data-testid="exam-export-csv"
-          >
-            <Download aria-hidden="true" />
-            {exportCsv.isPending ? "Exporting…" : "Export as CSV"}
-          </Button>
+          {canExport ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void runExport()}
+              disabled={exportCsv.isPending}
+              aria-busy={exportCsv.isPending}
+              data-testid="exam-export-csv"
+            >
+              <Download aria-hidden="true" />
+              {exportCsv.isPending ? "Exporting…" : "Export as CSV"}
+            </Button>
+          ) : null}
           {notifyMarks === null ? null : notifyDisabledReason ? <Tooltip label={notifyDisabledReason}>{notifyButton}</Tooltip> : notifyButton}
         </div>
       </div>

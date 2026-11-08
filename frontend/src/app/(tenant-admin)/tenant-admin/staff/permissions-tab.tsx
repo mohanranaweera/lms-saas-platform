@@ -17,6 +17,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useAuth } from "@/lib/auth/auth-context";
 import { isApiClientError } from "@/lib/api/error";
 import {
   usePermissionMatrix,
@@ -63,6 +65,56 @@ export function pendingChanges(matrix: PermissionMatrix | undefined, edits: Perm
   return changes;
 }
 
+/** Desktop columns shown until the viewer picks their own (STAFF-MGMT-03). */
+export const DEFAULT_SHOWN_ROLES: readonly string[] = ["OPERATOR", "MANAGER", "TEACHER", "FINANCE_STAFF"];
+
+const rolesShownStorageKey = (userId: string | null) => `lms.staff.permissions.rolesShown:${userId ?? "anonymous"}`;
+
+function readRolesShown(userId: string | null): string[] | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(rolesShownStorageKey(userId));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.every((entry) => typeof entry === "string") ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeRolesShown(userId: string | null, roles: string[]) {
+  try {
+    window.localStorage.setItem(rolesShownStorageKey(userId), JSON.stringify(roles));
+  } catch {
+    // Storage unavailable (private mode / quota): the choice just is not remembered.
+  }
+}
+
+/**
+ * The viewer's "Roles shown" choice (desktop matrix columns), remembered per
+ * viewer in localStorage. A display preference only - never sent to the server.
+ */
+function useRolesShown() {
+  const { session } = useAuth();
+  const userId = session?.userId ?? null;
+  const [state, setState] = useState<{ userId: string | null; roles: string[] | null }>(() => ({
+    userId,
+    roles: readRolesShown(userId),
+  }));
+  // Re-read when the viewer changes (adjust-state-on-prop-change pattern).
+  if (state.userId !== userId) {
+    setState({ userId, roles: readRolesShown(userId) });
+  }
+  const setRoles = useCallback(
+    (roles: string[]) => {
+      setState({ userId, roles });
+      writeRolesShown(userId, roles);
+    },
+    [userId]
+  );
+  return { stored: state.roles, setRoles };
+}
+
 /** Page-level edit state, so switching tabs never loses unsaved edits. */
 export function usePermissionEditsState() {
   const [edits, setEdits] = useState<Map<string, boolean>>(() => new Map());
@@ -92,6 +144,7 @@ export function PermissionsTab({
   const [feedback, setFeedback] = useState<SaveFeedback>(null);
   const [announcement, setAnnouncement] = useState("");
   const [mobileRole, setMobileRole] = useState<string>("");
+  const rolesShown = useRolesShown();
 
   const matrix = matrixQuery.data;
   const changes = useMemo(() => pendingChanges(matrix, edits), [matrix, edits]);
@@ -154,6 +207,27 @@ export function PermissionsTab({
         });
       }
     }
+  };
+
+  // Desktop columns: the viewer's stored choice (server order), else the
+  // defaults; never empty. Mobile always offers every role in its selector.
+  const visibleRoles = useMemo(() => {
+    if (!matrix) return [] as string[];
+    const codes = matrix.roles.map((role) => role.code);
+    const pick = (wanted: readonly string[] | null) => (wanted ? codes.filter((code) => wanted.includes(code)) : []);
+    const stored = pick(rolesShown.stored);
+    if (stored.length > 0) return stored;
+    const defaults = pick(DEFAULT_SHOWN_ROLES);
+    return defaults.length > 0 ? defaults : codes;
+  }, [matrix, rolesShown.stored]);
+
+  const changeRolesShown = (next: string[]) => {
+    if (next.length === 0) {
+      setAnnouncement("At least one role must be shown.");
+      return;
+    }
+    rolesShown.setRoles(next);
+    setAnnouncement(`${next.length} of ${matrix?.roles.length ?? next.length} roles shown.`);
   };
 
   const summary = useMemo(() => {
@@ -253,6 +327,24 @@ export function PermissionsTab({
                 : (data.roles[0]?.code ?? "");
               return (
                 <div className="flex flex-col gap-3">
+                  <div className="hidden flex-col gap-1.5 md:flex md:max-w-md" data-testid="roles-shown-control">
+                    <Label htmlFor="permissions-roles-shown">Roles shown</Label>
+                    <MultiSelect
+                      id="permissions-roles-shown"
+                      testId="roles-shown"
+                      options={data.roles.map((role) => ({ value: role.code, label: role.displayName }))}
+                      value={visibleRoles}
+                      onChange={changeRolesShown}
+                      placeholder="Choose roles to compare"
+                      searchPlaceholder="Filter roles…"
+                      hideSelectedInTrigger
+                      aria-describedby="permissions-roles-shown-help"
+                    />
+                    <p id="permissions-roles-shown-help" className="text-xs text-muted-foreground">
+                      {visibleRoles.length} of {data.roles.length} roles shown. Unsaved changes to hidden roles are kept
+                      and included when you save.
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2 md:hidden">
                     <Label htmlFor="permissions-role-select">Role column</Label>
                     <select
@@ -273,6 +365,7 @@ export function PermissionsTab({
                     canEdit={canEdit && !save.isPending}
                     readOnly={!canEdit}
                     mobileRole={selectedRole}
+                    visibleRoles={visibleRoles}
                     effective={effective}
                     onSet={setMany}
                   />
@@ -294,6 +387,9 @@ export function PermissionsTab({
                 {summary.map(({ role, granted, revoked }) => (
                   <li key={role.code}>
                     <span className="font-medium">{role.displayName}</span>: {granted} granted, {revoked} revoked
+                    {visibleRoles.includes(role.code) ? null : (
+                      <span className="text-muted-foreground"> (column not shown)</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -318,6 +414,7 @@ function MatrixTable({
   canEdit,
   readOnly,
   mobileRole,
+  visibleRoles,
   effective,
   onSet,
 }: {
@@ -325,26 +422,36 @@ function MatrixTable({
   canEdit: boolean;
   readOnly: boolean;
   mobileRole: string;
+  /** Desktop (md+) columns from "Roles shown". */
+  visibleRoles: readonly string[];
   effective: (roleCode: string, row: PermissionMatrixRow) => boolean;
   onSet: (updates: Array<{ roleCode: string; row: PermissionMatrixRow; granted: boolean }>) => void;
 }) {
-  const roleCellClass = (roleCode: string) => cn(roleCode !== mobileRole && "hidden md:table-cell");
+  // Below md: only the selected role. md and up: the "Roles shown" columns.
+  const roleCellClass = (roleCode: string) => {
+    const mobile = roleCode === mobileRole;
+    const desktop = visibleRoles.includes(roleCode);
+    if (mobile && desktop) return "";
+    if (mobile) return "md:hidden";
+    if (desktop) return "hidden md:table-cell";
+    return "hidden";
+  };
 
   return (
     <div
-      className="max-h-[70vh] overflow-auto rounded-lg border border-border"
+      className="max-h-[70vh] w-0 min-w-full overflow-auto rounded-lg border border-border"
       data-testid="permission-matrix-scroll"
       tabIndex={0}
       role="region"
       aria-label="Permission matrix"
     >
-      <table className="w-full border-separate border-spacing-0 text-left text-sm">
+      <table className="w-max min-w-full border-separate border-spacing-0 text-left text-sm">
         <caption className="sr-only">Role permissions: rows are permissions, columns are roles</caption>
         <thead>
           <tr>
             <th
               scope="col"
-              className="sticky top-0 left-0 z-30 min-w-48 border-b border-border bg-card px-4 py-3 font-medium"
+              className="sticky top-0 left-0 z-30 w-56 min-w-48 border-b border-border bg-card px-4 py-3 align-bottom font-medium"
             >
               Permission
             </th>
@@ -353,7 +460,7 @@ function MatrixTable({
                 key={role.code}
                 scope="col"
                 className={cn(
-                  "sticky top-0 z-20 min-w-32 border-b border-border bg-card px-4 py-3 text-center font-medium uppercase",
+                  "sticky top-0 z-20 w-28 min-w-24 max-w-32 border-b border-border bg-card px-2 py-3 text-center align-bottom text-xs leading-tight font-medium break-words whitespace-normal uppercase",
                   roleCellClass(role.code)
                 )}
               >
@@ -409,13 +516,13 @@ function GroupBody({
         {matrix.roles.map((role) => {
           const editableRows = group.rows.filter((row) => isEditable(row.cells[role.code]?.state));
           if (readOnly || editableRows.length === 0) {
-            return <td key={role.code} className={cn("border-b border-border px-4 py-2", roleCellClass(role.code))} />;
+            return <td key={role.code} className={cn("border-b border-border px-2 py-2", roleCellClass(role.code))} />;
           }
           const grantedCount = editableRows.filter((row) => effective(role.code, row)).length;
           const all = grantedCount === editableRows.length;
           const state: "true" | "false" | "mixed" = all ? "true" : grantedCount === 0 ? "false" : "mixed";
           return (
-            <td key={role.code} className={cn("border-b border-border px-4 py-2 text-center", roleCellClass(role.code))}>
+            <td key={role.code} className={cn("border-b border-border px-2 py-2 text-center", roleCellClass(role.code))}>
               <button
                 type="button"
                 role="checkbox"
@@ -449,7 +556,7 @@ function GroupBody({
             {row.label}
           </th>
           {matrix.roles.map((role) => (
-            <td key={role.code} className={cn("border-b border-border px-4 py-2 text-center", roleCellClass(role.code))}>
+            <td key={role.code} className={cn("border-b border-border px-2 py-2 text-center", roleCellClass(role.code))}>
               <MatrixCell
                 row={row}
                 roleCode={role.code}

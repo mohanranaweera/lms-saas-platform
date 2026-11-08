@@ -29,6 +29,8 @@ import {
   type BankQuestion,
 } from "@/lib/api/question-bank";
 import { cn } from "@/lib/utils";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 
 const PAGE_SIZE = 50;
 
@@ -52,11 +54,15 @@ function QuestionRow({
   number,
   editHref,
   onDelete,
+  canEdit,
+  canDelete,
 }: {
   question: BankQuestion;
   number: number;
   editHref: string;
   onDelete: () => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [showAnswers, setShowAnswers] = useState(true);
@@ -150,26 +156,30 @@ function QuestionRow({
                 {showAnswers ? "Hide answers" : "Show answers"}
               </Button>
               <div className="flex items-center gap-1">
-                <Link
-                  href={editHref}
-                  className={cn(buttonVariants({ variant: "ghost" }), "h-8 text-xs font-semibold tracking-wide text-primary uppercase hover:text-primary")}
-                  aria-label={`Edit question ${number}`}
-                  data-testid="question-edit"
-                >
-                  <Pencil aria-hidden="true" />
-                  Edit
-                </Link>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-8 text-xs font-semibold tracking-wide text-destructive uppercase hover:bg-destructive/10 hover:text-destructive"
-                  aria-label={`Delete question ${number}`}
-                  onClick={onDelete}
-                  data-testid="question-delete"
-                >
-                  <Trash2 aria-hidden="true" />
-                  Delete
-                </Button>
+                {canEdit ? (
+                  <Link
+                    href={editHref}
+                    className={cn(buttonVariants({ variant: "ghost" }), "h-8 text-xs font-semibold tracking-wide text-primary uppercase hover:text-primary")}
+                    aria-label={`Edit question ${number}`}
+                    data-testid="question-edit"
+                  >
+                    <Pencil aria-hidden="true" />
+                    Edit
+                  </Link>
+                ) : null}
+                {canDelete ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-8 text-xs font-semibold tracking-wide text-destructive uppercase hover:bg-destructive/10 hover:text-destructive"
+                    aria-label={`Delete question ${number}`}
+                    onClick={onDelete}
+                    data-testid="question-delete"
+                  >
+                    <Trash2 aria-hidden="true" />
+                    Delete
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -207,6 +217,15 @@ export function ModuleQuestionBank({
   const showToast = toast.show;
   const [deleteTarget, setDeleteTarget] = useState<{ question: BankQuestion; number: number } | null>(null);
   const [copyDialog, setCopyDialog] = useState({ open: false, key: 0 });
+  // STAFF-MGMT-03: add / copy, edit and import follow MODULES_QUESTIONS_ADD /
+  // _EDIT / _IMPORT for capability-driven roles; delete needs
+  // MODULES_QUESTIONS_DELETE (owning teacher only, never a staff role). Teachers
+  // and Tenant Admin keep everything. UX only; every endpoint re-checks.
+  const { can } = useCapabilities();
+  const canAdd = can(CAP.MODULES_QUESTIONS_ADD, true);
+  const canEditQuestion = can(CAP.MODULES_QUESTIONS_EDIT, true);
+  const canImport = can(CAP.MODULES_QUESTIONS_IMPORT, true);
+  const canDeleteQuestion = can("MODULES_QUESTIONS_DELETE", true);
 
   // One-time confirmation after the create/edit page redirects back here.
   const saved = searchParams.get("saved");
@@ -237,28 +256,30 @@ export function ModuleQuestionBank({
       {({ course, module }) => {
         const allQuestions = (
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 border-primary/60 px-4 tracking-wide text-primary uppercase hover:text-primary"
-                onClick={() => setCopyDialog((current) => ({ open: true, key: current.key + 1 }))}
-                disabled={questionsQuery.status !== "success" || totalQuestions === 0}
-                title={totalQuestions === 0 ? "There are no questions to copy yet" : undefined}
-                data-testid="bank-copy"
-              >
-                <Copy aria-hidden="true" />
-                Copy question
-              </Button>
-              <Link
-                href={paths.create}
-                className={cn(buttonVariants({ variant: "default" }), "h-9 px-4 tracking-wide uppercase")}
-                data-testid="bank-create"
-              >
-                <Plus aria-hidden="true" />
-                Create question
-              </Link>
-            </div>
+            {canAdd ? (
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-primary/60 px-4 tracking-wide text-primary uppercase hover:text-primary"
+                  onClick={() => setCopyDialog((current) => ({ open: true, key: current.key + 1 }))}
+                  disabled={questionsQuery.status !== "success" || totalQuestions === 0}
+                  title={totalQuestions === 0 ? "There are no questions to copy yet" : undefined}
+                  data-testid="bank-copy"
+                >
+                  <Copy aria-hidden="true" />
+                  Copy question
+                </Button>
+                <Link
+                  href={paths.create}
+                  className={cn(buttonVariants({ variant: "default" }), "h-9 px-4 tracking-wide uppercase")}
+                  data-testid="bank-create"
+                >
+                  <Plus aria-hidden="true" />
+                  Create question
+                </Link>
+              </div>
+            ) : null}
 
             {questionsQuery.status === "pending" ? (
               <QuestionListSkeleton />
@@ -275,8 +296,12 @@ export function ModuleQuestionBank({
                     return (
                       <EmptyState
                         title="No questions in this module yet"
-                        description="Create questions one by one, or import many at once from a CSV file in the Imports tab. Exams draw their questions from this bank."
-                        action={{ label: "Create question", onClick: () => router.push(paths.create) }}
+                        description={
+                          canAdd || canImport
+                            ? "Create questions one by one, or import many at once from a CSV file in the Imports tab. Exams draw their questions from this bank."
+                            : "Questions added to this module by your exam team will appear here."
+                        }
+                        action={canAdd ? { label: "Create question", onClick: () => router.push(paths.create) } : undefined}
                       />
                     );
                   }
@@ -296,6 +321,8 @@ export function ModuleQuestionBank({
                             question={question}
                             number={offset + index + 1}
                             editHref={paths.edit(question.id)}
+                            canEdit={canEditQuestion}
+                            canDelete={canDeleteQuestion}
                             onDelete={() => {
                               remove.reset();
                               setDeleteTarget({ question, number: offset + index + 1 });
@@ -355,23 +382,27 @@ export function ModuleQuestionBank({
               className="[&_[role=tab]]:tracking-wide [&_[role=tab]]:uppercase"
               items={[
                 { value: "all", label: "All questions", content: allQuestions },
-                {
-                  value: "imports",
-                  label: "Imports",
-                  content: (
-                    <QuestionImportsTab
-                      courseId={courseId}
-                      moduleId={moduleId}
-                      dashboardHref={paths.dashboard}
-                      onImported={(result) =>
-                        toast.show({
-                          kind: "success",
-                          text: `Imported ${result.questionCount} ${result.questionCount === 1 ? "question" : "questions"} from ${result.fileName}.`,
-                        })
-                      }
-                    />
-                  ),
-                },
+                ...(canImport
+                  ? [
+                      {
+                        value: "imports",
+                        label: "Imports",
+                        content: (
+                          <QuestionImportsTab
+                            courseId={courseId}
+                            moduleId={moduleId}
+                            dashboardHref={paths.dashboard}
+                            onImported={(result) =>
+                              toast.show({
+                                kind: "success",
+                                text: `Imported ${result.questionCount} ${result.questionCount === 1 ? "question" : "questions"} from ${result.fileName}.`,
+                              })
+                            }
+                          />
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
             />
 

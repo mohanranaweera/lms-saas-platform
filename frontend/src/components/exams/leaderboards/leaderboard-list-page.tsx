@@ -14,6 +14,8 @@ import { ExamPageTitle, examPaths, type ExamPortal } from "@/components/exams/co
 import { LeaderboardFormDialog } from "@/components/exams/leaderboards/leaderboard-form-dialog";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageExamResults } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { useDeleteLeaderboard, useLeaderboards, type LeaderboardSummary } from "@/lib/api/exam-results";
 
 /** "Visible to students" / "Staff only" — icon + text, never colour alone. */
@@ -35,7 +37,9 @@ export function VisibilityBadge({ published }: { published: boolean }) {
 export function LeaderboardListPage({ portal }: { portal: ExamPortal }) {
   const paths = examPaths(portal);
   const { session } = useAuth();
-  const canManage = canManageExamResults(session?.role ?? null);
+  // STAFF-MGMT-03: EXAMS_CREATE_LEADERBOARD for capability-driven roles (UX only).
+  const { can } = useCapabilities();
+  const canManage = can(CAP.EXAMS_CREATE_LEADERBOARD, canManageExamResults(session?.role ?? null));
   const query = useLeaderboards();
   const remove = useDeleteLeaderboard();
   const toast = useAdminToast();

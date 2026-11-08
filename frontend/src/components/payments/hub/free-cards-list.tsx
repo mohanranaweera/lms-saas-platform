@@ -20,6 +20,8 @@ import {
 } from "@/lib/api/free-cards";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canRevokeFreeCard } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { paymentsHubHref } from "@/lib/payments/hub-routes";
 
 const PAGE_SIZE = 20;
@@ -33,7 +35,9 @@ const PAGE_SIZE = 20;
  */
 export function FreeCardsList() {
   const { session } = useAuth();
-  const canRevoke = canRevokeFreeCard(session?.role ?? null);
+  // STAFF-MGMT-03: PAYMENTS_REVOKE_FREE_CARDS for capability-driven roles (UX only).
+  const { can } = useCapabilities();
+  const canRevoke = can(CAP.PAYMENTS_REVOKE_FREE_CARDS, canRevokeFreeCard(session?.role ?? null));
   const [courseId, setCourseId] = useState("");
   const [status, setStatus] = useState<FreeCardStatus | "">("");
   const [page, setPage] = useState(0);

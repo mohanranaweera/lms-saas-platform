@@ -21,6 +21,8 @@ import { useExamDetail, type ExamDetail } from "@/lib/api/exam-config";
 import { ExamEnrollmentActions } from "@/components/exams/enrollment/exam-enrollment-actions";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canAuthorExams } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { cn } from "@/lib/utils";
 
 /** Exam header from `GET /exams/{id}` (title, type, status, course, window, size). Never shows the password (D6). */
@@ -102,7 +104,8 @@ export function ExamHeaderPage({ portal, examId, view }: { portal: ExamPortal; e
   const isStats = view === "stats";
   const { session } = useAuth();
   // UX only: the enrollment endpoints re-check authoring access server-side.
-  const canEnroll = !isStats && canAuthorExams(session?.role ?? null);
+  const { can } = useCapabilities();
+  const canEnroll = !isStats && can(CAP.EXAMS_MANAGE, canAuthorExams(session?.role ?? null));
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <Breadcrumbs

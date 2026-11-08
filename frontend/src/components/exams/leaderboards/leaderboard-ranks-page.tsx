@@ -14,6 +14,8 @@ import { VisibilityBadge } from "@/components/exams/leaderboards/leaderboard-lis
 import { LeaderboardRanksView, RANKS_PAGE_SIZE } from "@/components/exams/leaderboards/leaderboard-ranks-view";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageExamResults } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { useDeleteLeaderboard, useLeaderboardRanks } from "@/lib/api/exam-results";
 
 /** Staff view of one leaderboard (Slice E, D7): included exams, ranks, search and paging. */
@@ -21,7 +23,9 @@ export function LeaderboardRanksPage({ portal, leaderboardId }: { portal: ExamPo
   const paths = examPaths(portal);
   const router = useRouter();
   const { session } = useAuth();
-  const canManage = canManageExamResults(session?.role ?? null);
+  // STAFF-MGMT-03: EXAMS_CREATE_LEADERBOARD for capability-driven roles (UX only).
+  const { can } = useCapabilities();
+  const canManage = can(CAP.EXAMS_CREATE_LEADERBOARD, canManageExamResults(session?.role ?? null));
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const query = useLeaderboardRanks(leaderboardId, { search, page, size: RANKS_PAGE_SIZE });

@@ -37,6 +37,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,6 +55,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function DevicesAccessSettingsPage() {
   const { session } = useAuth();
   const role = session?.role ?? null;
+  // STAFF-MGMT-03: editing the access rules (PUT /access-policy[/courses/{id}])
+  // follows PAYMENTS_UPDATE_RULES for capability-driven roles. The GETs are
+  // unannotated, so viewing keeps the role helper. UX only.
+  const { can } = useCapabilities();
+  const canManageRules = can(CAP.PAYMENTS_UPDATE_RULES, canManageAccessPolicy(role));
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,9 +72,9 @@ export default function DevicesAccessSettingsPage() {
       {canViewDevices(role) ? <DevicePolicySection canManage={canManageDevices(role)} /> : null}
       {canViewAccessPolicy(role) ? (
         <>
-          <GracePeriodSection canManage={canManageAccessPolicy(role)} />
+          <GracePeriodSection canManage={canManageRules} />
           <CourseOverridesSection
-            canManage={canManageAccessPolicy(role)}
+            canManage={canManageRules}
             canManageDevices={canManageDevices(role)}
           />
         </>

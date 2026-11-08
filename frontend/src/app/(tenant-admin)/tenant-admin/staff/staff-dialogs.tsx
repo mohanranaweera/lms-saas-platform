@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useForm, type FieldValues, type Path, type UseFormSetError } from "react-hook-form";
+import { useForm, useWatch, type FieldValues, type Path, type UseFormSetError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusCircle, Pencil, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import {
   useCreateStaff,
   useStaffLifecycle,
   useUpdateStaff,
+  staffRoleDescription,
+  type AssignableRole,
   type StaffResponse,
 } from "@/lib/api/staff";
 import {
@@ -109,6 +111,27 @@ function describedBy(id: string, error: unknown, helper = false): string | undef
   return [helper ? `${id}-helper` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") || undefined;
 }
 
+/** Collapsible guide listing every assignable role with its one-line description. */
+function RoleGuide({ roles }: { roles: AssignableRole[] }) {
+  if (roles.length === 0) return null;
+  return (
+    <details className="rounded-lg border border-border px-3 py-2 text-sm" data-testid="role-guide">
+      <summary className="cursor-pointer font-medium text-foreground">What each role can do</summary>
+      <dl className="mt-2 flex flex-col gap-1.5">
+        {roles.map((role) => (
+          <div key={role.code}>
+            <dt className="font-medium text-foreground">{role.displayName}</dt>
+            <dd className="text-xs text-muted-foreground">{staffRoleDescription(role) ?? "No description."}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-2 text-xs text-muted-foreground">
+        These are defaults. A Tenant Admin can change each role&apos;s permissions in the Permissions tab.
+      </p>
+    </details>
+  );
+}
+
 function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
@@ -118,7 +141,7 @@ function FormError({ message }: { message: string | null }) {
   );
 }
 
-/** Klass "Add New User": invites an Operator / Manager. No password field - the invitee sets it from the email. */
+/** Klass "Add New User": invites a staff member in one of the assignable roles (Operator, Manager, the seven seeded sub-roles). No password field - the invitee sets it from the email. */
 export function AddUserDialog({
   open,
   onOpenChange,
@@ -136,6 +159,7 @@ export function AddUserDialog({
     handleSubmit,
     setError,
     reset,
+    control,
     formState: { errors },
   } = useForm<StaffCreateFormValues>({
     resolver: zodResolver(staffCreateSchema),
@@ -173,6 +197,9 @@ export function AddUserDialog({
 
   const rolesLoading = rolesQuery.status === "pending";
   const rolesFailed = rolesQuery.status === "error";
+  const selectedRoleCode = useWatch({ control, name: "roleCode" });
+  const selectedRole = (rolesQuery.data ?? []).find((role) => role.code === selectedRoleCode);
+  const addRoleHelper = selectedRole ? (staffRoleDescription(selectedRole) ?? undefined) : undefined;
 
   return (
     <StaffFormDialog
@@ -253,14 +280,14 @@ export function AddUserDialog({
               {...register("mobileNumber")}
             />
           </Field>
-          <Field id="add-user-role" label="Role" error={errors.roleCode?.message}>
+          <Field id="add-user-role" label="Role" error={errors.roleCode?.message} helper={addRoleHelper}>
             <select
               id="add-user-role"
               className={SELECT_CLASS}
               disabled={rolesLoading || rolesFailed}
               aria-required="true"
               aria-invalid={errors.roleCode ? true : undefined}
-              aria-describedby={describedBy("add-user-role", errors.roleCode)}
+              aria-describedby={describedBy("add-user-role", errors.roleCode, Boolean(addRoleHelper))}
               {...register("roleCode")}
             >
               <option value="">{rolesLoading ? "Loading roles…" : "Select a role"}</option>
@@ -271,6 +298,9 @@ export function AddUserDialog({
               ))}
             </select>
           </Field>
+          <div className="md:col-span-2">
+            <RoleGuide roles={rolesQuery.data ?? []} />
+          </div>
         </fieldset>
       </form>
     </StaffFormDialog>
@@ -419,6 +449,7 @@ export function ChangeRoleDialog({
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm<StaffRoleFormValues>({
     resolver: zodResolver(staffRoleSchema),
@@ -439,6 +470,9 @@ export function ChangeRoleDialog({
 
   const roles = rolesQuery.data ?? [];
   const currentIsAssignable = roles.some((role) => role.code === staff.roleCode);
+  const chosenCode = useWatch({ control, name: "roleCode" });
+  const chosen = roles.find((role) => role.code === chosenCode);
+  const changeRoleHelper = chosen ? (staffRoleDescription(chosen) ?? undefined) : undefined;
 
   return (
     <StaffFormDialog
@@ -472,14 +506,14 @@ export function ChangeRoleDialog({
         </Alert>
       ) : null}
       <form id="change-role-form" noValidate onSubmit={onSubmit}>
-        <Field id="change-role-select" label="Role" error={errors.roleCode?.message}>
+        <Field id="change-role-select" label="Role" error={errors.roleCode?.message} helper={changeRoleHelper}>
           <select
             id="change-role-select"
             className={SELECT_CLASS}
             disabled={mutation.isPending || rolesQuery.status !== "success"}
             aria-required="true"
             aria-invalid={errors.roleCode ? true : undefined}
-            aria-describedby={describedBy("change-role-select", errors.roleCode)}
+            aria-describedby={describedBy("change-role-select", errors.roleCode, Boolean(changeRoleHelper))}
             {...register("roleCode")}
           >
             {!currentIsAssignable ? (
@@ -494,6 +528,9 @@ export function ChangeRoleDialog({
             ))}
           </select>
         </Field>
+        <div className="mt-4">
+          <RoleGuide roles={roles} />
+        </div>
       </form>
     </StaffFormDialog>
   );

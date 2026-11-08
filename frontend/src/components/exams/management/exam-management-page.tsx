@@ -14,6 +14,8 @@ import { percentText } from "@/components/exams/management/management-shared";
 import { NotifyMarksDialog } from "@/components/exams/management/notify-marks-dialog";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canAuthorExams, canManageExamResults } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { useExamDetail, type ExamDetail } from "@/lib/api/exam-config";
 import { useExamManagement, type ExamManagementSummary } from "@/lib/api/exam-management";
 
@@ -120,6 +122,13 @@ export function ExamManagementPage({ portal, examId }: { portal: ExamPortal; exa
   const { session } = useAuth();
   const canAuthor = canAuthorExams(session?.role ?? null);
   const canNotify = canManageExamResults(session?.role ?? null);
+  // STAFF-MGMT-03: exam edit / enrollment management / CSV export follow
+  // EXAMS_EDIT / EXAMS_MANAGE / EXAMS_GENERATE_REPORT for capability-driven
+  // roles; marking (no catalogued capability) keeps the role helper. UX only.
+  const { can } = useCapabilities();
+  const canEditExam = can(CAP.EXAMS_EDIT, canAuthor);
+  const canManageEnrollment = can(CAP.EXAMS_MANAGE, canAuthor);
+  const canExport = can(CAP.EXAMS_GENERATE_REPORT, true);
   const detail = useExamDetail(examId);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -167,9 +176,9 @@ export function ExamManagementPage({ portal, examId }: { portal: ExamPortal; exa
               (serverNow !== null && new Date(serverNow).getTime() >= new Date(exam.endAt).getTime());
             return (
             <div className="flex min-w-0 flex-col gap-5">
-              <ExamManagementHeader exam={exam} portal={portal} canAuthor={canAuthor} onToast={onToast} />
+              <ExamManagementHeader exam={exam} portal={portal} canAuthor={canEditExam} onToast={onToast} />
               <SummaryCards exam={exam} summary={management.data?.summary} loading={management.status === "pending"} />
-              {canAuthor ? <ExamEnrollmentActions exam={exam} variant="toolbar" /> : null}
+              {canManageEnrollment ? <ExamEnrollmentActions exam={exam} variant="toolbar" /> : null}
               <EnrolledStudentsTable
                 exam={management.data?.exam ? { ...exam, ...management.data.exam } : exam}
                 portal={portal}
@@ -181,6 +190,8 @@ export function ExamManagementPage({ portal, examId }: { portal: ExamPortal; exa
                 onPage={setPage}
                 onSize={onSize}
                 canAuthor={canAuthor}
+                canManageEnrollment={canManageEnrollment}
+                canExport={canExport}
                 onToast={onToast}
                 notifyMarks={
                   canNotify

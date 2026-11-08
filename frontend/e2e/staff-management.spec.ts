@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
-import { apiError, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import { apiError, apiPageSuccess, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
 
 /**
  * STAFF-MGMT-02 — Staff Management (Users | Permissions | Activities) and
@@ -42,44 +42,61 @@ const BEN = {
   actions: { ...NO_ACTIONS, canEdit: true, canResendInvite: true },
 };
 
+/** STAFF-MGMT-03: `GET /v1/staff/assignable-roles` returns Operator, Manager and the seven seeded roles. */
+const SEEDED = [
+  { code: "FINANCE_STAFF", displayName: "Finance Staff" },
+  { code: "COURSE_COORDINATOR", displayName: "Course Coordinator" },
+  { code: "STUDENT_SUPPORT", displayName: "Student Support" },
+  { code: "CONTENT_MANAGER", displayName: "Content Manager" },
+  { code: "EXAM_MANAGER", displayName: "Exam Manager" },
+  { code: "ATTENDANCE_OPERATOR", displayName: "Attendance Operator" },
+  { code: "READ_ONLY_AUDITOR", displayName: "Read-only Auditor" },
+];
+
 const ASSIGNABLE = [
   { code: "OPERATOR", displayName: "Operator" },
   { code: "MANAGER", displayName: "Manager" },
+  ...SEEDED,
 ];
 
-function matrix(version: number, operatorAdd: "GRANTED" | "NOT_GRANTED" = "NOT_GRANTED") {
+/** Ten matrix columns: Operator, Manager, Teacher, then the seven seeded roles. */
+const MATRIX_ROLES = [ASSIGNABLE[0], ASSIGNABLE[1], { code: "TEACHER", displayName: "Teacher" }, ...SEEDED];
+
+type CellState = "GRANTED" | "NOT_GRANTED";
+
+/** Server-side default per role|capability (before any saved override). */
+const DEFAULT_GRANTS: Record<string, CellState> = {
+  "OPERATOR|STUDENTS_VIEW": "GRANTED",
+  "FINANCE_STAFF|STUDENTS_VIEW": "GRANTED",
+  "STUDENT_SUPPORT|STUDENTS_VIEW": "GRANTED",
+  "STUDENT_SUPPORT|STUDENTS_ADD": "GRANTED",
+  "READ_ONLY_AUDITOR|STUDENTS_VIEW": "GRANTED",
+};
+
+function matrix(version: number, overrides: ReadonlyMap<string, CellState> = new Map()) {
   const teacherUnavailable = { state: "UNAVAILABLE", reason: "Not configurable for teachers" };
+  const cell = (role: string, capability: string, viewOnly: boolean) => {
+    if (role === "TEACHER") return teacherUnavailable;
+    // The server returns Read-only Auditor's non-VIEW capabilities as LOCKED.
+    if (role === "READ_ONLY_AUDITOR" && !viewOnly) return { state: "LOCKED", reason: "Read-only role" };
+    const key = `${role}|${capability}`;
+    return { state: overrides.get(key) ?? DEFAULT_GRANTS[key] ?? "NOT_GRANTED", reason: null };
+  };
+  const row = (key: string, label: string, viewOnly: boolean) => ({
+    key,
+    label,
+    availability: "ENFORCED",
+    reason: null,
+    cells: Object.fromEntries(MATRIX_ROLES.map((role) => [role.code, cell(role.code, key, viewOnly)])),
+  });
   return {
     version,
-    roles: [...ASSIGNABLE, { code: "TEACHER", displayName: "Teacher" }],
+    roles: MATRIX_ROLES,
     groups: [
       {
         key: "STUDENTS",
         label: "Students",
-        rows: [
-          {
-            key: "STUDENTS_VIEW",
-            label: "View Students",
-            availability: "ENFORCED",
-            reason: null,
-            cells: {
-              OPERATOR: { state: "GRANTED", reason: null },
-              MANAGER: { state: "NOT_GRANTED", reason: null },
-              TEACHER: teacherUnavailable,
-            },
-          },
-          {
-            key: "STUDENTS_ADD",
-            label: "Add Student",
-            availability: "ENFORCED",
-            reason: null,
-            cells: {
-              OPERATOR: { state: operatorAdd, reason: null },
-              MANAGER: { state: "NOT_GRANTED", reason: null },
-              TEACHER: teacherUnavailable,
-            },
-          },
-        ],
+        rows: [row("STUDENTS_VIEW", "View Students", true), row("STUDENTS_ADD", "Add Student", false)],
       },
       {
         key: "STAFF",
@@ -90,11 +107,9 @@ function matrix(version: number, operatorAdd: "GRANTED" | "NOT_GRANTED" = "NOT_G
             label: "View Staff",
             availability: "LOCKED",
             reason: "Tenant Admin only",
-            cells: {
-              OPERATOR: { state: "LOCKED", reason: "Tenant Admin only" },
-              MANAGER: { state: "LOCKED", reason: "Tenant Admin only" },
-              TEACHER: { state: "LOCKED", reason: "Tenant Admin only" },
-            },
+            cells: Object.fromEntries(
+              MATRIX_ROLES.map((role) => [role.code, { state: "LOCKED", reason: "Tenant Admin only" }])
+            ),
           },
         ],
       },
@@ -157,7 +172,7 @@ async function setUp(page: Page, options: FakeOptions = {}): Promise<FakeLog> {
   const log: FakeLog = { listQueries: [], creates: [], saves: [], matrixGets: 0, lifecycle: [], activityQueries: [] };
   let staff = [...(options.staff ?? [ANN, BEN])];
   let version = 7;
-  let operatorAdd: "GRANTED" | "NOT_GRANTED" = "NOT_GRANTED";
+  const overrides = new Map<string, CellState>();
   const saveStatuses = [...(options.saveStatuses ?? [])];
   const createStatuses = [...(options.createStatuses ?? [])];
 
@@ -207,7 +222,7 @@ async function setUp(page: Page, options: FakeOptions = {}): Promise<FakeLog> {
         email: body.email,
         contactNumber: body.mobileNumber,
         roleCode: body.roleCode,
-        roleName: body.roleCode === "MANAGER" ? "Manager" : "Operator",
+        roleName: ASSIGNABLE.find((role) => role.code === body.roleCode)?.displayName ?? body.roleCode,
       };
       staff = [...staff, created];
       return fulfill(route, 201, apiSuccess(created));
@@ -217,7 +232,7 @@ async function setUp(page: Page, options: FakeOptions = {}): Promise<FakeLog> {
     }
     if (path === "/staff/permission-matrix" && method === "GET") {
       log.matrixGets += 1;
-      return fulfill(route, 200, apiSuccess(matrix(version, operatorAdd)));
+      return fulfill(route, 200, apiSuccess(matrix(version, overrides)));
     }
     if (path === "/staff/permission-matrix" && method === "PUT") {
       const body = request.postDataJSON();
@@ -233,12 +248,10 @@ async function setUp(page: Page, options: FakeOptions = {}): Promise<FakeLog> {
         );
       }
       for (const change of body.changes as Array<{ roleCode: string; capabilityKey: string; granted: boolean }>) {
-        if (change.roleCode === "OPERATOR" && change.capabilityKey === "STUDENTS_ADD") {
-          operatorAdd = change.granted ? "GRANTED" : "NOT_GRANTED";
-        }
+        overrides.set(`${change.roleCode}|${change.capabilityKey}`, change.granted ? "GRANTED" : "NOT_GRANTED");
       }
       version += 1;
-      return fulfill(route, 200, apiSuccess(matrix(version, operatorAdd)));
+      return fulfill(route, 200, apiSuccess(matrix(version, overrides)));
     }
     if (path === "/staff/activities") {
       log.activityQueries.push(url.searchParams);
@@ -360,6 +373,37 @@ test.describe("Staff — Users", () => {
     expect(log.listQueries.some((params) => params.get("q") === "zzz")).toBe(true);
   });
 
+  test("Add User and Change role list the nine assignable roles with a description each", async ({ page }) => {
+    await setUp(page);
+    await page.goto("/tenant-admin/staff");
+
+    await page.getByRole("button", { name: "Add User" }).click();
+    const dialog = page.getByRole("dialog", { name: "Add New User" });
+    const roleSelect = dialog.getByLabel("Role");
+    // Placeholder + the nine roles from the server; never Tenant Admin / Teacher / Student.
+    await expect(roleSelect.locator("option")).toHaveCount(10);
+    await expect(roleSelect.locator("option:not([value=''])")).toHaveText(ASSIGNABLE.map((role) => role.displayName));
+    await roleSelect.selectOption("FINANCE_STAFF");
+    await expect(roleSelect).toHaveAccessibleDescription(/Payments, slips, expenses, teacher payouts/);
+    await roleSelect.selectOption("MANAGER");
+    await expect(roleSelect).toHaveAccessibleDescription(/only the permissions you grant it/);
+
+    const guide = dialog.getByTestId("role-guide");
+    await guide.getByText("What each role can do").click();
+    await expect(guide.locator("dt")).toHaveCount(9);
+    await expect(guide).toContainText("Can view most areas but can never change anything.");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+
+    await page.getByRole("button", { name: "Actions for Ann Perera" }).first().click();
+    await page.getByRole("menuitem", { name: "Change role" }).click();
+    const change = page.getByRole("dialog", { name: "Change role" });
+    const changeSelect = change.getByLabel("Role");
+    await expect(changeSelect.locator("option")).toHaveCount(9);
+    await expect(changeSelect).toHaveAccessibleDescription(/only the permissions you grant it/);
+    await changeSelect.selectOption("EXAM_MANAGER");
+    await expect(changeSelect).toHaveAccessibleDescription(/Exams, question banks/);
+  });
+
   test("a 403 on the list renders the permission-denied state", async ({ page }) => {
     await setUp(page, { role: "COURSE_COORDINATOR", capabilities: [], listStatus: 403 });
     await page.goto("/tenant-admin/staff");
@@ -395,6 +439,102 @@ test.describe("Staff — Permissions", () => {
       { expectedVersion: 7, changes: [{ roleCode: "OPERATOR", capabilityKey: "STUDENTS_ADD", granted: true }] },
     ]);
     await expect(page.getByRole("checkbox", { name: "Add Student — Operator" })).toBeChecked();
+  });
+
+  test("ten role columns: Roles shown defaults to four, is remembered per viewer, and keeps the matrix readable", async ({
+    page,
+  }) => {
+    await setUp(page);
+    await page.goto("/tenant-admin/staff?tab=permissions");
+
+    const table = page.getByRole("table");
+    const headers = table.locator("thead").getByRole("columnheader");
+    await expect(headers).toHaveText(["Permission", "Operator", "Manager", "Teacher", "Finance Staff"]);
+    await expect(page.getByTestId("roles-shown-control")).toContainText("4 of 10 roles shown");
+
+    const trigger = page.getByLabel("Roles shown");
+    await trigger.click();
+    const popup = page.getByTestId("roles-shown-popup");
+    await expect(popup.getByRole("checkbox")).toHaveCount(11); // "All" + 10 roles
+    await popup.getByRole("checkbox", { name: "Exam Manager" }).check();
+    await popup.getByRole("checkbox", { name: "Teacher" }).uncheck();
+    await popup.getByRole("button", { name: "Done" }).click();
+    await expect(headers).toHaveText(["Permission", "Operator", "Manager", "Finance Staff", "Exam Manager"]);
+
+    // Remembered for this viewer across a reload.
+    await page.reload();
+    await expect(headers).toHaveText(["Permission", "Operator", "Manager", "Finance Staff", "Exam Manager"]);
+
+    // Show all ten: the pane scrolls horizontally while the Permission column and header stay sticky.
+    await trigger.click();
+    await popup.getByRole("checkbox", { name: "All" }).check();
+    await popup.getByRole("button", { name: "Done" }).click();
+    await expect(headers).toHaveCount(11);
+    // On a smaller desktop the ten columns overflow into a horizontal scroll inside the pane.
+    await page.setViewportSize({ width: 1024, height: 768 });
+    const scroll = page.getByTestId("permission-matrix-scroll");
+    // ...without pushing the page itself sideways.
+    await expect
+      .poll(() => page.evaluate(() => document.body.scrollWidth - window.innerWidth))
+      .toBeLessThanOrEqual(0);
+    expect(await scroll.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+    const permissionHeader = headers.first();
+    await expect(permissionHeader).toHaveCSS("position", "sticky");
+    await expect(table.getByRole("rowheader", { name: "Add Student" })).toHaveCSS("position", "sticky");
+    await scroll.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+    await expect(permissionHeader).toBeInViewport();
+    await expect(table.getByRole("columnheader", { name: "Read-only Auditor" })).toBeInViewport();
+
+    // Read-only Auditor: non-VIEW capabilities come back LOCKED and render as locked cells.
+    await expect(page.getByTestId("cell-STUDENTS_ADD-READ_ONLY_AUDITOR")).toHaveAttribute("data-state", "locked");
+    await expect(page.getByRole("checkbox", { name: "View Students — Read-only Auditor" })).toBeChecked();
+    // Per-group select-all exists for every shown role with editable cells.
+    await expect(page.getByTestId("select-all-STUDENTS-EXAM_MANAGER")).toBeVisible();
+  });
+
+  test("editing seeded-role columns: the save summary lists every changed role, shown or not", async ({ page }) => {
+    const log = await setUp(page);
+    await page.goto("/tenant-admin/staff?tab=permissions");
+
+    // Finance Staff is shown by default; revoke a default grant and grant a new one.
+    const financeView = page.getByRole("checkbox", { name: "View Students — Finance Staff" });
+    await expect(financeView).toBeChecked();
+    await financeView.uncheck();
+    await page.getByRole("checkbox", { name: "Add Student — Finance Staff" }).check();
+
+    // Show Course Coordinator, select all Students for it, then hide the column again.
+    const trigger = page.getByLabel("Roles shown");
+    await trigger.click();
+    const popup = page.getByTestId("roles-shown-popup");
+    await popup.getByRole("checkbox", { name: "Course Coordinator" }).check();
+    await popup.getByRole("button", { name: "Done" }).click();
+    await page.getByTestId("select-all-STUDENTS-COURSE_COORDINATOR").click();
+    await trigger.click();
+    await popup.getByRole("checkbox", { name: "Course Coordinator" }).uncheck();
+    await popup.getByRole("button", { name: "Done" }).click();
+    await expect(page.getByRole("columnheader", { name: "Course Coordinator" })).toHaveCount(0);
+    await expect(page.getByTestId("unsaved-count")).toHaveText("4 unsaved changes");
+
+    await page.getByRole("button", { name: "Save changes" }).click();
+    const summary = page.getByRole("alertdialog").getByTestId("save-summary");
+    await expect(summary.getByRole("listitem")).toHaveText([
+      "Finance Staff: 1 granted, 1 revoked",
+      "Course Coordinator: 2 granted, 0 revoked (column not shown)",
+    ]);
+    await page.getByRole("alertdialog").getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByTestId("unsaved-count")).toHaveCount(0);
+
+    const changes = (log.saves[0] as { changes: unknown[] }).changes;
+    expect(changes).toHaveLength(4);
+    expect(changes).toEqual(
+      expect.arrayContaining([
+        { roleCode: "FINANCE_STAFF", capabilityKey: "STUDENTS_VIEW", granted: false },
+        { roleCode: "FINANCE_STAFF", capabilityKey: "STUDENTS_ADD", granted: true },
+        { roleCode: "COURSE_COORDINATOR", capabilityKey: "STUDENTS_VIEW", granted: true },
+        { roleCode: "COURSE_COORDINATOR", capabilityKey: "STUDENTS_ADD", granted: true },
+      ])
+    );
+    await expect(page.getByRole("checkbox", { name: "View Students — Finance Staff" })).not.toBeChecked();
   });
 
   test("group select-all shows the mixed state and only affects editable cells of that role", async ({ page }) => {
@@ -538,11 +678,16 @@ test.describe("Staff — mobile (390×844)", () => {
     await expect(page).toHaveURL(/tab=permissions/);
     const roleSelect = page.getByLabel("Role column");
     await expect(roleSelect).toBeVisible();
+    // The single-role selector covers all ten roles; the desktop "Roles shown" control is hidden.
+    await expect(roleSelect.locator("option")).toHaveCount(10);
+    await expect(page.getByTestId("roles-shown-control")).toBeHidden();
     await expect(page.getByRole("checkbox", { name: "Add Student — Operator" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Add Student — Manager" })).toBeHidden();
     await roleSelect.selectOption("MANAGER");
     await expect(page.getByRole("checkbox", { name: "Add Student — Manager" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Add Student — Operator" })).toBeHidden();
+    await roleSelect.selectOption("READ_ONLY_AUDITOR");
+    await expect(page.getByTestId("cell-STUDENTS_ADD-READ_ONLY_AUDITOR")).toBeVisible();
 
     await page.getByRole("tab", { name: "Activities" }).click();
     await expect(page.getByTestId("activity-item")).toHaveCount(2);
@@ -560,5 +705,81 @@ test.describe("Capability-driven portal for OPERATOR", () => {
     await expect(nav.getByRole("link", { name: "Payments", exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Courses", exact: true })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Staff", exact: true })).toHaveCount(0);
+  });
+});
+
+test.describe("Capability-driven portal for seeded roles (STAFF-MGMT-03)", () => {
+  function slip() {
+    return {
+      id: "slip-1",
+      orderId: "order-1",
+      studentId: "user-1",
+      referenceNumber: "BOC-77812",
+      status: "UNDER_REVIEW",
+      submittedAt: "2026-10-20T05:00:00Z",
+      reviewerId: null,
+      reviewedAt: null,
+      flags: [],
+      studentEmail: "kamala@example.test",
+      reviewerEmail: null,
+      orderAmount: 3000,
+      orderCurrency: "LKR",
+      orderLines: [],
+      orderSubtotal: 3000,
+      orderFacilityFee: 0,
+      orderDiscount: 0,
+      orderPostage: null,
+      orderDelivery: null,
+      studentProfileId: "profile-1",
+      studentName: "Kamala Perera",
+      studentMobile: "765656556",
+      orderNumber: 123,
+      displayOrderNumber: "ORD-000123",
+    };
+  }
+
+  async function mockSlips(page: Page) {
+    await mockJson(page, "**/api/v1/payment-slips/review-queue/count", 200, apiSuccess({ pending: 1 }));
+    await page.route(
+      (url) => url.pathname.endsWith("/payment-slips/review-queue"),
+      (route) => fulfill(route, 200, apiPageSuccess([slip()]))
+    );
+  }
+
+  const FINANCE_DEFAULTS = [
+    "PAYMENTS_VIEW",
+    "PAYMENTS_ADD",
+    "FINANCE_VIEW_EXPENSES",
+    "FINANCE_VIEW_INCOME_SUMMARY",
+    "TEACHERS_VIEW_WALLET",
+    "REPORTS_STUDENT_PAYMENTS",
+  ];
+
+  test("Finance Staff with PAYMENTS_APPROVE_PENDING revoked: nav follows capabilities and Approve is hidden", async ({
+    page,
+  }) => {
+    await setUp(page, { role: "FINANCE_STAFF", capabilities: FINANCE_DEFAULTS });
+    await mockSlips(page);
+    await page.goto("/tenant-admin/payments?tab=slips");
+
+    await expect(page.getByRole("table").getByText("Kamala Perera")).toBeVisible();
+    await expect(page.getByTestId("slip-approve")).toHaveCount(0);
+
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    await expect(nav.getByRole("link", { name: "Payments", exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Expenses", exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Teacher Payouts", exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Reports", exact: true })).toBeVisible();
+    // Not in this viewer's capabilities, even though the static Finance Staff role views them.
+    await expect(nav.getByRole("link", { name: "Expense Categories", exact: true })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Staff", exact: true })).toHaveCount(0);
+  });
+
+  test("Finance Staff holding PAYMENTS_APPROVE_PENDING sees Approve", async ({ page }) => {
+    await setUp(page, { role: "FINANCE_STAFF", capabilities: [...FINANCE_DEFAULTS, "PAYMENTS_APPROVE_PENDING"] });
+    await mockSlips(page);
+    await page.goto("/tenant-admin/payments?tab=slips");
+
+    await expect(page.getByRole("table").getByTestId("slip-approve")).toBeVisible();
   });
 });

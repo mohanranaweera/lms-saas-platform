@@ -61,11 +61,12 @@ import { NavGroup, type NavItem } from "./nav-links";
  * destination exists to be shown or hidden — these never had one, so keeping
  * them was never actually exercising that convention, just dead UI.
  *
- * STAFF-MGMT-02: every gate goes through `can(capability, legacyCheck)`.
- * Static roles get exactly the legacy role helper they always had;
- * OPERATOR / MANAGER (tenant-configured, nothing by default) see an item
- * only when their effective capabilities (`GET /v1/me/permissions`) include
- * the matching capability. "Roles & Permissions" is now Staff → Permissions.
+ * STAFF-MGMT-02/03: every gate with a catalogued capability goes through
+ * `can(capability, legacyCheck)`. Tenant Admin gets exactly the legacy role
+ * helper it always had; OPERATOR / MANAGER and the seven seeded sub-roles
+ * (whose access a Tenant Admin can now edit) see an item only when their
+ * effective capabilities (`GET /v1/me/permissions`) include the matching
+ * capability. Entries with no capability in the catalog keep the role helper. "Roles & Permissions" is now Staff → Permissions.
  *
  * Every gate here is pure UX convenience — the real enforcement is each
  * destination page's own backend 403, rendered via `PermissionDeniedState`/
@@ -75,7 +76,7 @@ import { NavGroup, type NavItem } from "./nav-links";
 export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const { can, isCapabilityRole } = useCapabilities();
+  const { can } = useCapabilities();
 
   const dashboardItems: NavItem[] = [{ label: "Dashboard", href: "/tenant-admin/dashboard" }];
 
@@ -138,29 +139,29 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
       href: "/tenant-admin/access-expiry/reactivation-approvals",
     });
   }
-  if (isCapabilityRole) {
-    // STAFF-MGMT-02: Finance and Reports by capability for OPERATOR / MANAGER.
-    if (can([CAP.FINANCE_VIEW_EXPENSES, CAP.FINANCE_VIEW_INCOME_SUMMARY], false)) {
-      financeItems.push({ label: "Finance Summary", href: "/tenant-admin/finance" });
-    }
-    if (can(CAP.FINANCE_VIEW_EXPENSES, false)) {
-      financeItems.push({ label: "Expenses", href: "/tenant-admin/finance/expenses" });
-    }
-    if (can(REPORT_CAPABILITIES, false)) {
-      financeItems.push({ label: "Reports", href: "/tenant-admin/reports" });
-    }
-  } else if (canViewFinance(role)) {
-    // Wave 7 — FINANCE_EXPENSES/VIEW (Tenant Admin, Finance Staff, Read-only
-    // Auditor). UX only; every /api/v1/finance/** endpoint re-enforces it.
-    financeItems.push(
-      { label: "Finance Summary", href: "/tenant-admin/finance" },
-      { label: "Expenses", href: "/tenant-admin/finance/expenses" },
-      { label: "Expense Categories", href: "/tenant-admin/finance/categories" },
-      { label: "Finance Reports", href: "/tenant-admin/finance/reports" },
-      { label: "Teacher Payouts", href: "/tenant-admin/finance/teacher-payouts" },
-      // RPT-01 - report catalog; /api/v1/reports/** re-enforces FINANCE_EXPENSES/VIEW.
-      { label: "Reports", href: "/tenant-admin/reports" }
-    );
+  // Wave 7 - FINANCE_EXPENSES/VIEW for Tenant Admin (role helper). STAFF-MGMT-03:
+  // capability-driven roles (Operator, Manager, the seven seeded sub-roles)
+  // get each entry from its own capability, so a revoked one disappears. UX
+  // only; every /api/v1/finance/** and /api/v1/reports/** endpoint re-enforces it.
+  const legacyFinance = canViewFinance(role);
+  if (can([CAP.FINANCE_VIEW_EXPENSES, CAP.FINANCE_VIEW_INCOME_SUMMARY], legacyFinance)) {
+    financeItems.push({ label: "Finance Summary", href: "/tenant-admin/finance" });
+  }
+  if (can(CAP.FINANCE_VIEW_EXPENSES, legacyFinance)) {
+    financeItems.push({ label: "Expenses", href: "/tenant-admin/finance/expenses" });
+  }
+  if (can(CAP.FINANCE_VIEW_CATEGORY, legacyFinance)) {
+    financeItems.push({ label: "Expense Categories", href: "/tenant-admin/finance/categories" });
+  }
+  if (can([CAP.FINANCE_DASHBOARD_ANNUAL_STATS, CAP.FINANCE_VIEW_INCOME_SUMMARY], legacyFinance)) {
+    financeItems.push({ label: "Finance Reports", href: "/tenant-admin/finance/reports" });
+  }
+  if (can(CAP.TEACHERS_VIEW_WALLET, legacyFinance)) {
+    financeItems.push({ label: "Teacher Payouts", href: "/tenant-admin/finance/teacher-payouts" });
+  }
+  // RPT-01 - report catalog; each /api/v1/reports/** endpoint carries its REPORTS_* capability.
+  if (can(REPORT_CAPABILITIES, legacyFinance)) {
+    financeItems.push({ label: "Reports", href: "/tenant-admin/reports" });
   }
 
   const communicationItems: NavItem[] = [];
@@ -202,7 +203,7 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
       },
       { label: "Appearance", href: "/tenant-admin/settings/appearance" }
     );
-  } else if (canViewPaymentGateway(role)) {
+  } else if (can(CAP.FINANCE_ACCOUNT_VIEW_CONFIGURATION, canViewPaymentGateway(role))) {
     // SET-PAY-01: online payments are the Settings → Payments tab now. Finance
     // Staff (PAYMENT_GATEWAY/VIEW, no institute config) land straight on it.
     instituteConfigItems.push({ label: "Settings", href: "/tenant-admin/settings/payments" });

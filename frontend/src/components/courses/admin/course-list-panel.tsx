@@ -59,7 +59,10 @@ export function CourseListPanel() {
   // UX only: legacy roles keep "Add course" as before; Operator / Manager need COURSES_ADD.
   const { can } = useCapabilities();
   const canAddCourse = can(CAP.COURSES_ADD, true);
-  const [tab, setTab] = useState<TabValue>("active");
+  // STAFF-MGMT-03: the Archived tab needs COURSES_VIEW_ARCHIVED for capability-driven roles.
+  const canViewArchived = can(CAP.COURSES_VIEW_ARCHIVED, true);
+  const [selectedTab, setTab] = useState<TabValue>("active");
+  const tab: TabValue = selectedTab === "archived" && !canViewArchived ? "active" : selectedTab;
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -156,7 +159,9 @@ export function CourseListPanel() {
         }}
         items={[
           { value: "active", label: "Active", content: tabContent("active") },
-          { value: "archived", label: "Archived", content: tabContent("archived") },
+          ...(canViewArchived
+            ? [{ value: "archived", label: "Archived", content: tabContent("archived") }]
+            : []),
         ]}
       />
 

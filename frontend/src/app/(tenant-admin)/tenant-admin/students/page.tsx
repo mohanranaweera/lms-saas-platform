@@ -101,10 +101,11 @@ function useDebounced<T>(value: T, delay: number): T {
 export default function StudentDirectoryPage() {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  // UX only. Static roles keep their role helpers; Operator / Manager follow
-  // their effective capabilities (STAFF-MGMT-02). Log as Student is never
-  // available to them (ADR-033, LOCKED).
-  const { can, isCapabilityRole } = useCapabilities();
+  // UX only. Tenant Admin keeps its role helpers; Operator / Manager and the
+  // seeded sub-roles follow their effective capabilities (STAFF-MGMT-02/03),
+  // including Log as Student (STUDENTS_LOG_AS, ADR-033 amended) and the
+  // Pending tab (STUDENTS_VIEW_PENDING).
+  const { can } = useCapabilities();
   const legacyManage = canManageStudents(role);
   const canManage = can(CAP.STUDENTS_EDIT, legacyManage);
   const canAdd = can(CAP.STUDENTS_ADD, legacyManage);
@@ -113,11 +114,14 @@ export default function StudentDirectoryPage() {
   const canExportCsv = can(CAP.STUDENTS_EXPORT_CSV, true);
   const canExportQr = can(CAP.STUDENTS_EXPORT_QR, true);
   const canDelete = can(CAP.STUDENTS_DELETE, canDeleteStudents(role));
-  const canImpersonate = !isCapabilityRole && canImpersonateStudents(role);
+  const canImpersonate = can(CAP.STUDENTS_LOG_AS, canImpersonateStudents(role));
+  const canViewPending = can(CAP.STUDENTS_VIEW_PENDING, true);
   const canMessage = can(CAP.STUDENTS_SEND_NOTIFICATION, canSendCommunications(role));
   const { timeZone } = useTenantTimeZone();
 
-  const [tab, setTab] = useState<DirectoryTab>("ACTIVE");
+  const [selectedTab, setTab] = useState<DirectoryTab>("ACTIVE");
+  // A revoked Pending grant falls back to Active (the server would 403 the PENDING list).
+  const tab: DirectoryTab = selectedTab === "PENDING" && !canViewPending ? "ACTIVE" : selectedTab;
   const [field, setField] = useState<DirectoryField>("ALL");
   const [searchInput, setSearchInput] = useState("");
   const q = useDebounced(searchInput, DEBOUNCE_MS);
@@ -261,7 +265,9 @@ export default function StudentDirectoryPage() {
             ["ACTIVE", "Active"],
             ["PENDING", "Pending"],
           ] as const
-        ).map(([value, label]) => (
+        )
+          .filter(([value]) => value !== "PENDING" || canViewPending)
+          .map(([value, label]) => (
           <button
             key={value}
             type="button"

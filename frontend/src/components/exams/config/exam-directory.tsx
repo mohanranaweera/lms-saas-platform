@@ -16,6 +16,8 @@ import { ExamFormDialog } from "@/components/exams/config/exam-form-dialog";
 import { ExamPageTitle, examPaths, type ExamPortal } from "@/components/exams/config/exam-shared";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canAuthorExams } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { isApiClientError } from "@/lib/api/error";
 import {
   useDeleteExam,
@@ -77,8 +79,14 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
   const paths = examPaths(portal);
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const canEdit = canAuthorExams(role);
-  const canDelete = canEdit && role !== "TEACHER_ASSISTANT";
+  const legacyAuthor = canAuthorExams(role);
+  // STAFF-MGMT-03: New exam / Edit follow EXAMS_SCHEDULE / EXAMS_EDIT for
+  // capability-driven roles; Delete needs EXAMS_DELETE, which no staff role
+  // holds (owning teacher only), so it stays hidden for them. UX only.
+  const { can } = useCapabilities();
+  const canCreate = can(CAP.EXAMS_SCHEDULE, legacyAuthor);
+  const canEdit = can(CAP.EXAMS_EDIT, legacyAuthor);
+  const canDelete = can("EXAMS_DELETE", legacyAuthor && role !== "TEACHER_ASSISTANT");
 
   const [tab, setTab] = useState<DirectoryTab>("in-progress");
   const [searchInput, setSearchInput] = useState("");
@@ -138,7 +146,7 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
           <Trophy aria-hidden="true" />
           Leaderboard
         </Link>
-        {canEdit ? (
+        {canCreate ? (
           <Button
             type="button"
             size="lg"

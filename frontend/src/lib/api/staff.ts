@@ -60,10 +60,33 @@ export interface StaffUpdateInput {
   contactNumber: string;
 }
 
-/** Mirrors `AssignableRole`. */
+/** Mirrors `AssignableRole`. `description` is optional: the server does not send it today. */
 export interface AssignableRole {
   code: string;
   displayName: string;
+  description?: string | null;
+}
+
+/**
+ * Neutral one-line summaries of each assignable role's default access, used
+ * when the server sends no description. Defaults only: a Tenant Admin can
+ * change any role's capabilities in Staff -> Permissions.
+ */
+export const STAFF_ROLE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  OPERATOR: "Starts with no access; gets only the permissions you grant it.",
+  MANAGER: "Starts with no access; gets only the permissions you grant it, for a supervising role.",
+  FINANCE_STAFF: "Payments, slips, expenses, teacher payouts and finance reports.",
+  COURSE_COORDINATOR: "Courses, modules, timetable and course content.",
+  STUDENT_SUPPORT: "Student accounts, profiles, devices and messages to students.",
+  CONTENT_MANAGER: "Course materials and the media library.",
+  EXAM_MANAGER: "Exams, question banks, marking, results and leaderboards.",
+  ATTENDANCE_OPERATOR: "Marking attendance and attendance reports.",
+  READ_ONLY_AUDITOR: "Can view most areas but can never change anything.",
+};
+
+/** The server's description if present, else the static one-liner (or null). */
+export function staffRoleDescription(role: Pick<AssignableRole, "code" | "description">): string | null {
+  return role.description?.trim() || STAFF_ROLE_DESCRIPTIONS[role.code] || null;
 }
 
 export type MatrixCellState = "GRANTED" | "NOT_GRANTED" | "LOCKED" | "UNAVAILABLE";
@@ -152,7 +175,7 @@ export function useStaffList(params: StaffListParams) {
   });
 }
 
-/** `GET /v1/staff/assignable-roles` - STAFF_MANAGE; Operator / Manager today. */
+/** `GET /v1/staff/assignable-roles` - STAFF_MANAGE; Operator, Manager and the seven seeded sub-roles (STAFF-MGMT-03). */
 export function useAssignableStaffRoles(options: { enabled?: boolean } = {}) {
   const { authorizedFetch } = useAuth();
   return useQuery({

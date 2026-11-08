@@ -42,6 +42,34 @@ export const CAP = {
   TEACHERS_VIEW: "TEACHERS_VIEW",
   FINANCE_VIEW_EXPENSES: "FINANCE_VIEW_EXPENSES",
   FINANCE_VIEW_INCOME_SUMMARY: "FINANCE_VIEW_INCOME_SUMMARY",
+  FINANCE_VIEW_CATEGORY: "FINANCE_VIEW_CATEGORY",
+  FINANCE_DASHBOARD_ANNUAL_STATS: "FINANCE_DASHBOARD_ANNUAL_STATS",
+  FINANCE_ADD_EXPENSE: "FINANCE_ADD_EXPENSE",
+  FINANCE_VOID_EXPENSE: "FINANCE_VOID_EXPENSE",
+  FINANCE_ACCOUNT_VIEW_CONFIGURATION: "FINANCE_ACCOUNT_VIEW_CONFIGURATION",
+  TEACHERS_VIEW_WALLET: "TEACHERS_VIEW_WALLET",
+  FINANCE_CALCULATE_SETTLEMENTS: "FINANCE_CALCULATE_SETTLEMENTS",
+  FINANCE_MARK_SETTLEMENT_PAID: "FINANCE_MARK_SETTLEMENT_PAID",
+  FINANCE_ADJUST_SETTLEMENT: "FINANCE_ADJUST_SETTLEMENT",
+  FINANCE_EDIT_SHARE_RATES: "FINANCE_EDIT_SHARE_RATES",
+  PAYMENTS_REVOKE_FREE_CARDS: "PAYMENTS_REVOKE_FREE_CARDS",
+  PAYMENTS_LIST_UNDO: "PAYMENTS_LIST_UNDO",
+  PAYMENTS_UPDATE_RULES: "PAYMENTS_UPDATE_RULES",
+  COURSES_EDIT: "COURSES_EDIT",
+  COURSES_ENROLL_STUDENTS: "COURSES_ENROLL_STUDENTS",
+  COURSES_VIEW_ARCHIVED: "COURSES_VIEW_ARCHIVED",
+  STUDENTS_VIEW_PENDING: "STUDENTS_VIEW_PENDING",
+  STUDENTS_LOG_AS: "STUDENTS_LOG_AS",
+  MODULES_QUESTIONS_VIEW: "MODULES_QUESTIONS_VIEW",
+  MODULES_QUESTIONS_ADD: "MODULES_QUESTIONS_ADD",
+  MODULES_QUESTIONS_EDIT: "MODULES_QUESTIONS_EDIT",
+  MODULES_QUESTIONS_IMPORT: "MODULES_QUESTIONS_IMPORT",
+  EXAMS_SCHEDULE: "EXAMS_SCHEDULE",
+  EXAMS_EDIT: "EXAMS_EDIT",
+  EXAMS_MANAGE: "EXAMS_MANAGE",
+  EXAMS_VIEW_RESULTS: "EXAMS_VIEW_RESULTS",
+  EXAMS_CREATE_LEADERBOARD: "EXAMS_CREATE_LEADERBOARD",
+  EXAMS_GENERATE_REPORT: "EXAMS_GENERATE_REPORT",
 } as const;
 
 /** Every `REPORTS_*` capability; holding any one shows the Reports entry. */
@@ -58,32 +86,70 @@ export const REPORT_CAPABILITIES: readonly CapabilityKey[] = [
 
 /**
  * Roles whose access is entirely tenant-configured (STAFF-MGMT-02 §2.1):
- * they hold nothing by default, so the static role helpers in
- * `permissions.ts` don't describe them. Every other role keeps its existing
- * role-based helper unchanged.
+ * they hold nothing by default, so they get the capability-driven dashboard
+ * instead of the static-role widgets.
  */
 export const CAPABILITY_ROLES: readonly string[] = ["OPERATOR", "MANAGER"];
 
+/**
+ * The seven seeded staff sub-roles (STAFF-MGMT-03 §6.1): their default access
+ * is the static matrix, but a Tenant Admin can now grant or revoke catalogued
+ * capabilities for them, so `GET /v1/me/permissions` (default + overrides) is
+ * what describes them, not the static role helpers.
+ */
+export const SEEDED_CAPABILITY_ROLES: readonly string[] = [
+  "FINANCE_STAFF",
+  "COURSE_COORDINATOR",
+  "STUDENT_SUPPORT",
+  "CONTENT_MANAGER",
+  "EXAM_MANAGER",
+  "ATTENDANCE_OPERATOR",
+  "READ_ONLY_AUDITOR",
+];
+
+/** OPERATOR / MANAGER only (nothing by default). */
 export function isCapabilityRole(role: string | null): boolean {
   return role !== null && CAPABILITY_ROLES.includes(role);
 }
 
 /**
- * The single gate used across the tenant-admin portal: for OPERATOR /
- * MANAGER the answer comes from the caller's effective capabilities
- * (`GET /v1/me/permissions`; `capability` may list alternatives, any one
- * suffices); for every other role the existing `legacyCheck` (a
- * `permissions.ts` role helper) is returned untouched. While capabilities
- * are still loading, a capability role sees nothing extra (fails closed).
+ * Every role whose access the tenant can configure: OPERATOR, MANAGER and the
+ * seven seeded sub-roles. For these, `can(...)` answers from capabilities.
+ * Tenant Admin, Teacher and Teacher Assistant keep their role helpers.
+ */
+export function isCapabilityDrivenRole(role: string | null): boolean {
+  return role !== null && (CAPABILITY_ROLES.includes(role) || SEEDED_CAPABILITY_ROLES.includes(role));
+}
+
+/**
+ * The single gate used across the tenant-admin portal. For capability-driven
+ * roles (OPERATOR, MANAGER and the seven seeded sub-roles) the answer comes
+ * from the caller's effective capabilities (`GET /v1/me/permissions`;
+ * `capability` may list alternatives, any one suffices), so a capability a
+ * Tenant Admin revoked hides its action even though the static role would
+ * hold it. For every other role (Tenant Admin, Teacher) the existing
+ * `legacyCheck` (a `permissions.ts` role helper) is returned untouched. While
+ * capabilities are still loading, a capability-driven role sees nothing
+ * extra (fails closed); if the request fails, a seeded sub-role falls back
+ * to its static default (`legacyCheck`). Actions with no catalogued capability keep calling
+ * the role helper directly, without `can`.
  */
 export function can(
   capability: CapabilityKey | readonly CapabilityKey[],
   role: string | null,
   legacyCheck: boolean,
-  capabilities: ReadonlySet<CapabilityKey> | null | undefined
+  capabilities: ReadonlySet<CapabilityKey> | null | undefined,
+  options: { capabilitiesFailed?: boolean } = {}
 ): boolean {
-  if (!isCapabilityRole(role)) return legacyCheck;
-  if (!capabilities) return false;
+  if (!isCapabilityDrivenRole(role)) return legacyCheck;
+  if (!capabilities) {
+    // A seeded sub-role's default access is its static matrix (what the
+    // legacy helper models), so if `/v1/me/permissions` could not be loaded
+    // it degrades to that default. OPERATOR / MANAGER hold nothing by default
+    // and stay closed. Loading always fails closed.
+    if (options.capabilitiesFailed && SEEDED_CAPABILITY_ROLES.includes(role as string)) return legacyCheck;
+    return false;
+  }
   const wanted = typeof capability === "string" ? [capability] : capability;
   return wanted.some((key) => capabilities.has(key));
 }
