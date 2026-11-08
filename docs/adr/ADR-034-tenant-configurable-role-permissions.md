@@ -46,6 +46,13 @@ broadening of existing access.
 - Payment rules are unchanged: delegating `PAYMENTS_APPROVE_PENDING` or `PAYMENTS_UNDO` changes who
   may act, not how slips, refunds or the ledger behave (duplicate checks, append-only refunds,
   reviewer identity all still apply).
+- **Amends ADR-030 (F1), pending owner confirmation:** `PAYMENTS_ISSUE_FREE_CARDS` lets a Tenant Admin
+  delegate Free Card issue to Operator/Manager, as Klass's matrix does. Static roles are unchanged
+  (only Tenant Admin issues). Recording payments (`PAYMENTS_ADD`) still never implies issuing cards,
+  and a delegated role may not record a discount adjustment. If the owner keeps ADR-030 strict, mark
+  the capability LOCKED. No other change is needed.
+- Delegated roles never change pricing-type figures: course price/pricing model/fees/commission on
+  edit, teacher commission (an omitted value keeps the current one), or manual-payment adjustments.
 - Adding a capability requires wiring an endpoint and a grant/revoke test before it becomes
   `ENFORCED`.
 - Async work does not inherit elevation; an Operator-triggered path that re-checks permissions on
