@@ -45,6 +45,16 @@ public final class TuteViews {
 			Instant dispatchedAt, Instant cancelledAt, String cancelReason) {
 	}
 
+	/**
+	 * The calling student's own copy of a tute (student Tute Delivery tab). {@code status}:
+	 * {@code PENDING}, {@code ON_HOLD} (source payment reversed, not released) or {@code
+	 * DISPATCHED} (posted, or handed over when {@code method = COLLECTION}). No address, phone,
+	 * payment or staff identity.
+	 */
+	public record StudentTuteView(UUID id, String tuteName, String status, String method, Instant assignedAt,
+			Instant dispatchedAt) {
+	}
+
 	public record EligibleStudentView(UUID studentId, UUID studentProfileId, String indexNumber, String name,
 			boolean alreadyAssigned) {
 	}

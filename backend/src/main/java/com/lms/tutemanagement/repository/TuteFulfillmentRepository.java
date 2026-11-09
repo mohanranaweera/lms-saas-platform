@@ -46,6 +46,13 @@ public interface TuteFulfillmentRepository
 				cb.notEqual(root.get("status"), FulfillmentStatus.CANCELLED)), "studentId", UUID.class);
 	}
 
+	/** One student's non-cancelled copies in one course (the student's own Tute Delivery tab). */
+	default List<TuteFulfillment> findActiveByCourseIdAndStudentId(UUID courseId, UUID studentId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
+				cb.equal(root.get("studentId"), studentId),
+				cb.notEqual(root.get("status"), FulfillmentStatus.CANCELLED)), CREATED_ORDER);
+	}
+
 	/**
 	 * Any row (also cancelled) of the tute sourced from the payment: a payment never re-assigns a
 	 * copy staff already unrolled.
