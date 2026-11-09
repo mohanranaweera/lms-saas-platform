@@ -17,9 +17,9 @@ import org.springframework.stereotype.Component;
  * TUTE-01 section 8 authorization, re-run by every service entry point behind the
  * {@code @RequiresCapability} gate. The exact capability is re-checked per request (so a revoke
  * applies on the next request); a Teacher (default not granted) is additionally limited to
- * courses whose {@code course.teacher_id} is the caller. Course resolution mirrors {@code
- * CourseAccessGuard}: an unknown / cross-tenant course is 404 before anything else, a foreign
- * course of the same tenant is 403 for a Teacher.
+ * courses whose {@code course.teacher_id} is the caller. The capability is checked first; then
+ * an unknown / cross-tenant course is 404 and a foreign course of the same tenant is 403 for a
+ * Teacher.
  */
 @Component
 public class TuteAccessGuard {
@@ -35,11 +35,14 @@ public class TuteAccessGuard {
 		this.permissionCheckService = permissionCheckService;
 	}
 
-	/** 404 for an unknown / cross-tenant course, 403 without {@code capability} or (Teacher) ownership. */
+	/**
+	 * 403 without {@code capability} (checked first, so a caller without it learns nothing about
+	 * course ids), then 404 for an unknown / cross-tenant course, then 403 without (Teacher) ownership.
+	 */
 	public void requireCourse(UUID courseId, Capability capability) {
+		permissionCheckService.requireCapability(capability);
 		UUID teacherId = courseLookupApi.getTeacherId(courseId)
 			.orElseThrow(() -> new NotFoundException("Course not found"));
-		permissionCheckService.requireCapability(capability);
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		if (TEACHER_ROLE.equals(principal.role()) && !teacherId.equals(principal.userId())) {
 			throw new AccessDeniedException("You do not have permission to perform this action");

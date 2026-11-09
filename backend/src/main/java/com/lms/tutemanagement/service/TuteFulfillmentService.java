@@ -235,13 +235,20 @@ public class TuteFulfillmentService {
 
 	/** {@code MARK_HANDED_OVER} | {@code CHANGE_METHOD} (+ {@code method}) | {@code RELEASE_HOLD}. */
 	public FulfillmentView updateStatus(UUID courseId, UUID tuteId, UUID fulfillmentId, String action,
-			String method) {
+			String method, String reason) {
 		accessGuard.requireCourse(courseId, Capability.TUTE_UPDATE_STATUS);
 		String safeAction = action == null ? "" : action.strip();
 		if (!List.of("MARK_HANDED_OVER", "CHANGE_METHOD", "RELEASE_HOLD").contains(safeAction)) {
 			throw invalid("action", "Choose MARK_HANDED_OVER, CHANGE_METHOD or RELEASE_HOLD");
 		}
 		FulfillmentMethod newMethod = "CHANGE_METHOD".equals(safeAction) ? parseMethod(method) : null;
+		String releaseReason = null;
+		if ("RELEASE_HOLD".equals(safeAction)) {
+			releaseReason = reason == null ? "" : reason.strip();
+			if (releaseReason.isEmpty() || releaseReason.length() > REASON_MAX) {
+				throw invalid("reason", "Give a reason for releasing the hold (at most " + REASON_MAX + " characters)");
+			}
+		}
 		TuteFulfillment row = lockRow(courseId, tuteId, fulfillmentId);
 		if (row.getStatus() != FulfillmentStatus.PENDING) {
 			throw TuteException.invalidState("This tute is already " + row.getStatus().name().toLowerCase(Locale.ROOT));
@@ -281,7 +288,7 @@ public class TuteFulfillmentService {
 			}
 		}
 		fulfillmentRepository.saveAndFlush(row);
-		support.audit(actorId, auditAction, "tute", row.getTuteId(), null, metadata);
+		support.audit(actorId, auditAction, "tute", row.getTuteId(), releaseReason, metadata);
 		return view(row, contacts(List.of(row.getStudentId())).get(row.getStudentId()));
 	}
 

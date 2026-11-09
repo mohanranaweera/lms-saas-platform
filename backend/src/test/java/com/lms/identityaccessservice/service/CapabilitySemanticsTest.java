@@ -257,7 +257,10 @@ class CapabilitySemanticsTest {
 				if (!role.isSeeded()) {
 					continue;
 				}
-				boolean expected = operator && (role != ConfigurableRole.READ_ONLY_AUDITOR || viewOnly);
+				// TUTE-01 review L1: the label PDF (bulk addresses/phones) is the one VIEW
+				// capability never configurable for the auditor.
+				boolean auditorAllowed = viewOnly && capability != Capability.TUTE_DISPATCH_PRINT_LABELS;
+				boolean expected = operator && (role != ConfigurableRole.READ_ONLY_AUDITOR || auditorAllowed);
 				assertThat(capability.isConfigurableFor(role)).as("%s %s", role, capability).isEqualTo(expected);
 			}
 		}

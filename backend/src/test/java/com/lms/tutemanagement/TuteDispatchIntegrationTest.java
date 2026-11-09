@@ -154,7 +154,7 @@ class TuteDispatchIntegrationTest extends TuteTestSupport {
 		UUID heldId = fulfillmentOf(covered, payer.id());
 		MvcResult released = json(fx.host(), fx.adminToken(),
 				post("/api/v1/courses/{c}/tutes/{t}/fulfillments/{f}/status", course, covered, heldId),
-				Map.of("action", "RELEASE_HOLD"));
+				Map.of("action", "RELEASE_HOLD", "reason", "Refund was reversed by the bank"));
 		assertThat(data(released).path("held").asBoolean()).isFalse();
 		assertThat(count("SELECT count(*) FROM audit_log WHERE tenant_id = ? AND action = 'tute.payments_synced'",
 				fx.tenantId())).isEqualTo(3);

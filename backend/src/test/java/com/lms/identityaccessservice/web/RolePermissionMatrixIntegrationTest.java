@@ -55,6 +55,8 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 		assertThat(cell(m, "TUTE_DISPATCH_VIEW", "READ_ONLY_AUDITOR").path("state").asString())
 			.isEqualTo("NOT_GRANTED");
 		assertThat(cell(m, "TUTE_UPDATE_STATUS", "READ_ONLY_AUDITOR").path("state").asString()).isEqualTo("LOCKED");
+		assertThat(cell(m, "TUTE_DISPATCH_PRINT_LABELS", "READ_ONLY_AUDITOR").path("state").asString())
+			.isEqualTo("LOCKED");
 		assertThat(cell(m, "STAFF_PERMISSIONS_EDIT", "MANAGER").path("state").asString()).isEqualTo("LOCKED");
 		assertThat(cell(m, "FINANCE_ACCOUNT_UPDATE", "OPERATOR").path("state").asString()).isEqualTo("LOCKED");
 		// STAFF-MGMT-03: newly enforced rows are editable; Log as Student defaults to not granted.
@@ -147,6 +149,7 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 		List<List<Map<String, Object>>> invalid = List.of(List.of(valid, change("OPERATOR", "STAFF_VIEW", true)),
 				List.of(valid, change("MANAGER", "FINANCE_DASHBOARD_RECENT_PAYMENTS", true)),
 				List.of(valid, change("READ_ONLY_AUDITOR", "TUTE_CREATE", true)),
+				List.of(valid, change("READ_ONLY_AUDITOR", "TUTE_DISPATCH_PRINT_LABELS", true)),
 				List.of(valid, change("OPERATOR", "NOT_A_CAPABILITY", true)),
 				List.of(valid, change("TENANT_ADMIN", "STUDENTS_VIEW", true)),
 				List.of(valid, change("TEACHER_ASSISTANT", "STUDENTS_VIEW", true)),

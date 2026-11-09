@@ -195,7 +195,7 @@ class TuteManagementIntegrationTest extends TuteTestSupport {
 		assertThat(data(json(fx.host(), fx.adminToken(), post(statusPath, fx.course(), tute, handOver),
 				Map.of("action", "MARK_HANDED_OVER"))).path("status").asString()).isEqualTo("DISPATCHED");
 		assertThat(errorCode(json(fx.host(), fx.adminToken(), post(statusPath, fx.course(), tute, handOver),
-				Map.of("action", "RELEASE_HOLD")))).isEqualTo("TUTE_INVALID_STATE");
+				Map.of("action", "RELEASE_HOLD", "reason", "Checked")))).isEqualTo("TUTE_INVALID_STATE");
 		JsonNode tuteView = data(call(fx.host(), fx.adminToken(), get("/api/v1/courses/{c}/tutes/{t}", fx.course(), tute)));
 		assertThat(tuteView.path("reserved").asLong()).isEqualTo(2);
 		assertThat(tuteView.path("dispatched").asLong()).isEqualTo(1);

@@ -6,6 +6,7 @@ import static com.lms.identityaccessservice.api.CapabilitySpec.om;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omFor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omt;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omtTeacherOff;
+import static com.lms.identityaccessservice.api.CapabilitySpec.omtTeacherOffNoAuditor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.p;
 import static com.lms.identityaccessservice.api.CapabilitySpec.unavailable;
 import static com.lms.identityaccessservice.api.DomainArea.ACCESS_EXPIRY;
@@ -258,8 +259,9 @@ public enum Capability {
 	// GET /tute-dispatch/queue, /tute-dispatch/filter-options: names, index numbers, cities.
 	TUTE_DISPATCH_VIEW(CapabilityGroup.TUTE, "View Tute Dispatch", omtTeacherOff(p(TUTES, VIEW))),
 	// POST /tute-dispatch/labels: the label PDF (full addresses and phones). Never implied by
-	// viewing the queue.
-	TUTE_DISPATCH_PRINT_LABELS(CapabilityGroup.TUTE, "Print Dispatch Labels", omtTeacherOff(p(TUTES, VIEW))),
+	// viewing the queue; never configurable for Read-only Auditor (bulk personal-data export).
+	TUTE_DISPATCH_PRINT_LABELS(CapabilityGroup.TUTE, "Print Dispatch Labels",
+			omtTeacherOffNoAuditor(p(TUTES, VIEW))),
 
 	// ---------------------------------------------------------------- Reports (one per report controller)
 	REPORTS_TEACHER_INCOME(CapabilityGroup.REPORTS, "Generate Teacher Reports", om(p(FINANCE_EXPENSES, VIEW))),

@@ -127,6 +127,9 @@ public class TutePaymentAssignmentService {
 		if (detail == null || detail.studentId() == null || !paymentId.equals(detail.confirmedPaymentId())) {
 			return 0;
 		}
+		// Serializes with holdForReversedPayment of the same payment: a refund committed after
+		// the check below finds these rows (its handler waits for this commit) and holds them.
+		lockPayment(paymentId);
 		OrderFacts facts = facts(List.of(detail)).get(orderId);
 		Set<UUID> courseIds = new HashSet<>();
 		facts.lines().stream().map(OrderLineSnapshot::courseId).filter(Objects::nonNull).forEach(courseIds::add);
@@ -161,6 +164,10 @@ public class TutePaymentAssignmentService {
 				warnOutOfStock(tute, paymentId);
 			}
 		}
+		if (added > 0 && refunded(List.of(paymentId)).contains(paymentId)) {
+			// A refund / chargeback committed between the check above and the inserts.
+			flagRowsOfPayment(paymentId, null, null);
+		}
 		log.atInfo()
 			.setMessage("tute.auto_assign.payment_processed")
 			.addKeyValue("tuteTenantId", tenantContext.getTenantId())
@@ -182,6 +189,12 @@ public class TutePaymentAssignmentService {
 	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public int holdForReversedPayment(UUID paymentId, UUID actorUserId, UUID refundId) {
+		lockPayment(paymentId);
+		return flagRowsOfPayment(paymentId, actorUserId, refundId);
+	}
+
+	/** Flags the payment's non-cancelled copies in the caller's transaction; audited with a human actor. */
+	int flagRowsOfPayment(UUID paymentId, UUID actorUserId, UUID refundId) {
 		List<TuteFulfillment> rows = fulfillmentRepository.findActiveBySourcePaymentId(paymentId);
 		if (rows.isEmpty()) {
 			return 0;
@@ -265,6 +278,7 @@ public class TutePaymentAssignmentService {
 				.thenComparing(OrderPaymentDetail::orderId))
 			.toList();
 		Set<UUID> seenStudents = new HashSet<>();
+		List<UUID> addedPayments = new java.util.ArrayList<>();
 		int added = 0;
 		int already = 0;
 		int outOfStock = 0;
@@ -278,12 +292,21 @@ public class TutePaymentAssignmentService {
 				continue; // one copy per student; a second qualifying payment changes nothing
 			}
 			Counts counts = assign(tute, orderFacts, actorId);
+			if (counts.added() > 0) {
+				addedPayments.add(detail.confirmedPaymentId());
+			}
 			added += counts.added();
 			already += counts.already();
 			outOfStock += counts.outOfStock();
 		}
 		if (outOfStock > 0) {
 			warnOutOfStock(tute, null);
+		}
+		if (!addedPayments.isEmpty()) {
+			// Re-check after the inserts: a reversal committed meanwhile still ends up held.
+			for (UUID reversedPayment : refunded(addedPayments)) {
+				held += flagRowsOfPayment(reversedPayment, null, null);
+			}
 		}
 		return new SyncResultView(added, already, outOfStock, held);
 	}
@@ -311,6 +334,10 @@ public class TutePaymentAssignmentService {
 			case ALREADY_ASSIGNED -> new Counts(0, 1, 0);
 			case OUT_OF_STOCK -> new Counts(0, 0, 1);
 		};
+	}
+
+	private void lockPayment(UUID paymentId) {
+		tuteRepository.acquirePaymentLock("tute-payment:" + tenantContext.getTenantId() + ":" + paymentId);
 	}
 
 	private TuteRule rule(Tute tute) {

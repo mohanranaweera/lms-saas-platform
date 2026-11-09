@@ -34,12 +34,12 @@ final class CapabilitySpec {
 
 	private CapabilitySpec(CapabilityAvailability availability, String reason, Set<ConfigurableRole> configurableFor,
 			PermissionPair primary, PermissionPair[] implied, Set<String> staticRoleAllowlist) {
-		this(availability, reason, configurableFor, primary, implied, staticRoleAllowlist, true);
+		this(availability, reason, configurableFor, primary, implied, staticRoleAllowlist, true, false);
 	}
 
 	private CapabilitySpec(CapabilityAvailability availability, String reason, Set<ConfigurableRole> configurableFor,
 			PermissionPair primary, PermissionPair[] implied, Set<String> staticRoleAllowlist,
-			boolean teacherDefaultGranted) {
+			boolean teacherDefaultGranted, boolean auditorExcluded) {
 		this.teacherDefaultGranted = teacherDefaultGranted;
 		this.availability = availability;
 		this.reason = reason;
@@ -50,7 +50,13 @@ final class CapabilitySpec {
 		}
 		all.addAll(Arrays.asList(implied));
 		this.implied = Set.copyOf(all);
-		this.configurableFor = withSeededRoles(configurableFor, this.implied);
+		Set<ConfigurableRole> roles = withSeededRoles(configurableFor, this.implied);
+		if (auditorExcluded && roles.contains(ConfigurableRole.READ_ONLY_AUDITOR)) {
+			EnumSet<ConfigurableRole> narrowed = EnumSet.copyOf(roles);
+			narrowed.remove(ConfigurableRole.READ_ONLY_AUDITOR);
+			roles = Set.copyOf(narrowed);
+		}
+		this.configurableFor = roles;
 		this.staticRoleAllowlist = staticRoleAllowlist;
 	}
 
@@ -113,7 +119,17 @@ final class CapabilitySpec {
 	static CapabilitySpec omtTeacherOff(PermissionPair primary, PermissionPair... implied) {
 		return new CapabilitySpec(CapabilityAvailability.ENFORCED, null,
 				EnumSet.of(ConfigurableRole.OPERATOR, ConfigurableRole.MANAGER, ConfigurableRole.TEACHER), primary,
-				implied, null, false);
+				implied, null, false, false);
+	}
+
+	/**
+	 * {@link #omtTeacherOff}, but never configurable for Read-only Auditor even though the pair is
+	 * a VIEW: for bulk personal-data exports (TUTE-01 label PDF with addresses and phones).
+	 */
+	static CapabilitySpec omtTeacherOffNoAuditor(PermissionPair primary, PermissionPair... implied) {
+		return new CapabilitySpec(CapabilityAvailability.ENFORCED, null,
+				EnumSet.of(ConfigurableRole.OPERATOR, ConfigurableRole.MANAGER, ConfigurableRole.TEACHER), primary,
+				implied, null, false, true);
 	}
 
 	/** System-managed: static roles keep {@code primary}; never configurable. */

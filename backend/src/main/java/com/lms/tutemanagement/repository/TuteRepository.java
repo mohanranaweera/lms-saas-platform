@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Tenant-scoped per ADR-006: every finder is a {@code default} method over the inherited,
@@ -54,5 +56,13 @@ public interface TuteRepository extends TenantAwareRepository<Tute, UUID> {
 		return findAll((root, query, cb) -> cb.and(root.get("courseId").in(courseIds),
 				cb.equal(root.get("status"), TuteStatus.ACTIVE)));
 	}
+
+	/**
+	 * Transaction-scoped advisory lock serializing the payment trigger and the reversal hold of
+	 * one payment (TUTE-01 security review M1). The key is built by the caller from the context
+	 * tenant and the payment id; no tenant-owned row is read.
+	 */
+	@Query(value = "SELECT pg_advisory_xact_lock(hashtextextended(:lockKey, 0))", nativeQuery = true)
+	void acquirePaymentLock(@Param("lockKey") String lockKey);
 
 }

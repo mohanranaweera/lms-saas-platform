@@ -55,6 +55,9 @@ public class TuteDispatchService implements TuteDispatchLabelApi {
 
 	public static final int MAX_WORKING_SET = 10_000;
 
+	/** At most this many student ids are listed in a label-export audit entry (the total is always recorded). */
+	static final int MAX_AUDITED_STUDENT_IDS = 1000;
+
 	static final int DEFAULT_PAGE_SIZE = 25;
 
 	static final String DASH = " – ";
@@ -73,9 +76,15 @@ public class TuteDispatchService implements TuteDispatchLabelApi {
 
 	private final Clock clock;
 
+	private final TuteReversalGuard reversalGuard;
+
+	private final TuteStock stock;
+
 	public TuteDispatchService(TuteFulfillmentRepository fulfillmentRepository, TuteRepository tuteRepository,
 			TuteAccessGuard accessGuard, TuteSupport support, StudentLookupApi studentLookupApi,
-			CourseLookupApi courseLookupApi, Clock clock) {
+			CourseLookupApi courseLookupApi, Clock clock, TuteReversalGuard reversalGuard, TuteStock stock) {
+		this.reversalGuard = reversalGuard;
+		this.stock = stock;
 		this.fulfillmentRepository = fulfillmentRepository;
 		this.tuteRepository = tuteRepository;
 		this.accessGuard = accessGuard;
@@ -166,6 +175,7 @@ public class TuteDispatchService implements TuteDispatchLabelApi {
 			}
 			rows = workingSet(scope);
 			groups = DispatchProjection.filter(DispatchProjection.group(rows, contacts(rows)), request.filters());
+			rejectReversed(groups.stream().flatMap(group -> group.items().stream()).toList());
 			if (groups.size() != request.expectedLabelCount()) {
 				throw TuteException.stale("The tutes to send changed since the list was loaded. Reload and try again.",
 						null, Map.of("expectedLabelCount", request.expectedLabelCount(), "labelCount", groups.size()));
@@ -180,6 +190,7 @@ public class TuteDispatchService implements TuteDispatchLabelApi {
 				throw TuteException.stale("Some selected tutes are no longer waiting to be sent. Reload and try again.",
 						stale, null);
 			}
+			rejectReversed(rows);
 			groups = DispatchProjection.group(rows, contacts(rows));
 			mode = "SELECTED";
 		}
@@ -194,6 +205,12 @@ public class TuteDispatchService implements TuteDispatchLabelApi {
 		metadata.put("labelCount", labels.size());
 		metadata.put("tuteCount", labels.stream().mapToInt(DispatchLabel::tuteCount).sum());
 		metadata.put("missingAddressCount", labels.stream().filter(DispatchLabel::addressMissing).count());
+		// Who was exported (ids only - never names, addresses or phones).
+		List<String> studentIds = groups.stream().map(group -> group.studentId().toString()).distinct().toList();
+		metadata.put("studentCount", studentIds.size());
+		metadata.put("studentIds", studentIds.size() > MAX_AUDITED_STUDENT_IDS
+				? studentIds.subList(0, MAX_AUDITED_STUDENT_IDS) : studentIds);
+		metadata.put("studentIdsTruncated", studentIds.size() > MAX_AUDITED_STUDENT_IDS);
 		support.audit(TuteAccessGuard.actorId(), "tute.dispatch_labels_printed", "tute_dispatch", support.tenantId(),
 				null, metadata);
 		return labels;
@@ -213,11 +230,17 @@ public class TuteDispatchService implements TuteDispatchLabelApi {
 	public ConfirmDispatchView confirm(List<UUID> fulfillmentIds) {
 		Set<UUID> scope = accessGuard.requireScope(Capability.TUTE_UPDATE_STATUS);
 		List<UUID> ids = requireIds(fulfillmentIds);
+		// Plain read first: unknown / cross-tenant 404 and out-of-scope 403 before any lock.
+		List<TuteFulfillment> rows = loadInScope(ids, scope);
+		// Reversed payments (also chargebacks without a Sync) are held - committed on their own -
+		// and the whole request fails; nothing is dispatched.
+		rejectReversed(rows);
 		List<UUID> locked = fulfillmentRepository.lockFulfillments(ids);
 		if (locked.size() != ids.size()) {
 			throw new NotFoundException("Some selected tutes were not found");
 		}
-		List<TuteFulfillment> rows = loadInScope(ids, scope);
+		// Re-read every row under its lock, so the checks below never see a stale copy.
+		rows.stream().sorted(Comparator.comparing(TuteFulfillment::getId)).forEach(stock::lock);
 		List<TuteFulfillment> already = rows.stream()
 			.filter(row -> row.getStatus() == FulfillmentStatus.DISPATCHED)
 			.toList();
@@ -296,6 +319,30 @@ public class TuteDispatchService implements TuteDispatchLabelApi {
 		return rows.stream()
 			.sorted(Comparator.comparing(TuteFulfillment::getCreatedAt).thenComparing(TuteFulfillment::getId))
 			.toList();
+	}
+
+	/**
+	 * Security review M1: holds (in its own committed transaction) every PENDING payment copy of
+	 * {@code rows} whose payment was refunded or charged back, then fails with 409 {@code
+	 * TUTE_SELECTION_STALE} listing them.
+	 */
+	private void rejectReversed(List<TuteFulfillment> rows) {
+		List<UUID> candidates = rows.stream()
+			.filter(row -> row.getSourcePaymentId() != null && row.getPaymentReversedAt() == null)
+			.map(TuteFulfillment::getId)
+			.toList();
+		if (candidates.isEmpty()) {
+			return;
+		}
+		Set<UUID> held = Set.copyOf(reversalGuard.holdReversed(candidates, TuteAccessGuard.actorId()));
+		List<UUID> blocked = rows.stream()
+			.filter(row -> row.getStatus() == FulfillmentStatus.PENDING && held.contains(row.getId()))
+			.map(TuteFulfillment::getId)
+			.toList();
+		if (!blocked.isEmpty()) {
+			throw TuteException.stale("The payment for some selected tutes was refunded or charged back. They are "
+					+ "now on hold. Reload and try again.", blocked, null);
+		}
 	}
 
 	private static boolean dispatchable(TuteFulfillment row) {

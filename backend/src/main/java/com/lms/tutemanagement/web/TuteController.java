@@ -153,7 +153,8 @@ public class TuteController {
 	public ResponseEntity<ApiResponse<FulfillmentView>> status(@PathVariable UUID courseId, @PathVariable UUID tuteId,
 			@PathVariable UUID fulfillmentId, @RequestBody FulfillmentStatusRequest request) {
 		return noStore(
-				fulfillmentService.updateStatus(courseId, tuteId, fulfillmentId, request.action(), request.method()));
+				fulfillmentService.updateStatus(courseId, tuteId, fulfillmentId, request.action(), request.method(),
+						request.reason()));
 	}
 
 	private static TuteInput input(TuteRequest request) {

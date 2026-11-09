@@ -77,12 +77,29 @@ class TuteCapabilityCatalogTest {
 			assertThat(capability.teacherDefaultGranted()).as(capability.key()).isFalse();
 			for (ConfigurableRole role : ConfigurableRole.values()) {
 				boolean configurable = role != ConfigurableRole.READ_ONLY_AUDITOR
-						|| capability.primary().action() == PermissionAction.VIEW;
+						|| (capability.primary().action() == PermissionAction.VIEW
+								&& capability != Capability.TUTE_DISPATCH_PRINT_LABELS);
 				assertThat(capability.isConfigurableFor(role)).as("%s %s", capability, role).isEqualTo(configurable);
 				assertThat(PermissionCheckServiceImpl.defaultGrant(role, capability)).as("%s %s", capability, role)
 					.isFalse();
 			}
 		}
+	}
+
+	@Test
+	void labelPrintingIsNeverConfigurableForTheAuditorWhileOtherViewCapabilitiesAre() {
+		assertThat(Capability.TUTE_DISPATCH_PRINT_LABELS.isConfigurableFor(ConfigurableRole.READ_ONLY_AUDITOR)).isFalse();
+		assertThat(Capability.TUTE_DISPATCH_PRINT_LABELS.isConfigurableFor(ConfigurableRole.FINANCE_STAFF)).isTrue();
+		assertThat(Capability.TUTE_DISPATCH_VIEW.isConfigurableFor(ConfigurableRole.READ_ONLY_AUDITOR)).isTrue();
+		// Every other capability's auditor rule is unchanged: configurable iff all implied pairs are VIEW.
+		Stream.of(Capability.values())
+			.filter(c -> c != Capability.TUTE_DISPATCH_PRINT_LABELS && c.isConfigurableFor(ConfigurableRole.OPERATOR))
+			.forEach(c -> assertThat(c.isConfigurableFor(ConfigurableRole.READ_ONLY_AUDITOR)).as(c.key())
+				.isEqualTo(c.implied().stream().allMatch(pair -> pair.action() == PermissionAction.VIEW)));
+		when(store.findOverridesForRole("READ_ONLY_AUDITOR")).thenReturn(Map.of("TUTE_DISPATCH_PRINT_LABELS", true));
+		as(Role.READ_ONLY_AUDITOR);
+		assertThat(service.hasCapability(Capability.TUTE_DISPATCH_PRINT_LABELS)).isFalse();
+		assertThat(service.capabilityGate(Capability.TUTE_DISPATCH_PRINT_LABELS)).isEqualTo(CapabilityGate.PASS);
 	}
 
 	@Test
