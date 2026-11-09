@@ -49,8 +49,8 @@ test.describe("teacher roster — own course", () => {
       `**/v1/courses/${COURSE.id}/roster`,
       200,
       apiSuccess([
-        { studentId: "s1", userId: "u1", name: "Ada Lovelace", email: "ada@example.test" },
-        { studentId: "s2", userId: "u2", name: "Grace Hopper", email: "grace@example.test" },
+        { studentId: "s1", userId: "u1", name: "Ada Lovelace", email: "ada@example.test", accessStatus: "PAID" },
+        { studentId: "s2", userId: "u2", name: "Grace Hopper", email: "grace@example.test", accessStatus: "NOT_PAID" },
       ])
     );
 
@@ -60,6 +60,10 @@ test.describe("teacher roster — own course", () => {
     const table = page.getByRole("table");
     await expect(table.getByText("Ada Lovelace")).toBeVisible();
     await expect(table.getByText("Grace Hopper")).toBeVisible();
+    // Enrolled-but-unpaid students are listed too (free enrollment, ADR-028), labelled by text, not color alone.
+    await expect(table.getByRole("columnheader", { name: "Paid access" })).toBeVisible();
+    await expect(table.getByRole("row", { name: /Ada Lovelace/ }).getByText("Paid", { exact: true })).toBeVisible();
+    await expect(table.getByRole("row", { name: /Grace Hopper/ }).getByText("Not paid")).toBeVisible();
   });
 
   test("an empty roster shows a dedicated empty state", async ({ page }) => {

@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/data-table";
+import { courseRosterColumns } from "@/components/courses/course-roster-columns";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { useCourses, useCourseRoster, type CourseRosterEntryResponse } from "@/lib/api/courses";
+import { useCourses, useCourseRoster } from "@/lib/api/courses";
 import { CourseScopeSelect } from "./course-scope-select";
-
-const columns: DataTableColumn<CourseRosterEntryResponse>[] = [
-  { key: "name", header: "Name", cell: (row) => row.name, hideOnCard: true },
-  { key: "email", header: "Email", cell: (row) => row.email },
-];
 
 /**
  * Roster tab (Wave 3, PAR-04-03) — `GET /v1/courses/{courseId}/roster`
@@ -70,7 +66,7 @@ function RosterForCourse({ courseId }: { courseId: string }) {
     >
       {(roster) => (
         <DataTable
-          columns={columns}
+          columns={courseRosterColumns}
           rows={roster}
           rowKey={(row) => row.studentId}
           caption="Course roster"

@@ -3,14 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/data-table";
+import { courseRosterColumns } from "@/components/courses/course-roster-columns";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { useCourse, useCourseRoster, type CourseRosterEntryResponse } from "@/lib/api/courses";
-
-const columns: DataTableColumn<CourseRosterEntryResponse>[] = [
-  { key: "name", header: "Name", cell: (row) => row.name, hideOnCard: true },
-  { key: "email", header: "Email", cell: (row) => row.email },
-];
+import { useCourse, useCourseRoster } from "@/lib/api/courses";
 
 /**
  * Teacher "Course Roster" (Wave 3, PAR-03-06) — `teacher/courses/[courseId]/roster`.
@@ -68,7 +64,7 @@ export default function TeacherCourseRosterPage() {
             >
               {(roster) => (
                 <DataTable
-                  columns={columns}
+                  columns={courseRosterColumns}
                   rows={roster}
                   rowKey={(row) => row.studentId}
                   caption="Course roster"

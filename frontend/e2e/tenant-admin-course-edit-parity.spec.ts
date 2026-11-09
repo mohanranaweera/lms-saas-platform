@@ -92,7 +92,7 @@ test.describe("Tenant Admin course edit parity", () => {
   test("Tenant Admin course workspace exposes roster and course live-class scheduling", async ({ page }) => {
     await setupAdminCourse(page);
     await page.route("**/api/v1/courses/*/roster", async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([{ studentId: "student-1", userId: "user-1", name: "Student One", email: "student@example.test" }])) });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([{ studentId: "student-1", userId: "user-1", name: "Student One", email: "student@example.test", accessStatus: "NOT_PAID" }])) });
     });
     await page.route("**/api/v1/class-sessions**", async (route) => {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([])) });

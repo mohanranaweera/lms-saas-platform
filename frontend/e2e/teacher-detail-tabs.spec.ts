@@ -101,7 +101,7 @@ test.describe("teacher detail — Roster tab", () => {
       page,
       `**/v1/courses/${COURSE.id}/roster`,
       200,
-      apiSuccess([{ studentId: "s1", userId: "u1", name: "Ada Lovelace", email: "ada@example.test" }])
+      apiSuccess([{ studentId: "s1", userId: "u1", name: "Ada Lovelace", email: "ada@example.test", accessStatus: "PAID" }])
     );
 
     await page.getByRole("tab", { name: "Roster" }).click();
