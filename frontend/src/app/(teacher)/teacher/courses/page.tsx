@@ -20,6 +20,7 @@ import { TeacherCourseCardGrid } from "@/components/courses/teacher-course-card-
 import { EditClassScheduleDialog } from "@/components/calendar/edit-class-schedule-dialog";
 import { AdminToast, useAdminToast } from "@/components/courses/admin/admin-toast";
 import { useCourses, type CourseResponse, type CourseStatus } from "@/lib/api/courses";
+import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import {
   TEACHER_NO_ASSIGNED_COURSES_TITLE,
   TEACHER_NO_ASSIGNED_COURSES_DESCRIPTION,
@@ -53,6 +54,8 @@ export default function TeacherCoursesPage() {
   // CAL-01: the dialog loads `canEdit` from GET class-schedule and is read-only when false.
   const [scheduleCourse, setScheduleCourse] = useState<CourseResponse | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  // TUTE-01: shown only when a Tenant Admin granted TUTE_VIEW_TUTES; the backend also limits it to own courses.
+  const canViewTutes = useTuteCapabilities().can(TUTE_CAP.VIEW_TUTES);
   const toast = useAdminToast();
 
   const categories = useMemo(() => {
@@ -197,6 +200,15 @@ export default function TeacherCoursesPage() {
                       >
                         Roster
                       </Link>
+                      {canViewTutes ? (
+                        <Link
+                          href={`/teacher/courses/${course.id}/tutes`}
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                          data-testid="teacher-course-tutes"
+                        >
+                          Tutes
+                        </Link>
+                      ) : null}
                       <Button
                         type="button"
                         variant="outline"

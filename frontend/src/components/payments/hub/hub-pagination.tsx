@@ -18,6 +18,7 @@ export function HubPagination({
   totalElements,
   onPageChange,
   onSizeChange,
+  sizes = HUB_PAGE_SIZES,
 }: {
   idPrefix: string;
   page: number;
@@ -25,6 +26,8 @@ export function HubPagination({
   totalElements: number;
   onPageChange: (page: number) => void;
   onSizeChange: (size: number) => void;
+  /** Page-size options (default 10/20/50). */
+  sizes?: readonly number[];
 }) {
   const lastPage = Math.max(Math.ceil(totalElements / size) - 1, 0);
   const first = totalElements === 0 ? 0 : page * size + 1;
@@ -42,7 +45,7 @@ export function HubPagination({
           value={size}
           onChange={(event) => onSizeChange(Number(event.target.value))}
         >
-          {HUB_PAGE_SIZES.map((option) => (
+          {sizes.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>

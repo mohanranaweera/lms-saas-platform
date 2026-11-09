@@ -9,6 +9,7 @@ import {
   CalendarClock,
   CalendarDays,
   EyeOff,
+  FileText,
   Globe,
   ListTree,
   MoreHorizontal,
@@ -50,6 +51,7 @@ import { ConfirmDeleteDialog, mutationErrorMessage } from "@/components/courses/
 import type { AdminToastMessage } from "@/components/courses/admin/admin-toast";
 import { isApiClientError } from "@/lib/api/error";
 import { EditClassScheduleDialog } from "@/components/calendar/edit-class-schedule-dialog";
+import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 
 export const REGISTRATION_HELP =
   "Turning this off blocks new enrollments only. Students already enrolled keep their access and anything they paid for. Students only see the course in Available Courses once it is Published (and not archived).";
@@ -180,8 +182,8 @@ export function RegistrationSwitch({
  * live-class sessions), Roster,
  * Publish/Unpublish, Archive/Unarchive, Delete. Keyboard: Enter/Space/arrow
  * keys open and move through the menu, Escape closes it and focus returns to
- * the trigger. Tute Management is omitted until that module exists (R2-D4).
- * Every action is authorized by the backend; a refusal shows as a toast or
+ * the trigger. "Manage Tutes" (TUTE-01, R2-D4) follows Edit Class Schedule
+ * and is shown only with TUTE_VIEW_TUTES. Every action is authorized by the backend; a refusal shows as a toast or
  * in the confirmation dialog.
  */
 export function CourseRowActions({
@@ -194,6 +196,7 @@ export function CourseRowActions({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const tutes = useTuteCapabilities();
   const publish = usePublishCourse(course.id);
   const unpublish = useUnpublishCourse(course.id);
   const published = course.status === "PUBLIC";
@@ -271,6 +274,12 @@ export function CourseRowActions({
             <CalendarDays className="text-primary" aria-hidden="true" />
             Edit Class Schedule
           </DropdownMenuItem>
+          {tutes.can(TUTE_CAP.VIEW_TUTES) ? (
+            <DropdownMenuLinkItem render={<Link href={`${base}/tutes`} />} data-testid="course-action-tutes">
+              <FileText className="text-primary" aria-hidden="true" />
+              Manage Tutes
+            </DropdownMenuLinkItem>
+          ) : null}
           <DropdownMenuLinkItem render={<Link href={`${base}/sessions`} />} data-testid="course-action-sessions">
             <CalendarClock aria-hidden="true" />
             Live classes

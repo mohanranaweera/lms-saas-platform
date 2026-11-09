@@ -559,7 +559,9 @@ test("R2-G5: the course row menu is fully operable by keyboard (open, move, acti
   await page.keyboard.press("Enter");
   const menu = page.getByTestId("course-actions-menu-content");
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole("menuitem")).toHaveCount(8);
+  // 9 items: TUTE-01 added "Manage Tutes" (the Tenant Admin holds TUTE_VIEW_TUTES by default).
+  await expect(menu.getByRole("menuitem")).toHaveCount(9);
+  await expect(menu.getByRole("menuitem", { name: "Manage Tutes" })).toBeVisible();
   // Element capture: a viewport capture taken while the menu is open renders blank (reported in R2-T6a).
   await menu.screenshot({ path: `${EVIDENCE_DIR}/19-course-row-menu.png` });
   await page.keyboard.press("Escape");
@@ -570,7 +572,7 @@ test("R2-G5: the course row menu is fully operable by keyboard (open, move, acti
   await page.keyboard.press("ArrowDown");
   await expect(menu).toBeVisible();
   const items = menu.getByRole("menuitem");
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 9; attempt += 1) {
     if ((await items.filter({ hasText: "Live classes" }).getAttribute("data-highlighted")) !== null) break;
     await page.keyboard.press("ArrowDown");
   }

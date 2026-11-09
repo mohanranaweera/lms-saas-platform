@@ -27,6 +27,7 @@ import {
 } from "@/lib/auth/permissions";
 import { CAP, REPORT_CAPABILITIES } from "@/lib/auth/capabilities";
 import { useCapabilities } from "@/lib/api/my-permissions";
+import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import { NavGroup, type NavItem } from "./nav-links";
 
 /**
@@ -77,6 +78,7 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
   const { can } = useCapabilities();
+  const tutes = useTuteCapabilities();
 
   const dashboardItems: NavItem[] = [{ label: "Dashboard", href: "/tenant-admin/dashboard" }];
 
@@ -108,6 +110,11 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (canViewLiveClassesStaff(role)) {
     academicItems.push({ label: "Live Classes", href: "/tenant-admin/live-classes" });
+  }
+  // TUTE-01 - TUTE_DISPATCH_VIEW (capability-native for every role; Tenant Admin by default).
+  // UX only; /api/v1/tute-dispatch/** re-checks the capability and course scope.
+  if (tutes.can(TUTE_CAP.DISPATCH_VIEW)) {
+    academicItems.push({ label: "Tute Dispatch", href: "/tenant-admin/tute-dispatch" });
   }
 
   const financeItems: NavItem[] = [];

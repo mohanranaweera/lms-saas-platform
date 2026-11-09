@@ -459,7 +459,7 @@ export function useStartImpersonation() {
 
 type EnsureToken = (kind: "tenant", options?: { force?: boolean }) => Promise<string>;
 
-async function sendWithAuth(ensureAccessToken: EnsureToken, path: string, init: RequestInit): Promise<Response> {
+export async function sendWithAuth(ensureAccessToken: EnsureToken, path: string, init: RequestInit): Promise<Response> {
   const url = `${env.NEXT_PUBLIC_API_BASE_URL}${path}`;
   const attempt = async (token: string) => {
     try {
@@ -489,7 +489,7 @@ async function sendWithAuth(ensureAccessToken: EnsureToken, path: string, init: 
   return response;
 }
 
-async function toApiError(response: Response): Promise<ApiClientError> {
+export async function toApiError(response: Response): Promise<ApiClientError> {
   let payload: ApiResponse<unknown> | null = null;
   try {
     payload = (await response.json()) as ApiResponse<unknown>;
