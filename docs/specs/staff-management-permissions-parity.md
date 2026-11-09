@@ -162,7 +162,12 @@ U=unavailable (no backing operation), UI=UI-only before this change.
 | Finance · Annual stats, pending/recent/registration payments, transactions | FINANCE_DASHBOARD_* | — | — | not separable dashboard widgets | U |
 | Finance · Account configuration (4 rows) | FINANCE_ACCOUNT_* | — | — | payment gateway secrets, Tenant Admin only (ADR-017) | L |
 | Integrations (5 rows) | INTEGRATIONS_* | — | — | Tenant Admin only (ADR-018) | L |
-| Tute (8 rows) | TUTE_* | — | — | Tute Dispatch not built | U |
+| Tute · View Tutes / View Tute | TUTE_VIEW_TUTES / TUTE_VIEW_TUTE | O M T* | tenant; Teacher own courses | GET /courses/{id}/tutes(/{tuteId}, /paid-sessions, /fulfillments) → TUTES/VIEW | E (TUTE-01) |
+| Tute · Create / Update / Enroll / Unroll | TUTE_CREATE / TUTE_UPDATE / TUTE_ENROLL / TUTE_UNROLL | O M T* | tenant; Teacher own courses | POST/PUT tutes, sync-payments, POST fulfillments, cancel → TUTES/CREATE_EDIT | E (TUTE-01) |
+| Tute · Update Tute Status | TUTE_UPDATE_STATUS | O M T* | tenant; Teacher own courses | fulfillment status, POST /tute-dispatch/confirm → TUTES/APPROVE | E (TUTE-01) |
+| Tute · Delete Tute | TUTE_DELETE | O M T* | tenant; Teacher own courses | DELETE tute (archive when it has history) → TUTES/DELETE | E (TUTE-01) |
+| Tute · View Tute Dispatch (new) | TUTE_DISPATCH_VIEW | O M T* | tenant; Teacher own courses | GET /tute-dispatch/queue, filter-options → TUTES/VIEW | E (TUTE-01) |
+| Tute · Print Dispatch Labels (new) | TUTE_DISPATCH_PRINT_LABELS | O M T* (not Auditor) | tenant; Teacher own courses | POST /tute-dispatch/labels (full addresses) → TUTES/VIEW | E (TUTE-01; bulk address export, so never configurable for Read-only Auditor) |
 | Reports · each existing report | REPORTS_<NAME> | O M | tenant | /reports/<name>/* (class-level: options, runs, rows, PDFs) | E (synchronous; course summary also implies ATTENDANCE/VIEW) |
 | Staff · view/manage/assign/permissions/activities | STAFF_* | — | — | Tenant Admin (view/activities also Auditor) | L |
 
@@ -270,7 +275,7 @@ Left UNAVAILABLE (reason shown in the matrix):
 - EXAMS_START, EXAMS_STOP — exams open/close on their schedule; no manual operation.
 - MODULES_IMPORT — no module import operation.
 - FINANCE_DASHBOARD_RECENT_PAYMENTS, _REGISTRATION_PAYMENTS, _TRANSACTIONS — part of the payments dashboard / order list (View Payments).
-- Tute, course reviews, Delete Teacher, scheduled notifications, single-student notification, media folders.
+- Course reviews, Delete Teacher, scheduled notifications, single-student notification, media folders.
 
 Still LOCKED: account credential change/update/delete, Integrations, STAFF_*, Add Timetable alias, Zoom/YouTube provider ops.
 
@@ -285,3 +290,5 @@ BLOCKED for lack of closed-period revenue in a synthetic tenant and covered by
 by-id bypasses (archived courses, pending students) are fixed (77db3e7). QA follow-ups are fixed:
 overrides equal to the default are deleted, and the matrix no longer causes page-level sideways
 scroll. Details: `docs/qa/staff-management-acceptance.md`.
+
+T* = Teacher-configurable but **not granted by default** (TUTE-01, `CapabilitySpec.omtTeacherOff`); `TUTES` static grant is Tenant Admin only. See `docs/specs/tute-management-dispatch.md` §8.
