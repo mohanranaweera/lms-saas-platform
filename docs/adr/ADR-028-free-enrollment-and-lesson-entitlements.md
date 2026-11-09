@@ -85,11 +85,14 @@ amended, D17 superseded, O-4 resolved):
    falls back to `granted_at + Payment Valid Days` so a verified payment always grants usable
    access. MODULE/LESSON entitlements are unchanged. Grants still happen only on verified
    payment confirmation or approved slip; no existing entitlement row is rewritten.
-2. **Course membership is enrollment, not payment.** The course roster, attendance, the course
-   notification audience, teacher student counts and the student exam gates list every
-   enrolled (participating) student, paid or not. The roster shows a display-only paid-access
-   status; it is never an authorization input. Paid leaf resources keep their entitlement
-   checks.
+2. **Course membership is enrollment, not payment.** Attendance, the course notification
+   audience, teacher student counts and the student exam gates use every enrolled
+   (participating) student, paid or not. Paid leaf resources keep their entitlement checks.
+3. **The course roster shows active students only (2026-11-10).** It lists enrolled students
+   who are paid for the current month (or hold open legacy / MODULE / LESSON access), hold an
+   effective Free Card for the current month, or are on a FREE-priced course, with a
+   display-only status. Unpaid participants are filtered out by the backend. The status is
+   never an authorization input.
 
 ## Not changed
 
