@@ -5,6 +5,7 @@ import static com.lms.identityaccessservice.api.CapabilitySpec.lockedFor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.om;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omFor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omt;
+import static com.lms.identityaccessservice.api.CapabilitySpec.omtTeacherOff;
 import static com.lms.identityaccessservice.api.CapabilitySpec.p;
 import static com.lms.identityaccessservice.api.CapabilitySpec.unavailable;
 import static com.lms.identityaccessservice.api.DomainArea.ACCESS_EXPIRY;
@@ -24,6 +25,7 @@ import static com.lms.identityaccessservice.api.DomainArea.STAFF_AND_ROLES;
 import static com.lms.identityaccessservice.api.DomainArea.STUDENTS;
 import static com.lms.identityaccessservice.api.DomainArea.STUDENT_IMPERSONATION;
 import static com.lms.identityaccessservice.api.DomainArea.TEACHERS;
+import static com.lms.identityaccessservice.api.DomainArea.TUTES;
 import static com.lms.identityaccessservice.api.PermissionAction.APPROVE;
 import static com.lms.identityaccessservice.api.PermissionAction.CREATE_EDIT;
 import static com.lms.identityaccessservice.api.PermissionAction.DELETE;
@@ -235,15 +237,29 @@ public enum Capability {
 	INTEGRATIONS_CONFIGURE(CapabilityGroup.INTEGRATIONS, "Configure Integration",
 			locked("Integrations are Tenant Admin only (ADR-018)", p(INTEGRATIONS, CREATE_EDIT))),
 
-	// ---------------------------------------------------------------- Tute
-	TUTE_VIEW_TUTES(CapabilityGroup.TUTE, "View Tutes", unavailable("Tute Dispatch is not built")),
-	TUTE_VIEW_TUTE(CapabilityGroup.TUTE, "View Tute", unavailable("Tute Dispatch is not built")),
-	TUTE_CREATE(CapabilityGroup.TUTE, "Create Tute", unavailable("Tute Dispatch is not built")),
-	TUTE_UPDATE(CapabilityGroup.TUTE, "Update Tute", unavailable("Tute Dispatch is not built")),
-	TUTE_ENROLL(CapabilityGroup.TUTE, "Enroll Tute", unavailable("Tute Dispatch is not built")),
-	TUTE_UNROLL(CapabilityGroup.TUTE, "Unroll Tute", unavailable("Tute Dispatch is not built")),
-	TUTE_UPDATE_STATUS(CapabilityGroup.TUTE, "Update Tute Status", unavailable("Tute Dispatch is not built")),
-	TUTE_DELETE(CapabilityGroup.TUTE, "Delete Tute", unavailable("Tute Dispatch is not built")),
+	// ---------------------------------------------------------------- Tute (TUTE-01 section 8)
+	// Tenant Admin holds every TUTES pair statically; Operator / Manager / seeded roles only by
+	// explicit grant; Teacher only by explicit grant (default off) and then for own courses only.
+	// GET /courses/{id}/tutes, /courses/{id}/tutes/paid-sessions.
+	TUTE_VIEW_TUTES(CapabilityGroup.TUTE, "View Tutes", omtTeacherOff(p(TUTES, VIEW))),
+	// GET /courses/{id}/tutes/{tuteId}, .../fulfillments.
+	TUTE_VIEW_TUTE(CapabilityGroup.TUTE, "View Tute", omtTeacherOff(p(TUTES, VIEW))),
+	TUTE_CREATE(CapabilityGroup.TUTE, "Create Tute", omtTeacherOff(p(TUTES, CREATE_EDIT))),
+	// PUT /courses/{id}/tutes/{tuteId}, POST .../sync-payments.
+	TUTE_UPDATE(CapabilityGroup.TUTE, "Update Tute", omtTeacherOff(p(TUTES, CREATE_EDIT))),
+	// POST .../fulfillments (manual assignment), GET .../eligible-students.
+	TUTE_ENROLL(CapabilityGroup.TUTE, "Enroll Tute", omtTeacherOff(p(TUTES, CREATE_EDIT))),
+	// POST .../fulfillments/{id}/cancel.
+	TUTE_UNROLL(CapabilityGroup.TUTE, "Unroll Tute", omtTeacherOff(p(TUTES, CREATE_EDIT))),
+	// POST /tute-dispatch/confirm, .../fulfillments/{id}/status.
+	TUTE_UPDATE_STATUS(CapabilityGroup.TUTE, "Update Tute Status", omtTeacherOff(p(TUTES, APPROVE))),
+	// DELETE /courses/{id}/tutes/{tuteId} (hard delete without history, else archive).
+	TUTE_DELETE(CapabilityGroup.TUTE, "Delete Tute", omtTeacherOff(p(TUTES, DELETE))),
+	// GET /tute-dispatch/queue, /tute-dispatch/filter-options: names, index numbers, cities.
+	TUTE_DISPATCH_VIEW(CapabilityGroup.TUTE, "View Tute Dispatch", omtTeacherOff(p(TUTES, VIEW))),
+	// POST /tute-dispatch/labels: the label PDF (full addresses and phones). Never implied by
+	// viewing the queue.
+	TUTE_DISPATCH_PRINT_LABELS(CapabilityGroup.TUTE, "Print Dispatch Labels", omtTeacherOff(p(TUTES, VIEW))),
 
 	// ---------------------------------------------------------------- Reports (one per report controller)
 	REPORTS_TEACHER_INCOME(CapabilityGroup.REPORTS, "Generate Teacher Reports", om(p(FINANCE_EXPENSES, VIEW))),
@@ -321,6 +337,15 @@ public enum Capability {
 
 	public boolean isConfigurableFor(ConfigurableRole role) {
 		return spec.availability == CapabilityAvailability.ENFORCED && spec.configurableFor.contains(role);
+	}
+
+	/**
+	 * Teacher's default grant when the tenant has no explicit row (meaningful only when
+	 * {@link #isTeacherConfigurable()}): {@code true} for every historical Teacher capability,
+	 * {@code false} for capabilities a Teacher holds only after an explicit grant (TUTE-01).
+	 */
+	public boolean teacherDefaultGranted() {
+		return spec.teacherDefaultGranted;
 	}
 
 	/** {@code true} when a Teacher's (ownership-scoped) access to this operation can be narrowed. */

@@ -47,6 +47,8 @@ public class ReportTemplates {
 
 	public static final String STUDENT_QR_LABELS = "reports/student-qr-labels";
 
+	public static final String TUTE_DISPATCH_LABELS = "reports/tute-dispatch-labels";
+
 	private static final Logger log = LoggerFactory.getLogger(ReportTemplates.class);
 
 	private final JasperReport summary;
@@ -70,6 +72,8 @@ public class ReportTemplates {
 
 	private final JasperReport studentQrLabels;
 
+	private final JasperReport tuteDispatchLabels;
+
 	public ReportTemplates() {
 		this.summary = load(SUMMARY);
 		this.payslip = load(PAYSLIP);
@@ -82,6 +86,7 @@ public class ReportTemplates {
 		this.undoPayments = load(UNDO_PAYMENTS);
 		this.timetable = load(TIMETABLE);
 		this.studentQrLabels = load(STUDENT_QR_LABELS);
+		this.tuteDispatchLabels = load(TUTE_DISPATCH_LABELS);
 	}
 
 	public JasperReport summary() {
@@ -132,6 +137,11 @@ public class ReportTemplates {
 	/** STU-MGMT-02 student QR label sheet (portrait A4, 3 x 7). */
 	public JasperReport studentQrLabels() {
 		return studentQrLabels;
+	}
+
+	/** TUTE-01 Tute Dispatch label sheet (portrait A4, 2 x 3). */
+	public JasperReport tuteDispatchLabels() {
+		return tuteDispatchLabels;
 	}
 
 	static JasperReport load(String base) {

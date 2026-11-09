@@ -1,5 +1,6 @@
 package com.lms.paymentmanagement.api;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -54,5 +55,19 @@ public interface PaymentReportApi {
 	 * #countManualReceiptsReceivedBetween}).
 	 */
 	List<UUID> findManualReceiptPaymentIdsReceivedBetween(LocalDate fromInclusive, LocalDate toInclusive);
+
+
+	/**
+	 * TUTE-01: per (order, course) V90 postage selection plus the order's delivery snapshot,
+	 * for every order of the current tenant in {@code orderIds} that has course charges (pre-V90
+	 * and legacy line-less orders have none and are absent).
+	 */
+	List<OrderPostageDelivery> findOrderPostageDeliveries(Collection<UUID> orderIds);
+
+	/**
+	 * TUTE-01: {@code payment.confirmed_at} of every payment in {@code paymentIds} that exists in
+	 * the current tenant and is {@code CONFIRMED} (others are absent). Read-only.
+	 */
+	Map<UUID, Instant> findConfirmedAtByPaymentIds(Collection<UUID> paymentIds);
 
 }

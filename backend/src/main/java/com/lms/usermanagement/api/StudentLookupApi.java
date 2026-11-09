@@ -97,4 +97,12 @@ public interface StudentLookupApi {
 	/** Every recorded profile-creation actor in current tenant registration rows. */
 	List<UUID> findRegistrationOperatorIds();
 
+	/**
+	 * TUTE-01: postal-delivery contacts (name, index number, profile address, delivery phone)
+	 * of each student user in {@code userIds}, read in tenant-scoped batches (one query per
+	 * chunk). Ids that are not students of the current tenant are silently omitted. Read-only;
+	 * the caller is responsible for authorizing the exposure of addresses and phones.
+	 */
+	List<StudentDeliveryContact> findDeliveryContacts(Collection<UUID> userIds);
+
 }

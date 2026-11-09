@@ -126,6 +126,15 @@ public enum DomainArea {
 	 * Admin only; no other role (staff sub-roles, teachers, students, Platform Admin)
 	 * holds it.
 	 */
-	STUDENT_IMPERSONATION
+	STUDENT_IMPERSONATION,
+
+	/**
+	 * TUTE-01 (docs/specs/tute-management-dispatch.md section 8): printed tutes per course,
+	 * their per-student fulfillments and the Tute Dispatch queue / labels. Tenant Admin
+	 * {@code V/C-E/D/A} only; every other role gets tute access only through an explicit
+	 * per-capability tenant grant (Staff -> Permissions, Tute group). Never a payment, ledger,
+	 * enrollment or paid-entitlement grant - tutes never create orders, payments or ledger rows.
+	 */
+	TUTES
 
 }

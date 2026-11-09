@@ -187,6 +187,23 @@ class PermissionCheckServiceImplTest {
 	}
 
 	@Test
+	void tutesAreTenantAdminOnlyInTheStaticMatrix() {
+		// TUTE-01 section 8: every other role needs an explicit per-capability grant.
+		for (Role role : Role.values()) {
+			AuthenticatedPrincipalHolder.set(principalFor(role));
+			try {
+				for (PermissionAction action : PermissionAction.values()) {
+					assertThat(service.hasPermission(DomainArea.TUTES, action)).as("%s / %s", role, action)
+						.isEqualTo(role == Role.TENANT_ADMIN);
+				}
+			}
+			finally {
+				AuthenticatedPrincipalHolder.clear();
+			}
+		}
+	}
+
+	@Test
 	void teacherTeacherAssistantStudentAlwaysDenied() {
 		// Teacher / Teacher Assistant / Student are deliberately absent from this
 		// domain-flat V/C/E/D/A matrix: their permission models are
@@ -379,7 +396,10 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.FREE_CARDS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
 									PermissionAction.DELETE),
 							// ADR-033 - "Log as Student" support impersonation.
-							cell(DomainArea.STUDENT_IMPERSONATION, PermissionAction.CREATE_EDIT))),
+							cell(DomainArea.STUDENT_IMPERSONATION, PermissionAction.CREATE_EDIT),
+							// TUTE-01 section 8 - Tute Management & Dispatch, Tenant Admin only.
+							cell(DomainArea.TUTES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+									PermissionAction.DELETE, PermissionAction.APPROVE))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,

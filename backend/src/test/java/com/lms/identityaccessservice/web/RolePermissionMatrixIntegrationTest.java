@@ -45,7 +45,16 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 		assertThat(cell(m, "STUDENTS_VIEW", "TEACHER").path("state").asString()).isEqualTo("LOCKED");
 		assertThat(cell(m, "STUDENTS_VIEW", "TEACHER").path("reason").asString())
 			.isEqualTo("Teacher access is ownership-scoped");
-		assertThat(cell(m, "TUTE_CREATE", "OPERATOR").path("state").asString()).isEqualTo("UNAVAILABLE");
+		assertThat(cell(m, "FINANCE_DASHBOARD_RECENT_PAYMENTS", "OPERATOR").path("state").asString())
+			.isEqualTo("UNAVAILABLE");
+		// TUTE-01: tute capabilities are editable for Operator and Teacher, not granted by default.
+		assertThat(cell(m, "TUTE_CREATE", "OPERATOR").path("state").asString()).isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "TUTE_CREATE", "TEACHER").path("state").asString()).isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "TUTE_DISPATCH_PRINT_LABELS", "COURSE_COORDINATOR").path("state").asString())
+			.isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "TUTE_DISPATCH_VIEW", "READ_ONLY_AUDITOR").path("state").asString())
+			.isEqualTo("NOT_GRANTED");
+		assertThat(cell(m, "TUTE_UPDATE_STATUS", "READ_ONLY_AUDITOR").path("state").asString()).isEqualTo("LOCKED");
 		assertThat(cell(m, "STAFF_PERMISSIONS_EDIT", "MANAGER").path("state").asString()).isEqualTo("LOCKED");
 		assertThat(cell(m, "FINANCE_ACCOUNT_UPDATE", "OPERATOR").path("state").asString()).isEqualTo("LOCKED");
 		// STAFF-MGMT-03: newly enforced rows are editable; Log as Student defaults to not granted.
@@ -136,7 +145,8 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 		Fx fx = tenantWithAdmin("perm-invalid");
 		Map<String, Object> valid = change("OPERATOR", "STUDENTS_VIEW", true);
 		List<List<Map<String, Object>>> invalid = List.of(List.of(valid, change("OPERATOR", "STAFF_VIEW", true)),
-				List.of(valid, change("MANAGER", "TUTE_CREATE", true)),
+				List.of(valid, change("MANAGER", "FINANCE_DASHBOARD_RECENT_PAYMENTS", true)),
+				List.of(valid, change("READ_ONLY_AUDITOR", "TUTE_CREATE", true)),
 				List.of(valid, change("OPERATOR", "NOT_A_CAPABILITY", true)),
 				List.of(valid, change("TENANT_ADMIN", "STUDENTS_VIEW", true)),
 				List.of(valid, change("TEACHER_ASSISTANT", "STUDENTS_VIEW", true)),
@@ -275,7 +285,8 @@ class RolePermissionMatrixIntegrationTest extends StaffApiTestSupport {
 			.path("data");
 		assertThat(admin.path("role").asString()).isEqualTo("TENANT_ADMIN");
 		assertThat(keys(admin)).contains("STAFF_PERMISSIONS_EDIT", "STUDENTS_VIEW", "STUDENTS_LOG_AS")
-			.doesNotContain("TUTE_CREATE");
+			.contains("TUTE_CREATE", "TUTE_DISPATCH_PRINT_LABELS")
+			.doesNotContain("FINANCE_DASHBOARD_RECENT_PAYMENTS");
 
 		String operator = userToken(fx, uniqueEmail("operator"), Role.OPERATOR);
 		JsonNode before = expect(call(HttpMethod.GET, "/api/v1/me/permissions", fx.host(), operator, null), 200)

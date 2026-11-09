@@ -260,12 +260,17 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 	/**
 	 * Default grant of {@code role} for {@code capability} when the tenant has no override row
 	 * (also used by the permission matrix view): seeded sub-roles - the static matrix holds the
-	 * capability's primary gate (plus its static allowlist); Teacher - granted; Operator/Manager -
-	 * not granted.
+	 * capability's primary gate (plus its static allowlist); Teacher - granted unless the
+	 * capability opts out ({@link Capability#teacherDefaultGranted()}); Operator/Manager - not
+	 * granted.
 	 */
 	public static boolean defaultGrant(ConfigurableRole role, Capability capability) {
 		if (role.isSeeded()) {
 			return staticCapability(capability, Role.valueOf(role.name()));
+		}
+		if (role == ConfigurableRole.TEACHER) {
+			// TUTE-01: a capability may opt out of the Teacher default (true for every older one).
+			return role.defaultGranted() && capability.teacherDefaultGranted();
 		}
 		return role.defaultGranted();
 	}
@@ -291,7 +296,7 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 		if (!capability.isConfigurableFor(configurableRole) || overrides == null) {
 			return false;
 		}
-		return overrides.getOrDefault(capability.key(), configurableRole.defaultGranted());
+		return overrides.getOrDefault(capability.key(), defaultGrant(configurableRole, capability));
 	}
 
 	/**
@@ -448,7 +453,11 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			.grant(DomainArea.FREE_CARDS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
 					PermissionAction.DELETE)
 			// ADR-033 - only the Tenant Admin may start a "Log as Student" support session.
-			.grant(DomainArea.STUDENT_IMPERSONATION, PermissionAction.CREATE_EDIT)));
+			.grant(DomainArea.STUDENT_IMPERSONATION, PermissionAction.CREATE_EDIT)
+			// TUTE-01 section 8 - Tenant Admin only; every other role needs an explicit
+			// per-capability grant (Teacher: own courses only).
+			.grant(DomainArea.TUTES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT, PermissionAction.DELETE,
+					PermissionAction.APPROVE)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)
 			.grant(DomainArea.COURSES, PermissionAction.VIEW)

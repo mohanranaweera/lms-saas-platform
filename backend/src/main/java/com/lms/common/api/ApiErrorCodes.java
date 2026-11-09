@@ -233,6 +233,36 @@ public final class ApiErrorCodes {
 	/** STU-MGMT-02: the student is pending approval, removed or suspended for this action. */
 	public static final String STUDENT_NOT_ACTIVE = "STUDENT_NOT_ACTIVE";
 
+	/** TUTE-01: the linked paid session is not a PAID session of this course, or the tute is not Paid. */
+	public static final String TUTE_SESSION_NOT_ELIGIBLE = "TUTE_SESSION_NOT_ELIGIBLE";
+
+	/** TUTE-01: a price was sent for a tute that is covered by class fees or free. */
+	public static final String TUTE_PRICE_NOT_ALLOWED = "TUTE_PRICE_NOT_ALLOWED";
+
+	/** TUTE-01: the new quantity is below the copies already reserved or dispatched. */
+	public static final String TUTE_QUANTITY_BELOW_ALLOCATED = "TUTE_QUANTITY_BELOW_ALLOCATED";
+
+	/** TUTE-01: not enough copies left for the requested assignment; nothing was written. */
+	public static final String TUTE_OUT_OF_STOCK = "TUTE_OUT_OF_STOCK";
+
+	/** TUTE-01: the tute was changed by someone else since it was loaded (stale version). */
+	public static final String TUTE_VERSION_CONFLICT = "TUTE_VERSION_CONFLICT";
+
+	/** TUTE-01: the tute is archived; it can no longer be edited or assigned. */
+	public static final String TUTE_ARCHIVED = "TUTE_ARCHIVED";
+
+	/** TUTE-01: the fulfillment is not in a state that allows this action. */
+	public static final String TUTE_INVALID_STATE = "TUTE_INVALID_STATE";
+
+	/** TUTE-01: postal tutes without a delivery address cannot be dispatched. */
+	public static final String TUTE_ADDRESS_MISSING = "TUTE_ADDRESS_MISSING";
+
+	/** TUTE-01: the selection is no longer current (item changed / label count mismatch); nothing done. */
+	public static final String TUTE_SELECTION_STALE = "TUTE_SELECTION_STALE";
+
+	/** TUTE-01: more pending postal tutes than the dispatch queue processes at once. */
+	public static final String TUTE_WORKING_SET_TOO_LARGE = "TUTE_WORKING_SET_TOO_LARGE";
+
 	private ApiErrorCodes() {
 	}
 

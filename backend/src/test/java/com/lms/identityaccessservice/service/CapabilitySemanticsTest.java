@@ -77,12 +77,25 @@ class CapabilitySemanticsTest {
 	}
 
 	@Test
-	void teacherConfigurableSetIsExactlyTheSpecifiedSix() {
+	void teacherConfigurableSetIsExactlyTheSpecifiedSixPlusTheTuteGroup() {
 		Set<Capability> teacher = Stream.of(Capability.values())
 			.filter(Capability::isTeacherConfigurable)
 			.collect(Collectors.toSet());
-		assertThat(teacher).containsExactlyInAnyOrder(Capability.COURSES_VIEW, Capability.COURSES_VIEW_STUDENTS,
-				Capability.MODULES_VIEW, Capability.MODULES_ADD, Capability.MODULES_DELETE, Capability.EXAMS_VIEW);
+		Set<Capability> tutes = Stream.of(Capability.values())
+			.filter(c -> c.group() == com.lms.identityaccessservice.api.CapabilityGroup.TUTE)
+			.collect(Collectors.toSet());
+		assertThat(tutes).hasSize(10);
+		Set<Capability> expected = new java.util.HashSet<>(tutes);
+		expected.addAll(Set.of(Capability.COURSES_VIEW, Capability.COURSES_VIEW_STUDENTS, Capability.MODULES_VIEW,
+				Capability.MODULES_ADD, Capability.MODULES_DELETE, Capability.EXAMS_VIEW));
+		assertThat(teacher).isEqualTo(expected);
+		// The historical six keep their "granted by default" Teacher column; tute capabilities
+		// (TUTE-01) are opt-in for Teacher.
+		for (Capability capability : teacher) {
+			assertThat(PermissionCheckServiceImpl.defaultGrant(ConfigurableRole.TEACHER, capability))
+				.as(capability.key())
+				.isEqualTo(!tutes.contains(capability));
+		}
 	}
 
 	@Test
@@ -133,7 +146,7 @@ class CapabilitySemanticsTest {
 	@Test
 	void operatorHoldsOnlyGrantedEnforcedCapabilities() {
 		when(store.findOverridesForRole("OPERATOR")).thenReturn(Map.of("STUDENTS_VIEW", true, "STUDENTS_ADD", false,
-				"STAFF_VIEW", true, "TUTE_CREATE", true));
+				"STAFF_VIEW", true, "FINANCE_DASHBOARD_RECENT_PAYMENTS", true));
 		as(Role.OPERATOR);
 		assertThat(service.hasCapability(Capability.STUDENTS_VIEW)).isTrue();
 		assertThat(service.hasCapability("STUDENTS_VIEW")).isTrue();
@@ -141,7 +154,7 @@ class CapabilitySemanticsTest {
 		assertThat(service.hasCapability(Capability.COURSES_VIEW)).isFalse();
 		// A stray row for a locked / unavailable key never grants anything.
 		assertThat(service.hasCapability(Capability.STAFF_VIEW)).isFalse();
-		assertThat(service.hasCapability(Capability.TUTE_CREATE)).isFalse();
+		assertThat(service.hasCapability(Capability.FINANCE_DASHBOARD_RECENT_PAYMENTS)).isFalse();
 		assertThat(service.effectiveCapabilities()).containsExactly(Capability.STUDENTS_VIEW);
 		assertThat(service.hasCapability("NOPE")).isFalse();
 		assertThat(service.hasCapability((String) null)).isFalse();

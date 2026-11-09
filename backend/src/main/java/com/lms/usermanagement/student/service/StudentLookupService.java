@@ -3,6 +3,8 @@ package com.lms.usermanagement.student.service;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.usermanagement.api.StudentContact;
+import com.lms.tenantmanagement.api.StudentProfileField;
+import com.lms.usermanagement.api.StudentDeliveryContact;
 import com.lms.usermanagement.api.StudentIndexEntry;
 import com.lms.usermanagement.api.RegistrationReportStudent;
 import com.lms.usermanagement.api.StudentLookupApi;
@@ -170,6 +172,33 @@ public class StudentLookupService implements StudentLookupApi {
 						new StudentIndexEntry(profile.getUserId(), profile.getName(), profile.getIndexNumber())));
 		}
 		return result;
+	}
+
+	@Override
+	public List<StudentDeliveryContact> findDeliveryContacts(Collection<UUID> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = List.copyOf(new LinkedHashSet<>(userIds));
+		List<StudentDeliveryContact> result = new ArrayList<>();
+		for (int from = 0; from < ids.size(); from += INDEX_CHUNK) {
+			List<UUID> chunk = ids.subList(from, Math.min(ids.size(), from + INDEX_CHUNK));
+			studentProfileRepository.findAll((root, query, cb) -> root.get("userId").in(chunk))
+				.forEach(profile -> result.add(new StudentDeliveryContact(profile.getUserId(), profile.getId(),
+						profile.getName(), profile.getIndexNumber(), profile.getAddressLine(),
+						profile.getAddressLine2(), profile.getCity(), profile.getPostalCode(), deliveryPhone(profile))));
+		}
+		return result;
+	}
+
+	/** Tute delivery phone 1, else the mobile number; {@code null} when neither is set. */
+	private static String deliveryPhone(StudentProfile profile) {
+		Object tutePhone = profile.readField(StudentProfileField.TUTE_DELIVERY_PHONE_1);
+		if (tutePhone instanceof String phone && !phone.isBlank()) {
+			return phone.strip();
+		}
+		String mobile = profile.getMobile();
+		return mobile == null || mobile.isBlank() ? null : mobile.strip();
 	}
 
 	@Override

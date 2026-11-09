@@ -25,8 +25,22 @@ final class CapabilitySpec {
 
 	final Set<String> staticRoleAllowlist;
 
+	/**
+	 * Teacher's default when the tenant has no explicit row: {@code true} (the historical
+	 * per-role default - Teacher capabilities only narrow) except for {@link #omtTeacherOff}
+	 * capabilities, which a Teacher holds only after an explicit tenant grant.
+	 */
+	final boolean teacherDefaultGranted;
+
 	private CapabilitySpec(CapabilityAvailability availability, String reason, Set<ConfigurableRole> configurableFor,
 			PermissionPair primary, PermissionPair[] implied, Set<String> staticRoleAllowlist) {
+		this(availability, reason, configurableFor, primary, implied, staticRoleAllowlist, true);
+	}
+
+	private CapabilitySpec(CapabilityAvailability availability, String reason, Set<ConfigurableRole> configurableFor,
+			PermissionPair primary, PermissionPair[] implied, Set<String> staticRoleAllowlist,
+			boolean teacherDefaultGranted) {
+		this.teacherDefaultGranted = teacherDefaultGranted;
 		this.availability = availability;
 		this.reason = reason;
 		this.primary = primary;
@@ -88,6 +102,18 @@ final class CapabilitySpec {
 		return new CapabilitySpec(CapabilityAvailability.ENFORCED, null,
 				EnumSet.of(ConfigurableRole.OPERATOR, ConfigurableRole.MANAGER, ConfigurableRole.TEACHER), primary,
 				implied, null);
+	}
+
+	/**
+	 * Like {@link #omt} (configurable for Operator, Manager, the seeded roles and Teacher), but a
+	 * Teacher does NOT hold it by default: a new feature never silently broadens Teacher access
+	 * (TUTE-01 section 8). Once granted, the Teacher's access stays ownership-scoped by the
+	 * owning module; the grant never elevates a static gate.
+	 */
+	static CapabilitySpec omtTeacherOff(PermissionPair primary, PermissionPair... implied) {
+		return new CapabilitySpec(CapabilityAvailability.ENFORCED, null,
+				EnumSet.of(ConfigurableRole.OPERATOR, ConfigurableRole.MANAGER, ConfigurableRole.TEACHER), primary,
+				implied, null, false);
 	}
 
 	/** System-managed: static roles keep {@code primary}; never configurable. */

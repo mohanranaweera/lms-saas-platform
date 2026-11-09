@@ -2,6 +2,7 @@ package com.lms.paymentmanagement.payment.service;
 
 import com.lms.paymentmanagement.api.ManualReceiptFact;
 import com.lms.paymentmanagement.api.OrderCourseCharge;
+import com.lms.paymentmanagement.api.OrderPostageDelivery;
 import com.lms.paymentmanagement.api.PaymentReportApi;
 import com.lms.paymentmanagement.manualpayment.domain.ManualPaymentReceipt;
 import com.lms.paymentmanagement.manualpayment.repository.ManualPaymentReceiptRepository;
@@ -9,6 +10,10 @@ import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.domain.StudentOrderCourseCharge;
 import com.lms.paymentmanagement.order.repository.StudentOrderCourseChargeRepository;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
+import com.lms.paymentmanagement.payment.domain.Payment;
+import com.lms.paymentmanagement.payment.domain.PaymentStatus;
+import com.lms.paymentmanagement.payment.repository.PaymentRepository;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,11 +42,15 @@ public class PaymentReportQueryService implements PaymentReportApi {
 
 	private final ManualPaymentReceiptRepository receiptRepository;
 
+	private final PaymentRepository paymentRepository;
+
 	public PaymentReportQueryService(StudentOrderRepository orderRepository,
-			StudentOrderCourseChargeRepository chargeRepository, ManualPaymentReceiptRepository receiptRepository) {
+			StudentOrderCourseChargeRepository chargeRepository, ManualPaymentReceiptRepository receiptRepository,
+			PaymentRepository paymentRepository) {
 		this.orderRepository = orderRepository;
 		this.chargeRepository = chargeRepository;
 		this.receiptRepository = receiptRepository;
+		this.paymentRepository = paymentRepository;
 	}
 
 	@Override
@@ -112,6 +121,45 @@ public class PaymentReportQueryService implements PaymentReportApi {
 			.stream()
 			.distinct()
 			.toList();
+	}
+
+	@Override
+	public List<OrderPostageDelivery> findOrderPostageDeliveries(Collection<UUID> orderIds) {
+		List<OrderPostageDelivery> result = new ArrayList<>();
+		for (List<UUID> chunk : chunks(orderIds)) {
+			List<StudentOrderCourseCharge> charges = chargeRepository.findAllByOrderIdIn(chunk);
+			if (charges.isEmpty()) {
+				continue;
+			}
+			Map<UUID, StudentOrder.DeliverySnapshot> deliveries = new HashMap<>();
+			for (StudentOrder order : orderRepository
+				.findAllById(charges.stream().map(StudentOrderCourseCharge::getOrderId).distinct().toList())) {
+				if (order.getDelivery() != null) {
+					deliveries.put(order.getId(), order.getDelivery());
+				}
+			}
+			for (StudentOrderCourseCharge charge : charges) {
+				StudentOrder.DeliverySnapshot delivery = deliveries.get(charge.getOrderId());
+				result.add(new OrderPostageDelivery(charge.getOrderId(), charge.getCourseId(),
+						charge.isPostageSelected(), delivery == null ? null : delivery.recipientName(),
+						delivery == null ? null : delivery.addressLine(), delivery == null ? null : delivery.city(),
+						delivery == null ? null : delivery.phone()));
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public Map<UUID, Instant> findConfirmedAtByPaymentIds(Collection<UUID> paymentIds) {
+		Map<UUID, Instant> result = new HashMap<>();
+		for (List<UUID> chunk : chunks(paymentIds)) {
+			for (Payment payment : paymentRepository.findAllById(chunk)) {
+				if (payment.getStatus() == PaymentStatus.CONFIRMED && payment.getConfirmedAt() != null) {
+					result.put(payment.getId(), payment.getConfirmedAt());
+				}
+			}
+		}
+		return result;
 	}
 
 	private static List<List<UUID>> chunks(Collection<UUID> ids) {
