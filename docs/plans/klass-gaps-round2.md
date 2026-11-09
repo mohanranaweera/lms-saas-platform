@@ -23,7 +23,7 @@ Design: solution-architect KLASS-G-ARCH. IDs **G1–G5**.
 | R2-D1 | Library is institute-wide. Tenant Admin manages all items; teachers see/open/attach all institute items and rename/delete only their own uploads. |
 | R2-D2 | Videos follow the same rule (widens the previous teacher video visibility "own + attached to own courses"); edit/delete/settings of a video stay owner-or-admin. |
 | R2-D3 | Upload types unchanged: PDF, PNG, JPEG, GIF, UTF-8 text, 25 MB, content-sniffed. No Office formats. |
-| R2-D4 | Tute Management omitted from menus until built. |
+| R2-D4 | Tute Management omitted from menus until built. **Superseded by TUTE-01** (`docs/specs/tute-management-dispatch.md`): Manage Tutes is in the course More menu. |
 | R2-D5 | Course edit hides Pricing model / Billing configuration / Billing period and the Fees & Billing tab; monthly price edits keep recording billing-period history server-side; history retained. |
 | R2-D6 | Additive `tags` on `GET /api/v1/checkout/courses` items (owner asked for tag filtering in payment selection). |
 | R2-D7 | Teacher-list edits validate only newly added teachers (a suspended existing co-teacher must not block edits). |
