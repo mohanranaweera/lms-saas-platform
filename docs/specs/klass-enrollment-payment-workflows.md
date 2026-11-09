@@ -21,7 +21,7 @@ Modal fields: Name*, Teacher* (multi-select of tenant teachers; first = primary;
 Installments (INSTALLMENT), Free (FREE); conditional Price for Full Course / Monthly Fee (our design;
 Monthly creates the billing configuration and first open period); Enrollment Fee (informational only —
 never charged, never gates enrollment); SHOW/HIDE ADDITIONAL SETTINGS (values retained): Payment Valid Days
-(= `access_duration_days`; entitlements snapshot `valid_until`; blank/0 = no limit), Institute Commission %
+(= `access_duration_days`; entitlements snapshot `valid_until`; blank/0 = no limit; MONTHLY entitlements end with the paid month in the tenant timezone, falling back to valid days only when that month is already over at grant time — D10 as amended 2026-11-09), Institute Commission %
 (0–100, append-only history, **not used by settlement** — O-3), WhatsApp / Telegram invitation links (https),
 Description (plain text), Tags (select or create by comma/Enter; trimmed, case-insensitive dedupe, tenant
 scoped; feed the student chips), Link another course (one level, same tenant, no self/cycle); Cover Image

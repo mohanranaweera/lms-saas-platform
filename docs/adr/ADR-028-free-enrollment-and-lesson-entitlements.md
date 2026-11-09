@@ -73,6 +73,24 @@ sessions. The API retains billing fields for compatibility but ignores client va
 session rows, orders, entitlements, payments and ledger history are not rewritten; verified
 payment/manual approval remains the only paid-entitlement activation path.
 
+## 2026-11-09 approved refinement
+
+The owner approved two changes (plan `docs/plans/klass-enrollment-payment-parity.md` D10
+amended, D17 superseded, O-4 resolved):
+
+1. **Monthly paid access ends with its month.** A MONTHLY entitlement's `valid_until` is the
+   start of the month after the paid month in the tenant timezone, whatever the payment date
+   and whatever Payment Valid Days says. If that month is already over when the entitlement is
+   granted (a slip approved after month end, a purchase of past recordings), `valid_until`
+   falls back to `granted_at + Payment Valid Days` so a verified payment always grants usable
+   access. MODULE/LESSON entitlements are unchanged. Grants still happen only on verified
+   payment confirmation or approved slip; no existing entitlement row is rewritten.
+2. **Course membership is enrollment, not payment.** The course roster, attendance, the course
+   notification audience, teacher student counts and the student exam gates list every
+   enrolled (participating) student, paid or not. The roster shows a display-only paid-access
+   status; it is never an authorization input. Paid leaf resources keep their entitlement
+   checks.
+
 ## Not changed
 
 Payment verification (ADR-017 notification verification, amount/currency/merchant checks),
