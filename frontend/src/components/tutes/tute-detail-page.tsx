@@ -401,7 +401,13 @@ function AssignedStudents({
                                 {row.held || row.paymentReversedAt ? (
                                   <Badge variant="destructive" data-testid="fulfillment-hold">
                                     <AlertTriangle aria-hidden="true" />
-                                    {row.status === "DISPATCHED" ? "Payment reversed after dispatch" : row.held ? "Payment reversed — on hold" : "Payment reversed"}
+                                    {row.status === "DISPATCHED"
+                                      ? "Payment reversed after dispatch"
+                                      : row.held
+                                        ? "Payment reversed — on hold"
+                                        : row.holdReleasedAt
+                                          ? "Payment reversed — hold released"
+                                          : "Payment reversed"}
                                   </Badge>
                                 ) : null}
                                 {row.addressMissing && row.method === "POSTAL" && pending ? (
