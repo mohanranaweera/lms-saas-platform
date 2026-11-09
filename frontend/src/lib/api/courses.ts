@@ -605,8 +605,9 @@ export interface CourseRosterEntryResponse {
 
 /**
  * `GET /v1/courses/{courseId}/roster` (Wave 3, PAR-03-06/PAR-04-03) — a real,
- * backend-filtered course roster of every enrolled student (free enrollment,
- * ADR-028), paid or not. Teacher: own-course-only (server-verified
+ * backend-filtered course roster: enrolled students paid for the current month
+ * (or holding other active paid access), with an active Free Card, or on a free
+ * course. Unpaid students are filtered out server-side. Teacher: own-course-only (server-verified
  * ownership, same pattern `AttendanceAccessGuard` already uses — a Teacher
  * requesting another teacher's course id gets a real 404/403, never a
  * client-filtered subset of a wider fetch). Staff: `STUDENTS`/`VIEW` or

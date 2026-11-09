@@ -60,8 +60,8 @@ function RosterForCourse({ courseId }: { courseId: string }) {
       loadingLabel="Loading roster…"
       isEmpty={(data) => data.length === 0}
       emptyState={{
-        title: "No enrolled students",
-        description: "No student is currently enrolled in this course.",
+        title: "No active students",
+        description: "No enrolled student has paid for this month or holds an active Free Card.",
       }}
     >
       {(roster) => (

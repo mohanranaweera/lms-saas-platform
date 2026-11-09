@@ -3,11 +3,10 @@ import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/a
 
 /**
  * Tenant Admin course roster — `(tenant-admin)/tenant-admin/courses/[courseId]/roster`.
- * The backend roster lists every enrolled student (free enrollment, ADR-028)
- * with a display-only `accessStatus`; a student whose payment lapsed or who has
- * not paid this month is still on the roster, shown as "Not paid". No real
- * backend runs here — membership and status are backend-computed and covered by
- * `CourseRosterParticipationIntegrationTest`.
+ * The backend lists only enrolled students with access right now (paid for the
+ * current month, an active Free Card, or a free course) with a display-only
+ * `accessStatus`. No real backend runs here — the filter and status are
+ * backend-computed and covered by `CourseRosterParticipationIntegrationTest`.
  */
 
 const COURSE = {
@@ -38,7 +37,7 @@ async function mockTenantAdminSession(page: Page): Promise<void> {
   await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(fakeJwt({ role: "TENANT_ADMIN" }))));
 }
 
-test("lists every enrolled student with their paid-access status", async ({ page }) => {
+test("lists the active students with their paid-access status", async ({ page }) => {
   await mockTenantAdminSession(page);
   await mockJson(page, `**/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
   await mockJson(
@@ -47,7 +46,6 @@ test("lists every enrolled student with their paid-access status", async ({ page
     200,
     apiSuccess([
       { studentId: "s1", userId: "u1", name: "Paid Student", email: "paid@example.test", accessStatus: "PAID" },
-      { studentId: "s2", userId: "u2", name: "Lapsed Student", email: "lapsed@example.test", accessStatus: "NOT_PAID" },
       { studentId: "s3", userId: "u3", name: "Card Student", email: "card@example.test", accessStatus: "FREE_CARD" },
     ])
   );
@@ -58,9 +56,21 @@ test("lists every enrolled student with their paid-access status", async ({ page
   const table = page.getByRole("table");
   await expect(table.getByRole("columnheader", { name: "Paid access" })).toBeVisible();
   await expect(table.getByRole("row", { name: /Paid Student/ }).getByText("Paid", { exact: true })).toBeVisible();
-  await expect(table.getByRole("row", { name: /Lapsed Student/ }).getByText("Not paid")).toBeVisible();
   await expect(table.getByRole("row", { name: /Card Student/ }).getByText("Free card")).toBeVisible();
-  await expect(page.getByText("No enrolled students")).toHaveCount(0);
+  await expect(page.getByText("No active students")).toHaveCount(0);
+});
+
+test("a course with no active students shows the dedicated empty state", async ({ page }) => {
+  await mockTenantAdminSession(page);
+  await mockJson(page, `**/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
+  await mockJson(page, `**/v1/courses/${COURSE.id}/roster`, 200, apiSuccess([]));
+
+  await page.goto(`/tenant-admin/courses/${COURSE.id}/roster`);
+
+  await expect(page.getByText("No active students")).toBeVisible();
+  await expect(
+    page.getByText("No enrolled student has paid for this month or holds an active Free Card.")
+  ).toBeVisible();
 });
 
 test("below md, each roster card still shows the paid-access status", async ({ page }) => {
@@ -72,7 +82,7 @@ test("below md, each roster card still shows the paid-access status", async ({ p
     `**/v1/courses/${COURSE.id}/roster`,
     200,
     apiSuccess([
-      { studentId: "s2", userId: "u2", name: "Lapsed Student", email: "lapsed@example.test", accessStatus: "NOT_PAID" },
+      { studentId: "s2", userId: "u2", name: "Card Student", email: "card@example.test", accessStatus: "FREE_CARD" },
     ])
   );
 
@@ -80,6 +90,6 @@ test("below md, each roster card still shows the paid-access status", async ({ p
 
   await expect(page.getByRole("table")).toBeHidden();
   const cards = page.getByRole("list");
-  await expect(cards.getByText("Lapsed Student")).toBeVisible();
-  await expect(cards.getByText("Not paid")).toBeVisible();
+  await expect(cards.getByText("Card Student")).toBeVisible();
+  await expect(cards.getByText("Free card")).toBeVisible();
 });

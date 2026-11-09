@@ -27,7 +27,7 @@ export default function TenantAdminCourseRosterPage() {
         </Link>
         <div>
           <h1 className="text-xl font-semibold text-foreground">Roster</h1>
-          <p className="text-sm text-muted-foreground">Students currently enrolled in this course.</p>
+          <p className="text-sm text-muted-foreground">Students paid for this month or holding an active Free Card.</p>
         </div>
       </div>
 
@@ -48,8 +48,8 @@ export default function TenantAdminCourseRosterPage() {
               permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
               isEmpty={(data) => data.length === 0}
               emptyState={{
-                title: "No enrolled students",
-                description: "No student is currently enrolled in this course.",
+                title: "No active students",
+                description: "No enrolled student has paid for this month or holds an active Free Card.",
               }}
             >
               {(roster) => (

@@ -6,10 +6,10 @@ import type { VariantProps } from "class-variance-authority";
 
 /**
  * Course roster columns shared by the Tenant Admin roster, the Teacher roster
- * and the Tenant Admin teacher-detail Roster tab. The roster lists every
- * enrolled student (enrollment is free, ADR-028); "Paid access" is the
- * backend's display-only `accessStatus` - the current month for monthly
- * classes - never computed here. Color is always paired with an icon and a
+ * and the Tenant Admin teacher-detail Roster tab. The backend lists only
+ * enrolled students with access right now (paid for the current month, an
+ * active Free Card, or a free course); "Paid access" is its display-only
+ * `accessStatus`, never computed or filtered here. Color is always paired with an icon and a
  * label (`.claude/rules/ui-ux.md` §4).
  */
 const ACCESS_META: Record<
