@@ -55,12 +55,15 @@ class EntitlementGrantServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private TenantZoneLookup tenantZoneLookup;
+
 	private EntitlementGrantService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new EntitlementGrantService(entitlementRepository, paymentStatusApi, slipStatusApi, courseLookupApi,
-				auditLogApi, tenantContext, new PermissionCheckServiceImpl());
+				auditLogApi, tenantContext, new PermissionCheckServiceImpl(), tenantZoneLookup);
 	}
 
 	@Test

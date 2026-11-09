@@ -654,6 +654,32 @@ class CheckoutComposerEntitlementIntegrationTest extends SlipTestSupport {
 		assertThat(launch(fx, fx.studentToken(), fx.ict(), fx.paidLesson())).isEqualTo(200);
 	}
 
+	@Test
+	void monthlyAccessEndsWithThePaidMonthButAMonthAlreadyOverFallsBackToValidDays() {
+		// Monthly classes rule (owner, 2026-11-09): tenant timezone unset = UTC here.
+		Fx fx = seed("t4c-month-end");
+		jdbcTemplate.update("UPDATE course SET access_duration_days = 30 WHERE id = ?", fx.ict());
+		java.time.YearMonth next = java.time.YearMonth.now(java.time.ZoneOffset.UTC).plusMonths(1);
+		covered(lesson(fx.host(), fx.adminToken(), fx.ict(), fx.ictModule(), "Next month class", 6), next.getYear(),
+				next.getMonthValue());
+
+		UUID advance = orderOrFail(fx, fx.ict(), List.of(monthly(next.getYear(), next.getMonthValue())));
+		payOnline(fx, advance);
+		UUID pastMonth = orderOrFail(fx, fx.ict(), List.of(monthly(2026, 9)));
+		payOnline(fx, pastMonth);
+
+		java.time.Instant expectedEnd = next.plusMonths(1).atDay(1).atStartOfDay(java.time.ZoneOffset.UTC)
+			.toInstant();
+		assertThat(jdbcTemplate.queryForObject("SELECT valid_until FROM content_entitlement WHERE order_id = ?",
+				java.sql.Timestamp.class, advance).toInstant())
+			.as("advance purchase covers the whole month, not granted_at + 30 days")
+			.isEqualTo(expectedEnd);
+		Long fallbackDays = jdbcTemplate.queryForObject("SELECT extract(day FROM valid_until - granted_at)::bigint "
+				+ "FROM content_entitlement WHERE order_id = ?", Long.class, pastMonth);
+		assertThat(fallbackDays).as("September 2026 had ended at grant time").isEqualTo(30L);
+		assertThat(launch(fx, fx.studentToken(), fx.ict(), fx.sep())).isEqualTo(200);
+	}
+
 	// ------------------------------------------------------------------
 	// D22 + config validation.
 	// ------------------------------------------------------------------

@@ -18,7 +18,7 @@ import com.lms.paymentmanagement.api.OrderLineSnapshot;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
 import com.lms.paymentmanagement.api.SlipStatusApi;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,8 +49,10 @@ import org.springframework.transaction.annotation.Transactional;
  * payment is never auto-rejected - payments.md §3) and flagged for manual
  * refund review;</li>
  * <li>otherwise a new row copies scope/course/module/lesson/period/coverage
- * from the immutable line, with {@code valid_until = granted_at +
- * course.access_duration_days} (D10, {@code null} = no limit).</li>
+ * from the immutable line; {@code valid_until} per {@link EntitlementValidity}
+ * (MONTHLY: end of the paid month in the tenant timezone; otherwise, or for a
+ * month already over, {@code granted_at + course.access_duration_days};
+ * {@code null} = no limit).</li>
  * </ol>
  * Participation is never touched here (the composer requires it beforehand).
  */
@@ -78,13 +80,17 @@ public class EntitlementGrantService implements EntitlementGrantApi {
 
 	private final AuditLogApi auditLogApi;
 
+	private final TenantZoneLookup tenantZoneLookup;
+
 	private final TenantContext tenantContext;
 
 	private final PermissionCheckService permissionCheckService;
 
 	public EntitlementGrantService(ContentEntitlementRepository entitlementRepository,
 			PaymentStatusApi paymentStatusApi, SlipStatusApi slipStatusApi, CourseLookupApi courseLookupApi,
-			AuditLogApi auditLogApi, TenantContext tenantContext, PermissionCheckService permissionCheckService) {
+			AuditLogApi auditLogApi, TenantContext tenantContext, PermissionCheckService permissionCheckService,
+			TenantZoneLookup tenantZoneLookup) {
+		this.tenantZoneLookup = tenantZoneLookup;
 		this.permissionCheckService = permissionCheckService;
 		this.entitlementRepository = entitlementRepository;
 		this.paymentStatusApi = paymentStatusApi;
@@ -154,7 +160,7 @@ public class EntitlementGrantService implements EntitlementGrantApi {
 			entitlementRepository.acquireCoverageLock(CoverageKeys.lockKey(tenantId, studentId, key));
 		}
 
-		Map<UUID, Instant> validUntilByCourse = new LinkedHashMap<>();
+		Map<UUID, Integer> validDaysByCourse = new HashMap<>();
 		Instant now = Instant.now();
 		int granted = 0;
 		int already = 0;
@@ -190,11 +196,12 @@ public class EntitlementGrantService implements EntitlementGrantApi {
 						metadata("coverageKey", existing.getCoverageKey(), "validUntil", existing.getValidUntil(),
 								"supersededByOrderLineId", line.lineId()));
 			}
-			Instant validUntil = validUntilByCourse.computeIfAbsent(line.courseId(), courseId -> courseLookupApi
+			Integer validDays = validDaysByCourse.computeIfAbsent(line.courseId(), courseId -> courseLookupApi
 				.getAccessDurationDays(courseId)
 				.map(CourseAccessWindow::accessDurationDays)
-				.map(days -> now.plus(days, ChronoUnit.DAYS))
 				.orElse(null));
+			Instant validUntil = EntitlementValidity.validUntil(line.scope(), line.periodYear(), line.periodMonth(),
+					now, tenantZoneLookup.currentTenantZone(), validDays);
 			ContentEntitlement entitlement = entitlementRepository.save(ContentEntitlement.grant(tenantId, studentId,
 					ContentEntitlementScope.valueOf(line.scope()), line.courseId(), line.moduleId(), line.lessonId(),
 					line.periodYear(), line.periodMonth(), line.coverageKey(), orderId, line.lineId(),
