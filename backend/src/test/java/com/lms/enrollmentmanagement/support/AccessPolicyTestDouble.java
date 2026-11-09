@@ -62,6 +62,11 @@ public final class AccessPolicyTestDouble implements AccessPolicyApi {
 	}
 
 	@Override
+	public boolean isCurrentDeviceAuthorizedForCourse(UUID studentId, UUID courseId) {
+		return true;
+	}
+
+	@Override
 	public CourseAccessDecision requireStudentCourseAccess(UUID courseId,
 			Supplier<? extends RuntimeException> deniedAsNotFound) {
 		CourseAccessDecision decision = evaluateStudentCourseAccess(AuthenticatedPrincipalHolder.get().userId(),

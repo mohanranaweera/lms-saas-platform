@@ -4,10 +4,11 @@ import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.ConflictException;
+import com.lms.common.error.DeviceNotAuthorizedException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.enrollmentmanagement.api.AccessPolicyApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.ContentCoverageApi;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamQuestion;
 import com.lms.exammanagement.domain.ExamQuestionLink;
@@ -75,7 +76,7 @@ public class ExamSchedulingService {
 
 	private final ExamLifecycleService examLifecycleService;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final ContentCoverageApi contentCoverageApi;
 
 	private final AccessPolicyApi accessPolicyApi;
 
@@ -86,7 +87,7 @@ public class ExamSchedulingService {
 	public ExamSchedulingService(ExamRepository examRepository, ExamQuestionRepository examQuestionRepository,
 			ExamQuestionLinkRepository examQuestionLinkRepository,
 			ExamQuestionOptionRepository examQuestionOptionRepository, ExamAccessGuard examAccessGuard,
-			ExamLifecycleService examLifecycleService, EnrollmentAccessApi enrollmentAccessApi,
+			ExamLifecycleService examLifecycleService, ContentCoverageApi contentCoverageApi,
 			TenantContext tenantContext, AuditLogApi auditLogApi, AccessPolicyApi accessPolicyApi) {
 		this.accessPolicyApi = accessPolicyApi;
 		this.examRepository = examRepository;
@@ -95,7 +96,7 @@ public class ExamSchedulingService {
 		this.examQuestionOptionRepository = examQuestionOptionRepository;
 		this.examAccessGuard = examAccessGuard;
 		this.examLifecycleService = examLifecycleService;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.contentCoverageApi = contentCoverageApi;
 		this.tenantContext = tenantContext;
 		this.auditLogApi = auditLogApi;
 	}
@@ -186,9 +187,15 @@ public class ExamSchedulingService {
 			if (resolvedStatus != ExamStatus.PUBLISHED && resolvedStatus != ExamStatus.CLOSED) {
 				throw new NotFoundException("Exam not found");
 			}
-			// Wave 10: the central access decision (expiry, extension, grace, course device limit).
-			accessPolicyApi.requireStudentCourseAccess(exam.getCourseId(),
-					() -> new NotFoundException("Exam not found"));
+			// ADR-028: (free) course enrollment, never the legacy paid-enrollment window;
+			// the course device limit still applies.
+			if (!contentCoverageApi.isParticipant(principal.userId(), exam.getCourseId())) {
+				throw new NotFoundException("Exam not found");
+			}
+			if (!accessPolicyApi.isCurrentDeviceAuthorizedForCourse(principal.userId(), exam.getCourseId())) {
+				throw new DeviceNotAuthorizedException(
+						"This course can only be opened on a limited number of devices, and this device is not one of them.");
+			}
 		}
 		else {
 			examAccessGuard.requireAuthoringAccess(exam.getCourseId(), PermissionAction.VIEW);
@@ -204,7 +211,7 @@ public class ExamSchedulingService {
 	 * (SCHEDULED, PUBLISHED)}. {@code hasRole('STUDENT')}, owner-only by
 	 * construction (no id param - always the calling principal's own
 	 * currently-enrolled course set via {@link
-	 * EnrollmentAccessApi#listCurrentlyEnrolledCourseIds(UUID)}).
+	 * ContentCoverageApi#findCourseIds(UUID)}).
 	 *
 	 * <p>Each candidate row's live status is re-resolved via {@link
 	 * ExamLifecycleService} before being included in the returned page - a
@@ -218,7 +225,7 @@ public class ExamSchedulingService {
 	public PageResponse<ExamSummaryView> listMyUpcomingExams(Pageable pageable) {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		Pageable safePageable = clampPageSize(pageable);
-		Set<UUID> courseIds = enrollmentAccessApi.listCurrentlyEnrolledCourseIds(principal.userId());
+		Set<UUID> courseIds = contentCoverageApi.findCourseIds(principal.userId());
 		if (courseIds.isEmpty()) {
 			return PageResponse.from(Page.empty(safePageable));
 		}

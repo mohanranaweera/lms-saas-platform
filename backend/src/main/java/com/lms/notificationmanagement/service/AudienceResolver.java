@@ -4,7 +4,7 @@ import com.lms.common.api.FieldError;
 import com.lms.common.error.FieldValidationException;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.notificationmanagement.domain.Broadcast.AudienceType;
 import com.lms.notificationmanagement.domain.Broadcast.PaymentStatusFilter;
 import com.lms.paymentmanagement.api.OrderPaymentDetail;
@@ -37,18 +37,18 @@ public class AudienceResolver {
 
 	private final TeacherLookupApi teacherLookupApi;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final CourseParticipationApi courseParticipationApi;
 
 	private final CourseLookupApi courseLookupApi;
 
 	private final PaymentStatusApi paymentStatusApi;
 
 	public AudienceResolver(StudentLookupApi studentLookupApi, TeacherLookupApi teacherLookupApi,
-			EnrollmentAccessApi enrollmentAccessApi, CourseLookupApi courseLookupApi,
+			CourseParticipationApi courseParticipationApi, CourseLookupApi courseLookupApi,
 			PaymentStatusApi paymentStatusApi) {
 		this.studentLookupApi = studentLookupApi;
 		this.teacherLookupApi = teacherLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.courseParticipationApi = courseParticipationApi;
 		this.courseLookupApi = courseLookupApi;
 		this.paymentStatusApi = paymentStatusApi;
 	}
@@ -82,7 +82,7 @@ public class AudienceResolver {
 			case COURSE -> {
 				requireNoExtras(spec, true, false);
 				requireCourse(spec.courseId());
-				yield students(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(spec.courseId()));
+				yield students(courseParticipationApi.listParticipantStudentIds(spec.courseId()));
 			}
 			case SELECTED_STUDENTS -> selectedStudents(spec);
 			case ALL_TEACHERS -> {

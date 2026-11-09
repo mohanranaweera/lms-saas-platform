@@ -9,7 +9,7 @@ import com.lms.common.persistence.UuidV7Generator;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.PermissionAction;
 import java.time.Instant;
@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  * CourseLookupApi#resolveLessonOwnership(UUID)} first (empty -&gt; {@code
  * 404}, tenant-scoped by construction), runs {@link AttendanceAccessGuard},
  * validates every submitted {@code studentId} against {@link
- * EnrollmentAccessApi#listCurrentlyEnrolledStudentIds(UUID)} before upsert,
+ * CourseParticipationApi#listParticipantStudentIds(UUID)} before upsert,
  * derives {@code courseId} server-side (never client-supplied), and stamps
  * {@code markedBy}/{@code markedAt} from the authenticated context.
  *
@@ -45,7 +45,7 @@ public class AttendanceMarkingService {
 
 	private final CourseLookupApi courseLookupApi;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final CourseParticipationApi courseParticipationApi;
 
 	private final AttendanceAccessGuard attendanceAccessGuard;
 
@@ -55,11 +55,11 @@ public class AttendanceMarkingService {
 
 	private final TenantContext tenantContext;
 
-	public AttendanceMarkingService(CourseLookupApi courseLookupApi, EnrollmentAccessApi enrollmentAccessApi,
+	public AttendanceMarkingService(CourseLookupApi courseLookupApi, CourseParticipationApi courseParticipationApi,
 			AttendanceAccessGuard attendanceAccessGuard, AttendanceRecordRepository attendanceRecordRepository,
 			AttendanceSheetService attendanceSheetService, TenantContext tenantContext) {
 		this.courseLookupApi = courseLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.courseParticipationApi = courseParticipationApi;
 		this.attendanceAccessGuard = attendanceAccessGuard;
 		this.attendanceRecordRepository = attendanceRecordRepository;
 		this.attendanceSheetService = attendanceSheetService;
@@ -80,7 +80,7 @@ public class AttendanceMarkingService {
 		attendanceAccessGuard.requireSessionAccess(ownership, PermissionAction.CREATE_EDIT);
 
 		Set<UUID> enrolledStudentIds = new HashSet<>(
-				enrollmentAccessApi.listCurrentlyEnrolledStudentIds(ownership.courseId()));
+				courseParticipationApi.listParticipantStudentIds(ownership.courseId()));
 		UUID markedBy = AuthenticatedPrincipalHolder.get().userId();
 		Instant markedAt = Instant.now();
 

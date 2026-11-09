@@ -41,6 +41,13 @@ public interface AccessPolicyApi {
 			Supplier<? extends RuntimeException> deniedAsNotFound);
 
 	/** Material/video availability window check (null bounds = open-ended). */
+	/**
+	 * The course device limit alone for the caller's own session device - for
+	 * participation-gated features (exams, ADR-028/ADR-032) that do not depend on
+	 * the legacy paid-enrollment window.
+	 */
+	boolean isCurrentDeviceAuthorizedForCourse(UUID studentId, UUID courseId);
+
 	ContentAvailability evaluateContentWindow(Instant availableFrom, Instant availableUntil);
 
 }

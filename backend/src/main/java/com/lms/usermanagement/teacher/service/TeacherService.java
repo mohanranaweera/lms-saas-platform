@@ -16,7 +16,7 @@ import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.coursemanagement.api.CourseLookupApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.usermanagement.teacher.domain.ApprovalStatus;
 import com.lms.usermanagement.teacher.domain.TeacherProfile;
 import com.lms.usermanagement.teacher.repository.TeacherProfileRepository;
@@ -88,12 +88,12 @@ public class TeacherService {
 	private final AuditLogApi auditLogApi;
 	private final TeacherProfileMediaApi teacherProfileMediaApi;
 	private final CourseLookupApi courseLookupApi;
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final CourseParticipationApi courseParticipationApi;
 
 	@Autowired
 	public TeacherService(UserProvisioningApi userProvisioningApi, TeacherProfileRepository teacherProfileRepository,
 			TenantContext tenantContext, PermissionCheckService permissionCheckService, AuditLogApi auditLogApi,
-			TeacherProfileMediaApi teacherProfileMediaApi, CourseLookupApi courseLookupApi, EnrollmentAccessApi enrollmentAccessApi) {
+			TeacherProfileMediaApi teacherProfileMediaApi, CourseLookupApi courseLookupApi, CourseParticipationApi courseParticipationApi) {
 		this.userProvisioningApi = userProvisioningApi;
 		this.teacherProfileRepository = teacherProfileRepository;
 		this.tenantContext = tenantContext;
@@ -101,7 +101,7 @@ public class TeacherService {
 		this.auditLogApi = auditLogApi;
 		this.teacherProfileMediaApi = teacherProfileMediaApi;
 		this.courseLookupApi = courseLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.courseParticipationApi = courseParticipationApi;
 	}
 
 	public TeacherService(UserProvisioningApi userProvisioningApi, TeacherProfileRepository teacherProfileRepository,
@@ -524,7 +524,7 @@ public class TeacherService {
 	}
 
 	private Map<UUID, Long> teacherStudentCounts(List<TeacherProfile> profiles) {
-		if (courseLookupApi == null || enrollmentAccessApi == null) return Map.of();
+		if (courseLookupApi == null || courseParticipationApi == null) return Map.of();
 		Map<UUID, Set<UUID>> teacherCourses = new HashMap<>();
 		for (TeacherProfile profile : profiles) {
 			teacherCourses.put(profile.getUserId(), courseLookupApi.listCourseSummariesByTeacherId(profile.getUserId()).stream().map(com.lms.coursemanagement.api.CourseSummary::id).collect(Collectors.toSet()));
@@ -533,7 +533,7 @@ public class TeacherService {
 		for (var entry : teacherCourses.entrySet()) {
 			Set<UUID> students = new HashSet<>();
 			for (UUID courseId : entry.getValue()) {
-				students.addAll(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(courseId));
+				students.addAll(courseParticipationApi.listParticipantStudentIds(courseId));
 			}
 			counts.put(entry.getKey(), (long) students.size());
 		}

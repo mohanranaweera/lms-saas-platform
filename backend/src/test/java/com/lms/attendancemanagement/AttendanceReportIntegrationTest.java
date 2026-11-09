@@ -126,14 +126,13 @@ class AttendanceReportIntegrationTest extends AttendanceManagementTestSupport {
 	 * per-student status content. Covers all three roster row shapes in one
 	 * pass: a marked-PRESENT student, a marked-ABSENT student, a
 	 * currently-enrolled-but-never-marked student (status must be {@code
-	 * null}, not omitted or defaulted), and a student whose ONLY enrollment
-	 * has expired (must be excluded from the roster entirely - reuses {@link
-	 * AttendanceManagementTestSupport#enrollStudentThenExpireAccess}, the same
-	 * fixture technique {@code AttendanceMarkingIntegrationTest}'s own
-	 * expired-enrollment case uses).
+	 * null}, not omitted or defaulted), a student whose paid enrollment
+	 * window has expired (still enrolled - ADR-028 / plan O-4: membership is
+	 * free participation, never the paid window) and a never-enrolled student
+	 * (excluded).
 	 */
 	@Test
-	void rosterReflectsPerStudentStatusIncludingUnmarkedAndExcludesAStudentWithOnlyAnExpiredEnrollment() {
+	void rosterReflectsPerStudentStatusIncludesAnExpiredPaidEnrollmentAndExcludesANonEnrolledStudent() {
 		AttendanceFixture fixture = seedAttendanceFixture("att-rep-roster-content");
 		TenantUser presentStudent = fixture.student();
 
@@ -149,6 +148,7 @@ class AttendanceReportIntegrationTest extends AttendanceManagementTestSupport {
 		String expiredToken = loginAndGetToken(fixture.host(), "roster-expired@example.test");
 		enrollStudentThenExpireAccess(fixture.host(), expiredToken, fixture.tenant().getId(), expiredStudent.getId(),
 				fixture.course().id());
+		TenantUser outsider = seedActiveStudent(fixture.tenant().getId(), "roster-outsider@example.test");
 
 		markOneStudent(fixture.host(), fixture.teacherToken(), fixture.lessonId(), presentStudent.getId(),
 				AttendanceStatus.PRESENT);
@@ -163,8 +163,9 @@ class AttendanceReportIntegrationTest extends AttendanceManagementTestSupport {
 		assertThat(roster.courseId()).isEqualTo(fixture.course().id());
 		assertThat(roster.sessionId()).isEqualTo(fixture.lessonId());
 		assertThat(roster.roster()).extracting(AttendanceRosterEntryResponse::studentId)
-			.containsExactlyInAnyOrder(presentStudent.getId(), absentStudent.getId(), unmarkedStudent.getId())
-			.doesNotContain(expiredStudent.getId());
+			.containsExactlyInAnyOrder(presentStudent.getId(), absentStudent.getId(), unmarkedStudent.getId(),
+					expiredStudent.getId())
+			.doesNotContain(outsider.getId());
 
 		// Collectors.toMap rejects null values (the unmarked student's status
 		// IS null here), so build the lookup with an explicit HashMap

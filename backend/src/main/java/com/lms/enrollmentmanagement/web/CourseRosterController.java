@@ -36,7 +36,8 @@ public class CourseRosterController {
 	public ResponseEntity<ApiResponse<List<CourseRosterEntryResponse>>> getRoster(@PathVariable UUID courseId) {
 		List<CourseRosterEntryResponse> response = courseRosterService.getRoster(courseId)
 			.stream()
-			.map(v -> new CourseRosterEntryResponse(v.studentProfileId(), v.userId(), v.name(), v.email()))
+			.map(v -> new CourseRosterEntryResponse(v.studentProfileId(), v.userId(), v.name(), v.email(),
+					v.accessStatus()))
 			.toList();
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}

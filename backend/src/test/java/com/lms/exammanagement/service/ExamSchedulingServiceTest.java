@@ -16,8 +16,8 @@ import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.enrollmentmanagement.api.ContentCoverageApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamStatus;
 import com.lms.exammanagement.repository.ExamQuestionLinkRepository;
@@ -92,6 +92,9 @@ class ExamSchedulingServiceTest {
 	private EnrollmentAccessApi enrollmentAccessApi;
 
 	@Mock
+	private ContentCoverageApi contentCoverageApi;
+
+	@Mock
 	private TenantContext tenantContext;
 
 	@Mock
@@ -103,7 +106,7 @@ class ExamSchedulingServiceTest {
 	void setUp() {
 		ExamAccessGuard guard = new ExamAccessGuard(courseLookupApi, permissionCheckService);
 		service = new ExamSchedulingService(examRepository, examQuestionRepository, examQuestionLinkRepository,
-				examQuestionOptionRepository, guard, examLifecycleService, enrollmentAccessApi, tenantContext,
+				examQuestionOptionRepository, guard, examLifecycleService, contentCoverageApi, tenantContext,
 				auditLogApi, AccessPolicyTestDouble.backedBy(enrollmentAccessApi));
 		when(examLifecycleService.now()).thenReturn(NOW);
 		when(examRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -298,7 +301,7 @@ class ExamSchedulingServiceTest {
 
 		assertThatThrownBy(() -> service.getExam(examId)).isInstanceOf(NotFoundException.class);
 
-		verifyNoInteractions(enrollmentAccessApi);
+		verifyNoInteractions(contentCoverageApi);
 	}
 
 	@Test
@@ -309,8 +312,7 @@ class ExamSchedulingServiceTest {
 		Exam exam = new Exam(TENANT_ID, COURSE_ID, "Midterm", NOW, NOW.plusSeconds(3600), 60, ExamStatus.PUBLISHED);
 		when(examRepository.findById(examId)).thenReturn(Optional.of(exam));
 		when(examLifecycleService.resolveCurrentStatus(exam)).thenReturn(ExamStatus.PUBLISHED);
-		when(enrollmentAccessApi.resolveAccessState(studentId, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.expired(UUID.randomUUID(), NOW, false));
+		when(contentCoverageApi.isParticipant(studentId, COURSE_ID)).thenReturn(false);
 
 		assertThatThrownBy(() -> service.getExam(examId)).isInstanceOf(NotFoundException.class);
 	}
@@ -323,7 +325,7 @@ class ExamSchedulingServiceTest {
 	void aStudentWithNoCurrentlyEnrolledCoursesGetsAnEmptyUpcomingExamsPageWithoutQueryingExams() {
 		UUID studentId = UUID.randomUUID();
 		setPrincipal(studentId, "STUDENT");
-		when(enrollmentAccessApi.listCurrentlyEnrolledCourseIds(studentId)).thenReturn(Set.of());
+		when(contentCoverageApi.findCourseIds(studentId)).thenReturn(Set.of());
 
 		var page = service.listMyUpcomingExams(PageRequest.of(0, 20));
 
@@ -335,7 +337,7 @@ class ExamSchedulingServiceTest {
 	void aStalePublishedExamThatHasLiveAdvancedToClosedIsExcludedFromTheUpcomingList() {
 		UUID studentId = UUID.randomUUID();
 		setPrincipal(studentId, "STUDENT");
-		when(enrollmentAccessApi.listCurrentlyEnrolledCourseIds(studentId)).thenReturn(Set.of(COURSE_ID));
+		when(contentCoverageApi.findCourseIds(studentId)).thenReturn(Set.of(COURSE_ID));
 		Exam stalePublished = new Exam(TENANT_ID, COURSE_ID, "Midterm", NOW.minusSeconds(7200), NOW.minusSeconds(1),
 				60, ExamStatus.PUBLISHED);
 		Page<Exam> page = new PageImpl<>(List.of(stalePublished));
@@ -351,7 +353,7 @@ class ExamSchedulingServiceTest {
 	void aGenuinelyUpcomingScheduledExamIsIncludedInTheUpcomingList() {
 		UUID studentId = UUID.randomUUID();
 		setPrincipal(studentId, "STUDENT");
-		when(enrollmentAccessApi.listCurrentlyEnrolledCourseIds(studentId)).thenReturn(Set.of(COURSE_ID));
+		when(contentCoverageApi.findCourseIds(studentId)).thenReturn(Set.of(COURSE_ID));
 		Exam scheduled = new Exam(TENANT_ID, COURSE_ID, "Midterm", NOW.plusSeconds(3600), NOW.plusSeconds(7200), 60,
 				ExamStatus.SCHEDULED);
 		Page<Exam> page = new PageImpl<>(List.of(scheduled));

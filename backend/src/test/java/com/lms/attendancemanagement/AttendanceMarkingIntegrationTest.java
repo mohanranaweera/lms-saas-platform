@@ -153,39 +153,36 @@ class AttendanceMarkingIntegrationTest extends AttendanceManagementTestSupport {
 	}
 
 	@Test
-	void markingAStudentWithOnlyAnExpiredEnrollmentIsRejectedForThatRowWithZeroRowsWritten() {
+	void anExpiredPaidEnrollmentStillCountsAsEnrolledButANonEnrolledStudentIsRejectedWithZeroRowsWritten() {
+		// ADR-028 / plan O-4: attendance membership is free course participation,
+		// never the legacy paid-access window.
 		AttendanceFixture fixture = seedAttendanceFixture("att-mark-expired");
 		TenantUser expiredStudent = seedActiveStudent(fixture.tenant().getId(), "expired-student@example.test");
 		String expiredStudentToken = loginAndGetToken(fixture.host(), "expired-student@example.test");
 		enrollStudentThenExpireAccess(fixture.host(), expiredStudentToken, fixture.tenant().getId(),
 				expiredStudent.getId(), fixture.course().id());
+		TenantUser outsider = seedActiveStudent(fixture.tenant().getId(), "not-enrolled@example.test");
 
-		HttpResult<List<AttendanceMarkResultResponse>> result = markOneStudent(fixture.host(),
-				fixture.teacherToken(), fixture.lessonId(), expiredStudent.getId(), AttendanceStatus.PRESENT);
-
-		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-		AttendanceMarkResultResponse outcome = result.getBody().data().get(0);
-		assertThat(outcome.success()).isFalse();
-		assertThat(outcome.record()).isNull();
-		Long count = jdbcTemplate.queryForObject(
-				"SELECT count(*) FROM attendance_record WHERE session_id = ? AND student_id = ?", Long.class,
-				fixture.lessonId(), expiredStudent.getId());
-		assertThat(count).isEqualTo(0L);
-
-		// Sanity: the fixture's own currently-enrolled student in the SAME
-		// batch call still succeeds - proves this is a per-row rejection, not
-		// a whole-request failure.
 		HttpResult<List<AttendanceMarkResultResponse>> batch = markAttendance(fixture.host(), fixture.teacherToken(),
 				fixture.lessonId(),
-				List.of(new AttendanceMarkEntryRequest(fixture.student().getId(), AttendanceStatus.PRESENT),
-						new AttendanceMarkEntryRequest(expiredStudent.getId(), AttendanceStatus.PRESENT)));
+				List.of(new AttendanceMarkEntryRequest(expiredStudent.getId(), AttendanceStatus.PRESENT),
+						new AttendanceMarkEntryRequest(outsider.getId(), AttendanceStatus.PRESENT)));
+
 		assertThat(batch.getStatusCode()).isEqualTo(HttpStatus.OK);
 		List<AttendanceMarkResultResponse> outcomes = batch.getBody().data();
 		assertThat(outcomes).hasSize(2);
-		assertThat(outcomes.stream().filter(o -> o.studentId().equals(fixture.student().getId())).findFirst()
-			.orElseThrow().success()).isTrue();
 		assertThat(outcomes.stream().filter(o -> o.studentId().equals(expiredStudent.getId())).findFirst()
-			.orElseThrow().success()).isFalse();
+			.orElseThrow().success()).isTrue();
+		AttendanceMarkResultResponse rejected = outcomes.stream()
+			.filter(o -> o.studentId().equals(outsider.getId()))
+			.findFirst()
+			.orElseThrow();
+		assertThat(rejected.success()).isFalse();
+		assertThat(rejected.record()).isNull();
+		Long count = jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM attendance_record WHERE session_id = ? AND student_id = ?", Long.class,
+				fixture.lessonId(), outsider.getId());
+		assertThat(count).isEqualTo(0L);
 	}
 
 	// ------------------------------------------------------------------

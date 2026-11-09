@@ -1,5 +1,7 @@
 package com.lms.enrollmentmanagement;
 
+import com.lms.enrollmentmanagement.api.RosterAccessStatus;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -54,7 +56,10 @@ class AccessPolicyIntegrationTest extends ContentManagementTestSupport {
 		// KLASS-T4b (ADR-028): the expired student stays a participant - titles
 		// are listable, the protected link is withheld.
 		assertThat(readingUrl(f, content)).isNull();
-		assertThat(roster(f).getBody().data()).noneMatch(entry -> entry.userId().equals(f.student().getId()));
+		// Plan O-4: the roster lists every participant; the expired window shows as NOT_PAID.
+		assertThat(roster(f).getBody().data()).filteredOn(entry -> entry.userId().equals(f.student().getId()))
+			.singleElement()
+			.satisfies(entry -> assertThat(entry.accessStatus()).isEqualTo(RosterAccessStatus.NOT_PAID));
 
 		Instant newExpiry = Instant.now().plus(Duration.ofDays(10)).truncatedTo(ChronoUnit.SECONDS);
 		HttpResult<AccessExtensionView> extension = extend(f.host(), f.adminToken(), f.enrollmentId(), newExpiry,
@@ -69,7 +74,9 @@ class AccessPolicyIntegrationTest extends ContentManagementTestSupport {
 		assertThat(state.state()).isEqualTo(EnrollmentAccessStateType.ACTIVE);
 		assertThat(state.accessExpiresAt()).isEqualTo(newExpiry);
 		assertThat(readingUrl(f, content)).isEqualTo(READING_URL);
-		assertThat(roster(f).getBody().data()).anyMatch(entry -> entry.userId().equals(f.student().getId()));
+		assertThat(roster(f).getBody().data()).filteredOn(entry -> entry.userId().equals(f.student().getId()))
+			.singleElement()
+			.satisfies(entry -> assertThat(entry.accessStatus()).isEqualTo(RosterAccessStatus.PAID));
 
 		HttpResult<List<AccessExtensionView>> history = parseList(
 				perform(authenticated(get("/api/v1/enrollments/" + f.enrollmentId() + "/extensions"), f.host(),

@@ -22,7 +22,7 @@ import com.lms.attendancemanagement.support.AttendanceAccessGuard;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -72,7 +72,7 @@ class AttendanceMarkingServiceTest {
 	private CourseLookupApi courseLookupApi;
 
 	@Mock
-	private EnrollmentAccessApi enrollmentAccessApi;
+	private CourseParticipationApi courseParticipationApi;
 
 	@Mock
 	private PermissionCheckService permissionCheckService;
@@ -96,7 +96,7 @@ class AttendanceMarkingServiceTest {
 	@BeforeEach
 	void setUp() {
 		AttendanceAccessGuard guard = new AttendanceAccessGuard(permissionCheckService, courseLookupApi);
-		service = new AttendanceMarkingService(courseLookupApi, enrollmentAccessApi, guard,
+		service = new AttendanceMarkingService(courseLookupApi, courseParticipationApi, guard,
 				attendanceRecordRepository, attendanceSheetService, tenantContext);
 		AttendanceSheet legacySheet = mock(AttendanceSheet.class);
 		lenient().when(legacySheet.getId()).thenReturn(SHEET_ID);
@@ -130,7 +130,7 @@ class AttendanceMarkingServiceTest {
 	@Test
 	void reMarkingAnExistingSessionStudentRowGoesThroughTheSameAtomicUpsertCallWithTheNewStatus() {
 		setPrincipal(TEACHER_ID, "TEACHER");
-		when(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
+		when(courseParticipationApi.listParticipantStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		AttendanceRecord firstState = mockAttendanceRecord(AttendanceStatus.PRESENT);
 		AttendanceRecord secondState = mockAttendanceRecord(AttendanceStatus.ABSENT);
@@ -160,7 +160,7 @@ class AttendanceMarkingServiceTest {
 	@Test
 	void newRowsAlwaysStampMarkedByAndMarkedAtFromTheAuthenticatedContextNeverFromTheCommand() {
 		setPrincipal(TEACHER_ID, "TEACHER");
-		when(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
+		when(courseParticipationApi.listParticipantStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		AttendanceRecord persisted = mockAttendanceRecord(AttendanceStatus.PRESENT);
 		when(attendanceRecordRepository.findBySessionIdAndStudentId(SESSION_ID, STUDENT_ID))
@@ -184,7 +184,7 @@ class AttendanceMarkingServiceTest {
 	@Test
 	void courseIdIsAlwaysDerivedServerSideFromTheResolvedLessonOwnershipNeverAnyOtherSource() {
 		setPrincipal(TEACHER_ID, "TEACHER");
-		when(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
+		when(courseParticipationApi.listParticipantStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		AttendanceRecord persisted = mockAttendanceRecord(AttendanceStatus.LATE);
 		when(attendanceRecordRepository.findBySessionIdAndStudentId(SESSION_ID, STUDENT_ID))
@@ -218,7 +218,7 @@ class AttendanceMarkingServiceTest {
 				List.of(new AttendanceMarkCommand(STUDENT_ID, AttendanceStatus.PRESENT))))
 			.isInstanceOf(AccessDeniedException.class);
 
-		verifyNoInteractions(enrollmentAccessApi);
+		verifyNoInteractions(courseParticipationApi);
 		verify(attendanceRecordRepository, never()).save(any());
 		verifyNoInteractions(permissionCheckService);
 	}
@@ -226,7 +226,7 @@ class AttendanceMarkingServiceTest {
 	@Test
 	void teacherMarkingALessonWithinTheirOwnedCourseIsAllowed() {
 		setPrincipal(TEACHER_ID, "TEACHER");
-		when(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
+		when(courseParticipationApi.listParticipantStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		AttendanceRecord persisted = mockAttendanceRecord(AttendanceStatus.PRESENT);
 		when(attendanceRecordRepository.findBySessionIdAndStudentId(SESSION_ID, STUDENT_ID))
@@ -248,7 +248,7 @@ class AttendanceMarkingServiceTest {
 	void staffWithAttendanceCreateEditGrantMarksRegardlessOfCourseOwnership() {
 		UUID operatorId = UUID.randomUUID();
 		setPrincipal(operatorId, "ATTENDANCE_OPERATOR");
-		when(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
+		when(courseParticipationApi.listParticipantStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		AttendanceRecord persisted = mockAttendanceRecord(AttendanceStatus.PRESENT);
 		when(attendanceRecordRepository.findBySessionIdAndStudentId(SESSION_ID, STUDENT_ID))
@@ -276,7 +276,7 @@ class AttendanceMarkingServiceTest {
 				List.of(new AttendanceMarkCommand(STUDENT_ID, AttendanceStatus.PRESENT))))
 			.isInstanceOf(AccessDeniedException.class);
 
-		verifyNoInteractions(enrollmentAccessApi);
+		verifyNoInteractions(courseParticipationApi);
 		verify(attendanceRecordRepository, never()).save(any());
 	}
 
@@ -293,7 +293,7 @@ class AttendanceMarkingServiceTest {
 		// Only STUDENT_ID is currently enrolled - the expired-enrollment
 		// student is excluded from the live roster, exactly like a student
 		// who was never enrolled at all.
-		when(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
+		when(courseParticipationApi.listParticipantStudentIds(COURSE_ID)).thenReturn(List.of(STUDENT_ID));
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		AttendanceRecord persisted = mockAttendanceRecord(AttendanceStatus.PRESENT);
 		when(attendanceRecordRepository.findBySessionIdAndStudentId(SESSION_ID, STUDENT_ID))

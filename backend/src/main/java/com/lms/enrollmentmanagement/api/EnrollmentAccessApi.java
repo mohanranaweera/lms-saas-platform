@@ -58,10 +58,10 @@ public interface EnrollmentAccessApi {
 	 * every other method on this interface: {@code supersededAt IS NULL AND
 	 * (accessExpiresAt IS NULL OR accessExpiresAt > now())} - an enrollment
 	 * with only a superseded or access-expired current row does not count as
-	 * "currently enrolled". Added for {@code attendance-management} (MVP-016)
-	 * - {@code AttendanceMarkingService} uses this to validate every
-	 * submitted {@code studentId} against the live roster before persisting
-	 * an {@code attendance_record} row, rejecting any id not on this list.
+	 * "currently enrolled" here. Legacy paid-access semantics only: course
+	 * membership (roster, attendance, course notification audiences) is free
+	 * participation - {@link CourseParticipationApi#listParticipantStudentIds}
+	 * (ADR-028, plan O-4).
 	 * @return the studentId of every CURRENT, non-expired enrollment for
 	 * {@code courseId}, in no particular guaranteed order.
 	 */

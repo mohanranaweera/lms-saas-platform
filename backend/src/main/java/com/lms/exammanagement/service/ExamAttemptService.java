@@ -5,9 +5,8 @@ import com.lms.common.error.ConflictException;
 import com.lms.common.error.DeviceNotAuthorizedException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
-import com.lms.enrollmentmanagement.api.AccessOutcome;
 import com.lms.enrollmentmanagement.api.AccessPolicyApi;
-import com.lms.enrollmentmanagement.api.CourseAccessDecision;
+import com.lms.enrollmentmanagement.api.ContentCoverageApi;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamAnswer;
 import com.lms.exammanagement.domain.ExamAttempt;
@@ -66,6 +65,8 @@ public class ExamAttemptService {
 
 	private final AccessPolicyApi accessPolicyApi;
 
+	private final ContentCoverageApi contentCoverageApi;
+
 	private final TenantContext tenantContext;
 
 	private final StudentLookupApi studentLookupApi;
@@ -75,8 +76,8 @@ public class ExamAttemptService {
 	public ExamAttemptService(ExamRepository examRepository, ExamAttemptRepository examAttemptRepository,
 			ExamAnswerRepository examAnswerRepository, ExamQuestionLinkRepository examQuestionLinkRepository,
 			ExamLifecycleService examLifecycleService, McqAutoMarkingService mcqAutoMarkingService,
-			AccessPolicyApi accessPolicyApi, TenantContext tenantContext, StudentLookupApi studentLookupApi,
-			PermissionCheckService permissionCheckService) {
+			AccessPolicyApi accessPolicyApi, ContentCoverageApi contentCoverageApi, TenantContext tenantContext,
+			StudentLookupApi studentLookupApi, PermissionCheckService permissionCheckService) {
 		this.examRepository = examRepository;
 		this.examAttemptRepository = examAttemptRepository;
 		this.examAnswerRepository = examAnswerRepository;
@@ -84,6 +85,7 @@ public class ExamAttemptService {
 		this.examLifecycleService = examLifecycleService;
 		this.mcqAutoMarkingService = mcqAutoMarkingService;
 		this.accessPolicyApi = accessPolicyApi;
+		this.contentCoverageApi = contentCoverageApi;
 		this.tenantContext = tenantContext;
 		this.studentLookupApi = studentLookupApi;
 		this.permissionCheckService = permissionCheckService;
@@ -246,14 +248,14 @@ public class ExamAttemptService {
 	}
 
 	private void requireActiveEnrollment(UUID studentId, UUID courseId) {
-		// Wave 10: the central access decision (expiry, extension, grace, course device limit).
-		CourseAccessDecision decision = accessPolicyApi.evaluateStudentCourseAccess(studentId, courseId);
-		if (decision.outcome() == AccessOutcome.DEVICE_NOT_AUTHORIZED) {
+		// ADR-028: sitting an exam needs (free) course enrollment, never the legacy
+		// paid-enrollment window; the course device limit still applies.
+		if (!contentCoverageApi.isParticipant(studentId, courseId)) {
+			throw new AccessDeniedException("You are not enrolled in this course");
+		}
+		if (!accessPolicyApi.isCurrentDeviceAuthorizedForCourse(studentId, courseId)) {
 			throw new DeviceNotAuthorizedException(
 					"This course can only be opened on a limited number of devices, and this device is not one of them.");
-		}
-		if (!decision.allowed()) {
-			throw new AccessDeniedException("Your enrollment in this course is not currently active");
 		}
 	}
 

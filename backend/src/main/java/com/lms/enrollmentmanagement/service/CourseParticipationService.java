@@ -16,6 +16,7 @@ import com.lms.enrollmentmanagement.domain.CourseParticipationSource;
 import com.lms.enrollmentmanagement.repository.CourseParticipationRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -127,6 +128,12 @@ public class CourseParticipationService implements CourseParticipationApi {
 	@Transactional(readOnly = true)
 	public Set<UUID> findParticipatingCourseIds(UUID studentUserId) {
 		return participationRepository.findCourseIdsByStudentId(studentUserId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<UUID> listParticipantStudentIds(UUID courseId) {
+		return participationRepository.findStudentIdsByCourseId(courseId);
 	}
 
 	/**

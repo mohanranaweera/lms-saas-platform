@@ -1,5 +1,6 @@
 package com.lms.enrollmentmanagement.api;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,5 +25,13 @@ public interface CourseParticipationApi {
 
 	/** The ids of the courses the student participates in (this tenant). */
 	Set<UUID> findParticipatingCourseIds(UUID studentUserId);
+
+	/**
+	 * The {@code tenant_user.id} of every student enrolled (participating) in the
+	 * course, in no guaranteed order - the course roster, attendance and course
+	 * notification audience membership (ADR-028, plan O-4). Free enrollment never
+	 * expires, so this is independent of payment and of any access window.
+	 */
+	List<UUID> listParticipantStudentIds(UUID courseId);
 
 }

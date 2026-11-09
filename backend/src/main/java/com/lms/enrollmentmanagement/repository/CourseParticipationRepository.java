@@ -41,6 +41,13 @@ public interface CourseParticipationRepository
 		return findAll((root, query, cb) -> cb.equal(root.get("studentId"), studentId));
 	}
 
+	/** Every participant of one course - the course roster and course audiences (O-4, ADR-028). */
+	default List<UUID> findStudentIdsByCourseId(UUID courseId) {
+		return findAll((root, query, cb) -> cb.equal(root.get("courseId"), courseId)).stream()
+			.map(CourseParticipation::getStudentId)
+			.toList();
+	}
+
 	default Set<UUID> findCourseIdsByStudentId(UUID studentId) {
 		return findAllByStudentId(studentId).stream()
 			.map(CourseParticipation::getCourseId)

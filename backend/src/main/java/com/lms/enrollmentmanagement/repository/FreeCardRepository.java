@@ -28,6 +28,12 @@ public interface FreeCardRepository extends AppendOnlyTenantAwareRepository<Free
 				cb.equal(root.get("courseId"), courseId), cb.isNull(root.get("revokedAt"))));
 	}
 
+	/** Every NOT-revoked card of any student for one course (course roster paid-access column). */
+	default List<FreeCard> findUnrevokedByCourseId(UUID courseId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
+				cb.isNull(root.get("revokedAt"))));
+	}
+
 	/** The card issued with this idempotency key in the current tenant, if any. */
 	default Optional<FreeCard> findByIdempotencyKey(UUID idempotencyKey) {
 		return findOne((root, query, cb) -> cb.equal(root.get("idempotencyKey"), idempotencyKey));

@@ -137,6 +137,12 @@ public class AccessPolicyService implements AccessPolicyApi {
 		};
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public boolean isCurrentDeviceAuthorizedForCourse(UUID studentId, UUID courseId) {
+		return isDeviceAuthorizedForCourse(studentId, courseId, null);
+	}
+
 	/**
 	 * KLASS-T4b: the course-level device rule, extracted unchanged so the
 	 * lesson access evaluator applies it to entitlement-based access too.

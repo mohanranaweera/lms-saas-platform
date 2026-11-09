@@ -8,7 +8,7 @@ import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.persistence.UuidV7Generator;
 import com.lms.common.tenant.TenantContext;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.liveclassmanagement.api.ClassSessionLookupApi;
@@ -48,7 +48,7 @@ public class AttendanceClassSessionService {
 
 	private final ClassSessionLookupApi classSessionLookupApi;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final CourseParticipationApi courseParticipationApi;
 
 	private final StudentLookupApi studentLookupApi;
 
@@ -63,11 +63,11 @@ public class AttendanceClassSessionService {
 	private final Clock clock;
 
 	public AttendanceClassSessionService(ClassSessionLookupApi classSessionLookupApi,
-			EnrollmentAccessApi enrollmentAccessApi, StudentLookupApi studentLookupApi,
+			CourseParticipationApi courseParticipationApi, StudentLookupApi studentLookupApi,
 			AttendanceAccessGuard attendanceAccessGuard, AttendanceSheetService attendanceSheetService,
 			AttendanceRecordRepository attendanceRecordRepository, TenantContext tenantContext, Clock clock) {
 		this.classSessionLookupApi = classSessionLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.courseParticipationApi = courseParticipationApi;
 		this.studentLookupApi = studentLookupApi;
 		this.attendanceAccessGuard = attendanceAccessGuard;
 		this.attendanceSheetService = attendanceSheetService;
@@ -94,7 +94,7 @@ public class AttendanceClassSessionService {
 			.collect(Collectors.toMap(AttendanceRecord::getStudentId, record -> record));
 
 		Set<UUID> enrolled = new LinkedHashSet<>(
-				enrollmentAccessApi.listCurrentlyEnrolledStudentIds(session.courseId()));
+				courseParticipationApi.listParticipantStudentIds(session.courseId()));
 		Set<UUID> allStudentIds = new LinkedHashSet<>(enrolled);
 		allStudentIds.addAll(marksByStudent.keySet());
 
@@ -130,7 +130,7 @@ public class AttendanceClassSessionService {
 			throw new ConflictException(reason);
 		});
 
-		Set<UUID> enrolled = Set.copyOf(enrollmentAccessApi.listCurrentlyEnrolledStudentIds(session.courseId()));
+		Set<UUID> enrolled = Set.copyOf(courseParticipationApi.listParticipantStudentIds(session.courseId()));
 		UUID markedBy = AuthenticatedPrincipalHolder.get().userId();
 		UUID tenantId = tenantContext.getTenantId();
 

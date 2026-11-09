@@ -30,6 +30,12 @@ public interface ContentEntitlementRepository extends AppendOnlyTenantAwareRepos
 				cb.equal(root.get("courseId"), courseId), cb.isNull(root.get("revokedAt"))));
 	}
 
+	/** Every NOT-revoked entitlement of any student for {@code courseId} (course roster paid-access column). */
+	default List<ContentEntitlement> findUnrevokedByCourseId(UUID courseId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
+				cb.isNull(root.get("revokedAt"))));
+	}
+
 	/** The grant made for one order line, if any ({@code uq_content_entitlement_tenant_order_line}). */
 	default Optional<ContentEntitlement> findByOrderLineId(UUID orderLineId) {
 		return findOne((root, query, cb) -> cb.equal(root.get("orderLineId"), orderLineId));
