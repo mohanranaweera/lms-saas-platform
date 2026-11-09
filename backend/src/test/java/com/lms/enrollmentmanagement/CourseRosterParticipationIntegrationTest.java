@@ -21,11 +21,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Course roster membership is free course participation (ADR-028, plan O-4
- * resolved 2026-11-09), never the legacy paid-enrollment window. Each row
- * carries {@code accessStatus}: whether the student has paid access to the
- * course right now (legacy window, a MONTHLY entitlement for the CURRENT
- * month, or an active MODULE/LESSON entitlement).
+ * Course roster (owner, 2026-11-10): the enrolled (participating) students who
+ * have access right now - paid (open legacy window, a MONTHLY entitlement for the
+ * CURRENT month, an active MODULE/LESSON entitlement), an effective Free Card for
+ * the current month, or a FREE-priced course. Unpaid participants are not listed.
  */
 class CourseRosterParticipationIntegrationTest extends ContentManagementTestSupport {
 
@@ -102,33 +101,41 @@ class CourseRosterParticipationIntegrationTest extends ContentManagementTestSupp
 				lineId, paymentId);
 	}
 
-	@Test
-	void freeParticipantWithoutPaymentIsListedAsNotPaid() {
-		Fx fx = seed("roster-free");
-		enrolledStudentToken(fx, "free@example.test");
-
-		Map<UUID, String> roster = rosterStatuses(fx.host(), fx.adminToken(), fx.course().id());
-
-		assertThat(roster).containsEntry(userId(fx, "free@example.test"), "NOT_PAID");
+	/** An effective Free Card of this course covering the current month (ADR-030). */
+	private void seedCurrentMonthFreeCard(Fx fx, UUID studentId) {
+		YearMonth thisMonth = YearMonth.now(ZoneOffset.UTC);
+		java.time.LocalDate from = thisMonth.atDay(1);
+		java.time.LocalDate to = thisMonth.atEndOfMonth();
+		UUID adminId = userId(fx, "admin@example.test");
+		jdbcTemplate.update("INSERT INTO free_card (id, tenant_id, student_id, course_id, card_type, valid_from, "
+				+ "valid_to, timezone, effective_from, effective_until, reason, currency, issued_by, issued_at, "
+				+ "idempotency_key, enrollment_created) VALUES (?, ?, ?, ?, 'FULL', ?, ?, 'UTC', ?, ?, 'Scholarship', "
+				+ "'LKR', ?, now(), ?, false)", UUID.randomUUID(), fx.tenant().getId(), studentId, fx.course().id(),
+				from, to, java.sql.Timestamp.from(from.atStartOfDay(ZoneOffset.UTC).toInstant()),
+				java.sql.Timestamp.from(to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant()), adminId,
+				UUID.randomUUID());
 	}
 
 	@Test
-	void currentMonthEntitlementIsPaidButLastMonthsStillValidEntitlementIsNot() {
+	void rosterListsOnlyStudentsPaidForTheCurrentMonthOrHoldingAFreeCard() {
 		Fx fx = seed("roster-monthly");
 		enrolledStudentToken(fx, "current@example.test");
 		enrolledStudentToken(fx, "previous@example.test");
+		enrolledStudentToken(fx, "card@example.test");
+		enrolledStudentToken(fx, "unpaid@example.test");
 		YearMonth thisMonth = YearMonth.now(ZoneOffset.UTC);
 		seedMonthlyEntitlement(fx, userId(fx, "current@example.test"), thisMonth);
 		seedMonthlyEntitlement(fx, userId(fx, "previous@example.test"), thisMonth.minusMonths(1));
+		seedCurrentMonthFreeCard(fx, userId(fx, "card@example.test"));
 
 		Map<UUID, String> roster = rosterStatuses(fx.host(), fx.adminToken(), fx.course().id());
 
-		assertThat(roster).containsEntry(userId(fx, "current@example.test"), "PAID")
-			.containsEntry(userId(fx, "previous@example.test"), "NOT_PAID");
+		assertThat(roster).containsOnly(Map.entry(userId(fx, "current@example.test"), "PAID"),
+				Map.entry(userId(fx, "card@example.test"), "FREE_CARD"));
 	}
 
 	@Test
-	void legacyPaidEnrollmentIsPaidWhileOpenAndStillListedAfterItExpires() {
+	void legacyPaidEnrollmentIsListedWhileOpenAndDroppedAfterItExpires() {
 		Fx fx = seed("roster-legacy");
 		seedStudent(fx, "active@example.test");
 		seedStudent(fx, "expired@example.test");
@@ -140,8 +147,7 @@ class CourseRosterParticipationIntegrationTest extends ContentManagementTestSupp
 
 		Map<UUID, String> roster = rosterStatuses(fx.host(), fx.adminToken(), fx.course().id());
 
-		assertThat(roster).containsEntry(userId(fx, "active@example.test"), "PAID")
-			.containsEntry(userId(fx, "expired@example.test"), "NOT_PAID");
+		assertThat(roster).containsOnly(Map.entry(userId(fx, "active@example.test"), "PAID"));
 	}
 
 	@Test

@@ -1,9 +1,9 @@
 package com.lms.enrollmentmanagement.api;
 
 /**
- * Whether an enrolled (participating) student has paid access to a course right
- * now - the course roster's access column (ADR-028, plan O-4). Enrollment itself
- * is free; this is display information only and never an authorization input.
+ * Whether an enrolled (participating) student has access to a course right now -
+ * decides who the course roster lists and its access column (ADR-028; owner,
+ * 2026-11-10). Display only, never an authorization input.
  */
 public enum RosterAccessStatus {
 
@@ -19,6 +19,7 @@ public enum RosterAccessStatus {
 	/** The course's pricing model is FREE - nothing to pay. */
 	FREE_COURSE,
 
+	/** Enrolled without current access - left off the roster. */
 	NOT_PAID
 
 }

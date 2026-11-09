@@ -56,10 +56,8 @@ class AccessPolicyIntegrationTest extends ContentManagementTestSupport {
 		// KLASS-T4b (ADR-028): the expired student stays a participant - titles
 		// are listable, the protected link is withheld.
 		assertThat(readingUrl(f, content)).isNull();
-		// Plan O-4: the roster lists every participant; the expired window shows as NOT_PAID.
-		assertThat(roster(f).getBody().data()).filteredOn(entry -> entry.userId().equals(f.student().getId()))
-			.singleElement()
-			.satisfies(entry -> assertThat(entry.accessStatus()).isEqualTo(RosterAccessStatus.NOT_PAID));
+		// The roster lists only students with access right now (owner, 2026-11-10).
+		assertThat(roster(f).getBody().data()).noneMatch(entry -> entry.userId().equals(f.student().getId()));
 
 		Instant newExpiry = Instant.now().plus(Duration.ofDays(10)).truncatedTo(ChronoUnit.SECONDS);
 		HttpResult<AccessExtensionView> extension = extend(f.host(), f.adminToken(), f.enrollmentId(), newExpiry,

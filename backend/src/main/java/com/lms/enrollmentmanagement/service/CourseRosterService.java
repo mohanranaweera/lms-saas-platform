@@ -20,10 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Backs {@code GET /api/v1/courses/{courseId}/roster} (Wave 3, PAR-03-06/
- * PAR-04-03). Membership is free course participation ({@link
- * CourseParticipationApi#listParticipantStudentIds(UUID)}, ADR-028 / plan O-4),
- * never the legacy paid-enrollment window; each row carries a display-only
- * paid-access status from {@link CourseRosterAccessService}. Composed with
+ * PAR-04-03). Lists the enrolled ({@link
+ * CourseParticipationApi#listParticipantStudentIds(UUID)}, ADR-028) students who
+ * have access right now per {@link CourseRosterAccessService} - paid for the
+ * current month (or open legacy / MODULE / LESSON access), an effective Free Card
+ * for the current month, or a FREE-priced course (owner, 2026-11-10). Unpaid
+ * participants are left out here only; attendance, audiences and exams still use
+ * enrollment. Composed with
  * {@code user-management}'s student summaries via {@link StudentLookupApi} -
  * never a cross-domain repository join, per {@code .claude/rules/architecture.md}.
  *
@@ -78,10 +81,13 @@ public class CourseRosterService {
 
 		List<UUID> enrolledUserIds = courseParticipationApi.listParticipantStudentIds(courseId);
 		Map<UUID, RosterAccessStatus> access = courseRosterAccessService.accessStatuses(courseId, enrolledUserIds);
-		List<StudentSummary> summaries = studentLookupApi.getStudentSummariesByUserId(enrolledUserIds);
+		List<UUID> activeUserIds = enrolledUserIds.stream()
+			.filter(id -> access.getOrDefault(id, RosterAccessStatus.NOT_PAID) != RosterAccessStatus.NOT_PAID)
+			.toList();
+		List<StudentSummary> summaries = studentLookupApi.getStudentSummariesByUserId(activeUserIds);
 		return summaries.stream()
 			.map(s -> new CourseRosterEntryView(s.studentProfileId(), s.userId(), s.name(), s.email(),
-					access.getOrDefault(s.userId(), RosterAccessStatus.NOT_PAID)))
+					access.get(s.userId())))
 			.toList();
 	}
 
