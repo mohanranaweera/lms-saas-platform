@@ -132,6 +132,8 @@ export interface KlassStudentCourseMockOptions {
   /** Answer for `/content` and `/live-classes` instead of data (e.g. 403 NOT_ENROLLED). */
   contentError?: { status: number; code: string; message: string };
   liveClasses?: unknown[];
+  /** `GET /my-tutes` answer, read on every request so a spec can change it between reads (TUTE-02). */
+  myTutes?: () => unknown[];
   /** Launch answers keyed by lesson id; a missing id answers 404 (UNAVAILABLE). */
   launches?: Record<string, { status: number; body: unknown }>;
 }
@@ -181,6 +183,9 @@ export async function mockKlassStudentCourse(
     }
     if (method === "GET" && tail === "/live-classes") {
       return fulfillJson(route, 200, apiSuccess(options.liveClasses ?? []));
+    }
+    if (method === "GET" && tail === "/my-tutes" && options.myTutes) {
+      return fulfillJson(route, 200, apiSuccess(options.myTutes()));
     }
     const launch = tail.match(/^\/lessons\/([^/]+)\/launch$/);
     if (method === "POST" && launch) {

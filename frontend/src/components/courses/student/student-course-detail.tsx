@@ -25,6 +25,7 @@ import { CourseContentTree } from "./course-content-tree";
 import { CourseCover, PriceBadge } from "./course-visuals";
 import { CourseExamsTab } from "./course-exams-tab";
 import { CourseLiveClassesTab } from "./course-live-classes-tab";
+import { CourseTutesTab } from "./course-tutes-tab";
 import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog";
 import { useLessonLauncher } from "./lesson-launcher";
 import { StudentToast, useStudentToast } from "./student-toast";
@@ -203,13 +204,7 @@ function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail
             notEnrolled={notEnrolled}
           />
         ) : tab === "tutes" ? (
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6" data-testid="course-tutes-empty">
-            <EmptyState
-              icon={<Truck className="size-8" />}
-              title="No tutes for this course yet"
-              description="When your institute sends printed tutes, you can follow them here."
-            />
-          </div>
+          <CourseTutesTab courseId={course.id} timeZone={timeZone} />
         ) : (
           <AboutTab course={course} />
         )}

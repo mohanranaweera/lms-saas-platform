@@ -434,6 +434,7 @@ export const klassStudentKeys = {
   course: (courseId: string) => [...klassStudentKeys.all, "course", courseId] as const,
   content: (courseId: string) => [...klassStudentKeys.all, "content", courseId] as const,
   liveClasses: (courseId: string) => [...klassStudentKeys.all, "live-classes", courseId] as const,
+  myTutes: (courseId: string) => [...klassStudentKeys.all, "my-tutes", courseId] as const,
   checkoutAll: () => [...klassStudentKeys.all, "checkout"] as const,
   checkoutCourses: (scope: PurchaseScope) => [...klassStudentKeys.checkoutAll(), "courses", scope] as const,
   offers: (courseId: string, scope: PurchaseScope, year: number | null) =>
@@ -548,6 +549,36 @@ export function useCourseLiveClasses(courseId: string) {
     queryFn: () => authorizedFetch<LiveClassNode[]>("tenant", `/v1/courses/${courseId}/live-classes`),
     enabled: courseId.length > 0,
     retry: retryUnlessClientError,
+  });
+}
+
+/** TUTE-02: `PENDING`, `ON_HOLD`, or `DISPATCHED` (posted; handed over when `method` is `COLLECTION`). */
+export type StudentTuteStatus = "PENDING" | "ON_HOLD" | "DISPATCHED";
+
+/** TUTE-02: the student's own copy of a printed tute - display fields only, no delivery details. */
+export interface StudentTute {
+  id: string;
+  tuteName: string;
+  status: StudentTuteStatus;
+  method: "POSTAL" | "COLLECTION";
+  assignedAt: string;
+  dispatchedAt: string | null;
+}
+
+/**
+ * `GET /api/v1/courses/{courseId}/my-tutes` - Student only; the caller's own
+ * non-cancelled tutes of the course (404 for an unknown course). Refetched on
+ * every tab open / window focus so dispatches made by staff show up.
+ */
+export function useMyCourseTutes(courseId: string) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: klassStudentKeys.myTutes(courseId),
+    queryFn: () => authorizedFetch<StudentTute[]>("tenant", `/v1/courses/${courseId}/my-tutes`),
+    enabled: courseId.length > 0,
+    retry: retryUnlessClientError,
+    // Status changes on the staff side; never serve a cached copy past the global 30s staleTime.
+    staleTime: 0,
   });
 }
 
