@@ -1,6 +1,6 @@
 # Tute Management & Tute Dispatch (TUTE-01)
 
-Status: in progress · Branch `feat/tute-management-dispatch` · Closes the R2-D4 omission
+Status: implemented, live-accepted locally (2026-11-09, `docs/qa/tute-management-acceptance.md`) · Branch `feat/tute-management-dispatch` · Closes the R2-D4 omission
 (`docs/plans/klass-gaps-round2.md`) and the 8 UNAVAILABLE Tute rows of the Staff matrix
 (`docs/specs/staff-management-permissions-parity.md`).
 
@@ -203,7 +203,31 @@ queue/labels/confirm, permissions grant/revoke, two-tenant + Teacher scope). Fro
 for course menu, dialog, queue selection/labels, Staff group. Docs: this spec, staff parity spec,
 `klass-gaps-round2.md` R2-D4, QA evidence `docs/qa/tute-management-evidence/`.
 
-## 12. Open / needs approval
+## 12. As implemented (deviations from the sections above)
+
+- Response DTOs live in `tutemanagement/service/TuteViews.java`; request DTOs in `web/dto`.
+- Linking a session to a non-Paid tute returns 400 `TUTE_SESSION_NOT_ELIGIBLE`.
+- Reversals: chargebacks publish no event, so refunds/chargebacks are also detected at label,
+  confirm and Sync time (`TuteReversalGuard`, own transaction so the hold persists while the
+  request fails with 409 `TUTE_SELECTION_STALE`). Any refund amount, partial or full, holds the
+  copy; a payment that already has a refund never assigns. Assign vs refund race is closed with a
+  per-payment advisory lock.
+- Release hold requires a reason (1..500), recorded in the audit entry.
+- Read-only Auditor is **not** configurable for `TUTE_DISPATCH_PRINT_LABELS` (bulk address export).
+- Label-export audit records the exported student ids (ids only, capped at 1000 + total).
+- Callers without the capability get 403 before the course is resolved (even for unknown ids);
+  holders still get 404 for unknown/cross-tenant ids.
+- Sync and the payment trigger never re-assign a copy staff unrolled for the same payment.
+- Order delivery snapshots hold only name, address line, city, phone; missing name/phone fall back
+  to the profile.
+- `tute`/`tute_fulfillment` use restrict FKs to `course`, so a course with tutes cannot be
+  hard-deleted (409), as with exams; the paid-session link is cleared if its lesson is deleted.
+- Queue working set capped at 10,000 pending postal copies (422 `TUTE_WORKING_SET_TOO_LARGE`).
+- "No address provided" prints red, upright (no italic face in the font set).
+- Teachers get the same pages under `/teacher/...`; index numbers are not links there (no teacher
+  student-profile page).
+
+## 13. Open / needs approval
 
 - Paid-tute checkout item (separate price in cart) — change-controlled, not built.
 - Student-facing Tute Delivery tab content — not in scope.

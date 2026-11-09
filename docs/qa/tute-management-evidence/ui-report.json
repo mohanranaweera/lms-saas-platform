@@ -1,0 +1,38 @@
+{
+  "desktopDispatchBanner": "20 selected.\nClear selection",
+  "desktopPrintButton": "Print 20 selected labels (PDF)",
+  "desktopOverflow": {
+    "courses": 0,
+    "tutes": 0,
+    "addDialog": 0,
+    "detail": 0,
+    "dispatch": 0,
+    "permissions": 0
+  },
+  "mobileDispatchBanner": "20 selected.\nClear selection",
+  "mobilePrintButton": "Print 20 selected labels (PDF)",
+  "mobileOverflow": {
+    "courses": 0,
+    "tutes": 0,
+    "addDialog": 0,
+    "detail": 0,
+    "dispatch": 0,
+    "permissions": 0
+  },
+  "matrixAfterGrantView": "GRANTED",
+  "operatorViewOnly": {
+    "print": 0,
+    "confirm": 0
+  },
+  "operatorPrintAfterGrant": 200,
+  "operatorPrintAfterRevokeSameSession": 403,
+  "operatorPrintAfterRefresh": 0,
+  "operatorMobileOverflow": 0,
+  "pdfRender": {
+    "pdf-labels-small": "pages=1\r\npage1=595x842",
+    "pdf-labels-large": "pages=2\r\npage1=595x842\r\npage2=595x842",
+    "tute-klass-reference": "pages=1\r\npage1=595x842"
+  },
+  "matrixRestored": true,
+  "matrixVersionAfter": 86
+}

@@ -1,0 +1,181 @@
+{
+  "tag": "mw9106ui",
+  "teacherEmail": "tq-teacher-mw9106ui@example.test",
+  "operatorEmail": "tq-operator-mw9106ui@example.test",
+  "freeOrderId": "01a1bf85-7f76-7b35-8294-36ff3a214522",
+  "s05PaymentId": "01a1bf85-8941-790d-b6c3-0290fcf9795e",
+  "queueC1": {
+    "total": 11,
+    "items": 13
+  },
+  "labelFiles": {
+    "small": "D:\\Projects\\lms-saas-platform\\docs\\qa\\tute-management-evidence\\labels-small.pdf",
+    "large": "D:\\Projects\\lms-saas-platform\\docs\\qa\\tute-management-evidence\\labels-large.pdf",
+    "smallCount": 4,
+    "largeCount": 11
+  },
+  "dispatched": [
+    "01a1bf85-902a-7f62-99fa-25977ee34526",
+    "01a1bf85-9024-793c-b9a1-b243d656929d",
+    "01a1bf85-9026-78ce-8aea-83e885830ea5"
+  ],
+  "courses": {
+    "C1": {
+      "id": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Physics mw9106ui",
+      "paidLessonId": "01a1bf85-53c9-762b-9d70-0574febd5201"
+    },
+    "C2": {
+      "id": "01a1bf85-51f4-7572-8448-941e6b3000a6",
+      "name": "TQ Chemistry mw9106ui",
+      "paidLessonId": "01a1bf85-5456-70c2-98c0-7749bc89e53d"
+    },
+    "C3": {
+      "id": "01a1bf85-526a-7f9d-bbe2-8d1bba7de661",
+      "name": "TQ Free Course mw9106ui"
+    },
+    "C4": {
+      "id": "01a1bf85-52b3-792c-870e-49ae2ca5f085",
+      "name": "TQ Unrelated mw9106ui"
+    },
+    "CB": {
+      "id": "01a1bf85-551d-7660-9c44-f1ffcff0c661",
+      "name": "TQ B Course mw9106ui",
+      "paidLessonId": "01a1bf85-5571-7f3f-bf93-6b18def46583"
+    }
+  },
+  "tutes": {
+    "TB": {
+      "id": "01a1bf85-558f-7306-9792-8d16092f6918",
+      "courseId": "01a1bf85-551d-7660-9c44-f1ffcff0c661",
+      "name": "TQ B Tute mw9106ui"
+    },
+    "cov": {
+      "id": "01a1bf85-6dd6-77c9-87c8-52c121165d01",
+      "courseId": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Covered mw9106ui"
+    },
+    "paid": {
+      "id": "01a1bf85-6e09-7b07-8408-f0a01528e4d3",
+      "courseId": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Paid mw9106ui"
+    },
+    "free": {
+      "id": "01a1bf85-6e38-796f-9831-57dcd3c92928",
+      "courseId": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Free mw9106ui v2"
+    },
+    "conc": {
+      "id": "01a1bf85-7307-77d7-bb8f-3be2b6edf8d9",
+      "courseId": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Concurrency mw9106ui"
+    },
+    "conc2": {
+      "id": "01a1bf85-7d05-7370-b9c2-78ad6d37e4a3",
+      "courseId": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Concurrency same mw9106ui"
+    },
+    "cov2": {
+      "id": "01a1bf85-7ebe-7353-a199-3f4afa8c2f24",
+      "courseId": "01a1bf85-51f4-7572-8448-941e6b3000a6",
+      "name": "TQ Chem Covered mw9106ui"
+    },
+    "cov4": {
+      "id": "01a1bf85-7eee-7acd-8bb3-8535c9f2bb0c",
+      "courseId": "01a1bf85-52b3-792c-870e-49ae2ca5f085",
+      "name": "TQ Unrelated Covered mw9106ui"
+    },
+    "fc": {
+      "id": "01a1bf85-7f21-7b0d-a338-f73c1aba9420",
+      "courseId": "01a1bf85-526a-7f9d-bbe2-8d1bba7de661",
+      "name": "TQ Free-course Covered mw9106ui"
+    },
+    "fcard": {
+      "id": "01a1bf85-7f49-7040-b0ab-53f286021c50",
+      "courseId": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Free-card check mw9106ui"
+    },
+    "lab": {
+      "id": "01a1bf85-8fa5-77ec-9efa-566ba037820a",
+      "courseId": "01a1bf85-516c-7adc-941e-e77ce344c99e",
+      "name": "TQ Labels mw9106ui"
+    },
+    "lab2": {
+      "id": "01a1bf85-8fd0-7ffc-b6ce-96ee6a518051",
+      "courseId": "01a1bf85-51f4-7572-8448-941e6b3000a6",
+      "name": "TQ Chem Notes mw9106ui"
+    }
+  },
+  "students": {
+    "S01": {
+      "profileId": "01a1bf85-563b-7936-85a8-965caa7112f3",
+      "userId": "01a1bf85-5639-7448-b2c9-d50a9a99835b",
+      "email": "tq-s01-mw9106ui@example.test",
+      "fullName": "Tute QA Student 01",
+      "indexNumber": "0023"
+    },
+    "S02": {
+      "profileId": "01a1bf85-572a-7c4a-ab6d-fd9616a8f9dc",
+      "userId": "01a1bf85-5727-793c-95cd-c0c697db2d73",
+      "email": "tq-s02-mw9106ui@example.test",
+      "fullName": "Tute QA Student 02",
+      "indexNumber": "0024"
+    },
+    "S03": {
+      "profileId": "01a1bf85-5869-74f6-89f3-eff5c6e0a9e2",
+      "userId": "01a1bf85-5866-72b8-8514-27042ee2e6e7",
+      "email": "tq-s03-mw9106ui@example.test",
+      "fullName": "Tute QA Student 03 Maximilian-Alexander Wickramasinghe Jayawardena Rajapaksha Mudiyanselage Longname",
+      "indexNumber": "0025"
+    },
+    "S04": {
+      "profileId": "01a1bf85-596f-7a65-a0e2-35ed87b2581c",
+      "userId": "01a1bf85-596b-7408-a79a-38519f10f070",
+      "email": "tq-s04-mw9106ui@example.test",
+      "fullName": "සුනිල් පෙරේරා",
+      "indexNumber": "0026"
+    },
+    "S05": {
+      "profileId": "01a1bf85-5a4b-748d-b257-c4916089e863",
+      "userId": "01a1bf85-5a48-72e3-a41a-4e0c866767bd",
+      "email": "tq-s05-mw9106ui@example.test",
+      "fullName": "Tute QA Student 05",
+      "indexNumber": "0027"
+    },
+    "S06": {
+      "profileId": "01a1bf85-5b35-7d3c-a5ba-9e79b600c15a",
+      "userId": "01a1bf85-5b32-7df9-b88d-9fd1fd472a98",
+      "email": "tq-s06-mw9106ui@example.test",
+      "fullName": "Tute QA Student 06",
+      "indexNumber": "0028"
+    },
+    "S07": {
+      "profileId": "01a1bf85-5c8f-7f2f-89d7-b380ead48587",
+      "userId": "01a1bf85-5c8b-7c90-90b8-cd4c0463e226",
+      "email": "tq-s07-mw9106ui@example.test",
+      "fullName": "Tute QA Student 07",
+      "indexNumber": "0029"
+    },
+    "S08": {
+      "profileId": "01a1bf85-5e6e-77ea-bec8-2eee9aaebfe2",
+      "userId": "01a1bf85-5e6a-7aa1-87ed-8d6a3e1d4844",
+      "email": "tq-s08-mw9106ui@example.test",
+      "fullName": "Tute QA Student 08",
+      "indexNumber": "0030"
+    },
+    "S09": {
+      "profileId": "01a1bf85-5fdd-7f95-b535-1b93ab003ec3",
+      "userId": "01a1bf85-5fda-74bf-90da-d1430ec3c95b",
+      "email": "tq-s09-mw9106ui@example.test",
+      "fullName": "Tute QA Student 09",
+      "indexNumber": "0031"
+    },
+    "S10": {
+      "profileId": "01a1bf85-60bd-7646-9a34-fe4cc91f731d",
+      "userId": "01a1bf85-60b9-7755-a936-1d4794ae660a",
+      "email": "tq-s10-mw9106ui@example.test",
+      "fullName": "Tute QA Student 10",
+      "indexNumber": "0032"
+    }
+  }
+}

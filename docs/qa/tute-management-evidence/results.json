@@ -1,0 +1,761 @@
+{
+  "tag": "mw9106ui",
+  "results": [
+    {
+      "area": "setup",
+      "status": "PASS",
+      "check": "running backend is 6db7c17 (RELEASE_HOLD without reason → 400 field reason)",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"The request is not valid\",\"fieldErrors\":[{\"field\":\"reason\",\"message\":\"Give a reason for releasing the hold (at most 500 characters)\"}]}"
+    },
+    {
+      "area": "setup",
+      "status": "PASS",
+      "check": "10 synthetic students enrolled in C1 (eligible list)",
+      "detail": "10"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "reopen COVERED_BY_CLASS_FEES shows saved values",
+      "detail": "{\"name\":\"TQ Covered mw9106ui\",\"quantity\":50,\"paymentType\":\"COVERED_BY_CLASS_FEES\",\"price\":null,\"paidLessonId\":null,\"paidLessonTitle\":null,\"available\":50}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "reopen PAID shows saved values",
+      "detail": "{\"name\":\"TQ Paid mw9106ui\",\"quantity\":20,\"paymentType\":\"PAID\",\"price\":300,\"paidLessonId\":\"01a1bf85-53c9-762b-9d70-0574febd5201\",\"paidLessonTitle\":\"Revision paid session\",\"available\":20}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "reopen FREE shows saved values",
+      "detail": "{\"name\":\"TQ Free mw9106ui\",\"quantity\":3,\"paymentType\":\"FREE\",\"price\":null,\"paidLessonId\":null,\"paidLessonTitle\":null,\"available\":3}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "Paid tute stores price 300.00 + course currency",
+      "detail": "{\"price\":300,\"currency\":\"LKR\"}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "edit Covered (quantity 50→60, description)",
+      "detail": "1"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "edit Paid (price 300→350, still linked)",
+      "detail": "350"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "edit Free (rename)"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "Covered → Paid(99.50) → Free; reopen shows FREE, price null"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "Paid without price → 400",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"The tute is not valid\",\"fieldErrors\":[{\"field\":\"price\",\"message\":\"Price is required for a Paid tute\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "price on Free → 400 TUTE_PRICE_NOT_ALLOWED",
+      "detail": "{\"code\":\"TUTE_PRICE_NOT_ALLOWED\",\"message\":\"Only Paid tutes have a price\",\"fieldErrors\":[{\"field\":\"price\",\"message\":\"Remove the price for a tute that is not Paid\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "price on Covered → 400 TUTE_PRICE_NOT_ALLOWED",
+      "detail": "{\"code\":\"TUTE_PRICE_NOT_ALLOWED\",\"message\":\"Only Paid tutes have a price\",\"fieldErrors\":[{\"field\":\"price\",\"message\":\"Remove the price for a tute that is not Paid\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "quantity -1 → 400",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"The tute is not valid\",\"fieldErrors\":[{\"field\":\"quantity\",\"message\":\"Quantity must be a whole number from 0 to 1,000,000\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "quantity 1.5 → 400",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"The tute is not valid\",\"fieldErrors\":[{\"field\":\"quantity\",\"message\":\"Quantity must be a whole number from 0 to 1,000,000\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "quantity blank → 400",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"The tute is not valid\",\"fieldErrors\":[{\"field\":\"quantity\",\"message\":\"Quantity is required\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "quantity missing → 400",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"The tute is not valid\",\"fieldErrors\":[{\"field\":\"quantity\",\"message\":\"Quantity is required\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "cross-course paid session (C2's) → 400 TUTE_SESSION_NOT_ELIGIBLE",
+      "detail": "{\"code\":\"TUTE_SESSION_NOT_ELIGIBLE\",\"message\":\"Choose a paid session of this course\",\"fieldErrors\":[{\"field\":\"paidLessonId\",\"message\":\"Choose a paid session of this course\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "tenant-B lesson id → 400 TUTE_SESSION_NOT_ELIGIBLE",
+      "detail": "{\"code\":\"TUTE_SESSION_NOT_ELIGIBLE\",\"message\":\"Choose a paid session of this course\",\"fieldErrors\":[{\"field\":\"paidLessonId\",\"message\":\"Choose a paid session of this course\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "random lesson id → 400 TUTE_SESSION_NOT_ELIGIBLE",
+      "detail": "{\"code\":\"TUTE_SESSION_NOT_ELIGIBLE\",\"message\":\"Choose a paid session of this course\",\"fieldErrors\":[{\"field\":\"paidLessonId\",\"message\":\"Choose a paid session of this course\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "no invalid tute was written"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "edit with stale version → 409 TUTE_VERSION_CONFLICT",
+      "detail": "TUTE_VERSION_CONFLICT"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "delete tute without history → DELETED"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "assign S02 → added 1, available 2",
+      "detail": "{\"added\":1,\"alreadyAssigned\":0,\"available\":2}"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "duplicate assign is idempotent (alreadyAssigned 1)",
+      "detail": "{\"added\":0,\"alreadyAssigned\":1,\"available\":2}"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "3 students at available 2 → 409 TUTE_OUT_OF_STOCK, nothing written",
+      "detail": "{\"details\":{\"requested\":3,\"available\":2},\"rowsBefore\":1,\"rowsAfter\":1,\"available\":2}"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "assigning a non-participant of the course → 400",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"The request is not valid\",\"fieldErrors\":[{\"field\":\"studentIds\",\"message\":\"Every student must be enrolled in the tute's course\"}]}"
+    },
+    {
+      "area": "A1",
+      "status": "PASS",
+      "check": "quantity below allocated (0 < 1) → 409 TUTE_QUANTITY_BELOW_ALLOCATED",
+      "detail": "{\"code\":\"TUTE_QUANTITY_BELOW_ALLOCATED\",\"message\":\"Quantity cannot be lower than the 1 copies already reserved or dispatched\",\"fieldErrors\":[],\"details\":{\"allocated\":1}}"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "unroll without reason → 400 reason"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "unroll → CANCELLED, stock released (available 3)",
+      "detail": "{\"status\":\"CANCELLED\",\"available\":3}"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "unroll a cancelled copy → 409 TUTE_INVALID_STATE"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "8 parallel assigns at stock 3 → exactly 3 added, 5 × 409, never over quantity",
+      "detail": "{\"statuses\":[409,200,200,409,200,409,409,409],\"reserved\":3,\"available\":0,\"dbNonCancelled\":\"3\"}"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "6 parallel assigns of the same student → exactly 1 row",
+      "detail": "{\"statuses\":[\"200:1\",\"200:0\",\"200:0\",\"200:0\",\"200:0\",\"200:0\"],\"reserved\":1}"
+    },
+    {
+      "area": "A2",
+      "status": "PASS",
+      "check": "unroll of all concurrency rows releases stock (available 3)",
+      "detail": "{\"available\":3}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "free checkout (PaymentConfirmedEvent) → Covered tute PENDING, PAYMENT, COLLECTION (no postage)",
+      "detail": "{\"status\":\"PENDING\",\"method\":\"COLLECTION\",\"source\":\"PAYMENT\"}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "retry (second free order + Sync) → still 1 row, Sync added 0",
+      "detail": "{\"secondOrder\":409,\"sync\":{\"added\":0,\"alreadyAssigned\":1,\"skippedOutOfStock\":0,\"held\":0}}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "submitted (unapproved) slip + Sync → no tute",
+      "detail": "{\"added\":0,\"alreadyAssigned\":0,\"skippedOutOfStock\":0,\"held\":0}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "approved slip → appears after Sync: PENDING POSTAL, order address (Kandy)",
+      "detail": "{\"rowsBeforeSync\":0,\"sync\":{\"added\":1,\"alreadyAssigned\":0,\"skippedOutOfStock\":0,\"held\":0},\"method\":\"POSTAL\",\"city\":\"Kandy\"}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "re-sync → no duplicate (added 0)",
+      "detail": "{\"added\":0,\"alreadyAssigned\":1,\"skippedOutOfStock\":0,\"held\":0}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "rejected slip + Sync → no tute"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "Paid tute linked to paid session + approved LESSON purchase → assigned (COLLECTION, no postage)",
+      "detail": "{\"sync\":{\"added\":1,\"alreadyAssigned\":0,\"skippedOutOfStock\":0,\"held\":0},\"row\":{\"method\":\"COLLECTION\",\"price\":350}}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "LESSON line never qualifies the Covered tute"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "manual receipt (monthly, postage) + Sync → PENDING POSTAL (Galle)",
+      "detail": "{\"rowsBeforeSync\":0,\"method\":\"POSTAL\"}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "mixed C1+C2 order: C1 tute POSTAL, C2 tute COLLECTION (postage not selected), C4 tute nothing",
+      "detail": "{\"c1\":\"POSTAL\",\"c2\":\"COLLECTION\",\"c4Sync\":{\"added\":0,\"alreadyAssigned\":0,\"skippedOutOfStock\":0,\"held\":0},\"lines\":2}"
+    },
+    {
+      "area": "A3",
+      "status": "INFO",
+      "check": "zero-postage course with postage selected",
+      "detail": "postageSelected=true, method=POSTAL"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "zero postage fee: method follows postage_selected (spec §5: fee alone never decides) → POSTAL",
+      "detail": "{\"postageSelected\":true,\"method\":\"POSTAL\"}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "Free Card holder + Sync → no tute",
+      "detail": "{\"card\":201,\"sync\":{\"added\":0,\"alreadyAssigned\":3,\"skippedOutOfStock\":0,\"held\":0}}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "partial refund → S05 copy held and excluded from the dispatch queue",
+      "detail": "{\"refund\":201,\"held\":true,\"inQueue\":false}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "release hold without reason → 400 reason"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "release hold with reason → back in queue",
+      "detail": "{\"held\":false}"
+    },
+    {
+      "area": "A3",
+      "status": "PASS",
+      "check": "release hold on a non-held copy → 409",
+      "detail": "TUTE_INVALID_STATE"
+    },
+    {
+      "area": "A3",
+      "status": "BLOCKED",
+      "check": "online gateway (fake fallback) payment → PaymentConfirmedEvent",
+      "detail": "checkout quote reports methods.online=false for the demo tenant (no ACTIVE PayHere account) and the fake-gateway webhook needs PAYMENT_GATEWAY_WEBHOOK_SECRET, which the running dev process does not expose; the event path was proven with the free checkout instead"
+    },
+    {
+      "area": "A3",
+      "status": "BLOCKED",
+      "check": "chargeback (-3) caught at label/confirm/sync time",
+      "detail": "needs a verified PayHere notify; not drivable locally. Refund hold path verified above"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "assign all 10 students to TQ Labels (POSTAL)",
+      "detail": "{\"added\":10,\"alreadyAssigned\":0,\"available\":90}"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "same student, two addresses → two rows (Kandy order snapshot vs Peradeniya profile)",
+      "detail": "[{\"city\":\"Peradeniya\",\"tutes\":[\"TQ Labels mw9106ui\"]},{\"city\":\"Kandy\",\"tutes\":[\"TQ Covered mw9106ui\"]}]"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "student without address → row flagged addressMissing",
+      "detail": "{\"missingAddressCount\":1}"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "same student + same address (order snapshot = profile) → one row with 2 tutes (S05)",
+      "detail": "[\"TQ Physics mw9106ui – TQ Covered mw9106ui\",\"TQ Physics mw9106ui – TQ Labels mw9106ui\"]"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "course filter narrows rows and chips to C1"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "search by city 'Galle' → S05 only"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "search by name 'Student 08' → S08 only"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "search by index number 0029 → S07",
+      "detail": "[\"0029\"]"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "search by Sinhala name → S04"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "tute filter → 10 rows, chips only TQ Labels",
+      "detail": "10"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "2+ tutes: counted before pagination (size=1 total == size=100 total), includes S03/S04/S05/S06/S07",
+      "detail": "{\"total\":9}"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "2+ applies to the filtered count (C2 only → nobody has 2)",
+      "detail": "0"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort indexNumber asc",
+      "detail": "0023 | 0023 | 0024 | 0025 | 0026 | 0027 | 0028 | 0029 | 0030 | 0031 | 0032"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort indexNumber desc",
+      "detail": "0032 | 0031 | 0030 | 0029 | 0028 | 0027 | 0026 | 0025 | 0024 | 0023 | 0023"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort studentName asc",
+      "detail": "Tute QA Student 01 | Tute QA Student 01 | Tute QA Student 02 | Tute QA Student 03 Maximilian-Alexander Wickramasinghe Jayawardena Rajapaksha Mudiyanselage Longname | Tute QA Student 05 | Tute QA Student 06 | Tute QA Student 07 | Tute QA Student 08 | Tute QA Student 09 | Tute QA Student 10 | සුනිල් පෙරේරා"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort studentName desc",
+      "detail": "සුනිල් පෙරේරා | Tute QA Student 10 | Tute QA Student 09 | Tute QA Student 08 | Tute QA Student 07 | Tute QA Student 06 | Tute QA Student 05 | Tute QA Student 03 Maximilian-Alexander Wickramasinghe Jayawardena Rajapaksha Mudiyanselage Longname | Tute QA Student 02 | Tute QA Student 01 | Tute QA Student 01"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort tuteCount asc",
+      "detail": "1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 2"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort tuteCount desc",
+      "detail": "2 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort city asc (blank last)",
+      "detail": "Badulla | Colombo | Galle | Jaffna | Kandy | Kurunegala | Matara | Negombo | Peradeniya | Sri Jayawardenepura Kotte | ∅"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "sort city desc (blank last)",
+      "detail": "Sri Jayawardenepura Kotte | Peradeniya | Negombo | Matara | Kurunegala | Kandy | Jaffna | Galle | Colombo | Badulla | ∅"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "pagination: totals stable, totalPages = ceil(total/4), pages disjoint",
+      "detail": "{\"total\":11,\"totalPages\":3}"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Teacher default: dispatch queue → 403"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "teacher scope: queue holds only own-course (C1) items",
+      "detail": "[\"01a1bf85-516c-7adc-941e-e77ce344c99e\"]"
+    },
+    {
+      "area": "A4",
+      "status": "PASS",
+      "check": "teacher filtering another teacher's course → no rows / 403",
+      "detail": "200"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "selected rows (4 students) → PDF, X-Label-Count 4, no-store",
+      "detail": "{\"count\":4,\"cacheControl\":\"no-store\"}"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "all-filtered (C1) → X-Label-Count 11 equals queue rows 11"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "small PDF page count 1 = ceil(4/6)"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "small: \"From:\" footer and \"Tel:\" present"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "small: tute count footer present",
+      "detail": "1 tute, 1 tute, 2 tutes, 1 tute"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "long name rendered (wrapped, both parts present)"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "long address rendered"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "course – tute line present",
+      "detail": "TQ Physics mw9106ui – TQ Labels mw9106ui\r / TQ Physics mw9106ui – TQ Labels mw9106ui\r"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "Sinhala name and Tamil address extractable from the PDF text",
+      "detail": "{\"sinhala\":true,\"tamil\":true}"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "large PDF page count 2 = ceil(11/6)"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "large: \"From:\" footer and \"Tel:\" present"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "large: tute count footer present",
+      "detail": "1 tute, 1 tute, 1 tute, 1 tute, 1 tute, 2 tutes"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "missing address label shows \"No address provided\""
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "S01 two labels (Kandy and Peradeniya)"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "all-filtered with wrong expected count → 409 TUTE_SELECTION_STALE",
+      "detail": "{\"expectedLabelCount\":12,\"labelCount\":11}"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "selection containing a cancelled copy → 409 TUTE_SELECTION_STALE",
+      "detail": "{\"fulfillmentIds\":[\"01a1bf85-9031-70e0-9509-1eb5a4a14ec3\"]}"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "printing twice leaves status/stock/version unchanged (API snapshot identical)"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "(control) snapshot detects the unroll done between prints",
+      "detail": "differs as expected"
+    },
+    {
+      "area": "A5",
+      "status": "PASS",
+      "check": "COLLECTION copy in selection → 409",
+      "detail": "TUTE_SELECTION_STALE"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "selection with a missing address → 422 TUTE_ADDRESS_MISSING, nothing dispatched (S06 still PENDING)",
+      "detail": "{\"fulfillmentIds\":[\"01a1bf85-9022-7b1d-b297-255120bca8d1\"]}"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "valid confirm → 3 DISPATCHED",
+      "detail": "{\"dispatched\":3,\"alreadyDispatched\":0,\"dispatchedIds\":[\"01a1bf85-9024-793c-b9a1-b243d656929d\",\"01a1bf85-9026-78ce-8aea-83e885830ea5\",\"01a1bf85-902a-7f62-99fa-25977ee34526\"],\"alreadyDispatchedIds\":[]}"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "profile moved to Trincomalee after dispatch → dispatched record keeps 6 Test Lane / Colombo",
+      "detail": "{\"profileUpdate\":200,\"apiCity\":\"Colombo\",\"dbSnapshot\":\"6 Test Lane / Colombo / PROFILE\"}"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "(S06's pending order copy still uses its order snapshot, Colombo)",
+      "detail": "Colombo"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "second confirm → alreadyDispatched 2, dispatched 0",
+      "detail": "{\"dispatched\":0,\"alreadyDispatched\":2,\"dispatchedIds\":[],\"alreadyDispatchedIds\":[\"01a1bf85-9024-793c-b9a1-b243d656929d\",\"01a1bf85-902a-7f62-99fa-25977ee34526\"]}"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "stock consistent: reserved −3, dispatched +3, available unchanged, quantity = reserved + dispatched + available",
+      "detail": "{\"before\":[9,0,91],\"after\":[6,3,91]}"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "dispatched copies leave the queue"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "unroll of a DISPATCHED copy → 409 (terminal)"
+    },
+    {
+      "area": "A6",
+      "status": "PASS",
+      "check": "COLLECTION copy → Mark handed over → DISPATCHED"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Operator default: queue → 403"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Operator with DISPATCH_VIEW only: queue 200, labels 403, confirm 403, course tutes 403",
+      "detail": "{\"queue\":200,\"labels\":403,\"confirm\":403,\"tutes\":403}"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "caller without the capability gets 403 even for an unknown course id"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "grant PRINT_LABELS → same Operator token prints (200)"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "revoke PRINT_LABELS → next request on the same token → 403"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "/me/permissions reflects VIEW only after revoke"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Read-only Auditor cannot be granted PRINT_LABELS → 400 (accepted deviation)",
+      "detail": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"TUTE_DISPATCH_PRINT_LABELS is not configurable for READ_ONLY_AUDITOR\",\"fieldErrors\":[]}"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Teacher default: own-course tutes → 403"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Teacher granted view: own course 200, other teacher's course 403, tenant-B course 404, create still 403",
+      "detail": "{\"own\":200,\"ownRows\":200,\"other\":403,\"otherTute\":403,\"b\":404,\"create\":403}"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Teacher confirm on another teacher's copy → 403"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "tenant-B admin on tenant-A course/tute/fulfillment ids (read, edit, assign, print, confirm, unroll) → 404",
+      "detail": "[404,404,404,404,404,404,404,404]"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "tenant-B queue contains none of tenant A's students"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "tenant-A admin on tenant-B tute → 404 (GET, DELETE)",
+      "detail": "[404,404]"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "tenant-B tute untouched"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "tenant-A copy unchanged after B's attempts"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.created present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.updated present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.deleted present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.students_assigned present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.fulfillment_cancelled present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.payments_synced present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.dispatch_labels_printed present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.dispatched present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.hold_released present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "activity tute.handed_over present"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "no address/phone in any tute activity details",
+      "detail": "none"
+    },
+    {
+      "area": "A8",
+      "status": "PASS",
+      "check": "Operator without STAFF_ACTIVITY_VIEW → 403"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "restore 4 touched Tute cells to baseline",
+      "detail": "200"
+    },
+    {
+      "area": "A7",
+      "status": "PASS",
+      "check": "Tute matrix equals recorded baseline after the run",
+      "detail": "version 78"
+    }
+  ]
+}
