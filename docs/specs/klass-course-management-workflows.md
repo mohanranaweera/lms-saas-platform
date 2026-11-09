@@ -68,7 +68,7 @@ teacher assignment and `display_order`.
 - **Course detail** `/student/courses/{id}?tab=content|exams|live|tutes|about`: persistent header (cover,
   price badge, title, teacher); Exams = existing exam APIs filtered by course (membership still follows
   legacy paid enrollment, O-4); Live Classes = `GET /api/v1/courses/{id}/live-classes` (same evaluator as the
-  tree); Tute Delivery = honest empty state; About = description as plain text + invite links (participants only).
+  tree); Tute Delivery = the student's own tutes and delivery status (TUTE-02, `tute-management-dispatch.md` §14); About = description as plain text + invite links (participants only).
 - **Course content** = `GET /api/v1/courses/{id}/content`: "N of M viewed", billing-month folders newest
   first ("Course content" group last for lessons without a month), nested modules, lesson rows with
   Starts/Expires in the course timezone and a per-lesson action from the server access status. No URLs are

@@ -26,7 +26,7 @@ while stock, history and permissions stay auditable and tenant-isolated.
 | Operator / Manager / 7 seeded sub-roles | nothing by default; each capability grantable in Staff → Permissions [L] |
 | Teacher | nothing by default (new feature, no silent broadening) [P]; when granted, only courses where `course.teacher_id` = self [L] |
 | Read-only Auditor | configurable for view-only capabilities only [L] |
-| Student | no access in this release (student "Tute Delivery" tab stays as is) [P] |
+| Student | own copies only, read-only: course page "Tute Delivery" tab (TUTE-02, owner-approved 2026-11-09) [P] |
 
 ## 3. Course → Manage Tutes [K]
 
@@ -183,6 +183,7 @@ revoke applies on the next request [L].
 | GET | `/tute-dispatch/filter-options` | DISPATCH_VIEW |
 | POST | `/tute-dispatch/labels` `{fulfillmentIds[≤3000]}` or `{allFiltered:true, filters, expectedLabelCount}` → PDF | DISPATCH_PRINT_LABELS |
 | POST | `/tute-dispatch/confirm` `{fulfillmentIds[≤3000]}` | UPDATE_STATUS |
+| GET | `/courses/{courseId}/my-tutes` → `[{id, tuteName, status: PENDING\|ON_HOLD\|DISPATCHED, method, assignedAt, dispatchedAt}]` | Student role (TUTE-02) |
 
 Stale selection (item no longer eligible / count mismatch) → 409 `TUTE_SELECTION_STALE`; nothing
 printed or dispatched. Cross-tenant ids → 404. Response shapes: see DTOs in
@@ -230,4 +231,21 @@ for course menu, dialog, queue selection/labels, Staff group. Docs: this spec, s
 ## 13. Open / needs approval
 
 - Paid-tute checkout item (separate price in cart) — change-controlled, not built.
-- Student-facing Tute Delivery tab content — not in scope.
+- ~~Student-facing Tute Delivery tab content~~ — built as TUTE-02 (owner-approved 2026-11-09), see §14.
+
+## 14. Student Tute Delivery tab (TUTE-02)
+
+Owner-approved 2026-11-09 (full-stack). The student course page "Tute Delivery" tab lists the
+caller's own **non-cancelled** copies of that course, created-order:
+
+- `GET /api/v1/courses/{courseId}/my-tutes`, `hasRole('STUDENT')`, `Cache-Control: no-store`.
+  Student = authenticated user, tenant = resolved context (tenant-aware repository); unknown /
+  cross-tenant course → 404; staff → 403. No participation check: a student keeps seeing copies
+  already assigned to them.
+- Fields: tute name, status, method, assigned / dispatched timestamps. `ON_HOLD` = PENDING with a
+  reversed source payment not yet released. Never addresses, phones, payment, price or staff ids.
+- UI labels: Pending (by post / collect at class), On hold, Dispatched ("Posted on …"), Handed
+  over (DISPATCHED + COLLECTION). The query is never served from cache (`staleTime: 0`), so a staff
+  dispatch shows on the next tab open or window focus.
+- Tests: `StudentTuteIntegrationTest` (own rows, live status, hold, cross-course / cross-tenant /
+  staff denial, no delivery fields), `frontend/e2e/student-course-tutes.spec.ts`.
