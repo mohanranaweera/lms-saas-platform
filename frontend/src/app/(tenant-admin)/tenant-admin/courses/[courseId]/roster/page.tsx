@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
-import { courseRosterColumns } from "@/components/courses/course-roster-columns";
+import { useCourseRosterView } from "@/components/courses/course-roster-columns";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useCourse, useCourseRoster } from "@/lib/api/courses";
 
@@ -14,6 +14,7 @@ export default function TenantAdminCourseRosterPage() {
   const courseId = params.courseId;
   const courseQuery = useCourse(courseId);
   const rosterQuery = useCourseRoster(courseId);
+  const rosterView = useCourseRosterView();
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,7 +28,7 @@ export default function TenantAdminCourseRosterPage() {
         </Link>
         <div>
           <h1 className="text-xl font-semibold text-foreground">Roster</h1>
-          <p className="text-sm text-muted-foreground">Students paid for this month or holding an active Free Card.</p>
+          <p className="text-sm text-muted-foreground">{rosterView.description}</p>
         </div>
       </div>
 
@@ -47,14 +48,11 @@ export default function TenantAdminCourseRosterPage() {
               loadingLabel="Loading roster…"
               permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
               isEmpty={(data) => data.length === 0}
-              emptyState={{
-                title: "No active students",
-                description: "No enrolled student has paid for this month or holds an active Free Card.",
-              }}
+              emptyState={rosterView.emptyState}
             >
               {(roster) => (
                 <DataTable
-                  columns={courseRosterColumns}
+                  columns={rosterView.columns}
                   rows={roster}
                   rowKey={(row) => row.studentId}
                   caption="Course roster"

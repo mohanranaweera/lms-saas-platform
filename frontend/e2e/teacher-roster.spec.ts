@@ -35,14 +35,36 @@ const COURSE = {
   requiresManualQuote: false,
 };
 
-async function mockTeacherSession(page: Page): Promise<void> {
+async function mockTeacherSession(page: Page, capabilities: string[] = []): Promise<void> {
   const token = fakeJwt({ role: "TEACHER" });
   await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(token)));
+  await mockJson(page, "**/v1/me/permissions", 200, apiSuccess({ role: "TEACHER", capabilities, permissionVersion: 1 }));
 }
 
 test.describe("teacher roster — own course", () => {
-  test("renders the backend-filtered roster for the teacher's own course", async ({ page }) => {
+  test("without View Course Payment Status: every enrolled student, no payment column", async ({ page }) => {
     await mockTeacherSession(page);
+    await mockJson(page, `**/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
+    await mockJson(
+      page,
+      `**/v1/courses/${COURSE.id}/roster`,
+      200,
+      apiSuccess([
+        { studentId: "s1", userId: "u1", name: "Ada Lovelace", email: "ada@example.test", accessStatus: null },
+        { studentId: "s2", userId: "u2", name: "Grace Hopper", email: "grace@example.test", accessStatus: null },
+      ])
+    );
+
+    await page.goto(`/teacher/courses/${COURSE.id}/roster`);
+
+    await expect(page.getByText("Students currently enrolled in this course.")).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table.getByText("Grace Hopper")).toBeVisible();
+    await expect(table.getByRole("columnheader", { name: "Paid access" })).toHaveCount(0);
+  });
+
+  test("granted View Course Payment Status: active students with their status", async ({ page }) => {
+    await mockTeacherSession(page, ["COURSES_VIEW_PAYMENT_STATUS"]);
     await mockJson(page, `**/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
     await mockJson(
       page,
@@ -72,7 +94,7 @@ test.describe("teacher roster — own course", () => {
     await mockJson(page, `**/v1/courses/${COURSE.id}/roster`, 200, apiSuccess([]));
 
     await page.goto(`/teacher/courses/${COURSE.id}/roster`);
-    await expect(page.getByText("No active students")).toBeVisible();
+    await expect(page.getByText("No enrolled students")).toBeVisible();
   });
 
   test("a loading state renders before the roster resolves", async ({ page }) => {

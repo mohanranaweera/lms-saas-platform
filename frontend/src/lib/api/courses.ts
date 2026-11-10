@@ -590,7 +590,8 @@ export function useUpdateCourseLesson(courseId: string, moduleId: string) {
 /**
  * Mirrors backend `RosterAccessStatus` — whether an enrolled student has paid
  * access right now (open legacy window, this month's MONTHLY entitlement, or an
- * active MODULE/LESSON entitlement). Display only.
+ * active MODULE/LESSON entitlement). Display only; `null` on every row when the
+ * caller lacks View Course Payment Status.
  */
 export type CourseRosterAccessStatus = "PAID" | "FREE_CARD" | "FREE_COURSE" | "NOT_PAID";
 
@@ -600,14 +601,15 @@ export interface CourseRosterEntryResponse {
   userId: string;
   name: string;
   email: string;
-  accessStatus: CourseRosterAccessStatus;
+  accessStatus: CourseRosterAccessStatus | null;
 }
 
 /**
  * `GET /v1/courses/{courseId}/roster` (Wave 3, PAR-03-06/PAR-04-03) — a real,
- * backend-filtered course roster: enrolled students paid for the current month
- * (or holding other active paid access), with an active Free Card, or on a free
- * course. Unpaid students are filtered out server-side. Teacher: own-course-only (server-verified
+ * backend-filtered course roster. With View Course Payment Status: enrolled
+ * students paid for the current month (or holding other active paid access),
+ * with an active Free Card, or on a free course — unpaid students filtered out
+ * server-side. Without it: every enrolled student, no status. Teacher: own-course-only (server-verified
  * ownership, same pattern `AttendanceAccessGuard` already uses — a Teacher
  * requesting another teacher's course id gets a real 404/403, never a
  * client-filtered subset of a wider fetch). Staff: `STUDENTS`/`VIEW` or

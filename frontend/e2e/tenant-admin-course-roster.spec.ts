@@ -3,9 +3,9 @@ import { apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/a
 
 /**
  * Tenant Admin course roster — `(tenant-admin)/tenant-admin/courses/[courseId]/roster`.
- * The backend lists only enrolled students with access right now (paid for the
- * current month, an active Free Card, or a free course) with a display-only
- * `accessStatus`. No real backend runs here — the filter and status are
+ * With View Course Payment Status (Tenant Admin holds it) the backend lists only
+ * enrolled students with access right now (paid for the current month, an active
+ * Free Card, or a free course) with a display-only `accessStatus`. No real backend runs here — the filter and status are
  * backend-computed and covered by `CourseRosterParticipationIntegrationTest`.
  */
 
@@ -35,6 +35,12 @@ const COURSE = {
 
 async function mockTenantAdminSession(page: Page): Promise<void> {
   await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(fakeJwt({ role: "TENANT_ADMIN" }))));
+  await mockJson(
+    page,
+    "**/v1/me/permissions",
+    200,
+    apiSuccess({ role: "TENANT_ADMIN", capabilities: ["COURSES_VIEW_PAYMENT_STATUS"], permissionVersion: 1 })
+  );
 }
 
 test("lists the active students with their paid-access status", async ({ page }) => {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
-import { courseRosterColumns } from "@/components/courses/course-roster-columns";
+import { useCourseRosterView } from "@/components/courses/course-roster-columns";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useCourses, useCourseRoster } from "@/lib/api/courses";
 import { CourseScopeSelect } from "./course-scope-select";
@@ -54,19 +54,17 @@ export function TeacherRosterTab({ teacherId }: { teacherId: string }) {
 
 function RosterForCourse({ courseId }: { courseId: string }) {
   const query = useCourseRoster(courseId);
+  const rosterView = useCourseRosterView();
   return (
     <QueryStateBoundary
       query={query}
       loadingLabel="Loading roster…"
       isEmpty={(data) => data.length === 0}
-      emptyState={{
-        title: "No active students",
-        description: "No enrolled student has paid for this month or holds an active Free Card.",
-      }}
+      emptyState={rosterView.emptyState}
     >
       {(roster) => (
         <DataTable
-          columns={courseRosterColumns}
+          columns={rosterView.columns}
           rows={roster}
           rowKey={(row) => row.studentId}
           caption="Course roster"
