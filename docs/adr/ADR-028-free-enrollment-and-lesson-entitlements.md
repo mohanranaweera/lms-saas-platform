@@ -93,6 +93,14 @@ amended, D17 superseded, O-4 resolved):
    effective Free Card for the current month, or are on a FREE-priced course, with a
    display-only status. Unpaid participants are filtered out by the backend. The status is
    never an authorization input.
+4. **Payment status on the roster is a capability (2026-11-10).** Showing tutors who has paid
+   for the month is intended and accepted. It is a new route to payment information, so it is
+   gated by `COURSES_VIEW_PAYMENT_STATUS` ("View Course Payment Status", Courses group). Static
+   holders mirror the Unpaid Students report (`FINANCE_EXPENSES`/`VIEW`); Operators, Managers
+   and seeded sub-roles are configurable; a Teacher holds it only after the tenant admin grants
+   it, and the grant never elevates the static finance gate. Without it the roster lists every
+   enrolled student with no status (no filter), so payment state can be neither seen nor
+   inferred.
 
 ## Not changed
 
