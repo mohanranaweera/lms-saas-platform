@@ -119,7 +119,7 @@ class TuteCapabilityCatalogTest {
 	@Test
 	void olderCapabilitiesKeepTheirTeacherDefault() {
 		Stream.of(Capability.values())
-			.filter(c -> c.group() != CapabilityGroup.TUTE)
+			.filter(c -> c.group() != CapabilityGroup.TUTE && c != Capability.COURSES_VIEW_PAYMENT_STATUS)
 			.forEach(c -> assertThat(c.teacherDefaultGranted()).as(c.key()).isTrue());
 		assertThat(PermissionCheckServiceImpl.defaultGrant(ConfigurableRole.TEACHER, Capability.COURSES_VIEW)).isTrue();
 	}

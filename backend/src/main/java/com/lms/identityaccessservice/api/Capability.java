@@ -108,6 +108,11 @@ public enum Capability {
 	// ---------------------------------------------------------------- Courses
 	COURSES_VIEW(CapabilityGroup.COURSES, "View Courses", omt(p(COURSES, VIEW))),
 	COURSES_VIEW_STUDENTS(CapabilityGroup.COURSES, "View Course Students", omt(p(COURSES, VIEW))),
+	// Course roster paid/Free Card status (owner, 2026-11-10; ADR-028 refinement). Static holders
+	// mirror the Unpaid Students report (FINANCE_EXPENSES/VIEW); a Teacher holds it only once the
+	// tenant grants it. Checked by CourseRosterService - never elevates the static finance gate.
+	COURSES_VIEW_PAYMENT_STATUS(CapabilityGroup.COURSES, "View Course Payment Status",
+			omtTeacherOff(p(FINANCE_EXPENSES, VIEW))),
 	// Checked by CourseService when GET /courses asks for archived courses (not for Teachers).
 	COURSES_VIEW_ARCHIVED(CapabilityGroup.COURSES, "View Archived Courses", om(p(COURSES, VIEW))),
 	COURSES_ADD(CapabilityGroup.COURSES, "Add Course", om(p(COURSES, CREATE_EDIT), p(COURSES, VIEW))),

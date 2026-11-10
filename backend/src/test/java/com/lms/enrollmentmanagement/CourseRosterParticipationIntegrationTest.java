@@ -25,6 +25,8 @@ import tools.jackson.databind.JsonNode;
  * have access right now - paid (open legacy window, a MONTHLY entitlement for the
  * CURRENT month, an active MODULE/LESSON entitlement), an effective Free Card for
  * the current month, or a FREE-priced course. Unpaid participants are not listed.
+ * That view needs View Course Payment Status (Teacher: only once granted);
+ * without it the roster lists every enrolled student with no status.
  */
 class CourseRosterParticipationIntegrationTest extends ContentManagementTestSupport {
 
@@ -69,7 +71,8 @@ class CourseRosterParticipationIntegrationTest extends ContentManagementTestSupp
 		assertThat(result.getResponse().getStatus()).as(rawContent(result)).isEqualTo(200);
 		Map<UUID, String> statuses = new HashMap<>();
 		for (JsonNode row : objectMapper.readTree(rawContent(result)).path("data")) {
-			statuses.put(UUID.fromString(row.path("userId").asString()), row.path("accessStatus").asString());
+			JsonNode status = row.path("accessStatus");
+			statuses.put(UUID.fromString(row.path("userId").asString()), status.isNull() ? "" : status.asString());
 		}
 		return statuses;
 	}
@@ -159,6 +162,39 @@ class CourseRosterParticipationIntegrationTest extends ContentManagementTestSupp
 		Map<UUID, String> roster = rosterStatuses(fx.host(), fx.adminToken(), fx.course().id());
 
 		assertThat(roster).containsEntry(userId(fx, "student@example.test"), "FREE_COURSE");
+	}
+
+	private Map<UUID, String> rosterAsTeacher(Fx fx) {
+		return rosterStatuses(fx.host(), loginAndGetToken(fx.host(), "teacher@example.test"), fx.course().id());
+	}
+
+	@Test
+	void aTeacherWithoutViewCoursePaymentStatusSeesEveryEnrolledStudentWithNoStatus() {
+		Fx fx = seed("roster-teacher-nocap");
+		enrolledStudentToken(fx, "paid@example.test");
+		enrolledStudentToken(fx, "unpaid@example.test");
+		seedMonthlyEntitlement(fx, userId(fx, "paid@example.test"), YearMonth.now(ZoneOffset.UTC));
+
+		Map<UUID, String> roster = rosterAsTeacher(fx);
+
+		// Nothing to see or infer: unpaid students are listed and no row carries a status.
+		assertThat(roster).containsOnlyKeys(userId(fx, "paid@example.test"), userId(fx, "unpaid@example.test"));
+		assertThat(roster.values()).containsOnly("");
+	}
+
+	@Test
+	void aTeacherGrantedViewCoursePaymentStatusSeesOnlyActiveStudentsWithStatus() {
+		Fx fx = seed("roster-teacher-cap");
+		enrolledStudentToken(fx, "paid@example.test");
+		enrolledStudentToken(fx, "unpaid@example.test");
+		seedMonthlyEntitlement(fx, userId(fx, "paid@example.test"), YearMonth.now(ZoneOffset.UTC));
+		jdbcTemplate.update("INSERT INTO tenant_role_capability_grant (id, tenant_id, role_code, capability_key, "
+				+ "granted) VALUES (?, ?, 'TEACHER', 'COURSES_VIEW_PAYMENT_STATUS', true)", UUID.randomUUID(),
+				fx.tenant().getId());
+
+		Map<UUID, String> roster = rosterAsTeacher(fx);
+
+		assertThat(roster).containsOnly(Map.entry(userId(fx, "paid@example.test"), "PAID"));
 	}
 
 	@Test

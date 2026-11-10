@@ -77,7 +77,7 @@ class CapabilitySemanticsTest {
 	}
 
 	@Test
-	void teacherConfigurableSetIsExactlyTheSpecifiedSixPlusTheTuteGroup() {
+	void teacherConfigurableSetIsExactlyTheSpecifiedSixPlusTheTuteGroupAndCoursePaymentStatus() {
 		Set<Capability> teacher = Stream.of(Capability.values())
 			.filter(Capability::isTeacherConfigurable)
 			.collect(Collectors.toSet());
@@ -85,16 +85,18 @@ class CapabilitySemanticsTest {
 			.filter(c -> c.group() == com.lms.identityaccessservice.api.CapabilityGroup.TUTE)
 			.collect(Collectors.toSet());
 		assertThat(tutes).hasSize(10);
-		Set<Capability> expected = new java.util.HashSet<>(tutes);
+		// Opt-in for Teacher: the tute group (TUTE-01) and course payment status (2026-11-10).
+		Set<Capability> optIn = new java.util.HashSet<>(tutes);
+		optIn.add(Capability.COURSES_VIEW_PAYMENT_STATUS);
+		Set<Capability> expected = new java.util.HashSet<>(optIn);
 		expected.addAll(Set.of(Capability.COURSES_VIEW, Capability.COURSES_VIEW_STUDENTS, Capability.MODULES_VIEW,
 				Capability.MODULES_ADD, Capability.MODULES_DELETE, Capability.EXAMS_VIEW));
 		assertThat(teacher).isEqualTo(expected);
-		// The historical six keep their "granted by default" Teacher column; tute capabilities
-		// (TUTE-01) are opt-in for Teacher.
+		// The historical six keep their "granted by default" Teacher column; the opt-in set does not.
 		for (Capability capability : teacher) {
 			assertThat(PermissionCheckServiceImpl.defaultGrant(ConfigurableRole.TEACHER, capability))
 				.as(capability.key())
-				.isEqualTo(!tutes.contains(capability));
+				.isEqualTo(!optIn.contains(capability));
 		}
 	}
 

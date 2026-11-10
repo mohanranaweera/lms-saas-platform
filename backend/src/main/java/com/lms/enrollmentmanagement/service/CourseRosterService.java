@@ -6,6 +6,7 @@ import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.enrollmentmanagement.api.RosterAccessStatus;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
@@ -26,7 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
  * current month (or open legacy / MODULE / LESSON access), an effective Free Card
  * for the current month, or a FREE-priced course (owner, 2026-11-10). Unpaid
  * participants are left out here only; attendance, audiences and exams still use
- * enrollment. Composed with
+ * enrollment. That paid view needs {@link Capability#COURSES_VIEW_PAYMENT_STATUS}
+ * (a Teacher only once the tenant grants it); without it the roster lists every
+ * enrolled student with a {@code null} status, so payment state can be neither
+ * seen nor inferred. Composed with
  * {@code user-management}'s student summaries via {@link StudentLookupApi} -
  * never a cross-domain repository join, per {@code .claude/rules/architecture.md}.
  *
@@ -80,6 +84,13 @@ public class CourseRosterService {
 		}
 
 		List<UUID> enrolledUserIds = courseParticipationApi.listParticipantStudentIds(courseId);
+		if (!permissionCheckService.hasCapability(Capability.COURSES_VIEW_PAYMENT_STATUS)) {
+			// No payment information at all: every enrolled student, no status, no filter.
+			return studentLookupApi.getStudentSummariesByUserId(enrolledUserIds)
+				.stream()
+				.map(s -> new CourseRosterEntryView(s.studentProfileId(), s.userId(), s.name(), s.email(), null))
+				.toList();
+		}
 		Map<UUID, RosterAccessStatus> access = courseRosterAccessService.accessStatuses(courseId, enrolledUserIds);
 		List<UUID> activeUserIds = enrolledUserIds.stream()
 			.filter(id -> access.getOrDefault(id, RosterAccessStatus.NOT_PAID) != RosterAccessStatus.NOT_PAID)
