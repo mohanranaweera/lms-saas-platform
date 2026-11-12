@@ -84,4 +84,22 @@ public interface TenantConfigApi {
 			.orElse(true);
 	}
 
+	/** SET-CFG-01: {@code NOTIFICATION.sms_enabled}, {@code true} unless explicitly {@code false}. */
+	default boolean isSmsEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.NOTIFICATION, "sms_enabled")
+			.map(value -> !Boolean.FALSE.equals(value))
+			.orElse(true);
+	}
+
+	/**
+	 * SET-CFG-01 (ADR-028 amendment): {@code STUDENT.self_enrollment_enabled},
+	 * {@code true} unless explicitly {@code false}. Gates student self-enrollment
+	 * only; staff enroll-on-behalf never reads it.
+	 */
+	default boolean isSelfEnrollmentEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.STUDENT, "self_enrollment_enabled")
+			.map(value -> !Boolean.FALSE.equals(value))
+			.orElse(true);
+	}
+
 }

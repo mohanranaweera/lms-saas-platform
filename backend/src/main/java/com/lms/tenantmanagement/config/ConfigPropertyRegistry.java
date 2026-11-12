@@ -32,6 +32,9 @@ public class ConfigPropertyRegistry {
 
 	private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("^#[0-9A-Fa-f]{6}$");
 
+	/** GA4 measurement id (SET-CFG-01) - strict so it can only ever be a gtag config argument. */
+	private static final Pattern GA_MEASUREMENT_ID_PATTERN = Pattern.compile("^G-[A-Z0-9]{4,20}$");
+
 	private static final double MIN_AA_CONTRAST_RATIO = 4.5;
 
 	/** WCAG 2.x AA minimum for large text / UI components (primary color on the page background). */
@@ -91,6 +94,7 @@ public class ConfigPropertyRegistry {
 		registry.put(ConfigDomain.STUDENT, studentProperties());
 		registry.put(ConfigDomain.VIDEO, videoProperties());
 		registry.put(ConfigDomain.PAYMENT, paymentProperties());
+		registry.put(ConfigDomain.NOTIFICATION, notificationProperties());
 		return Map.copyOf(registry);
 	}
 
@@ -129,6 +133,17 @@ public class ConfigPropertyRegistry {
 						ConfigPropertyRegistry::isShortText),
 				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_transfer_enabled", ConfigValueType.BOOLEAN,
 						Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	/**
+	 * SET-CFG-01: {@code sms_enabled} (default {@code true}) is the tenant's
+	 * kill switch for SMS notification deliveries; {@code false} makes the
+	 * dispatcher skip every SMS delivery ({@code SMS_DISABLED}). Sign-in and
+	 * registration OTP messages are not notifications and are unaffected.
+	 */
+	private static List<ConfigPropertyDefinition> notificationProperties() {
+		return List.of(ConfigPropertyDefinition.of(ConfigDomain.NOTIFICATION, "sms_enabled", ConfigValueType.BOOLEAN,
+				Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
 	}
 
 	private static boolean isShortText(Object value, Map<String, Object> batch) {
@@ -199,7 +214,11 @@ public class ConfigPropertyRegistry {
 				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_stream", ConfigValueType.BOOLEAN,
 						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
 				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_mobile", ConfigValueType.BOOLEAN,
-						Boolean.FALSE, ConfigPropertyRegistry::isBoolean));
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				// SET-CFG-01 (ADR-028 amendment): false = students cannot
+				// self-enroll; staff enroll-on-behalf is unaffected.
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "self_enrollment_enabled",
+						ConfigValueType.BOOLEAN, Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
 	}
 
 	private static boolean isBoolean(Object value, Map<String, Object> batch) {
@@ -317,7 +336,11 @@ public class ConfigPropertyRegistry {
 						(value, batch) -> value instanceof String s
 								&& com.google.i18n.phonenumbers.PhoneNumberUtil.getInstance()
 									.getSupportedRegions()
-									.contains(s)));
+									.contains(s)),
+				// SET-CFG-01: GA4 measurement id, loaded on the public site and
+				// student portal. Public by nature (it is in the page source).
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "ga_measurement_id", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && GA_MEASUREMENT_ID_PATTERN.matcher(s).matches()));
 	}
 
 	private static ConfigPropertyDefinition policyProperty(String key) {

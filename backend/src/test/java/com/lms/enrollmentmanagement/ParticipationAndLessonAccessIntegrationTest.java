@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.lms.contentmanagement.ContentManagementTestSupport;
 import com.lms.contentmanagement.material.web.dto.MaterialResponse;
@@ -192,6 +193,40 @@ class ParticipationAndLessonAccessIntegrationTest extends ContentManagementTestS
 		assertThat(status(again)).isEqualTo(200);
 		assertThat(json(again).path("data").path("created").asBoolean()).isFalse();
 		assertThat(status(content(fx.host(), fx.studentToken(), fx.course().id()))).isEqualTo(200);
+	}
+
+	/**
+	 * SET-CFG-01 (ADR-028 amendment): {@code STUDENT.self_enrollment_enabled =
+	 * false} blocks new self-enrollments in this tenant only; existing
+	 * participants keep their idempotent 200 and another tenant is unaffected.
+	 */
+	@Test
+	void tenantSelfEnrollmentSwitchBlocksNewStudentsInThatTenantOnly() {
+		Fx fx = seed("cfg-self-enroll-a");
+		Fx other = seed("cfg-self-enroll-b");
+		seedActiveStudent(fx.tenant().getId(), "student2@example.test");
+		String student2Token = loginAndGetToken(fx.host(), "student2@example.test");
+		assertThat(status(selfEnroll(fx.host(), fx.studentToken(), fx.course().id()))).isEqualTo(200);
+
+		MvcResult disabled = call(fx.host(), fx.adminToken(),
+				put("/api/v1/tenant-config/{domain}", "STUDENT").contentType(MediaType.APPLICATION_JSON)
+					.content(objectMapper.writeValueAsString(Map.of("self_enrollment_enabled", false))));
+		assertThat(status(disabled)).as(rawContent(disabled)).isEqualTo(200);
+
+		MvcResult rejected = selfEnroll(fx.host(), student2Token, fx.course().id());
+		assertThat(status(rejected)).isEqualTo(409);
+		assertThat(json(rejected).path("error").path("code").asString()).isEqualTo("SELF_ENROLLMENT_DISABLED");
+		assertThat(count("SELECT count(*) FROM course_participation WHERE tenant_id = ? AND course_id = ?",
+				fx.tenant().getId(), fx.course().id())).isEqualTo(1);
+
+		MvcResult again = selfEnroll(fx.host(), fx.studentToken(), fx.course().id());
+		assertThat(status(again)).isEqualTo(200);
+		assertThat(json(again).path("data").path("created").asBoolean()).isFalse();
+
+		// Tenant isolation: tenant B never saw tenant A's switch.
+		MvcResult otherTenant = selfEnroll(other.host(), other.studentToken(), other.course().id());
+		assertThat(status(otherTenant)).as(rawContent(otherTenant)).isEqualTo(200);
+		assertThat(json(otherTenant).path("data").path("created").asBoolean()).isTrue();
 	}
 
 	@Test

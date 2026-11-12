@@ -151,6 +151,42 @@ class CommunicationsBroadcastIntegrationTest extends CommunicationsTestSupport {
 			.containsEntry("last_error_code", "CHANNEL_NOT_AVAILABLE");
 	}
 
+	/**
+	 * SET-CFG-01: {@code NOTIFICATION.sms_enabled = false} skips this tenant's
+	 * already-queued SMS deliveries, refuses new SMS broadcasts up front and
+	 * leaves EMAIL and another tenant's SMS untouched.
+	 */
+	@Test
+	void theTenantSmsSwitchSkipsQueuedSmsAndRefusesNewOnesForThatTenantOnly() {
+		CommsFixture f = seedFixture("comms-sms-off-a");
+		CommsFixture other = seedFixture("comms-sms-off-b");
+		configureMessaging(f, "SMS", "ACADEMY", "sandbox-api-key-0001234");
+		configureMessaging(other, "SMS", "ACADEMY", "sandbox-api-key-0005678");
+		BroadcastView queued = sendOrFail(f, f.adminToken(),
+				broadcastBody(audience("ALL_STUDENTS"), List.of("EMAIL", "SMS")));
+		BroadcastView otherQueued = sendOrFail(other, other.adminToken(),
+				broadcastBody(audience("ALL_STUDENTS"), List.of("SMS")));
+
+		Raw switchedOff = putRaw(f.host(), f.adminToken(), "/api/v1/tenant-config/NOTIFICATION",
+				Map.of("sms_enabled", false));
+		assertThat(switchedOff.status()).as(switchedOff.body()).isEqualTo(200);
+
+		dispatchDue(queued.id());
+		assertThat(deliveryRow(queued.id(), f.enrolled().getId(), "SMS")).containsEntry("status", "SKIPPED")
+			.containsEntry("last_error_code", "SMS_DISABLED")
+			.containsEntry("destination_masked", null);
+		assertThat(deliveryRow(queued.id(), f.enrolled().getId(), "EMAIL")).containsEntry("status", "SENT");
+
+		Raw refused = postRaw(f.host(), f.adminToken(), BROADCASTS,
+				broadcastBody(audience("ALL_STUDENTS"), List.of("SMS")));
+		assertThat(refused.status()).isEqualTo(409);
+		assertThat(refused.body()).contains("CHANNEL_NOT_AVAILABLE");
+
+		// Tenant isolation: tenant B's SMS still goes out.
+		dispatchDue(otherQueued.id());
+		assertThat(deliveryRow(otherQueued.id(), other.enrolled().getId(), "SMS")).containsEntry("status", "SENT");
+	}
+
 	// ---- retries and provider failure ----
 
 	@Test

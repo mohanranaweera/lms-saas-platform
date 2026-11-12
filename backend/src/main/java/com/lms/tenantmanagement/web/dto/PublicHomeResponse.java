@@ -33,7 +33,9 @@ public record PublicHomeResponse(
 		Institute institute,
 		Policies policies,
 		LoginOptions loginOptions,
-		boolean showTodaysClasses) {
+		boolean showTodaysClasses,
+		Analytics analytics,
+		StudentOptions studentOptions) {
 
 	public PublicHomeResponse {
 		desktopBannerUrls = desktopBannerUrls == null ? List.of() : List.copyOf(desktopBannerUrls);
@@ -69,6 +71,21 @@ public record PublicHomeResponse(
 
 	/** ADR-031: whether the login page offers the MOBILE tab ({@code GENERAL.mobile_login_enabled}). */
 	public record LoginOptions(boolean mobileEnabled) {
+	}
+
+	/**
+	 * SET-CFG-01: the tenant's GA4 measurement id ({@code
+	 * GENERAL.ga_measurement_id}), or {@code null}. Public by nature - gtag puts
+	 * it in every tracked page's source.
+	 */
+	public record Analytics(String gaMeasurementId) {
+	}
+
+	/**
+	 * SET-CFG-01: whether the student UI offers self-enrollment ({@code
+	 * STUDENT.self_enrollment_enabled}). UX only - the enroll endpoint enforces it.
+	 */
+	public record StudentOptions(boolean selfEnrollmentEnabled) {
 	}
 
 	public record FeaturedCourse(UUID id, String name, String slug, String category, String pricingModel,

@@ -55,6 +55,7 @@ public class PublicHomeController {
 		UUID tenantId = tenantContext.getTenantId();
 		Map<String, Object> branding = tenantConfigApi.resolveDomain(tenantId, ConfigDomain.BRANDING);
 		Map<String, Object> general = tenantConfigApi.resolveDomain(tenantId, ConfigDomain.GENERAL);
+		boolean selfEnrollmentEnabled = tenantConfigApi.isSelfEnrollmentEnabled(tenantId);
 		PublicHomeResponse response = new PublicHomeResponse(
 				booleanValue(branding, "public_page_enabled", true),
 				stringValue(general, "institute_name", ""),
@@ -80,7 +81,9 @@ public class PublicHomeController {
 				new PublicHomeResponse.Policies(published(general, "terms_of_service"),
 						published(general, "refund_policy"), published(general, "privacy_policy")),
 				new PublicHomeResponse.LoginOptions(booleanValue(general, "mobile_login_enabled", true)),
-				booleanValue(branding, "show_todays_classes", true));
+				booleanValue(branding, "show_todays_classes", true),
+				new PublicHomeResponse.Analytics(stringValue(general, "ga_measurement_id", null)),
+				new PublicHomeResponse.StudentOptions(selfEnrollmentEnabled));
 		return ResponseEntity.ok().cacheControl(CacheControl.noCache()).body(ApiResponse.success(response));
 	}
 

@@ -4,6 +4,7 @@ import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.NotFoundException;
+import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseCatalogApi;
 import com.lms.coursemanagement.api.CourseCatalogApi.CatalogEntry;
 import com.lms.coursemanagement.api.CourseCatalogApi.CatalogQuery;
@@ -15,6 +16,7 @@ import com.lms.enrollmentmanagement.domain.CourseParticipation;
 import com.lms.enrollmentmanagement.domain.CourseParticipationSource;
 import com.lms.enrollmentmanagement.repository.CourseParticipationRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
+import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,11 @@ import org.springframework.transaction.annotation.Transactional;
  * step, and is idempotent and race-safe ({@code INSERT ... ON CONFLICT DO
  * NOTHING}). Paid content stays locked until a verified payment grants an
  * entitlement.
+ *
+ * <p>SET-CFG-01 (ADR-028 amendment): a tenant may switch student
+ * self-enrollment off ({@code STUDENT.self_enrollment_enabled}); new
+ * participants then come only from staff ({@link #enrollOnBehalf}, free
+ * cards). Existing participation is never touched.
  */
 @Service
 public class CourseParticipationService implements CourseParticipationApi {
@@ -48,12 +55,19 @@ public class CourseParticipationService implements CourseParticipationApi {
 
 	private final AuditLogApi auditLogApi;
 
+	private final TenantConfigApi tenantConfigApi;
+
+	private final TenantContext tenantContext;
+
 	public CourseParticipationService(CourseParticipationRepository participationRepository,
-			CourseLookupApi courseLookupApi, CourseCatalogApi courseCatalogApi, AuditLogApi auditLogApi) {
+			CourseLookupApi courseLookupApi, CourseCatalogApi courseCatalogApi, AuditLogApi auditLogApi,
+			TenantConfigApi tenantConfigApi, TenantContext tenantContext) {
 		this.participationRepository = participationRepository;
 		this.courseLookupApi = courseLookupApi;
 		this.courseCatalogApi = courseCatalogApi;
 		this.auditLogApi = auditLogApi;
+		this.tenantConfigApi = tenantConfigApi;
+		this.tenantContext = tenantContext;
 	}
 
 	public record SelfEnrollResult(UUID courseId, Instant enrolledAt, boolean created) {
@@ -75,6 +89,8 @@ public class CourseParticipationService implements CourseParticipationApi {
 	 * or archived (indistinguishable 404).
 	 * @throws RegistrationClosedException registration is disabled and the
 	 * caller is not already a participant.
+	 * @throws SelfEnrollmentDisabledException the tenant switched self-enrollment
+	 * off and the caller is not already a participant.
 	 */
 	@Transactional
 	public SelfEnrollResult selfEnroll(UUID courseId) {
@@ -86,6 +102,9 @@ public class CourseParticipationService implements CourseParticipationApi {
 		var existing = participationRepository.findByStudentIdAndCourseId(studentId, courseId);
 		if (existing.isPresent()) {
 			return new SelfEnrollResult(courseId, existing.get().getEnrolledAt(), false);
+		}
+		if (!tenantConfigApi.isSelfEnrollmentEnabled(tenantContext.getTenantId())) {
+			throw new SelfEnrollmentDisabledException();
 		}
 		if (!course.registrationEnabled()) {
 			throw new RegistrationClosedException();

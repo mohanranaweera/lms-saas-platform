@@ -27,6 +27,7 @@ import com.lms.notificationmanagement.repository.InAppNotificationRepository;
 import com.lms.notificationmanagement.repository.NotificationDeliveryRepository;
 import com.lms.notificationmanagement.service.AudienceResolver.AudienceSpec;
 import com.lms.notificationmanagement.service.AudienceResolver.Recipient;
+import com.lms.tenantmanagement.api.TenantConfigApi;
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import com.lms.tenantmanagement.api.TenantSummary;
 import com.lms.usermanagement.api.StudentLookupApi;
@@ -103,12 +104,15 @@ public class BroadcastService {
 
 	private final TeacherLookupApi teacherLookupApi;
 
+	private final TenantConfigApi tenantConfigApi;
+
 	public BroadcastService(BroadcastRepository broadcastRepository, NotificationDeliveryRepository deliveryRepository,
 			InAppNotificationRepository inAppNotificationRepository, AudienceResolver audienceResolver,
 			CommunicationTemplateService templateService, BroadcastTextRenderer renderer,
 			MessagingChannelApi messagingChannelApi, PermissionCheckService permissionCheckService,
 			AuditLogApi auditLogApi, TenantContext tenantContext, TenantLookupApi tenantLookupApi,
-			CourseLookupApi courseLookupApi, StudentLookupApi studentLookupApi, TeacherLookupApi teacherLookupApi) {
+			CourseLookupApi courseLookupApi, StudentLookupApi studentLookupApi, TeacherLookupApi teacherLookupApi,
+			TenantConfigApi tenantConfigApi) {
 		this.broadcastRepository = broadcastRepository;
 		this.deliveryRepository = deliveryRepository;
 		this.inAppNotificationRepository = inAppNotificationRepository;
@@ -123,6 +127,7 @@ public class BroadcastService {
 		this.courseLookupApi = courseLookupApi;
 		this.studentLookupApi = studentLookupApi;
 		this.teacherLookupApi = teacherLookupApi;
+		this.tenantConfigApi = tenantConfigApi;
 	}
 
 	// ------------------------------------------------------------------
@@ -417,7 +422,16 @@ public class BroadcastService {
 		return broadcast;
 	}
 
+	/**
+	 * SET-CFG-01: the tenant's SMS kill switch ({@code NOTIFICATION.sms_enabled
+	 * = false}) makes SMS unavailable here too, so the composer greys it out and
+	 * a send naming SMS is refused up front instead of skipping every delivery.
+	 */
 	private Optional<ChannelAvailability> providerAvailability(DeliveryChannel channel) {
+		if (channel == DeliveryChannel.SMS && !tenantConfigApi.isSmsEnabled(tenantContext.getTenantId())) {
+			return Optional.of(new ChannelAvailability(MessagingChannelApi.Channel.SMS, false, null,
+					NotificationDeliveryDispatchService.SMS_DISABLED));
+		}
 		return switch (channel) {
 			case SMS -> Optional.of(messagingChannelApi.availability(MessagingChannelApi.Channel.SMS));
 			case WHATSAPP -> Optional.of(messagingChannelApi.availability(MessagingChannelApi.Channel.WHATSAPP));

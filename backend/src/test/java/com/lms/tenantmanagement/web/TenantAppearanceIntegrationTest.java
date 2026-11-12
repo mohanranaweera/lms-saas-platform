@@ -281,6 +281,47 @@ class TenantAppearanceIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	// ------------------------------------------------------------------
+	// SET-CFG-01: GA measurement id and the self-enrollment flag.
+	// ------------------------------------------------------------------
+
+	@Test
+	@Tag("cross-tenant")
+	void homeProjectsOnlyTheHostTenantsAnalyticsIdAndSelfEnrollmentFlag() {
+		Ctx tenantA = setUp("home-cfg-a");
+		Ctx tenantB = setUp("home-cfg-b");
+		assertThat(putGeneral(tenantA.host(), tenantA.token(), Map.of("ga_measurement_id", "G-ABC123XYZ9"))
+			.getResponse()
+			.getStatus()).isEqualTo(200);
+		assertThat(perform(authenticated(put("/api/v1/tenant-config/{domain}", "STUDENT")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(Map.of("self_enrollment_enabled", false))), tenantA.host(),
+				tenantA.token()))
+			.getResponse()
+			.getStatus()).isEqualTo(200);
+
+		JsonNode a = json(perform(authenticated(get(HOME), tenantA.host(), null))).path("data");
+		assertThat(a.path("analytics").path("gaMeasurementId").asString()).isEqualTo("G-ABC123XYZ9");
+		assertThat(a.path("studentOptions").path("selfEnrollmentEnabled").asBoolean()).isFalse();
+
+		JsonNode b = json(perform(authenticated(get(HOME), tenantB.host(), null))).path("data");
+		assertThat(b.path("analytics").path("gaMeasurementId").isNull()).isTrue();
+		assertThat(b.path("studentOptions").path("selfEnrollmentEnabled").asBoolean()).isTrue();
+	}
+
+	@Test
+	void malformedAnalyticsIdIsRejectedAndNothingIsSaved() {
+		Ctx ctx = setUp("home-cfg-bad");
+
+		assertThat(putGeneral(ctx.host(), ctx.token(), Map.of("ga_measurement_id", "G-1');alert(1)//"))
+			.getResponse()
+			.getStatus()).isEqualTo(400);
+		assertThat(json(perform(authenticated(get(HOME), ctx.host(), null))).path("data")
+			.path("analytics")
+			.path("gaMeasurementId")
+			.isNull()).isTrue();
+	}
+
+	// ------------------------------------------------------------------
 	// LOGIN-01 Phase B: institute policies.
 	// ------------------------------------------------------------------
 

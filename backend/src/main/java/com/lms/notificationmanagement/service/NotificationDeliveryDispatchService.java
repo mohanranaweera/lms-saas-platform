@@ -17,6 +17,7 @@ import com.lms.notificationmanagement.repository.BroadcastRepository;
 import com.lms.notificationmanagement.repository.CommunicationTemplateRepository;
 import com.lms.notificationmanagement.repository.NotificationChannelPreferenceRepository;
 import com.lms.notificationmanagement.service.NotificationDeliveryClaimService.ClaimedDelivery;
+import com.lms.tenantmanagement.api.TenantConfigApi;
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import com.lms.tenantmanagement.api.TenantSummary;
 import com.lms.usermanagement.api.StudentContact;
@@ -46,6 +47,10 @@ import org.springframework.stereotype.Service;
  * <p><b>No PII in logs.</b> Addresses are resolved here at send time, never
  * stored; only masked forms reach the delivery row or a log line, and
  * provider failures surface only as fixed codes.
+ *
+ * <p><b>SMS kill switch</b> (SET-CFG-01): when the tenant set {@code
+ * NOTIFICATION.sms_enabled = false}, every SMS delivery is skipped with
+ * {@link #SMS_DISABLED} before any address lookup or provider call.
  */
 @Service
 public class NotificationDeliveryDispatchService {
@@ -61,6 +66,8 @@ public class NotificationDeliveryDispatchService {
 	public static final String EMAIL_TRANSIENT = "EMAIL_TRANSIENT";
 
 	public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+
+	public static final String SMS_DISABLED = "SMS_DISABLED";
 
 	private final NotificationDeliveryClaimService claimService;
 
@@ -86,12 +93,15 @@ public class NotificationDeliveryDispatchService {
 
 	private final BroadcastTextRenderer renderer;
 
+	private final TenantConfigApi tenantConfigApi;
+
 	public NotificationDeliveryDispatchService(NotificationDeliveryClaimService claimService,
 			NotificationDeliveryFinalizeService finalizeService, BroadcastRepository broadcastRepository,
 			CommunicationTemplateRepository templateRepository,
 			NotificationChannelPreferenceRepository preferenceRepository, UserProvisioningApi userProvisioningApi,
 			StudentLookupApi studentLookupApi, TeacherLookupApi teacherLookupApi, TenantLookupApi tenantLookupApi,
-			MessagingProviderApi emailApi, MessagingChannelApi channelApi, BroadcastTextRenderer renderer) {
+			MessagingProviderApi emailApi, MessagingChannelApi channelApi, BroadcastTextRenderer renderer,
+			TenantConfigApi tenantConfigApi) {
 		this.claimService = claimService;
 		this.finalizeService = finalizeService;
 		this.broadcastRepository = broadcastRepository;
@@ -104,6 +114,7 @@ public class NotificationDeliveryDispatchService {
 		this.emailApi = emailApi;
 		this.channelApi = channelApi;
 		this.renderer = renderer;
+		this.tenantConfigApi = tenantConfigApi;
 	}
 
 	public void dispatchOne(UUID deliveryId) {
@@ -115,6 +126,10 @@ public class NotificationDeliveryDispatchService {
 		String masked = null;
 		try {
 			TenantContextHolder.set(row.tenantId());
+			if (row.channel() == DeliveryChannel.SMS && !tenantConfigApi.isSmsEnabled(row.tenantId())) {
+				finalizeService.markSkipped(row.id(), row.tenantId(), SMS_DISABLED, null);
+				return;
+			}
 			Broadcast broadcast = broadcastRepository.findById(row.broadcastId())
 				.orElseThrow(() -> new IllegalStateException("Broadcast not found for delivery"));
 			Optional<TenantUserSummary> user = userProvisioningApi
