@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { apiError, apiPageSuccess, apiSuccess, fulfillJson } from "./fixtures/auth-mocks";
+import { mockMediaFolderDefaults } from "./fixtures/media-folder-mocks";
 import { mockTenantSession } from "./fixtures/class-session-mocks";
 
 /** Tab routing is UX only: these synthetic UI contracts do not prove backend authorization. */
@@ -46,6 +47,7 @@ async function mockUploads(page: Page, options: Options = {}) {
     return fulfillJson(route, 200, new URL(route.request().url()).pathname.endsWith("/summary")
       ? apiSuccess({ documents: 0, images: 0, other: 0, total: 0 }) : apiPageSuccess([]));
   });
+  await mockMediaFolderDefaults(page);
   await page.route(/\/v1\/videos(?:\?|$)/, async (route) => {
     const request = route.request();
     internal.push({ body: request.postData() ?? "", contentType: request.headers()["content-type"] ?? "" });

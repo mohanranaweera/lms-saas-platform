@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, File as FileIcon, FileImage, FileText, Link2, Loader2, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, File as FileIcon, FileImage, FileInput, FileText, Link2, Loader2, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatFileSize } from "@/lib/api/materials";
@@ -9,6 +9,7 @@ import { isApiClientError } from "@/lib/api/error";
 import { lessonCountLabel, useMediaFileOpenUrl, type MediaFile, type MediaFileKind } from "@/lib/api/media-files";
 import { DeleteMediaFileDialog, RenameMediaFileDialog } from "./media-file-dialogs";
 import { AddedDate } from "./media-picker-shared";
+import { MoveMediaFileDialog } from "./media-folder-picker";
 
 export const MEDIA_FILE_KIND_LABELS: Record<MediaFileKind, string> = {
   DOCUMENT: "Document",
@@ -33,8 +34,8 @@ function documentLabel(file: MediaFile): string | null {
 
 /**
  * One Media Library file (Klass card): type badge, image preview or document
- * icon, title, size, uploader, added date and usage, and Open / Rename / Delete. Open is
- * always offered; Rename / Delete follow the server's `canEdit` / `canDelete`
+ * icon, title, size, uploader, added date and usage, and Open / Rename / Move… / Delete. Open is
+ * always offered; Rename / Move… / Delete follow the server's `canEdit` / `canDelete`
  * (the backend re-checks both). An expired signed thumbnail falls back to the
  * icon and asks the list to refetch fresh URLs.
  */
@@ -42,6 +43,7 @@ export function MediaFileCard({ file, onThumbnailExpired }: { file: MediaFile; o
   const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
   const openUrl = useMediaFileOpenUrl();
   const showThumbnail = file.kind === "IMAGE" && file.thumbnailUrl && failedThumbnail !== file.thumbnailUrl;
@@ -150,6 +152,18 @@ export function MediaFileCard({ file, onThumbnailExpired }: { file: MediaFile; o
             Rename<span className="sr-only"> {file.title}</span>
           </Button>
         ) : null}
+        {file.canEdit ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setMoveOpen(true)}
+            data-testid="media-file-move"
+          >
+            <FileInput aria-hidden="true" />
+            Move…<span className="sr-only"> {file.title}</span>
+          </Button>
+        ) : null}
         {file.canDelete ? (
           <Button
             type="button"
@@ -165,6 +179,7 @@ export function MediaFileCard({ file, onThumbnailExpired }: { file: MediaFile; o
         ) : null}
       </div>
       {renameOpen ? <RenameMediaFileDialog file={file} open={renameOpen} onOpenChange={setRenameOpen} /> : null}
+      {moveOpen ? <MoveMediaFileDialog file={file} open={moveOpen} onOpenChange={setMoveOpen} /> : null}
       {deleteOpen ? <DeleteMediaFileDialog file={file} open={deleteOpen} onOpenChange={setDeleteOpen} /> : null}
     </li>
   );

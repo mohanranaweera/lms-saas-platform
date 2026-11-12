@@ -33,6 +33,8 @@ export interface MediaFile {
   thumbnailUrl: string | null;
   canEdit: boolean;
   canDelete: boolean;
+  /** MEDIA-FOLDERS-01: the folder holding the file, or `null` when Unfiled. */
+  folderId?: string | null;
 }
 
 export interface MediaFileSummary {
@@ -47,6 +49,22 @@ export interface MediaFileListParams {
   kind?: MediaFileKind;
   page?: number;
   size?: number;
+  /** Files in this folder (MEDIA-FOLDERS-01). Never combined with `unfiled`. */
+  folderId?: string;
+  /** Only Unfiled files (the Uploads root). Ignored when `folderId` is set. */
+  unfiled?: boolean;
+  uploadedBy?: string;
+}
+
+/** Uploader filter scope: one folder, or Unfiled. */
+export interface MediaFileUploaderScope {
+  folderId?: string;
+  unfiled?: boolean;
+}
+
+export interface MediaFileUploader {
+  userId: string;
+  name: string | null;
 }
 
 export interface MediaFileOpenUrl {
@@ -97,7 +115,11 @@ export const mediaFileKeys = {
   lists: () => [...mediaFileKeys.all, "list"] as const,
   list: (params: MediaFileListParams) => [...mediaFileKeys.lists(), params] as const,
   summary: () => [...mediaFileKeys.all, "summary"] as const,
+  uploaders: (scope: MediaFileUploaderScope) => [...mediaFileKeys.all, "uploaders", scope] as const,
 };
+
+/** Kept literal (not imported) so `media-folders.ts` can import this module without a cycle. */
+const MEDIA_FOLDER_QUERY_ROOT = ["media-folders"] as const;
 
 const BASE = "/v1/media-files";
 const filePath = (id: string) => `${BASE}/${encodeURIComponent(id)}`;
@@ -107,6 +129,9 @@ function listPath(params: MediaFileListParams): string {
   const q = params.q?.trim();
   if (q) search.set("q", q.slice(0, 200));
   if (params.kind) search.set("kind", params.kind);
+  if (params.folderId) search.set("folderId", params.folderId);
+  else if (params.unfiled) search.set("unfiled", "true");
+  if (params.uploadedBy) search.set("uploadedBy", params.uploadedBy);
   search.set("page", String(params.page ?? 0));
   search.set("size", String(Math.min(params.size ?? 24, 100)));
   return `${BASE}?${search.toString()}`;
@@ -123,6 +148,21 @@ export function useMediaFiles(params: MediaFileListParams, enabled = true) {
   });
 }
 
+/** Uploaders of the files the caller can see in one folder, or in Unfiled. */
+export function useMediaFileUploaders(scope: MediaFileUploaderScope, enabled = true) {
+  const { authorizedFetch, session } = useAuth();
+  const search = new URLSearchParams();
+  if (scope.folderId) search.set("folderId", scope.folderId);
+  else if (scope.unfiled) search.set("unfiled", "true");
+  const query = search.toString();
+  return useQuery({
+    queryKey: [...mediaFileKeys.uploaders(scope), session?.userId, session?.role, session?.kind],
+    queryFn: () =>
+      authorizedFetch<MediaFileUploader[]>("tenant", `${BASE}/uploaders${query ? `?${query}` : ""}`),
+    enabled: enabled && session?.kind === "tenant" && Boolean(session.userId),
+  });
+}
+
 export function useMediaFileSummary(enabled = true) {
   const { authorizedFetch, session } = useAuth();
   return useQuery({
@@ -134,7 +174,11 @@ export function useMediaFileSummary(enabled = true) {
 
 function useInvalidateMediaFiles() {
   const queryClient = useQueryClient();
-  return () => void queryClient.invalidateQueries({ queryKey: mediaFileKeys.all });
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: mediaFileKeys.all });
+    // Folder cards show file counts.
+    void queryClient.invalidateQueries({ queryKey: MEDIA_FOLDER_QUERY_ROOT });
+  };
 }
 
 export type MediaFileUsage = "COURSE_LIBRARY" | "TEACHER_PROFILE";
@@ -147,11 +191,23 @@ export function useUploadMediaFile() {
      * `usage` files the upload by purpose: "TEACHER_PROFILE" photos are site files,
      * never listed in the Media Library or attachable to lessons (V105).
      */
-    mutationFn: ({ file, title, usage }: { file: File; title?: string; usage?: MediaFileUsage }) => {
+    mutationFn: ({
+      file,
+      title,
+      usage,
+      folderId,
+    }: {
+      file: File;
+      title?: string;
+      usage?: MediaFileUsage;
+      /** MEDIA-FOLDERS-01: upload into this folder (the server re-checks `canUpload`). */
+      folderId?: string | null;
+    }) => {
       const formData = new FormData();
       formData.append("file", file);
       if (title?.trim()) formData.append("title", title.trim());
       if (usage) formData.append("usage", usage);
+      if (folderId) formData.append("folderId", folderId);
       return authorizedFetch<MediaFile>("tenant", BASE, { method: "POST", body: formData });
     },
     onSuccess: invalidate,
@@ -172,6 +228,32 @@ export function useRenameMediaFile() {
       if (isApiClientError(error) && error.status === 404) invalidate();
     },
   });
+}
+
+/** `POST /media-files/{id}/move` - `folderId: null` files it as Unfiled. Same id, uploader and lesson attachments. */
+export function useMoveMediaFile() {
+  const { authorizedFetch } = useAuth();
+  const invalidate = useInvalidateMediaFiles();
+  return useMutation({
+    mutationFn: ({ id, folderId }: { id: string; folderId: string | null }) =>
+      authorizedFetch<MediaFile>("tenant", `${filePath(id)}/move`, {
+        method: "POST",
+        body: JSON.stringify({ folderId }),
+      }),
+    onSuccess: invalidate,
+    onError: (error) => {
+      if (isApiClientError(error) && error.status === 404) invalidate();
+    },
+  });
+}
+
+export function mediaFileMoveErrorMessage(error: unknown): string {
+  if (isApiClientError(error)) {
+    if (error.status === 404) return "This file or folder no longer exists or you can't access it. The list has been refreshed.";
+    if (error.status === 403) return "You can't add files to that folder. Choose another destination.";
+    return error.message;
+  }
+  return "Couldn't move the file. Please try again.";
 }
 
 export function useDeleteMediaFile() {
@@ -205,7 +287,8 @@ export function mediaFileUploadErrorMessage(error: unknown): string {
       return "This file type isn't supported. Upload a PDF, PNG, JPEG, GIF or plain-text file.";
     }
     if (error.status === 413) return "This file is larger than 25 MB.";
-    if (error.status === 403) return "You don't have permission to upload to the Media Library.";
+    if (error.status === 403) return "You don't have permission to upload here.";
+    if (error.status === 404) return "This folder no longer exists or you can't access it.";
     if (error.status === 400) {
       return error.message || "The file is empty or the title isn't valid. Check them and try again.";
     }

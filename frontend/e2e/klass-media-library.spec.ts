@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { apiError, apiPageSuccess, apiSuccess, fakeJwt, fulfillJson, loginResponseBody, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import { mockMediaFolderDefaults } from "./fixtures/media-folder-mocks";
 import { courseResponseBody, mockTenantSession } from "./fixtures/class-session-mocks";
 import type { MediaFile } from "../src/lib/api/media-files";
 import type { MaterialResponse } from "../src/lib/api/materials";
@@ -198,6 +199,7 @@ async function mockLibrary(
     }
     return fulfillJson(route, 404, apiError("NOT_FOUND", "Not mocked"));
   });
+  await mockMediaFolderDefaults(page);
   return { files, calls };
 }
 

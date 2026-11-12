@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { apiError, apiPageSuccess, apiSuccess, fulfillJson } from "./fixtures/auth-mocks";
+import { mockMediaFolderDefaults } from "./fixtures/media-folder-mocks";
 import { mockTenantSession } from "./fixtures/class-session-mocks";
 
 /**
@@ -94,6 +95,7 @@ async function mockMedia(page: Page, mock: MediaMock): Promise<Captured[]> {
       ? apiSuccess({ documents: 0, images: 0, other: 0, total: 0 })
       : apiPageSuccess([]));
   });
+  await mockMediaFolderDefaults(page);
   await page.route(/\/v1\/media(\/|\?|$)/, async (route: Route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^.*\/v1\/media/, "");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useId, useState } from "react";
+import { Suspense, useDeferredValue, useId, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Eye, Film, Info, Link2, Plus } from "lucide-react";
 import {
@@ -14,6 +14,7 @@ import {
 import { formatDateTime } from "@/lib/format";
 import { formatDuration, percent } from "@/lib/media-format";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
+import { LoadingState } from "@/components/states/loading-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -192,6 +193,8 @@ export function MediaLibrary({
           const panel = (key: TabKey) =>
             key === "uploads" ? (
               active === "uploads" ? (
+                // The open folder is read from `?folder=`; `useSearchParams` needs a Suspense boundary.
+                <Suspense fallback={<LoadingState label="Loading uploads…" />}>
                 <MediaFilesPanel
                   dashboardHref={dashboardHref}
                   canUpload={canUpload}
@@ -210,6 +213,7 @@ export function MediaLibrary({
                     />
                   )}
                 />
+                </Suspense>
               ) : null
             ) : key === active ? (
               <MediaTabPanel

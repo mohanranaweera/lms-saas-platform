@@ -63,9 +63,12 @@ export function MediaFileUploadDialog({
   onVideoLibrary,
   onVideoUploaded,
   onBusyChange,
+  folder,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** MEDIA-FOLDERS-01: upload documents/images into this folder (the server re-checks `canUpload`). */
+  folder?: { id: string; name: string } | null;
   onUploaded?: (file: MediaFile) => void;
   /** "View videos" after an internal video upload; omitted = no such button (the dialog's Close still works). */
   onVideoLibrary?: () => void;
@@ -107,7 +110,11 @@ export function MediaFileUploadDialog({
     setServerError(null);
     if (!values.file) return;
     try {
-      const created = await upload.mutateAsync({ file: values.file, title: values.title.trim() || undefined });
+      const created = await upload.mutateAsync({
+        file: values.file,
+        title: values.title.trim() || undefined,
+        folderId: folder?.id ?? null,
+      });
       onUploaded?.(created);
       onOpenChange(false);
     } catch (error) {
@@ -135,6 +142,12 @@ export function MediaFileUploadDialog({
       >
         <div className="flex flex-col gap-4">
           <p className="text-sm break-words">Selected file: {video.name} · {formatFileSize(video.size)}</p>
+          {folder ? (
+            <p className="text-sm text-muted-foreground" data-testid="media-file-upload-video-folder-note">
+              Internal videos aren&apos;t kept in folders. This video will be listed under Internal videos at the
+              Uploads root.
+            </p>
+          ) : null}
           <Button type="button" variant="outline" disabled={videoBusy} onClick={() => {
             setReceived(false);
             setValue("file", null);
@@ -157,7 +170,17 @@ export function MediaFileUploadDialog({
       open={open}
       onOpenChange={handleOpenChange}
       title="New media"
-      description="Upload a video, document or image. Documents/images: PDF, PNG, JPEG, GIF or plain text, up to 25 MB. Internal videos: MP4, WebM or MOV, up to 25 MiB."
+      description={
+        <>
+          {folder ? (
+            <>
+              Documents and images go into <span className="font-medium break-words text-foreground">{folder.name}</span>.{" "}
+            </>
+          ) : null}
+          Upload a video, document or image. Documents/images: PDF, PNG, JPEG, GIF or plain text, up to 25 MB.
+          Internal videos: MP4, WebM or MOV, up to 25 MiB.
+        </>
+      }
       testId="media-file-upload-dialog"
       footer={
         <>
