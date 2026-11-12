@@ -440,7 +440,7 @@ Base path: `/api/v1/finance/teachers/{teacherId}/wallet`. `teacherId` is the tea
 | Method | Path | Capability | Notes |
 |---|---|---|---|
 | GET | (base) | `TEACHERS_VIEW_WALLET` | `{teacherId, exists, walletId, currency, balance, unpaidSettlements, walletEntries, createdAt}`; amounts are null when `exists=false` |
-| GET | `/entries?kind=PAY_OUT\|PAY_IN\|OPENING\|BALANCE_ADJ&limit=10` | `TEACHERS_VIEW_WALLET` | newest first, max 50; `amount` is signed; `accountName`/`categoryName` are always null for now |
+| GET | `/entries?kind=PAY_OUT\|PAY_IN\|OPENING\|BALANCE_ADJ&limit=10` | `TEACHERS_VIEW_WALLET` | newest first, max 50; `amount` is the signed effect on the balance; `accountName`/`categoryName` are always null for now. For `PAY_IN`/`PAY_OUT` the list also holds read-only settlement lines (see below) |
 | POST | (base) | `TEACHERS_WALLET_CREATE` | `{openingBalance >= 0, currency?}` -> 201. Same opening balance again -> 200; different -> 409 |
 | POST | `/pay-outs` | `TEACHERS_WALLET_PAY_OUT` | header `Idempotency-Key`; `{amount > 0, description, currency?, accountId?, categoryId?, expectedBalance?}` |
 | POST | `/pay-ins` | `TEACHERS_WALLET_PAY_IN` | same body as pay-outs |
@@ -461,6 +461,16 @@ Audit actions:
 
 Metadata always holds the entry id, teacher, kind, amount, currency, balance before/after and the
 reference key.
+
+Each line has `source` (`WALLET` | `SETTLEMENT`) and `event`. A wallet line's `event` is its kind,
+and it carries `balanceBefore`/`balanceAfter`. A settlement line is derived from the settlement
+row, never copied into the wallet:
+- `SETTLEMENT_EARNED` / `SETTLEMENT_ADJUSTED`: the effect is +share, at calculation time.
+- `SETTLEMENT_PAID`: the effect is −share, at mark-paid time, with `payoutReference`.
+
+Settlement lines carry `settlementId`, `periodStart`/`periodEnd` and null balances. Each line is
+listed in the tab matching its sign (Pay In = increases, Pay Out = decreases), so each settlement
+shows at most one earned line and one paid line.
 
 Settlement interplay: `calculate`, `adjustments` and `mark-paid` lock the teacher's wallet row.
 `mark-paid` is 409 when it would make an existing wallet negative, i.e. the money was already
