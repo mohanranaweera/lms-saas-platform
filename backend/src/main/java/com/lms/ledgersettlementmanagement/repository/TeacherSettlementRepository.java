@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
@@ -82,6 +83,28 @@ public interface TeacherSettlementRepository extends AppendOnlyTenantAwareReposi
 	default List<BigDecimal> findUnpaidSettlementAmounts(UUID teacherId) {
 		return findAttributeValues((root, query, cb) -> cb.and(cb.equal(root.get("teacherId"), teacherId),
 				cb.equal(root.get("status"), TeacherSettlementStatus.CALCULATED)), "shareAmount", BigDecimal.class);
+	}
+
+	/**
+	 * TEACHER-WALLET-01 activity: the newest settlement rows (REGULAR / ADJUSTMENT) of one teacher
+	 * whose share is positive ({@code positiveShare}) or negative - either by calculation time, or
+	 * ({@code paidOnly}) PAID rows by payment time.
+	 */
+	default List<TeacherSettlement> findSettlementActivity(UUID teacherId, boolean paidOnly, boolean positiveShare,
+			int limit) {
+		String orderBy = paidOnly ? "paidAt" : "calculatedAt";
+		return findAll((root, query, cb) -> {
+			List<Predicate> predicates = new ArrayList<>();
+			predicates.add(cb.equal(root.get("teacherId"), teacherId));
+			predicates.add(root.get("kind").in(TeacherSettlementKind.REGULAR, TeacherSettlementKind.ADJUSTMENT));
+			predicates.add(positiveShare ? cb.gt(root.get("shareAmount"), BigDecimal.ZERO)
+					: cb.lt(root.get("shareAmount"), BigDecimal.ZERO));
+			if (paidOnly) {
+				predicates.add(cb.equal(root.get("status"), TeacherSettlementStatus.PAID));
+			}
+			return cb.and(predicates.toArray(Predicate[]::new));
+		}, PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, orderBy).and(Sort.by(Sort.Direction.DESC, "id"))))
+			.getContent();
 	}
 
 	default Optional<TeacherSettlement> findByIdempotencyKey(String idempotencyKey) {

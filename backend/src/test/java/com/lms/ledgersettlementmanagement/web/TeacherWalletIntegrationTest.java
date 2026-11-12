@@ -221,19 +221,86 @@ class TeacherWalletIntegrationTest extends FinanceTestSupport {
 	}
 
 	@Test
+	void settlementEarningsAndPayoutsMoveTheBalanceAndAppearOnceInTheMatchingTab() {
+		FinanceTenant t = seedFinanceTenant("wal-act");
+		UUID teacher = t.teacher().getId();
+		UUID march = seedMarchSettlement(t, "wal-act"); // share 40.00
+		create(t, t.financeToken(), teacher, "10.00");
+		long ledgerBefore = count("ledger_entry", t);
+		long walletRowsBefore = entryRows(t, null);
+		assertThat(balance(t, teacher)).isEqualByComparingTo("50.00");
+
+		// Earned: Pay In tab, read-only settlement line with its period - never in Pay Out.
+		List<EntryView> payIns = entries(t, t.financeToken(), teacher, "PAY_IN").getBody().data();
+		assertThat(payIns).singleElement().satisfies(line -> {
+			assertThat(line.event()).isEqualTo(EntryView.SETTLEMENT_EARNED);
+			assertThat(line.source()).isEqualTo("SETTLEMENT");
+			assertThat(line.settlementId()).isEqualTo(march);
+			assertThat(line.amount()).isEqualByComparingTo("40.00");
+			assertThat(line.periodStart()).isEqualTo("2025-03-01");
+			assertThat(line.periodEnd()).isEqualTo("2025-03-31");
+		});
+		assertThat(entries(t, t.financeToken(), teacher, "PAY_OUT").getBody().data()).isEmpty();
+
+		// Settlement adjustments land in the tab matching their sign.
+		UUID bonus = settlementAdjust(t, march, "5.00", "Late bonus");
+		settlementAdjust(t, march, "-3.00", "Overcount");
+		assertThat(balance(t, teacher)).isEqualByComparingTo("52.00");
+		assertThat(entries(t, t.financeToken(), teacher, "PAY_IN").getBody().data())
+			.extracting(EntryView::event, line -> line.amount().toPlainString())
+			.containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(EntryView.SETTLEMENT_EARNED, "40.00"),
+					org.assertj.core.groups.Tuple.tuple(EntryView.SETTLEMENT_ADJUSTED, "5.00"));
+		assertThat(entries(t, t.financeToken(), teacher, "PAY_OUT").getBody().data())
+			.extracting(EntryView::event, line -> line.amount().toPlainString())
+			.containsExactly(org.assertj.core.groups.Tuple.tuple(EntryView.SETTLEMENT_ADJUSTED, "-3.00"));
+
+		// Paid on Teacher Payouts: the balance drops by the share automatically and one read-only
+		// "paid" line appears in Pay Out; nothing is written to the wallet.
+		assertThat(markPaid(t, march, "BANK-1").getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(balance(t, teacher)).isEqualByComparingTo("12.00");
+		List<EntryView> payOuts = entries(t, t.financeToken(), teacher, "PAY_OUT").getBody().data();
+		assertThat(payOuts).filteredOn(line -> EntryView.SETTLEMENT_PAID.equals(line.event()))
+			.singleElement()
+			.satisfies(line -> {
+				assertThat(line.settlementId()).isEqualTo(march);
+				assertThat(line.amount()).isEqualByComparingTo("-40.00");
+				assertThat(line.payoutReference()).isEqualTo("BANK-1");
+				assertThat(line.balanceBefore()).isNull();
+			});
+		// The earned line is still listed exactly once in Pay In.
+		assertThat(entries(t, t.financeToken(), teacher, "PAY_IN").getBody().data())
+			.filteredOn(line -> EntryView.SETTLEMENT_EARNED.equals(line.event()))
+			.hasSize(1);
+
+		// Paying the bonus adjustment lowers the balance by it and lists it as paid too.
+		assertThat(markPaid(t, bonus, null).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(balance(t, teacher)).isEqualByComparingTo("7.00");
+		assertThat(entries(t, t.financeToken(), teacher, "PAY_OUT").getBody().data())
+			.filteredOn(line -> EntryView.SETTLEMENT_PAID.equals(line.event()))
+			.extracting(line -> line.amount().toPlainString())
+			.containsExactlyInAnyOrder("-40.00", "-5.00");
+
+		// Wallet-only rows and the ledger are untouched; a wallet Pay In/Out still lists as a wallet line.
+		assertThat(entryRows(t, null)).isEqualTo(walletRowsBefore);
+		assertThat(count("ledger_entry", t)).isEqualTo(ledgerBefore);
+		payOut(t, t.financeToken(), teacher, "2.00", "Cash advance", null, null, null, key());
+		assertThat(entries(t, t.financeToken(), teacher, "PAY_OUT").getBody().data().get(0))
+			.satisfies(line -> {
+				assertThat(line.source()).isEqualTo("WALLET");
+				assertThat(line.event()).isEqualTo("PAY_OUT");
+				assertThat(line.balanceAfter()).isEqualByComparingTo("5.00");
+			});
+		// Activity reads stay tenant-scoped like the rest of the wallet.
+		FinanceTenant other = seedFinanceTenant("wal-act-b");
+		assertThat(entries(other, other.financeToken(), teacher, "PAY_IN").getStatusCode())
+			.isEqualTo(HttpStatus.NOT_FOUND);
+	}
+
+	@Test
 	void unpaidSettlementsCountTowardTheBalanceAndAWalletPayoutBlocksADoubleMarkPaid() {
 		FinanceTenant t = seedFinanceTenant("wal-stl");
 		UUID teacher = t.teacher().getId();
-		CourseResponse course = createPricedCourse(t, "wal-stl-x", teacher, "100.00");
-		backdateConfirmedEntry(confirmedPayment(t, course.id()), utc("2025-03-05T10:00:00Z"));
-		Map<String, Object> rate = Map.of("teacherId", teacher, "sharePercent", new BigDecimal("40.00"),
-				"effectiveFrom", "2025-01-01");
-		perform(authenticated(json(post("/api/v1/finance/teacher-share-rates"), rate), t.host(), t.financeToken()));
-		HttpResult<SettlementDetail> calc = parseSingle(perform(authenticated(
-				json(post("/api/v1/finance/teacher-settlements"),
-						Map.of("teacherId", teacher, "periodStart", "2025-03-01", "periodEnd", "2025-03-31")),
-				t.host(), t.financeToken())), SettlementDetail.class);
-		UUID settlementId = calc.getBody().data().settlement().id();
+		UUID settlementId = seedMarchSettlement(t, "wal-stl");
 		long ledgerBefore = count("ledger_entry", t);
 
 		WalletView wallet = create(t, t.financeToken(), teacher, "0").getBody().data();
@@ -353,6 +420,51 @@ class TeacherWalletIntegrationTest extends FinanceTestSupport {
 		finally {
 			pool.shutdownNow();
 		}
+	}
+
+	/** Teacher 1, rate 40 % from 2025-01-01, one 100.00 payment on 2025-03-05 -> March share 40.00. */
+	private UUID seedMarchSettlement(FinanceTenant t, String prefix) {
+		UUID teacher = t.teacher().getId();
+		CourseResponse course = createPricedCourse(t, prefix + "-x", teacher, "100.00");
+		backdateConfirmedEntry(confirmedPayment(t, course.id()), utc("2025-03-05T10:00:00Z"));
+		Map<String, Object> rate = Map.of("teacherId", teacher, "sharePercent", new BigDecimal("40.00"),
+				"effectiveFrom", "2025-01-01");
+		perform(authenticated(json(post("/api/v1/finance/teacher-share-rates"), rate), t.host(), t.financeToken()));
+		HttpResult<SettlementDetail> calc = parseSingle(perform(authenticated(
+				json(post("/api/v1/finance/teacher-settlements"),
+						Map.of("teacherId", teacher, "periodStart", "2025-03-01", "periodEnd", "2025-03-31")),
+				t.host(), t.financeToken())), SettlementDetail.class);
+		assertThat(calc.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		return calc.getBody().data().settlement().id();
+	}
+
+	/** Appends a settlement adjustment; returns the new adjustment row's id. */
+	private UUID settlementAdjust(FinanceTenant t, UUID settlementId, String amount, String reason) {
+		HttpResult<SettlementDetail> result = parseSingle(perform(authenticated(
+				json(post("/api/v1/finance/teacher-settlements/{id}/adjustments", settlementId),
+						Map.of("amount", new BigDecimal(amount), "reason", reason)),
+				t.host(), t.financeToken())), SettlementDetail.class);
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		return result.getBody()
+			.data()
+			.adjustments()
+			.stream()
+			.filter(a -> a.shareAmount().compareTo(new BigDecimal(amount)) == 0)
+			.findFirst()
+			.orElseThrow()
+			.id();
+	}
+
+	private HttpResult<SettlementDetail> markPaid(FinanceTenant t, UUID settlementId, String reference) {
+		Map<String, Object> body = new HashMap<>();
+		body.put("payoutReference", reference);
+		return parseSingle(perform(authenticated(
+				json(post("/api/v1/finance/teacher-settlements/{id}/mark-paid", settlementId), body), t.host(),
+				t.financeToken())), SettlementDetail.class);
+	}
+
+	private BigDecimal balance(FinanceTenant t, UUID teacherId) {
+		return getWallet(t, t.financeToken(), teacherId).getBody().data().balance();
 	}
 
 	private static String key() {

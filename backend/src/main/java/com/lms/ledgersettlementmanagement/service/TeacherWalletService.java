@@ -27,17 +27,20 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -131,11 +134,56 @@ public class TeacherWalletService {
 			throw new FieldValidationException("Invalid entry type",
 					List.of(new FieldError("kind", "must be a wallet entry type")));
 		}
-		Page<TeacherSettlement> page = settlementRepository.findWalletEntries(teacherId, kinds,
-				PageRequest.of(0, Math.max(1, Math.min(limit, 50)),
-						Sort.by(Sort.Direction.DESC, "calculatedAt").and(Sort.by(Sort.Direction.DESC, "id"))));
-		Map<UUID, String> emails = emailsOf(page.getContent().stream().map(TeacherSettlement::getCalculatedBy).toList());
-		return page.getContent().stream().map(entry -> EntryView.from(entry, emails)).toList();
+		int size = Math.max(1, Math.min(limit, 50));
+		List<TeacherSettlement> walletRows = settlementRepository
+			.findWalletEntries(teacherId, kinds,
+					PageRequest.of(0, size,
+							Sort.by(Sort.Direction.DESC, "calculatedAt").and(Sort.by(Sort.Direction.DESC, "id"))))
+			.getContent();
+
+		// The Pay In / Pay Out tabs also show settlement activity, read-only and derived from the
+		// settlement rows (never copied into the wallet): a settlement raises the balance by its
+		// share when calculated and lowers it by the same amount when marked paid. Each event sits
+		// in the tab matching its effect, so a negative share or adjustment lands in Pay Out.
+		List<SettlementEvent> events = new ArrayList<>();
+		if (kind == TeacherSettlementKind.PAY_IN || kind == TeacherSettlementKind.PAY_OUT) {
+			boolean increases = kind == TeacherSettlementKind.PAY_IN;
+			settlementRepository.findSettlementActivity(teacherId, false, increases, size)
+				.forEach(s -> events.add(new SettlementEvent(s, false)));
+			settlementRepository.findSettlementActivity(teacherId, true, !increases, size)
+				.forEach(s -> events.add(new SettlementEvent(s, true)));
+		}
+
+		Set<UUID> actors = new HashSet<>();
+		walletRows.forEach(entry -> actors.add(entry.getCalculatedBy()));
+		events.forEach(event -> actors.add(event.actor()));
+		Map<UUID, String> emails = emailsOf(actors);
+		List<EntryView> views = new ArrayList<>();
+		walletRows.forEach(entry -> views.add(EntryView.from(entry, emails)));
+		events.forEach(event -> views.add(event.view(emails)));
+		views.sort(Comparator.comparing(EntryView::createdAt).reversed());
+		return views.size() > size ? List.copyOf(views.subList(0, size)) : views;
+	}
+
+	/** One settlement-driven balance change: earned (at calculation) or paid (at mark-paid). */
+	private record SettlementEvent(TeacherSettlement settlement, boolean paid) {
+
+		UUID actor() {
+			return paid ? settlement.getPaidBy() : settlement.getCalculatedBy();
+		}
+
+		EntryView view(Map<UUID, String> emails) {
+			TeacherSettlement s = settlement;
+			String event = paid ? EntryView.SETTLEMENT_PAID
+					: s.getKind() == TeacherSettlementKind.ADJUSTMENT ? EntryView.SETTLEMENT_ADJUSTED
+							: EntryView.SETTLEMENT_EARNED;
+			BigDecimal effect = paid ? s.getShareAmount().negate() : s.getShareAmount();
+			return new EntryView(s.getId(), s.getKind(), event, "SETTLEMENT", effect, s.getCurrency(),
+					s.getReason(), null, null, paid ? s.getPaidAt() : s.getCalculatedAt(), actor(),
+					emails.get(actor()), null, null, s.getId(), s.getPeriodStart(), s.getPeriodEnd(),
+					paid ? s.getPayoutReference() : null);
+		}
+
 	}
 
 	// ------------------------------------------------------------------
@@ -447,17 +495,32 @@ public class TeacherWalletService {
 	}
 
 	/**
-	 * {@code amount} is signed (PAY_OUT negative). {@code accountName}/{@code categoryName} stay
-	 * null until Finance Accounts exist.
+	 * One activity line. {@code amount} is the signed effect on the balance (PAY_OUT and paid
+	 * settlements negative). {@code source = WALLET} rows are wallet entries ({@code event} = their
+	 * kind, with balance before/after); {@code source = SETTLEMENT} rows are read-only settlement
+	 * events ({@code SETTLEMENT_EARNED | SETTLEMENT_ADJUSTED | SETTLEMENT_PAID}) with the settlement
+	 * id, period and payout reference, and null balances. {@code accountName}/{@code categoryName}
+	 * stay null until Finance Accounts exist.
 	 */
-	public record EntryView(UUID id, TeacherSettlementKind kind, BigDecimal amount, String currency,
-			String description, BigDecimal balanceBefore, BigDecimal balanceAfter, Instant createdAt,
-			UUID createdBy, String createdByEmail, String accountName, String categoryName) {
+	public record EntryView(UUID id, TeacherSettlementKind kind, String event, String source, BigDecimal amount,
+			String currency, String description, BigDecimal balanceBefore, BigDecimal balanceAfter,
+			Instant createdAt, UUID createdBy, String createdByEmail, String accountName, String categoryName,
+			UUID settlementId, LocalDate periodStart, LocalDate periodEnd, String payoutReference) {
+
+		/** Settlement calculated (share > 0 -> Pay In tab, < 0 -> Pay Out tab). */
+		public static final String SETTLEMENT_EARNED = "SETTLEMENT_EARNED";
+
+		/** Settlement adjustment row calculated. */
+		public static final String SETTLEMENT_ADJUSTED = "SETTLEMENT_ADJUSTED";
+
+		/** Settlement (or settlement adjustment) marked paid - lowers the balance by its share. */
+		public static final String SETTLEMENT_PAID = "SETTLEMENT_PAID";
 
 		static EntryView from(TeacherSettlement entry, Map<UUID, String> emails) {
-			return new EntryView(entry.getId(), entry.getKind(), entry.getShareAmount(), entry.getCurrency(),
-					entry.getReason(), entry.getBalanceBefore(), entry.getBalanceAfter(), entry.getCalculatedAt(),
-					entry.getCalculatedBy(), emails.get(entry.getCalculatedBy()), null, null);
+			return new EntryView(entry.getId(), entry.getKind(), entry.getKind().name(), "WALLET",
+					entry.getShareAmount(), entry.getCurrency(), entry.getReason(), entry.getBalanceBefore(),
+					entry.getBalanceAfter(), entry.getCalculatedAt(), entry.getCalculatedBy(),
+					emails.get(entry.getCalculatedBy()), null, null, null, null, null, null);
 		}
 
 	}
