@@ -123,6 +123,18 @@ final class CapabilitySpec {
 	}
 
 	/**
+	 * {@link #omtTeacherOff} plus a static allowlist like {@link #omFor}: a static role holds it by
+	 * default only when it is in {@code roles} (as well as holding {@code primary}). Used where the
+	 * primary pair is held by roles that must not gain a new feature by default (MEDIA-FOLDERS-01:
+	 * Content Manager holds MATERIALS/CREATE_EDIT but not the folder capabilities).
+	 */
+	static CapabilitySpec omtTeacherOffFor(String[] roles, PermissionPair primary, PermissionPair... implied) {
+		return new CapabilitySpec(CapabilityAvailability.ENFORCED, null,
+				EnumSet.of(ConfigurableRole.OPERATOR, ConfigurableRole.MANAGER, ConfigurableRole.TEACHER), primary,
+				implied, Set.of(roles), false, false);
+	}
+
+	/**
 	 * {@link #omtTeacherOff}, but never configurable for Read-only Auditor even though the pair is
 	 * a VIEW: for bulk personal-data exports (TUTE-01 label PDF with addresses and phones).
 	 */

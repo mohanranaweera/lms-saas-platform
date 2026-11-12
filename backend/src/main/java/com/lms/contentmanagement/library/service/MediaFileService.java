@@ -11,23 +11,27 @@ import com.lms.common.error.ProviderConflictException;
 import com.lms.common.error.UnsupportedMediaTypeException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.contentmanagement.library.domain.MediaFile;
+import com.lms.contentmanagement.library.domain.MediaFolder;
 import com.lms.contentmanagement.library.domain.MediaFileKind;
 import com.lms.contentmanagement.library.domain.MediaFileUsage;
 import com.lms.contentmanagement.library.repository.MediaFileRepository;
 import com.lms.contentmanagement.library.support.MediaFileAccessGuard;
 import com.lms.contentmanagement.library.support.MediaFileAccessGuard.CallerRights;
+import com.lms.contentmanagement.library.support.MediaFolderAccess;
+import com.lms.contentmanagement.library.support.MediaFolderAccess.Caller;
+import com.lms.contentmanagement.library.support.MediaFolderAccess.FolderRights;
+import com.lms.contentmanagement.library.support.MediaUserNames;
+import com.lms.contentmanagement.library.repository.MediaFolderRepository;
+import com.lms.contentmanagement.library.service.MediaFolderViews.Member;
 import com.lms.contentmanagement.material.repository.MaterialRepository;
 import com.lms.contentmanagement.material.service.ContentSniffer;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.PermissionAction;
-import com.lms.identityaccessservice.api.TenantUserSummary;
-import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.DownloadOverrides;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
 import com.lms.integrationmanagement.api.StoredObject;
-import com.lms.usermanagement.api.TeacherLookupApi;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.io.ByteArrayInputStream;
@@ -39,11 +43,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -55,6 +59,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
@@ -106,9 +112,11 @@ public class MediaFileService {
 
 	private final TenantContext tenantContext;
 
-	private final TeacherLookupApi teacherLookupApi;
+	private final MediaFolderAccess folderAccess;
 
-	private final UserProvisioningApi userProvisioningApi;
+	private final MediaFolderRepository folderRepository;
+
+	private final MediaUserNames userNames;
 
 	private final ApplicationEventPublisher eventPublisher;
 
@@ -120,8 +128,8 @@ public class MediaFileService {
 
 	public MediaFileService(MediaFileRepository mediaFileRepository, MaterialRepository materialRepository,
 			MediaFileAccessGuard accessGuard, ObjectStorageApi objectStorageApi, AuditLogApi auditLogApi,
-			TenantContext tenantContext, TeacherLookupApi teacherLookupApi, UserProvisioningApi userProvisioningApi,
-			ApplicationEventPublisher eventPublisher, EntityManager entityManager,
+			TenantContext tenantContext, MediaFolderAccess folderAccess, MediaFolderRepository folderRepository,
+			MediaUserNames userNames, ApplicationEventPublisher eventPublisher, EntityManager entityManager,
 			PlatformTransactionManager transactionManager,
 			@Value("${app.content.library.max-file-size-bytes:${app.content.material.max-file-size-bytes}}") long maxFileSizeBytes) {
 		this.mediaFileRepository = mediaFileRepository;
@@ -130,8 +138,9 @@ public class MediaFileService {
 		this.objectStorageApi = objectStorageApi;
 		this.auditLogApi = auditLogApi;
 		this.tenantContext = tenantContext;
-		this.teacherLookupApi = teacherLookupApi;
-		this.userProvisioningApi = userProvisioningApi;
+		this.folderAccess = folderAccess;
+		this.folderRepository = folderRepository;
+		this.userNames = userNames;
 		this.eventPublisher = eventPublisher;
 		this.entityManager = entityManager;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -142,41 +151,116 @@ public class MediaFileService {
 	// Reads.
 	// ------------------------------------------------------------------
 
-	/** Newest first. Not transactional: each repository read is, and thumbnails are signed outside any. */
+	/** As {@link #list(String, MediaFileKind, UUID, boolean, UUID, int, int)} over every file the caller may view. */
 	public Page<MediaFileView> list(String search, MediaFileKind kind, int page, int size) {
+		return list(search, kind, null, false, null, page, size);
+	}
+
+	/**
+	 * Newest first. Not transactional: each repository read is, and thumbnails are signed outside any.
+	 * Folder scope (MEDIA-FOLDERS-01): {@code folderId} = that folder (404 when the caller may not
+	 * view it); {@code unfiled} = files with no folder; neither = every file the caller may view
+	 * (Unfiled plus files in viewable folders). {@code uploadedBy} narrows to one uploader.
+	 */
+	public Page<MediaFileView> list(String search, MediaFileKind kind, UUID folderId, boolean unfiled, UUID uploadedBy,
+			int page, int size) {
 		accessGuard.requireLibraryAccess(PermissionAction.VIEW);
+		Specification<MediaFile> scope = readScope(folderId, unfiled, uploadedBy);
 		int boundedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 		PageRequest pageRequest = PageRequest.of(Math.max(page, 0), boundedSize,
 				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
-		Page<MediaFile> files = mediaFileRepository.findLive(kind, search, pageRequest);
+		Page<MediaFile> files = mediaFileRepository.findLive(kind, search, scope, pageRequest);
 		List<UUID> ids = files.getContent().stream().map(MediaFile::getId).toList();
 		Map<UUID, Integer> attachments = materialRepository.countLessonAttachmentsByMediaFileIds(ids);
-		Map<UUID, String> names = uploaderNames(
-				files.getContent().stream().map(MediaFile::getUploadedBy).collect(Collectors.toSet()));
+		Map<UUID, String> names = userNames
+			.names(files.getContent().stream().map(MediaFile::getUploadedBy).collect(Collectors.toSet()));
 		CallerRights rights = accessGuard.callerRights();
 		return files.map(file -> toView(file, attachments.getOrDefault(file.getId(), 0),
 				names.get(file.getUploadedBy()), rights, thumbnailUrl(file)));
 	}
 
+	/** Counts of the files the caller may view only (files in hidden folders are never counted). */
 	public MediaFileSummaryView summary() {
 		accessGuard.requireLibraryAccess(PermissionAction.VIEW);
-		long documents = mediaFileRepository.countLiveByKind(MediaFileKind.DOCUMENT);
-		long images = mediaFileRepository.countLiveByKind(MediaFileKind.IMAGE);
-		long other = mediaFileRepository.countLiveByKind(MediaFileKind.OTHER);
+		Specification<MediaFile> scope = readScope(null, false, null);
+		long documents = mediaFileRepository.countLiveByKind(MediaFileKind.DOCUMENT, scope);
+		long images = mediaFileRepository.countLiveByKind(MediaFileKind.IMAGE, scope);
+		long other = mediaFileRepository.countLiveByKind(MediaFileKind.OTHER, scope);
 		return new MediaFileSummaryView(documents, images, other, documents + images + other);
+	}
+
+	/** Uploader options ({@code userId}, name) over the viewable files in the folder scope, by name. */
+	public List<Member> uploaders(UUID folderId, boolean unfiled) {
+		accessGuard.requireLibraryAccess(PermissionAction.VIEW);
+		Specification<MediaFile> scope = readScope(folderId, unfiled, null);
+		Set<UUID> uploaderIds = new java.util.HashSet<>(mediaFileRepository.findLiveUploaderIds(scope));
+		Map<UUID, String> names = userNames.names(uploaderIds);
+		return uploaderIds.stream()
+			.map(userId -> new Member(userId, names.get(userId)))
+			.sorted(java.util.Comparator
+				.comparing((Member member) -> member.name() == null ? "" : member.name().toLowerCase(java.util.Locale.ROOT))
+				.thenComparing(Member::userId))
+			.toList();
 	}
 
 	/**
 	 * A 5-minute signed URL that opens the file inline, served with the stored
 	 * (server-sniffed) content type - never a client-declared one - and the
-	 * original filename.
+	 * original filename. A file in a folder the caller may not view is "not found".
 	 */
 	public SignedDownloadUrl openUrl(UUID id) {
 		accessGuard.requireLibraryAccess(PermissionAction.VIEW);
 		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
-			.orElseThrow(() -> new NotFoundException("Media file not found"));
+			.orElseThrow(MediaFileService::fileNotFound);
+		requireFileVisible(folderAccess.caller(), file);
 		return objectStorageApi.generateSignedDownloadUrl(file.getObjectKey(), OPEN_URL_TTL,
 				DownloadOverrides.inline(file.getContentType(), file.getOriginalFilename()));
+	}
+
+	private Specification<MediaFile> readScope(UUID folderId, boolean unfiled, UUID uploadedBy) {
+		if (folderId != null && unfiled) {
+			throw new FieldValidationException("Invalid folder filter",
+					List.of(new FieldError("unfiled", "Use either folderId or unfiled, not both")));
+		}
+		Caller caller = folderAccess.caller();
+		if (folderId != null) {
+			if (!folderAccess.canViewFolder(caller, folderId)) {
+				throw MediaFolderAccess.folderNotFound();
+			}
+			return MediaFileRepository.scope(folderId, false, uploadedBy, null);
+		}
+		return MediaFileRepository.scope(null, unfiled, uploadedBy,
+				unfiled ? null : folderAccess.visibleFolderIdsOrNull(caller));
+	}
+
+	/** Files in a folder the caller may not view are reported as not found (never 403, never counted). */
+	private void requireFileVisible(Caller caller, MediaFile file) {
+		if (!folderAccess.canViewFolder(caller, file.getFolderId())) {
+			throw fileNotFound();
+		}
+	}
+
+	/**
+	 * The caller may upload into {@code folderId}: 404 when it cannot view the folder, 403 when it
+	 * can but holds no upload right. {@code fresh}: re-read the folder row from the database (used
+	 * under the media-folders lock, so a concurrent transfer / delete / revoke is seen).
+	 */
+	private void requireUploadableFolder(Caller caller, UUID folderId, boolean fresh) {
+		MediaFolder folder = folderRepository.findById(folderId).orElseThrow(MediaFolderAccess::folderNotFound);
+		if (fresh) {
+			entityManager.refresh(folder);
+		}
+		FolderRights rights = folderAccess.rights(caller, folder);
+		if (!rights.canView()) {
+			throw MediaFolderAccess.folderNotFound();
+		}
+		if (!rights.canUpload()) {
+			throw new AccessDeniedException("You do not have permission to upload into this folder");
+		}
+	}
+
+	private static NotFoundException fileNotFound() {
+		return new NotFoundException("Media file not found");
 	}
 
 	// ------------------------------------------------------------------
@@ -198,8 +282,26 @@ public class MediaFileService {
 	 * listed in the library.
 	 */
 	public MediaFileView upload(MultipartFile file, String requestedTitle, MediaFileUsage usage) {
+		return upload(file, requestedTitle, usage, null);
+	}
+
+	/**
+	 * As {@link #upload(MultipartFile, String, MediaFileUsage)}, filed in {@code folderId} ({@code
+	 * null} = Unfiled; library files only). The caller must be able to upload into the folder
+	 * ({@code canUpload}: 404 when it cannot view it, 403 otherwise); this is checked before
+	 * anything is stored and re-checked under the tenant's media-folders lock inside the insert
+	 * transaction (a concurrent revoke / delete / transfer wins and the stored object is removed).
+	 */
+	public MediaFileView upload(MultipartFile file, String requestedTitle, MediaFileUsage usage, UUID folderId) {
 		accessGuard.requireLibraryAccess(PermissionAction.CREATE_EDIT);
 		MediaFileUsage usageArea = usage == null ? MediaFileUsage.COURSE_LIBRARY : usage;
+		if (folderId != null) {
+			if (usageArea != MediaFileUsage.COURSE_LIBRARY) {
+				throw new FieldValidationException("Invalid folder",
+						List.of(new FieldError("folderId", "Only library files can be filed in a folder")));
+			}
+			requireUploadableFolder(folderAccess.caller(), folderId, false);
+		}
 		if (file == null || file.isEmpty()) {
 			throw new FieldValidationException("A file is required",
 					List.of(new FieldError("file", "A file upload is required")));
@@ -231,10 +333,19 @@ public class MediaFileService {
 		MediaFile saved;
 		try {
 			saved = transactionTemplate.execute(status -> {
-				MediaFile created = mediaFileRepository.save(new MediaFile(tenantId, kind, usageArea, title, originalFilename,
-						contentType, stored.sizeBytes(), stored.objectKey(), sha256, actorId));
+				if (folderId != null) {
+					folderAccess.lockTree();
+					requireUploadableFolder(folderAccess.caller(), folderId, true);
+				}
+				MediaFile toCreate = new MediaFile(tenantId, kind, usageArea, title, originalFilename, contentType,
+						stored.sizeBytes(), stored.objectKey(), sha256, actorId);
+				toCreate.moveToFolder(folderId);
+				MediaFile created = mediaFileRepository.save(toCreate);
 				Map<String, Object> metadata = new LinkedHashMap<>();
 				metadata.put("title", title);
+				if (folderId != null) {
+					metadata.put("folderId", folderId.toString());
+				}
 				metadata.put("kind", kind.name());
 				metadata.put("usageArea", usageArea.name());
 				metadata.put("contentType", contentType);
@@ -250,7 +361,7 @@ public class MediaFileService {
 			deleteStoredObjectQuietly(stored.objectKey(), null);
 			throw e;
 		}
-		return toView(saved, 0, uploaderNames(Set.of(actorId)).get(actorId), accessGuard.callerRights(),
+		return toView(saved, 0, userNames.names(Set.of(actorId)).get(actorId), accessGuard.callerRights(),
 				thumbnailUrl(saved));
 	}
 
@@ -262,7 +373,8 @@ public class MediaFileService {
 	public MediaFileView rename(UUID id, String rawTitle) {
 		accessGuard.requireLibraryAccess(PermissionAction.CREATE_EDIT);
 		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
-			.orElseThrow(() -> new NotFoundException("Media file not found"));
+			.orElseThrow(MediaFileService::fileNotFound);
+		requireFileVisible(folderAccess.caller(), file);
 		accessGuard.requireManage(file, PermissionAction.CREATE_EDIT);
 		String title = validateTitle(rawTitle);
 		String previous = file.getTitle();
@@ -273,7 +385,7 @@ public class MediaFileService {
 					TARGET_ENTITY, file.getId(), null, Map.of("from", previous, "to", title)));
 		}
 		Map<UUID, Integer> attachments = materialRepository.countLessonAttachmentsByMediaFileIds(List.of(id));
-		return toView(file, attachments.getOrDefault(id, 0), uploaderNames(Set.of(file.getUploadedBy()))
+		return toView(file, attachments.getOrDefault(id, 0), userNames.names(Set.of(file.getUploadedBy()))
 			.get(file.getUploadedBy()), accessGuard.callerRights(), null);
 	}
 
@@ -287,7 +399,8 @@ public class MediaFileService {
 	public void delete(UUID id) {
 		accessGuard.requireLibraryAccess(PermissionAction.DELETE);
 		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
-			.orElseThrow(() -> new NotFoundException("Media file not found"));
+			.orElseThrow(MediaFileService::fileNotFound);
+		requireFileVisible(folderAccess.caller(), file);
 		accessGuard.requireManage(file, PermissionAction.DELETE);
 		entityManager.refresh(file, LockModeType.PESSIMISTIC_WRITE);
 		if (file.isDeleted()) {
@@ -309,6 +422,48 @@ public class MediaFileService {
 		auditLogApi.record(new AuditLogEntry(actorId, "media_file.deleted", TARGET_ENTITY, file.getId(), null,
 				metadata));
 		eventPublisher.publishEvent(new MediaFileDeletedEvent(file.getTenantId(), file.getId(), file.getObjectKey()));
+	}
+
+	/**
+	 * Files a library file in {@code folderId} ({@code null} = Unfiled; MEDIA-FOLDERS-01). Needs
+	 * the same file-manage rights as rename, view access to the source folder and upload access
+	 * to the destination folder. Only {@code folder_id} changes: id, uploader, object key and
+	 * every lesson material attaching the file stay as they are. Runs under the tenant's
+	 * media-folders lock with the file row locked.
+	 */
+	@Transactional
+	public MediaFileView move(UUID id, UUID folderId) {
+		accessGuard.requireLibraryAccess(PermissionAction.CREATE_EDIT);
+		folderAccess.lockTree();
+		MediaFile file = mediaFileRepository.findLiveLibraryById(id).orElseThrow(MediaFileService::fileNotFound);
+		entityManager.refresh(file, LockModeType.PESSIMISTIC_WRITE);
+		if (file.isDeleted()) {
+			throw fileNotFound();
+		}
+		Caller caller = folderAccess.caller();
+		requireFileVisible(caller, file);
+		accessGuard.requireManage(file, PermissionAction.CREATE_EDIT);
+		UUID previousFolderId = file.getFolderId();
+		if (!Objects.equals(previousFolderId, folderId)) {
+			if (folderId != null) {
+				requireUploadableFolder(caller, folderId, true);
+			}
+			file.moveToFolder(folderId);
+			mediaFileRepository.save(file);
+			Map<String, Object> metadata = new LinkedHashMap<>();
+			metadata.put("title", file.getTitle());
+			if (previousFolderId != null) {
+				metadata.put("fromFolderId", previousFolderId.toString());
+			}
+			if (folderId != null) {
+				metadata.put("toFolderId", folderId.toString());
+			}
+			auditLogApi.record(new AuditLogEntry(caller.userId(), "media_file.moved", TARGET_ENTITY, file.getId(), null,
+					metadata));
+		}
+		Map<UUID, Integer> attachments = materialRepository.countLessonAttachmentsByMediaFileIds(List.of(id));
+		return toView(file, attachments.getOrDefault(id, 0), userNames.names(Set.of(file.getUploadedBy()))
+			.get(file.getUploadedBy()), accessGuard.callerRights(), null);
 	}
 
 	/**
@@ -354,16 +509,18 @@ public class MediaFileService {
 	 * Locks ({@code SELECT ... FOR UPDATE}) and returns a live library file of
 	 * the caller's tenant for attaching to a lesson. Must run inside the
 	 * caller's transaction (the lock is held until it commits). Unknown,
-	 * other-tenant and deleted ids are all "not found".
+	 * other-tenant, deleted ids and files in a folder the caller may not view
+	 * (MEDIA-FOLDERS-01) are all "not found".
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public MediaFile lockLiveForAttach(UUID id) {
 		MediaFile file = mediaFileRepository.findLiveLibraryById(id)
-			.orElseThrow(() -> new NotFoundException("Media file not found"));
+			.orElseThrow(MediaFileService::fileNotFound);
 		entityManager.refresh(file, LockModeType.PESSIMISTIC_WRITE);
 		if (file.isDeleted()) {
-			throw new NotFoundException("Media file not found");
+			throw fileNotFound();
 		}
+		requireFileVisible(folderAccess.caller(), file);
 		return file;
 	}
 
@@ -384,7 +541,7 @@ public class MediaFileService {
 			String thumbnailUrl) {
 		return new MediaFileView(file.getId(), file.getKind(), file.getTitle(), file.getOriginalFilename(),
 				file.getContentType(), file.getSizeBytes(), file.getUploadedBy(), uploaderName, file.getCreatedAt(),
-				attachedLessonCount, thumbnailUrl, rights.canEdit(file), rights.canDelete(file));
+				attachedLessonCount, thumbnailUrl, rights.canEdit(file), rights.canDelete(file), file.getFolderId());
 	}
 
 	/** Images only; a storage outage degrades to "no thumbnail" rather than failing the whole listing. */
@@ -402,28 +559,6 @@ public class MediaFileService {
 			log.debug("Could not sign a thumbnail URL for media file {}", file.getId(), e);
 			return null;
 		}
-	}
-
-	/** Teacher display names, falling back to the account email for other staff (staff-only endpoint). */
-	private Map<UUID, String> uploaderNames(Set<UUID> userIds) {
-		Map<UUID, String> names = new HashMap<>();
-		if (userIds.isEmpty()) {
-			return names;
-		}
-		teacherLookupApi.listTeachers()
-			.stream()
-			.filter(teacher -> userIds.contains(teacher.userId()) && teacher.name() != null
-					&& !teacher.name().isBlank())
-			.forEach(teacher -> names.put(teacher.userId(), teacher.name()));
-		List<UUID> missing = userIds.stream().filter(id -> !names.containsKey(id)).toList();
-		if (!missing.isEmpty()) {
-			for (TenantUserSummary summary : userProvisioningApi.findTenantUserSummaries(missing)) {
-				if (summary.email() != null) {
-					names.putIfAbsent(summary.userId(), summary.email());
-				}
-			}
-		}
-		return names;
 	}
 
 	private void deleteStoredObjectQuietly(String objectKey, UUID mediaFileId) {

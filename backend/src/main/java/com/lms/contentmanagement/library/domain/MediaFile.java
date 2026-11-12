@@ -71,6 +71,10 @@ public class MediaFile extends Auditable implements TenantOwned {
 	@Column(name = "deleted_by")
 	private UUID deletedBy;
 
+	/** V122 (MEDIA-FOLDERS-01): the library folder; {@code null} = Unfiled. */
+	@Column(name = "folder_id")
+	private UUID folderId;
+
 	protected MediaFile() {
 	}
 
@@ -153,6 +157,15 @@ public class MediaFile extends Auditable implements TenantOwned {
 
 	public boolean isDeleted() {
 		return deletedAt != null;
+	}
+
+	public UUID getFolderId() {
+		return folderId;
+	}
+
+	/** Files the file in {@code newFolderId} ({@code null} = Unfiled); id, uploader and object key never change. */
+	public void moveToFolder(UUID newFolderId) {
+		this.folderId = newFolderId;
 	}
 
 	public void markDeleted(UUID actorId, Instant at) {

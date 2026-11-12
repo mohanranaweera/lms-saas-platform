@@ -88,6 +88,9 @@ class CapabilitySemanticsTest {
 		// Opt-in for Teacher: the tute group (TUTE-01) and course payment status (2026-11-10).
 		Set<Capability> optIn = new java.util.HashSet<>(tutes);
 		optIn.add(Capability.COURSES_VIEW_PAYMENT_STATUS);
+		// MEDIA-FOLDERS-01: media folder management / sharing are opt-in for Teacher too.
+		optIn.add(Capability.MEDIA_MANAGE_FOLDERS);
+		optIn.add(Capability.MEDIA_SHARE_FOLDERS);
 		Set<Capability> expected = new java.util.HashSet<>(optIn);
 		expected.addAll(Set.of(Capability.COURSES_VIEW, Capability.COURSES_VIEW_STUDENTS, Capability.MODULES_VIEW,
 				Capability.MODULES_ADD, Capability.MODULES_DELETE, Capability.EXAMS_VIEW));
@@ -247,7 +250,10 @@ class CapabilitySemanticsTest {
 		}
 		assertThat(Stream.of(Capability.values())
 			.filter(c -> c.availability() == CapabilityAvailability.ENFORCED && c.staticRoleAllowlist() != null))
-			.containsExactly(Capability.COURSES_ENROLL_STUDENTS);
+			// MEDIA-FOLDERS-01: the folder capabilities are Tenant Admin only by default (Content
+			// Manager holds MATERIALS/CREATE_EDIT but must not gain folders without a grant).
+			.containsExactlyInAnyOrder(Capability.COURSES_ENROLL_STUDENTS, Capability.MEDIA_MANAGE_FOLDERS,
+					Capability.MEDIA_SHARE_FOLDERS);
 	}
 
 	@Test

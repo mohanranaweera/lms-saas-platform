@@ -6,6 +6,7 @@ import static com.lms.identityaccessservice.api.CapabilitySpec.om;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omFor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omt;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omtTeacherOff;
+import static com.lms.identityaccessservice.api.CapabilitySpec.omtTeacherOffFor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.omtTeacherOffNoAuditor;
 import static com.lms.identityaccessservice.api.CapabilitySpec.p;
 import static com.lms.identityaccessservice.api.CapabilitySpec.unavailable;
@@ -217,8 +218,13 @@ public enum Capability {
 			locked("Provider integrations are Tenant Admin only (ADR-018)", p(INTEGRATIONS, VIEW))),
 	MEDIA_UPLOAD_YOUTUBE_CHANNEL(CapabilityGroup.MEDIA_LIBRARY, "Upload Youtube Channel",
 			locked("Provider integrations are Tenant Admin only (ADR-018)", p(INTEGRATIONS, CREATE_EDIT))),
-	MEDIA_MANAGE_FOLDERS(CapabilityGroup.MEDIA_LIBRARY, "Manage Media Folders", unavailable("No media folders")),
-	MEDIA_SHARE_FOLDERS(CapabilityGroup.MEDIA_LIBRARY, "Share Media Folders", unavailable("No media folders")),
+	// MEDIA-FOLDERS-01: Tenant Admin only by default (Content Manager holds MATERIALS/CREATE_EDIT but
+	// not these), configurable for Operator/Manager/seeded roles/Teacher, Teacher default off. The
+	// folder endpoints also read the library (MATERIALS/VIEW), so that pair is implied too.
+	MEDIA_MANAGE_FOLDERS(CapabilityGroup.MEDIA_LIBRARY, "Manage Media Folders",
+			omtTeacherOffFor(new String[] { "TENANT_ADMIN" }, p(MATERIALS, CREATE_EDIT), p(MATERIALS, VIEW))),
+	MEDIA_SHARE_FOLDERS(CapabilityGroup.MEDIA_LIBRARY, "Share Media Folders",
+			omtTeacherOffFor(new String[] { "TENANT_ADMIN" }, p(MATERIALS, CREATE_EDIT), p(MATERIALS, VIEW))),
 
 	// ---------------------------------------------------------------- Notifications
 	NOTIFICATIONS_VIEW(CapabilityGroup.NOTIFICATIONS, "Show Notifications", om(p(COMMUNICATIONS, VIEW))),

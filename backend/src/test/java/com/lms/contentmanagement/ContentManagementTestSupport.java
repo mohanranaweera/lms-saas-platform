@@ -65,6 +65,20 @@ public abstract class ContentManagementTestSupport extends EnrollmentManagementT
 		}
 	}
 
+	/** An APPROVED teacher profile (synthetic), so {@code TeacherLookupApi} lists the teacher with {@code name}. */
+	protected void seedApprovedTeacherProfile(UUID tenantId, UUID userId, String name) {
+		jdbcTemplate.update("INSERT INTO teacher_profile (id, tenant_id, user_id, name, approval_status, created_at, "
+				+ "updated_at) VALUES (?, ?, ?, ?, 'APPROVED', now(), now())", UUID.randomUUID(), tenantId, userId,
+				name);
+	}
+
+	/** A tenant's explicit capability row for one configurable role (STAFF-MGMT-02/03 override). */
+	protected void setRoleCapability(UUID tenantId, String roleCode, String capabilityKey, boolean granted) {
+		jdbcTemplate.update("INSERT INTO tenant_role_capability_grant (id, tenant_id, role_code, capability_key, "
+				+ "granted) VALUES (?, ?, ?, ?, ?) ON CONFLICT (tenant_id, role_code, capability_key) DO UPDATE "
+				+ "SET granted = EXCLUDED.granted", UUID.randomUUID(), tenantId, roleCode, capabilityKey, granted);
+	}
+
 	// ------------------------------------------------------------------
 	// Fixture byte helpers - matching ContentSniffer's accepted signatures
 	// (and one attack payload that deliberately fails every signature).

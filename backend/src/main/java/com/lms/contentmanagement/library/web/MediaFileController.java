@@ -9,6 +9,8 @@ import com.lms.contentmanagement.library.domain.MediaFileUsage;
 import com.lms.contentmanagement.library.service.MediaFileService;
 import com.lms.contentmanagement.library.service.MediaFileSummaryView;
 import com.lms.contentmanagement.library.service.MediaFileView;
+import com.lms.contentmanagement.library.web.dto.MediaFileMoveRequest;
+import com.lms.contentmanagement.library.web.dto.MediaMemberResponse;
 import com.lms.contentmanagement.library.web.dto.MediaFileOpenUrlResponse;
 import com.lms.contentmanagement.library.web.dto.MediaFileRenameRequest;
 import com.lms.contentmanagement.library.web.dto.MediaFileResponse;
@@ -18,6 +20,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -57,10 +60,26 @@ public class MediaFileController {
 	@RequiresCapability(Capability.MEDIA_VIEW)
 	public ResponseEntity<ApiResponse<PageResponse<MediaFileResponse>>> list(
 			@RequestParam(name = "q", required = false) @Size(max = 200) String search,
-			@RequestParam(required = false) MediaFileKind kind, @RequestParam(defaultValue = "0") @Min(0) int page,
+			@RequestParam(required = false) MediaFileKind kind, @RequestParam(required = false) UUID folderId,
+			@RequestParam(defaultValue = "false") boolean unfiled, @RequestParam(required = false) UUID uploadedBy,
+			@RequestParam(defaultValue = "0") @Min(0) int page,
 			@RequestParam(defaultValue = "24") @Min(1) @Max(100) int size) {
-		PageResponse<MediaFileResponse> body = PageResponse
-			.from(mediaFileService.list(search, kind, page, size).map(MediaFileController::toResponse));
+		PageResponse<MediaFileResponse> body = PageResponse.from(mediaFileService
+			.list(search, kind, folderId, unfiled, uploadedBy, page, size)
+			.map(MediaFileController::toResponse));
+		return ResponseEntity.ok(ApiResponse.success(body));
+	}
+
+	/** Uploader filter options over the files the caller may view in the folder scope (MEDIA-FOLDERS-01). */
+	@GetMapping("/uploaders")
+	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.MEDIA_VIEW)
+	public ResponseEntity<ApiResponse<List<MediaMemberResponse>>> uploaders(
+			@RequestParam(required = false) UUID folderId, @RequestParam(defaultValue = "false") boolean unfiled) {
+		List<MediaMemberResponse> body = mediaFileService.uploaders(folderId, unfiled)
+			.stream()
+			.map(member -> new MediaMemberResponse(member.userId(), member.name()))
+			.toList();
 		return ResponseEntity.ok(ApiResponse.success(body));
 	}
 
@@ -79,8 +98,9 @@ public class MediaFileController {
 	public ResponseEntity<ApiResponse<MediaFileResponse>> upload(
 			@RequestPart(value = "file", required = false) MultipartFile file,
 			@RequestParam(value = "title", required = false) @Size(max = 255) String title,
-			@RequestParam(value = "usage", required = false) MediaFileUsage usage) {
-		MediaFileView view = mediaFileService.upload(file, title, usage);
+			@RequestParam(value = "usage", required = false) MediaFileUsage usage,
+			@RequestParam(value = "folderId", required = false) UUID folderId) {
+		MediaFileView view = mediaFileService.upload(file, title, usage, folderId);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(view)));
 	}
 
@@ -89,6 +109,14 @@ public class MediaFileController {
 	public ResponseEntity<ApiResponse<MediaFileResponse>> rename(@PathVariable UUID id,
 			@Valid @RequestBody MediaFileRenameRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(toResponse(mediaFileService.rename(id, request.title()))));
+	}
+
+	/** Files the file in a folder ({@code folderId} null = Unfiled). Same rights as rename (MEDIA-FOLDERS-01). */
+	@PostMapping("/{id}/move")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<MediaFileResponse>> move(@PathVariable UUID id,
+			@RequestBody MediaFileMoveRequest request) {
+		return ResponseEntity.ok(ApiResponse.success(toResponse(mediaFileService.move(id, request.folderId()))));
 	}
 
 	@DeleteMapping("/{id}")
@@ -110,7 +138,7 @@ public class MediaFileController {
 	private static MediaFileResponse toResponse(MediaFileView view) {
 		return new MediaFileResponse(view.id(), view.kind(), view.title(), view.originalFilename(),
 				view.contentType(), view.sizeBytes(), view.uploadedBy(), view.uploaderName(), view.createdAt(),
-				view.attachedLessonCount(), view.thumbnailUrl(), view.canEdit(), view.canDelete());
+				view.attachedLessonCount(), view.thumbnailUrl(), view.canEdit(), view.canDelete(), view.folderId());
 	}
 
 }

@@ -143,6 +143,18 @@ public final class ApiErrorCodes {
 	/** VIDEO Phase 5 - the media is used by a lesson material and cannot be deleted. */
 	public static final String MEDIA_ATTACHED = "MEDIA_ATTACHED";
 
+	/** MEDIA-FOLDERS-01 - a sibling folder (same parent, root included) already has this name, case-insensitively. */
+	public static final String MEDIA_FOLDER_NAME_TAKEN = "MEDIA_FOLDER_NAME_TAKEN";
+
+	/** MEDIA-FOLDERS-01 - a folder cannot be moved into itself or one of its descendants. */
+	public static final String MEDIA_FOLDER_INVALID_MOVE = "MEDIA_FOLDER_INVALID_MOVE";
+
+	/** MEDIA-FOLDERS-01 - only an empty folder (no child folder, no live file) can be deleted. */
+	public static final String MEDIA_FOLDER_NOT_EMPTY = "MEDIA_FOLDER_NOT_EMPTY";
+
+	/** MEDIA-FOLDERS-01 - the folder changed since the client read it ({@code expectedVersion} mismatch). */
+	public static final String MEDIA_FOLDER_STALE = "MEDIA_FOLDER_STALE";
+
 	/** VIDEO Phase 6 - a media asset must finish processing before lesson attachment. */
 	public static final String MEDIA_NOT_READY = "MEDIA_NOT_READY";
 

@@ -17,9 +17,10 @@ import java.util.UUID;
  * @param canEdit the caller may rename this file
  * @param canDelete the caller may delete this file (an attached file is still
  * refused with 409 {@code MEDIA_ATTACHED})
+ * @param folderId the library folder ({@code null} = Unfiled; MEDIA-FOLDERS-01)
  */
 public record MediaFileView(UUID id, MediaFileKind kind, String title, String originalFilename,
 		String contentType, long sizeBytes, UUID uploadedBy, String uploaderName, Instant createdAt,
-		int attachedLessonCount, String thumbnailUrl, boolean canEdit, boolean canDelete) {
+		int attachedLessonCount, String thumbnailUrl, boolean canEdit, boolean canDelete, UUID folderId) {
 
 }

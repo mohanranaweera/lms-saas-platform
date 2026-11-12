@@ -37,8 +37,13 @@ public interface MediaFileRepository extends TenantAwareRepository<MediaFile, UU
 				cb.equal(root.get("usageArea"), usage))));
 	}
 
-	default Page<MediaFile> findLive(MediaFileKind kind, String search, Pageable pageable) {
-		Specification<MediaFile> spec = live().and(library());
+	/**
+	 * Live library files matching {@code kind} / {@code search} inside {@code scope} (see {@link
+	 * #scope}: folder filter, uploader filter and the caller's folder visibility).
+	 */
+	default Page<MediaFile> findLive(MediaFileKind kind, String search, Specification<MediaFile> scope,
+			Pageable pageable) {
+		Specification<MediaFile> spec = live().and(library()).and(scope);
 		if (kind != null) {
 			spec = spec.and((root, query, cb) -> cb.equal(root.get("kind"), kind));
 		}
@@ -50,8 +55,68 @@ public interface MediaFileRepository extends TenantAwareRepository<MediaFile, UU
 		return findAll(spec, pageable);
 	}
 
-	default long countLiveByKind(MediaFileKind kind) {
-		return count(live().and(library()).and((root, query, cb) -> cb.equal(root.get("kind"), kind)));
+	default long countLiveByKind(MediaFileKind kind, Specification<MediaFile> scope) {
+		return count(live().and(library()).and(scope).and((root, query, cb) -> cb.equal(root.get("kind"), kind)));
+	}
+
+	/** Uploader ids of the live library files in {@code scope} (one per file; the caller de-duplicates). */
+	default java.util.List<UUID> findLiveUploaderIds(Specification<MediaFile> scope) {
+		return findAttributeValues(live().and(library()).and(scope), "uploadedBy", UUID.class);
+	}
+
+	/** {@code folder_id} of every live library file filed in one of {@code folderIds} (per-folder counts). */
+	default java.util.List<UUID> findLiveFolderIdsIn(java.util.Collection<UUID> folderIds) {
+		if (folderIds.isEmpty()) {
+			return java.util.List.of();
+		}
+		return findAttributeValues(live().and(library()).and((root, query, cb) -> root.get("folderId").in(folderIds)),
+				"folderId", UUID.class);
+	}
+
+	/** Any live file (any usage, visible to the caller or not) filed in {@code folderId}: blocks folder delete. */
+	default boolean existsLiveInFolder(UUID folderId) {
+		return exists(live().and((root, query, cb) -> cb.equal(root.get("folderId"), folderId)));
+	}
+
+	/** Soft-deleted files still pointing at {@code folderId} (cleared to Unfiled when the folder is deleted). */
+	default java.util.List<MediaFile> findDeletedInFolder(UUID folderId) {
+		return findAll((root, query, cb) -> cb.and(cb.isNotNull(root.get("deletedAt")),
+				cb.equal(root.get("folderId"), folderId)));
+	}
+
+	/**
+	 * Folder scope of a library read (MEDIA-FOLDERS-01 section 6):
+	 * <ul>
+	 * <li>{@code folderId} set: that folder only (the caller has already checked it may view it);</li>
+	 * <li>{@code unfiled}: files with no folder only;</li>
+	 * <li>neither: every file the caller may view - Unfiled plus files in {@code
+	 * visibleFolderIds} ({@code null} = every folder, i.e. tenant-wide folder authority).</li>
+	 * </ul>
+	 * {@code uploadedBy}, when set, narrows to one uploader.
+	 */
+	static Specification<MediaFile> scope(UUID folderId, boolean unfiled, UUID uploadedBy,
+			java.util.Collection<UUID> visibleFolderIds) {
+		Specification<MediaFile> spec;
+		if (folderId != null) {
+			spec = (root, query, cb) -> cb.equal(root.get("folderId"), folderId);
+		}
+		else if (unfiled) {
+			spec = (root, query, cb) -> cb.isNull(root.get("folderId"));
+		}
+		else if (visibleFolderIds == null) {
+			spec = (root, query, cb) -> cb.conjunction();
+		}
+		else if (visibleFolderIds.isEmpty()) {
+			spec = (root, query, cb) -> cb.isNull(root.get("folderId"));
+		}
+		else {
+			spec = (root, query, cb) -> cb.or(cb.isNull(root.get("folderId")),
+					root.get("folderId").in(visibleFolderIds));
+		}
+		if (uploadedBy != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("uploadedBy"), uploadedBy));
+		}
+		return spec;
 	}
 
 	private static Specification<MediaFile> byId(UUID id) {
