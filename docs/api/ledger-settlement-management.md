@@ -425,3 +425,43 @@ Tests: `TeacherSettlementIntegrationTest` (exact figures, re-run/overlap idempot
 a later period, rate snapshotting, open-period/no-rate/non-teacher rejection, adjustments,
 one-way mark-paid incl. a concurrent race, permissions, cross-tenant, DB constraints, no ledger
 writes), `TeacherSettlementShareCalculationTest`.
+
+## TEACHER-WALLET-01: teacher wallet (ADR-036, `V98`)
+
+The balance is the **amount payable to the teacher** = unpaid settlements + wallet entries.
+Wallet entries are `teacher_settlement` rows with kinds `OPENING | PAY_IN | PAY_OUT |
+BALANCE_ADJ` and status `POSTED`. They are append-only, never marked paid and never write a
+`ledger_entry`. `GET /teacher-settlements` without `kind` returns only `REGULAR`/`ADJUSTMENT`
+rows.
+
+Base path: `/api/v1/finance/teachers/{teacherId}/wallet`. `teacherId` is the teacher's
+`tenant_user` id. A teacher from another tenant, or a non-teacher, is 404.
+
+| Method | Path | Capability | Notes |
+|---|---|---|---|
+| GET | (base) | `TEACHERS_VIEW_WALLET` | `{teacherId, exists, walletId, currency, balance, unpaidSettlements, walletEntries, createdAt}`; amounts are null when `exists=false` |
+| GET | `/entries?kind=PAY_OUT\|PAY_IN\|OPENING\|BALANCE_ADJ&limit=10` | `TEACHERS_VIEW_WALLET` | newest first, max 50; `amount` is signed; `accountName`/`categoryName` are always null for now |
+| POST | (base) | `TEACHERS_WALLET_CREATE` | `{openingBalance >= 0, currency?}` -> 201. Same opening balance again -> 200; different -> 409 |
+| POST | `/pay-outs` | `TEACHERS_WALLET_PAY_OUT` | header `Idempotency-Key`; `{amount > 0, description, currency?, accountId?, categoryId?, expectedBalance?}` |
+| POST | `/pay-ins` | `TEACHERS_WALLET_PAY_IN` | same body as pay-outs |
+| POST | `/adjustments` | `TEACHERS_WALLET_ADJUST` | header `Idempotency-Key`; `{targetBalance >= 0, expectedBalance, reason}` |
+
+Posting responses are `{wallet, entry, created}`: 201 for a new entry, 200 for an idempotent
+replay. Errors:
+- **400:** amount <= 0 or more than 2 decimals; payout exceeds the balance; currency != the
+  tenant's currency; missing description/reason/key; any `accountId` (Finance Accounts are not
+  available); `categoryId` without an account.
+- **409:** no wallet yet; stale `expectedBalance`; key reused with a different payload.
+
+Audit actions:
+- `teacher_wallet.created` (metadata `origin=WALLET_CREATION`)
+- `teacher_wallet.pay_in_recorded`
+- `teacher_wallet.pay_out_recorded`
+- `teacher_wallet.balance_adjusted` (with the reason)
+
+Metadata always holds the entry id, teacher, kind, amount, currency, balance before/after and the
+reference key.
+
+Settlement interplay: `calculate`, `adjustments` and `mark-paid` lock the teacher's wallet row.
+`mark-paid` is 409 when it would make an existing wallet negative, i.e. the money was already
+paid out through the wallet.

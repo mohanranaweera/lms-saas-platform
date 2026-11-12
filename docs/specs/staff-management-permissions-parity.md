@@ -155,6 +155,10 @@ U=unavailable (no backing operation), UI=UI-only before this change.
 | Teachers · View / Add / Edit | TEACHERS_VIEW / ADD / EDIT | O M | tenant | /teachers GET / POST / PATCH | E (Teacher column locked; Operator/Manager may not set or change the institute commission → 403, as with course pricing) |
 | Teachers · View Wallet | TEACHERS_VIEW_WALLET | O M | tenant | GET /finance/teachers, /teacher-settlements, /teacher-settlements/{id} → FINANCE_EXPENSES/VIEW | E |
 | Teachers · Disable Wallet / wallet actions | TEACHERS_WALLET_ACTIONS | — | — | settlements mark-paid/adjust are ledger actions, Tenant Admin/Finance | L |
+| Teachers · Create Wallet | TEACHERS_WALLET_CREATE | O M | tenant | POST /finance/teachers/{id}/wallet → FINANCE_EXPENSES/CREATE_EDIT (TEACHER-WALLET-01, ADR-036) | E |
+| Teachers · Record Wallet Pay In | TEACHERS_WALLET_PAY_IN | O M | tenant | POST …/wallet/pay-ins → FINANCE_EXPENSES/CREATE_EDIT | E |
+| Teachers · Record Wallet Pay Out | TEACHERS_WALLET_PAY_OUT | O M | tenant | POST …/wallet/pay-outs → FINANCE_EXPENSES/CREATE_EDIT | E |
+| Teachers · Adjust Wallet Balance | TEACHERS_WALLET_ADJUST | O M | tenant | POST …/wallet/adjustments → FINANCE_EXPENSES/CREATE_EDIT (GET wallet / entries carry TEACHERS_VIEW_WALLET) | E |
 | Teachers · Delete Teacher | TEACHERS_DELETE | — | — | no teacher delete (suspend only) | U |
 | Finance · View Income Summary | FINANCE_VIEW_INCOME_SUMMARY | O M | tenant | GET /finance/reports/summary | E |
 | Finance · View Expenses | FINANCE_VIEW_EXPENSES | O M | tenant | GET /finance/expenses, /finance/expenses/{id} | E |
