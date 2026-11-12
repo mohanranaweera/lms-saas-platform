@@ -42,7 +42,7 @@ public interface TeacherSettlementRepository extends AppendOnlyTenantAwareReposi
 				predicates.add(cb.equal(root.get("kind"), kind));
 			}
 			else {
-				// Wallet entries (V98) are listed by the wallet, not as settlements.
+				// Wallet entries (V123) are listed by the wallet, not as settlements.
 				predicates.add(root.get("kind").in(TeacherSettlementKind.REGULAR, TeacherSettlementKind.ADJUSTMENT));
 			}
 			return cb.and(predicates.toArray(Predicate[]::new));

@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Mapped onto {@code teacher_wallet} (V98) - TEACHER-WALLET-01 / ADR-036. One
+ * Mapped onto {@code teacher_wallet} (V123) - TEACHER-WALLET-01 / ADR-036. One
  * row per (tenant, teacher), never updated or deleted. It holds no balance:
  * the balance is derived from {@code teacher_settlement} rows (unpaid
  * settlements plus POSTED wallet entries). Every balance-changing write locks

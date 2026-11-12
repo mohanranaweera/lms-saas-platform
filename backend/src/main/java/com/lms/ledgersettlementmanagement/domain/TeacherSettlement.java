@@ -146,7 +146,7 @@ public class TeacherSettlement extends BaseEntity implements TenantOwned {
 	}
 
 	/**
-	 * TEACHER-WALLET-01 wallet entry (V98): POSTED once, never marked paid. {@code amount} is
+	 * TEACHER-WALLET-01 wallet entry (V123): POSTED once, never marked paid. {@code amount} is
 	 * signed ({@code PAY_OUT} negative); {@code balanceBefore}/{@code balanceAfter} are the wallet
 	 * balance around this entry, read under the wallet row lock.
 	 */

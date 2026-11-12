@@ -426,7 +426,7 @@ a later period, rate snapshotting, open-period/no-rate/non-teacher rejection, ad
 one-way mark-paid incl. a concurrent race, permissions, cross-tenant, DB constraints, no ledger
 writes), `TeacherSettlementShareCalculationTest`.
 
-## TEACHER-WALLET-01: teacher wallet (ADR-036, `V98`)
+## TEACHER-WALLET-01: teacher wallet (ADR-036, `V123`)
 
 The balance is the **amount payable to the teacher** = unpaid settlements + wallet entries.
 Wallet entries are `teacher_settlement` rows with kinds `OPENING | PAY_IN | PAY_OUT |
