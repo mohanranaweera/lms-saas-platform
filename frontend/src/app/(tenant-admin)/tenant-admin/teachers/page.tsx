@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, UserRound } from "lucide-react";
+import { Plus, Search, UserRound, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import { ReorderableTable, moveItem, type ReorderableColumn } from "@/components
 import { EmptyState } from "@/components/states/empty-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useAuth } from "@/lib/auth/auth-context";
+import { CAP } from "@/lib/auth/capabilities";
+import { canViewFinance } from "@/lib/auth/permissions";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { TeacherWalletSheet, type WalletTeacher } from "@/components/finance/teacher-wallet-sheet";
 import { useTeachers, useReorderTeachers, type Teacher, type TeacherApprovalStatus } from "@/lib/api/teachers";
 import { TEACHER_APPROVAL_STATUS_LABELS } from "./status-badge";
 import { TeacherDecisionDialog } from "./teacher-decision-dialog";
@@ -56,6 +60,9 @@ export default function TenantAdminTeachersPage() {
   // Read-only Auditor are VIEW-only) — the backend independently re-enforces
   // this on POST /v1/teachers regardless of what renders here.
   const canCreate = session?.role === "TENANT_ADMIN" || session?.role === "COURSE_COORDINATOR";
+  // TEACHER-WALLET-01: Show Wallet (UX only - GET /finance/teachers/{id}/wallet re-checks TEACHERS_VIEW_WALLET).
+  const { can } = useCapabilities();
+  const canViewWallet = can(CAP.TEACHERS_VIEW_WALLET, canViewFinance(session?.role ?? null));
 
   const clearFilters = () => {
     setStatusFilter("all");
@@ -108,6 +115,7 @@ export default function TenantAdminTeachersPage() {
             clearFilters={clearFilters}
             canDecide={canDecide}
             canEdit={canCreate}
+            canViewWallet={canViewWallet}
             page={page}
             pageSize={pageSize}
             setPage={setPage}
@@ -128,6 +136,7 @@ interface TeacherListResultsProps {
   clearFilters: () => void;
   canDecide: boolean;
   canEdit: boolean;
+  canViewWallet: boolean;
   page: number;
   pageSize: number;
   setPage: (page: number) => void;
@@ -153,12 +162,14 @@ function TeacherListResults({
   clearFilters,
   canDecide,
   canEdit,
+  canViewWallet,
   page,
   pageSize,
   setPage,
   setPageSize,
 }: TeacherListResultsProps) {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [walletTeacher, setWalletTeacher] = useState<WalletTeacher | null>(null);
   const reorder = useReorderTeachers();
 
   const filteredByStatus = useMemo(
@@ -319,7 +330,7 @@ function TeacherListResults({
             const next = moveItem(filtered, from, to);
             void reorder.mutateAsync(next.map((teacher) => teacher.id));
           }}
-          actions={(teacher) => <div className="flex items-center gap-1">{canEdit ? <Button type="button" size="icon-sm" variant="ghost" aria-label={`Edit teacher ${teacher.name}`} onClick={() => setEditingTeacher(teacher)}>✎</Button> : null}{renderActions(teacher, "icon")}</div>}
+          actions={(teacher) => <div className="flex items-center gap-1">{canViewWallet ? <Button type="button" size="icon-sm" variant="ghost" aria-label={`Show wallet for ${teacher.name}`} title="Show Wallet" onClick={() => setWalletTeacher({ id: teacher.userId, name: teacher.name })}><Wallet aria-hidden="true" /></Button> : null}{canEdit ? <Button type="button" size="icon-sm" variant="ghost" aria-label={`Edit teacher ${teacher.name}`} onClick={() => setEditingTeacher(teacher)}>✎</Button> : null}{renderActions(teacher, "icon")}</div>}
         />
       )}
 
@@ -334,6 +345,14 @@ function TeacherListResults({
           <Button type="button" size="sm" variant="outline" disabled={teachers.length < pageSize} onClick={() => setPage(page + 1)} aria-label="Next page">›</Button>
         </div>
       ) : null}
+
+      <TeacherWalletSheet
+        teacher={walletTeacher}
+        open={walletTeacher !== null}
+        onOpenChange={(open) => {
+          if (!open) setWalletTeacher(null);
+        }}
+      />
 
       <TeacherEditSheet
         teacher={editingTeacher}

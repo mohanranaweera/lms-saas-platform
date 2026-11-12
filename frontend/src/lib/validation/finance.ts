@@ -99,3 +99,43 @@ export const markPaidSchema = z.object({
   payoutReference: z.string().max(255, "Reference must be 255 characters or fewer.").optional(),
 });
 export type MarkPaidFormValues = z.infer<typeof markPaidSchema>;
+
+// ---------------------------------------------------------------------------
+// TEACHER-WALLET-01 — Teachers → Show Wallet. UX only; the backend re-validates.
+// ---------------------------------------------------------------------------
+
+const walletMoney = /^\d{1,10}(\.\d{1,2})?$/;
+
+export const walletCreateSchema = z.object({
+  openingBalance: z
+    .string()
+    .trim()
+    .regex(walletMoney, "Enter zero or a positive amount with at most 2 decimals."),
+});
+export type WalletCreateFormValues = z.infer<typeof walletCreateSchema>;
+
+export const walletPostingSchema = z
+  .object({
+    amount: z
+      .string()
+      .trim()
+      .regex(walletMoney, "Enter an amount greater than zero with at most 2 decimals.")
+      .refine((value) => Number(value) > 0, "Enter an amount greater than zero."),
+    description: z.string().trim().min(1, "Description is required.").max(500, "At most 500 characters."),
+    accountId: z.string(),
+    categoryId: z.string(),
+  })
+  .refine((values) => !values.categoryId || values.accountId, {
+    path: ["categoryId"],
+    message: "Select an expense account before a category.",
+  });
+export type WalletPostingFormValues = z.infer<typeof walletPostingSchema>;
+
+export const walletAdjustSchema = z.object({
+  targetBalance: z
+    .string()
+    .trim()
+    .regex(walletMoney, "Enter zero or a positive amount with at most 2 decimals."),
+  reason: z.string().trim().min(1, "A reason is required.").max(500, "At most 500 characters."),
+});
+export type WalletAdjustFormValues = z.infer<typeof walletAdjustSchema>;
