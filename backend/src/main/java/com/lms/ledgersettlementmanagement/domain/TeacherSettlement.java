@@ -89,6 +89,21 @@ public class TeacherSettlement extends BaseEntity implements TenantOwned {
 	@Column(name = "payout_reference", length = 255)
 	private String payoutReference;
 
+	@Column(name = "wallet_id", updatable = false)
+	private UUID walletId;
+
+	@Column(name = "idempotency_key", updatable = false, length = 100)
+	private String idempotencyKey;
+
+	@Column(name = "request_hash", updatable = false, length = 64)
+	private String requestHash;
+
+	@Column(name = "balance_before", updatable = false, precision = 14, scale = 2)
+	private BigDecimal balanceBefore;
+
+	@Column(name = "balance_after", updatable = false, precision = 14, scale = 2)
+	private BigDecimal balanceAfter;
+
 	protected TeacherSettlement() {
 	}
 
@@ -130,8 +145,40 @@ public class TeacherSettlement extends BaseEntity implements TenantOwned {
 		return settlement;
 	}
 
+	/**
+	 * TEACHER-WALLET-01 wallet entry (V98): POSTED once, never marked paid. {@code amount} is
+	 * signed ({@code PAY_OUT} negative); {@code balanceBefore}/{@code balanceAfter} are the wallet
+	 * balance around this entry, read under the wallet row lock.
+	 */
+	public static TeacherSettlement walletEntry(TeacherWallet wallet, TeacherSettlementKind kind, BigDecimal amount,
+			String description, BigDecimal balanceBefore, String idempotencyKey, String requestHash, UUID actorId,
+			Instant at) {
+		if (!kind.isWalletEntry()) {
+			throw new IllegalArgumentException("Not a wallet entry kind: " + kind);
+		}
+		TeacherSettlement entry = new TeacherSettlement();
+		entry.tenantId = wallet.getTenantId();
+		entry.teacherId = wallet.getTeacherId();
+		entry.walletId = wallet.getId();
+		entry.kind = kind;
+		entry.shareAmount = amount;
+		entry.currency = wallet.getCurrency();
+		entry.reason = description;
+		entry.status = TeacherSettlementStatus.POSTED;
+		entry.balanceBefore = balanceBefore;
+		entry.balanceAfter = balanceBefore.add(amount);
+		entry.idempotencyKey = idempotencyKey;
+		entry.requestHash = requestHash;
+		entry.calculatedBy = actorId;
+		entry.calculatedAt = at;
+		return entry;
+	}
+
 	/** One-way CALCULATED -> PAID. Callers must check {@link #isPaid()} first and surface a 409. */
 	public void markPaid(UUID actorId, String payoutReference, Instant at) {
+		if (kind.isWalletEntry()) {
+			throw new IllegalStateException("Wallet entries are never marked paid");
+		}
 		if (isPaid()) {
 			throw new IllegalStateException("Settlement is already marked paid");
 		}
@@ -229,6 +276,26 @@ public class TeacherSettlement extends BaseEntity implements TenantOwned {
 
 	public String getPayoutReference() {
 		return payoutReference;
+	}
+
+	public UUID getWalletId() {
+		return walletId;
+	}
+
+	public String getIdempotencyKey() {
+		return idempotencyKey;
+	}
+
+	public String getRequestHash() {
+		return requestHash;
+	}
+
+	public BigDecimal getBalanceBefore() {
+		return balanceBefore;
+	}
+
+	public BigDecimal getBalanceAfter() {
+		return balanceAfter;
 	}
 
 }

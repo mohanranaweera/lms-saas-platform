@@ -103,6 +103,13 @@ public enum Capability {
 			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	FINANCE_ADJUST_SETTLEMENT(CapabilityGroup.TEACHERS, "Adjust Settlement", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	FINANCE_EDIT_SHARE_RATES(CapabilityGroup.TEACHERS, "Edit Share Rates", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	// TEACHER-WALLET-01 / ADR-036: Show Wallet actions, one row each - none implies another.
+	// Same static gate as the settlement actions, so no default access is broadened.
+	TEACHERS_WALLET_CREATE(CapabilityGroup.TEACHERS, "Create Wallet", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	TEACHERS_WALLET_PAY_IN(CapabilityGroup.TEACHERS, "Record Wallet Pay In", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	TEACHERS_WALLET_PAY_OUT(CapabilityGroup.TEACHERS, "Record Wallet Pay Out",
+			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	TEACHERS_WALLET_ADJUST(CapabilityGroup.TEACHERS, "Adjust Wallet Balance", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	TEACHERS_DELETE(CapabilityGroup.TEACHERS, "Delete Teacher",
 			unavailable("Teachers are suspended, never deleted")),
 

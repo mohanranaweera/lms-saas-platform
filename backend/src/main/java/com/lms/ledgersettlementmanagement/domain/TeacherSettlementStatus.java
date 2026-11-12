@@ -8,6 +8,12 @@ package com.lms.ledgersettlementmanagement.domain;
  */
 public enum TeacherSettlementStatus {
 
-	CALCULATED, PAID
+	CALCULATED, PAID,
+
+	/**
+	 * TEACHER-WALLET-01 (V98): a wallet entry. Counts toward the wallet balance like an unpaid
+	 * settlement, but is final - it is never marked paid.
+	 */
+	POSTED
 
 }

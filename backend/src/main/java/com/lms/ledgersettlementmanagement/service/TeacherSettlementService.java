@@ -117,12 +117,15 @@ public class TeacherSettlementService {
 
 	private final EntityManager entityManager;
 
+	private final TeacherWalletService walletService;
+
 	public TeacherSettlementService(TeacherRevenueShareRateRepository rateRepository,
 			TeacherSettlementRepository settlementRepository, TeacherSettlementItemRepository itemRepository,
 			LedgerRevenueApi ledgerRevenueApi, CourseLookupApi courseLookupApi,
 			UserProvisioningApi userProvisioningApi, PermissionCheckService permissionCheckService,
 			AuditLogApi auditLogApi, TenantConfigApi tenantConfigApi, TenantContext tenantContext,
-			TeacherLookupApi teacherLookupApi, EntityManager entityManager) {
+			TeacherLookupApi teacherLookupApi, EntityManager entityManager, TeacherWalletService walletService) {
+		this.walletService = walletService;
 		this.teacherLookupApi = teacherLookupApi;
 		this.entityManager = entityManager;
 		this.rateRepository = rateRepository;
@@ -188,6 +191,8 @@ public class TeacherSettlementService {
 		requireTeacher(teacherId);
 		ZoneId zone = tenantZone();
 		validatePeriod(periodStart, periodEnd, LocalDate.now(zone));
+		// TEACHER-WALLET-01: serialize with wallet postings (the settlement changes the balance).
+		walletService.lockIfExists(teacherId);
 
 		if (settlementRepository.existsOverlappingRegular(teacherId, periodStart, periodEnd)) {
 			throw new ConflictException(
@@ -275,6 +280,11 @@ public class TeacherSettlementService {
 		permissionCheckService.requirePermission(DomainArea.FINANCE_EXPENSES, PermissionAction.CREATE_EDIT);
 		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
 		TeacherSettlement settlement = load(settlementId);
+		if (settlement.getKind().isWalletEntry()) {
+			throw new ConflictException("Wallet entries are never marked paid");
+		}
+		// TEACHER-WALLET-01: lock order is wallet row, then settlement row.
+		boolean hasWallet = walletService.lockIfExists(settlement.getTeacherId()).isPresent();
 		// Row lock + re-read (SELECT ... FOR UPDATE) so two concurrent
 		// mark-paid calls serialize: the second observes PAID and gets 409
 		// instead of silently overwriting paid_by/payout_reference (no
@@ -283,6 +293,15 @@ public class TeacherSettlementService {
 		entityManager.refresh(settlement, LockModeType.PESSIMISTIC_WRITE);
 		if (settlement.isPaid()) {
 			throw new ConflictException("Settlement is already marked paid");
+		}
+		if (hasWallet) {
+			// Paying a settlement removes it from the amount payable. If the same money was already
+			// recorded as a wallet Pay Out, the balance would go negative - refuse (double payout).
+			BigDecimal balance = walletService.balanceOf(settlement.getTeacherId());
+			if (balance.subtract(settlement.getShareAmount()).signum() < 0) {
+				throw new ConflictException("Marking this settlement paid would make the teacher wallet negative ("
+						+ balance.toPlainString() + " payable) - it may already have been paid out from the wallet");
+			}
 		}
 		String reference = (payoutReference == null || payoutReference.isBlank()) ? null : payoutReference.trim();
 		settlement.markPaid(actorId, reference, Instant.now());
@@ -306,6 +325,7 @@ public class TeacherSettlementService {
 		if (original.getKind() != TeacherSettlementKind.REGULAR) {
 			throw new ConflictException("Adjustments must reference the original (regular) settlement");
 		}
+		walletService.lockIfExists(original.getTeacherId());
 		BigDecimal adjustment = normalizeAdjustment(amount);
 		BigDecimal before = effectiveTotal(original, settlementRepository.findAdjustmentsOf(original.getId()));
 		String trimmedReason = reason.trim();
