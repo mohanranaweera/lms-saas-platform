@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,10 +17,9 @@ import {
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
 import { TeacherCourseCardGrid } from "@/components/courses/teacher-course-card-grid";
-import { EditClassScheduleDialog } from "@/components/calendar/edit-class-schedule-dialog";
+import { TeacherCourseManageMenu } from "@/components/courses/teacher/teacher-course-manage-menu";
 import { AdminToast, useAdminToast } from "@/components/courses/admin/admin-toast";
 import { useCourses, type CourseResponse, type CourseStatus } from "@/lib/api/courses";
-import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import {
   TEACHER_NO_ASSIGNED_COURSES_TITLE,
   TEACHER_NO_ASSIGNED_COURSES_DESCRIPTION,
@@ -35,27 +34,25 @@ const STATUS_FILTER_OPTIONS: Array<{ value: "all" | CourseStatus; label: string 
 ];
 
 /**
- * Teacher "My Courses" list. `GET /api/v1/courses` returns only this
- * teacher's own courses (server-enforced) — no client-side ownership
- * filtering happens here, per `.claude/rules/ui-ux.md` §1 (never fetch an
- * unfiltered dataset and filter client-side "for convenience"). Category/
- * status search *is* client-side, over a single `size=100` page fetched via
- * `useCourses()` (see that hook's doc comment) — a Teacher's own course count
- * is expected to comfortably fit one page at MVP scope, so this keeps the
- * existing search-box/dropdown filter UX instead of building real pagination
- * controls for a bounded, per-teacher list.
+ * Teacher "My Courses" list (TP-01). `GET /api/v1/courses?assignedToMe=true`
+ * returns only courses the signed-in user is assigned to (primary or
+ * co-teacher, `course_teacher_assignment`) in the active tenant - applied
+ * server-side before filters, sorting, paging and counts, for every role
+ * (a staff user opening the Teacher Portal also sees only its own
+ * assignments; the Tenant Admin course workspace stays the place for broader
+ * management). No client-side ownership filtering happens here, per
+ * `.claude/rules/ui-ux.md` §1. Category/status search is client-side over
+ * that already-restricted set (one `size=100` page, see `useCourses()`).
+ *
+ * TP-02: "Open course" shows the student course layout; the existing
+ * management actions sit behind "Manage course".
  */
 export default function TeacherCoursesPage() {
   const router = useRouter();
-  const query = useCourses();
+  const query = useCourses({ assignedToMe: true });
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | CourseStatus>("all");
-  // CAL-01: the dialog loads `canEdit` from GET class-schedule and is read-only when false.
-  const [scheduleCourse, setScheduleCourse] = useState<CourseResponse | null>(null);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  // TUTE-01: shown only when a Tenant Admin granted TUTE_VIEW_TUTES; the backend also limits it to own courses.
-  const canViewTutes = useTuteCapabilities().can(TUTE_CAP.VIEW_TUTES);
   const toast = useAdminToast();
 
   const categories = useMemo(() => {
@@ -90,7 +87,7 @@ export default function TeacherCoursesPage() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">My Courses</h1>
           <p className="text-sm text-muted-foreground">
-            Courses you own as their teacher. Create, edit, and manage content here.
+            Courses you are assigned to teach. Open a course to see it as students do, or use Manage course to edit it.
           </p>
         </div>
         <Button render={<Link href="/teacher/courses/new" />}>
@@ -183,68 +180,32 @@ export default function TeacherCoursesPage() {
                   renderActions={(course) => (
                     <>
                       <Link
-                        href={`/teacher/courses/${course.id}/edit`}
-                        className={buttonVariants({ variant: "outline", size: "sm" })}
+                        href={`/teacher/courses/${course.id}`}
+                        className={buttonVariants({ size: "sm" })}
+                        data-testid="teacher-course-open"
                       >
-                        Edit
+                        Open course
                       </Link>
-                      <Link
-                        href={`/teacher/courses/${course.id}/modules`}
-                        className={buttonVariants({ variant: "outline", size: "sm" })}
-                      >
-                        Modules
-                      </Link>
-                      <Link
-                        href={`/teacher/courses/${course.id}/roster`}
-                        className={buttonVariants({ variant: "outline", size: "sm" })}
-                      >
-                        Roster
-                      </Link>
-                      {canViewTutes ? (
-                        <Link
-                          href={`/teacher/courses/${course.id}/tutes`}
-                          className={buttonVariants({ variant: "outline", size: "sm" })}
-                          data-testid="teacher-course-tutes"
-                        >
-                          Tutes
-                        </Link>
-                      ) : null}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setScheduleCourse(course);
-                          setScheduleOpen(true);
-                        }}
-                        aria-label={`Class schedule for ${course.name}`}
-                        data-testid="teacher-course-class-schedule"
-                      >
-                        <CalendarDays aria-hidden="true" />
-                        Class schedule
-                      </Button>
+                      <TeacherCourseManageMenu
+                        courseId={course.id}
+                        courseName={course.name}
+                        onScheduleSaved={() =>
+                          toast.show({ kind: "success", text: `Class schedule saved for “${course.name}”.` })
+                        }
+                      />
                     </>
                   )}
                 />
               )}
 
               <p className="text-xs text-muted-foreground">
-                Showing {filtered.length} of {courses.content.length} courses.
+                Showing {filtered.length} of {courses.totalElements} courses.
               </p>
             </div>
           );
         }}
       </QueryStateBoundary>
 
-      {scheduleCourse ? (
-        <EditClassScheduleDialog
-          courseId={scheduleCourse.id}
-          courseName={scheduleCourse.name}
-          open={scheduleOpen}
-          onOpenChange={setScheduleOpen}
-          onSaved={() => toast.show({ kind: "success", text: `Class schedule saved for “${scheduleCourse.name}”.` })}
-        />
-      ) : null}
       <AdminToast message={toast.message} onDismiss={toast.dismiss} />
     </div>
   );

@@ -1,5 +1,6 @@
 package com.lms.videoaccessmanagement.support;
 
+import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.common.error.NotFoundException;
 import com.lms.contentmanagement.api.MaterialLookupApi;
 import com.lms.contentmanagement.api.MaterialVideoOwnership;
@@ -61,12 +62,22 @@ public class VideoAccessGuard {
 
 	private final LessonAccessApi lessonAccessApi;
 
+	private final CourseLookupApi courseLookupApi;
+
 	public VideoAccessGuard(MaterialLookupApi materialLookupApi, AccessPolicyApi accessPolicyApi,
 			PermissionCheckService permissionCheckService, LessonAccessApi lessonAccessApi) {
+		this(materialLookupApi, accessPolicyApi, permissionCheckService, lessonAccessApi, null);
+	}
+
+	@org.springframework.beans.factory.annotation.Autowired
+	public VideoAccessGuard(MaterialLookupApi materialLookupApi, AccessPolicyApi accessPolicyApi,
+			PermissionCheckService permissionCheckService, LessonAccessApi lessonAccessApi,
+			CourseLookupApi courseLookupApi) {
 		this.materialLookupApi = materialLookupApi;
 		this.accessPolicyApi = accessPolicyApi;
 		this.permissionCheckService = permissionCheckService;
 		this.lessonAccessApi = lessonAccessApi;
+		this.courseLookupApi = courseLookupApi;
 	}
 
 	/**
@@ -83,9 +94,16 @@ public class VideoAccessGuard {
 
 		if (isTeacherRole(principal)) {
 			// The asset must be attached to (at least) one lesson of a course the teacher owns.
+			// TP-01: for VIEW (Teacher Portal course view playback), any current assignment to
+			// that course - primary or co-teacher, read fresh - counts as well.
 			return attachments.stream()
 				.filter(ownership -> ownership.teacherId().equals(principal.userId()))
 				.findFirst()
+				.or(() -> action != PermissionAction.VIEW || courseLookupApi == null ? java.util.Optional.empty()
+						: attachments.stream()
+							.filter(ownership -> courseLookupApi.isTeacherAssigned(ownership.courseId(),
+									principal.userId()))
+							.findFirst())
 				.orElseThrow(() -> new AccessDeniedException("You do not have permission to perform this action"));
 		}
 

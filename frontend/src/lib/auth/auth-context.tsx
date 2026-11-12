@@ -317,6 +317,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeout);
   }, [readOnlyNotice]);
 
+  // TP-01: cached server data belongs to one signed-in identity. When the
+  // identity changes (sign-out, or a different user/tenant signing in in this
+  // tab), drop the cache so no stale course list or profile is shown.
+  const identityKey = session ? `${session.kind}:${session.userId ?? ""}` : null;
+  const previousIdentity = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousIdentity.current !== null && previousIdentity.current !== identityKey) {
+      queryClient.clear();
+    }
+    previousIdentity.current = identityKey;
+  }, [identityKey, queryClient]);
+
   const dismissReadOnlyNotice = useCallback(() => setReadOnlyNotice(null), []);
 
   const startImpersonation = useCallback(async (): Promise<ImpersonationInfo> => {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.course.domain.Course;
+import com.lms.coursemanagement.course.repository.CourseTeacherAssignmentRepository;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
@@ -50,13 +51,17 @@ class CourseAccessGuardTest {
 	@Mock
 	private EnrollmentAccessApi enrollmentAccessApi;
 
+	@Mock
+	private CourseTeacherAssignmentRepository courseTeacherAssignmentRepository;
+
 	private CourseAccessGuard guard;
 
 	@BeforeEach
 	void setUp() {
 		var accessPolicy = AccessPolicyTestDouble.backedBy(enrollmentAccessApi);
 		guard = new CourseAccessGuard(permissionCheckService, accessPolicy,
-				com.lms.enrollmentmanagement.support.LessonAccessTestDouble.backedBy(accessPolicy));
+				com.lms.enrollmentmanagement.support.LessonAccessTestDouble.backedBy(accessPolicy),
+				courseTeacherAssignmentRepository);
 	}
 
 	@AfterEach
@@ -101,6 +106,40 @@ class CourseAccessGuardTest {
 				.isInstanceOf(AccessDeniedException.class);
 		}
 		verifyNoInteractions(permissionCheckService);
+	}
+
+	@Test
+	void assignedCoTeacherMayViewButNotManage() {
+		UUID coTeacherId = UUID.randomUUID();
+		Course course = courseOwnedBy(UUID.randomUUID());
+		org.mockito.Mockito.when(courseTeacherAssignmentRepository.isAssigned(course.getId(), coTeacherId))
+			.thenReturn(true);
+		AuthenticatedPrincipalHolder
+			.set(new AuthenticatedPrincipal(coTeacherId, TENANT_ID, "TEACHER", UUID.randomUUID()));
+
+		assertThatCode(() -> guard.requireCourseAccess(course, PermissionAction.VIEW)).doesNotThrowAnyException();
+		for (PermissionAction action : PermissionAction.values()) {
+			if (action != PermissionAction.VIEW) {
+				assertThatThrownBy(() -> guard.requireCourseAccess(course, action))
+					.as("co-teacher on action %s", action)
+					.isInstanceOf(AccessDeniedException.class);
+			}
+		}
+		verifyNoInteractions(permissionCheckService);
+	}
+
+	@Test
+	void removedCoTeacherAssignmentIsDeniedOnTheNextRequest() {
+		UUID coTeacherId = UUID.randomUUID();
+		Course course = courseOwnedBy(UUID.randomUUID());
+		org.mockito.Mockito.when(courseTeacherAssignmentRepository.isAssigned(course.getId(), coTeacherId))
+			.thenReturn(true, false);
+		AuthenticatedPrincipalHolder
+			.set(new AuthenticatedPrincipal(coTeacherId, TENANT_ID, "TEACHER", UUID.randomUUID()));
+
+		assertThatCode(() -> guard.requireCourseAccess(course, PermissionAction.VIEW)).doesNotThrowAnyException();
+		assertThatThrownBy(() -> guard.requireCourseAccess(course, PermissionAction.VIEW))
+			.isInstanceOf(AccessDeniedException.class);
 	}
 
 	@Test

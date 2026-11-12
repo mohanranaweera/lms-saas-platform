@@ -240,3 +240,54 @@ export function useReactivateTeacher() {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// TP-03: the signed-in Teacher's own profile (`/v1/teachers/me`).
+// ---------------------------------------------------------------------------
+
+export type TeacherSelfEditableField = "qualifications" | "description";
+
+/** Mirrors `TeacherSelfProfileResponse` - no commission/finance or approval metadata. */
+export interface TeacherSelfProfile {
+  id: string;
+  userId: string;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  contactNumber: string | null;
+  qualifications: string | null;
+  description: string | null;
+  profileImageUrl: string | null;
+  approvalStatus: TeacherApprovalStatus;
+  /** The server's allowlist; every other field is read-only. */
+  editableFields: TeacherSelfEditableField[];
+}
+
+export interface TeacherSelfUpdateInput {
+  qualifications: string;
+  description: string;
+}
+
+const OWN_TEACHER_PROFILE_KEY = ["teachers", "me"] as const;
+
+export function useOwnTeacherProfile() {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: OWN_TEACHER_PROFILE_KEY,
+    queryFn: () => authorizedFetch<TeacherSelfProfile>("tenant", "/v1/teachers/me"),
+  });
+}
+
+export function useUpdateOwnTeacherProfile() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TeacherSelfUpdateInput) =>
+      authorizedFetch<TeacherSelfProfile>("tenant", "/v1/teachers/me", {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => queryClient.setQueryData(OWN_TEACHER_PROFILE_KEY, data),
+  });
+}

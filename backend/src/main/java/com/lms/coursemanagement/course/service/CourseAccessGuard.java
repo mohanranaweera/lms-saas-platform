@@ -4,6 +4,7 @@ import com.lms.common.error.DeviceNotAuthorizedException;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
+import com.lms.coursemanagement.course.repository.CourseTeacherAssignmentRepository;
 import com.lms.enrollmentmanagement.api.AccessOutcome;
 import com.lms.enrollmentmanagement.api.AccessPolicyApi;
 import com.lms.enrollmentmanagement.api.CourseAccessDecision;
@@ -60,11 +61,14 @@ public class CourseAccessGuard {
 
 	private final LessonAccessApi lessonAccessApi;
 
+	private final CourseTeacherAssignmentRepository courseTeacherAssignmentRepository;
+
 	public CourseAccessGuard(PermissionCheckService permissionCheckService, AccessPolicyApi accessPolicyApi,
-			LessonAccessApi lessonAccessApi) {
+			LessonAccessApi lessonAccessApi, CourseTeacherAssignmentRepository courseTeacherAssignmentRepository) {
 		this.permissionCheckService = permissionCheckService;
 		this.accessPolicyApi = accessPolicyApi;
 		this.lessonAccessApi = lessonAccessApi;
+		this.courseTeacherAssignmentRepository = courseTeacherAssignmentRepository;
 	}
 
 	/** Not a Teacher, Teacher Assistant or Student (their access models are ownership/enrollment). */
@@ -76,7 +80,13 @@ public class CourseAccessGuard {
 	public void requireCourseAccess(Course course, PermissionAction action) {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		if (TEACHER_ROLE.equals(principal.role())) {
-			if (!course.getTeacherId().equals(principal.userId())) {
+			boolean primary = course.getTeacherId().equals(principal.userId());
+			// TP-01: any current assignment (primary or co-teacher) may VIEW the course and,
+			// through this same check, its modules/lessons; managing it stays with the
+			// primary teacher, exactly as before. Read fresh, so a removal applies at once.
+			boolean mayView = primary || (action == PermissionAction.VIEW
+					&& courseTeacherAssignmentRepository.isAssigned(course.getId(), principal.userId()));
+			if (!(action == PermissionAction.VIEW ? mayView : primary)) {
 				throw new AccessDeniedException("You do not have permission to perform this action");
 			}
 			if (action == PermissionAction.DELETE) {

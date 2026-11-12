@@ -552,7 +552,9 @@ test.describe("Edit Class Schedule", () => {
   test("teacher without edit rights sees a read-only schedule", async ({ page }) => {
     await setupSchedule(page, "TEACHER", schedule({ canEdit: false }));
     await page.goto("/teacher/courses");
-    await page.getByRole("button", { name: `Class schedule for ${COURSE.name}` }).click();
+    // TP-02: the class schedule sits behind the card's "Manage course" menu.
+    await page.getByRole("button", { name: `Manage course ${COURSE.name}` }).click();
+    await page.getByTestId("teacher-course-class-schedule").click();
     const dialog = page.getByTestId("edit-class-schedule-dialog");
     await expect(dialog.getByText(/only the course's teacher or an administrator can change it/)).toBeVisible();
     await expect(dialog.getByRole("list", { name: "Weekly class times" })).toContainText("8:00 AM – 10:00 AM");
@@ -563,7 +565,9 @@ test.describe("Edit Class Schedule", () => {
   test("teacher with edit rights can save from the course list", async ({ page }) => {
     const mock = await setupSchedule(page, "TEACHER");
     await page.goto("/teacher/courses");
-    await page.getByRole("button", { name: `Class schedule for ${COURSE.name}` }).click();
+    // TP-02: the class schedule sits behind the card's "Manage course" menu.
+    await page.getByRole("button", { name: `Manage course ${COURSE.name}` }).click();
+    await page.getByTestId("teacher-course-class-schedule").click();
     const dialog = page.getByTestId("edit-class-schedule-dialog");
     await dialog.getByRole("textbox", { name: "End time for Monday class 1" }).fill("10:30");
     await dialog.getByTestId("schedule-save").click();

@@ -31,6 +31,8 @@ export function CourseContentTree({
   onLaunch,
   onPayPeriod,
   onPayLesson,
+  showProgress = true,
+  emptyMessage = "Your teacher hasn't added any lessons to this course yet. Check back later.",
 }: {
   content: CourseContent;
   expanded: ReadonlySet<string>;
@@ -39,6 +41,9 @@ export function CourseContentTree({
   onLaunch: (lesson: LessonNode) => void;
   onPayPeriod: ((period: PeriodNode) => void) | null;
   onPayLesson: ((lesson: LessonNode) => void) | null;
+  /** Student progress ("x of y viewed"); off for the Teacher Portal preview (no progress is tracked). */
+  showProgress?: boolean;
+  emptyMessage?: string;
 }) {
   const percent = content.totalCount > 0 ? Math.round((content.viewedCount / content.totalCount) * 100) : 0;
 
@@ -52,6 +57,7 @@ export function CourseContentTree({
         <h2 id="course-content-heading" className="text-base font-semibold text-foreground">
           Course content
         </h2>
+        {showProgress ? (
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground" data-testid="course-content-progress">
             {content.viewedCount} of {content.totalCount} viewed
@@ -67,11 +73,12 @@ export function CourseContentTree({
             <div className="h-full rounded-full bg-green-600" style={{ width: `${percent}%` }} />
           </div>
         </div>
+        ) : null}
       </div>
 
       {content.periods.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-muted-foreground" role="status" data-testid="course-content-empty">
-          Your teacher hasn&apos;t added any lessons to this course yet. Check back later.
+          {emptyMessage}
         </p>
       ) : (
         <ul aria-label="Course content folders" className="divide-y divide-border">

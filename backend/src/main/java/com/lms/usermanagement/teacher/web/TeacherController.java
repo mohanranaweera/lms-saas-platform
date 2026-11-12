@@ -11,6 +11,8 @@ import com.lms.usermanagement.teacher.service.TeacherService;
 import com.lms.usermanagement.teacher.web.dto.TeacherActivityResponse;
 import com.lms.usermanagement.teacher.web.dto.TeacherCreateRequest;
 import com.lms.usermanagement.teacher.web.dto.TeacherResponse;
+import com.lms.usermanagement.teacher.web.dto.TeacherSelfProfileResponse;
+import com.lms.usermanagement.teacher.web.dto.TeacherSelfUpdateRequest;
 import com.lms.usermanagement.teacher.web.dto.TeacherOrderRequest;
 import com.lms.usermanagement.teacher.web.dto.TeacherUpdateRequest;
 import jakarta.validation.Valid;
@@ -94,6 +96,22 @@ public class TeacherController {
 	public ResponseEntity<ApiResponse<Void>> reorderTeachers(@Valid @RequestBody TeacherOrderRequest request) {
 		teacherService.reorderTeachers(request.teacherIds());
 		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
+	/** TP-03: the signed-in Teacher's own profile (resolved from the authenticated identity). */
+	@GetMapping("/me")
+	@PreAuthorize("hasRole('TEACHER')")
+	public ResponseEntity<ApiResponse<TeacherSelfProfileResponse>> getOwnProfile() {
+		return ResponseEntity.ok(ApiResponse.success(toSelfResponse(teacherService.getOwnProfile())));
+	}
+
+	/** TP-03: updates only the self-editable allowlist on the caller's own profile. */
+	@PatchMapping("/me")
+	@PreAuthorize("hasRole('TEACHER')")
+	public ResponseEntity<ApiResponse<TeacherSelfProfileResponse>> updateOwnProfile(
+			@Valid @RequestBody TeacherSelfUpdateRequest request) {
+		return ResponseEntity.ok(ApiResponse.success(
+				toSelfResponse(teacherService.updateOwnProfile(request.qualifications(), request.description()))));
 	}
 
 	@GetMapping("/{id}")
@@ -182,6 +200,13 @@ public class TeacherController {
 				account.contactNumber(), account.instituteCommissionPercent(), account.qualifications(), account.description(),
 				account.profileMediaFileId(), account.profileImageUrl(), account.publicProfileDisabled(), account.studentCount(), account.approvalStatus(), account.accountStatus(),
 				account.approvedBy(), account.approvedAt(), account.userId());
+	}
+
+	private static TeacherSelfProfileResponse toSelfResponse(TeacherAccount account) {
+		return new TeacherSelfProfileResponse(account.id(), account.userId(), account.name(), account.firstName(),
+				account.lastName(), account.email(), account.contactNumber(), account.qualifications(),
+				account.description(), account.profileImageUrl(), account.approvalStatus(),
+				TeacherService.SELF_EDITABLE_FIELDS);
 	}
 
 	private static TeacherActivityResponse toActivityResponse(AuditActivityEntry entry) {

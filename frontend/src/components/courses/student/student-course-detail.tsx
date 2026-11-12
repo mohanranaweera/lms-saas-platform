@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ClipboardList, Info, Loader2, MonitorPlay, Truck, UserRound, Video } from "lucide-react";
+import { ClipboardList, Info, Loader2, MonitorPlay, Truck, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveRegion } from "@/components/ui/live-region";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
-import { cn } from "@/lib/utils";
 import { isApiClientError } from "@/lib/api/error";
 import {
-  useCourseContent,
   useSelfEnroll,
   useStudentCourse,
   type LessonNode,
@@ -21,8 +19,7 @@ import {
 } from "@/lib/api/klass-student";
 import { usePaymentComposer } from "@/components/payments/composer/payment-composer-provider";
 import { presetFromPurchase } from "@/components/payments/composer/composer-model";
-import { CourseContentTree } from "./course-content-tree";
-import { CourseCover, PriceBadge } from "./course-visuals";
+import { CourseAboutPanel, CourseContentTab, CourseDetailFrame, type CourseDetailTab } from "./course-detail-layout";
 import { CourseExamsTab } from "./course-exams-tab";
 import { CourseLiveClassesTab } from "./course-live-classes-tab";
 import { CourseTutesTab } from "./course-tutes-tab";
@@ -33,7 +30,7 @@ import { StudentToast, useStudentToast } from "./student-toast";
 
 type DetailTab = "content" | "exams" | "live" | "tutes" | "about";
 
-const TABS: { value: DetailTab; label: string; icon: ReactNode }[] = [
+const TABS: CourseDetailTab<DetailTab>[] = [
   { value: "content", label: "Course content", icon: <MonitorPlay className="size-4" aria-hidden="true" /> },
   { value: "exams", label: "Exams", icon: <ClipboardList className="size-4" aria-hidden="true" /> },
   { value: "live", label: "Live Classes", icon: <Video className="size-4" aria-hidden="true" /> },
@@ -145,45 +142,22 @@ function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail
 
   const notEnrolled = <NotEnrolledPanel course={course} onEnrolled={(text) => toast.show({ kind: "success", text })} />;
 
-  const teacherNames =
-    course.teachers && course.teachers.length > 0
-      ? [...course.teachers].sort((a, b) => Number(b.primary) - Number(a.primary)).map((t) => t.name).join(", ")
-      : null;
-
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6" data-testid="student-course-detail">
-      <nav aria-label="Breadcrumb">
-        <Link href="/student/courses" className="text-sm text-muted-foreground hover:underline">
-          ← My courses
-        </Link>
-      </nav>
-
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-col gap-4 p-4 sm:p-6 md:flex-row md:items-center md:gap-8" data-testid="course-header-card">
-          <CourseCover src={course.coverImageUrl} title={course.name} className="rounded-lg md:w-2/5 md:max-w-sm" />
-          <div className="flex min-w-0 flex-col gap-2">
-            <PriceBadge priceDisplay={course.priceDisplay} pricingModel={course.pricingModel} />
-            <h1 className="text-xl font-bold break-words text-foreground sm:text-2xl" data-testid="course-detail-title">
-              {course.name}
-            </h1>
-            {teacherNames ? (
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <UserRound className="size-4" aria-hidden="true" />
-                <span className="sr-only">Teacher:</span>
-                {teacherNames}
-              </p>
-            ) : null}
-            {headerCta ? <div className="pt-2">{headerCta}</div> : null}
-          </div>
-        </div>
-        <DetailTabs tab={tab} onChange={setTab} />
-      </div>
-
+    <CourseDetailFrame
+      course={course}
+      backHref="/student/courses"
+      backLabel="My courses"
+      headerCta={headerCta}
+      tabs={TABS}
+      tab={tab}
+      onTabChange={setTab}
+      testId="student-course-detail"
+    >
       <LiveRegion message={launcher.notice} />
 
       <div role="tabpanel" id="course-detail-tabpanel" aria-labelledby={`course-detail-tab-${tab}`}>
         {tab === "content" ? (
-          <ContentTab
+          <CourseContentTab
             courseId={course.id}
             expanded={expanded}
             onToggle={toggleFolder}
@@ -191,7 +165,7 @@ function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail
             onLaunch={launcher.launch}
             onPayPeriod={payPeriod}
             onPayLesson={payLesson}
-            notEnrolled={notEnrolled}
+            denied={notEnrolled}
           />
         ) : tab === "exams" ? (
           <CourseExamsTab courseId={course.id} courseName={course.name} />
@@ -207,104 +181,13 @@ function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail
         ) : tab === "tutes" ? (
           <CourseTutesTab courseId={course.id} timeZone={timeZone} />
         ) : (
-          <AboutTab course={course} />
+          <CourseAboutPanel course={course} />
         )}
       </div>
 
       {launcher.element}
       <StudentToast message={toast.message} onDismiss={toast.dismiss} />
-    </div>
-  );
-}
-
-function DetailTabs({ tab, onChange }: { tab: DetailTab; onChange: (tab: DetailTab) => void }) {
-  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    let next = index;
-    if (event.key === "ArrowRight") next = (index + 1) % TABS.length;
-    if (event.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
-    if (event.key === "Home") next = 0;
-    if (event.key === "End") next = TABS.length - 1;
-    onChange(TABS[next].value);
-    document.getElementById(`course-detail-tab-${TABS[next].value}`)?.focus();
-  };
-
-  return (
-    <div role="tablist" aria-label="Course sections" className="flex flex-nowrap overflow-x-auto border-t border-border px-2">
-      {TABS.map((item, index) => {
-        const selected = item.value === tab;
-        return (
-          <button
-            key={item.value}
-            type="button"
-            role="tab"
-            id={`course-detail-tab-${item.value}`}
-            aria-selected={selected}
-            aria-controls="course-detail-tabpanel"
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(item.value)}
-            onKeyDown={(event) => onKeyDown(event, index)}
-            data-testid={`course-tab-${item.value}`}
-            className={cn(
-              "inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
-              selected
-                ? "border-blue-600 text-blue-700 dark:text-blue-300"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {item.icon}
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function ContentTab({
-  courseId,
-  expanded,
-  onToggle,
-  launchingId,
-  onLaunch,
-  onPayPeriod,
-  onPayLesson,
-  notEnrolled,
-}: {
-  courseId: string;
-  expanded: ReadonlySet<string>;
-  onToggle: (id: string) => void;
-  launchingId: string | null;
-  onLaunch: (lesson: LessonNode) => void;
-  onPayPeriod: ((period: PeriodNode) => void) | null;
-  onPayLesson: ((lesson: LessonNode) => void) | null;
-  notEnrolled: ReactNode;
-}) {
-  const query = useCourseContent(courseId);
-  if (query.status === "pending") return <LoadingState label="Loading course content…" />;
-  if (query.status === "error") {
-    if (isApiClientError(query.error) && (query.error.status === 404 || query.error.status === 403)) {
-      return <>{notEnrolled}</>;
-    }
-    return (
-      <ErrorState
-        message="We couldn't load this course's content."
-        code={isApiClientError(query.error) ? query.error.code : undefined}
-        onRetry={() => query.refetch()}
-      />
-    );
-  }
-  return (
-    <CourseContentTree
-      content={query.data}
-      expanded={expanded}
-      onToggle={onToggle}
-      launchingId={launchingId}
-      onLaunch={onLaunch}
-      onPayPeriod={onPayPeriod}
-      onPayLesson={onPayLesson}
-    />
+    </CourseDetailFrame>
   );
 }
 
@@ -376,68 +259,5 @@ function NotEnrolledPanel({ course, onEnrolled }: { course: StudentCourseDetail;
         }}
       />
     </div>
-  );
-}
-
-function safeInviteUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" ? parsed.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-function AboutTab({ course }: { course: StudentCourseDetail }) {
-  const whatsapp = safeInviteUrl(course.whatsappInviteUrl);
-  const telegram = safeInviteUrl(course.telegramInviteUrl);
-  return (
-    <section
-      aria-labelledby="about-course-heading"
-      className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6"
-      data-testid="course-about-panel"
-    >
-      <h2 id="about-course-heading" className="text-base font-semibold text-foreground">
-        About this course
-      </h2>
-      {course.description ? (
-        // Plain text only - never rendered as HTML.
-        <p className="text-sm whitespace-pre-wrap text-foreground" data-testid="course-about-description">
-          {course.description}
-        </p>
-      ) : (
-        <p className="text-sm text-muted-foreground">Your teacher hasn&apos;t added a description yet.</p>
-      )}
-      {whatsapp || telegram ? (
-        <div className="flex flex-col gap-2 border-t border-border pt-4">
-          <h3 className="text-sm font-semibold text-foreground">Join the class groups</h3>
-          <div className="flex flex-wrap gap-2">
-            {whatsapp ? (
-              <a
-                href={whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="course-about-whatsapp"
-                className="inline-flex items-center rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
-              >
-                Join WhatsApp group
-              </a>
-            ) : null}
-            {telegram ? (
-              <a
-                href={telegram}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="course-about-telegram"
-                className="inline-flex items-center rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700"
-              >
-                Join Telegram group
-              </a>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </section>
   );
 }

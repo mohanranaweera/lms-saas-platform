@@ -1,6 +1,7 @@
 package com.lms.coursemanagement.course.repository;
 
 import com.lms.coursemanagement.course.domain.Course;
+import com.lms.coursemanagement.course.domain.CourseTeacherAssignment;
 import com.lms.coursemanagement.course.domain.CourseStatus;
 import java.util.Collection;
 import java.util.Locale;
@@ -50,6 +51,24 @@ public final class CourseSpecifications {
 			return Specification.unrestricted();
 		}
 		return (root, query, cb) -> cb.equal(root.get("teacherId"), teacherId);
+	}
+
+	/**
+	 * TP-01: the course has a {@code course_teacher_assignment} row (primary or
+	 * co-teacher) for {@code teacherUserId}. Callers pass the trusted caller
+	 * identity only. The subquery's own entity is tenant-scoped by the same
+	 * tenant predicate as the outer {@code Course} read (assignments carry a
+	 * composite same-tenant FK to {@code course}, V85).
+	 */
+	public static Specification<Course> assignedToTeacher(UUID teacherUserId) {
+		return (root, query, cb) -> {
+			var subquery = query.subquery(UUID.class);
+			var assignment = subquery.from(CourseTeacherAssignment.class);
+			subquery.select(assignment.get("courseId"));
+			subquery.where(cb.equal(assignment.get("teacherId"), teacherUserId),
+					cb.equal(assignment.get("tenantId"), root.get("tenantId")));
+			return root.get("id").in(subquery);
+		};
 	}
 
 	/**

@@ -39,6 +39,15 @@ public interface CourseLookupApi {
 	Optional<UUID> getTeacherId(UUID courseId);
 
 	/**
+	 * Teacher Portal (TP-01): whether {@code teacherUserId} holds a current
+	 * {@code course_teacher_assignment} row (primary or co-teacher) for
+	 * {@code courseId} in the caller's tenant. Read fresh on every call - an
+	 * assignment removal takes effect on the next request. {@code false} for an
+	 * unknown or cross-tenant course.
+	 */
+	boolean isTeacherAssigned(UUID courseId, UUID teacherUserId);
+
+	/**
 	 * @return the course's current price snapshot, or {@link Optional#empty()}
 	 * if the course does not exist in the caller's tenant. Not a historical
 	 * read - callers needing price-change history are out of this contract's

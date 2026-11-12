@@ -536,6 +536,22 @@ Lists every teacher in the caller's tenant. Query param: `approvalStatus` (optio
 of `PENDING`/`APPROVED`/`REJECTED`/`SUSPENDED`) — omitted returns every status, no
 pagination. **`200`** (`ApiResponse<TeacherResponse[]>`).
 
+### `GET /api/v1/teachers/me` / `PATCH /api/v1/teachers/me` (TP-03, Teacher Portal → My Profile)
+
+`hasRole('TEACHER')`. The record is resolved from the authenticated user id in the caller's
+tenant (tenant-scoped `findByUserId`) — never from a client id; `404` when no teacher
+record exists for the account. Response `TeacherSelfProfileResponse`: `id, userId, name,
+firstName, lastName, email, contactNumber, qualifications, description, profileImageUrl,
+approvalStatus, editableFields` — no commission/finance fields, approval metadata or
+public-profile flag.
+
+`PATCH` body `{qualifications (≤2000), description (≤5000)}` — the explicit self-service
+allowlist (`TeacherService.SELF_EDITABLE_FIELDS`). Any other property sent (names, contact,
+commission, photo, role, id) is not part of the request type and is never written. Blank
+clears. Audit-logged as `teacher.profile_self_updated`. Names, contact number, sign-in
+identifiers, photo, commission and visibility remain Tenant-Admin-managed via
+`PATCH /api/v1/teachers/{id}`.
+
 ### `GET /api/v1/teachers/{id}`
 
 Reads one teacher by `TeacherProfile.id`. Same uniform `404` (not-found/cross-tenant

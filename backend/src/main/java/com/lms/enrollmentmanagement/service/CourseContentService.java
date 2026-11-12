@@ -65,8 +65,8 @@ import org.springframework.transaction.annotation.Transactional;
  * {@link #launch}; reading the tree records nothing.
  *
  * <p>Access to the tree: a participating student (direct, legacy enrollment,
- * or via a parent course linking this one), or staff preview - the owning
- * teacher or a {@code COURSES}/{@code VIEW} grant - always within the caller's
+ * or via a parent course linking this one), or staff preview - an assigned
+ * (primary or co-) teacher or a {@code COURSES}/{@code VIEW} grant - always within the caller's
  * own tenant (unknown/cross-tenant/DRAFT-for-students course = 404).
  */
 @Service
@@ -232,10 +232,11 @@ public class CourseContentService {
 		if (!TEACHER_ROLE.equals(principal.role()) && !TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
 			return true;
 		}
-		boolean ownsSource = courseLookupApi.findCatalogInfo(sourceId)
+		// TP-01: any current assignment to the source course counts (primary or co-teacher).
+		boolean assignedToSource = courseLookupApi.findCatalogInfo(sourceId)
 			.map(source -> principal.userId().equals(source.teacherId()))
-			.orElse(false);
-		return ownsSource || permissionCheckService.hasPermission(DomainArea.COURSES, PermissionAction.VIEW);
+			.orElse(false) || courseLookupApi.isTeacherAssigned(sourceId, principal.userId());
+		return assignedToSource || permissionCheckService.hasPermission(DomainArea.COURSES, PermissionAction.VIEW);
 	}
 
 	private static void addEvaluated(List<EvaluatedLesson> target, CourseLessonAccess access, boolean source) {
@@ -262,7 +263,11 @@ public class CourseContentService {
 
 	private void requireStaffPreview(AuthenticatedPrincipal principal, CourseCatalogInfo course) {
 		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
-			if (!principal.userId().equals(course.teacherId())) {
+			// TP-01: the Teacher Portal's course view - any current assignment (primary or
+			// co-teacher), read fresh per request. Preview is read-only: no enrollment,
+			// payment, launch or progress write happens on this path.
+			if (!principal.userId().equals(course.teacherId())
+					&& !courseLookupApi.isTeacherAssigned(course.courseId(), principal.userId())) {
 				throw new AccessDeniedException("You do not have permission to perform this action");
 			}
 			return;

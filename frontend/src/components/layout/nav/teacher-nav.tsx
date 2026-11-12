@@ -21,7 +21,7 @@ export function TeacherNav({ onNavigate }: { onNavigate?: () => void }) {
     { label: "Messages", href: "/teacher/communications" },
     { label: "Notifications", href: "/teacher/notifications", badge: <NotificationsNavBadge /> },
     { label: "Settings", href: "/teacher/settings" },
-    { label: "Profile" },
+    { label: "My Profile", href: "/teacher/profile" },
   ];
 
   return <NavLinks items={items} onNavigate={onNavigate} />;

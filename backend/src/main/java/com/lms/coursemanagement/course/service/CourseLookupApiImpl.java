@@ -27,6 +27,7 @@ import com.lms.coursemanagement.course.repository.CourseLinkRepository;
 import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import com.lms.coursemanagement.course.repository.CourseTagAssignmentRepository;
+import com.lms.coursemanagement.course.repository.CourseTeacherAssignmentRepository;
 import com.lms.coursemanagement.api.CourseTagRef;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.tenantmanagement.api.TenantConfigApi;
@@ -77,6 +78,8 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 
 	private final CourseCheckoutAmountResolver courseCheckoutAmountResolver;
 
+	private final CourseTeacherAssignmentRepository courseTeacherAssignmentRepository;
+
 	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
 			CourseLessonRepository courseLessonRepository,
 			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
@@ -86,13 +89,24 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 				courseBillingPeriodRepository, tenantConfigApi, courseLinkRepository, courseTagAssignmentRepository, null);
 	}
 
-	@Autowired
 	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
 			CourseLessonRepository courseLessonRepository,
 			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
 			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi,
 			CourseLinkRepository courseLinkRepository, CourseTagAssignmentRepository courseTagAssignmentRepository,
 			ObjectStorageApi objectStorageApi) {
+		this(courseRepository, courseModuleRepository, courseLessonRepository, courseBillingConfigurationRepository,
+				courseBillingPeriodRepository, tenantConfigApi, courseLinkRepository, courseTagAssignmentRepository,
+				objectStorageApi, null);
+	}
+
+	@Autowired
+	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
+			CourseLessonRepository courseLessonRepository,
+			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
+			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi,
+			CourseLinkRepository courseLinkRepository, CourseTagAssignmentRepository courseTagAssignmentRepository,
+			ObjectStorageApi objectStorageApi, CourseTeacherAssignmentRepository courseTeacherAssignmentRepository) {
 		this.courseRepository = courseRepository;
 		this.courseModuleRepository = courseModuleRepository;
 		this.courseLessonRepository = courseLessonRepository;
@@ -102,6 +116,7 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 		this.courseLinkRepository = courseLinkRepository;
 		this.courseTagAssignmentRepository = courseTagAssignmentRepository;
 		this.objectStorageApi = objectStorageApi;
+		this.courseTeacherAssignmentRepository = courseTeacherAssignmentRepository;
 		this.courseCheckoutAmountResolver = new CourseCheckoutAmountResolver(courseBillingConfigurationRepository,
 				courseBillingPeriodRepository, tenantConfigApi);
 	}
@@ -183,6 +198,18 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 			.sorted(java.util.Comparator.comparing(CourseSummary::name, String.CASE_INSENSITIVE_ORDER)
 				.thenComparing(CourseSummary::id))
 			.toList();
+	}
+
+	@Override
+	public boolean isTeacherAssigned(UUID courseId, UUID teacherUserId) {
+		if (courseId == null || teacherUserId == null) {
+			return false;
+		}
+		if (courseTeacherAssignmentRepository == null) {
+			// Narrow test-only wiring: fall back to the primary teacher.
+			return getTeacherId(courseId).filter(teacherUserId::equals).isPresent();
+		}
+		return courseTeacherAssignmentRepository.isAssigned(courseId, teacherUserId);
 	}
 
 	@Override

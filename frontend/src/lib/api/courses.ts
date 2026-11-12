@@ -192,6 +192,12 @@ export interface CourseListParams {
    * listing read unless this is explicitly set `true`.
    */
   includeArchived?: boolean;
+  /**
+   * TP-01: only courses the signed-in user is assigned to (primary or
+   * co-teacher). The server always applies this for a Teacher caller and
+   * resolves "me" from the authenticated identity - never a client id.
+   */
+  assignedToMe?: boolean;
   page?: number;
   size?: number;
   sort?: string;
@@ -203,6 +209,7 @@ function buildCourseListQuery(params?: CourseListParams): string {
   if (params?.category) search.set("category", params.category);
   if (params?.teacherId) search.set("teacherId", params.teacherId);
   if (params?.includeArchived) search.set("includeArchived", "true");
+  if (params?.assignedToMe) search.set("assignedToMe", "true");
   search.set("page", String(params?.page ?? 0));
   // Defaults to 100 (the server's own clamp/max) rather than the server's
   // own default of 20: both current callers (Teacher "My Courses", Tenant

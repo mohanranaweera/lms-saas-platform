@@ -119,7 +119,12 @@ public class MaterialAccessGuard {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 
 		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
-			if (!ownership.teacherId().equals(principal.userId())) {
+			boolean primary = ownership.teacherId().equals(principal.userId());
+			// TP-01: a co-teacher (current course assignment, read fresh) may VIEW the
+			// lesson's materials from the Teacher Portal course view; managing them
+			// stays with the primary teacher.
+			if (!primary && !(action == PermissionAction.VIEW
+					&& courseLookupApi.isTeacherAssigned(ownership.courseId(), principal.userId()))) {
 				throw new AccessDeniedException("You do not have permission to perform this action");
 			}
 			return ownership;

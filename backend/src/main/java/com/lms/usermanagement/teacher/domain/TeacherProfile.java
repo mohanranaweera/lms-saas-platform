@@ -174,6 +174,16 @@ public class TeacherProfile extends Auditable implements TenantOwned {
 		this.name = (lastName == null || lastName.isBlank()) ? firstName : (firstName + " " + lastName).trim();
 	}
 
+	/**
+	 * TP-03: the teacher's own self-service write - only the fields in
+	 * {@code TeacherService#SELF_EDITABLE_FIELDS}. Name, contact, photo,
+	 * commission, visibility and approval stay with the Tenant Admin.
+	 */
+	public void updateSelfServiceFields(String qualifications, String description) {
+		this.qualifications = qualifications;
+		this.description = description;
+	}
+
 	public ApprovalStatus getApprovalStatus() {
 		return approvalStatus;
 	}

@@ -307,8 +307,12 @@ public class CourseService {
 			.and(CourseSpecifications.withCategory(filter.category()))
 			.and(archivedSpec);
 
-		if (TEACHER_ROLE.equals(principal.role())) {
-			spec = spec.and(CourseSpecifications.withTeacherId(principal.userId()));
+		if (TEACHER_ROLE.equals(principal.role()) || filter.assignedToMe()) {
+			// TP-01: the caller's own course assignments (primary or co-teacher) are
+			// the source of truth - applied before search/filters/sort/paging/counts.
+			// A staff caller asking for "assigned to me" is narrowed the same way and
+			// needs no COURSES grant (it can only ever see its own assignments).
+			spec = spec.and(CourseSpecifications.assignedToTeacher(principal.userId()));
 		}
 		else {
 			permissionCheckService.requirePermission(DomainArea.COURSES, PermissionAction.VIEW);

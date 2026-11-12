@@ -44,6 +44,11 @@ public interface TeacherProfileRepository extends TenantAwareRepository<TeacherP
 				cb.equal(root.get("approvalStatus"), approvalStatus), cb.isFalse(root.get("publicProfileDisabled"))));
 	}
 
+	/** TP-03: the caller's own profile - tenant-scoped like every read here. */
+	default Optional<TeacherProfile> findByUserId(UUID userId) {
+		return findOne((root, query, cb) -> cb.equal(root.get("userId"), userId));
+	}
+
 	default List<TeacherProfile> findAllOrdered() {
 		return findAll(DISPLAY_ORDER);
 	}

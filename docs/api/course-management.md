@@ -74,6 +74,13 @@ unbounded page via `?size=999999`), `sort` (default `createdAt,DESC`).
   evaluated. A Teacher may act only on a course where `course.teacher_id` equals their own
   id — except `DELETE` and teacher-reassignment, which are staff/Tenant-Admin-only
   regardless of ownership.
+- **Teacher Portal (TP-01, 2026-11)**: any current `course_teacher_assignment` row for the
+  caller (primary **or co-teacher**) grants `VIEW` of the course, its modules/lessons, the
+  `/content` and `/live-classes` teacher preview, lesson materials (`MaterialAccessGuard`)
+  and video playback (`VideoAccessGuard`). Every non-`VIEW` action still requires the
+  primary teacher (`course.teacher_id`) — co-teachers gained no edit rights. The assignment
+  is read on every request (no cache), so removing a co-teacher denies their next request
+  (`403`). Attendance and video-policy mutations are unchanged (primary only).
 - Every mutating endpoint independently rejects the Read-only Auditor role, inherited from
   `PermissionCheckServiceImpl`'s existing invariant (Auditor never holds a write-class
   grant).
@@ -115,8 +122,15 @@ courses regardless of what's sent), `includeArchived` (optional boolean, default
 Wave 2 — archived courses are excluded from every listing unless explicitly requested), plus
 the standard pagination params above.
 
-- **Teacher-role caller**: sees only courses where `teacher_id` = their own id, further
-  narrowed by `status`/`category` if supplied.
+- **Teacher-role caller**: sees only courses the caller is assigned to in
+  `course_teacher_assignment` (primary or co-teacher; TP-01 — previously only
+  `teacher_id` = own id), further narrowed by `status`/`category`/`search` if supplied.
+  The assignment restriction is applied before search, filters, sorting, paging and
+  `totalElements`.
+- **`assignedToMe=true`** (optional boolean, TP-01): narrows **any** caller — including a
+  staff role opening the Teacher Portal — to its own assignments, resolved from the
+  authenticated identity. It can only narrow; it needs no `COURSES` grant. The Teacher
+  Portal "My Courses" always sends it.
 - **Staff caller**: requires `DomainArea.COURSES` `VIEW`; sees all tenant courses,
   narrowed by all three filters.
 

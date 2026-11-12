@@ -25,15 +25,28 @@ import java.util.UUID;
  * = active only) takes precedence over {@code includeArchived} when set;
  * {@code search} matches the course name or primary teacher name,
  * case-insensitively, within the same tenant/ownership scope.
+ *
+ * <p>TP-01: {@code assignedToMe} (the Teacher Portal's "My Courses") narrows
+ * any caller - including a staff role - to the courses the CALLER's own
+ * authenticated user id is assigned to (primary or co-teacher). It can only
+ * narrow a read, never widen one; a Teacher-role caller is always narrowed
+ * this way whether or not it is set.
  */
 public record CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived,
-		Boolean archived, String search, UUID tagId) {
+		Boolean archived, String search, UUID tagId, boolean assignedToMe) {
 
-	public static final CourseListFilter EMPTY = new CourseListFilter(null, null, null, false, null, null, null);
+	public static final CourseListFilter EMPTY = new CourseListFilter(null, null, null, false, null, null, null,
+			false);
 
 	/** Pre-KLASS shape. */
 	public CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived) {
-		this(status, category, teacherId, includeArchived, null, null, null);
+		this(status, category, teacherId, includeArchived, null, null, null, false);
+	}
+
+	/** Pre-TP-01 shape. */
+	public CourseListFilter(CourseStatus status, String category, UUID teacherId, boolean includeArchived,
+			Boolean archived, String search, UUID tagId) {
+		this(status, category, teacherId, includeArchived, archived, search, tagId, false);
 	}
 
 }

@@ -17,6 +17,12 @@ public interface CourseTeacherAssignmentRepository extends TenantAwareRepository
 		return findAll((root, query, cb) -> cb.equal(root.get("courseId"), courseId), DISPLAY_ORDER);
 	}
 
+	/** TP-01: a current (primary or co-teacher) assignment exists, tenant-scoped. */
+	default boolean isAssigned(UUID courseId, UUID teacherId) {
+		return count((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
+				cb.equal(root.get("teacherId"), teacherId))) > 0;
+	}
+
 	default List<CourseTeacherAssignment> findByCourseIdIn(Collection<UUID> courseIds) {
 		if (courseIds.isEmpty()) {
 			return List.of();

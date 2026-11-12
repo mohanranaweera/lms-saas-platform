@@ -77,6 +77,14 @@ public class TeacherService {
 	 */
 	private static final String TENANT_ADMIN_ROLE = "TENANT_ADMIN";
 
+	/**
+	 * TP-03: the explicit allowlist of profile fields a Teacher may edit on
+	 * their own profile (Teacher Portal -> My Profile). Everything else -
+	 * names, contact number, login identifiers, photo, role, tenant membership,
+	 * commission and public-profile visibility - is read-only to the teacher.
+	 */
+	public static final List<String> SELF_EDITABLE_FIELDS = List.of("qualifications", "description");
+
 	private final UserProvisioningApi userProvisioningApi;
 
 	private final TeacherProfileRepository teacherProfileRepository;
@@ -429,6 +437,40 @@ public class TeacherService {
 		teacherProfileRepository.saveAll(byId.values());
 		auditLogApi.record(new AuditLogEntry(AuthenticatedPrincipalHolder.get().userId(), "teacher.order_updated",
 				"teacher_profile", teacherIds.get(0), null, Map.of("count", teacherIds.size())));
+	}
+
+	/**
+	 * TP-03: the calling Teacher's own profile, resolved from the authenticated
+	 * user id in the caller's tenant (the repository read is tenant-scoped) -
+	 * never from a client-supplied id. 404 when no teacher record exists.
+	 */
+	@Transactional(readOnly = true)
+	public TeacherAccount getOwnProfile() {
+		return requireTeacherAccount(loadOwnProfile());
+	}
+
+	/**
+	 * TP-03: updates ONLY {@link #SELF_EDITABLE_FIELDS} on the caller's own
+	 * profile (blank = cleared). Audit-logged like the admin edit.
+	 */
+	public TeacherAccount updateOwnProfile(String qualifications, String description) {
+		TeacherProfile profile = loadOwnProfile();
+		profile.updateSelfServiceFields(blankToNull(qualifications), blankToNull(description));
+		profile = teacherProfileRepository.save(profile);
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		auditLogApi.record(new AuditLogEntry(actorId, "teacher.profile_self_updated", "teacher_profile",
+				profile.getId(), null, Map.of("fields", SELF_EDITABLE_FIELDS)));
+		return requireTeacherAccount(profile);
+	}
+
+	private TeacherProfile loadOwnProfile() {
+		UUID userId = AuthenticatedPrincipalHolder.get().userId();
+		return teacherProfileRepository.findByUserId(userId)
+			.orElseThrow(() -> new NotFoundException("Teacher profile not found"));
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.strip();
 	}
 
 	public TeacherAccount getTeacher(UUID id) {
