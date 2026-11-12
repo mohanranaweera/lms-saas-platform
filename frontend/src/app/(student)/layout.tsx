@@ -3,6 +3,7 @@ import { BrandedDashboardShell } from "@/components/branding/portal-branding";
 import { StudentNav } from "@/components/layout/nav/student-nav";
 import { StudentHeaderActions } from "@/components/layout/student-header-actions";
 import { RouteGuard } from "@/components/auth/route-guard";
+import { TenantAnalytics } from "@/components/analytics/tenant-analytics";
 import { ImpersonationBanner } from "@/components/auth/impersonation-banner";
 import {
   GlobalPayButton,
@@ -14,6 +15,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     <RouteGuard kind="tenant" loginPath="/login">
       {/* ADR-033: persistent banner while this tab is a read-only support session (renders nothing otherwise). */}
       <ImpersonationBanner />
+      {/* SET-CFG-01: the tenant's GA4 tag, when configured (skipped in support tabs). */}
+      <TenantAnalytics />
       {/* KLASS-T5b: one PAY composer for the whole student portal (header PAY + every "Pay now"). */}
       <PaymentComposerProvider>
         <BrandedDashboardShell

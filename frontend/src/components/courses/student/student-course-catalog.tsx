@@ -19,6 +19,7 @@ import {
   type CatalogSort,
   type CatalogView,
 } from "@/lib/api/klass-student";
+import { useSelfEnrollmentEnabled } from "@/lib/api/public-home";
 import { CourseCover, PriceBadge } from "./course-visuals";
 import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog";
 import { StudentToast, useStudentToast } from "./student-toast";
@@ -75,6 +76,8 @@ export function StudentCourseCatalog() {
   const tagsQuery = useCourseTags();
   const enroll = useSelfEnroll();
   const toast = useStudentToast();
+  // SET-CFG-01: the institute may enroll students itself (UX only; the backend enforces it).
+  const selfEnrollmentEnabled = useSelfEnrollmentEnabled();
 
   const [confirmCourse, setConfirmCourse] = useState<CatalogCourse | null>(null);
   const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
@@ -241,6 +244,14 @@ export function StudentCourseCatalog() {
 
           return (
             <div className="flex flex-col gap-4">
+              {view === "AVAILABLE" && !selfEnrollmentEnabled ? (
+                <p
+                  className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200"
+                  data-testid="catalog-self-enrollment-disabled"
+                >
+                  Your institute enrolls students in courses. Contact your institute to join one of these courses.
+                </p>
+              ) : null}
               <ul
                 aria-label={view === "ENROLLED" ? "Enrolled Courses" : "Available Courses"}
                 aria-busy={catalogQuery.isFetching}
@@ -252,6 +263,7 @@ export function StudentCourseCatalog() {
                     key={course.courseId}
                     course={course}
                     view={view}
+                    selfEnrollmentEnabled={selfEnrollmentEnabled}
                     pending={pendingCourseId === course.courseId}
                     anyPending={pendingCourseId !== null}
                     failure={failures[course.courseId] ?? null}
@@ -312,6 +324,7 @@ export function StudentCourseCatalog() {
 function CatalogCard({
   course,
   view,
+  selfEnrollmentEnabled,
   pending,
   anyPending,
   failure,
@@ -320,6 +333,7 @@ function CatalogCard({
 }: {
   course: CatalogCourse;
   view: CatalogView;
+  selfEnrollmentEnabled: boolean;
   pending: boolean;
   anyPending: boolean;
   failure: string | null;
@@ -382,6 +396,7 @@ function CatalogCard({
             >
               View course
             </Link>
+            {selfEnrollmentEnabled ? (
             <Button
               type="button"
               onClick={onEnroll}
@@ -393,6 +408,7 @@ function CatalogCard({
             >
               {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Enroll"}
             </Button>
+            ) : null}
           </>
         )}
       </div>

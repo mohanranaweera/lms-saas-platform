@@ -26,6 +26,7 @@ import { CourseCover, PriceBadge } from "./course-visuals";
 import { CourseExamsTab } from "./course-exams-tab";
 import { CourseLiveClassesTab } from "./course-live-classes-tab";
 import { CourseTutesTab } from "./course-tutes-tab";
+import { useSelfEnrollmentEnabled } from "@/lib/api/public-home";
 import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog";
 import { useLessonLauncher } from "./lesson-launcher";
 import { StudentToast, useStudentToast } from "./student-toast";
@@ -316,7 +317,10 @@ function NotEnrolledPanel({ course, onEnrolled }: { course: StudentCourseDetail;
   const enroll = useSelfEnroll();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const canEnroll = course.status === "PUBLIC" && course.registrationEnabled !== false && course.archivedAt === null;
+  const selfEnrollmentEnabled = useSelfEnrollmentEnabled();
+  const open = course.status === "PUBLIC" && course.registrationEnabled !== false && course.archivedAt === null;
+  // SET-CFG-01: when the institute enrolls students itself there is no Enroll button (the backend also refuses).
+  const canEnroll = open && selfEnrollmentEnabled;
 
   const run = async () => {
     setError(null);
@@ -337,7 +341,9 @@ function NotEnrolledPanel({ course, onEnrolled }: { course: StudentCourseDetail;
       <p className="max-w-md text-sm text-muted-foreground">
         {canEnroll
           ? "Enroll for free to see the course content and live classes. Paid lessons ask for payment when you open them."
-          : "This course isn't open for enrollment right now."}
+          : open
+            ? "Your institute enrolls students in courses. Contact your institute to join this course."
+            : "This course isn't open for enrollment right now."}
       </p>
       {canEnroll ? (
         <Button

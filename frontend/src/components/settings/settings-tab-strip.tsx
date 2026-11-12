@@ -28,6 +28,8 @@ const SETTINGS_TABS = [
   { label: "Site media", href: "/tenant-admin/settings/site-media", visible: canViewInstituteConfig },
   // LOGIN-01 Phase B: Terms of Service, Refund Policy, Privacy Policy.
   { label: "Policies", href: "/tenant-admin/settings/policies", visible: canViewInstituteConfig },
+  // SET-CFG-01 (Klass "Configs"): analytics id, self-enrollment and SMS switches.
+  { label: "Configs", href: "/tenant-admin/settings/configs", visible: canViewInstituteConfig },
   { label: "Integrations", href: "/tenant-admin/settings/integrations", visible: canViewIntegrations },
   // Video providers + video settings share the INTEGRATIONS grant.
   { label: "Video", href: "/tenant-admin/settings/video", visible: canViewIntegrations },

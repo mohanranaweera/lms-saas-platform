@@ -122,6 +122,16 @@ export default function InstituteConfigurationIndexPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/tenant-admin/settings/configs" className="block">
+          <Card className="h-full transition-colors hover:bg-muted/40">
+            <CardHeader>
+              <CardTitle>Configs</CardTitle>
+              <CardDescription>
+                Google Analytics, whether students can enroll themselves, and whether SMS notifications are sent.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         <Link href="/tenant-admin/settings/student-fields" className="block">
           <Card className="h-full transition-colors hover:bg-muted/40">
             <CardHeader>

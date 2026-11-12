@@ -72,6 +72,20 @@ export interface PublicHomeResponse {
   policies?: PublicPolicyFlags | null;
   /** ADR-031: whether the login page offers the MOBILE tab. */
   loginOptions?: { mobileEnabled: boolean } | null;
+  /** SET-CFG-01: the tenant's GA4 measurement id (`GENERAL.ga_measurement_id`), `null` when unset. */
+  analytics?: { gaMeasurementId: string | null } | null;
+  /** SET-CFG-01: `STUDENT.self_enrollment_enabled` — UX only, the enroll endpoint enforces it. */
+  studentOptions?: { selfEnrollmentEnabled: boolean } | null;
+}
+
+/**
+ * SET-CFG-01: whether students may enroll themselves. `true` until the public
+ * home says otherwise (an older backend, or still loading) — hiding the button
+ * is convenience only; the backend answers `409 SELF_ENROLLMENT_DISABLED`.
+ */
+export function useSelfEnrollmentEnabled(): boolean {
+  const home = usePublicHome();
+  return home.data?.studentOptions?.selfEnrollmentEnabled !== false;
 }
 
 export interface PublicPolicyFlags {

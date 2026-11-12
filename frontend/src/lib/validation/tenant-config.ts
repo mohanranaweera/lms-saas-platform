@@ -264,6 +264,25 @@ export const bankDetailsSchema = z.object({
 
 export type BankDetailsFormValues = z.infer<typeof bankDetailsSchema>;
 
+/**
+ * SET-CFG-01: mirrors `ConfigPropertyRegistry`'s `ga_measurement_id` pattern
+ * (GA4 ids only). Also re-checked before the id is written into the gtag script.
+ */
+export const GA_MEASUREMENT_ID_PATTERN = /^G-[A-Z0-9]{4,20}$/;
+
+/** Settings → Configs GA field: empty clears the id; input is trimmed and upper-cased before checking. */
+export const analyticsConfigSchema = z.object({
+  ga_measurement_id: z
+    .string()
+    .transform((value) => value.trim().toUpperCase())
+    .refine((value) => value === "" || GA_MEASUREMENT_ID_PATTERN.test(value), {
+      message: 'Enter a Google Analytics 4 measurement ID, e.g. "G-ABC123XYZ9".',
+    }),
+});
+
+export type AnalyticsConfigFormInput = z.input<typeof analyticsConfigSchema>;
+export type AnalyticsConfigFormValues = z.output<typeof analyticsConfigSchema>;
+
 /** Current (persisted or default) value of one config key. */
 export function configValue(
   properties: { key: string; value: unknown; defaultValue: unknown }[],

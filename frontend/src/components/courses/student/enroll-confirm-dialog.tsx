@@ -70,6 +70,9 @@ export function EnrollConfirmDialog({
 /** Human copy for a failed free enrollment (never exposes raw server text for 404s). */
 export function enrollErrorMessage(error: unknown): string {
   if (isApiClientError(error)) {
+    if (error.code === "SELF_ENROLLMENT_DISABLED") {
+      return "Your institute enrolls students for you. Contact your institute to join this course.";
+    }
     if (error.code === "REGISTRATION_CLOSED") {
       return "Registration for this course is closed right now. Contact your institute if you need to join.";
     }

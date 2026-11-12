@@ -13,6 +13,7 @@ import { StudentCourseDetailView } from "@/components/courses/student/student-co
 import { PaymentComposerProvider } from "@/components/payments/composer/payment-composer-provider";
 import { EnrollConfirmDialog, enrollErrorMessage } from "@/components/courses/student/enroll-confirm-dialog";
 import { usePublicCourse } from "@/lib/api/public-courses";
+import { useSelfEnrollmentEnabled } from "@/lib/api/public-home";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSelfEnroll, useStudentCourse } from "@/lib/api/klass-student";
 import { isApiClientError } from "@/lib/api/error";
@@ -25,6 +26,7 @@ export default function PublicCourseDetailPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const enrollment = useSelfEnroll();
+  const selfEnrollmentEnabled = useSelfEnrollmentEnabled();
   const isStudent = session?.kind === "tenant" && session.role === "STUDENT";
   const studentCourseId = isStudent && publicQuery.status === "success" ? publicQuery.data.id : "";
   const studentQuery = useStudentCourse(studentCourseId);
@@ -69,8 +71,9 @@ export default function PublicCourseDetailPage() {
   if (studentQuery.status === "error") {
     const unavailable = isApiClientError(studentQuery.error) && (studentQuery.error.status === 403 || studentQuery.error.status === 404);
     if (!unavailable) return <ErrorState message="We couldn't load this course." code={isApiClientError(studentQuery.error) ? studentQuery.error.code : undefined} onRetry={() => studentQuery.refetch()} />;
-    const canEnroll = publicCourse.registrationEnabled;
-    return <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6"><div className="rounded-xl border border-border bg-card p-6 shadow-sm"><h1 className="text-2xl font-bold text-foreground">{publicCourse.name}</h1><p className="mt-2 text-sm text-muted-foreground">You are not enrolled in this course.</p>{canEnroll ? <Button className="mt-4" disabled={enrollment.isPending} onClick={() => setConfirmOpen(true)}>{enrollment.isPending ? "Enrolling…" : "Enroll now"}</Button> : <p className="mt-4 text-sm text-muted-foreground">Enrollment is not open right now.</p>}{enrollError ? <p role="alert" className="mt-3 text-sm text-destructive">{enrollError}</p> : null}</div><EnrollConfirmDialog courseTitle={publicCourse.name} open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={async () => { setConfirmOpen(false); setEnrollError(null); try { await enrollment.mutateAsync(publicCourse.id); await studentQuery.refetch(); } catch (error) { setEnrollError(enrollErrorMessage(error)); } }} /></div>;
+    // SET-CFG-01: no Enroll button when the institute enrolls students itself (the backend also refuses).
+    const canEnroll = publicCourse.registrationEnabled && selfEnrollmentEnabled;
+    return <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6"><div className="rounded-xl border border-border bg-card p-6 shadow-sm"><h1 className="text-2xl font-bold text-foreground">{publicCourse.name}</h1><p className="mt-2 text-sm text-muted-foreground">You are not enrolled in this course.</p>{canEnroll ? <Button className="mt-4" disabled={enrollment.isPending} onClick={() => setConfirmOpen(true)}>{enrollment.isPending ? "Enrolling…" : "Enroll now"}</Button> : <p className="mt-4 text-sm text-muted-foreground">{publicCourse.registrationEnabled ? "Your institute enrolls students in courses. Contact your institute to join this course." : "Enrollment is not open right now."}</p>}{enrollError ? <p role="alert" className="mt-3 text-sm text-destructive">{enrollError}</p> : null}</div><EnrollConfirmDialog courseTitle={publicCourse.name} open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={async () => { setConfirmOpen(false); setEnrollError(null); try { await enrollment.mutateAsync(publicCourse.id); await studentQuery.refetch(); } catch (error) { setEnrollError(enrollErrorMessage(error)); } }} /></div>;
   }
 
   return <PaymentComposerProvider><StudentCourseDetailView courseId={publicCourse.id} /></PaymentComposerProvider>;
