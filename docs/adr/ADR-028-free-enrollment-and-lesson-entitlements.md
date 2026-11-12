@@ -102,6 +102,15 @@ amended, D17 superseded, O-4 resolved):
    enrolled student with no status (no filter), so payment state can be neither seen nor
    inferred.
 
+## 2026-11-12 approved refinement (SET-CFG-01)
+
+The owner approved a tenant switch, `STUDENT.self_enrollment_enabled` (default `true`), for
+Klass "Disable Self-Enrollment" parity. When a tenant sets it `false`, students can no longer
+create their own participation (`409 SELF_ENROLLMENT_DISABLED`); new participants come only
+from staff (enroll-on-behalf, Free Cards). Enrollment stays free and payment-independent,
+existing participations are never removed, and paid-entitlement activation is unchanged.
+Plan: `docs/plans/SET-CFG-01 System Configurations (GA, SMS, Self-Enrollment).md`.
+
 ## Not changed
 
 Payment verification (ADR-017 notification verification, amount/currency/merchant checks),

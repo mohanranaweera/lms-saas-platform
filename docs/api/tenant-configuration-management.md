@@ -52,9 +52,11 @@ LOGIN-01 GENERAL keys:
 | `terms_of_service`, `refund_policy`, `privacy_policy` | STRING | none | non-blank plain text, ≤50,000 chars (Settings → Policies) |
 | `mobile_login_enabled` | BOOLEAN | `true` | boolean (ADR-031; email sign-in has no switch) |
 | `phone_region` | STRING | `"LK"` | an ISO 3166-1 region known to libphonenumber (ADR-031) |
+| `ga_measurement_id` | STRING | none | GA4 id, `^G-[A-Z0-9]{4,20}$` (SET-CFG-01; loaded on the public site and student portal) |
 
 `GET /api/v1/public/tenant-config/home` also returns `policies { termsOfService, refundPolicy,
-privacyPolicy }` (published flags) and `loginOptions { mobileEnabled }`.
+privacyPolicy }` (published flags), `loginOptions { mobileEnabled }`, and since SET-CFG-01
+`analytics { gaMeasurementId }` (`null` when unset) and `studentOptions { selfEnrollmentEnabled }`.
 
 ### `GET /api/v1/public/tenant-config/policies/{kind}` (LOGIN-01)
 
@@ -89,6 +91,12 @@ is implemented now so a later wave's `INTEGRATION` credentials can use it, per m
 instruction §7's "sensitive integration credentials must never be returned to the
 frontend after persistence."
 
+### NOTIFICATION properties (SET-CFG-01)
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `sms_enabled` | BOOLEAN | `true` | `false` = tenant SMS kill switch: SMS is reported unavailable (`reason: SMS_DISABLED`) by the broadcast channel list, a broadcast naming SMS is refused `409 CHANNEL_NOT_AVAILABLE`, and already-queued SMS deliveries are finalized `SKIPPED` / `SMS_DISABLED` before any provider call. EMAIL, WhatsApp and in-app are unaffected; sign-in/registration OTP is not a notification and is unaffected. |
+
 ### STUDENT properties (Wave 3, master instruction §10 — registration configuration)
 
 All eight are plain `BOOLEAN`s, validated only for type (`instanceof Boolean`) — the
@@ -105,6 +113,7 @@ first simple boolean-typed property registered in this framework (every `GENERAL
 | `require_grade` | BOOLEAN | `false` | `grade` required on registration when `true`. |
 | `require_stream` | BOOLEAN | `false` | `stream` required on registration when `true`. |
 | `require_mobile` | BOOLEAN | `false` | `mobile` required on registration when `true`. |
+| `self_enrollment_enabled` | BOOLEAN | `true` | SET-CFG-01 (ADR-028 refinement). `false` = `POST /api/v1/enrollments/my/courses/{courseId}` returns `409 SELF_ENROLLMENT_DISABLED` for a student who is not already a participant (an existing participant still gets the idempotent `200`). Staff enroll-on-behalf and Free Cards are unaffected; no participation is removed. |
 
 `public_registration_enabled` is the only property defaulting `true` — the public
 self-registration endpoint is reachable out of the box; every other property defaults
