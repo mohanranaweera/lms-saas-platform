@@ -36,21 +36,29 @@ function teacher(t: { id: string; userId: string; name: string }) {
 interface Entry {
   id: string;
   kind: string;
+  event: string;
+  source: "WALLET" | "SETTLEMENT";
   amount: number;
   currency: string;
   description: string | null;
-  balanceBefore: number;
-  balanceAfter: number;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
   createdAt: string;
   createdBy: string;
   createdByEmail: string | null;
   accountName: null;
   categoryName: null;
+  settlementId: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  payoutReference: string | null;
 }
 
 class FakeWallets {
   readonly wallets = new Map<string, { entries: Entry[] }>();
   readonly keys: string[] = [];
+  /** Read-only settlement activity lines per tab, as the server derives them. */
+  readonly settlementLines: Record<string, Entry[]> = { PAY_IN: [], PAY_OUT: [] };
 
   balance(teacherId: string): number {
     const wallet = this.wallets.get(teacherId);
@@ -72,6 +80,8 @@ class FakeWallets {
     const entry: Entry = {
       id: `e-${wallet.entries.length + 1}`,
       kind,
+      event: kind,
+      source: "WALLET",
       amount,
       currency: "LKR",
       description,
@@ -82,6 +92,10 @@ class FakeWallets {
       createdByEmail: "admin@example.test",
       accountName: null,
       categoryName: null,
+      settlementId: null,
+      periodStart: null,
+      periodEnd: null,
+      payoutReference: null,
     };
     wallet.entries.unshift(entry);
     return entry;
@@ -100,7 +114,10 @@ class FakeWallets {
       if (method === "GET" && sub === "entries") {
         const kind = url.searchParams.get("kind");
         const entries = this.wallets.get(teacherId)?.entries.filter((e) => e.kind === kind) ?? [];
-        return fulfillJson(route, 200, apiSuccess(entries));
+        const lines = [...entries, ...(this.settlementLines[kind ?? ""] ?? [])].sort((a, b) =>
+          b.createdAt.localeCompare(a.createdAt)
+        );
+        return fulfillJson(route, 200, apiSuccess(lines));
       }
       if (method === "POST" && sub === "") {
         this.wallets.set(teacherId, { entries: [] });
@@ -226,6 +243,53 @@ test.describe("Teachers → Show Wallet", () => {
     await page.getByRole("button", { name: `Show wallet for ${BEN.name}` }).click();
     await expect(sheet(page).getByText(`${BEN.name} — Wallet`)).toBeVisible();
     await expect(sheet(page).getByLabel("Initial balance (LKR)")).toHaveValue("0");
+  });
+
+  test("settlement earnings and payouts from Teacher Payouts are listed read-only in the matching tab", async ({ page }) => {
+    const fake = await setup(page, "TENANT_ADMIN");
+    fake.wallets.set(ADA.userId, { entries: [] });
+    fake.post(ADA.userId, "OPENING", 10, "Opening balance");
+    const settlementLine = (overrides: Partial<Entry>): Entry => ({
+      id: "stl-march",
+      kind: "REGULAR",
+      event: "SETTLEMENT_EARNED",
+      source: "SETTLEMENT",
+      amount: 40,
+      currency: "LKR",
+      description: null,
+      balanceBefore: null,
+      balanceAfter: null,
+      createdAt: "2025-04-02T09:00:00Z",
+      createdBy: "u-fin",
+      createdByEmail: "finance@example.test",
+      accountName: null,
+      categoryName: null,
+      settlementId: "stl-march",
+      periodStart: "2025-03-01",
+      periodEnd: "2025-03-31",
+      payoutReference: null,
+      ...overrides,
+    });
+    fake.settlementLines.PAY_IN.push(settlementLine({}));
+    fake.settlementLines.PAY_OUT.push(
+      settlementLine({ event: "SETTLEMENT_PAID", amount: -40, createdAt: "2025-04-10T09:00:00Z", payoutReference: "BANK-1" })
+    );
+    await page.goto("/tenant-admin/teachers");
+
+    await page.getByRole("button", { name: `Show wallet for ${ADA.name}` }).click();
+    const wallet = sheet(page);
+    const payouts = wallet.getByRole("region", { name: "Recent payouts" });
+    await expect(payouts.getByText("Settlement paid · 2025-03-01 to 2025-03-31")).toBeVisible();
+    await expect(payouts.getByText("Teacher Payouts", { exact: true })).toBeVisible();
+    await expect(payouts.getByText(/Ref BANK-1/)).toBeVisible();
+    await expect(payouts.getByText("−40.00 LKR")).toBeVisible();
+    await expect(wallet.getByText("No payouts have been recorded for this teacher.")).toHaveCount(0);
+
+    await wallet.getByRole("tab", { name: "Pay In" }).click();
+    const payIns = wallet.getByRole("region", { name: "Recent pay-ins" });
+    await expect(payIns.getByText("Settlement earned · 2025-03-01 to 2025-03-31")).toBeVisible();
+    await expect(payIns.getByText("Recorded on Teacher Payouts; included in the balance automatically")).toBeVisible();
+    await expect(payIns.getByText("Settlement paid", { exact: false })).toHaveCount(0);
   });
 
   test("view-only staff see the wallet but no recording controls; staff without the grant see no Show Wallet", async ({ page }) => {

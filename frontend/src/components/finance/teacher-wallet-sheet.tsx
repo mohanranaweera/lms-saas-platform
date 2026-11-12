@@ -28,6 +28,7 @@ import {
   useWalletEntries,
   useWalletPosting,
   type TeacherWallet,
+  type WalletEntry,
   type WalletEntryKind,
 } from "@/lib/api/teacher-wallet";
 import {
@@ -491,6 +492,18 @@ function AdjustBalanceForm({
   );
 }
 
+function formatPeriod(start: string | null, end: string | null): string {
+  return start && end ? ` · ${start} to ${end}` : "";
+}
+
+/** Read-only settlement line titles (the settlement itself is managed on Teacher Payouts). */
+function settlementLabel(entry: WalletEntry): string {
+  const period = formatPeriod(entry.periodStart, entry.periodEnd);
+  if (entry.event === "SETTLEMENT_PAID") return `Settlement paid${period}`;
+  if (entry.event === "SETTLEMENT_ADJUSTED") return "Settlement adjustment";
+  return `Settlement earned${period}`;
+}
+
 const POSTING_FIELDS = ["amount", "description", "accountId", "categoryId"] as const;
 
 function PostingPanel({
@@ -556,7 +569,7 @@ function PostingPanel({
       const result = await posting.mutateAsync({ ...payload, idempotencyKey: keyFor(payload) });
       reset();
       onNotice(
-        `${isPayOut ? "Pay out" : "Pay in"} of ${formatMoney(Math.abs(result.entry.amount), wallet.currency)} recorded. New balance ${formatMoney(result.entry.balanceAfter, wallet.currency)}.`
+        `${isPayOut ? "Pay out" : "Pay in"} of ${formatMoney(Math.abs(result.entry.amount), wallet.currency)} recorded. New balance ${formatMoney(result.entry.balanceAfter ?? result.wallet.balance ?? 0, wallet.currency)}.`
       );
     } catch (error) {
       setFormError(applyServerError(error, POSTING_FIELDS, setError, "The entry could not be recorded."));
@@ -674,17 +687,27 @@ function PostingPanel({
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {entries.data.map((entry) => (
-              <li key={entry.id} className="flex flex-col gap-0.5 px-3 py-2 text-sm">
+              <li key={`${entry.event}-${entry.id}`} className="flex flex-col gap-0.5 px-3 py-2 text-sm">
                 <div className="flex items-center justify-between gap-2">
                   <time dateTime={entry.createdAt} className="text-muted-foreground">
                     {new Date(entry.createdAt).toLocaleDateString()}
                   </time>
                   <SignedAmount value={entry.amount} currency={entry.currency} />
                 </div>
+                {entry.source === "SETTLEMENT" ? (
+                  <p className="text-foreground">
+                    {settlementLabel(entry)}
+                    <span className="ml-1.5 rounded border border-border px-1 text-xs text-muted-foreground">
+                      Teacher Payouts
+                    </span>
+                  </p>
+                ) : null}
                 {entry.description ? <p className="break-words text-foreground">{entry.description}</p> : null}
                 <p className="text-xs text-muted-foreground">
-                  Balance {formatMoney(entry.balanceBefore, entry.currency)} →{" "}
-                  {formatMoney(entry.balanceAfter, entry.currency)}
+                  {entry.balanceBefore !== null && entry.balanceAfter !== null
+                    ? `Balance ${formatMoney(entry.balanceBefore, entry.currency)} → ${formatMoney(entry.balanceAfter, entry.currency)}`
+                    : "Recorded on Teacher Payouts; included in the balance automatically"}
+                  {entry.payoutReference ? ` · Ref ${entry.payoutReference}` : ""}
                   {entry.accountName ? ` · ${entry.accountName}` : ""}
                   {entry.categoryName ? ` / ${entry.categoryName}` : ""}
                 </p>

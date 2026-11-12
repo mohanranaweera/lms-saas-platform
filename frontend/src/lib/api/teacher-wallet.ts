@@ -22,20 +22,38 @@ export interface TeacherWallet {
   createdAt: string | null;
 }
 
+export type WalletActivityEvent =
+  | WalletEntryKind
+  | "SETTLEMENT_EARNED"
+  | "SETTLEMENT_ADJUSTED"
+  | "SETTLEMENT_PAID";
+
+/**
+ * One activity line. `source: "WALLET"` lines are wallet entries (with the
+ * balance before/after). `source: "SETTLEMENT"` lines are read-only settlement
+ * events from Teacher Payouts — earned when calculated, paid when marked paid —
+ * derived from the settlement record, never copied into the wallet.
+ */
 export interface WalletEntry {
   id: string;
-  kind: WalletEntryKind;
-  /** Signed: PAY_OUT is negative. */
+  kind: string;
+  event: WalletActivityEvent;
+  source: "WALLET" | "SETTLEMENT";
+  /** Signed effect on the balance: pay-outs and paid settlements are negative. */
   amount: number;
   currency: string;
   description: string | null;
-  balanceBefore: number;
-  balanceAfter: number;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
   createdAt: string;
   createdBy: string;
   createdByEmail: string | null;
   accountName: string | null;
   categoryName: string | null;
+  settlementId: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  payoutReference: string | null;
 }
 
 export interface WalletPostResult {
