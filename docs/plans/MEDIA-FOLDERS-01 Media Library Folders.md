@@ -1,6 +1,6 @@
 # MEDIA-FOLDERS-01 — Media Library folders (Uploads tab)
 
-Status: approved for implementation (owner request, 2026-11-12). Backend first, then frontend
+Status: implemented 2026-11-12 (backend 605d144, frontend d0a13f8); access model recorded in ADR-035. Backend first, then frontend
 (separate commits). References: `docs/references/klass-media-library-change/*.png`.
 
 ## 1. Scope
@@ -133,3 +133,12 @@ Folder card: click / Enter opens; kebab menu Rename, Move…, Share…, Transfer
 (shown per server flags). Dialogs: New folder (counter 0/100), destination picker with breadcrumbs,
 share checkbox picker + existing grants, transfer (owner, new owner, former-owner keeps), delete
 typed-name confirm. File card adds Move…; move dialog states the audience change before commit.
+
+## 9. Implementation notes (as built)
+
+- Both folder capabilities also imply `MATERIALS/VIEW`, so a granted Operator/Manager can reach the library.
+- 404 for a folder the caller cannot view; 403 for a viewable folder the caller lacks rights on.
+- Grant and transfer targets must be approved active teachers other than the owner (400 otherwise).
+- File move = rename rights on the file + view of the source + `canUpload` on the destination.
+- Folders open on single click / Enter / Space (Klass: double-click).
+- Inside a folder the Type filter has no "Videos" option, and a video picked in New media is listed at the root.
