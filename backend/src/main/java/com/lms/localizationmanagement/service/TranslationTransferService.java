@@ -81,8 +81,14 @@ public class TranslationTransferService {
 
 	// ------------------------------------------------------------------ import
 
+	/**
+	 * Imports PO entries as drafts. Entries flagged {@code fuzzy} (needs review) are skipped
+	 * unless {@code includeNeedsReview} is set; then they become drafts too and are counted in
+	 * {@code ImportReport.needsReview}. Either way nothing goes live until a user with
+	 * TRANSLATIONS_PUBLISH publishes.
+	 */
 	@Transactional
-	public ImportReport importPo(String localeParam, boolean dryRun, MultipartFile file) {
+	public ImportReport importPo(String localeParam, boolean dryRun, boolean includeNeedsReview, MultipartFile file) {
 		permissionCheckService.requireCapability(Capability.TRANSLATIONS_EDIT);
 		String locale = adminService.requireSupportedLocale(localeParam);
 		PoFile po = parse(read(file), locale);
@@ -102,6 +108,7 @@ public class TranslationTransferService {
 		int unchanged = 0;
 		int skippedEmpty = 0;
 		int skippedFuzzy = 0;
+		int needsReview = 0;
 		int skippedObsolete = 0;
 		for (PoFile.Entry entry : po.entries()) {
 			if (entry.obsolete()) {
@@ -132,7 +139,7 @@ public class TranslationTransferService {
 				skippedEmpty++;
 				continue;
 			}
-			if (entry.fuzzy()) {
+			if (entry.fuzzy() && !includeNeedsReview) {
 				skippedFuzzy++;
 				continue;
 			}
@@ -158,12 +165,15 @@ public class TranslationTransferService {
 			else {
 				created++;
 			}
+			if (entry.fuzzy()) {
+				needsReview++;
+			}
 			toWrite.put(key, entry.msgstr());
 		}
 		boolean valid = invalid.isEmpty();
 		ImportReport report = new ImportReport(locale, dryRun, valid, po.entries().size(), created, updated, unchanged,
-				skippedEmpty, skippedFuzzy, skippedObsolete, List.copyOf(unknownKeys), List.copyOf(sourceChanged),
-				List.copyOf(invalid));
+				skippedEmpty, skippedFuzzy, skippedObsolete, needsReview, List.copyOf(unknownKeys),
+				List.copyOf(sourceChanged), List.copyOf(invalid));
 		if (dryRun) {
 			return report;
 		}
@@ -192,6 +202,8 @@ public class TranslationTransferService {
 		metadata.put("created", created);
 		metadata.put("updated", updated);
 		metadata.put("unchanged", unchanged);
+		metadata.put("includeNeedsReview", includeNeedsReview);
+		metadata.put("needsReview", needsReview);
 		metadata.put("unknownKeys", unknownKeys.size());
 		metadata.put("filename", safeFilename(file.getOriginalFilename()));
 		auditLogApi.record(new AuditLogEntry(AuthenticatedPrincipalHolder.get().userId(), "translation.imported",

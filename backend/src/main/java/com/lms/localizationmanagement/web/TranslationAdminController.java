@@ -107,8 +107,9 @@ public class TranslationAdminController {
 	@RequiresCapability(Capability.TRANSLATIONS_EDIT)
 	public ResponseEntity<ApiResponse<ImportReport>> importPo(@RequestParam String locale,
 			@RequestParam(defaultValue = "true") boolean dryRun,
+			@RequestParam(defaultValue = "false") boolean includeNeedsReview,
 			@RequestPart(name = "file", required = false) MultipartFile file) {
-		return ok(transferService.importPo(locale, dryRun, file));
+		return ok(transferService.importPo(locale, dryRun, includeNeedsReview, file));
 	}
 
 	@GetMapping("/export")

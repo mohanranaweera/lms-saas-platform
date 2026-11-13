@@ -7,6 +7,7 @@ import com.lms.localizationmanagement.po.PoFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockMultipartFile;
@@ -74,6 +75,45 @@ class TranslationImportExportIntegrationTest extends I18nTestSupport {
 		JsonNode again = data(importPo(fx, fx.adminToken(), "si-LK", true, file));
 		assertThat(again.path("unchanged").asInt()).isEqualTo(3);
 		assertThat(again.path("created").asInt() + again.path("updated").asInt()).isZero();
+	}
+
+	@Test
+	void needsReviewEntriesImportAsDraftsOnlyWhenRequested() {
+		Fx fx = seed("i18n-import-fuzzy");
+		byte[] file = po("si-LK", "#, fuzzy
+" + entry(SAVE_KEY, "Save", "සුරකින්න"),
+				entry("common.actions.cancel", "Cancel", "අවලංගු කරන්න"));
+		String base = "/api/v1/i18n/admin/import?locale=si-LK&dryRun=";
+
+		// Default: the needs-review entry is skipped.
+		JsonNode skipped = data(importPo(fx, fx.adminToken(), "si-LK", true, file));
+		assertThat(skipped.path("skippedFuzzy").asInt()).isEqualTo(1);
+		assertThat(skipped.path("needsReview").asInt()).isZero();
+		assertThat(skipped.path("created").asInt()).isEqualTo(1);
+
+		// Opt-in: it becomes a draft too, reported separately.
+		MockMultipartFile upload = new MockMultipartFile("file", "si-LK.po", "text/x-gettext-translation", file);
+		JsonNode dry = data(upload(fx.host(), fx.adminToken(), base + "true&includeNeedsReview=true", upload));
+		assertThat(dry.path("skippedFuzzy").asInt()).isZero();
+		assertThat(dry.path("needsReview").asInt()).isEqualTo(1);
+		assertThat(dry.path("created").asInt()).isEqualTo(2);
+		assertThat(drafts(fx)).isZero();
+		MvcResult real = upload(fx.host(), fx.adminToken(), base + "false&includeNeedsReview=true", upload);
+		assertThat(status(real)).as(rawContent(real)).isEqualTo(200);
+		assertThat(drafts(fx)).isEqualTo(2);
+
+		// Still drafts only: visitors keep the English text until someone publishes.
+		setLanguagesOk(fx, List.of("en-LK", "si-LK"), "en-LK", null);
+		assertThat(publicCatalogOk(fx.host(), "locale=si-LK").path("messages").path(SAVE_KEY).asString())
+			.isEqualTo("Save");
+
+		// A needs-review entry is validated like any other: one bad entry rejects the import.
+		byte[] bad = po("si-LK", "#, fuzzy
+" + entry(CHANGED_KEY, "Language changed to {language}", "භාෂාව"));
+		MvcResult rejected = upload(fx.host(), fx.adminToken(), base + "false&includeNeedsReview=true",
+				new MockMultipartFile("file", "si-LK.po", "text/x-gettext-translation", bad));
+		assertThat(status(rejected)).isEqualTo(422);
+		assertThat(drafts(fx)).isEqualTo(2);
 	}
 
 	@Test

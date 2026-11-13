@@ -43,7 +43,8 @@ public final class TranslationViews {
 	 * written.
 	 */
 	public record ImportReport(String locale, boolean dryRun, boolean valid, int entries, int created, int updated,
-			int unchanged, int skippedEmpty, int skippedFuzzy, int skippedObsolete, List<String> unknownKeys,
+			int unchanged, int skippedEmpty, int skippedFuzzy, int skippedObsolete, int needsReview,
+			List<String> unknownKeys,
 			List<String> sourceChanged, List<ImportProblem> invalid) {
 	}
 
