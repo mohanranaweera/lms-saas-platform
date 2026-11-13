@@ -1,5 +1,5 @@
 {
-  "version": "aa825ebf673a",
+  "version": "633f2aeaffa1",
   "sourceLocale": "en-LK",
   "locales": [
     {
@@ -201,9 +201,29 @@
       "context": "End of the policy consent sentence (punctuation or closing words after the links)",
       "namespace": "auth"
     },
+    "common.accessState.active": {
+      "source": "Active",
+      "context": "Course access status badge",
+      "namespace": "common"
+    },
+    "common.accessState.expired": {
+      "source": "Expired",
+      "context": "Course access status badge",
+      "namespace": "common"
+    },
+    "common.accessState.neverEnrolled": {
+      "source": "Never enrolled",
+      "context": "Course access status badge",
+      "namespace": "common"
+    },
     "common.actions.cancel": {
       "source": "Cancel",
       "context": "Generic cancel button",
+      "namespace": "common"
+    },
+    "common.actions.close": {
+      "source": "Close",
+      "context": "Accessible label of a dialog close button",
       "namespace": "common"
     },
     "common.actions.retry": {
@@ -266,6 +286,61 @@
       "context": "Course status: listed on the public site",
       "namespace": "common"
     },
+    "common.enroll.confirmQuestion": {
+      "source": "Enroll in {course}?",
+      "context": "Confirmation question; {course} is the course title",
+      "namespace": "common"
+    },
+    "common.enroll.confirmQuestionGeneric": {
+      "source": "Enroll in this course?",
+      "context": "Confirmation question without a title",
+      "namespace": "common"
+    },
+    "common.enroll.confirmTitle": {
+      "source": "Are you sure?",
+      "context": "Enrollment confirmation title",
+      "namespace": "common"
+    },
+    "common.enroll.error.closed": {
+      "source": "Registration for this course is closed right now. Contact your institute if you need to join.",
+      "context": "Enrollment error",
+      "namespace": "common"
+    },
+    "common.enroll.error.generic": {
+      "source": "We couldn't enroll you. Please try again.",
+      "context": "Enrollment error",
+      "namespace": "common"
+    },
+    "common.enroll.error.network": {
+      "source": "We couldn't reach the server. Check your connection and try again.",
+      "context": "Enrollment error",
+      "namespace": "common"
+    },
+    "common.enroll.error.notFound": {
+      "source": "This course isn't available to join any more.",
+      "context": "Enrollment error",
+      "namespace": "common"
+    },
+    "common.enroll.error.selfDisabled": {
+      "source": "Your institute enrolls students for you. Contact your institute to join this course.",
+      "context": "Enrollment error",
+      "namespace": "common"
+    },
+    "common.enroll.freeNote": {
+      "source": "Enrolling is free. You can browse the course right away; paid lessons ask for payment when you open them.",
+      "context": "Explains that enrollment is free and payment is per paid lesson",
+      "namespace": "common"
+    },
+    "common.enroll.no": {
+      "source": "NO",
+      "context": "Cancel button of the confirmation; upper case in English",
+      "namespace": "common"
+    },
+    "common.enroll.yes": {
+      "source": "YES",
+      "context": "Confirm button; upper case in English",
+      "namespace": "common"
+    },
     "common.footer.contactUs": {
       "source": "Contact us",
       "context": "Footer heading / label of the contact details list",
@@ -284,6 +359,21 @@
     "common.institute.loading": {
       "source": "Loading institute",
       "context": "Accessible label of the logo placeholder while the institute loads",
+      "namespace": "common"
+    },
+    "common.integrations.goToIntegrations": {
+      "source": "Go to Integrations",
+      "context": "Link to the integrations settings page",
+      "namespace": "common"
+    },
+    "common.integrations.listSeparator": {
+      "source": " and ",
+      "context": "Joins provider names in the reconnect banner, e.g. 'Zoom and Google'. Keep the surrounding spaces",
+      "namespace": "common"
+    },
+    "common.integrations.reconnectNeeded": {
+      "source": "{count, plural, one {Your {providers} account needs to be reconnected.} other {Your {providers} accounts need to be reconnected.}}",
+      "context": "Banner; {providers} is a list of service names such as Zoom, joined with the list separator",
       "namespace": "common"
     },
     "common.language.changed": {
@@ -329,6 +419,21 @@
     "common.portal.teacher": {
       "source": "Teacher Portal",
       "context": "Name of the teacher portal, shown in the sidebar and browser tab",
+      "namespace": "common"
+    },
+    "common.reactivationStatus.approved": {
+      "source": "Approved",
+      "context": "Reactivation request status badge",
+      "namespace": "common"
+    },
+    "common.reactivationStatus.rejected": {
+      "source": "Rejected",
+      "context": "Reactivation request status badge",
+      "namespace": "common"
+    },
+    "common.reactivationStatus.submitted": {
+      "source": "Submitted",
+      "context": "Reactivation request status badge",
       "namespace": "common"
     },
     "common.scheduleStatus.basedOnSchedule": {
@@ -1791,6 +1896,1481 @@
       "context": "Link on a class card",
       "namespace": "public"
     },
+    "student.attendance.empty.description": {
+      "source": "Your attendance history will appear here once a teacher records it for a session you attended.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.attendance.empty.title": {
+      "source": "No attendance records yet",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.attendance.loading": {
+      "source": "Loading your attendance…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.attendance.marked": {
+      "source": "Marked {when}",
+      "context": "When attendance was recorded; {when} is a date and time",
+      "namespace": "student"
+    },
+    "student.attendance.noMatch.clear": {
+      "source": "Clear filters",
+      "context": "Button that resets filters",
+      "namespace": "student"
+    },
+    "student.attendance.noMatch.description": {
+      "source": "Try a different course or date range, or clear your filters.",
+      "context": "Empty state after filtering",
+      "namespace": "student"
+    },
+    "student.attendance.noMatch.title": {
+      "source": "No sessions match the selected date filter",
+      "context": "Empty state after filtering",
+      "namespace": "student"
+    },
+    "student.attendance.subtitle": {
+      "source": "Your own attendance history across the courses you're enrolled in.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.attendance.title": {
+      "source": "My Attendance",
+      "context": "Page heading",
+      "namespace": "student"
+    },
+    "student.attendancePanel.absent": {
+      "source": "Absent",
+      "context": "Attendance status",
+      "namespace": "student"
+    },
+    "student.attendancePanel.counts": {
+      "source": "{present} present · {late} late · {absent} absent · {total} total",
+      "context": "Attendance counts",
+      "namespace": "student"
+    },
+    "student.attendancePanel.late": {
+      "source": "Late",
+      "context": "Attendance status",
+      "namespace": "student"
+    },
+    "student.attendancePanel.present": {
+      "source": "Present",
+      "context": "Attendance status",
+      "namespace": "student"
+    },
+    "student.attendancePanel.records": {
+      "source": "Attendance records",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.attendancePanel.recordsEmpty": {
+      "source": "Your attendance records will appear here when sessions are marked.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.attendancePanel.recordsLoading": {
+      "source": "Loading attendance records…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.attendancePanel.session": {
+      "source": "Class session",
+      "context": "Fallback name of a class session",
+      "namespace": "student"
+    },
+    "student.attendancePanel.summary": {
+      "source": "Attendance summary",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.attendancePanel.summaryEmpty": {
+      "source": "Your course attendance summary will appear after a teacher records attendance.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.attendancePanel.summaryLoading": {
+      "source": "Loading attendance summary…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.attendanceSummary.counts": {
+      "source": "{present} present · {late} late · {absent} absent ({total} marked)",
+      "context": "Attendance counts",
+      "namespace": "student"
+    },
+    "student.attendanceSummary.empty.description": {
+      "source": "Your per-course attendance rate appears here once a teacher records attendance for you.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.attendanceSummary.empty.title": {
+      "source": "No attendance summary yet",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.attendanceSummary.heading": {
+      "source": "Attendance by course",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.attendanceSummary.loading": {
+      "source": "Loading your attendance summary…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.attendanceSummary.rateSuffix": {
+      "source": "attendance",
+      "context": "Screen-reader word after the attendance percentage",
+      "namespace": "student"
+    },
+    "student.awaiting.confirmed": {
+      "source": "Payment confirmed. You can view the full record in your",
+      "context": "Text before the 'payment history' link",
+      "namespace": "student"
+    },
+    "student.awaiting.confirmedSuffix": {
+      "source": ".",
+      "context": "Text after the 'payment history' link (punctuation or closing words)",
+      "namespace": "student"
+    },
+    "student.awaiting.historyLink": {
+      "source": "payment history",
+      "context": "Link text inside a sentence",
+      "namespace": "student"
+    },
+    "student.awaiting.liveConfirmed": {
+      "source": "Payment status updated: confirmed.",
+      "context": "Screen-reader announcement",
+      "namespace": "student"
+    },
+    "student.awaiting.liveRefunded": {
+      "source": "Payment status updated: refunded.",
+      "context": "Screen-reader announcement",
+      "namespace": "student"
+    },
+    "student.awaiting.liveRejected": {
+      "source": "Payment status updated: rejected.",
+      "context": "Screen-reader announcement",
+      "namespace": "student"
+    },
+    "student.awaiting.loading": {
+      "source": "Checking payment status…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.awaiting.refunded": {
+      "source": "This payment was refunded. See your",
+      "context": "Text before the 'payment history' link",
+      "namespace": "student"
+    },
+    "student.awaiting.refundedSuffix": {
+      "source": "for the full record.",
+      "context": "Text after the 'payment history' link",
+      "namespace": "student"
+    },
+    "student.awaiting.rejected": {
+      "source": "Your payment was rejected. Nothing was charged and no enrollment was created.",
+      "context": "Alert",
+      "namespace": "student"
+    },
+    "student.awaiting.subtitle": {
+      "source": "This page reflects only what our servers have confirmed — it never guesses from a redirect.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.awaiting.title": {
+      "source": "Payment status",
+      "context": "Page heading",
+      "namespace": "student"
+    },
+    "student.awaiting.waiting": {
+      "source": "Awaiting payment confirmation… this page updates automatically.",
+      "context": "Status while waiting for the server",
+      "namespace": "student"
+    },
+    "student.calendar.loading": {
+      "source": "Loading calendar…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.catalog.emptyAvailable.description": {
+      "source": "You're already in every open course, or your institute hasn't opened new ones yet. Check back soon.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.catalog.emptyAvailable.title": {
+      "source": "No courses are open for enrollment",
+      "context": "Empty state of the available list",
+      "namespace": "student"
+    },
+    "student.catalog.emptyEnrolled.action": {
+      "source": "See available courses",
+      "context": "Empty state button",
+      "namespace": "student"
+    },
+    "student.catalog.emptyEnrolled.description": {
+      "source": "Browse Available Courses and enroll for free to get started.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.catalog.emptyEnrolled.title": {
+      "source": "You haven't enrolled in any courses yet",
+      "context": "Empty state of the enrolled list",
+      "namespace": "student"
+    },
+    "student.catalog.enroll": {
+      "source": "Enroll",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.catalog.enrollLabel": {
+      "source": "Enroll in {course}",
+      "context": "Accessible label",
+      "namespace": "student"
+    },
+    "student.catalog.enrolled": {
+      "source": "You're enrolled in {course}. Find it under Enrolled Courses.",
+      "context": "Toast after enrolling",
+      "namespace": "student"
+    },
+    "student.catalog.enrolledList": {
+      "source": "Enrolled Courses",
+      "context": "List name",
+      "namespace": "student"
+    },
+    "student.catalog.enrollingLabel": {
+      "source": "Enrolling in {course}",
+      "context": "Accessible label while enrolling",
+      "namespace": "student"
+    },
+    "student.catalog.filterByTag": {
+      "source": "Filter by tag",
+      "context": "Accessible group name",
+      "namespace": "student"
+    },
+    "student.catalog.filtersRegion": {
+      "source": "Search and filters",
+      "context": "Accessible region name",
+      "namespace": "student"
+    },
+    "student.catalog.found": {
+      "source": "{count, plural, one {# course found} other {# courses found}}",
+      "context": "Screen-reader result count",
+      "namespace": "student"
+    },
+    "student.catalog.noMatch.description": {
+      "source": "Try a different search term or clear the tag filter.",
+      "context": "Empty state after filtering",
+      "namespace": "student"
+    },
+    "student.catalog.noMatch.title": {
+      "source": "No courses match your search",
+      "context": "Empty state after filtering",
+      "namespace": "student"
+    },
+    "student.catalog.openCourse": {
+      "source": "Open course",
+      "context": "Link on a course card",
+      "namespace": "student"
+    },
+    "student.catalog.openCourseLabel": {
+      "source": "Open course {course}",
+      "context": "Accessible label",
+      "namespace": "student"
+    },
+    "student.catalog.pages": {
+      "source": "Course list pages",
+      "context": "Accessible name of the pagination",
+      "namespace": "student"
+    },
+    "student.catalog.search": {
+      "source": "Search courses",
+      "context": "Search field label and placeholder",
+      "namespace": "student"
+    },
+    "student.catalog.selfEnrollmentDisabled": {
+      "source": "Your institute enrolls students in courses. Contact your institute to join one of these courses.",
+      "context": "Notice when self-enrollment is off",
+      "namespace": "student"
+    },
+    "student.catalog.sortBy": {
+      "source": "Sort by",
+      "context": "Select label",
+      "namespace": "student"
+    },
+    "student.catalog.sortDefault": {
+      "source": "Default",
+      "context": "Sort option",
+      "namespace": "student"
+    },
+    "student.catalog.sortTitle": {
+      "source": "Title",
+      "context": "Sort option: by course title",
+      "namespace": "student"
+    },
+    "student.catalog.tagsError": {
+      "source": "Tag filters couldn't load.",
+      "context": "Error text",
+      "namespace": "student"
+    },
+    "student.catalog.teacher": {
+      "source": "Teacher:",
+      "context": "Screen-reader label before the teacher name",
+      "namespace": "student"
+    },
+    "student.catalog.viewCourse": {
+      "source": "View course",
+      "context": "Link on a course card",
+      "namespace": "student"
+    },
+    "student.catalog.viewCourseLabel": {
+      "source": "View course {course}",
+      "context": "Accessible label",
+      "namespace": "student"
+    },
+    "student.checkout.access": {
+      "source": "Access",
+      "context": "Field label: how long access lasts",
+      "namespace": "student"
+    },
+    "student.checkout.addAddress": {
+      "source": "Add your address in My Profile",
+      "context": "Link",
+      "namespace": "student"
+    },
+    "student.checkout.addAddressSuffix": {
+      "source": ", then come back to pay online.",
+      "context": "Text after the link",
+      "namespace": "student"
+    },
+    "student.checkout.bankHint": {
+      "source": "Already sent a bank transfer? Upload your payment slip instead of paying online.",
+      "context": "Help text",
+      "namespace": "student"
+    },
+    "student.checkout.days": {
+      "source": "{count, plural, one {# day} other {# days}}",
+      "context": "Access duration",
+      "namespace": "student"
+    },
+    "student.checkout.enroll": {
+      "source": "Enroll",
+      "context": "Button for a free course",
+      "namespace": "student"
+    },
+    "student.checkout.gatewayFailed": {
+      "source": "We couldn't open the secure payment page. Please try again or pay by bank transfer.",
+      "context": "Error when the online payment page cannot be opened",
+      "namespace": "student"
+    },
+    "student.checkout.lifetime": {
+      "source": "Lifetime access",
+      "context": "Access that never expires",
+      "namespace": "student"
+    },
+    "student.checkout.needsAddress": {
+      "source": "Online payment needs your billing address.",
+      "context": "Notice before the link",
+      "namespace": "student"
+    },
+    "student.checkout.notOpen": {
+      "source": "This course isn't currently open for enrollment.",
+      "context": "Notice",
+      "namespace": "student"
+    },
+    "student.checkout.onlineUnavailable": {
+      "source": "Online payment isn't available at your institute yet — pay by bank transfer below.",
+      "context": "Notice",
+      "namespace": "student"
+    },
+    "student.checkout.payByBank": {
+      "source": "Pay by bank transfer",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.checkout.payOnline": {
+      "source": "Pay online (PayHere)",
+      "context": "Button; PayHere is the payment provider name",
+      "namespace": "student"
+    },
+    "student.checkout.preparing": {
+      "source": "Preparing…",
+      "context": "Button while preparing",
+      "namespace": "student"
+    },
+    "student.checkout.preparingSlip": {
+      "source": "Preparing bank transfer upload…",
+      "context": "Screen-reader status",
+      "namespace": "student"
+    },
+    "student.checkout.price": {
+      "source": "Price",
+      "context": "Field label",
+      "namespace": "student"
+    },
+    "student.checkout.starting": {
+      "source": "Starting checkout…",
+      "context": "Status / button while starting",
+      "namespace": "student"
+    },
+    "student.checkout.subtitle": {
+      "source": "Review the course details below, then continue to payment.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.checkout.title": {
+      "source": "Checkout",
+      "context": "Page heading",
+      "namespace": "student"
+    },
+    "student.common.courseIdLabel": {
+      "source": "Course",
+      "context": "Prefix of a short course id shown when the course name is unknown, e.g. 'Course #1a2b3c4d'",
+      "namespace": "student"
+    },
+    "student.common.enrollmentIdLabel": {
+      "source": "Enrollment",
+      "context": "Prefix of a short enrollment id, e.g. 'Enrollment #1a2b3c4d'",
+      "namespace": "student"
+    },
+    "student.common.loadingCourse": {
+      "source": "Loading course…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.common.next": {
+      "source": "Next",
+      "context": "Pagination button",
+      "namespace": "student"
+    },
+    "student.common.noMoreResults.description": {
+      "source": "There are no records on this page. Go back to an earlier page.",
+      "context": "Empty page description",
+      "namespace": "student"
+    },
+    "student.common.noMoreResults.title": {
+      "source": "No more results",
+      "context": "Empty page after the last page of a list",
+      "namespace": "student"
+    },
+    "student.common.pageOf": {
+      "source": "Page {page} of {total}",
+      "context": "Pagination text",
+      "namespace": "student"
+    },
+    "student.common.previous": {
+      "source": "Previous",
+      "context": "Pagination button",
+      "namespace": "student"
+    },
+    "student.common.saveChanges": {
+      "source": "Save changes",
+      "context": "Save button",
+      "namespace": "student"
+    },
+    "student.common.saving": {
+      "source": "Saving…",
+      "context": "Button text while saving",
+      "namespace": "student"
+    },
+    "student.common.updating": {
+      "source": "Updating…",
+      "context": "Screen-reader announcement while a list refreshes",
+      "namespace": "student"
+    },
+    "student.courses.loading": {
+      "source": "Loading courses…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.dashboard.activeCourses": {
+      "source": "Active courses",
+      "context": "Stat card label",
+      "namespace": "student"
+    },
+    "student.dashboard.browseCourses": {
+      "source": "Browse courses",
+      "context": "Button to the course catalog",
+      "namespace": "student"
+    },
+    "student.dashboard.empty.description": {
+      "source": "Once you enroll in a course, your access status and recent courses will show up here.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.dashboard.empty.title": {
+      "source": "You have no active enrollments yet",
+      "context": "Empty state when the student has no enrollments",
+      "namespace": "student"
+    },
+    "student.dashboard.expiredAlert": {
+      "source": "{count, plural, one {One of your courses has expired access.} other {# of your courses have expired access.}}",
+      "context": "Alert about courses whose access expired",
+      "namespace": "student"
+    },
+    "student.dashboard.loadingEnrollments": {
+      "source": "Loading your enrollments…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.dashboard.loadingPayments": {
+      "source": "Loading payment activity…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.dashboard.mostRecentPayment": {
+      "source": "Most recent payment",
+      "context": "Stat card label",
+      "namespace": "student"
+    },
+    "student.dashboard.needsAttention": {
+      "source": "Needs attention",
+      "context": "Stat card label: courses whose access expired",
+      "namespace": "student"
+    },
+    "student.dashboard.needsAttentionHint": {
+      "source": "Access has expired on these courses",
+      "context": "Stat card hint",
+      "namespace": "student"
+    },
+    "student.dashboard.noActive.allExpired": {
+      "source": "All your enrollments have expired. Reactivate access to see your courses here again.",
+      "context": "Empty state when every enrollment expired",
+      "namespace": "student"
+    },
+    "student.dashboard.noActive.description": {
+      "source": "Courses you currently have active access to will appear here.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.dashboard.noActive.title": {
+      "source": "No active courses to show yet",
+      "context": "Empty state of the recent courses list",
+      "namespace": "student"
+    },
+    "student.dashboard.noPayments": {
+      "source": "No payments yet",
+      "context": "Stat card value when there are no payments",
+      "namespace": "student"
+    },
+    "student.dashboard.paymentActivity": {
+      "source": "Payment activity",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.dashboard.paymentConfirmed": {
+      "source": "Payment confirmed — {amount}",
+      "context": "Most recent payment card: a confirmed payment and its amount",
+      "namespace": "student"
+    },
+    "student.dashboard.reactivate": {
+      "source": "Reactivate access",
+      "context": "Link/button to request access again",
+      "namespace": "student"
+    },
+    "student.dashboard.recentCourses": {
+      "source": "Recent courses",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.dashboard.refund": {
+      "source": "Refund — {amount}",
+      "context": "Most recent payment card: a refund and its amount",
+      "namespace": "student"
+    },
+    "student.dashboard.subtitle": {
+      "source": "Your enrollments, courses, and recent payment activity at a glance.",
+      "context": "Student dashboard subtitle",
+      "namespace": "student"
+    },
+    "student.dashboard.title": {
+      "source": "Overview",
+      "context": "Student dashboard heading",
+      "namespace": "student"
+    },
+    "student.dashboard.viewAll": {
+      "source": "View all my courses",
+      "context": "Link to the full course list",
+      "namespace": "student"
+    },
+    "student.devices.caption": {
+      "source": "Your devices",
+      "context": "Accessible caption of the device table",
+      "namespace": "student"
+    },
+    "student.devices.confirmDescription": {
+      "source": "That device is signed out straight away. Its slot stays taken for a while before a new device can use it.",
+      "context": "Confirmation text",
+      "namespace": "student"
+    },
+    "student.devices.confirmTitle": {
+      "source": "Remove {device}?",
+      "context": "Confirmation title",
+      "namespace": "student"
+    },
+    "student.devices.empty.description": {
+      "source": "Devices appear here after you sign in on them.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.devices.empty.title": {
+      "source": "No devices yet",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.devices.loading": {
+      "source": "Loading your devices…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.devices.managedByInstitute": {
+      "source": "Your institute manages your devices. To remove a device you no longer use, contact your institute.",
+      "context": "Shown when students cannot remove devices themselves",
+      "namespace": "student"
+    },
+    "student.devices.remove": {
+      "source": "Remove",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.devices.removeDevice": {
+      "source": "Remove device",
+      "context": "Confirm button",
+      "namespace": "student"
+    },
+    "student.devices.removeLabel": {
+      "source": "Remove {device}",
+      "context": "Accessible label of the remove button",
+      "namespace": "student"
+    },
+    "student.devices.removed": {
+      "source": "{device} was removed.",
+      "context": "Confirmation; {device} is the device name",
+      "namespace": "student"
+    },
+    "student.devices.removing": {
+      "source": "Removing…",
+      "context": "Button while removing",
+      "namespace": "student"
+    },
+    "student.devices.subtitle": {
+      "source": "The browsers and devices you have signed in on. Your institute may limit how many you can use.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.devices.title": {
+      "source": "My devices",
+      "context": "Page heading",
+      "namespace": "student"
+    },
+    "student.header.accountFallback": {
+      "source": "Student account",
+      "context": "Account menu text while the student's name is unknown",
+      "namespace": "student"
+    },
+    "student.header.accountMenu": {
+      "source": "Open account menu",
+      "context": "Accessible label of the account menu button",
+      "namespace": "student"
+    },
+    "student.header.explore": {
+      "source": "Explore",
+      "context": "Header link to courses available to join",
+      "namespace": "student"
+    },
+    "student.header.myCourses": {
+      "source": "My Courses",
+      "context": "Header link to the student's enrolled courses",
+      "namespace": "student"
+    },
+    "student.header.pay": {
+      "source": "PAY",
+      "context": "Header button that opens the payment window; short, upper case in English",
+      "namespace": "student"
+    },
+    "student.impersonation.dismiss": {
+      "source": "Dismiss notice",
+      "context": "Accessible label of the close button",
+      "namespace": "student"
+    },
+    "student.impersonation.exit": {
+      "source": "Exit to admin",
+      "context": "Button that ends the support session",
+      "namespace": "student"
+    },
+    "student.impersonation.exiting": {
+      "source": "Exiting…",
+      "context": "Button text while ending the support session",
+      "namespace": "student"
+    },
+    "student.impersonation.region": {
+      "source": "Support session",
+      "context": "Accessible name of the support-session banner",
+      "namespace": "student"
+    },
+    "student.impersonation.startedBy": {
+      "source": "(started by {name})",
+      "context": "Screen-reader-only: who started the support session",
+      "namespace": "student"
+    },
+    "student.impersonation.viewingAs": {
+      "source": "Viewing as {name} — read-only support session · ends {time}",
+      "context": "Banner shown to staff viewing the portal as a student; {time} is a clock time",
+      "namespace": "student"
+    },
+    "student.nav.aocPlayer": {
+      "source": "AOC Player",
+      "context": "Student portal navigation: the desktop video player app. 'AOC' is a product name; keep it",
+      "namespace": "student"
+    },
+    "student.nav.availableCourses": {
+      "source": "Available Courses",
+      "context": "Student portal navigation",
+      "namespace": "student"
+    },
+    "student.nav.calendar": {
+      "source": "Calendar",
+      "context": "Student portal navigation",
+      "namespace": "student"
+    },
+    "student.nav.dashboard": {
+      "source": "Dashboard",
+      "context": "Student portal navigation",
+      "namespace": "student"
+    },
+    "student.nav.exams": {
+      "source": "Exams",
+      "context": "Student portal navigation",
+      "namespace": "student"
+    },
+    "student.nav.myAttendance": {
+      "source": "My Attendance",
+      "context": "Student portal navigation",
+      "namespace": "student"
+    },
+    "student.nav.myDevices": {
+      "source": "My Devices",
+      "context": "Student portal navigation",
+      "namespace": "student"
+    },
+    "student.nav.notifications": {
+      "source": "Notifications",
+      "context": "Student portal navigation",
+      "namespace": "student"
+    },
+    "student.nav.profile": {
+      "source": "Profile",
+      "context": "Student portal navigation / account menu item",
+      "namespace": "student"
+    },
+    "student.nav.reactivation": {
+      "source": "Reactivation",
+      "context": "Student portal navigation: request access again after it expired",
+      "namespace": "student"
+    },
+    "student.notifications.empty.description": {
+      "source": "Announcements from your institute and payment updates (confirmed, rejected or refunded) appear here.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.notifications.empty.title": {
+      "source": "No notifications yet",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.notifications.subtitle": {
+      "source": "Announcements from your institute and updates about your payments.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.notifications.title": {
+      "source": "Notifications",
+      "context": "Page heading",
+      "namespace": "student"
+    },
+    "student.payment.backToCheckout": {
+      "source": "Back to checkout",
+      "context": "Link",
+      "namespace": "student"
+    },
+    "student.payment.backToDashboard": {
+      "source": "Back to dashboard",
+      "context": "Link",
+      "namespace": "student"
+    },
+    "student.payment.cancelled.notice": {
+      "source": "No money was taken for this attempt. You can try again, or pay by bank transfer instead.",
+      "context": "Notice",
+      "namespace": "student"
+    },
+    "student.payment.cancelled.subtitle": {
+      "source": "You left the PayHere payment page before completing the payment.",
+      "context": "PayHere is the payment provider's name; keep it",
+      "namespace": "student"
+    },
+    "student.payment.cancelled.title": {
+      "source": "Payment cancelled",
+      "context": "Page heading after leaving the online payment page",
+      "namespace": "student"
+    },
+    "student.payment.loadingOrder": {
+      "source": "Loading order…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.payment.myCourses": {
+      "source": "My courses",
+      "context": "Link to the student's courses",
+      "namespace": "student"
+    },
+    "student.paymentHistory.date": {
+      "source": "Date",
+      "context": "Field label",
+      "namespace": "student"
+    },
+    "student.paymentHistory.detailError": {
+      "source": "Could not load order details.",
+      "context": "Error text",
+      "namespace": "student"
+    },
+    "student.paymentHistory.detailLoading": {
+      "source": "Loading order details…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.paymentHistory.emptyDescription": {
+      "source": "Completed payments and their purchased products appear here.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.paymentHistory.hide": {
+      "source": "Hide details",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.paymentHistory.loading": {
+      "source": "Loading payment history…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.paymentHistory.more": {
+      "source": "View more",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.paymentHistory.order": {
+      "source": "Order {id}",
+      "context": "Order label; {id} is a short id",
+      "namespace": "student"
+    },
+    "student.paymentHistory.orderHash": {
+      "source": "Order #{number}",
+      "context": "Order number fallback",
+      "namespace": "student"
+    },
+    "student.paymentHistory.orderNumber": {
+      "source": "Order number",
+      "context": "Field label",
+      "namespace": "student"
+    },
+    "student.paymentHistory.products": {
+      "source": "Products purchased",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.paymentHistory.status": {
+      "source": "Status",
+      "context": "Field label; value is a technical status code",
+      "namespace": "student"
+    },
+    "student.paymentHistory.total": {
+      "source": "Total",
+      "context": "Field label",
+      "namespace": "student"
+    },
+    "student.player.active": {
+      "source": "Active",
+      "context": "Status badge",
+      "namespace": "student"
+    },
+    "student.player.details": {
+      "source": "Version {version} · paired {paired} · last used {lastUsed}",
+      "context": "Player details line; {paired} and {lastUsed} are dates",
+      "namespace": "student"
+    },
+    "student.player.empty.description": {
+      "source": "Install the AOC Player on this computer, then choose “Pair the AOC Player” above.",
+      "context": "Empty state; quote the pair button text exactly",
+      "namespace": "student"
+    },
+    "student.player.empty.title": {
+      "source": "No AOC Player paired yet",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.player.forWindows": {
+      "source": "AOC Player for Windows",
+      "context": "Player name in the list",
+      "namespace": "student"
+    },
+    "student.player.install.description": {
+      "source": "For Windows 10 and 11. Install it once on this computer. The first time you press Play on a lesson video, it sets itself up.",
+      "context": "Card text",
+      "namespace": "student"
+    },
+    "student.player.install.download": {
+      "source": "Download for Windows",
+      "context": "Download link",
+      "namespace": "student"
+    },
+    "student.player.install.title": {
+      "source": "Install the AOC Player",
+      "context": "Card title",
+      "namespace": "student"
+    },
+    "student.player.install.unavailable": {
+      "source": "The AOC Player download isn't available yet. Your institute will let you know when it is.",
+      "context": "Notice",
+      "namespace": "student"
+    },
+    "student.player.listLabel": {
+      "source": "Your AOC Players",
+      "context": "Accessible list name",
+      "namespace": "student"
+    },
+    "student.player.loading": {
+      "source": "Loading your players…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.player.pair.button": {
+      "source": "Pair the AOC Player",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.player.pair.description": {
+      "source": "Not needed for watching: pressing Play pairs the player automatically. Use this only to set it up ahead of time. Pairing again on this computer replaces the previous player.",
+      "context": "Card text",
+      "namespace": "student"
+    },
+    "student.player.pair.done": {
+      "source": "The AOC Player is paired.",
+      "context": "Status",
+      "namespace": "student"
+    },
+    "student.player.pair.launchFailed": {
+      "source": "Couldn't open the AOC Player. Please try again.",
+      "context": "Error",
+      "namespace": "student"
+    },
+    "student.player.pair.timedOut": {
+      "source": "The AOC Player didn't finish pairing. Make sure it's installed on this computer, then try again.",
+      "context": "Error",
+      "namespace": "student"
+    },
+    "student.player.pair.title": {
+      "source": "Pair this computer (optional)",
+      "context": "Card title",
+      "namespace": "student"
+    },
+    "student.player.pair.waiting": {
+      "source": "Waiting for the AOC Player to finish pairing…",
+      "context": "Status",
+      "namespace": "student"
+    },
+    "student.player.preparing": {
+      "source": "Preparing…",
+      "context": "Button while preparing",
+      "namespace": "student"
+    },
+    "student.player.remove.button": {
+      "source": "Remove",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.player.remove.confirm": {
+      "source": "Remove player",
+      "context": "Confirm button",
+      "namespace": "student"
+    },
+    "student.player.remove.description": {
+      "source": "Any video playing in it stops straight away. You can pair it again later.",
+      "context": "Confirmation text",
+      "namespace": "student"
+    },
+    "student.player.remove.label": {
+      "source": "Remove this AOC Player",
+      "context": "Accessible label",
+      "namespace": "student"
+    },
+    "student.player.remove.removing": {
+      "source": "Removing…",
+      "context": "Button while removing",
+      "namespace": "student"
+    },
+    "student.player.remove.title": {
+      "source": "Remove this AOC Player?",
+      "context": "Confirmation title",
+      "namespace": "student"
+    },
+    "student.player.removedBadge": {
+      "source": "Removed",
+      "context": "Status badge",
+      "namespace": "student"
+    },
+    "student.player.revoked.admin": {
+      "source": "removed by your institute",
+      "context": "Why a player was removed",
+      "namespace": "student"
+    },
+    "student.player.revoked.device": {
+      "source": "its device was removed",
+      "context": "Why a player was removed",
+      "namespace": "student"
+    },
+    "student.player.revoked.other": {
+      "source": "removed",
+      "context": "Generic removal reason",
+      "namespace": "student"
+    },
+    "student.player.revoked.repaired": {
+      "source": "replaced by a newer pairing",
+      "context": "Why a player was removed",
+      "namespace": "student"
+    },
+    "student.player.revoked.student": {
+      "source": "removed by you",
+      "context": "Why a player was removed",
+      "namespace": "student"
+    },
+    "student.player.subtitle": {
+      "source": "If your institute plays lesson videos in the AOC Player app, pair it with this computer once.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.player.title": {
+      "source": "AOC Player",
+      "context": "Page heading; AOC Player is a product name",
+      "namespace": "student"
+    },
+    "student.player.yourPlayers": {
+      "source": "Your players",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.portal": {
+      "source": "Student Portal",
+      "context": "Name of the student portal, shown in the sidebar, tab title and sign-out dialog",
+      "namespace": "student"
+    },
+    "student.profile.additional.description": {
+      "source": "Information your institute collects about its students. Fields marked (optional) can be left blank.",
+      "context": "Section help text",
+      "namespace": "student"
+    },
+    "student.profile.additional.empty.description": {
+      "source": "Your institute doesn't collect any additional details at the moment.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.profile.additional.empty.title": {
+      "source": "Nothing else to fill in",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.profile.additional.heading": {
+      "source": "Additional details",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.profile.additional.loading": {
+      "source": "Loading your details…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.profile.additional.saved": {
+      "source": "Details saved.",
+      "context": "Success message",
+      "namespace": "student"
+    },
+    "student.profile.additional.saving": {
+      "source": "Saving your details…",
+      "context": "Button text while saving",
+      "namespace": "student"
+    },
+    "student.profile.displayName": {
+      "source": "Display name",
+      "context": "Field label",
+      "namespace": "student"
+    },
+    "student.profile.examsPlaceholder": {
+      "source": "Your attended exams appear here.",
+      "context": "Placeholder text of the Attended Exams tab",
+      "namespace": "student"
+    },
+    "student.profile.field.email": {
+      "source": "Email",
+      "context": "Read-only field label",
+      "namespace": "student"
+    },
+    "student.profile.field.name": {
+      "source": "Name",
+      "context": "Read-only field label",
+      "namespace": "student"
+    },
+    "student.profile.field.role": {
+      "source": "Role",
+      "context": "Read-only field label; the value is a technical role code",
+      "namespace": "student"
+    },
+    "student.profile.field.status": {
+      "source": "Status",
+      "context": "Read-only field label; the value is a technical status code",
+      "namespace": "student"
+    },
+    "student.profile.loading": {
+      "source": "Loading your profile…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.profile.personalDetails": {
+      "source": "Personal Details",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.profile.photo": {
+      "source": "Profile photo",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.profile.qrPlaceholder": {
+      "source": "Your student QR code will appear here when available.",
+      "context": "Placeholder text of the QR tab",
+      "namespace": "student"
+    },
+    "student.profile.saved": {
+      "source": "Saved.",
+      "context": "Success message",
+      "namespace": "student"
+    },
+    "student.profile.sections": {
+      "source": "Student profile sections",
+      "context": "Accessible name of the profile tabs",
+      "namespace": "student"
+    },
+    "student.profile.tab.attendance": {
+      "source": "Attendance",
+      "context": "Profile tab",
+      "namespace": "student"
+    },
+    "student.profile.tab.courses": {
+      "source": "Enrolled Courses",
+      "context": "Profile tab",
+      "namespace": "student"
+    },
+    "student.profile.tab.exams": {
+      "source": "Attended Exams",
+      "context": "Profile tab",
+      "namespace": "student"
+    },
+    "student.profile.tab.general": {
+      "source": "General",
+      "context": "Profile tab",
+      "namespace": "student"
+    },
+    "student.profile.tab.payments": {
+      "source": "Payments",
+      "context": "Profile tab",
+      "namespace": "student"
+    },
+    "student.profile.tab.qr": {
+      "source": "QR",
+      "context": "Profile tab: the student's QR code",
+      "namespace": "student"
+    },
+    "student.profile.unexpectedError": {
+      "source": "An unexpected error occurred. Please try again.",
+      "context": "Error after saving",
+      "namespace": "student"
+    },
+    "student.profile.validation.nameRequired": {
+      "source": "Name is required.",
+      "context": "Validation message",
+      "namespace": "student"
+    },
+    "student.profile.validation.nameTooLong": {
+      "source": "Name must be {max} characters or fewer.",
+      "context": "Validation message",
+      "namespace": "student"
+    },
+    "student.profileBanner.asksFor": {
+      "source": "Your institute asks for: {fields}.",
+      "context": "{fields} is a comma-separated list of field names set by the institute",
+      "namespace": "student"
+    },
+    "student.profileBanner.link": {
+      "source": "Complete profile",
+      "context": "Link",
+      "namespace": "student"
+    },
+    "student.profileBanner.title": {
+      "source": "Complete your profile.",
+      "context": "Banner title",
+      "namespace": "student"
+    },
+    "student.reactivation.checkout": {
+      "source": "Proceed to checkout",
+      "context": "Link",
+      "namespace": "student"
+    },
+    "student.reactivation.checkoutFor": {
+      "source": "Proceed to checkout for {enrollment}",
+      "context": "Accessible label",
+      "namespace": "student"
+    },
+    "student.reactivation.col.action": {
+      "source": "Action",
+      "context": "Table column",
+      "namespace": "student"
+    },
+    "student.reactivation.col.enrollment": {
+      "source": "Enrollment",
+      "context": "Table column",
+      "namespace": "student"
+    },
+    "student.reactivation.col.reviewed": {
+      "source": "Reviewed",
+      "context": "Table column",
+      "namespace": "student"
+    },
+    "student.reactivation.col.status": {
+      "source": "Status",
+      "context": "Table column",
+      "namespace": "student"
+    },
+    "student.reactivation.col.submitted": {
+      "source": "Submitted",
+      "context": "Table column",
+      "namespace": "student"
+    },
+    "student.reactivation.expiredError": {
+      "source": "Couldn't load your expired courses.",
+      "context": "Error text",
+      "namespace": "student"
+    },
+    "student.reactivation.expiredHeading": {
+      "source": "Courses with expired access",
+      "context": "Section heading / list name",
+      "namespace": "student"
+    },
+    "student.reactivation.expiredLoading": {
+      "source": "Loading your expired courses…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.reactivation.historyCaption": {
+      "source": "Your reactivation request history",
+      "context": "Accessible table caption",
+      "namespace": "student"
+    },
+    "student.reactivation.historyEmpty.description": {
+      "source": "Once your paid access to a course expires, you can request reactivation from the list above or from My Courses.",
+      "context": "Empty state description",
+      "namespace": "student"
+    },
+    "student.reactivation.historyEmpty.title": {
+      "source": "You haven't requested reactivation for any course yet",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.reactivation.historyHeading": {
+      "source": "Your reactivation requests",
+      "context": "Section heading",
+      "namespace": "student"
+    },
+    "student.reactivation.historyLoading": {
+      "source": "Loading your reactivation requests…",
+      "context": "Loading text",
+      "namespace": "student"
+    },
+    "student.reactivation.noneExpired": {
+      "source": "None of your courses currently need reactivation.",
+      "context": "Empty state",
+      "namespace": "student"
+    },
+    "student.reactivation.notReviewed": {
+      "source": "Not yet reviewed",
+      "context": "Table cell",
+      "namespace": "student"
+    },
+    "student.reactivation.requestButton": {
+      "source": "Request reactivation",
+      "context": "Button on an expired course card",
+      "namespace": "student"
+    },
+    "student.reactivation.requestDescription": {
+      "source": "Your access to this course has expired. Submitting a request notifies your institute's admin — if approved, you'll be able to place a new order to restore access.",
+      "context": "Help text",
+      "namespace": "student"
+    },
+    "student.reactivation.requestFor": {
+      "source": "Request reactivation for {enrollment}",
+      "context": "Heading",
+      "namespace": "student"
+    },
+    "student.reactivation.submit": {
+      "source": "Submit reactivation request",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.reactivation.submittedDescription": {
+      "source": "A Tenant Admin will review your request. Track its status in your request history below — you'll be able to place a new order once it's approved.",
+      "context": "Text after submitting",
+      "namespace": "student"
+    },
+    "student.reactivation.submittedFor": {
+      "source": "Reactivation request submitted for {enrollment}",
+      "context": "Heading after submitting",
+      "namespace": "student"
+    },
+    "student.reactivation.submitting": {
+      "source": "Submitting…",
+      "context": "Button while submitting",
+      "namespace": "student"
+    },
+    "student.reactivation.submittingLive": {
+      "source": "Submitting reactivation request…",
+      "context": "Screen-reader status",
+      "namespace": "student"
+    },
+    "student.reactivation.subtitle": {
+      "source": "Request reactivation for a course whose access has expired, and track the status of past requests.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.reactivation.title": {
+      "source": "Reactivation",
+      "context": "Page heading",
+      "namespace": "student"
+    },
+    "student.slip.browse": {
+      "source": "Browse files",
+      "context": "Button",
+      "namespace": "student"
+    },
+    "student.slip.dragDrop": {
+      "source": "Drag and drop a file here, or",
+      "context": "Drop zone text before the Browse button",
+      "namespace": "student"
+    },
+    "student.slip.fileLabel": {
+      "source": "Slip file",
+      "context": "Field label",
+      "namespace": "student"
+    },
+    "student.slip.fixFields": {
+      "source": "Please fix the highlighted fields and try again.",
+      "context": "Error when the form is invalid",
+      "namespace": "student"
+    },
+    "student.slip.flagged": {
+      "source": "This slip was automatically flagged for a reviewer to take a closer look. This is informational only — it is not a rejection, and no action is needed from you.",
+      "context": "Information about an automatic review flag",
+      "namespace": "student"
+    },
+    "student.slip.helper": {
+      "source": "Accepted formats: {formats}. Maximum size: {size}.",
+      "context": "File help text",
+      "namespace": "student"
+    },
+    "student.slip.legend": {
+      "source": "Upload a payment slip",
+      "context": "Accessible form group name",
+      "namespace": "student"
+    },
+    "student.slip.readyToDrop": {
+      "source": "File ready to drop",
+      "context": "Screen-reader status while dragging a file",
+      "namespace": "student"
+    },
+    "student.slip.reference": {
+      "source": "Reference: {reference}",
+      "context": "The bank transfer reference number",
+      "namespace": "student"
+    },
+    "student.slip.referenceLabel": {
+      "source": "Reference number",
+      "context": "Field label: bank transfer reference",
+      "namespace": "student"
+    },
+    "student.slip.selected": {
+      "source": "Selected: {file}",
+      "context": "Selected file name",
+      "namespace": "student"
+    },
+    "student.slip.submit": {
+      "source": "Submit payment slip",
+      "context": "Submit button",
+      "namespace": "student"
+    },
+    "student.slip.submitted": {
+      "source": "Submitted — under review. Your course access will unlock once a reviewer approves this slip.",
+      "context": "Shown after uploading a slip",
+      "namespace": "student"
+    },
+    "student.slip.subtitle": {
+      "source": "Already sent a bank transfer? Enter the reference number and upload your slip for review.",
+      "context": "Page subtitle",
+      "namespace": "student"
+    },
+    "student.slip.title": {
+      "source": "Upload payment slip",
+      "context": "Page heading",
+      "namespace": "student"
+    },
+    "student.slip.uploadFailed": {
+      "source": "Couldn't upload this payment slip. Please try again.",
+      "context": "Error after uploading",
+      "namespace": "student"
+    },
+    "student.slip.uploading": {
+      "source": "Uploading…",
+      "context": "Status while uploading",
+      "namespace": "student"
+    },
+    "student.slip.validation.fileEmpty": {
+      "source": "The selected file is empty.",
+      "context": "Validation message",
+      "namespace": "student"
+    },
+    "student.slip.validation.fileRequired": {
+      "source": "Select a file to upload.",
+      "context": "Validation message",
+      "namespace": "student"
+    },
+    "student.slip.validation.fileTooLarge": {
+      "source": "File is too large. Maximum size is {size}.",
+      "context": "Validation message; {size} is e.g. 25 MB",
+      "namespace": "student"
+    },
+    "student.slip.validation.fileType": {
+      "source": "Unsupported file type. Accepted formats: {formats}.",
+      "context": "Validation message; {formats} is a list of file types",
+      "namespace": "student"
+    },
+    "student.slip.validation.referenceRequired": {
+      "source": "Reference number is required.",
+      "context": "Validation message",
+      "namespace": "student"
+    },
+    "student.slip.validation.referenceTooLong": {
+      "source": "Reference number must be {max} characters or fewer.",
+      "context": "Validation message",
+      "namespace": "student"
+    },
     "teacher.courses.empty.action": {
       "source": "Create your first course",
       "context": "Empty state button",
@@ -2100,6 +3680,191 @@
       "source": "Qualifications must be {max} characters or fewer.",
       "context": "Validation message; {max} is a number",
       "namespace": "teacher"
+    },
+    "tenantAdmin.nav.appearance": {
+      "source": "Appearance",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.attendanceReports": {
+      "source": "Attendance Reports",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.auditLog": {
+      "source": "Audit Log",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.broadcasts": {
+      "source": "Broadcasts",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.calendar": {
+      "source": "Calendar",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.courses": {
+      "source": "Courses",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.customDomain": {
+      "source": "Custom Domain",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.dashboard": {
+      "source": "Dashboard",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.devicesAccess": {
+      "source": "Devices & Access",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.discounts": {
+      "source": "Discounts",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.exams": {
+      "source": "Exams",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.expenseCategories": {
+      "source": "Expense Categories",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.expenses": {
+      "source": "Expenses",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.financeReports": {
+      "source": "Finance Reports",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.financeSummary": {
+      "source": "Finance Summary",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.liveClasses": {
+      "source": "Live Classes",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.markAttendance": {
+      "source": "Mark Attendance",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.mediaLibrary": {
+      "source": "Media Library",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.messageTemplates": {
+      "source": "Message Templates",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.messaging": {
+      "source": "Messaging (SMS & WhatsApp)",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.payments": {
+      "source": "Payments",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.reactivationApprovals": {
+      "source": "Reactivation Approvals",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.reports": {
+      "source": "Reports",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.settings": {
+      "source": "Settings",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.staff": {
+      "source": "Staff",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.students": {
+      "source": "Students",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.teacherPayouts": {
+      "source": "Teacher Payouts",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.teachers": {
+      "source": "Teachers",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.translations": {
+      "source": "Translations",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.nav.tuteDispatch": {
+      "source": "Tute Dispatch",
+      "context": "Tenant Admin portal navigation",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.navGroup.academic": {
+      "source": "Academic",
+      "context": "Tenant Admin navigation group heading",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.navGroup.administration": {
+      "source": "Administration",
+      "context": "Tenant Admin navigation group heading",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.navGroup.communication": {
+      "source": "Communication",
+      "context": "Tenant Admin navigation group heading",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.navGroup.dashboard": {
+      "source": "Dashboard",
+      "context": "Tenant Admin navigation group heading",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.navGroup.finance": {
+      "source": "Finance",
+      "context": "Tenant Admin navigation group heading",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.navGroup.instituteConfiguration": {
+      "source": "Institute Configuration",
+      "context": "Tenant Admin navigation group heading",
+      "namespace": "tenantAdmin"
+    },
+    "tenantAdmin.portal": {
+      "source": "Tenant Admin",
+      "context": "Name of the institute administration portal, shown in the sidebar and sign-out dialog",
+      "namespace": "tenantAdmin"
     }
   },
   "translations": {
@@ -2140,7 +3905,11 @@
         "auth.policyConsent.and": "සහ",
         "auth.policyConsent.prefix": "මෙම සේවාව භාවිත කිරීමෙන් ඔබ",
         "auth.policyConsent.suffix": " වලට එකඟ වේ.",
+        "common.accessState.active": "සක්‍රිය",
+        "common.accessState.expired": "කල් ඉකුත් වී ඇත",
+        "common.accessState.neverEnrolled": "කිසිදා ලියාපදිංචි වී නැත",
         "common.actions.cancel": "අවලංගු කරන්න",
+        "common.actions.close": "වසන්න",
         "common.actions.retry": "නැවත උත්සාහ කරන්න",
         "common.actions.save": "සුරකින්න",
         "common.auth.changePassword": "මුරපදය වෙනස් කරන්න",
@@ -2153,10 +3922,24 @@
         "common.courseStatus.draft": "කෙටුම්පත",
         "common.courseStatus.private": "පෞද්ගලික",
         "common.courseStatus.public": "පොදු",
+        "common.enroll.confirmQuestion": "{course} සඳහා ලියාපදිංචි වන්නද?",
+        "common.enroll.confirmQuestionGeneric": "මෙම පාඨමාලාවට ලියාපදිංචි වන්නද?",
+        "common.enroll.confirmTitle": "ඔබට විශ්වාසද?",
+        "common.enroll.error.closed": "මෙම පාඨමාලාව සඳහා ලියාපදිංචිය දැනට වසා ඇත. සම්බන්ධ වීමට අවශ්‍ය නම් ඔබේ ආයතනය අමතන්න.",
+        "common.enroll.error.generic": "ඔබව ලියාපදිංචි කිරීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        "common.enroll.error.network": "සේවාදායකය වෙත ළඟා විය නොහැකි විය. ඔබේ සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+        "common.enroll.error.notFound": "මෙම පාඨමාලාවට තවදුරටත් සම්බන්ධ විය නොහැක.",
+        "common.enroll.error.selfDisabled": "ඔබේ ආයතනය ඔබ වෙනුවෙන් සිසුන් ලියාපදිංචි කරයි. මෙම පාඨමාලාවට සම්බන්ධ වීමට ඔබේ ආයතනය අමතන්න.",
+        "common.enroll.freeNote": "ලියාපදිංචිය නොමිලේ. ඔබට වහාම පාඨමාලාව පිරික්සිය හැක; ගෙවිය යුතු පාඩම් විවෘත කරන විට ගෙවීම ඉල්ලා සිටී.",
+        "common.enroll.no": "නැත",
+        "common.enroll.yes": "ඔව්",
         "common.footer.contactUs": "අප අමතන්න",
         "common.footer.copyright": "© {year} {name}. සියලු හිමිකම් ඇවිරිණි.",
         "common.institute.home": "{name} මුල් පිටුව",
         "common.institute.loading": "ආයතනය පූරණය වෙමින්",
+        "common.integrations.goToIntegrations": "ඒකාබද්ධ කිරීම් වෙත යන්න",
+        "common.integrations.listSeparator": " සහ ",
+        "common.integrations.reconnectNeeded": "{count, plural, one {ඔබේ {providers} ගිණුම නැවත සම්බන්ධ කළ යුතුය.} other {ඔබේ {providers} ගිණුම් නැවත සම්බන්ධ කළ යුතුය.}}",
         "common.language.changed": "භාෂාව {language} ලෙස වෙනස් කරන ලදී",
         "common.language.label": "භාෂාව",
         "common.nav.openMenu": "සංචාලන මෙනුව විවෘත කරන්න",
@@ -2166,6 +3949,9 @@
         "common.policy.refund": "මුදල් ආපසු ගෙවීමේ ප්‍රතිපත්තිය",
         "common.policy.terms": "සේවා නියමයන්",
         "common.portal.teacher": "ගුරු ද්වාරය",
+        "common.reactivationStatus.approved": "අනුමත කළා",
+        "common.reactivationStatus.rejected": "ප්‍රතික්ෂේප කළා",
+        "common.reactivationStatus.submitted": "ඉදිරිපත් කළා",
         "common.scheduleStatus.basedOnSchedule": "සැලසුම් කළ පන්ති වේලාව අනුව",
         "common.scheduleStatus.cancelled": "අවලංගු කර ඇත",
         "common.scheduleStatus.live": "දැන් සජීවී",
@@ -2458,6 +4244,301 @@
         "public.todaysClasses.summaryOver": "අවසන් {count}",
         "public.todaysClasses.summaryScheduled": "සැලසුම් කළ {count}",
         "public.todaysClasses.viewCourse": "පාඨමාලාව බලන්න",
+        "student.attendance.empty.description": "ඔබ සහභාගී වූ සැසියක් සඳහා ගුරුවරයෙකු පැමිණීම සටහන් කළ පසු ඔබේ පැමිණීමේ ඉතිහාසය මෙහි දිස් වේ.",
+        "student.attendance.empty.title": "තවමත් පැමිණීම් වාර්තා නොමැත",
+        "student.attendance.loading": "ඔබේ පැමිණීම පූරණය වෙමින්…",
+        "student.attendance.marked": "සලකුණු කළේ {when}",
+        "student.attendance.noMatch.clear": "පෙරහන් ඉවත් කරන්න",
+        "student.attendance.noMatch.description": "වෙනත් පාඨමාලාවක් හෝ දින පරාසයක් උත්සාහ කරන්න, නැතහොත් පෙරහන් ඉවත් කරන්න.",
+        "student.attendance.noMatch.title": "තෝරාගත් දින පෙරහනට ගැළපෙන සැසි නොමැත",
+        "student.attendance.subtitle": "ඔබ ලියාපදිංචි වී ඇති පාඨමාලා හරහා ඔබේම පැමිණීමේ ඉතිහාසය.",
+        "student.attendance.title": "මගේ පැමිණීම",
+        "student.attendancePanel.absent": "නොපැමිණි",
+        "student.attendancePanel.counts": "පැමිණි {present} · ප්‍රමාද {late} · නොපැමිණි {absent} · මුළු {total}",
+        "student.attendancePanel.late": "ප්‍රමාද",
+        "student.attendancePanel.present": "පැමිණි",
+        "student.attendancePanel.records": "පැමිණීම් වාර්තා",
+        "student.attendancePanel.recordsEmpty": "සැසි සලකුණු කළ විට ඔබේ පැමිණීම් වාර්තා මෙහි දිස් වේ.",
+        "student.attendancePanel.recordsLoading": "පැමිණීම් වාර්තා පූරණය වෙමින්…",
+        "student.attendancePanel.session": "පන්ති සැසිය",
+        "student.attendancePanel.summary": "පැමිණීමේ සාරාංශය",
+        "student.attendancePanel.summaryEmpty": "ගුරුවරයෙකු පැමිණීම සටහන් කළ පසු ඔබේ පාඨමාලා පැමිණීමේ සාරාංශය දිස් වේ.",
+        "student.attendancePanel.summaryLoading": "පැමිණීමේ සාරාංශය පූරණය වෙමින්…",
+        "student.attendanceSummary.counts": "පැමිණි {present} · ප්‍රමාද {late} · නොපැමිණි {absent} (සලකුණු කළ {total})",
+        "student.attendanceSummary.empty.description": "ගුරුවරයෙකු ඔබ සඳහා පැමිණීම සටහන් කළ පසු එක් එක් පාඨමාලාවේ ඔබේ පැමිණීමේ අනුපාතය මෙහි දිස් වේ.",
+        "student.attendanceSummary.empty.title": "තවමත් පැමිණීමේ සාරාංශයක් නොමැත",
+        "student.attendanceSummary.heading": "පාඨමාලාව අනුව පැමිණීම",
+        "student.attendanceSummary.loading": "ඔබේ පැමිණීමේ සාරාංශය පූරණය වෙමින්…",
+        "student.attendanceSummary.rateSuffix": "පැමිණීම",
+        "student.awaiting.confirmed": "ගෙවීම තහවුරු විය. සම්පූර්ණ වාර්තාව ඔබේ",
+        "student.awaiting.confirmedSuffix": " තුළ බලන්න.",
+        "student.awaiting.historyLink": "ගෙවීම් ඉතිහාසය",
+        "student.awaiting.liveConfirmed": "ගෙවීමේ තත්ත්වය යාවත්කාලීන විය: තහවුරු කළා.",
+        "student.awaiting.liveRefunded": "ගෙවීමේ තත්ත්වය යාවත්කාලීන විය: ආපසු ගෙවා ඇත.",
+        "student.awaiting.liveRejected": "ගෙවීමේ තත්ත්වය යාවත්කාලීන විය: ප්‍රතික්ෂේප කළා.",
+        "student.awaiting.loading": "ගෙවීමේ තත්ත්වය පරීක්ෂා කරමින්…",
+        "student.awaiting.refunded": "මෙම ගෙවීම ආපසු ගෙවා ඇත. සම්පූර්ණ වාර්තාව සඳහා ඔබේ",
+        "student.awaiting.refundedSuffix": "බලන්න.",
+        "student.awaiting.rejected": "ඔබේ ගෙවීම ප්‍රතික්ෂේප විය. කිසිදු මුදලක් අය කර නැති අතර ලියාපදිංචියක් ද සිදු කර නැත.",
+        "student.awaiting.subtitle": "මෙම පිටුව පෙන්වන්නේ අපගේ සේවාදායක තහවුරු කළ දේ පමණි — එය කිසිවිටෙක යළි-යොමුවකින් අනුමාන නොකරයි.",
+        "student.awaiting.title": "ගෙවීමේ තත්ත්වය",
+        "student.awaiting.waiting": "ගෙවීම තහවුරු වන තෙක් රැඳී සිටිමින්… මෙම පිටුව ස්වයංක්‍රීයව යාවත්කාලීන වේ.",
+        "student.calendar.loading": "දින දර්ශනය පූරණය වෙමින්…",
+        "student.catalog.emptyAvailable.description": "ඔබ දැනටමත් සියලු විවෘත පාඨමාලාවල සිටී, නැතහොත් ඔබේ ආයතනය තවම නව පාඨමාලා විවෘත කර නැත. පසුව නැවත බලන්න.",
+        "student.catalog.emptyAvailable.title": "ලියාපදිංචිය සඳහා විවෘත පාඨමාලා නොමැත",
+        "student.catalog.emptyEnrolled.action": "ලබා ගත හැකි පාඨමාලා බලන්න",
+        "student.catalog.emptyEnrolled.description": "ආරම්භ කිරීමට ලබා ගත හැකි පාඨමාලා පිරික්සා නොමිලේ ලියාපදිංචි වන්න.",
+        "student.catalog.emptyEnrolled.title": "ඔබ තවම කිසිදු පාඨමාලාවකට ලියාපදිංචි වී නැත",
+        "student.catalog.enroll": "ලියාපදිංචි වන්න",
+        "student.catalog.enrollLabel": "{course} සඳහා ලියාපදිංචි වන්න",
+        "student.catalog.enrolled": "ඔබ {course} සඳහා ලියාපදිංචි විය. එය ලියාපදිංචි පාඨමාලා යටතේ සොයා ගන්න.",
+        "student.catalog.enrolledList": "ලියාපදිංචි පාඨමාලා",
+        "student.catalog.enrollingLabel": "{course} සඳහා ලියාපදිංචි වෙමින්",
+        "student.catalog.filterByTag": "ටැගය අනුව පෙරන්න",
+        "student.catalog.filtersRegion": "සෙවීම සහ පෙරහන්",
+        "student.catalog.found": "{count, plural, one {පාඨමාලා # ක් හමු විය} other {පාඨමාලා # ක් හමු විය}}",
+        "student.catalog.noMatch.description": "වෙනත් සෙවුම් පදයක් උත්සාහ කරන්න, නැතහොත් ටැග් පෙරහන ඉවත් කරන්න.",
+        "student.catalog.noMatch.title": "ඔබේ සෙවුමට ගැළපෙන පාඨමාලා නොමැත",
+        "student.catalog.openCourse": "පාඨමාලාව විවෘත කරන්න",
+        "student.catalog.openCourseLabel": "{course} පාඨමාලාව විවෘත කරන්න",
+        "student.catalog.pages": "පාඨමාලා ලැයිස්තු පිටු",
+        "student.catalog.search": "පාඨමාලා සොයන්න",
+        "student.catalog.selfEnrollmentDisabled": "ඔබේ ආයතනය සිසුන් පාඨමාලාවලට ලියාපදිංචි කරයි. මෙම පාඨමාලාවකට සම්බන්ධ වීමට ඔබේ ආයතනය අමතන්න.",
+        "student.catalog.sortBy": "අනුපිළිවෙළ",
+        "student.catalog.sortDefault": "පෙරනිමි",
+        "student.catalog.sortTitle": "මාතෘකාව",
+        "student.catalog.tagsError": "ටැග් පෙරහන් පූරණය කළ නොහැකි විය.",
+        "student.catalog.teacher": "ගුරුවරයා:",
+        "student.catalog.viewCourse": "පාඨමාලාව බලන්න",
+        "student.catalog.viewCourseLabel": "{course} පාඨමාලාව බලන්න",
+        "student.checkout.access": "ප්‍රවේශය",
+        "student.checkout.addAddress": "මගේ පැතිකඩෙහි ඔබේ ලිපිනය එක් කරන්න",
+        "student.checkout.addAddressSuffix": ", ඉන්පසු මාර්ගගතව ගෙවීමට නැවත පැමිණෙන්න.",
+        "student.checkout.bankHint": "දැනටමත් බැංකු මාරුවක් කළාද? මාර්ගගතව ගෙවීම වෙනුවට ඔබේ ගෙවීම් පත්‍රිකාව උඩුගත කරන්න.",
+        "student.checkout.days": "{count, plural, one {දින #} other {දින #}}",
+        "student.checkout.enroll": "ලියාපදිංචි වන්න",
+        "student.checkout.gatewayFailed": "ආරක්ෂිත ගෙවීම් පිටුව විවෘත කළ නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න, නැතහොත් බැංකු මාරුවෙන් ගෙවන්න.",
+        "student.checkout.lifetime": "ජීවිත කාලය පුරා ප්‍රවේශය",
+        "student.checkout.needsAddress": "මාර්ගගත ගෙවීම සඳහා ඔබේ බිල්පත් ලිපිනය අවශ්‍යයි.",
+        "student.checkout.notOpen": "මෙම පාඨමාලාව දැනට ලියාපදිංචිය සඳහා විවෘත නැත.",
+        "student.checkout.onlineUnavailable": "ඔබේ ආයතනයේ මාර්ගගත ගෙවීම තවම ලබා ගත නොහැක — පහත බැංකු මාරුවෙන් ගෙවන්න.",
+        "student.checkout.payByBank": "බැංකු මාරුවෙන් ගෙවන්න",
+        "student.checkout.payOnline": "මාර්ගගතව ගෙවන්න (PayHere)",
+        "student.checkout.preparing": "සූදානම් කරමින්…",
+        "student.checkout.preparingSlip": "බැංකු මාරු උඩුගත කිරීම සූදානම් කරමින්…",
+        "student.checkout.price": "මිල",
+        "student.checkout.starting": "ගෙවීම ආරම්භ කරමින්…",
+        "student.checkout.subtitle": "පහත පාඨමාලා විස්තර සමාලෝචනය කර, ඉන්පසු ගෙවීමට ඉදිරියට යන්න.",
+        "student.checkout.title": "ගෙවීම",
+        "student.common.courseIdLabel": "පාඨමාලාව",
+        "student.common.enrollmentIdLabel": "ලියාපදිංචිය",
+        "student.common.loadingCourse": "පාඨමාලාව පූරණය වෙමින්…",
+        "student.common.next": "ඊළඟ",
+        "student.common.noMoreResults.description": "මෙම පිටුවේ වාර්තා නොමැත. පෙර පිටුවකට ආපසු යන්න.",
+        "student.common.noMoreResults.title": "තවත් ප්‍රතිඵල නොමැත",
+        "student.common.pageOf": "පිටුව {page} / {total}",
+        "student.common.previous": "පෙර",
+        "student.common.saveChanges": "වෙනස්කම් සුරකින්න",
+        "student.common.saving": "සුරකිමින්…",
+        "student.common.updating": "යාවත්කාලීන වෙමින්…",
+        "student.courses.loading": "පාඨමාලා පූරණය වෙමින්…",
+        "student.dashboard.activeCourses": "සක්‍රිය පාඨමාලා",
+        "student.dashboard.browseCourses": "පාඨමාලා පිරික්සන්න",
+        "student.dashboard.empty.description": "ඔබ පාඨමාලාවකට ලියාපදිංචි වූ පසු, ඔබේ ප්‍රවේශ තත්ත්වය සහ මෑත පාඨමාලා මෙහි පෙන්වනු ඇත.",
+        "student.dashboard.empty.title": "ඔබට තවම සක්‍රිය ලියාපදිංචි කිරීම් නොමැත",
+        "student.dashboard.expiredAlert": "{count, plural, one {ඔබේ පාඨමාලාවක ප්‍රවේශය කල් ඉකුත් වී ඇත.} other {ඔබේ පාඨමාලා # ක ප්‍රවේශය කල් ඉකුත් වී ඇත.}}",
+        "student.dashboard.loadingEnrollments": "ඔබේ ලියාපදිංචි කිරීම් පූරණය වෙමින්…",
+        "student.dashboard.loadingPayments": "ගෙවීම් ක්‍රියාකාරකම් පූරණය වෙමින්…",
+        "student.dashboard.mostRecentPayment": "නවතම ගෙවීම",
+        "student.dashboard.needsAttention": "අවධානය අවශ්‍යයි",
+        "student.dashboard.needsAttentionHint": "මෙම පාඨමාලාවල ප්‍රවේශය කල් ඉකුත් වී ඇත",
+        "student.dashboard.noActive.allExpired": "ඔබේ සියලු ලියාපදිංචි කිරීම් කල් ඉකුත් වී ඇත. ඔබේ පාඨමාලා නැවත මෙහි දැකීමට ප්‍රවේශය නැවත සක්‍රිය කරන්න.",
+        "student.dashboard.noActive.description": "ඔබට දැනට සක්‍රිය ප්‍රවේශය ඇති පාඨමාලා මෙහි දිස් වේ.",
+        "student.dashboard.noActive.title": "පෙන්වීමට තවම සක්‍රිය පාඨමාලා නොමැත",
+        "student.dashboard.noPayments": "තවම ගෙවීම් නොමැත",
+        "student.dashboard.paymentActivity": "ගෙවීම් ක්‍රියාකාරකම්",
+        "student.dashboard.paymentConfirmed": "ගෙවීම තහවුරු විය — {amount}",
+        "student.dashboard.reactivate": "ප්‍රවේශය නැවත සක්‍රිය කරන්න",
+        "student.dashboard.recentCourses": "මෑත පාඨමාලා",
+        "student.dashboard.refund": "ආපසු ගෙවීම — {amount}",
+        "student.dashboard.subtitle": "ඔබේ ලියාපදිංචි කිරීම්, පාඨමාලා සහ මෑත ගෙවීම් ක්‍රියාකාරකම් එක බැල්මකින්.",
+        "student.dashboard.title": "දළ විශ්ලේෂණය",
+        "student.dashboard.viewAll": "මගේ සියලු පාඨමාලා බලන්න",
+        "student.devices.caption": "ඔබේ උපාංග",
+        "student.devices.confirmDescription": "එම උපාංගය වහාම ඉවත් කෙරේ. නව උපාංගයකට එය භාවිතා කිරීමට පෙර එහි ස්ථානය ටික කලක් අල්ලාගෙන තිබේ.",
+        "student.devices.confirmTitle": "{device} ඉවත් කරන්නද?",
+        "student.devices.empty.description": "ඔබ උපාංගවලට පුරනය වූ පසු ඒවා මෙහි දිස් වේ.",
+        "student.devices.empty.title": "තවම උපාංග නොමැත",
+        "student.devices.loading": "ඔබේ උපාංග පූරණය වෙමින්…",
+        "student.devices.managedByInstitute": "ඔබේ උපාංග ඔබේ ආයතනය කළමනාකරණය කරයි. ඔබ තවදුරටත් භාවිතා නොකරන උපාංගයක් ඉවත් කිරීමට ඔබේ ආයතනය අමතන්න.",
+        "student.devices.remove": "ඉවත් කරන්න",
+        "student.devices.removeDevice": "උපාංගය ඉවත් කරන්න",
+        "student.devices.removeLabel": "{device} ඉවත් කරන්න",
+        "student.devices.removed": "{device} ඉවත් කරන ලදී.",
+        "student.devices.removing": "ඉවත් කරමින්…",
+        "student.devices.subtitle": "ඔබ පුරනය වූ බ්‍රවුසර සහ උපාංග. ඔබට භාවිතා කළ හැකි ප්‍රමාණය ඔබේ ආයතනය සීමා කළ හැක.",
+        "student.devices.title": "මගේ උපාංග",
+        "student.header.accountFallback": "සිසු ගිණුම",
+        "student.header.accountMenu": "ගිණුම් මෙනුව විවෘත කරන්න",
+        "student.header.explore": "ගවේෂණය",
+        "student.header.myCourses": "මගේ පාඨමාලා",
+        "student.header.pay": "ගෙවන්න",
+        "student.impersonation.dismiss": "දැනුම්දීම වසන්න",
+        "student.impersonation.exit": "පරිපාලක වෙත ආපසු",
+        "student.impersonation.exiting": "පිටවෙමින්…",
+        "student.impersonation.region": "සහාය සැසිය",
+        "student.impersonation.startedBy": "({name} විසින් ආරම්භ කළා)",
+        "student.impersonation.viewingAs": "{name} ලෙස බලමින් — කියවීමට පමණක් සහාය සැසිය · අවසන් වන්නේ {time}",
+        "student.nav.aocPlayer": "AOC Player",
+        "student.nav.availableCourses": "ලබා ගත හැකි පාඨමාලා",
+        "student.nav.calendar": "දින දර්ශනය",
+        "student.nav.dashboard": "උපකරණ පුවරුව",
+        "student.nav.exams": "විභාග",
+        "student.nav.myAttendance": "මගේ පැමිණීම",
+        "student.nav.myDevices": "මගේ උපාංග",
+        "student.nav.notifications": "දැනුම්දීම්",
+        "student.nav.profile": "පැතිකඩ",
+        "student.nav.reactivation": "නැවත සක්‍රිය කිරීම",
+        "student.notifications.empty.description": "ඔබේ ආයතනයේ නිවේදන සහ ගෙවීම් යාවත්කාලීන (තහවුරු කළ, ප්‍රතික්ෂේප කළ හෝ ආපසු ගෙවූ) මෙහි දිස් වේ.",
+        "student.notifications.empty.title": "තවම දැනුම්දීම් නොමැත",
+        "student.notifications.subtitle": "ඔබේ ආයතනයේ නිවේදන සහ ඔබේ ගෙවීම් පිළිබඳ යාවත්කාලීන.",
+        "student.notifications.title": "දැනුම්දීම්",
+        "student.payment.backToCheckout": "ගෙවීම වෙත ආපසු",
+        "student.payment.backToDashboard": "උපකරණ පුවරුව වෙත ආපසු",
+        "student.payment.cancelled.notice": "මෙම උත්සාහය සඳහා කිසිදු මුදලක් අය කර නැත. ඔබට නැවත උත්සාහ කළ හැක, නැතහොත් ඒ වෙනුවට බැංකු මාරුවෙන් ගෙවිය හැක.",
+        "student.payment.cancelled.subtitle": "ගෙවීම සම්පූර්ණ කිරීමට පෙර ඔබ PayHere ගෙවීම් පිටුවෙන් ඉවත් විය.",
+        "student.payment.cancelled.title": "ගෙවීම අවලංගු විය",
+        "student.payment.loadingOrder": "ඇණවුම පූරණය වෙමින්…",
+        "student.payment.myCourses": "මගේ පාඨමාලා",
+        "student.paymentHistory.date": "දිනය",
+        "student.paymentHistory.detailError": "ඇණවුම් විස්තර පූරණය කළ නොහැකි විය.",
+        "student.paymentHistory.detailLoading": "ඇණවුම් විස්තර පූරණය වෙමින්…",
+        "student.paymentHistory.emptyDescription": "සම්පූර්ණ කළ ගෙවීම් සහ මිලදී ගත් නිෂ්පාදන මෙහි දිස් වේ.",
+        "student.paymentHistory.hide": "විස්තර සඟවන්න",
+        "student.paymentHistory.loading": "ගෙවීම් ඉතිහාසය පූරණය වෙමින්…",
+        "student.paymentHistory.more": "තවත් බලන්න",
+        "student.paymentHistory.order": "ඇණවුම {id}",
+        "student.paymentHistory.orderHash": "ඇණවුම #{number}",
+        "student.paymentHistory.orderNumber": "ඇණවුම් අංකය",
+        "student.paymentHistory.products": "මිලදී ගත් නිෂ්පාදන",
+        "student.paymentHistory.status": "තත්ත්වය",
+        "student.paymentHistory.total": "මුළු එකතුව",
+        "student.player.active": "සක්‍රිය",
+        "student.player.details": "අනුවාදය {version} · යුගල කළේ {paired} · අවසන් වරට භාවිතා කළේ {lastUsed}",
+        "student.player.empty.description": "මෙම පරිගණකයේ AOC Player ස්ථාපනය කර, ඉන්පසු ඉහත “AOC Player යුගල කරන්න” තෝරන්න.",
+        "student.player.empty.title": "තවම AOC Player යුගල කර නැත",
+        "student.player.forWindows": "Windows සඳහා AOC Player",
+        "student.player.install.description": "Windows 10 සහ 11 සඳහා. මෙම පරිගණකයේ එක් වරක් ස්ථාපනය කරන්න. පාඩම් වීඩියෝවක ප්ලේ පළමු වරට එබූ විට, එය ස්වයංක්‍රීයව සකසා ගනී.",
+        "student.player.install.download": "Windows සඳහා බාගන්න",
+        "student.player.install.title": "AOC Player ස්ථාපනය කරන්න",
+        "student.player.install.unavailable": "AOC Player බාගැනීම තවම ලබා ගත නොහැක. එය ලැබුණු විට ඔබේ ආයතනය ඔබට දන්වනු ඇත.",
+        "student.player.listLabel": "ඔබේ AOC Player",
+        "student.player.loading": "ඔබේ ප්ලේයර් පූරණය වෙමින්…",
+        "student.player.pair.button": "AOC Player යුගල කරන්න",
+        "student.player.pair.description": "නැරඹීමට අවශ්‍ය නැත: ප්ලේ එබීමෙන් ප්ලේයරය ස්වයංක්‍රීයව යුගල වේ. කලින් සකසා ගැනීමට පමණක් මෙය භාවිතා කරන්න. මෙම පරිගණකයේ නැවත යුගල කිරීමෙන් පෙර ප්ලේයරය ප්‍රතිස්ථාපනය වේ.",
+        "student.player.pair.done": "AOC Player යුගල කර ඇත.",
+        "student.player.pair.launchFailed": "AOC Player විවෘත කළ නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        "student.player.pair.timedOut": "AOC Player යුගල කිරීම අවසන් කළේ නැත. එය මෙම පරිගණකයේ ස්ථාපනය කර ඇති බව තහවුරු කර, නැවත උත්සාහ කරන්න.",
+        "student.player.pair.title": "මෙම පරිගණකය යුගල කරන්න (විකල්ප)",
+        "student.player.pair.waiting": "AOC Player යුගල කිරීම අවසන් වන තෙක් රැඳී සිටිමින්…",
+        "student.player.preparing": "සූදානම් කරමින්…",
+        "student.player.remove.button": "ඉවත් කරන්න",
+        "student.player.remove.confirm": "ප්ලේයරය ඉවත් කරන්න",
+        "student.player.remove.description": "එහි ධාවනය වන ඕනෑම වීඩියෝවක් වහාම නවතී. ඔබට එය පසුව නැවත යුගල කළ හැක.",
+        "student.player.remove.label": "මෙම AOC Player ඉවත් කරන්න",
+        "student.player.remove.removing": "ඉවත් කරමින්…",
+        "student.player.remove.title": "මෙම AOC Player ඉවත් කරන්නද?",
+        "student.player.removedBadge": "ඉවත් කළා",
+        "student.player.revoked.admin": "ඔබේ ආයතනය විසින් ඉවත් කළා",
+        "student.player.revoked.device": "එහි උපාංගය ඉවත් කරන ලදී",
+        "student.player.revoked.other": "ඉවත් කළා",
+        "student.player.revoked.repaired": "නවතම යුගල කිරීමකින් ප්‍රතිස්ථාපනය විය",
+        "student.player.revoked.student": "ඔබ විසින් ඉවත් කළා",
+        "student.player.subtitle": "ඔබේ ආයතනය AOC Player යෙදුමේ පාඩම් වීඩියෝ ධාවනය කරයි නම්, එය මෙම පරිගණකය සමඟ එක් වරක් යුගල කරන්න.",
+        "student.player.title": "AOC Player",
+        "student.player.yourPlayers": "ඔබේ ප්ලේයර්",
+        "student.portal": "සිසු ද්වාරය",
+        "student.profile.additional.description": "ඔබේ ආයතනය සිසුන් පිළිබඳව එකතු කරන තොරතුරු. (විකල්ප) ලෙස සලකුණු කළ ක්ෂේත්‍ර හිස්ව තැබිය හැක.",
+        "student.profile.additional.empty.description": "ඔබේ ආයතනය දැනට අමතර විස්තර කිසිවක් එකතු නොකරයි.",
+        "student.profile.additional.empty.title": "පිරවීමට තවත් කිසිවක් නැත",
+        "student.profile.additional.heading": "අමතර විස්තර",
+        "student.profile.additional.loading": "ඔබේ විස්තර පූරණය වෙමින්…",
+        "student.profile.additional.saved": "විස්තර සුරකින ලදී.",
+        "student.profile.additional.saving": "ඔබේ විස්තර සුරකිමින්…",
+        "student.profile.displayName": "පෙන්වන නම",
+        "student.profile.examsPlaceholder": "ඔබ සහභාගී වූ විභාග මෙහි දිස් වේ.",
+        "student.profile.field.email": "විද්‍යුත් තැපෑල",
+        "student.profile.field.name": "නම",
+        "student.profile.field.role": "භූමිකාව",
+        "student.profile.field.status": "තත්ත්වය",
+        "student.profile.loading": "ඔබේ පැතිකඩ පූරණය වෙමින්…",
+        "student.profile.personalDetails": "පුද්ගලික විස්තර",
+        "student.profile.photo": "පැතිකඩ ඡායාරූපය",
+        "student.profile.qrPlaceholder": "ඔබේ සිසු QR කේතය ලබා ගත හැකි වූ විට මෙහි දිස් වේ.",
+        "student.profile.saved": "සුරකින ලදී.",
+        "student.profile.sections": "සිසු පැතිකඩ කොටස්",
+        "student.profile.tab.attendance": "පැමිණීම",
+        "student.profile.tab.courses": "ලියාපදිංචි පාඨමාලා",
+        "student.profile.tab.exams": "සහභාගී වූ විභාග",
+        "student.profile.tab.general": "සාමාන්‍ය",
+        "student.profile.tab.payments": "ගෙවීම්",
+        "student.profile.tab.qr": "QR",
+        "student.profile.unexpectedError": "අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        "student.profile.validation.nameRequired": "නම අවශ්‍යයි.",
+        "student.profile.validation.nameTooLong": "නම අක්ෂර {max} කට වඩා අඩු විය යුතුය.",
+        "student.profileBanner.asksFor": "ඔබේ ආයතනය ඉල්ලා සිටින්නේ: {fields}.",
+        "student.profileBanner.link": "පැතිකඩ සම්පූර්ණ කරන්න",
+        "student.profileBanner.title": "ඔබේ පැතිකඩ සම්පූර්ණ කරන්න.",
+        "student.reactivation.checkout": "ගෙවීමට ඉදිරියට යන්න",
+        "student.reactivation.checkoutFor": "{enrollment} සඳහා ගෙවීමට ඉදිරියට යන්න",
+        "student.reactivation.col.action": "ක්‍රියාව",
+        "student.reactivation.col.enrollment": "ලියාපදිංචිය",
+        "student.reactivation.col.reviewed": "සමාලෝචනය කළේ",
+        "student.reactivation.col.status": "තත්ත්වය",
+        "student.reactivation.col.submitted": "ඉදිරිපත් කළේ",
+        "student.reactivation.expiredError": "ඔබේ කල් ඉකුත් වූ පාඨමාලා පූරණය කළ නොහැකි විය.",
+        "student.reactivation.expiredHeading": "ප්‍රවේශය කල් ඉකුත් වූ පාඨමාලා",
+        "student.reactivation.expiredLoading": "ඔබේ කල් ඉකුත් වූ පාඨමාලා පූරණය වෙමින්…",
+        "student.reactivation.historyCaption": "ඔබේ නැවත සක්‍රිය කිරීමේ ඉල්ලීම් ඉතිහාසය",
+        "student.reactivation.historyEmpty.description": "පාඨමාලාවකට ඔබේ ගෙවූ ප්‍රවේශය කල් ඉකුත් වූ පසු, ඉහත ලැයිස්තුවෙන් හෝ මගේ පාඨමාලා වෙතින් නැවත සක්‍රිය කිරීම ඉල්ලිය හැක.",
+        "student.reactivation.historyEmpty.title": "ඔබ තවම කිසිදු පාඨමාලාවක් සඳහා නැවත සක්‍රිය කිරීම ඉල්ලා නැත",
+        "student.reactivation.historyHeading": "ඔබේ නැවත සක්‍රිය කිරීමේ ඉල්ලීම්",
+        "student.reactivation.historyLoading": "ඔබේ නැවත සක්‍රිය කිරීමේ ඉල්ලීම් පූරණය වෙමින්…",
+        "student.reactivation.noneExpired": "ඔබේ කිසිදු පාඨමාලාවකට දැනට නැවත සක්‍රිය කිරීම අවශ්‍ය නැත.",
+        "student.reactivation.notReviewed": "තවම සමාලෝචනය කර නැත",
+        "student.reactivation.requestButton": "නැවත සක්‍රිය කිරීම ඉල්ලන්න",
+        "student.reactivation.requestDescription": "මෙම පාඨමාලාවට ඔබේ ප්‍රවේශය කල් ඉකුත් වී ඇත. ඉල්ලීමක් ඉදිරිපත් කිරීමෙන් ඔබේ ආයතනයේ පරිපාලකට දැනුම් දෙයි — අනුමත වුවහොත්, ප්‍රවේශය යළි ලබා ගැනීමට ඔබට නව ඇණවුමක් කළ හැක.",
+        "student.reactivation.requestFor": "{enrollment} සඳහා නැවත සක්‍රිය කිරීම ඉල්ලන්න",
+        "student.reactivation.submit": "නැවත සක්‍රිය කිරීමේ ඉල්ලීම ඉදිරිපත් කරන්න",
+        "student.reactivation.submittedDescription": "ආයතන පරිපාලකයෙකු ඔබේ ඉල්ලීම සමාලෝචනය කරයි. පහත ඉල්ලීම් ඉතිහාසයෙන් එහි තත්ත්වය බලන්න — අනුමත වූ පසු ඔබට නව ඇණවුමක් කළ හැක.",
+        "student.reactivation.submittedFor": "{enrollment} සඳහා නැවත සක්‍රිය කිරීමේ ඉල්ලීම ඉදිරිපත් කළා",
+        "student.reactivation.submitting": "ඉදිරිපත් කරමින්…",
+        "student.reactivation.submittingLive": "නැවත සක්‍රිය කිරීමේ ඉල්ලීම ඉදිරිපත් කරමින්…",
+        "student.reactivation.subtitle": "ප්‍රවේශය කල් ඉකුත් වූ පාඨමාලාවක් සඳහා නැවත සක්‍රිය කිරීම ඉල්ලා, පසුගිය ඉල්ලීම්වල තත්ත්වය බලන්න.",
+        "student.reactivation.title": "නැවත සක්‍රිය කිරීම",
+        "student.slip.browse": "ගොනු පිරික්සන්න",
+        "student.slip.dragDrop": "ගොනුවක් මෙතැනට ඇද දමන්න, නැතහොත්",
+        "student.slip.fileLabel": "පත්‍රිකා ගොනුව",
+        "student.slip.fixFields": "කරුණාකර උද්දීපනය කළ ක්ෂේත්‍ර නිවැරදි කර නැවත උත්සාහ කරන්න.",
+        "student.slip.flagged": "සමාලෝචකයෙකුට වඩාත් සමීපව බැලීම සඳහා මෙම පත්‍රිකාව ස්වයංක්‍රීයව සලකුණු කෙරිණි. මෙය තොරතුරු සඳහා පමණි — එය ප්‍රතික්ෂේප කිරීමක් නොවන අතර ඔබෙන් කිසිදු ක්‍රියාවක් අවශ්‍ය නැත.",
+        "student.slip.helper": "පිළිගන්නා ආකෘති: {formats}. උපරිම ප්‍රමාණය: {size}.",
+        "student.slip.legend": "ගෙවීම් පත්‍රිකාවක් උඩුගත කරන්න",
+        "student.slip.readyToDrop": "ගොනුව දැමීමට සූදානම්",
+        "student.slip.reference": "යොමු අංකය: {reference}",
+        "student.slip.referenceLabel": "යොමු අංකය",
+        "student.slip.selected": "තෝරාගත්: {file}",
+        "student.slip.submit": "ගෙවීම් පත්‍රිකාව ඉදිරිපත් කරන්න",
+        "student.slip.submitted": "ඉදිරිපත් කළා — සමාලෝචනය වෙමින්. සමාලෝචකයෙකු මෙම පත්‍රිකාව අනුමත කළ පසු ඔබේ පාඨමාලා ප්‍රවේශය විවෘත වේ.",
+        "student.slip.subtitle": "දැනටමත් බැංකු මාරුවක් කළාද? යොමු අංකය ඇතුළත් කර සමාලෝචනය සඳහා ඔබේ පත්‍රිකාව උඩුගත කරන්න.",
+        "student.slip.title": "ගෙවීම් පත්‍රිකාව උඩුගත කරන්න",
+        "student.slip.uploadFailed": "මෙම ගෙවීම් පත්‍රිකාව උඩුගත කළ නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        "student.slip.uploading": "උඩුගත කරමින්…",
+        "student.slip.validation.fileEmpty": "තෝරාගත් ගොනුව හිස් ය.",
+        "student.slip.validation.fileRequired": "උඩුගත කිරීමට ගොනුවක් තෝරන්න.",
+        "student.slip.validation.fileTooLarge": "ගොනුව ඉතා විශාලයි. උපරිම ප්‍රමාණය {size}.",
+        "student.slip.validation.fileType": "සහාය නොදක්වන ගොනු වර්ගයකි. පිළිගන්නා ආකෘති: {formats}.",
+        "student.slip.validation.referenceRequired": "යොමු අංකය අවශ්‍යයි.",
+        "student.slip.validation.referenceTooLong": "යොමු අංකය අක්ෂර {max} කට වඩා අඩු විය යුතුය.",
         "teacher.courses.empty.action": "ඔබගේ පළමු පාඨමාලාව සාදන්න",
         "teacher.courses.empty.description": "ඔබට තවමත් පාඨමාලා කිසිවක් නැත. ආරම්භ කිරීමට ඔබගේ පළමු පාඨමාලාව සාදන්න, නැතහොත් මෙහි පාඨමාලා පවරා ඇතැයි ඔබ අපේක්ෂා කළේ නම් ඔබගේ ආයතන පරිපාලක අමතන්න.",
         "teacher.courses.empty.title": "තවමත් පවරා ඇති පාඨමාලා නොමැත",
@@ -2519,7 +4600,44 @@
         "teacher.profile.unavailable.description": "මෙම ගිණුමට තවමත් ගුරු වාර්තාවක් සම්බන්ධ කර නැත. ඔබගේ ආයතන පරිපාලක අමතන්න.",
         "teacher.profile.unavailable.title": "ඔබගේ ගුරු පැතිකඩ ලබා ගත නොහැක",
         "teacher.profile.validation.biographyTooLong": "චරිතාපදානය අක්ෂර {max} හෝ ඊට අඩු විය යුතුය.",
-        "teacher.profile.validation.qualificationsTooLong": "සුදුසුකම් අක්ෂර {max} හෝ ඊට අඩු විය යුතුය."
+        "teacher.profile.validation.qualificationsTooLong": "සුදුසුකම් අක්ෂර {max} හෝ ඊට අඩු විය යුතුය.",
+        "tenantAdmin.nav.appearance": "පෙනුම",
+        "tenantAdmin.nav.attendanceReports": "පැමිණීම් වාර්තා",
+        "tenantAdmin.nav.auditLog": "විගණන සටහන",
+        "tenantAdmin.nav.broadcasts": "විකාශන",
+        "tenantAdmin.nav.calendar": "දින දර්ශනය",
+        "tenantAdmin.nav.courses": "පාඨමාලා",
+        "tenantAdmin.nav.customDomain": "අභිරුචි වසම",
+        "tenantAdmin.nav.dashboard": "උපකරණ පුවරුව",
+        "tenantAdmin.nav.devicesAccess": "උපාංග සහ ප්‍රවේශය",
+        "tenantAdmin.nav.discounts": "වට්ටම්",
+        "tenantAdmin.nav.exams": "විභාග",
+        "tenantAdmin.nav.expenseCategories": "වියදම් කාණ්ඩ",
+        "tenantAdmin.nav.expenses": "වියදම්",
+        "tenantAdmin.nav.financeReports": "මූල්‍ය වාර්තා",
+        "tenantAdmin.nav.financeSummary": "මූල්‍ය සාරාංශය",
+        "tenantAdmin.nav.liveClasses": "සජීවී පන්ති",
+        "tenantAdmin.nav.markAttendance": "පැමිණීම සලකුණු කරන්න",
+        "tenantAdmin.nav.mediaLibrary": "මාධ්‍ය පුස්තකාලය",
+        "tenantAdmin.nav.messageTemplates": "පණිවිඩ සැකිලි",
+        "tenantAdmin.nav.messaging": "පණිවිඩ යැවීම (SMS සහ WhatsApp)",
+        "tenantAdmin.nav.payments": "ගෙවීම්",
+        "tenantAdmin.nav.reactivationApprovals": "නැවත සක්‍රිය කිරීමේ අනුමැතිය",
+        "tenantAdmin.nav.reports": "වාර්තා",
+        "tenantAdmin.nav.settings": "සැකසුම්",
+        "tenantAdmin.nav.staff": "කාර්ය මණ්ඩලය",
+        "tenantAdmin.nav.students": "සිසුන්",
+        "tenantAdmin.nav.teacherPayouts": "ගුරු ගෙවීම්",
+        "tenantAdmin.nav.teachers": "ගුරුවරු",
+        "tenantAdmin.nav.translations": "පරිවර්තන",
+        "tenantAdmin.nav.tuteDispatch": "නිබන්ධන යැවීම",
+        "tenantAdmin.navGroup.academic": "අධ්‍යයන",
+        "tenantAdmin.navGroup.administration": "පරිපාලනය",
+        "tenantAdmin.navGroup.communication": "සන්නිවේදනය",
+        "tenantAdmin.navGroup.dashboard": "උපකරණ පුවරුව",
+        "tenantAdmin.navGroup.finance": "මූල්‍ය",
+        "tenantAdmin.navGroup.instituteConfiguration": "ආයතන වින්‍යාසය",
+        "tenantAdmin.portal": "ආයතන පරිපාලක"
       }
     },
     "ta-LK": {
@@ -2559,7 +4677,11 @@
         "auth.policyConsent.and": "மற்றும்",
         "auth.policyConsent.prefix": "இந்தச் சேவையைப் பயன்படுத்துவதன் மூலம் நீங்கள்",
         "auth.policyConsent.suffix": " ஆகியவற்றை ஏற்றுக்கொள்கிறீர்கள்.",
+        "common.accessState.active": "செயலில்",
+        "common.accessState.expired": "காலாவதியானது",
+        "common.accessState.neverEnrolled": "ஒருபோதும் சேரவில்லை",
         "common.actions.cancel": "ரத்துசெய்",
+        "common.actions.close": "மூடு",
         "common.actions.retry": "மீண்டும் முயற்சிக்கவும்",
         "common.actions.save": "சேமி",
         "common.auth.changePassword": "கடவுச்சொல்லை மாற்று",
@@ -2572,10 +4694,24 @@
         "common.courseStatus.draft": "வரைவு",
         "common.courseStatus.private": "தனிப்பட்டது",
         "common.courseStatus.public": "பொது",
+        "common.enroll.confirmQuestion": "{course} இல் சேரவா?",
+        "common.enroll.confirmQuestionGeneric": "இந்தப் பாடநெறியில் சேரவா?",
+        "common.enroll.confirmTitle": "நிச்சயமாகவா?",
+        "common.enroll.error.closed": "இந்தப் பாடநெறிக்கான பதிவு தற்போது மூடப்பட்டுள்ளது. சேர வேண்டுமெனில் உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்.",
+        "common.enroll.error.generic": "உங்களைச் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
+        "common.enroll.error.network": "சேவையகத்தை அணுக முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+        "common.enroll.error.notFound": "இந்தப் பாடநெறியில் இனி சேர முடியாது.",
+        "common.enroll.error.selfDisabled": "உங்கள் நிறுவனமே மாணவர்களைச் சேர்க்கிறது. இந்தப் பாடநெறியில் சேர உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்.",
+        "common.enroll.freeNote": "சேர்வது இலவசம். பாடநெறியை உடனே பார்வையிடலாம்; கட்டணப் பாடங்களைத் திறக்கும்போது கட்டணம் கேட்கப்படும்.",
+        "common.enroll.no": "இல்லை",
+        "common.enroll.yes": "ஆம்",
         "common.footer.contactUs": "எங்களைத் தொடர்புகொள்ள",
         "common.footer.copyright": "© {year} {name}. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.",
         "common.institute.home": "{name} முகப்பு",
         "common.institute.loading": "நிறுவனம் ஏற்றப்படுகிறது",
+        "common.integrations.goToIntegrations": "ஒருங்கிணைப்புகளுக்குச் செல்",
+        "common.integrations.listSeparator": " மற்றும் ",
+        "common.integrations.reconnectNeeded": "{count, plural, one {உங்கள் {providers} கணக்கை மீண்டும் இணைக்க வேண்டும்.} other {உங்கள் {providers} கணக்குகளை மீண்டும் இணைக்க வேண்டும்.}}",
         "common.language.changed": "மொழி {language} ஆக மாற்றப்பட்டது",
         "common.language.label": "மொழி",
         "common.nav.openMenu": "வழிசெலுத்தல் பட்டியைத் திற",
@@ -2585,6 +4721,9 @@
         "common.policy.refund": "பணத்திருப்பக் கொள்கை",
         "common.policy.terms": "சேவை விதிமுறைகள்",
         "common.portal.teacher": "ஆசிரியர் தளம்",
+        "common.reactivationStatus.approved": "அங்கீகரிக்கப்பட்டது",
+        "common.reactivationStatus.rejected": "நிராகரிக்கப்பட்டது",
+        "common.reactivationStatus.submitted": "சமர்ப்பிக்கப்பட்டது",
         "common.scheduleStatus.basedOnSchedule": "திட்டமிடப்பட்ட வகுப்பு நேரத்தின் அடிப்படையில்",
         "common.scheduleStatus.cancelled": "ரத்துசெய்யப்பட்டது",
         "common.scheduleStatus.live": "இப்போது நேரலை",
@@ -2877,6 +5016,301 @@
         "public.todaysClasses.summaryOver": "முடிந்தவை {count}",
         "public.todaysClasses.summaryScheduled": "திட்டமிடப்பட்டவை {count}",
         "public.todaysClasses.viewCourse": "பாடநெறியைப் பார்",
+        "student.attendance.empty.description": "நீங்கள் கலந்துகொண்ட அமர்வுக்கு ஆசிரியர் வருகையைப் பதிவுசெய்த பின் உங்கள் வருகை வரலாறு இங்கே தோன்றும்.",
+        "student.attendance.empty.title": "இன்னும் வருகைப் பதிவுகள் இல்லை",
+        "student.attendance.loading": "உங்கள் வருகை ஏற்றப்படுகிறது…",
+        "student.attendance.marked": "பதிவுசெய்யப்பட்டது {when}",
+        "student.attendance.noMatch.clear": "வடிகட்டிகளை அழி",
+        "student.attendance.noMatch.description": "வேறு பாடநெறி அல்லது தேதி வரம்பை முயற்சிக்கவும், அல்லது வடிகட்டிகளை அழிக்கவும்.",
+        "student.attendance.noMatch.title": "தேர்ந்தெடுத்த தேதி வடிகட்டிக்குப் பொருந்தும் அமர்வுகள் இல்லை",
+        "student.attendance.subtitle": "நீங்கள் சேர்ந்துள்ள பாடநெறிகளில் உங்களின் சொந்த வருகை வரலாறு.",
+        "student.attendance.title": "எனது வருகை",
+        "student.attendancePanel.absent": "வரவில்லை",
+        "student.attendancePanel.counts": "வருகை {present} · தாமதம் {late} · வரவில்லை {absent} · மொத்தம் {total}",
+        "student.attendancePanel.late": "தாமதம்",
+        "student.attendancePanel.present": "வருகை",
+        "student.attendancePanel.records": "வருகைப் பதிவுகள்",
+        "student.attendancePanel.recordsEmpty": "அமர்வுகள் பதிவுசெய்யப்படும்போது உங்கள் வருகைப் பதிவுகள் இங்கே தோன்றும்.",
+        "student.attendancePanel.recordsLoading": "வருகைப் பதிவுகள் ஏற்றப்படுகின்றன…",
+        "student.attendancePanel.session": "வகுப்பு அமர்வு",
+        "student.attendancePanel.summary": "வருகைச் சுருக்கம்",
+        "student.attendancePanel.summaryEmpty": "ஆசிரியர் வருகையைப் பதிவுசெய்த பின் உங்கள் பாடநெறி வருகைச் சுருக்கம் தோன்றும்.",
+        "student.attendancePanel.summaryLoading": "வருகைச் சுருக்கம் ஏற்றப்படுகிறது…",
+        "student.attendanceSummary.counts": "வருகை {present} · தாமதம் {late} · வரவில்லை {absent} (பதிவுசெய்தவை {total})",
+        "student.attendanceSummary.empty.description": "ஆசிரியர் உங்களுக்கான வருகையைப் பதிவுசெய்த பின் ஒவ்வொரு பாடநெறிக்குமான உங்கள் வருகை விகிதம் இங்கே தோன்றும்.",
+        "student.attendanceSummary.empty.title": "இன்னும் வருகைச் சுருக்கம் இல்லை",
+        "student.attendanceSummary.heading": "பாடநெறி வாரியான வருகை",
+        "student.attendanceSummary.loading": "உங்கள் வருகைச் சுருக்கம் ஏற்றப்படுகிறது…",
+        "student.attendanceSummary.rateSuffix": "வருகை",
+        "student.awaiting.confirmed": "கட்டணம் உறுதிசெய்யப்பட்டது. முழுப் பதிவை உங்கள்",
+        "student.awaiting.confirmedSuffix": " இல் பார்க்கலாம்.",
+        "student.awaiting.historyLink": "கட்டண வரலாறு",
+        "student.awaiting.liveConfirmed": "கட்டண நிலை புதுப்பிக்கப்பட்டது: உறுதிசெய்யப்பட்டது.",
+        "student.awaiting.liveRefunded": "கட்டண நிலை புதுப்பிக்கப்பட்டது: திருப்பியளிக்கப்பட்டது.",
+        "student.awaiting.liveRejected": "கட்டண நிலை புதுப்பிக்கப்பட்டது: நிராகரிக்கப்பட்டது.",
+        "student.awaiting.loading": "கட்டண நிலை சரிபார்க்கப்படுகிறது…",
+        "student.awaiting.refunded": "இந்தக் கட்டணம் திருப்பியளிக்கப்பட்டது. முழுப் பதிவுக்கு உங்கள்",
+        "student.awaiting.refundedSuffix": "ஐப் பார்க்கவும்.",
+        "student.awaiting.rejected": "உங்கள் கட்டணம் நிராகரிக்கப்பட்டது. எந்தத் தொகையும் அறவிடப்படவில்லை, பதிவும் உருவாக்கப்படவில்லை.",
+        "student.awaiting.subtitle": "எங்கள் சேவையகங்கள் உறுதிசெய்ததை மட்டுமே இந்தப் பக்கம் காட்டுகிறது — திசைதிருப்பலை வைத்து ஒருபோதும் ஊகிப்பதில்லை.",
+        "student.awaiting.title": "கட்டண நிலை",
+        "student.awaiting.waiting": "கட்டண உறுதிப்படுத்தலுக்காகக் காத்திருக்கிறது… இந்தப் பக்கம் தானாகப் புதுப்பிக்கப்படும்.",
+        "student.calendar.loading": "நாள்காட்டி ஏற்றப்படுகிறது…",
+        "student.catalog.emptyAvailable.description": "நீங்கள் ஏற்கனவே எல்லாத் திறந்த பாடநெறிகளிலும் உள்ளீர்கள், அல்லது உங்கள் நிறுவனம் இன்னும் புதியவற்றைத் திறக்கவில்லை. பின்னர் மீண்டும் பார்க்கவும்.",
+        "student.catalog.emptyAvailable.title": "சேர்வதற்குத் திறந்த பாடநெறிகள் இல்லை",
+        "student.catalog.emptyEnrolled.action": "கிடைக்கும் பாடநெறிகளைப் பார்",
+        "student.catalog.emptyEnrolled.description": "தொடங்க, கிடைக்கும் பாடநெறிகளைப் பார்வையிட்டு இலவசமாகச் சேருங்கள்.",
+        "student.catalog.emptyEnrolled.title": "நீங்கள் இன்னும் எந்தப் பாடநெறியிலும் சேரவில்லை",
+        "student.catalog.enroll": "சேருக",
+        "student.catalog.enrollLabel": "{course} இல் சேருக",
+        "student.catalog.enrolled": "நீங்கள் {course} இல் சேர்ந்துவிட்டீர்கள். அதைச் சேர்ந்த பாடநெறிகளின் கீழ் காணலாம்.",
+        "student.catalog.enrolledList": "சேர்ந்த பாடநெறிகள்",
+        "student.catalog.enrollingLabel": "{course} இல் சேர்க்கப்படுகிறது",
+        "student.catalog.filterByTag": "குறிச்சொல் மூலம் வடிகட்டு",
+        "student.catalog.filtersRegion": "தேடலும் வடிகட்டிகளும்",
+        "student.catalog.found": "{count, plural, one {# பாடநெறி கிடைத்தது} other {# பாடநெறிகள் கிடைத்தன}}",
+        "student.catalog.noMatch.description": "வேறு தேடல் சொல்லை முயற்சிக்கவும், அல்லது குறிச்சொல் வடிகட்டியை அழிக்கவும்.",
+        "student.catalog.noMatch.title": "உங்கள் தேடலுக்குப் பொருந்தும் பாடநெறிகள் இல்லை",
+        "student.catalog.openCourse": "பாடநெறியைத் திற",
+        "student.catalog.openCourseLabel": "{course} பாடநெறியைத் திற",
+        "student.catalog.pages": "பாடநெறிப் பட்டியல் பக்கங்கள்",
+        "student.catalog.search": "பாடநெறிகளைத் தேடு",
+        "student.catalog.selfEnrollmentDisabled": "உங்கள் நிறுவனமே மாணவர்களைப் பாடநெறிகளில் சேர்க்கிறது. இவற்றில் ஒன்றில் சேர உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்.",
+        "student.catalog.sortBy": "வரிசைப்படுத்து",
+        "student.catalog.sortDefault": "இயல்புநிலை",
+        "student.catalog.sortTitle": "தலைப்பு",
+        "student.catalog.tagsError": "குறிச்சொல் வடிகட்டிகளை ஏற்ற முடியவில்லை.",
+        "student.catalog.teacher": "ஆசிரியர்:",
+        "student.catalog.viewCourse": "பாடநெறியைப் பார்",
+        "student.catalog.viewCourseLabel": "{course} பாடநெறியைப் பார்",
+        "student.checkout.access": "அணுகல்",
+        "student.checkout.addAddress": "எனது சுயவிவரத்தில் உங்கள் முகவரியைச் சேர்க்கவும்",
+        "student.checkout.addAddressSuffix": ", பின்னர் இணையவழியில் செலுத்தத் திரும்பி வாருங்கள்.",
+        "student.checkout.bankHint": "ஏற்கனவே வங்கிப் பரிமாற்றம் செய்துவிட்டீர்களா? இணையவழியில் செலுத்துவதற்குப் பதிலாக உங்கள் கட்டணச் சீட்டைப் பதிவேற்றவும்.",
+        "student.checkout.days": "{count, plural, one {# நாள்} other {# நாட்கள்}}",
+        "student.checkout.enroll": "சேருக",
+        "student.checkout.gatewayFailed": "பாதுகாப்பான கட்டணப் பக்கத்தைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது வங்கிப் பரிமாற்றம் மூலம் செலுத்தவும்.",
+        "student.checkout.lifetime": "வாழ்நாள் அணுகல்",
+        "student.checkout.needsAddress": "இணையவழிக் கட்டணத்துக்கு உங்கள் பில்லிங் முகவரி தேவை.",
+        "student.checkout.notOpen": "இந்தப் பாடநெறி தற்போது சேர்வதற்குத் திறக்கப்படவில்லை.",
+        "student.checkout.onlineUnavailable": "உங்கள் நிறுவனத்தில் இணையவழிக் கட்டணம் இன்னும் கிடைக்கவில்லை — கீழே வங்கிப் பரிமாற்றம் மூலம் செலுத்தவும்.",
+        "student.checkout.payByBank": "வங்கிப் பரிமாற்றம் மூலம் செலுத்து",
+        "student.checkout.payOnline": "இணையவழியில் செலுத்து (PayHere)",
+        "student.checkout.preparing": "தயாராகிறது…",
+        "student.checkout.preparingSlip": "வங்கிப் பரிமாற்றப் பதிவேற்றம் தயாராகிறது…",
+        "student.checkout.price": "விலை",
+        "student.checkout.starting": "கட்டணம் தொடங்கப்படுகிறது…",
+        "student.checkout.subtitle": "கீழே உள்ள பாடநெறி விவரங்களைச் சரிபார்த்து, பின்னர் கட்டணத்துக்குத் தொடரவும்.",
+        "student.checkout.title": "கட்டணம் செலுத்துதல்",
+        "student.common.courseIdLabel": "பாடநெறி",
+        "student.common.enrollmentIdLabel": "பதிவு",
+        "student.common.loadingCourse": "பாடநெறி ஏற்றப்படுகிறது…",
+        "student.common.next": "அடுத்தது",
+        "student.common.noMoreResults.description": "இந்தப் பக்கத்தில் பதிவுகள் இல்லை. முந்தைய பக்கத்துக்குத் திரும்பவும்.",
+        "student.common.noMoreResults.title": "மேலும் முடிவுகள் இல்லை",
+        "student.common.pageOf": "பக்கம் {page} / {total}",
+        "student.common.previous": "முந்தையது",
+        "student.common.saveChanges": "மாற்றங்களைச் சேமி",
+        "student.common.saving": "சேமிக்கப்படுகிறது…",
+        "student.common.updating": "புதுப்பிக்கப்படுகிறது…",
+        "student.courses.loading": "பாடநெறிகள் ஏற்றப்படுகின்றன…",
+        "student.dashboard.activeCourses": "செயலில் உள்ள பாடநெறிகள்",
+        "student.dashboard.browseCourses": "பாடநெறிகளைப் பார்வையிடு",
+        "student.dashboard.empty.description": "நீங்கள் ஒரு பாடநெறியில் சேர்ந்தவுடன், உங்கள் அணுகல் நிலையும் சமீபத்திய பாடநெறிகளும் இங்கே காட்டப்படும்.",
+        "student.dashboard.empty.title": "உங்களுக்கு இன்னும் செயலில் உள்ள பதிவுகள் இல்லை",
+        "student.dashboard.expiredAlert": "{count, plural, one {உங்கள் ஒரு பாடநெறியின் அணுகல் காலாவதியாகிவிட்டது.} other {உங்கள் # பாடநெறிகளின் அணுகல் காலாவதியாகிவிட்டது.}}",
+        "student.dashboard.loadingEnrollments": "உங்கள் பதிவுகள் ஏற்றப்படுகின்றன…",
+        "student.dashboard.loadingPayments": "கட்டணச் செயல்பாடு ஏற்றப்படுகிறது…",
+        "student.dashboard.mostRecentPayment": "சமீபத்திய கட்டணம்",
+        "student.dashboard.needsAttention": "கவனம் தேவை",
+        "student.dashboard.needsAttentionHint": "இந்தப் பாடநெறிகளின் அணுகல் காலாவதியாகிவிட்டது",
+        "student.dashboard.noActive.allExpired": "உங்கள் எல்லாப் பதிவுகளும் காலாவதியாகிவிட்டன. உங்கள் பாடநெறிகளை மீண்டும் இங்கே காண அணுகலை மீண்டும் செயல்படுத்தவும்.",
+        "student.dashboard.noActive.description": "தற்போது செயலில் உள்ள அணுகல் கொண்ட பாடநெறிகள் இங்கே தோன்றும்.",
+        "student.dashboard.noActive.title": "காட்டுவதற்கு இன்னும் செயலில் உள்ள பாடநெறிகள் இல்லை",
+        "student.dashboard.noPayments": "இன்னும் கட்டணங்கள் இல்லை",
+        "student.dashboard.paymentActivity": "கட்டணச் செயல்பாடு",
+        "student.dashboard.paymentConfirmed": "கட்டணம் உறுதிசெய்யப்பட்டது — {amount}",
+        "student.dashboard.reactivate": "அணுகலை மீண்டும் செயல்படுத்து",
+        "student.dashboard.recentCourses": "சமீபத்திய பாடநெறிகள்",
+        "student.dashboard.refund": "திருப்பியளிப்பு — {amount}",
+        "student.dashboard.subtitle": "உங்கள் பதிவுகள், பாடநெறிகள், சமீபத்திய கட்டணச் செயல்பாடு ஆகியவற்றின் ஒரு பார்வை.",
+        "student.dashboard.title": "மேலோட்டம்",
+        "student.dashboard.viewAll": "எனது எல்லாப் பாடநெறிகளையும் பார்",
+        "student.devices.caption": "உங்கள் சாதனங்கள்",
+        "student.devices.confirmDescription": "அந்தச் சாதனம் உடனே வெளியேற்றப்படும். புதிய சாதனம் பயன்படுத்துவதற்கு முன் அதன் இடம் சிறிது நேரம் ஒதுக்கப்பட்டிருக்கும்.",
+        "student.devices.confirmTitle": "{device} ஐ அகற்றவா?",
+        "student.devices.empty.description": "சாதனங்களில் நீங்கள் உள்நுழைந்த பின் அவை இங்கே தோன்றும்.",
+        "student.devices.empty.title": "இன்னும் சாதனங்கள் இல்லை",
+        "student.devices.loading": "உங்கள் சாதனங்கள் ஏற்றப்படுகின்றன…",
+        "student.devices.managedByInstitute": "உங்கள் சாதனங்களை உங்கள் நிறுவனம் நிர்வகிக்கிறது. இனி பயன்படுத்தாத சாதனத்தை அகற்ற உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்.",
+        "student.devices.remove": "அகற்று",
+        "student.devices.removeDevice": "சாதனத்தை அகற்று",
+        "student.devices.removeLabel": "{device} ஐ அகற்று",
+        "student.devices.removed": "{device} அகற்றப்பட்டது.",
+        "student.devices.removing": "அகற்றப்படுகிறது…",
+        "student.devices.subtitle": "நீங்கள் உள்நுழைந்த உலாவிகளும் சாதனங்களும். எத்தனையைப் பயன்படுத்தலாம் என்பதை உங்கள் நிறுவனம் வரம்பிடலாம்.",
+        "student.devices.title": "எனது சாதனங்கள்",
+        "student.header.accountFallback": "மாணவர் கணக்கு",
+        "student.header.accountMenu": "கணக்கு மெனுவைத் திற",
+        "student.header.explore": "ஆராய்க",
+        "student.header.myCourses": "எனது பாடநெறிகள்",
+        "student.header.pay": "செலுத்து",
+        "student.impersonation.dismiss": "அறிவிப்பை மூடு",
+        "student.impersonation.exit": "நிர்வாகிக்குத் திரும்பு",
+        "student.impersonation.exiting": "வெளியேறுகிறது…",
+        "student.impersonation.region": "ஆதரவு அமர்வு",
+        "student.impersonation.startedBy": "({name} தொடங்கியது)",
+        "student.impersonation.viewingAs": "{name} ஆகப் பார்க்கிறீர்கள் — படிக்க மட்டுமான ஆதரவு அமர்வு · முடிவது {time}",
+        "student.nav.aocPlayer": "AOC Player",
+        "student.nav.availableCourses": "கிடைக்கும் பாடநெறிகள்",
+        "student.nav.calendar": "நாள்காட்டி",
+        "student.nav.dashboard": "கட்டுப்பாட்டுப் பலகை",
+        "student.nav.exams": "தேர்வுகள்",
+        "student.nav.myAttendance": "எனது வருகை",
+        "student.nav.myDevices": "எனது சாதனங்கள்",
+        "student.nav.notifications": "அறிவிப்புகள்",
+        "student.nav.profile": "சுயவிவரம்",
+        "student.nav.reactivation": "மீண்டும் செயல்படுத்தல்",
+        "student.notifications.empty.description": "உங்கள் நிறுவனத்தின் அறிவிப்புகளும் கட்டணப் புதுப்பிப்புகளும் (உறுதிசெய்யப்பட்டவை, நிராகரிக்கப்பட்டவை அல்லது திருப்பியளிக்கப்பட்டவை) இங்கே தோன்றும்.",
+        "student.notifications.empty.title": "இன்னும் அறிவிப்புகள் இல்லை",
+        "student.notifications.subtitle": "உங்கள் நிறுவனத்தின் அறிவிப்புகளும் உங்கள் கட்டணங்கள் பற்றிய புதுப்பிப்புகளும்.",
+        "student.notifications.title": "அறிவிப்புகள்",
+        "student.payment.backToCheckout": "கட்டணத்துக்குத் திரும்பு",
+        "student.payment.backToDashboard": "கட்டுப்பாட்டுப் பலகைக்குத் திரும்பு",
+        "student.payment.cancelled.notice": "இந்த முயற்சிக்கு எந்தப் பணமும் அறவிடப்படவில்லை. மீண்டும் முயற்சிக்கலாம், அல்லது வங்கிப் பரிமாற்றம் மூலம் செலுத்தலாம்.",
+        "student.payment.cancelled.subtitle": "கட்டணத்தை முடிப்பதற்கு முன் PayHere கட்டணப் பக்கத்திலிருந்து வெளியேறிவிட்டீர்கள்.",
+        "student.payment.cancelled.title": "கட்டணம் ரத்துசெய்யப்பட்டது",
+        "student.payment.loadingOrder": "ஆணை ஏற்றப்படுகிறது…",
+        "student.payment.myCourses": "எனது பாடநெறிகள்",
+        "student.paymentHistory.date": "தேதி",
+        "student.paymentHistory.detailError": "ஆணை விவரங்களை ஏற்ற முடியவில்லை.",
+        "student.paymentHistory.detailLoading": "ஆணை விவரங்கள் ஏற்றப்படுகின்றன…",
+        "student.paymentHistory.emptyDescription": "முடிந்த கட்டணங்களும் வாங்கிய தயாரிப்புகளும் இங்கே தோன்றும்.",
+        "student.paymentHistory.hide": "விவரங்களை மறை",
+        "student.paymentHistory.loading": "கட்டண வரலாறு ஏற்றப்படுகிறது…",
+        "student.paymentHistory.more": "மேலும் பார்",
+        "student.paymentHistory.order": "ஆணை {id}",
+        "student.paymentHistory.orderHash": "ஆணை #{number}",
+        "student.paymentHistory.orderNumber": "ஆணை எண்",
+        "student.paymentHistory.products": "வாங்கிய தயாரிப்புகள்",
+        "student.paymentHistory.status": "நிலை",
+        "student.paymentHistory.total": "மொத்தம்",
+        "student.player.active": "செயலில்",
+        "student.player.details": "பதிப்பு {version} · இணைக்கப்பட்டது {paired} · கடைசியாகப் பயன்படுத்தியது {lastUsed}",
+        "student.player.empty.description": "இந்தக் கணினியில் AOC Player ஐ நிறுவி, பின்னர் மேலே “AOC Player ஐ இணை” என்பதைத் தேர்ந்தெடுக்கவும்.",
+        "student.player.empty.title": "இன்னும் AOC Player இணைக்கப்படவில்லை",
+        "student.player.forWindows": "Windows க்கான AOC Player",
+        "student.player.install.description": "Windows 10 மற்றும் 11 க்கு. இந்தக் கணினியில் ஒருமுறை நிறுவுங்கள். பாட வீடியோவில் முதல் முறை இயக்கு அழுத்தும்போது, அது தானாக அமைந்துவிடும்.",
+        "student.player.install.download": "Windows க்குப் பதிவிறக்கு",
+        "student.player.install.title": "AOC Player ஐ நிறுவு",
+        "student.player.install.unavailable": "AOC Player பதிவிறக்கம் இன்னும் கிடைக்கவில்லை. கிடைக்கும்போது உங்கள் நிறுவனம் தெரிவிக்கும்.",
+        "student.player.listLabel": "உங்கள் AOC Player கள்",
+        "student.player.loading": "உங்கள் பிளேயர்கள் ஏற்றப்படுகின்றன…",
+        "student.player.pair.button": "AOC Player ஐ இணை",
+        "student.player.pair.description": "பார்ப்பதற்குத் தேவையில்லை: இயக்கு அழுத்தும்போது பிளேயர் தானாக இணைக்கப்படும். முன்கூட்டியே அமைக்க மட்டும் இதைப் பயன்படுத்துங்கள். இந்தக் கணினியில் மீண்டும் இணைத்தால் முந்தைய பிளேயர் மாற்றப்படும்.",
+        "student.player.pair.done": "AOC Player இணைக்கப்பட்டது.",
+        "student.player.pair.launchFailed": "AOC Player ஐத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
+        "student.player.pair.timedOut": "AOC Player இணைப்பை முடிக்கவில்லை. அது இந்தக் கணினியில் நிறுவப்பட்டுள்ளதை உறுதிசெய்து, மீண்டும் முயற்சிக்கவும்.",
+        "student.player.pair.title": "இந்தக் கணினியை இணை (விருப்பத்தேர்வு)",
+        "student.player.pair.waiting": "AOC Player இணைப்பை முடிக்கக் காத்திருக்கிறது…",
+        "student.player.preparing": "தயாராகிறது…",
+        "student.player.remove.button": "அகற்று",
+        "student.player.remove.confirm": "பிளேயரை அகற்று",
+        "student.player.remove.description": "அதில் இயங்கும் எந்த வீடியோவும் உடனே நிற்கும். பின்னர் மீண்டும் இணைக்கலாம்.",
+        "student.player.remove.label": "இந்த AOC Player ஐ அகற்று",
+        "student.player.remove.removing": "அகற்றப்படுகிறது…",
+        "student.player.remove.title": "இந்த AOC Player ஐ அகற்றவா?",
+        "student.player.removedBadge": "அகற்றப்பட்டது",
+        "student.player.revoked.admin": "உங்கள் நிறுவனத்தால் அகற்றப்பட்டது",
+        "student.player.revoked.device": "அதன் சாதனம் அகற்றப்பட்டது",
+        "student.player.revoked.other": "அகற்றப்பட்டது",
+        "student.player.revoked.repaired": "புதிய இணைப்பால் மாற்றப்பட்டது",
+        "student.player.revoked.student": "உங்களால் அகற்றப்பட்டது",
+        "student.player.subtitle": "உங்கள் நிறுவனம் AOC Player செயலியில் பாட வீடியோக்களை இயக்கினால், அதை இந்தக் கணினியுடன் ஒருமுறை இணையுங்கள்.",
+        "student.player.title": "AOC Player",
+        "student.player.yourPlayers": "உங்கள் பிளேயர்கள்",
+        "student.portal": "மாணவர் தளம்",
+        "student.profile.additional.description": "உங்கள் நிறுவனம் மாணவர்களைப் பற்றிச் சேகரிக்கும் தகவல்கள். (விருப்பத்தேர்வு) எனக் குறிக்கப்பட்ட புலங்களை வெறுமையாக விடலாம்.",
+        "student.profile.additional.empty.description": "உங்கள் நிறுவனம் தற்போது கூடுதல் விவரங்கள் எதையும் சேகரிக்கவில்லை.",
+        "student.profile.additional.empty.title": "நிரப்ப வேறு எதுவும் இல்லை",
+        "student.profile.additional.heading": "கூடுதல் விவரங்கள்",
+        "student.profile.additional.loading": "உங்கள் விவரங்கள் ஏற்றப்படுகின்றன…",
+        "student.profile.additional.saved": "விவரங்கள் சேமிக்கப்பட்டன.",
+        "student.profile.additional.saving": "உங்கள் விவரங்கள் சேமிக்கப்படுகின்றன…",
+        "student.profile.displayName": "காட்சிப் பெயர்",
+        "student.profile.examsPlaceholder": "நீங்கள் கலந்துகொண்ட தேர்வுகள் இங்கே தோன்றும்.",
+        "student.profile.field.email": "மின்னஞ்சல்",
+        "student.profile.field.name": "பெயர்",
+        "student.profile.field.role": "பங்கு",
+        "student.profile.field.status": "நிலை",
+        "student.profile.loading": "உங்கள் சுயவிவரம் ஏற்றப்படுகிறது…",
+        "student.profile.personalDetails": "தனிப்பட்ட விவரங்கள்",
+        "student.profile.photo": "சுயவிவரப் படம்",
+        "student.profile.qrPlaceholder": "உங்கள் மாணவர் QR குறியீடு கிடைக்கும்போது இங்கே தோன்றும்.",
+        "student.profile.saved": "சேமிக்கப்பட்டது.",
+        "student.profile.sections": "மாணவர் சுயவிவரப் பகுதிகள்",
+        "student.profile.tab.attendance": "வருகை",
+        "student.profile.tab.courses": "சேர்ந்த பாடநெறிகள்",
+        "student.profile.tab.exams": "கலந்துகொண்ட தேர்வுகள்",
+        "student.profile.tab.general": "பொது",
+        "student.profile.tab.payments": "கட்டணங்கள்",
+        "student.profile.tab.qr": "QR",
+        "student.profile.unexpectedError": "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
+        "student.profile.validation.nameRequired": "பெயர் தேவை.",
+        "student.profile.validation.nameTooLong": "பெயர் {max} எழுத்துகளுக்கு மேல் இருக்கக்கூடாது.",
+        "student.profileBanner.asksFor": "உங்கள் நிறுவனம் கேட்பவை: {fields}.",
+        "student.profileBanner.link": "சுயவிவரத்தை நிறைவுசெய்",
+        "student.profileBanner.title": "உங்கள் சுயவிவரத்தை நிறைவுசெய்யுங்கள்.",
+        "student.reactivation.checkout": "கட்டணத்துக்குத் தொடர்",
+        "student.reactivation.checkoutFor": "{enrollment} க்கான கட்டணத்துக்குத் தொடர்",
+        "student.reactivation.col.action": "செயல்",
+        "student.reactivation.col.enrollment": "பதிவு",
+        "student.reactivation.col.reviewed": "மதிப்பாய்வு செய்யப்பட்டது",
+        "student.reactivation.col.status": "நிலை",
+        "student.reactivation.col.submitted": "சமர்ப்பிக்கப்பட்டது",
+        "student.reactivation.expiredError": "காலாவதியான உங்கள் பாடநெறிகளை ஏற்ற முடியவில்லை.",
+        "student.reactivation.expiredHeading": "அணுகல் காலாவதியான பாடநெறிகள்",
+        "student.reactivation.expiredLoading": "காலாவதியான உங்கள் பாடநெறிகள் ஏற்றப்படுகின்றன…",
+        "student.reactivation.historyCaption": "உங்கள் மீண்டும் செயல்படுத்தல் கோரிக்கை வரலாறு",
+        "student.reactivation.historyEmpty.description": "ஒரு பாடநெறிக்கான கட்டண அணுகல் காலாவதியானதும், மேலே உள்ள பட்டியலிலிருந்தோ எனது பாடநெறிகளிலிருந்தோ மீண்டும் செயல்படுத்தலைக் கோரலாம்.",
+        "student.reactivation.historyEmpty.title": "நீங்கள் இன்னும் எந்தப் பாடநெறிக்கும் மீண்டும் செயல்படுத்தலைக் கோரவில்லை",
+        "student.reactivation.historyHeading": "உங்கள் மீண்டும் செயல்படுத்தல் கோரிக்கைகள்",
+        "student.reactivation.historyLoading": "உங்கள் மீண்டும் செயல்படுத்தல் கோரிக்கைகள் ஏற்றப்படுகின்றன…",
+        "student.reactivation.noneExpired": "உங்கள் எந்தப் பாடநெறிக்கும் தற்போது மீண்டும் செயல்படுத்தல் தேவையில்லை.",
+        "student.reactivation.notReviewed": "இன்னும் மதிப்பாய்வு செய்யப்படவில்லை",
+        "student.reactivation.requestButton": "மீண்டும் செயல்படுத்தலைக் கோரு",
+        "student.reactivation.requestDescription": "இந்தப் பாடநெறிக்கான உங்கள் அணுகல் காலாவதியாகிவிட்டது. கோரிக்கையைச் சமர்ப்பிப்பது உங்கள் நிறுவன நிர்வாகிக்குத் தெரிவிக்கும் — அங்கீகரிக்கப்பட்டால், அணுகலை மீட்டெடுக்கப் புதிய ஆணையைச் செய்யலாம்.",
+        "student.reactivation.requestFor": "{enrollment} க்கு மீண்டும் செயல்படுத்தலைக் கோரு",
+        "student.reactivation.submit": "மீண்டும் செயல்படுத்தல் கோரிக்கையைச் சமர்ப்பி",
+        "student.reactivation.submittedDescription": "நிறுவன நிர்வாகி உங்கள் கோரிக்கையை மதிப்பாய்வு செய்வார். கீழே உள்ள கோரிக்கை வரலாற்றில் அதன் நிலையைப் பாருங்கள் — அங்கீகரிக்கப்பட்டதும் புதிய ஆணையைச் செய்யலாம்.",
+        "student.reactivation.submittedFor": "{enrollment} க்கான மீண்டும் செயல்படுத்தல் கோரிக்கை சமர்ப்பிக்கப்பட்டது",
+        "student.reactivation.submitting": "சமர்ப்பிக்கப்படுகிறது…",
+        "student.reactivation.submittingLive": "மீண்டும் செயல்படுத்தல் கோரிக்கை சமர்ப்பிக்கப்படுகிறது…",
+        "student.reactivation.subtitle": "அணுகல் காலாவதியான பாடநெறிக்கு மீண்டும் செயல்படுத்தலைக் கோரி, முந்தைய கோரிக்கைகளின் நிலையைப் பாருங்கள்.",
+        "student.reactivation.title": "மீண்டும் செயல்படுத்தல்",
+        "student.slip.browse": "கோப்புகளைத் தேடு",
+        "student.slip.dragDrop": "கோப்பை இங்கே இழுத்து விடுங்கள், அல்லது",
+        "student.slip.fileLabel": "சீட்டுக் கோப்பு",
+        "student.slip.fixFields": "குறிக்கப்பட்ட புலங்களைச் சரிசெய்து மீண்டும் முயற்சிக்கவும்.",
+        "student.slip.flagged": "மதிப்பாய்வாளர் கூர்ந்து பார்ப்பதற்காக இந்தச் சீட்டு தானாகக் குறிக்கப்பட்டது. இது தகவலுக்கு மட்டுமே — இது நிராகரிப்பு அல்ல, உங்களிடமிருந்து எந்தச் செயலும் தேவையில்லை.",
+        "student.slip.helper": "ஏற்கப்படும் வடிவங்கள்: {formats}. அதிகபட்ச அளவு: {size}.",
+        "student.slip.legend": "கட்டணச் சீட்டைப் பதிவேற்று",
+        "student.slip.readyToDrop": "கோப்பை விடத் தயார்",
+        "student.slip.reference": "குறிப்பு எண்: {reference}",
+        "student.slip.referenceLabel": "குறிப்பு எண்",
+        "student.slip.selected": "தேர்ந்தெடுக்கப்பட்டது: {file}",
+        "student.slip.submit": "கட்டணச் சீட்டைச் சமர்ப்பி",
+        "student.slip.submitted": "சமர்ப்பிக்கப்பட்டது — மதிப்பாய்வில் உள்ளது. மதிப்பாய்வாளர் இந்தச் சீட்டை அங்கீகரித்ததும் உங்கள் பாடநெறி அணுகல் திறக்கும்.",
+        "student.slip.subtitle": "ஏற்கனவே வங்கிப் பரிமாற்றம் செய்துவிட்டீர்களா? குறிப்பு எண்ணை உள்ளிட்டு மதிப்பாய்வுக்காக உங்கள் சீட்டைப் பதிவேற்றவும்.",
+        "student.slip.title": "கட்டணச் சீட்டைப் பதிவேற்று",
+        "student.slip.uploadFailed": "இந்தக் கட்டணச் சீட்டைப் பதிவேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
+        "student.slip.uploading": "பதிவேற்றப்படுகிறது…",
+        "student.slip.validation.fileEmpty": "தேர்ந்தெடுத்த கோப்பு வெறுமையாக உள்ளது.",
+        "student.slip.validation.fileRequired": "பதிவேற்ற ஒரு கோப்பைத் தேர்ந்தெடுக்கவும்.",
+        "student.slip.validation.fileTooLarge": "கோப்பு மிகப் பெரியது. அதிகபட்ச அளவு {size}.",
+        "student.slip.validation.fileType": "ஆதரிக்கப்படாத கோப்பு வகை. ஏற்கப்படும் வடிவங்கள்: {formats}.",
+        "student.slip.validation.referenceRequired": "குறிப்பு எண் தேவை.",
+        "student.slip.validation.referenceTooLong": "குறிப்பு எண் {max} எழுத்துகளுக்கு மேல் இருக்கக்கூடாது.",
         "teacher.courses.empty.action": "உங்கள் முதல் பாடநெறியை உருவாக்குங்கள்",
         "teacher.courses.empty.description": "உங்களுக்கு இன்னும் பாடநெறிகள் எதுவும் இல்லை. தொடங்க உங்கள் முதல் பாடநெறியை உருவாக்குங்கள், அல்லது இங்கே பாடநெறிகள் ஒதுக்கப்பட்டிருக்கும் என எதிர்பார்த்திருந்தால் உங்கள் நிறுவன நிர்வாகியைத் தொடர்புகொள்ளுங்கள்.",
         "teacher.courses.empty.title": "இன்னும் ஒதுக்கப்பட்ட பாடநெறிகள் இல்லை",
@@ -2938,7 +5372,44 @@
         "teacher.profile.unavailable.description": "இந்தக் கணக்குடன் இன்னும் ஆசிரியர் பதிவு இணைக்கப்படவில்லை. உங்கள் நிறுவன நிர்வாகியைத் தொடர்புகொள்ளுங்கள்.",
         "teacher.profile.unavailable.title": "உங்கள் ஆசிரியர் சுயவிவரம் கிடைக்கவில்லை",
         "teacher.profile.validation.biographyTooLong": "சுயசரிதை {max} எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்.",
-        "teacher.profile.validation.qualificationsTooLong": "தகுதிகள் {max} எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்."
+        "teacher.profile.validation.qualificationsTooLong": "தகுதிகள் {max} எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்.",
+        "tenantAdmin.nav.appearance": "தோற்றம்",
+        "tenantAdmin.nav.attendanceReports": "வருகை அறிக்கைகள்",
+        "tenantAdmin.nav.auditLog": "தணிக்கைப் பதிவு",
+        "tenantAdmin.nav.broadcasts": "ஒலிபரப்புகள்",
+        "tenantAdmin.nav.calendar": "நாள்காட்டி",
+        "tenantAdmin.nav.courses": "பாடநெறிகள்",
+        "tenantAdmin.nav.customDomain": "தனிப்பயன் டொமைன்",
+        "tenantAdmin.nav.dashboard": "கட்டுப்பாட்டுப் பலகை",
+        "tenantAdmin.nav.devicesAccess": "சாதனங்களும் அணுகலும்",
+        "tenantAdmin.nav.discounts": "தள்ளுபடிகள்",
+        "tenantAdmin.nav.exams": "தேர்வுகள்",
+        "tenantAdmin.nav.expenseCategories": "செலவு வகைகள்",
+        "tenantAdmin.nav.expenses": "செலவுகள்",
+        "tenantAdmin.nav.financeReports": "நிதி அறிக்கைகள்",
+        "tenantAdmin.nav.financeSummary": "நிதிச் சுருக்கம்",
+        "tenantAdmin.nav.liveClasses": "நேரலை வகுப்புகள்",
+        "tenantAdmin.nav.markAttendance": "வருகையைப் பதிவுசெய்",
+        "tenantAdmin.nav.mediaLibrary": "ஊடக நூலகம்",
+        "tenantAdmin.nav.messageTemplates": "செய்தி வார்ப்புருக்கள்",
+        "tenantAdmin.nav.messaging": "செய்தியிடல் (SMS மற்றும் WhatsApp)",
+        "tenantAdmin.nav.payments": "கட்டணங்கள்",
+        "tenantAdmin.nav.reactivationApprovals": "மீண்டும் செயல்படுத்தல் அங்கீகாரங்கள்",
+        "tenantAdmin.nav.reports": "அறிக்கைகள்",
+        "tenantAdmin.nav.settings": "அமைப்புகள்",
+        "tenantAdmin.nav.staff": "பணியாளர்கள்",
+        "tenantAdmin.nav.students": "மாணவர்கள்",
+        "tenantAdmin.nav.teacherPayouts": "ஆசிரியர் கொடுப்பனவுகள்",
+        "tenantAdmin.nav.teachers": "ஆசிரியர்கள்",
+        "tenantAdmin.nav.translations": "மொழிபெயர்ப்புகள்",
+        "tenantAdmin.nav.tuteDispatch": "குறிப்புகள் அனுப்புதல்",
+        "tenantAdmin.navGroup.academic": "கல்வி",
+        "tenantAdmin.navGroup.administration": "நிர்வாகம்",
+        "tenantAdmin.navGroup.communication": "தொடர்பாடல்",
+        "tenantAdmin.navGroup.dashboard": "கட்டுப்பாட்டுப் பலகை",
+        "tenantAdmin.navGroup.finance": "நிதி",
+        "tenantAdmin.navGroup.instituteConfiguration": "நிறுவன அமைவு",
+        "tenantAdmin.portal": "நிறுவன நிர்வாகி"
       }
     }
   }

@@ -239,11 +239,39 @@ msgctxt "auth.policyConsent.suffix"
 msgid "."
 msgstr ""
 
+#. Course access status badge
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.accessState.active"
+msgid "Active"
+msgstr ""
+
+#. Course access status badge
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.accessState.expired"
+msgid "Expired"
+msgstr ""
+
+#. Course access status badge
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.accessState.neverEnrolled"
+msgid "Never enrolled"
+msgstr ""
+
 #. Generic cancel button
 #: i18n/source/common.json
 #, icu-format
 msgctxt "common.actions.cancel"
 msgid "Cancel"
+msgstr ""
+
+#. Accessible label of a dialog close button
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.actions.close"
+msgid "Close"
 msgstr ""
 
 #. Retry button on error states
@@ -330,6 +358,83 @@ msgctxt "common.courseStatus.public"
 msgid "Public"
 msgstr ""
 
+#. Confirmation question; {course} is the course title
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.confirmQuestion"
+msgid "Enroll in {course}?"
+msgstr ""
+
+#. Confirmation question without a title
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.confirmQuestionGeneric"
+msgid "Enroll in this course?"
+msgstr ""
+
+#. Enrollment confirmation title
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.confirmTitle"
+msgid "Are you sure?"
+msgstr ""
+
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.error.closed"
+msgid "Registration for this course is closed right now. Contact your institute if you need to join."
+msgstr ""
+
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.error.generic"
+msgid "We couldn't enroll you. Please try again."
+msgstr ""
+
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.error.network"
+msgid "We couldn't reach the server. Check your connection and try again."
+msgstr ""
+
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.error.notFound"
+msgid "This course isn't available to join any more."
+msgstr ""
+
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.error.selfDisabled"
+msgid "Your institute enrolls students for you. Contact your institute to join this course."
+msgstr ""
+
+#. Explains that enrollment is free and payment is per paid lesson
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.freeNote"
+msgid "Enrolling is free. You can browse the course right away; paid lessons ask for payment when you open them."
+msgstr ""
+
+#. Cancel button of the confirmation; upper case in English
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.no"
+msgid "NO"
+msgstr ""
+
+#. Confirm button; upper case in English
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.enroll.yes"
+msgid "YES"
+msgstr ""
+
 #. Footer heading / label of the contact details list
 #: i18n/source/common.json
 #, icu-format
@@ -356,6 +461,27 @@ msgstr ""
 #, icu-format
 msgctxt "common.institute.loading"
 msgid "Loading institute"
+msgstr ""
+
+#. Link to the integrations settings page
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.integrations.goToIntegrations"
+msgid "Go to Integrations"
+msgstr ""
+
+#. Joins provider names in the reconnect banner, e.g. 'Zoom and Google'. Keep the surrounding spaces
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.integrations.listSeparator"
+msgid " and "
+msgstr ""
+
+#. Banner; {providers} is a list of service names such as Zoom, joined with the list separator
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.integrations.reconnectNeeded"
+msgid "{count, plural, one {Your {providers} account needs to be reconnected.} other {Your {providers} accounts need to be reconnected.}}"
 msgstr ""
 
 #. Screen-reader announcement after switching; {language} is the language's own name
@@ -419,6 +545,27 @@ msgstr ""
 #, icu-format
 msgctxt "common.portal.teacher"
 msgid "Teacher Portal"
+msgstr ""
+
+#. Reactivation request status badge
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.reactivationStatus.approved"
+msgid "Approved"
+msgstr ""
+
+#. Reactivation request status badge
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.reactivationStatus.rejected"
+msgid "Rejected"
+msgstr ""
+
+#. Reactivation request status badge
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.reactivationStatus.submitted"
+msgid "Submitted"
 msgstr ""
 
 #. Explains that 'Live now' is based on the timetable, not on the meeting itself
@@ -2465,6 +2612,2071 @@ msgctxt "public.todaysClasses.viewCourse"
 msgid "View course"
 msgstr ""
 
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.empty.description"
+msgid "Your attendance history will appear here once a teacher records it for a session you attended."
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.empty.title"
+msgid "No attendance records yet"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.loading"
+msgid "Loading your attendance…"
+msgstr ""
+
+#. When attendance was recorded; {when} is a date and time
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.marked"
+msgid "Marked {when}"
+msgstr ""
+
+#. Button that resets filters
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.noMatch.clear"
+msgid "Clear filters"
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.noMatch.description"
+msgid "Try a different course or date range, or clear your filters."
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.noMatch.title"
+msgid "No sessions match the selected date filter"
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.subtitle"
+msgid "Your own attendance history across the courses you're enrolled in."
+msgstr ""
+
+#. Page heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendance.title"
+msgid "My Attendance"
+msgstr ""
+
+#. Attendance status
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.absent"
+msgid "Absent"
+msgstr ""
+
+#. Attendance counts
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.counts"
+msgid "{present} present · {late} late · {absent} absent · {total} total"
+msgstr ""
+
+#. Attendance status
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.late"
+msgid "Late"
+msgstr ""
+
+#. Attendance status
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.present"
+msgid "Present"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.records"
+msgid "Attendance records"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.recordsEmpty"
+msgid "Your attendance records will appear here when sessions are marked."
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.recordsLoading"
+msgid "Loading attendance records…"
+msgstr ""
+
+#. Fallback name of a class session
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.session"
+msgid "Class session"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.summary"
+msgid "Attendance summary"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.summaryEmpty"
+msgid "Your course attendance summary will appear after a teacher records attendance."
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendancePanel.summaryLoading"
+msgid "Loading attendance summary…"
+msgstr ""
+
+#. Attendance counts
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendanceSummary.counts"
+msgid "{present} present · {late} late · {absent} absent ({total} marked)"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendanceSummary.empty.description"
+msgid "Your per-course attendance rate appears here once a teacher records attendance for you."
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendanceSummary.empty.title"
+msgid "No attendance summary yet"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendanceSummary.heading"
+msgid "Attendance by course"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendanceSummary.loading"
+msgid "Loading your attendance summary…"
+msgstr ""
+
+#. Screen-reader word after the attendance percentage
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.attendanceSummary.rateSuffix"
+msgid "attendance"
+msgstr ""
+
+#. Text before the 'payment history' link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.confirmed"
+msgid "Payment confirmed. You can view the full record in your"
+msgstr ""
+
+#. Text after the 'payment history' link (punctuation or closing words)
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.confirmedSuffix"
+msgid "."
+msgstr ""
+
+#. Link text inside a sentence
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.historyLink"
+msgid "payment history"
+msgstr ""
+
+#. Screen-reader announcement
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.liveConfirmed"
+msgid "Payment status updated: confirmed."
+msgstr ""
+
+#. Screen-reader announcement
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.liveRefunded"
+msgid "Payment status updated: refunded."
+msgstr ""
+
+#. Screen-reader announcement
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.liveRejected"
+msgid "Payment status updated: rejected."
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.loading"
+msgid "Checking payment status…"
+msgstr ""
+
+#. Text before the 'payment history' link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.refunded"
+msgid "This payment was refunded. See your"
+msgstr ""
+
+#. Text after the 'payment history' link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.refundedSuffix"
+msgid "for the full record."
+msgstr ""
+
+#. Alert
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.rejected"
+msgid "Your payment was rejected. Nothing was charged and no enrollment was created."
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.subtitle"
+msgid "This page reflects only what our servers have confirmed — it never guesses from a redirect."
+msgstr ""
+
+#. Page heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.title"
+msgid "Payment status"
+msgstr ""
+
+#. Status while waiting for the server
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.awaiting.waiting"
+msgid "Awaiting payment confirmation… this page updates automatically."
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.calendar.loading"
+msgid "Loading calendar…"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.emptyAvailable.description"
+msgid "You're already in every open course, or your institute hasn't opened new ones yet. Check back soon."
+msgstr ""
+
+#. Empty state of the available list
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.emptyAvailable.title"
+msgid "No courses are open for enrollment"
+msgstr ""
+
+#. Empty state button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.emptyEnrolled.action"
+msgid "See available courses"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.emptyEnrolled.description"
+msgid "Browse Available Courses and enroll for free to get started."
+msgstr ""
+
+#. Empty state of the enrolled list
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.emptyEnrolled.title"
+msgid "You haven't enrolled in any courses yet"
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.enroll"
+msgid "Enroll"
+msgstr ""
+
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.enrollLabel"
+msgid "Enroll in {course}"
+msgstr ""
+
+#. Toast after enrolling
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.enrolled"
+msgid "You're enrolled in {course}. Find it under Enrolled Courses."
+msgstr ""
+
+#. List name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.enrolledList"
+msgid "Enrolled Courses"
+msgstr ""
+
+#. Accessible label while enrolling
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.enrollingLabel"
+msgid "Enrolling in {course}"
+msgstr ""
+
+#. Accessible group name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.filterByTag"
+msgid "Filter by tag"
+msgstr ""
+
+#. Accessible region name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.filtersRegion"
+msgid "Search and filters"
+msgstr ""
+
+#. Screen-reader result count
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.found"
+msgid "{count, plural, one {# course found} other {# courses found}}"
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.noMatch.description"
+msgid "Try a different search term or clear the tag filter."
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.noMatch.title"
+msgid "No courses match your search"
+msgstr ""
+
+#. Link on a course card
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.openCourse"
+msgid "Open course"
+msgstr ""
+
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.openCourseLabel"
+msgid "Open course {course}"
+msgstr ""
+
+#. Accessible name of the pagination
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.pages"
+msgid "Course list pages"
+msgstr ""
+
+#. Search field label and placeholder
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.search"
+msgid "Search courses"
+msgstr ""
+
+#. Notice when self-enrollment is off
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.selfEnrollmentDisabled"
+msgid "Your institute enrolls students in courses. Contact your institute to join one of these courses."
+msgstr ""
+
+#. Select label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.sortBy"
+msgid "Sort by"
+msgstr ""
+
+#. Sort option
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.sortDefault"
+msgid "Default"
+msgstr ""
+
+#. Sort option: by course title
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.sortTitle"
+msgid "Title"
+msgstr ""
+
+#. Error text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.tagsError"
+msgid "Tag filters couldn't load."
+msgstr ""
+
+#. Screen-reader label before the teacher name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.teacher"
+msgid "Teacher:"
+msgstr ""
+
+#. Link on a course card
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.viewCourse"
+msgid "View course"
+msgstr ""
+
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.catalog.viewCourseLabel"
+msgid "View course {course}"
+msgstr ""
+
+#. Field label: how long access lasts
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.access"
+msgid "Access"
+msgstr ""
+
+#. Link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.addAddress"
+msgid "Add your address in My Profile"
+msgstr ""
+
+#. Text after the link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.addAddressSuffix"
+msgid ", then come back to pay online."
+msgstr ""
+
+#. Help text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.bankHint"
+msgid "Already sent a bank transfer? Upload your payment slip instead of paying online."
+msgstr ""
+
+#. Access duration
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.days"
+msgid "{count, plural, one {# day} other {# days}}"
+msgstr ""
+
+#. Button for a free course
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.enroll"
+msgid "Enroll"
+msgstr ""
+
+#. Error when the online payment page cannot be opened
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.gatewayFailed"
+msgid "We couldn't open the secure payment page. Please try again or pay by bank transfer."
+msgstr ""
+
+#. Access that never expires
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.lifetime"
+msgid "Lifetime access"
+msgstr ""
+
+#. Notice before the link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.needsAddress"
+msgid "Online payment needs your billing address."
+msgstr ""
+
+#. Notice
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.notOpen"
+msgid "This course isn't currently open for enrollment."
+msgstr ""
+
+#. Notice
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.onlineUnavailable"
+msgid "Online payment isn't available at your institute yet — pay by bank transfer below."
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.payByBank"
+msgid "Pay by bank transfer"
+msgstr ""
+
+#. Button; PayHere is the payment provider name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.payOnline"
+msgid "Pay online (PayHere)"
+msgstr ""
+
+#. Button while preparing
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.preparing"
+msgid "Preparing…"
+msgstr ""
+
+#. Screen-reader status
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.preparingSlip"
+msgid "Preparing bank transfer upload…"
+msgstr ""
+
+#. Field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.price"
+msgid "Price"
+msgstr ""
+
+#. Status / button while starting
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.starting"
+msgid "Starting checkout…"
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.subtitle"
+msgid "Review the course details below, then continue to payment."
+msgstr ""
+
+#. Page heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.checkout.title"
+msgid "Checkout"
+msgstr ""
+
+#. Prefix of a short course id shown when the course name is unknown, e.g. 'Course #1a2b3c4d'
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.courseIdLabel"
+msgid "Course"
+msgstr ""
+
+#. Prefix of a short enrollment id, e.g. 'Enrollment #1a2b3c4d'
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.enrollmentIdLabel"
+msgid "Enrollment"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.loadingCourse"
+msgid "Loading course…"
+msgstr ""
+
+#. Pagination button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.next"
+msgid "Next"
+msgstr ""
+
+#. Empty page description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.noMoreResults.description"
+msgid "There are no records on this page. Go back to an earlier page."
+msgstr ""
+
+#. Empty page after the last page of a list
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.noMoreResults.title"
+msgid "No more results"
+msgstr ""
+
+#. Pagination text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.pageOf"
+msgid "Page {page} of {total}"
+msgstr ""
+
+#. Pagination button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.previous"
+msgid "Previous"
+msgstr ""
+
+#. Save button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.saveChanges"
+msgid "Save changes"
+msgstr ""
+
+#. Button text while saving
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.saving"
+msgid "Saving…"
+msgstr ""
+
+#. Screen-reader announcement while a list refreshes
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.common.updating"
+msgid "Updating…"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.courses.loading"
+msgid "Loading courses…"
+msgstr ""
+
+#. Stat card label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.activeCourses"
+msgid "Active courses"
+msgstr ""
+
+#. Button to the course catalog
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.browseCourses"
+msgid "Browse courses"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.empty.description"
+msgid "Once you enroll in a course, your access status and recent courses will show up here."
+msgstr ""
+
+#. Empty state when the student has no enrollments
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.empty.title"
+msgid "You have no active enrollments yet"
+msgstr ""
+
+#. Alert about courses whose access expired
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.expiredAlert"
+msgid "{count, plural, one {One of your courses has expired access.} other {# of your courses have expired access.}}"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.loadingEnrollments"
+msgid "Loading your enrollments…"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.loadingPayments"
+msgid "Loading payment activity…"
+msgstr ""
+
+#. Stat card label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.mostRecentPayment"
+msgid "Most recent payment"
+msgstr ""
+
+#. Stat card label: courses whose access expired
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.needsAttention"
+msgid "Needs attention"
+msgstr ""
+
+#. Stat card hint
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.needsAttentionHint"
+msgid "Access has expired on these courses"
+msgstr ""
+
+#. Empty state when every enrollment expired
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.noActive.allExpired"
+msgid "All your enrollments have expired. Reactivate access to see your courses here again."
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.noActive.description"
+msgid "Courses you currently have active access to will appear here."
+msgstr ""
+
+#. Empty state of the recent courses list
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.noActive.title"
+msgid "No active courses to show yet"
+msgstr ""
+
+#. Stat card value when there are no payments
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.noPayments"
+msgid "No payments yet"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.paymentActivity"
+msgid "Payment activity"
+msgstr ""
+
+#. Most recent payment card: a confirmed payment and its amount
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.paymentConfirmed"
+msgid "Payment confirmed — {amount}"
+msgstr ""
+
+#. Link/button to request access again
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.reactivate"
+msgid "Reactivate access"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.recentCourses"
+msgid "Recent courses"
+msgstr ""
+
+#. Most recent payment card: a refund and its amount
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.refund"
+msgid "Refund — {amount}"
+msgstr ""
+
+#. Student dashboard subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.subtitle"
+msgid "Your enrollments, courses, and recent payment activity at a glance."
+msgstr ""
+
+#. Student dashboard heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.title"
+msgid "Overview"
+msgstr ""
+
+#. Link to the full course list
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.dashboard.viewAll"
+msgid "View all my courses"
+msgstr ""
+
+#. Accessible caption of the device table
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.caption"
+msgid "Your devices"
+msgstr ""
+
+#. Confirmation text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.confirmDescription"
+msgid "That device is signed out straight away. Its slot stays taken for a while before a new device can use it."
+msgstr ""
+
+#. Confirmation title
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.confirmTitle"
+msgid "Remove {device}?"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.empty.description"
+msgid "Devices appear here after you sign in on them."
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.empty.title"
+msgid "No devices yet"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.loading"
+msgid "Loading your devices…"
+msgstr ""
+
+#. Shown when students cannot remove devices themselves
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.managedByInstitute"
+msgid "Your institute manages your devices. To remove a device you no longer use, contact your institute."
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.remove"
+msgid "Remove"
+msgstr ""
+
+#. Confirm button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.removeDevice"
+msgid "Remove device"
+msgstr ""
+
+#. Accessible label of the remove button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.removeLabel"
+msgid "Remove {device}"
+msgstr ""
+
+#. Confirmation; {device} is the device name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.removed"
+msgid "{device} was removed."
+msgstr ""
+
+#. Button while removing
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.removing"
+msgid "Removing…"
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.subtitle"
+msgid "The browsers and devices you have signed in on. Your institute may limit how many you can use."
+msgstr ""
+
+#. Page heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.devices.title"
+msgid "My devices"
+msgstr ""
+
+#. Account menu text while the student's name is unknown
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.header.accountFallback"
+msgid "Student account"
+msgstr ""
+
+#. Accessible label of the account menu button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.header.accountMenu"
+msgid "Open account menu"
+msgstr ""
+
+#. Header link to courses available to join
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.header.explore"
+msgid "Explore"
+msgstr ""
+
+#. Header link to the student's enrolled courses
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.header.myCourses"
+msgid "My Courses"
+msgstr ""
+
+#. Header button that opens the payment window; short, upper case in English
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.header.pay"
+msgid "PAY"
+msgstr ""
+
+#. Accessible label of the close button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.impersonation.dismiss"
+msgid "Dismiss notice"
+msgstr ""
+
+#. Button that ends the support session
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.impersonation.exit"
+msgid "Exit to admin"
+msgstr ""
+
+#. Button text while ending the support session
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.impersonation.exiting"
+msgid "Exiting…"
+msgstr ""
+
+#. Accessible name of the support-session banner
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.impersonation.region"
+msgid "Support session"
+msgstr ""
+
+#. Screen-reader-only: who started the support session
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.impersonation.startedBy"
+msgid "(started by {name})"
+msgstr ""
+
+#. Banner shown to staff viewing the portal as a student; {time} is a clock time
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.impersonation.viewingAs"
+msgid "Viewing as {name} — read-only support session · ends {time}"
+msgstr ""
+
+#. Student portal navigation: the desktop video player app. 'AOC' is a product name; keep it
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.aocPlayer"
+msgid "AOC Player"
+msgstr ""
+
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.availableCourses"
+msgid "Available Courses"
+msgstr ""
+
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.calendar"
+msgid "Calendar"
+msgstr ""
+
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.dashboard"
+msgid "Dashboard"
+msgstr ""
+
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.exams"
+msgid "Exams"
+msgstr ""
+
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.myAttendance"
+msgid "My Attendance"
+msgstr ""
+
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.myDevices"
+msgid "My Devices"
+msgstr ""
+
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.notifications"
+msgid "Notifications"
+msgstr ""
+
+#. Student portal navigation / account menu item
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.profile"
+msgid "Profile"
+msgstr ""
+
+#. Student portal navigation: request access again after it expired
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.nav.reactivation"
+msgid "Reactivation"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.notifications.empty.description"
+msgid "Announcements from your institute and payment updates (confirmed, rejected or refunded) appear here."
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.notifications.empty.title"
+msgid "No notifications yet"
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.notifications.subtitle"
+msgid "Announcements from your institute and updates about your payments."
+msgstr ""
+
+#. Page heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.notifications.title"
+msgid "Notifications"
+msgstr ""
+
+#. Link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.payment.backToCheckout"
+msgid "Back to checkout"
+msgstr ""
+
+#. Link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.payment.backToDashboard"
+msgid "Back to dashboard"
+msgstr ""
+
+#. Notice
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.payment.cancelled.notice"
+msgid "No money was taken for this attempt. You can try again, or pay by bank transfer instead."
+msgstr ""
+
+#. PayHere is the payment provider's name; keep it
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.payment.cancelled.subtitle"
+msgid "You left the PayHere payment page before completing the payment."
+msgstr ""
+
+#. Page heading after leaving the online payment page
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.payment.cancelled.title"
+msgid "Payment cancelled"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.payment.loadingOrder"
+msgid "Loading order…"
+msgstr ""
+
+#. Link to the student's courses
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.payment.myCourses"
+msgid "My courses"
+msgstr ""
+
+#. Field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.date"
+msgid "Date"
+msgstr ""
+
+#. Error text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.detailError"
+msgid "Could not load order details."
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.detailLoading"
+msgid "Loading order details…"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.emptyDescription"
+msgid "Completed payments and their purchased products appear here."
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.hide"
+msgid "Hide details"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.loading"
+msgid "Loading payment history…"
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.more"
+msgid "View more"
+msgstr ""
+
+#. Order label; {id} is a short id
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.order"
+msgid "Order {id}"
+msgstr ""
+
+#. Order number fallback
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.orderHash"
+msgid "Order #{number}"
+msgstr ""
+
+#. Field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.orderNumber"
+msgid "Order number"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.products"
+msgid "Products purchased"
+msgstr ""
+
+#. Field label; value is a technical status code
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.status"
+msgid "Status"
+msgstr ""
+
+#. Field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.total"
+msgid "Total"
+msgstr ""
+
+#. Status badge
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.active"
+msgid "Active"
+msgstr ""
+
+#. Player details line; {paired} and {lastUsed} are dates
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.details"
+msgid "Version {version} · paired {paired} · last used {lastUsed}"
+msgstr ""
+
+#. Empty state; quote the pair button text exactly
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.empty.description"
+msgid "Install the AOC Player on this computer, then choose “Pair the AOC Player” above."
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.empty.title"
+msgid "No AOC Player paired yet"
+msgstr ""
+
+#. Player name in the list
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.forWindows"
+msgid "AOC Player for Windows"
+msgstr ""
+
+#. Card text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.install.description"
+msgid "For Windows 10 and 11. Install it once on this computer. The first time you press Play on a lesson video, it sets itself up."
+msgstr ""
+
+#. Download link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.install.download"
+msgid "Download for Windows"
+msgstr ""
+
+#. Card title
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.install.title"
+msgid "Install the AOC Player"
+msgstr ""
+
+#. Notice
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.install.unavailable"
+msgid "The AOC Player download isn't available yet. Your institute will let you know when it is."
+msgstr ""
+
+#. Accessible list name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.listLabel"
+msgid "Your AOC Players"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.loading"
+msgid "Loading your players…"
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.pair.button"
+msgid "Pair the AOC Player"
+msgstr ""
+
+#. Card text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.pair.description"
+msgid "Not needed for watching: pressing Play pairs the player automatically. Use this only to set it up ahead of time. Pairing again on this computer replaces the previous player."
+msgstr ""
+
+#. Status
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.pair.done"
+msgid "The AOC Player is paired."
+msgstr ""
+
+#. Error
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.pair.launchFailed"
+msgid "Couldn't open the AOC Player. Please try again."
+msgstr ""
+
+#. Error
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.pair.timedOut"
+msgid "The AOC Player didn't finish pairing. Make sure it's installed on this computer, then try again."
+msgstr ""
+
+#. Card title
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.pair.title"
+msgid "Pair this computer (optional)"
+msgstr ""
+
+#. Status
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.pair.waiting"
+msgid "Waiting for the AOC Player to finish pairing…"
+msgstr ""
+
+#. Button while preparing
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.preparing"
+msgid "Preparing…"
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.remove.button"
+msgid "Remove"
+msgstr ""
+
+#. Confirm button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.remove.confirm"
+msgid "Remove player"
+msgstr ""
+
+#. Confirmation text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.remove.description"
+msgid "Any video playing in it stops straight away. You can pair it again later."
+msgstr ""
+
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.remove.label"
+msgid "Remove this AOC Player"
+msgstr ""
+
+#. Button while removing
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.remove.removing"
+msgid "Removing…"
+msgstr ""
+
+#. Confirmation title
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.remove.title"
+msgid "Remove this AOC Player?"
+msgstr ""
+
+#. Status badge
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.removedBadge"
+msgid "Removed"
+msgstr ""
+
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.revoked.admin"
+msgid "removed by your institute"
+msgstr ""
+
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.revoked.device"
+msgid "its device was removed"
+msgstr ""
+
+#. Generic removal reason
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.revoked.other"
+msgid "removed"
+msgstr ""
+
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.revoked.repaired"
+msgid "replaced by a newer pairing"
+msgstr ""
+
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.revoked.student"
+msgid "removed by you"
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.subtitle"
+msgid "If your institute plays lesson videos in the AOC Player app, pair it with this computer once."
+msgstr ""
+
+#. Page heading; AOC Player is a product name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.title"
+msgid "AOC Player"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.player.yourPlayers"
+msgid "Your players"
+msgstr ""
+
+#. Name of the student portal, shown in the sidebar, tab title and sign-out dialog
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.portal"
+msgid "Student Portal"
+msgstr ""
+
+#. Section help text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.additional.description"
+msgid "Information your institute collects about its students. Fields marked (optional) can be left blank."
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.additional.empty.description"
+msgid "Your institute doesn't collect any additional details at the moment."
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.additional.empty.title"
+msgid "Nothing else to fill in"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.additional.heading"
+msgid "Additional details"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.additional.loading"
+msgid "Loading your details…"
+msgstr ""
+
+#. Success message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.additional.saved"
+msgid "Details saved."
+msgstr ""
+
+#. Button text while saving
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.additional.saving"
+msgid "Saving your details…"
+msgstr ""
+
+#. Field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.displayName"
+msgid "Display name"
+msgstr ""
+
+#. Placeholder text of the Attended Exams tab
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.examsPlaceholder"
+msgid "Your attended exams appear here."
+msgstr ""
+
+#. Read-only field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.field.email"
+msgid "Email"
+msgstr ""
+
+#. Read-only field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.field.name"
+msgid "Name"
+msgstr ""
+
+#. Read-only field label; the value is a technical role code
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.field.role"
+msgid "Role"
+msgstr ""
+
+#. Read-only field label; the value is a technical status code
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.field.status"
+msgid "Status"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.loading"
+msgid "Loading your profile…"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.personalDetails"
+msgid "Personal Details"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.photo"
+msgid "Profile photo"
+msgstr ""
+
+#. Placeholder text of the QR tab
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.qrPlaceholder"
+msgid "Your student QR code will appear here when available."
+msgstr ""
+
+#. Success message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.saved"
+msgid "Saved."
+msgstr ""
+
+#. Accessible name of the profile tabs
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.sections"
+msgid "Student profile sections"
+msgstr ""
+
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.tab.attendance"
+msgid "Attendance"
+msgstr ""
+
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.tab.courses"
+msgid "Enrolled Courses"
+msgstr ""
+
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.tab.exams"
+msgid "Attended Exams"
+msgstr ""
+
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.tab.general"
+msgid "General"
+msgstr ""
+
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.tab.payments"
+msgid "Payments"
+msgstr ""
+
+#. Profile tab: the student's QR code
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.tab.qr"
+msgid "QR"
+msgstr ""
+
+#. Error after saving
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.unexpectedError"
+msgid "An unexpected error occurred. Please try again."
+msgstr ""
+
+#. Validation message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.validation.nameRequired"
+msgid "Name is required."
+msgstr ""
+
+#. Validation message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profile.validation.nameTooLong"
+msgid "Name must be {max} characters or fewer."
+msgstr ""
+
+#. {fields} is a comma-separated list of field names set by the institute
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profileBanner.asksFor"
+msgid "Your institute asks for: {fields}."
+msgstr ""
+
+#. Link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profileBanner.link"
+msgid "Complete profile"
+msgstr ""
+
+#. Banner title
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.profileBanner.title"
+msgid "Complete your profile."
+msgstr ""
+
+#. Link
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.checkout"
+msgid "Proceed to checkout"
+msgstr ""
+
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.checkoutFor"
+msgid "Proceed to checkout for {enrollment}"
+msgstr ""
+
+#. Table column
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.col.action"
+msgid "Action"
+msgstr ""
+
+#. Table column
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.col.enrollment"
+msgid "Enrollment"
+msgstr ""
+
+#. Table column
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.col.reviewed"
+msgid "Reviewed"
+msgstr ""
+
+#. Table column
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.col.status"
+msgid "Status"
+msgstr ""
+
+#. Table column
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.col.submitted"
+msgid "Submitted"
+msgstr ""
+
+#. Error text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.expiredError"
+msgid "Couldn't load your expired courses."
+msgstr ""
+
+#. Section heading / list name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.expiredHeading"
+msgid "Courses with expired access"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.expiredLoading"
+msgid "Loading your expired courses…"
+msgstr ""
+
+#. Accessible table caption
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.historyCaption"
+msgid "Your reactivation request history"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.historyEmpty.description"
+msgid "Once your paid access to a course expires, you can request reactivation from the list above or from My Courses."
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.historyEmpty.title"
+msgid "You haven't requested reactivation for any course yet"
+msgstr ""
+
+#. Section heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.historyHeading"
+msgid "Your reactivation requests"
+msgstr ""
+
+#. Loading text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.historyLoading"
+msgid "Loading your reactivation requests…"
+msgstr ""
+
+#. Empty state
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.noneExpired"
+msgid "None of your courses currently need reactivation."
+msgstr ""
+
+#. Table cell
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.notReviewed"
+msgid "Not yet reviewed"
+msgstr ""
+
+#. Button on an expired course card
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.requestButton"
+msgid "Request reactivation"
+msgstr ""
+
+#. Help text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.requestDescription"
+msgid "Your access to this course has expired. Submitting a request notifies your institute's admin — if approved, you'll be able to place a new order to restore access."
+msgstr ""
+
+#. Heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.requestFor"
+msgid "Request reactivation for {enrollment}"
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.submit"
+msgid "Submit reactivation request"
+msgstr ""
+
+#. Text after submitting
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.submittedDescription"
+msgid "A Tenant Admin will review your request. Track its status in your request history below — you'll be able to place a new order once it's approved."
+msgstr ""
+
+#. Heading after submitting
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.submittedFor"
+msgid "Reactivation request submitted for {enrollment}"
+msgstr ""
+
+#. Button while submitting
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.submitting"
+msgid "Submitting…"
+msgstr ""
+
+#. Screen-reader status
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.submittingLive"
+msgid "Submitting reactivation request…"
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.subtitle"
+msgid "Request reactivation for a course whose access has expired, and track the status of past requests."
+msgstr ""
+
+#. Page heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.reactivation.title"
+msgid "Reactivation"
+msgstr ""
+
+#. Button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.browse"
+msgid "Browse files"
+msgstr ""
+
+#. Drop zone text before the Browse button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.dragDrop"
+msgid "Drag and drop a file here, or"
+msgstr ""
+
+#. Field label
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.fileLabel"
+msgid "Slip file"
+msgstr ""
+
+#. Error when the form is invalid
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.fixFields"
+msgid "Please fix the highlighted fields and try again."
+msgstr ""
+
+#. Information about an automatic review flag
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.flagged"
+msgid "This slip was automatically flagged for a reviewer to take a closer look. This is informational only — it is not a rejection, and no action is needed from you."
+msgstr ""
+
+#. File help text
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.helper"
+msgid "Accepted formats: {formats}. Maximum size: {size}."
+msgstr ""
+
+#. Accessible form group name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.legend"
+msgid "Upload a payment slip"
+msgstr ""
+
+#. Screen-reader status while dragging a file
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.readyToDrop"
+msgid "File ready to drop"
+msgstr ""
+
+#. The bank transfer reference number
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.reference"
+msgid "Reference: {reference}"
+msgstr ""
+
+#. Field label: bank transfer reference
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.referenceLabel"
+msgid "Reference number"
+msgstr ""
+
+#. Selected file name
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.selected"
+msgid "Selected: {file}"
+msgstr ""
+
+#. Submit button
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.submit"
+msgid "Submit payment slip"
+msgstr ""
+
+#. Shown after uploading a slip
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.submitted"
+msgid "Submitted — under review. Your course access will unlock once a reviewer approves this slip."
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.subtitle"
+msgid "Already sent a bank transfer? Enter the reference number and upload your slip for review."
+msgstr ""
+
+#. Page heading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.title"
+msgid "Upload payment slip"
+msgstr ""
+
+#. Error after uploading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.uploadFailed"
+msgid "Couldn't upload this payment slip. Please try again."
+msgstr ""
+
+#. Status while uploading
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.uploading"
+msgid "Uploading…"
+msgstr ""
+
+#. Validation message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.validation.fileEmpty"
+msgid "The selected file is empty."
+msgstr ""
+
+#. Validation message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.validation.fileRequired"
+msgid "Select a file to upload."
+msgstr ""
+
+#. Validation message; {size} is e.g. 25 MB
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.validation.fileTooLarge"
+msgid "File is too large. Maximum size is {size}."
+msgstr ""
+
+#. Validation message; {formats} is a list of file types
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.validation.fileType"
+msgid "Unsupported file type. Accepted formats: {formats}."
+msgstr ""
+
+#. Validation message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.validation.referenceRequired"
+msgid "Reference number is required."
+msgstr ""
+
+#. Validation message
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.slip.validation.referenceTooLong"
+msgid "Reference number must be {max} characters or fewer."
+msgstr ""
+
 #. Empty state button
 #: i18n/source/teacher.json
 #, icu-format
@@ -2897,4 +5109,263 @@ msgstr ""
 #, icu-format
 msgctxt "teacher.profile.validation.qualificationsTooLong"
 msgid "Qualifications must be {max} characters or fewer."
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.appearance"
+msgid "Appearance"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.attendanceReports"
+msgid "Attendance Reports"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.auditLog"
+msgid "Audit Log"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.broadcasts"
+msgid "Broadcasts"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.calendar"
+msgid "Calendar"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.courses"
+msgid "Courses"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.customDomain"
+msgid "Custom Domain"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.dashboard"
+msgid "Dashboard"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.devicesAccess"
+msgid "Devices & Access"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.discounts"
+msgid "Discounts"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.exams"
+msgid "Exams"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.expenseCategories"
+msgid "Expense Categories"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.expenses"
+msgid "Expenses"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.financeReports"
+msgid "Finance Reports"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.financeSummary"
+msgid "Finance Summary"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.liveClasses"
+msgid "Live Classes"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.markAttendance"
+msgid "Mark Attendance"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.mediaLibrary"
+msgid "Media Library"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.messageTemplates"
+msgid "Message Templates"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.messaging"
+msgid "Messaging (SMS & WhatsApp)"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.payments"
+msgid "Payments"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.reactivationApprovals"
+msgid "Reactivation Approvals"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.reports"
+msgid "Reports"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.settings"
+msgid "Settings"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.staff"
+msgid "Staff"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.students"
+msgid "Students"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.teacherPayouts"
+msgid "Teacher Payouts"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.teachers"
+msgid "Teachers"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.translations"
+msgid "Translations"
+msgstr ""
+
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.nav.tuteDispatch"
+msgid "Tute Dispatch"
+msgstr ""
+
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.navGroup.academic"
+msgid "Academic"
+msgstr ""
+
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.navGroup.administration"
+msgid "Administration"
+msgstr ""
+
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.navGroup.communication"
+msgid "Communication"
+msgstr ""
+
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.navGroup.dashboard"
+msgid "Dashboard"
+msgstr ""
+
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.navGroup.finance"
+msgid "Finance"
+msgstr ""
+
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.navGroup.instituteConfiguration"
+msgid "Institute Configuration"
+msgstr ""
+
+#. Name of the institute administration portal, shown in the sidebar and sign-out dialog
+#: i18n/source/tenantAdmin.json
+#, icu-format
+msgctxt "tenantAdmin.portal"
+msgid "Tenant Admin"
 msgstr ""

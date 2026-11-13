@@ -274,12 +274,44 @@ msgid "."
 msgstr " ஆகியவற்றை ஏற்றுக்கொள்கிறீர்கள்."
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Course access status badge
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.accessState.active"
+msgid "Active"
+msgstr "செயலில்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Course access status badge
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.accessState.expired"
+msgid "Expired"
+msgstr "காலாவதியானது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Course access status badge
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.accessState.neverEnrolled"
+msgid "Never enrolled"
+msgstr "ஒருபோதும் சேரவில்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Generic cancel button
 #: i18n/source/common.json
 #, icu-format, fuzzy
 msgctxt "common.actions.cancel"
 msgid "Cancel"
 msgstr "ரத்துசெய்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label of a dialog close button
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.actions.close"
+msgid "Close"
+msgstr "மூடு"
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Retry button on error states
@@ -378,6 +410,94 @@ msgid "Public"
 msgstr "பொது"
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirmation question; {course} is the course title
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.confirmQuestion"
+msgid "Enroll in {course}?"
+msgstr "{course} இல் சேரவா?"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirmation question without a title
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.confirmQuestionGeneric"
+msgid "Enroll in this course?"
+msgstr "இந்தப் பாடநெறியில் சேரவா?"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Enrollment confirmation title
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.confirmTitle"
+msgid "Are you sure?"
+msgstr "நிச்சயமாகவா?"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.error.closed"
+msgid "Registration for this course is closed right now. Contact your institute if you need to join."
+msgstr "இந்தப் பாடநெறிக்கான பதிவு தற்போது மூடப்பட்டுள்ளது. சேர வேண்டுமெனில் உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.error.generic"
+msgid "We couldn't enroll you. Please try again."
+msgstr "உங்களைச் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.error.network"
+msgid "We couldn't reach the server. Check your connection and try again."
+msgstr "சேவையகத்தை அணுக முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.error.notFound"
+msgid "This course isn't available to join any more."
+msgstr "இந்தப் பாடநெறியில் இனி சேர முடியாது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Enrollment error
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.error.selfDisabled"
+msgid "Your institute enrolls students for you. Contact your institute to join this course."
+msgstr "உங்கள் நிறுவனமே மாணவர்களைச் சேர்க்கிறது. இந்தப் பாடநெறியில் சேர உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Explains that enrollment is free and payment is per paid lesson
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.freeNote"
+msgid "Enrolling is free. You can browse the course right away; paid lessons ask for payment when you open them."
+msgstr "சேர்வது இலவசம். பாடநெறியை உடனே பார்வையிடலாம்; கட்டணப் பாடங்களைத் திறக்கும்போது கட்டணம் கேட்கப்படும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Cancel button of the confirmation; upper case in English
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.no"
+msgid "NO"
+msgstr "இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirm button; upper case in English
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.enroll.yes"
+msgid "YES"
+msgstr "ஆம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Footer heading / label of the contact details list
 #: i18n/source/common.json
 #, icu-format, fuzzy
@@ -408,6 +528,30 @@ msgstr "{name} முகப்பு"
 msgctxt "common.institute.loading"
 msgid "Loading institute"
 msgstr "நிறுவனம் ஏற்றப்படுகிறது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link to the integrations settings page
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.integrations.goToIntegrations"
+msgid "Go to Integrations"
+msgstr "ஒருங்கிணைப்புகளுக்குச் செல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Joins provider names in the reconnect banner, e.g. 'Zoom and Google'. Keep the surrounding spaces
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.integrations.listSeparator"
+msgid " and "
+msgstr " மற்றும் "
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Banner; {providers} is a list of service names such as Zoom, joined with the list separator
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.integrations.reconnectNeeded"
+msgid "{count, plural, one {Your {providers} account needs to be reconnected.} other {Your {providers} accounts need to be reconnected.}}"
+msgstr "{count, plural, one {உங்கள் {providers} கணக்கை மீண்டும் இணைக்க வேண்டும்.} other {உங்கள் {providers} கணக்குகளை மீண்டும் இணைக்க வேண்டும்.}}"
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader announcement after switching; {language} is the language's own name
@@ -480,6 +624,30 @@ msgstr "சேவை விதிமுறைகள்"
 msgctxt "common.portal.teacher"
 msgid "Teacher Portal"
 msgstr "ஆசிரியர் தளம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Reactivation request status badge
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.reactivationStatus.approved"
+msgid "Approved"
+msgstr "அங்கீகரிக்கப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Reactivation request status badge
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.reactivationStatus.rejected"
+msgid "Rejected"
+msgstr "நிராகரிக்கப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Reactivation request status badge
+#: i18n/source/common.json
+#, icu-format, fuzzy
+msgctxt "common.reactivationStatus.submitted"
+msgid "Submitted"
+msgstr "சமர்ப்பிக்கப்பட்டது"
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Explains that 'Live now' is based on the timetable, not on the meeting itself
@@ -2818,6 +2986,2366 @@ msgid "View course"
 msgstr "பாடநெறியைப் பார்"
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.empty.description"
+msgid "Your attendance history will appear here once a teacher records it for a session you attended."
+msgstr "நீங்கள் கலந்துகொண்ட அமர்வுக்கு ஆசிரியர் வருகையைப் பதிவுசெய்த பின் உங்கள் வருகை வரலாறு இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.empty.title"
+msgid "No attendance records yet"
+msgstr "இன்னும் வருகைப் பதிவுகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.loading"
+msgid "Loading your attendance…"
+msgstr "உங்கள் வருகை ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. When attendance was recorded; {when} is a date and time
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.marked"
+msgid "Marked {when}"
+msgstr "பதிவுசெய்யப்பட்டது {when}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button that resets filters
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.noMatch.clear"
+msgid "Clear filters"
+msgstr "வடிகட்டிகளை அழி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.noMatch.description"
+msgid "Try a different course or date range, or clear your filters."
+msgstr "வேறு பாடநெறி அல்லது தேதி வரம்பை முயற்சிக்கவும், அல்லது வடிகட்டிகளை அழிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.noMatch.title"
+msgid "No sessions match the selected date filter"
+msgstr "தேர்ந்தெடுத்த தேதி வடிகட்டிக்குப் பொருந்தும் அமர்வுகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.subtitle"
+msgid "Your own attendance history across the courses you're enrolled in."
+msgstr "நீங்கள் சேர்ந்துள்ள பாடநெறிகளில் உங்களின் சொந்த வருகை வரலாறு."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendance.title"
+msgid "My Attendance"
+msgstr "எனது வருகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Attendance status
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.absent"
+msgid "Absent"
+msgstr "வரவில்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Attendance counts
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.counts"
+msgid "{present} present · {late} late · {absent} absent · {total} total"
+msgstr "வருகை {present} · தாமதம் {late} · வரவில்லை {absent} · மொத்தம் {total}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Attendance status
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.late"
+msgid "Late"
+msgstr "தாமதம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Attendance status
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.present"
+msgid "Present"
+msgstr "வருகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.records"
+msgid "Attendance records"
+msgstr "வருகைப் பதிவுகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.recordsEmpty"
+msgid "Your attendance records will appear here when sessions are marked."
+msgstr "அமர்வுகள் பதிவுசெய்யப்படும்போது உங்கள் வருகைப் பதிவுகள் இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.recordsLoading"
+msgid "Loading attendance records…"
+msgstr "வருகைப் பதிவுகள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Fallback name of a class session
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.session"
+msgid "Class session"
+msgstr "வகுப்பு அமர்வு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.summary"
+msgid "Attendance summary"
+msgstr "வருகைச் சுருக்கம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.summaryEmpty"
+msgid "Your course attendance summary will appear after a teacher records attendance."
+msgstr "ஆசிரியர் வருகையைப் பதிவுசெய்த பின் உங்கள் பாடநெறி வருகைச் சுருக்கம் தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendancePanel.summaryLoading"
+msgid "Loading attendance summary…"
+msgstr "வருகைச் சுருக்கம் ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Attendance counts
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendanceSummary.counts"
+msgid "{present} present · {late} late · {absent} absent ({total} marked)"
+msgstr "வருகை {present} · தாமதம் {late} · வரவில்லை {absent} (பதிவுசெய்தவை {total})"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendanceSummary.empty.description"
+msgid "Your per-course attendance rate appears here once a teacher records attendance for you."
+msgstr "ஆசிரியர் உங்களுக்கான வருகையைப் பதிவுசெய்த பின் ஒவ்வொரு பாடநெறிக்குமான உங்கள் வருகை விகிதம் இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendanceSummary.empty.title"
+msgid "No attendance summary yet"
+msgstr "இன்னும் வருகைச் சுருக்கம் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendanceSummary.heading"
+msgid "Attendance by course"
+msgstr "பாடநெறி வாரியான வருகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendanceSummary.loading"
+msgid "Loading your attendance summary…"
+msgstr "உங்கள் வருகைச் சுருக்கம் ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader word after the attendance percentage
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.attendanceSummary.rateSuffix"
+msgid "attendance"
+msgstr "வருகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Text before the 'payment history' link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.confirmed"
+msgid "Payment confirmed. You can view the full record in your"
+msgstr "கட்டணம் உறுதிசெய்யப்பட்டது. முழுப் பதிவை உங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Text after the 'payment history' link (punctuation or closing words)
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.confirmedSuffix"
+msgid "."
+msgstr " இல் பார்க்கலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link text inside a sentence
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.historyLink"
+msgid "payment history"
+msgstr "கட்டண வரலாறு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader announcement
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.liveConfirmed"
+msgid "Payment status updated: confirmed."
+msgstr "கட்டண நிலை புதுப்பிக்கப்பட்டது: உறுதிசெய்யப்பட்டது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader announcement
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.liveRefunded"
+msgid "Payment status updated: refunded."
+msgstr "கட்டண நிலை புதுப்பிக்கப்பட்டது: திருப்பியளிக்கப்பட்டது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader announcement
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.liveRejected"
+msgid "Payment status updated: rejected."
+msgstr "கட்டண நிலை புதுப்பிக்கப்பட்டது: நிராகரிக்கப்பட்டது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.loading"
+msgid "Checking payment status…"
+msgstr "கட்டண நிலை சரிபார்க்கப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Text before the 'payment history' link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.refunded"
+msgid "This payment was refunded. See your"
+msgstr "இந்தக் கட்டணம் திருப்பியளிக்கப்பட்டது. முழுப் பதிவுக்கு உங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Text after the 'payment history' link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.refundedSuffix"
+msgid "for the full record."
+msgstr "ஐப் பார்க்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Alert
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.rejected"
+msgid "Your payment was rejected. Nothing was charged and no enrollment was created."
+msgstr "உங்கள் கட்டணம் நிராகரிக்கப்பட்டது. எந்தத் தொகையும் அறவிடப்படவில்லை, பதிவும் உருவாக்கப்படவில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.subtitle"
+msgid "This page reflects only what our servers have confirmed — it never guesses from a redirect."
+msgstr "எங்கள் சேவையகங்கள் உறுதிசெய்ததை மட்டுமே இந்தப் பக்கம் காட்டுகிறது — திசைதிருப்பலை வைத்து ஒருபோதும் ஊகிப்பதில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.title"
+msgid "Payment status"
+msgstr "கட்டண நிலை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Status while waiting for the server
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.awaiting.waiting"
+msgid "Awaiting payment confirmation… this page updates automatically."
+msgstr "கட்டண உறுதிப்படுத்தலுக்காகக் காத்திருக்கிறது… இந்தப் பக்கம் தானாகப் புதுப்பிக்கப்படும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.calendar.loading"
+msgid "Loading calendar…"
+msgstr "நாள்காட்டி ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.emptyAvailable.description"
+msgid "You're already in every open course, or your institute hasn't opened new ones yet. Check back soon."
+msgstr "நீங்கள் ஏற்கனவே எல்லாத் திறந்த பாடநெறிகளிலும் உள்ளீர்கள், அல்லது உங்கள் நிறுவனம் இன்னும் புதியவற்றைத் திறக்கவில்லை. பின்னர் மீண்டும் பார்க்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state of the available list
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.emptyAvailable.title"
+msgid "No courses are open for enrollment"
+msgstr "சேர்வதற்குத் திறந்த பாடநெறிகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.emptyEnrolled.action"
+msgid "See available courses"
+msgstr "கிடைக்கும் பாடநெறிகளைப் பார்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.emptyEnrolled.description"
+msgid "Browse Available Courses and enroll for free to get started."
+msgstr "தொடங்க, கிடைக்கும் பாடநெறிகளைப் பார்வையிட்டு இலவசமாகச் சேருங்கள்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state of the enrolled list
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.emptyEnrolled.title"
+msgid "You haven't enrolled in any courses yet"
+msgstr "நீங்கள் இன்னும் எந்தப் பாடநெறியிலும் சேரவில்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.enroll"
+msgid "Enroll"
+msgstr "சேருக"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.enrollLabel"
+msgid "Enroll in {course}"
+msgstr "{course} இல் சேருக"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Toast after enrolling
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.enrolled"
+msgid "You're enrolled in {course}. Find it under Enrolled Courses."
+msgstr "நீங்கள் {course} இல் சேர்ந்துவிட்டீர்கள். அதைச் சேர்ந்த பாடநெறிகளின் கீழ் காணலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. List name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.enrolledList"
+msgid "Enrolled Courses"
+msgstr "சேர்ந்த பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label while enrolling
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.enrollingLabel"
+msgid "Enrolling in {course}"
+msgstr "{course} இல் சேர்க்கப்படுகிறது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible group name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.filterByTag"
+msgid "Filter by tag"
+msgstr "குறிச்சொல் மூலம் வடிகட்டு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible region name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.filtersRegion"
+msgid "Search and filters"
+msgstr "தேடலும் வடிகட்டிகளும்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader result count
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.found"
+msgid "{count, plural, one {# course found} other {# courses found}}"
+msgstr "{count, plural, one {# பாடநெறி கிடைத்தது} other {# பாடநெறிகள் கிடைத்தன}}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.noMatch.description"
+msgid "Try a different search term or clear the tag filter."
+msgstr "வேறு தேடல் சொல்லை முயற்சிக்கவும், அல்லது குறிச்சொல் வடிகட்டியை அழிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state after filtering
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.noMatch.title"
+msgid "No courses match your search"
+msgstr "உங்கள் தேடலுக்குப் பொருந்தும் பாடநெறிகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link on a course card
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.openCourse"
+msgid "Open course"
+msgstr "பாடநெறியைத் திற"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.openCourseLabel"
+msgid "Open course {course}"
+msgstr "{course} பாடநெறியைத் திற"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible name of the pagination
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.pages"
+msgid "Course list pages"
+msgstr "பாடநெறிப் பட்டியல் பக்கங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Search field label and placeholder
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.search"
+msgid "Search courses"
+msgstr "பாடநெறிகளைத் தேடு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Notice when self-enrollment is off
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.selfEnrollmentDisabled"
+msgid "Your institute enrolls students in courses. Contact your institute to join one of these courses."
+msgstr "உங்கள் நிறுவனமே மாணவர்களைப் பாடநெறிகளில் சேர்க்கிறது. இவற்றில் ஒன்றில் சேர உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Select label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.sortBy"
+msgid "Sort by"
+msgstr "வரிசைப்படுத்து"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Sort option
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.sortDefault"
+msgid "Default"
+msgstr "இயல்புநிலை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Sort option: by course title
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.sortTitle"
+msgid "Title"
+msgstr "தலைப்பு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.tagsError"
+msgid "Tag filters couldn't load."
+msgstr "குறிச்சொல் வடிகட்டிகளை ஏற்ற முடியவில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader label before the teacher name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.teacher"
+msgid "Teacher:"
+msgstr "ஆசிரியர்:"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link on a course card
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.viewCourse"
+msgid "View course"
+msgstr "பாடநெறியைப் பார்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.catalog.viewCourseLabel"
+msgid "View course {course}"
+msgstr "{course} பாடநெறியைப் பார்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label: how long access lasts
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.access"
+msgid "Access"
+msgstr "அணுகல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.addAddress"
+msgid "Add your address in My Profile"
+msgstr "எனது சுயவிவரத்தில் உங்கள் முகவரியைச் சேர்க்கவும்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Text after the link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.addAddressSuffix"
+msgid ", then come back to pay online."
+msgstr ", பின்னர் இணையவழியில் செலுத்தத் திரும்பி வாருங்கள்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Help text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.bankHint"
+msgid "Already sent a bank transfer? Upload your payment slip instead of paying online."
+msgstr "ஏற்கனவே வங்கிப் பரிமாற்றம் செய்துவிட்டீர்களா? இணையவழியில் செலுத்துவதற்குப் பதிலாக உங்கள் கட்டணச் சீட்டைப் பதிவேற்றவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Access duration
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.days"
+msgid "{count, plural, one {# day} other {# days}}"
+msgstr "{count, plural, one {# நாள்} other {# நாட்கள்}}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button for a free course
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.enroll"
+msgid "Enroll"
+msgstr "சேருக"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error when the online payment page cannot be opened
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.gatewayFailed"
+msgid "We couldn't open the secure payment page. Please try again or pay by bank transfer."
+msgstr "பாதுகாப்பான கட்டணப் பக்கத்தைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது வங்கிப் பரிமாற்றம் மூலம் செலுத்தவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Access that never expires
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.lifetime"
+msgid "Lifetime access"
+msgstr "வாழ்நாள் அணுகல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Notice before the link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.needsAddress"
+msgid "Online payment needs your billing address."
+msgstr "இணையவழிக் கட்டணத்துக்கு உங்கள் பில்லிங் முகவரி தேவை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Notice
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.notOpen"
+msgid "This course isn't currently open for enrollment."
+msgstr "இந்தப் பாடநெறி தற்போது சேர்வதற்குத் திறக்கப்படவில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Notice
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.onlineUnavailable"
+msgid "Online payment isn't available at your institute yet — pay by bank transfer below."
+msgstr "உங்கள் நிறுவனத்தில் இணையவழிக் கட்டணம் இன்னும் கிடைக்கவில்லை — கீழே வங்கிப் பரிமாற்றம் மூலம் செலுத்தவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.payByBank"
+msgid "Pay by bank transfer"
+msgstr "வங்கிப் பரிமாற்றம் மூலம் செலுத்து"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button; PayHere is the payment provider name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.payOnline"
+msgid "Pay online (PayHere)"
+msgstr "இணையவழியில் செலுத்து (PayHere)"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button while preparing
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.preparing"
+msgid "Preparing…"
+msgstr "தயாராகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader status
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.preparingSlip"
+msgid "Preparing bank transfer upload…"
+msgstr "வங்கிப் பரிமாற்றப் பதிவேற்றம் தயாராகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.price"
+msgid "Price"
+msgstr "விலை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Status / button while starting
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.starting"
+msgid "Starting checkout…"
+msgstr "கட்டணம் தொடங்கப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.subtitle"
+msgid "Review the course details below, then continue to payment."
+msgstr "கீழே உள்ள பாடநெறி விவரங்களைச் சரிபார்த்து, பின்னர் கட்டணத்துக்குத் தொடரவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.checkout.title"
+msgid "Checkout"
+msgstr "கட்டணம் செலுத்துதல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Prefix of a short course id shown when the course name is unknown, e.g. 'Course #1a2b3c4d'
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.courseIdLabel"
+msgid "Course"
+msgstr "பாடநெறி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Prefix of a short enrollment id, e.g. 'Enrollment #1a2b3c4d'
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.enrollmentIdLabel"
+msgid "Enrollment"
+msgstr "பதிவு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.loadingCourse"
+msgid "Loading course…"
+msgstr "பாடநெறி ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Pagination button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.next"
+msgid "Next"
+msgstr "அடுத்தது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty page description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.noMoreResults.description"
+msgid "There are no records on this page. Go back to an earlier page."
+msgstr "இந்தப் பக்கத்தில் பதிவுகள் இல்லை. முந்தைய பக்கத்துக்குத் திரும்பவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty page after the last page of a list
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.noMoreResults.title"
+msgid "No more results"
+msgstr "மேலும் முடிவுகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Pagination text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.pageOf"
+msgid "Page {page} of {total}"
+msgstr "பக்கம் {page} / {total}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Pagination button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.previous"
+msgid "Previous"
+msgstr "முந்தையது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Save button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.saveChanges"
+msgid "Save changes"
+msgstr "மாற்றங்களைச் சேமி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button text while saving
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.saving"
+msgid "Saving…"
+msgstr "சேமிக்கப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader announcement while a list refreshes
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.common.updating"
+msgid "Updating…"
+msgstr "புதுப்பிக்கப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.courses.loading"
+msgid "Loading courses…"
+msgstr "பாடநெறிகள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Stat card label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.activeCourses"
+msgid "Active courses"
+msgstr "செயலில் உள்ள பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button to the course catalog
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.browseCourses"
+msgid "Browse courses"
+msgstr "பாடநெறிகளைப் பார்வையிடு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.empty.description"
+msgid "Once you enroll in a course, your access status and recent courses will show up here."
+msgstr "நீங்கள் ஒரு பாடநெறியில் சேர்ந்தவுடன், உங்கள் அணுகல் நிலையும் சமீபத்திய பாடநெறிகளும் இங்கே காட்டப்படும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state when the student has no enrollments
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.empty.title"
+msgid "You have no active enrollments yet"
+msgstr "உங்களுக்கு இன்னும் செயலில் உள்ள பதிவுகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Alert about courses whose access expired
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.expiredAlert"
+msgid "{count, plural, one {One of your courses has expired access.} other {# of your courses have expired access.}}"
+msgstr "{count, plural, one {உங்கள் ஒரு பாடநெறியின் அணுகல் காலாவதியாகிவிட்டது.} other {உங்கள் # பாடநெறிகளின் அணுகல் காலாவதியாகிவிட்டது.}}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.loadingEnrollments"
+msgid "Loading your enrollments…"
+msgstr "உங்கள் பதிவுகள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.loadingPayments"
+msgid "Loading payment activity…"
+msgstr "கட்டணச் செயல்பாடு ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Stat card label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.mostRecentPayment"
+msgid "Most recent payment"
+msgstr "சமீபத்திய கட்டணம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Stat card label: courses whose access expired
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.needsAttention"
+msgid "Needs attention"
+msgstr "கவனம் தேவை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Stat card hint
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.needsAttentionHint"
+msgid "Access has expired on these courses"
+msgstr "இந்தப் பாடநெறிகளின் அணுகல் காலாவதியாகிவிட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state when every enrollment expired
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.noActive.allExpired"
+msgid "All your enrollments have expired. Reactivate access to see your courses here again."
+msgstr "உங்கள் எல்லாப் பதிவுகளும் காலாவதியாகிவிட்டன. உங்கள் பாடநெறிகளை மீண்டும் இங்கே காண அணுகலை மீண்டும் செயல்படுத்தவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.noActive.description"
+msgid "Courses you currently have active access to will appear here."
+msgstr "தற்போது செயலில் உள்ள அணுகல் கொண்ட பாடநெறிகள் இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state of the recent courses list
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.noActive.title"
+msgid "No active courses to show yet"
+msgstr "காட்டுவதற்கு இன்னும் செயலில் உள்ள பாடநெறிகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Stat card value when there are no payments
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.noPayments"
+msgid "No payments yet"
+msgstr "இன்னும் கட்டணங்கள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.paymentActivity"
+msgid "Payment activity"
+msgstr "கட்டணச் செயல்பாடு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Most recent payment card: a confirmed payment and its amount
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.paymentConfirmed"
+msgid "Payment confirmed — {amount}"
+msgstr "கட்டணம் உறுதிசெய்யப்பட்டது — {amount}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link/button to request access again
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.reactivate"
+msgid "Reactivate access"
+msgstr "அணுகலை மீண்டும் செயல்படுத்து"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.recentCourses"
+msgid "Recent courses"
+msgstr "சமீபத்திய பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Most recent payment card: a refund and its amount
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.refund"
+msgid "Refund — {amount}"
+msgstr "திருப்பியளிப்பு — {amount}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student dashboard subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.subtitle"
+msgid "Your enrollments, courses, and recent payment activity at a glance."
+msgstr "உங்கள் பதிவுகள், பாடநெறிகள், சமீபத்திய கட்டணச் செயல்பாடு ஆகியவற்றின் ஒரு பார்வை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student dashboard heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.title"
+msgid "Overview"
+msgstr "மேலோட்டம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link to the full course list
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.dashboard.viewAll"
+msgid "View all my courses"
+msgstr "எனது எல்லாப் பாடநெறிகளையும் பார்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible caption of the device table
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.caption"
+msgid "Your devices"
+msgstr "உங்கள் சாதனங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirmation text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.confirmDescription"
+msgid "That device is signed out straight away. Its slot stays taken for a while before a new device can use it."
+msgstr "அந்தச் சாதனம் உடனே வெளியேற்றப்படும். புதிய சாதனம் பயன்படுத்துவதற்கு முன் அதன் இடம் சிறிது நேரம் ஒதுக்கப்பட்டிருக்கும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirmation title
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.confirmTitle"
+msgid "Remove {device}?"
+msgstr "{device} ஐ அகற்றவா?"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.empty.description"
+msgid "Devices appear here after you sign in on them."
+msgstr "சாதனங்களில் நீங்கள் உள்நுழைந்த பின் அவை இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.empty.title"
+msgid "No devices yet"
+msgstr "இன்னும் சாதனங்கள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.loading"
+msgid "Loading your devices…"
+msgstr "உங்கள் சாதனங்கள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Shown when students cannot remove devices themselves
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.managedByInstitute"
+msgid "Your institute manages your devices. To remove a device you no longer use, contact your institute."
+msgstr "உங்கள் சாதனங்களை உங்கள் நிறுவனம் நிர்வகிக்கிறது. இனி பயன்படுத்தாத சாதனத்தை அகற்ற உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.remove"
+msgid "Remove"
+msgstr "அகற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirm button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.removeDevice"
+msgid "Remove device"
+msgstr "சாதனத்தை அகற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label of the remove button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.removeLabel"
+msgid "Remove {device}"
+msgstr "{device} ஐ அகற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirmation; {device} is the device name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.removed"
+msgid "{device} was removed."
+msgstr "{device} அகற்றப்பட்டது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button while removing
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.removing"
+msgid "Removing…"
+msgstr "அகற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.subtitle"
+msgid "The browsers and devices you have signed in on. Your institute may limit how many you can use."
+msgstr "நீங்கள் உள்நுழைந்த உலாவிகளும் சாதனங்களும். எத்தனையைப் பயன்படுத்தலாம் என்பதை உங்கள் நிறுவனம் வரம்பிடலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.devices.title"
+msgid "My devices"
+msgstr "எனது சாதனங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Account menu text while the student's name is unknown
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.header.accountFallback"
+msgid "Student account"
+msgstr "மாணவர் கணக்கு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label of the account menu button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.header.accountMenu"
+msgid "Open account menu"
+msgstr "கணக்கு மெனுவைத் திற"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Header link to courses available to join
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.header.explore"
+msgid "Explore"
+msgstr "ஆராய்க"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Header link to the student's enrolled courses
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.header.myCourses"
+msgid "My Courses"
+msgstr "எனது பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Header button that opens the payment window; short, upper case in English
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.header.pay"
+msgid "PAY"
+msgstr "செலுத்து"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label of the close button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.impersonation.dismiss"
+msgid "Dismiss notice"
+msgstr "அறிவிப்பை மூடு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button that ends the support session
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.impersonation.exit"
+msgid "Exit to admin"
+msgstr "நிர்வாகிக்குத் திரும்பு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button text while ending the support session
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.impersonation.exiting"
+msgid "Exiting…"
+msgstr "வெளியேறுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible name of the support-session banner
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.impersonation.region"
+msgid "Support session"
+msgstr "ஆதரவு அமர்வு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader-only: who started the support session
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.impersonation.startedBy"
+msgid "(started by {name})"
+msgstr "({name} தொடங்கியது)"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Banner shown to staff viewing the portal as a student; {time} is a clock time
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.impersonation.viewingAs"
+msgid "Viewing as {name} — read-only support session · ends {time}"
+msgstr "{name} ஆகப் பார்க்கிறீர்கள் — படிக்க மட்டுமான ஆதரவு அமர்வு · முடிவது {time}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation: the desktop video player app. 'AOC' is a product name; keep it
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.aocPlayer"
+msgid "AOC Player"
+msgstr "AOC Player"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.availableCourses"
+msgid "Available Courses"
+msgstr "கிடைக்கும் பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.calendar"
+msgid "Calendar"
+msgstr "நாள்காட்டி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.dashboard"
+msgid "Dashboard"
+msgstr "கட்டுப்பாட்டுப் பலகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.exams"
+msgid "Exams"
+msgstr "தேர்வுகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.myAttendance"
+msgid "My Attendance"
+msgstr "எனது வருகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.myDevices"
+msgid "My Devices"
+msgstr "எனது சாதனங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.notifications"
+msgid "Notifications"
+msgstr "அறிவிப்புகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation / account menu item
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.profile"
+msgid "Profile"
+msgstr "சுயவிவரம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Student portal navigation: request access again after it expired
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.nav.reactivation"
+msgid "Reactivation"
+msgstr "மீண்டும் செயல்படுத்தல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.notifications.empty.description"
+msgid "Announcements from your institute and payment updates (confirmed, rejected or refunded) appear here."
+msgstr "உங்கள் நிறுவனத்தின் அறிவிப்புகளும் கட்டணப் புதுப்பிப்புகளும் (உறுதிசெய்யப்பட்டவை, நிராகரிக்கப்பட்டவை அல்லது திருப்பியளிக்கப்பட்டவை) இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.notifications.empty.title"
+msgid "No notifications yet"
+msgstr "இன்னும் அறிவிப்புகள் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.notifications.subtitle"
+msgid "Announcements from your institute and updates about your payments."
+msgstr "உங்கள் நிறுவனத்தின் அறிவிப்புகளும் உங்கள் கட்டணங்கள் பற்றிய புதுப்பிப்புகளும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.notifications.title"
+msgid "Notifications"
+msgstr "அறிவிப்புகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.payment.backToCheckout"
+msgid "Back to checkout"
+msgstr "கட்டணத்துக்குத் திரும்பு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.payment.backToDashboard"
+msgid "Back to dashboard"
+msgstr "கட்டுப்பாட்டுப் பலகைக்குத் திரும்பு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Notice
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.payment.cancelled.notice"
+msgid "No money was taken for this attempt. You can try again, or pay by bank transfer instead."
+msgstr "இந்த முயற்சிக்கு எந்தப் பணமும் அறவிடப்படவில்லை. மீண்டும் முயற்சிக்கலாம், அல்லது வங்கிப் பரிமாற்றம் மூலம் செலுத்தலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. PayHere is the payment provider's name; keep it
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.payment.cancelled.subtitle"
+msgid "You left the PayHere payment page before completing the payment."
+msgstr "கட்டணத்தை முடிப்பதற்கு முன் PayHere கட்டணப் பக்கத்திலிருந்து வெளியேறிவிட்டீர்கள்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading after leaving the online payment page
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.payment.cancelled.title"
+msgid "Payment cancelled"
+msgstr "கட்டணம் ரத்துசெய்யப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.payment.loadingOrder"
+msgid "Loading order…"
+msgstr "ஆணை ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link to the student's courses
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.payment.myCourses"
+msgid "My courses"
+msgstr "எனது பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.date"
+msgid "Date"
+msgstr "தேதி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.detailError"
+msgid "Could not load order details."
+msgstr "ஆணை விவரங்களை ஏற்ற முடியவில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.detailLoading"
+msgid "Loading order details…"
+msgstr "ஆணை விவரங்கள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.emptyDescription"
+msgid "Completed payments and their purchased products appear here."
+msgstr "முடிந்த கட்டணங்களும் வாங்கிய தயாரிப்புகளும் இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.hide"
+msgid "Hide details"
+msgstr "விவரங்களை மறை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.loading"
+msgid "Loading payment history…"
+msgstr "கட்டண வரலாறு ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.more"
+msgid "View more"
+msgstr "மேலும் பார்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Order label; {id} is a short id
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.order"
+msgid "Order {id}"
+msgstr "ஆணை {id}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Order number fallback
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.orderHash"
+msgid "Order #{number}"
+msgstr "ஆணை #{number}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.orderNumber"
+msgid "Order number"
+msgstr "ஆணை எண்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.products"
+msgid "Products purchased"
+msgstr "வாங்கிய தயாரிப்புகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label; value is a technical status code
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.status"
+msgid "Status"
+msgstr "நிலை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.paymentHistory.total"
+msgid "Total"
+msgstr "மொத்தம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Status badge
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.active"
+msgid "Active"
+msgstr "செயலில்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Player details line; {paired} and {lastUsed} are dates
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.details"
+msgid "Version {version} · paired {paired} · last used {lastUsed}"
+msgstr "பதிப்பு {version} · இணைக்கப்பட்டது {paired} · கடைசியாகப் பயன்படுத்தியது {lastUsed}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state; quote the pair button text exactly
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.empty.description"
+msgid "Install the AOC Player on this computer, then choose “Pair the AOC Player” above."
+msgstr "இந்தக் கணினியில் AOC Player ஐ நிறுவி, பின்னர் மேலே “AOC Player ஐ இணை” என்பதைத் தேர்ந்தெடுக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.empty.title"
+msgid "No AOC Player paired yet"
+msgstr "இன்னும் AOC Player இணைக்கப்படவில்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Player name in the list
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.forWindows"
+msgid "AOC Player for Windows"
+msgstr "Windows க்கான AOC Player"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Card text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.install.description"
+msgid "For Windows 10 and 11. Install it once on this computer. The first time you press Play on a lesson video, it sets itself up."
+msgstr "Windows 10 மற்றும் 11 க்கு. இந்தக் கணினியில் ஒருமுறை நிறுவுங்கள். பாட வீடியோவில் முதல் முறை இயக்கு அழுத்தும்போது, அது தானாக அமைந்துவிடும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Download link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.install.download"
+msgid "Download for Windows"
+msgstr "Windows க்குப் பதிவிறக்கு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Card title
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.install.title"
+msgid "Install the AOC Player"
+msgstr "AOC Player ஐ நிறுவு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Notice
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.install.unavailable"
+msgid "The AOC Player download isn't available yet. Your institute will let you know when it is."
+msgstr "AOC Player பதிவிறக்கம் இன்னும் கிடைக்கவில்லை. கிடைக்கும்போது உங்கள் நிறுவனம் தெரிவிக்கும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible list name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.listLabel"
+msgid "Your AOC Players"
+msgstr "உங்கள் AOC Player கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.loading"
+msgid "Loading your players…"
+msgstr "உங்கள் பிளேயர்கள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.pair.button"
+msgid "Pair the AOC Player"
+msgstr "AOC Player ஐ இணை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Card text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.pair.description"
+msgid "Not needed for watching: pressing Play pairs the player automatically. Use this only to set it up ahead of time. Pairing again on this computer replaces the previous player."
+msgstr "பார்ப்பதற்குத் தேவையில்லை: இயக்கு அழுத்தும்போது பிளேயர் தானாக இணைக்கப்படும். முன்கூட்டியே அமைக்க மட்டும் இதைப் பயன்படுத்துங்கள். இந்தக் கணினியில் மீண்டும் இணைத்தால் முந்தைய பிளேயர் மாற்றப்படும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Status
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.pair.done"
+msgid "The AOC Player is paired."
+msgstr "AOC Player இணைக்கப்பட்டது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.pair.launchFailed"
+msgid "Couldn't open the AOC Player. Please try again."
+msgstr "AOC Player ஐத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.pair.timedOut"
+msgid "The AOC Player didn't finish pairing. Make sure it's installed on this computer, then try again."
+msgstr "AOC Player இணைப்பை முடிக்கவில்லை. அது இந்தக் கணினியில் நிறுவப்பட்டுள்ளதை உறுதிசெய்து, மீண்டும் முயற்சிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Card title
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.pair.title"
+msgid "Pair this computer (optional)"
+msgstr "இந்தக் கணினியை இணை (விருப்பத்தேர்வு)"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Status
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.pair.waiting"
+msgid "Waiting for the AOC Player to finish pairing…"
+msgstr "AOC Player இணைப்பை முடிக்கக் காத்திருக்கிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button while preparing
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.preparing"
+msgid "Preparing…"
+msgstr "தயாராகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.remove.button"
+msgid "Remove"
+msgstr "அகற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirm button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.remove.confirm"
+msgid "Remove player"
+msgstr "பிளேயரை அகற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirmation text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.remove.description"
+msgid "Any video playing in it stops straight away. You can pair it again later."
+msgstr "அதில் இயங்கும் எந்த வீடியோவும் உடனே நிற்கும். பின்னர் மீண்டும் இணைக்கலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.remove.label"
+msgid "Remove this AOC Player"
+msgstr "இந்த AOC Player ஐ அகற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button while removing
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.remove.removing"
+msgid "Removing…"
+msgstr "அகற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Confirmation title
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.remove.title"
+msgid "Remove this AOC Player?"
+msgstr "இந்த AOC Player ஐ அகற்றவா?"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Status badge
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.removedBadge"
+msgid "Removed"
+msgstr "அகற்றப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.revoked.admin"
+msgid "removed by your institute"
+msgstr "உங்கள் நிறுவனத்தால் அகற்றப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.revoked.device"
+msgid "its device was removed"
+msgstr "அதன் சாதனம் அகற்றப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Generic removal reason
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.revoked.other"
+msgid "removed"
+msgstr "அகற்றப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.revoked.repaired"
+msgid "replaced by a newer pairing"
+msgstr "புதிய இணைப்பால் மாற்றப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Why a player was removed
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.revoked.student"
+msgid "removed by you"
+msgstr "உங்களால் அகற்றப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.subtitle"
+msgid "If your institute plays lesson videos in the AOC Player app, pair it with this computer once."
+msgstr "உங்கள் நிறுவனம் AOC Player செயலியில் பாட வீடியோக்களை இயக்கினால், அதை இந்தக் கணினியுடன் ஒருமுறை இணையுங்கள்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading; AOC Player is a product name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.title"
+msgid "AOC Player"
+msgstr "AOC Player"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.player.yourPlayers"
+msgid "Your players"
+msgstr "உங்கள் பிளேயர்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Name of the student portal, shown in the sidebar, tab title and sign-out dialog
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.portal"
+msgid "Student Portal"
+msgstr "மாணவர் தளம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section help text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.additional.description"
+msgid "Information your institute collects about its students. Fields marked (optional) can be left blank."
+msgstr "உங்கள் நிறுவனம் மாணவர்களைப் பற்றிச் சேகரிக்கும் தகவல்கள். (விருப்பத்தேர்வு) எனக் குறிக்கப்பட்ட புலங்களை வெறுமையாக விடலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.additional.empty.description"
+msgid "Your institute doesn't collect any additional details at the moment."
+msgstr "உங்கள் நிறுவனம் தற்போது கூடுதல் விவரங்கள் எதையும் சேகரிக்கவில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.additional.empty.title"
+msgid "Nothing else to fill in"
+msgstr "நிரப்ப வேறு எதுவும் இல்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.additional.heading"
+msgid "Additional details"
+msgstr "கூடுதல் விவரங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.additional.loading"
+msgid "Loading your details…"
+msgstr "உங்கள் விவரங்கள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Success message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.additional.saved"
+msgid "Details saved."
+msgstr "விவரங்கள் சேமிக்கப்பட்டன."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button text while saving
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.additional.saving"
+msgid "Saving your details…"
+msgstr "உங்கள் விவரங்கள் சேமிக்கப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.displayName"
+msgid "Display name"
+msgstr "காட்சிப் பெயர்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Placeholder text of the Attended Exams tab
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.examsPlaceholder"
+msgid "Your attended exams appear here."
+msgstr "நீங்கள் கலந்துகொண்ட தேர்வுகள் இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Read-only field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.field.email"
+msgid "Email"
+msgstr "மின்னஞ்சல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Read-only field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.field.name"
+msgid "Name"
+msgstr "பெயர்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Read-only field label; the value is a technical role code
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.field.role"
+msgid "Role"
+msgstr "பங்கு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Read-only field label; the value is a technical status code
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.field.status"
+msgid "Status"
+msgstr "நிலை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.loading"
+msgid "Loading your profile…"
+msgstr "உங்கள் சுயவிவரம் ஏற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.personalDetails"
+msgid "Personal Details"
+msgstr "தனிப்பட்ட விவரங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.photo"
+msgid "Profile photo"
+msgstr "சுயவிவரப் படம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Placeholder text of the QR tab
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.qrPlaceholder"
+msgid "Your student QR code will appear here when available."
+msgstr "உங்கள் மாணவர் QR குறியீடு கிடைக்கும்போது இங்கே தோன்றும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Success message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.saved"
+msgid "Saved."
+msgstr "சேமிக்கப்பட்டது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible name of the profile tabs
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.sections"
+msgid "Student profile sections"
+msgstr "மாணவர் சுயவிவரப் பகுதிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.tab.attendance"
+msgid "Attendance"
+msgstr "வருகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.tab.courses"
+msgid "Enrolled Courses"
+msgstr "சேர்ந்த பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.tab.exams"
+msgid "Attended Exams"
+msgstr "கலந்துகொண்ட தேர்வுகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.tab.general"
+msgid "General"
+msgstr "பொது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Profile tab
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.tab.payments"
+msgid "Payments"
+msgstr "கட்டணங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Profile tab: the student's QR code
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.tab.qr"
+msgid "QR"
+msgstr "QR"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error after saving
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.unexpectedError"
+msgid "An unexpected error occurred. Please try again."
+msgstr "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.validation.nameRequired"
+msgid "Name is required."
+msgstr "பெயர் தேவை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profile.validation.nameTooLong"
+msgid "Name must be {max} characters or fewer."
+msgstr "பெயர் {max} எழுத்துகளுக்கு மேல் இருக்கக்கூடாது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. {fields} is a comma-separated list of field names set by the institute
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profileBanner.asksFor"
+msgid "Your institute asks for: {fields}."
+msgstr "உங்கள் நிறுவனம் கேட்பவை: {fields}."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profileBanner.link"
+msgid "Complete profile"
+msgstr "சுயவிவரத்தை நிறைவுசெய்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Banner title
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.profileBanner.title"
+msgid "Complete your profile."
+msgstr "உங்கள் சுயவிவரத்தை நிறைவுசெய்யுங்கள்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Link
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.checkout"
+msgid "Proceed to checkout"
+msgstr "கட்டணத்துக்குத் தொடர்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.checkoutFor"
+msgid "Proceed to checkout for {enrollment}"
+msgstr "{enrollment} க்கான கட்டணத்துக்குத் தொடர்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Table column
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.col.action"
+msgid "Action"
+msgstr "செயல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Table column
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.col.enrollment"
+msgid "Enrollment"
+msgstr "பதிவு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Table column
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.col.reviewed"
+msgid "Reviewed"
+msgstr "மதிப்பாய்வு செய்யப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Table column
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.col.status"
+msgid "Status"
+msgstr "நிலை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Table column
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.col.submitted"
+msgid "Submitted"
+msgstr "சமர்ப்பிக்கப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.expiredError"
+msgid "Couldn't load your expired courses."
+msgstr "காலாவதியான உங்கள் பாடநெறிகளை ஏற்ற முடியவில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading / list name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.expiredHeading"
+msgid "Courses with expired access"
+msgstr "அணுகல் காலாவதியான பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.expiredLoading"
+msgid "Loading your expired courses…"
+msgstr "காலாவதியான உங்கள் பாடநெறிகள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible table caption
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.historyCaption"
+msgid "Your reactivation request history"
+msgstr "உங்கள் மீண்டும் செயல்படுத்தல் கோரிக்கை வரலாறு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state description
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.historyEmpty.description"
+msgid "Once your paid access to a course expires, you can request reactivation from the list above or from My Courses."
+msgstr "ஒரு பாடநெறிக்கான கட்டண அணுகல் காலாவதியானதும், மேலே உள்ள பட்டியலிலிருந்தோ எனது பாடநெறிகளிலிருந்தோ மீண்டும் செயல்படுத்தலைக் கோரலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.historyEmpty.title"
+msgid "You haven't requested reactivation for any course yet"
+msgstr "நீங்கள் இன்னும் எந்தப் பாடநெறிக்கும் மீண்டும் செயல்படுத்தலைக் கோரவில்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Section heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.historyHeading"
+msgid "Your reactivation requests"
+msgstr "உங்கள் மீண்டும் செயல்படுத்தல் கோரிக்கைகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Loading text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.historyLoading"
+msgid "Loading your reactivation requests…"
+msgstr "உங்கள் மீண்டும் செயல்படுத்தல் கோரிக்கைகள் ஏற்றப்படுகின்றன…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Empty state
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.noneExpired"
+msgid "None of your courses currently need reactivation."
+msgstr "உங்கள் எந்தப் பாடநெறிக்கும் தற்போது மீண்டும் செயல்படுத்தல் தேவையில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Table cell
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.notReviewed"
+msgid "Not yet reviewed"
+msgstr "இன்னும் மதிப்பாய்வு செய்யப்படவில்லை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button on an expired course card
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.requestButton"
+msgid "Request reactivation"
+msgstr "மீண்டும் செயல்படுத்தலைக் கோரு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Help text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.requestDescription"
+msgid "Your access to this course has expired. Submitting a request notifies your institute's admin — if approved, you'll be able to place a new order to restore access."
+msgstr "இந்தப் பாடநெறிக்கான உங்கள் அணுகல் காலாவதியாகிவிட்டது. கோரிக்கையைச் சமர்ப்பிப்பது உங்கள் நிறுவன நிர்வாகிக்குத் தெரிவிக்கும் — அங்கீகரிக்கப்பட்டால், அணுகலை மீட்டெடுக்கப் புதிய ஆணையைச் செய்யலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.requestFor"
+msgid "Request reactivation for {enrollment}"
+msgstr "{enrollment} க்கு மீண்டும் செயல்படுத்தலைக் கோரு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.submit"
+msgid "Submit reactivation request"
+msgstr "மீண்டும் செயல்படுத்தல் கோரிக்கையைச் சமர்ப்பி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Text after submitting
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.submittedDescription"
+msgid "A Tenant Admin will review your request. Track its status in your request history below — you'll be able to place a new order once it's approved."
+msgstr "நிறுவன நிர்வாகி உங்கள் கோரிக்கையை மதிப்பாய்வு செய்வார். கீழே உள்ள கோரிக்கை வரலாற்றில் அதன் நிலையைப் பாருங்கள் — அங்கீகரிக்கப்பட்டதும் புதிய ஆணையைச் செய்யலாம்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Heading after submitting
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.submittedFor"
+msgid "Reactivation request submitted for {enrollment}"
+msgstr "{enrollment} க்கான மீண்டும் செயல்படுத்தல் கோரிக்கை சமர்ப்பிக்கப்பட்டது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button while submitting
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.submitting"
+msgid "Submitting…"
+msgstr "சமர்ப்பிக்கப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader status
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.submittingLive"
+msgid "Submitting reactivation request…"
+msgstr "மீண்டும் செயல்படுத்தல் கோரிக்கை சமர்ப்பிக்கப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.subtitle"
+msgid "Request reactivation for a course whose access has expired, and track the status of past requests."
+msgstr "அணுகல் காலாவதியான பாடநெறிக்கு மீண்டும் செயல்படுத்தலைக் கோரி, முந்தைய கோரிக்கைகளின் நிலையைப் பாருங்கள்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.reactivation.title"
+msgid "Reactivation"
+msgstr "மீண்டும் செயல்படுத்தல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.browse"
+msgid "Browse files"
+msgstr "கோப்புகளைத் தேடு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Drop zone text before the Browse button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.dragDrop"
+msgid "Drag and drop a file here, or"
+msgstr "கோப்பை இங்கே இழுத்து விடுங்கள், அல்லது"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.fileLabel"
+msgid "Slip file"
+msgstr "சீட்டுக் கோப்பு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error when the form is invalid
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.fixFields"
+msgid "Please fix the highlighted fields and try again."
+msgstr "குறிக்கப்பட்ட புலங்களைச் சரிசெய்து மீண்டும் முயற்சிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Information about an automatic review flag
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.flagged"
+msgid "This slip was automatically flagged for a reviewer to take a closer look. This is informational only — it is not a rejection, and no action is needed from you."
+msgstr "மதிப்பாய்வாளர் கூர்ந்து பார்ப்பதற்காக இந்தச் சீட்டு தானாகக் குறிக்கப்பட்டது. இது தகவலுக்கு மட்டுமே — இது நிராகரிப்பு அல்ல, உங்களிடமிருந்து எந்தச் செயலும் தேவையில்லை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. File help text
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.helper"
+msgid "Accepted formats: {formats}. Maximum size: {size}."
+msgstr "ஏற்கப்படும் வடிவங்கள்: {formats}. அதிகபட்ச அளவு: {size}."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Accessible form group name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.legend"
+msgid "Upload a payment slip"
+msgstr "கட்டணச் சீட்டைப் பதிவேற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Screen-reader status while dragging a file
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.readyToDrop"
+msgid "File ready to drop"
+msgstr "கோப்பை விடத் தயார்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. The bank transfer reference number
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.reference"
+msgid "Reference: {reference}"
+msgstr "குறிப்பு எண்: {reference}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Field label: bank transfer reference
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.referenceLabel"
+msgid "Reference number"
+msgstr "குறிப்பு எண்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Selected file name
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.selected"
+msgid "Selected: {file}"
+msgstr "தேர்ந்தெடுக்கப்பட்டது: {file}"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Submit button
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.submit"
+msgid "Submit payment slip"
+msgstr "கட்டணச் சீட்டைச் சமர்ப்பி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Shown after uploading a slip
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.submitted"
+msgid "Submitted — under review. Your course access will unlock once a reviewer approves this slip."
+msgstr "சமர்ப்பிக்கப்பட்டது — மதிப்பாய்வில் உள்ளது. மதிப்பாய்வாளர் இந்தச் சீட்டை அங்கீகரித்ததும் உங்கள் பாடநெறி அணுகல் திறக்கும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page subtitle
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.subtitle"
+msgid "Already sent a bank transfer? Enter the reference number and upload your slip for review."
+msgstr "ஏற்கனவே வங்கிப் பரிமாற்றம் செய்துவிட்டீர்களா? குறிப்பு எண்ணை உள்ளிட்டு மதிப்பாய்வுக்காக உங்கள் சீட்டைப் பதிவேற்றவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Page heading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.title"
+msgid "Upload payment slip"
+msgstr "கட்டணச் சீட்டைப் பதிவேற்று"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Error after uploading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.uploadFailed"
+msgid "Couldn't upload this payment slip. Please try again."
+msgstr "இந்தக் கட்டணச் சீட்டைப் பதிவேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Status while uploading
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.uploading"
+msgid "Uploading…"
+msgstr "பதிவேற்றப்படுகிறது…"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.validation.fileEmpty"
+msgid "The selected file is empty."
+msgstr "தேர்ந்தெடுத்த கோப்பு வெறுமையாக உள்ளது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.validation.fileRequired"
+msgid "Select a file to upload."
+msgstr "பதிவேற்ற ஒரு கோப்பைத் தேர்ந்தெடுக்கவும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message; {size} is e.g. 25 MB
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.validation.fileTooLarge"
+msgid "File is too large. Maximum size is {size}."
+msgstr "கோப்பு மிகப் பெரியது. அதிகபட்ச அளவு {size}."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message; {formats} is a list of file types
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.validation.fileType"
+msgid "Unsupported file type. Accepted formats: {formats}."
+msgstr "ஆதரிக்கப்படாத கோப்பு வகை. ஏற்கப்படும் வடிவங்கள்: {formats}."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.validation.referenceRequired"
+msgid "Reference number is required."
+msgstr "குறிப்பு எண் தேவை."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Validation message
+#: i18n/source/student.json
+#, icu-format, fuzzy
+msgctxt "student.slip.validation.referenceTooLong"
+msgid "Reference number must be {max} characters or fewer."
+msgstr "குறிப்பு எண் {max} எழுத்துகளுக்கு மேல் இருக்கக்கூடாது."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state button
 #: i18n/source/teacher.json
 #, icu-format, fuzzy
@@ -3312,3 +5840,299 @@ msgstr "சுயசரிதை {max} எழுத்துகள் அல்�
 msgctxt "teacher.profile.validation.qualificationsTooLong"
 msgid "Qualifications must be {max} characters or fewer."
 msgstr "தகுதிகள் {max} எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்."
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.appearance"
+msgid "Appearance"
+msgstr "தோற்றம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.attendanceReports"
+msgid "Attendance Reports"
+msgstr "வருகை அறிக்கைகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.auditLog"
+msgid "Audit Log"
+msgstr "தணிக்கைப் பதிவு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.broadcasts"
+msgid "Broadcasts"
+msgstr "ஒலிபரப்புகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.calendar"
+msgid "Calendar"
+msgstr "நாள்காட்டி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.courses"
+msgid "Courses"
+msgstr "பாடநெறிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.customDomain"
+msgid "Custom Domain"
+msgstr "தனிப்பயன் டொமைன்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.dashboard"
+msgid "Dashboard"
+msgstr "கட்டுப்பாட்டுப் பலகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.devicesAccess"
+msgid "Devices & Access"
+msgstr "சாதனங்களும் அணுகலும்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.discounts"
+msgid "Discounts"
+msgstr "தள்ளுபடிகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.exams"
+msgid "Exams"
+msgstr "தேர்வுகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.expenseCategories"
+msgid "Expense Categories"
+msgstr "செலவு வகைகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.expenses"
+msgid "Expenses"
+msgstr "செலவுகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.financeReports"
+msgid "Finance Reports"
+msgstr "நிதி அறிக்கைகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.financeSummary"
+msgid "Finance Summary"
+msgstr "நிதிச் சுருக்கம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.liveClasses"
+msgid "Live Classes"
+msgstr "நேரலை வகுப்புகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.markAttendance"
+msgid "Mark Attendance"
+msgstr "வருகையைப் பதிவுசெய்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.mediaLibrary"
+msgid "Media Library"
+msgstr "ஊடக நூலகம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.messageTemplates"
+msgid "Message Templates"
+msgstr "செய்தி வார்ப்புருக்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.messaging"
+msgid "Messaging (SMS & WhatsApp)"
+msgstr "செய்தியிடல் (SMS மற்றும் WhatsApp)"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.payments"
+msgid "Payments"
+msgstr "கட்டணங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.reactivationApprovals"
+msgid "Reactivation Approvals"
+msgstr "மீண்டும் செயல்படுத்தல் அங்கீகாரங்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.reports"
+msgid "Reports"
+msgstr "அறிக்கைகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.settings"
+msgid "Settings"
+msgstr "அமைப்புகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.staff"
+msgid "Staff"
+msgstr "பணியாளர்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.students"
+msgid "Students"
+msgstr "மாணவர்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.teacherPayouts"
+msgid "Teacher Payouts"
+msgstr "ஆசிரியர் கொடுப்பனவுகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.teachers"
+msgid "Teachers"
+msgstr "ஆசிரியர்கள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.translations"
+msgid "Translations"
+msgstr "மொழிபெயர்ப்புகள்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin portal navigation
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.nav.tuteDispatch"
+msgid "Tute Dispatch"
+msgstr "குறிப்புகள் அனுப்புதல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.navGroup.academic"
+msgid "Academic"
+msgstr "கல்வி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.navGroup.administration"
+msgid "Administration"
+msgstr "நிர்வாகம்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.navGroup.communication"
+msgid "Communication"
+msgstr "தொடர்பாடல்"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.navGroup.dashboard"
+msgid "Dashboard"
+msgstr "கட்டுப்பாட்டுப் பலகை"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.navGroup.finance"
+msgid "Finance"
+msgstr "நிதி"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Tenant Admin navigation group heading
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.navGroup.instituteConfiguration"
+msgid "Institute Configuration"
+msgstr "நிறுவன அமைவு"
+
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
+#. Name of the institute administration portal, shown in the sidebar and sign-out dialog
+#: i18n/source/tenantAdmin.json
+#, icu-format, fuzzy
+msgctxt "tenantAdmin.portal"
+msgid "Tenant Admin"
+msgstr "நிறுவன நிர்வாகி"

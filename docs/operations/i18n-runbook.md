@@ -139,7 +139,7 @@ automatically.
 - *`check` fails with "stale":* run `extract` and then `generate`, and commit the
   results.
 
-## Coverage by surface (2026-11-13)
+## Coverage by surface (updated 2026-11-14)
 
 "Localized" means every visible string, accessible label, state and validation
 message on that surface goes through the catalog. "Switcher only" means the language
@@ -151,13 +151,16 @@ switcher is present but the surface's text is still hard-coded English.
 | Public header, footer, skip link, tab titles | Localized |
 | Public course list/detail: course title and description | Content variants served; page chrome **not** localized; `PriceBadge` English |
 | Sign-in page and auth shell (form, validation, policy consent, API errors) | Localized |
-| Teacher Portal shell (nav, mobile menu, logout, footer) | Localized (except `ReconnectBanner`) |
+| Teacher Portal shell (nav, mobile menu, logout, footer, reconnect banner) | Localized |
 | Teacher → My Courses | Localized |
 | Teacher → My Profile | Localized |
 | Shared loading / error / permission-denied states, theme toggle | Localized |
 | Tenant Admin → Settings → Translations; course Translations tab | Localized (`i18nAdmin.*`) |
-| Tenant Admin portal nav and all other admin pages | Switcher only |
-| Student portal | Switcher only |
+| Tenant Admin chrome (sidebar and mobile nav, every item and group, portal label, logout, reconnect banner) | Localized |
+| Tenant Admin pages (students, courses, payments, finance, reports, settings except Translations, ...) | Switcher only |
+| Student shell (nav, header links, account menu, PAY button, support-session banner, footer) | Localized |
+| Student pages: Dashboard, My Courses/catalog (incl. enroll dialog and errors), My Attendance, My Devices, Profile (tabs, personal details, completion banner, attendance and payments tabs), Checkout, Payment cancelled, Slip upload, Awaiting confirmation, Reactivation, Player page, Notifications heading/empty state | Localized |
+| Student page internals still English: course detail body, lesson materials, class calendar, exams and leaderboards, notification list and preferences, profile photo/fields/billing forms, device list, attendance filters and chips, payment status badges, course price labels, player error notices, payment composer dialog body | Not localized |
 | Platform Admin portal (login title/description props) | Switcher only |
 | Registration, forgot/reset password, account setup pages | Not localized |
 | Password-reset email (platform default template) | Localized (recipient locale) |
@@ -167,11 +170,11 @@ switcher is present but the surface's text is still hard-coded English.
 
 ### Translation status
 
-411 registered keys: common 44, auth 34, errors 18, public 92, teacher 62,
-i18nAdmin 158, email 3. **`si-LK` and `ta-LK` have 0 reviewed platform translations.**
-`si-LK` has AI drafts (Claude, 2026-11-13) for all 411 keys, every one flagged
+767 registered keys: common 65, auth 34, errors 18, public 92, teacher 62,
+i18nAdmin 161, email 3, tenantAdmin 37, student 295. **`si-LK` and `ta-LK` have 0 reviewed platform translations.**
+`si-LK` has AI drafts (Claude, 2026-11-13/14) for all 767 keys, every one flagged
 `fuzzy` with the comment "AI draft translation (Claude), needs review by a fluent
-Sinhala speaker". `ta-LK` has the same for all 411 keys ("... a fluent Tamil
+Sinhala speaker". `ta-LK` has the same for all 767 keys ("... a fluent Tamil
 speaker"). Visitors still see English until a reviewer checks each entry and clears
 `fuzzy`. Tenant admins see the drafts as suggestions.
 Review first: `auth.*`, `public.*`, `teacher.*`, `errors.*`. Known judgement calls to
