@@ -229,6 +229,8 @@ class TranslationManagementIntegrationTest extends I18nTestSupport {
 	@Test
 	void aLocaleNotYetEnabledCanBePreparedButIsNotServed() {
 		Fx fx = seed("i18n-prepare");
+		// Every language is enabled by default; switch Tamil off first.
+		setLanguagesOk(fx, List.of("en-LK"), "en-LK", null);
 		publishOverride(fx, "ta-LK", SAVE_KEY, "சேமி", 0);
 		assertThat(publicCatalogOk(fx.host(), "locale=ta-LK").path("locale").asString()).isEqualTo("en-LK");
 		setLanguagesOk(fx, List.of("en-LK", "ta-LK"), "en-LK", null);

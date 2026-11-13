@@ -1,6 +1,7 @@
 package com.lms.tenantmanagement.api;
 
 import com.lms.common.money.PlatformCurrency;
+import com.lms.tenantmanagement.config.ConfigPropertyRegistry;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,7 +95,7 @@ public interface TenantConfigApi {
 
 	/**
 	 * I18N-01: {@code GENERAL.enabled_locales} as stored (canonical tags), default
-	 * {@code ["en-LK"]}. The localization module re-validates every tag against the supported
+	 * every supported locale ({@link ConfigPropertyRegistry#SUPPORTED_LOCALES}). The localization module re-validates every tag against the supported
 	 * locales before use.
 	 */
 	default List<String> resolveEnabledLocales(UUID tenantId) {
@@ -105,7 +106,7 @@ public interface TenantConfigApi {
 				.map(String.class::cast)
 				.toList())
 			.filter(list -> !list.isEmpty())
-			.orElse(List.of("en-LK"));
+			.orElse(ConfigPropertyRegistry.SUPPORTED_LOCALES);
 	}
 
 	/** I18N-01: {@code GENERAL.default_locale}, default {@code en-LK}. */

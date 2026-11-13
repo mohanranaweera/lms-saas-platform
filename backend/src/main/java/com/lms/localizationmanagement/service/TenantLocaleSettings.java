@@ -2,6 +2,7 @@ package com.lms.localizationmanagement.service;
 
 import com.lms.common.tenant.TenantContext;
 import com.lms.common.tenant.TenantContextNotResolvedException;
+import com.lms.localizationmanagement.api.SupportedLocale;
 import com.lms.tenantmanagement.api.ConfigDomain;
 import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.util.List;
@@ -72,7 +73,8 @@ public class TenantLocaleSettings {
 	}
 
 	private Settings platformDefaults() {
-		return new Settings(List.of(localeRegistry.sourceLocale()), localeRegistry.sourceLocale(), false);
+		return new Settings(localeRegistry.locales().stream().map(SupportedLocale::tag).toList(),
+				localeRegistry.sourceLocale(), false);
 	}
 
 }

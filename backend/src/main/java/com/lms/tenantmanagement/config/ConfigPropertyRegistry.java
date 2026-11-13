@@ -342,11 +342,13 @@ public class ConfigPropertyRegistry {
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "ga_measurement_id", ConfigValueType.STRING, null,
 						(value, batch) -> value instanceof String s && GA_MEASUREMENT_ID_PATTERN.matcher(s).matches()),
 				// I18N-01 (docs/architecture/i18n-translation-management.md section 1): UI
-				// languages. Existing tenants have no rows, so they keep running in English.
+				// languages. Every supported language is enabled by default so the switcher is
+				// offered; default_locale stays English, so tenants keep running in English
+				// unless a visitor chooses otherwise.
 				// default_locale must be one of enabled_locales - checked in the same batch
 				// here and against the persisted values by crossFieldErrors.
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, ENABLED_LOCALES_KEY, ConfigValueType.JSON,
-						List.of(DEFAULT_LOCALE), ConfigPropertyRegistry::isEnabledLocales),
+						SUPPORTED_LOCALES, ConfigPropertyRegistry::isEnabledLocales),
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, DEFAULT_LOCALE_KEY, ConfigValueType.STRING,
 						DEFAULT_LOCALE, ConfigPropertyRegistry::isDefaultLocale),
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, BROWSER_LANGUAGE_DETECTION_KEY,

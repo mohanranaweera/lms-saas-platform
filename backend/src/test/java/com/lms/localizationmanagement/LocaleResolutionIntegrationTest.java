@@ -41,24 +41,27 @@ class LocaleResolutionIntegrationTest extends I18nTestSupport {
 	}
 
 	@Test
-	void existingTenantsStayEnglishAndPublicReadsAreUnchanged() {
+	void existingTenantsOfferEveryLanguageButStayEnglishByDefault() {
 		Fx fx = seed("i18n-default");
 		MvcResult settings = call(fx.host(), null, get("/api/v1/public/i18n/settings"));
 		assertThat(status(settings)).as(rawContent(settings)).isEqualTo(200);
 		JsonNode data = data(settings);
-		assertThat(data.path("enabledLocales").toString()).isEqualTo("[\"en-LK\"]");
+		assertThat(data.path("enabledLocales").toString()).isEqualTo("[\"en-LK\",\"si-LK\",\"ta-LK\"]");
 		assertThat(data.path("defaultLocale").asString()).isEqualTo("en-LK");
 		assertThat(data.path("browserLanguageDetection").asBoolean()).isFalse();
 		assertThat(data.path("supportedLocales").findValuesAsString("tag")).containsExactly("en-LK", "si-LK",
 				"ta-LK");
 
-		// Every hint for a non-enabled language is ignored: the tenant default (English) wins.
-		JsonNode catalog = catalog(fx.host(), null, "locale=si-LK&ns=common", "ta-LK",
-				new Cookie("lms_locale", "si-LK"), "si-LK,si;q=0.9");
+		// With no choice made, visitors get the tenant default (English); Accept-Language is
+		// ignored because browser detection is off by default.
+		JsonNode catalog = catalog(fx.host(), null, "ns=common", null, null, "si-LK,si;q=0.9");
 		assertThat(resolved(catalog)).isEqualTo("en-LK/TENANT_DEFAULT");
 		assertThat(catalog.path("messages").path(SAVE_KEY).asString()).isEqualTo("Save");
 		assertThat(catalog.path("namespaces").toString()).isEqualTo("[\"common\"]");
 		assertThat(catalog.path("version").asString()).endsWith(".0");
+		// An explicit choice of a (now enabled by default) language is honoured.
+		assertThat(resolved(catalog(fx.host(), null, "locale=si-LK&ns=common", null, null, null)))
+			.isEqualTo("si-LK/EXPLICIT");
 
 		// Existing public endpoints still answer as before.
 		MvcResult home = call(fx.host(), null, get("/api/v1/public/tenant-config/home"));
@@ -180,7 +183,11 @@ class LocaleResolutionIntegrationTest extends I18nTestSupport {
 	@Test
 	void defaultLocaleMustBeEnabled() {
 		Fx fx = seed("i18n-settings");
-		assertThat(status(setLanguages(fx, null, "si-LK", null))).isEqualTo(400);
+		// Every language is enabled by default, so any of them may become the default...
+		setLanguagesOk(fx, null, "si-LK", null);
+		setLanguagesOk(fx, List.of("en-LK", "si-LK"), "en-LK", null);
+		// ...but not one the tenant switched off.
+		assertThat(status(setLanguages(fx, null, "ta-LK", null))).isEqualTo(400);
 		assertThat(status(setLanguages(fx, List.of("si-LK"), "en-LK", null))).isEqualTo(400);
 		assertThat(status(setLanguages(fx, List.of("en-LK", "xx-YY"), null, null))).isEqualTo(400);
 		assertThat(status(setLanguages(fx, List.of("en-LK", "en-LK"), null, null))).isEqualTo(400);
