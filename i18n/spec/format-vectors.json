@@ -1,0 +1,32 @@
+{
+  "_comment": "I18N-01 shared vectors. frontend/src/i18n/icu.ts and com.lms.localizationmanagement.format.MessageFormatter must both pass every case. Numbers use the locale's default (latn) digits.",
+  "format": [
+    { "locale": "en-LK", "message": "Hello", "params": {}, "expected": "Hello" },
+    { "locale": "en-LK", "message": "Hello {name}!", "params": { "name": "Nimal" }, "expected": "Hello Nimal!" },
+    { "locale": "en-LK", "message": "Missing {name}", "params": {}, "expected": "Missing {name}" },
+    { "locale": "en-LK", "message": "{count, plural, one {# course} other {# courses}}", "params": { "count": 1 }, "expected": "1 course" },
+    { "locale": "en-LK", "message": "{count, plural, one {# course} other {# courses}}", "params": { "count": 0 }, "expected": "0 courses" },
+    { "locale": "en-LK", "message": "{count, plural, one {# course} other {# courses}}", "params": { "count": 1234 }, "expected": "1,234 courses" },
+    { "locale": "en-LK", "message": "{count, plural, =0 {No courses} one {# course} other {# courses}}", "params": { "count": 0 }, "expected": "No courses" },
+    { "locale": "si-LK", "message": "{count, plural, one {පාඨමාලා #} other {පාඨමාලා #ක්}}", "params": { "count": 0 }, "expected": "පාඨමාලා 0" },
+    { "locale": "si-LK", "message": "{count, plural, one {පාඨමාලා #} other {පාඨමාලා #ක්}}", "params": { "count": 5 }, "expected": "පාඨමාලා 5ක්" },
+    { "locale": "ta-LK", "message": "{count, plural, one {# பாடநெறி} other {# பாடநெறிகள்}}", "params": { "count": 1 }, "expected": "1 பாடநெறி" },
+    { "locale": "ta-LK", "message": "{count, plural, one {# பாடநெறி} other {# பாடநெறிகள்}}", "params": { "count": 0 }, "expected": "0 பாடநெறிகள்" },
+    { "locale": "en-LK", "message": "{n, plural, one {{name} has # file} other {{name} has # files}}", "params": { "n": 2, "name": "Kamal" }, "expected": "Kamal has 2 files" },
+    { "locale": "en-LK", "message": "It''s '{literal}' and # here", "params": {}, "expected": "It's {literal} and # here" },
+    { "locale": "en-LK", "message": "{n, plural, other {'#' is # and it's ok}}", "params": { "n": 3 }, "expected": "# is 3 and it's ok" },
+    { "locale": "en-LK", "message": "<b>{name}</b>", "params": { "name": "<script>" }, "expected": "<b><script></b>" }
+  ],
+  "validate": [
+    { "locale": "si-LK", "message": "ආයුබෝවන් {name}", "source": "Hello {name}", "problems": [] },
+    { "locale": "si-LK", "message": "ආයුබෝවන්", "source": "Hello {name}", "problems": ["PLACEHOLDER_MISSING:name"] },
+    { "locale": "ta-LK", "message": "வணக்கம் {nme}", "source": "Hello {name}", "problems": ["PLACEHOLDER_MISSING:name", "PLACEHOLDER_UNKNOWN:nme"] },
+    { "locale": "en-LK", "message": "Hello {name", "source": "Hello {name}", "problems": ["SYNTAX"] },
+    { "locale": "en-LK", "message": "Hello }", "problems": ["SYNTAX"] },
+    { "locale": "si-LK", "message": "{count, plural, one {#}}", "source": "{count, plural, one {#} other {#}}", "problems": ["PLURAL_MISSING_OTHER:count"] },
+    { "locale": "ta-LK", "message": "{count, plural, few {#} other {#}}", "source": "{count, plural, one {#} other {#}}", "problems": ["PLURAL_INVALID_CATEGORY:few"] },
+    { "locale": "ta-LK", "message": "{count} பாடநெறிகள்", "source": "{count, plural, one {#} other {#}}", "problems": ["PLACEHOLDER_UNKNOWN:count", "PLURAL_MISSING:count"] },
+    { "locale": "en-LK", "message": "{count, select, a {x} other {y}}", "problems": ["SYNTAX"] },
+    { "locale": "en-LK", "message": "{count, plural, =0 {none} other {#}}", "source": "{count, plural, one {#} other {#}}", "problems": [] }
+  ]
+}

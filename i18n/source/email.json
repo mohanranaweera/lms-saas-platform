@@ -1,0 +1,5 @@
+{
+  "email.common.expiresInMinutes": { "source": "{count, plural, one {# minute} other {# minutes}}", "context": "How long an emailed link stays valid, e.g. in the password reset email; {count} is a number of minutes" },
+  "email.passwordReset.subject": { "source": "Reset your {tenantName} password", "context": "Password reset email subject; {tenantName} is the institute name" },
+  "email.passwordReset.body": { "source": "Hi,\n\nWe received a request to reset your password at {tenantName}. Choose a new one here:\n\n{link}\n\nThis link can be used once and expires in {expiresIn}. If you didn't ask for this, you can ignore this email - your password won't change.\n", "context": "Password reset email body (plain text). Keep {link} on its own line. {tenantName} is the institute name; {expiresIn} is a duration such as '60 minutes'" }
+}

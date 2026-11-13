@@ -12,6 +12,25 @@ permissions:
   contents: read
 
 jobs:
+  i18n-catalogs:
+    name: I18n Catalog Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # I18N-01: unregistered keys, invalid placeholders/plurals, or stale POT/PO/JSON fail here.
+      - name: Message format and PO tests
+        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/i18n/icu.test.mjs scripts/i18n/po.test.mjs scripts/i18n/merge.test.mjs
+
+      - name: Catalogs valid and up to date
+        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/i18n/catalog.mjs check
+
   backend:
     name: Backend Maven Verify
     runs-on: ubuntu-latest

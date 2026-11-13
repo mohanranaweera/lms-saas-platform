@@ -1,0 +1,8 @@
+{
+  "sourceLocale": "en-LK",
+  "locales": [
+    { "tag": "en-LK", "language": "en", "autonym": "English", "dir": "ltr", "aliases": ["en"] },
+    { "tag": "si-LK", "language": "si", "autonym": "සිංහල", "dir": "ltr", "aliases": ["si"] },
+    { "tag": "ta-LK", "language": "ta", "autonym": "தமிழ்", "dir": "ltr", "aliases": ["ta"] }
+  ]
+}

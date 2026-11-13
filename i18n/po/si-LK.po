@@ -1,0 +1,2879 @@
+msgid ""
+msgstr "Project-Id-Version: lms-saas-platform\nLanguage: si-LK\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Message-Format: icu-subset (docs/architecture/i18n-translation-management.md)\nX-Generator: scripts/i18n/catalog.mjs\n"
+
+#. Link to student registration
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.createAccount"
+msgid "Create one"
+msgstr ""
+
+#. Sign-in page subtitle when the institute name is unknown
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.description"
+msgid "Access your account."
+msgstr ""
+
+#. Sign-in page subtitle; {name} is the institute name
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.descriptionNamed"
+msgid "Access your {name} account."
+msgstr ""
+
+#. Browser tab title of the sign-in page; {name} is the institute name
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.documentTitle"
+msgid "Sign in | {name}"
+msgstr ""
+
+#. Email field label
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.email"
+msgid "Email"
+msgstr ""
+
+#. Title when the device limit blocks sign-in
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.error.deviceLimit"
+msgid "Device limit reached"
+msgstr ""
+
+#. Title of the sign-in error message
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.error.failed"
+msgid "Sign-in failed"
+msgstr ""
+
+#. Title when sign-in is rate limited
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.error.tooMany"
+msgid "Too many attempts"
+msgstr ""
+
+#. Link to the password reset page
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.forgotPassword"
+msgid "Forgot password?"
+msgstr ""
+
+#. Accessible label of the button that hides the password
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.hidePassword"
+msgid "Hide password"
+msgstr ""
+
+#. Loading text of the sign-in page
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.loading"
+msgid "Loading sign-in…"
+msgstr ""
+
+#. Tab: sign in with email
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.methodEmail"
+msgid "Email"
+msgstr ""
+
+#. Accessible label of the email/mobile tabs
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.methodLabel"
+msgid "Sign in with"
+msgstr ""
+
+#. Tab: sign in with mobile number
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.methodMobile"
+msgid "Mobile"
+msgstr ""
+
+#. Mobile number field label
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.mobile"
+msgid "Mobile number"
+msgstr ""
+
+#. Example mobile number shown in the empty field
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.mobilePlaceholder"
+msgid "e.g. 077 123 4567"
+msgstr ""
+
+#. Text before the create-account link
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.noAccount"
+msgid "Don't have an account?"
+msgstr ""
+
+#. {role} is a technical role name
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.noDashboard"
+msgid "No dashboard is available for your role ({role}) yet. Contact your administrator."
+msgstr ""
+
+#. Password field label
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.password"
+msgid "Password"
+msgstr ""
+
+#. Notice text after a session expired
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.sessionExpired.description"
+msgid "Sign in again to continue."
+msgstr ""
+
+#. Notice on the sign-in page after a session expired
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.sessionExpired.title"
+msgid "Your session has expired"
+msgstr ""
+
+#. Accessible label of the button that reveals the password
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.showPassword"
+msgid "Show password"
+msgstr ""
+
+#. Title when sign-in worked but no dashboard exists for the role
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.signedIn"
+msgid "Signed in"
+msgstr ""
+
+#. Sign-in button
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.submit"
+msgid "Sign in"
+msgstr ""
+
+#. Sign-in button while in progress
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.submitting"
+msgid "Signing in…"
+msgstr ""
+
+#. Sign-in page heading
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.title"
+msgid "Sign in"
+msgstr ""
+
+#. Validation message
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.validation.emailInvalid"
+msgid "Enter a valid email address."
+msgstr ""
+
+#. Validation message
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.validation.emailRequired"
+msgid "Email is required."
+msgstr ""
+
+#. Validation message
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.validation.mobileInvalid"
+msgid "Enter a valid mobile number."
+msgstr ""
+
+#. Validation message
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.validation.mobileRequired"
+msgid "Mobile number is required."
+msgstr ""
+
+#. Validation message
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.login.validation.passwordRequired"
+msgid "Password is required."
+msgstr ""
+
+#. Joins the two policy links
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.policyConsent.and"
+msgid "and"
+msgstr ""
+
+#. Start of 'By using this service you agree to the Terms of Service and Privacy Policy.'; the policy links follow
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.policyConsent.prefix"
+msgid "By using this service you agree to the"
+msgstr ""
+
+#. End of the policy consent sentence (punctuation or closing words after the links)
+#: i18n/source/auth.json
+#, icu-format
+msgctxt "auth.policyConsent.suffix"
+msgid "."
+msgstr ""
+
+#. Generic cancel button
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.actions.cancel"
+msgid "Cancel"
+msgstr ""
+
+#. Retry button on error states
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.actions.retry"
+msgid "Try again"
+msgstr ""
+
+#. Generic save button
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.actions.save"
+msgid "Save"
+msgstr ""
+
+#. Header link to the change-password page
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.auth.changePassword"
+msgid "Change password"
+msgstr ""
+
+#. Link to the sign-in page after a sign-out problem
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.auth.continueToSignIn"
+msgid "Continue to sign-in"
+msgstr ""
+
+#. Button that signs the user out
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.auth.signOut"
+msgid "Sign out"
+msgstr ""
+
+#. Sign-out confirmation text; {portal} is the portal name
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.auth.signOutDescription"
+msgid "You'll need to sign in again to access {portal}."
+msgstr ""
+
+#. Sign-out confirmation title; {portal} is the portal name, e.g. Tenant Admin
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.auth.signOutOf"
+msgid "Sign out of {portal}?"
+msgstr ""
+
+#. Shown when sign-out could not be confirmed by the server
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.auth.signOutUnconfirmed"
+msgid "You were signed out on this device, but we couldn't confirm it with the server. Please check your connection."
+msgstr ""
+
+#. Sign-out button text while in progress
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.auth.signingOut"
+msgid "Signing out…"
+msgstr ""
+
+#. Course status: not visible to students yet
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.courseStatus.draft"
+msgid "Draft"
+msgstr ""
+
+#. Course status: visible only to enrolled students
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.courseStatus.private"
+msgid "Private"
+msgstr ""
+
+#. Course status: listed on the public site
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.courseStatus.public"
+msgid "Public"
+msgstr ""
+
+#. Footer heading / label of the contact details list
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.footer.contactUs"
+msgid "Contact us"
+msgstr ""
+
+#. Footer copyright line; {year} is the year, {name} the institute name
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.footer.copyright"
+msgid "© {year} {name}. All rights reserved."
+msgstr ""
+
+#. Accessible label of the institute logo link; {name} is the institute name
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.institute.home"
+msgid "{name} home"
+msgstr ""
+
+#. Accessible label of the logo placeholder while the institute loads
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.institute.loading"
+msgid "Loading institute"
+msgstr ""
+
+#. Screen-reader announcement after switching; {language} is the language's own name
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.language.changed"
+msgid "Language changed to {language}"
+msgstr ""
+
+#. Accessible label of the language switcher
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.language.label"
+msgid "Language"
+msgstr ""
+
+#. Accessible label of the mobile menu button in portals
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.nav.openMenu"
+msgid "Open navigation menu"
+msgstr ""
+
+#. Accessible name of the main portal navigation landmark
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.nav.primary"
+msgid "Primary"
+msgstr ""
+
+#. Tag next to a navigation item that is not available yet
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.nav.soon"
+msgid "Soon"
+msgstr ""
+
+#. Title of the institute's privacy policy page
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.policy.privacy"
+msgid "Privacy Policy"
+msgstr ""
+
+#. Title of the institute's refund policy page
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.policy.refund"
+msgid "Refund Policy"
+msgstr ""
+
+#. Title of the institute's terms of service page
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.policy.terms"
+msgid "Terms of Service"
+msgstr ""
+
+#. Name of the teacher portal, shown in the sidebar and browser tab
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.portal.teacher"
+msgid "Teacher Portal"
+msgstr ""
+
+#. Explains that 'Live now' is based on the timetable, not on the meeting itself
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.scheduleStatus.basedOnSchedule"
+msgid "Based on the scheduled class time"
+msgstr ""
+
+#. Class status: cancelled
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.scheduleStatus.cancelled"
+msgid "Cancelled"
+msgstr ""
+
+#. Class status: inside its scheduled time window
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.scheduleStatus.live"
+msgid "Live now"
+msgstr ""
+
+#. Class status: scheduled time has passed
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.scheduleStatus.over"
+msgid "Over"
+msgstr ""
+
+#. Class status: has not started yet
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.scheduleStatus.scheduled"
+msgid "Scheduled"
+msgstr ""
+
+#. Link on the permission-denied state
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.backToDashboard"
+msgid "Back to your dashboard"
+msgstr ""
+
+#. Loading text while the sign-in session is verified
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.checkingSession"
+msgid "Checking your session…"
+msgstr ""
+
+#. Generic error state heading
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.error"
+msgid "Something went wrong."
+msgstr ""
+
+#. Shown under an error message; {code} is a technical code such as VALIDATION_ERROR (do not translate the code)
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.errorCode"
+msgid "Error code: {code}"
+msgstr ""
+
+#. Generic error when no server message is available
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.genericError"
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#. Generic loading indicator text
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.loading"
+msgid "Loading…"
+msgstr ""
+
+#. Permission-denied state heading
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.noPermission"
+msgid "You don't have permission to view this."
+msgstr ""
+
+#. Permission-denied state
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.permissionDenied"
+msgid "You do not have permission to view this page."
+msgstr ""
+
+#. Error when the sign-in session could not be verified
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.state.sessionCheckFailed"
+msgid "We couldn't verify your session. Please try again."
+msgstr ""
+
+#. Accessible label of the light/dark theme toggle button
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.theme.dark"
+msgid "Dark theme"
+msgstr ""
+
+#. Tooltip of the theme toggle while light theme is on
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.theme.switchToDark"
+msgid "Switch to dark theme"
+msgstr ""
+
+#. Tooltip of the theme toggle while dark theme is on
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.theme.switchToLight"
+msgid "Switch to light theme"
+msgstr ""
+
+#. Accessible label of the close button on a notification toast
+#: i18n/source/common.json
+#, icu-format
+msgctxt "common.toast.dismiss"
+msgid "Dismiss notification"
+msgstr ""
+
+#. How long an emailed link stays valid, e.g. in the password reset email; {count} is a number of minutes
+#: i18n/source/email.json
+#, icu-format
+msgctxt "email.common.expiresInMinutes"
+msgid "{count, plural, one {# minute} other {# minutes}}"
+msgstr ""
+
+#. Password reset email body (plain text). Keep {link} on its own line. {tenantName} is the institute name; {expiresIn} is a duration such as '60 minutes'
+#: i18n/source/email.json
+#, icu-format
+msgctxt "email.passwordReset.body"
+msgid "Hi,\n\nWe received a request to reset your password at {tenantName}. Choose a new one here:\n\n{link}\n\nThis link can be used once and expires in {expiresIn}. If you didn't ask for this, you can ignore this email - your password won't change.\n"
+msgstr ""
+
+#. Password reset email subject; {tenantName} is the institute name
+#: i18n/source/email.json
+#, icu-format
+msgctxt "email.passwordReset.subject"
+msgid "Reset your {tenantName} password"
+msgstr ""
+
+#. Sign-in refused: device limit reached
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.DEVICE_LIMIT_REACHED"
+msgid "You have reached the maximum number of devices for this account. Ask your institute to remove a device."
+msgstr ""
+
+#. Sign-in failed: wrong email/mobile or password. Keep it generic - never say which part was wrong
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.INVALID_CREDENTIALS"
+msgid "The sign-in details you entered are incorrect."
+msgstr ""
+
+#. Language exists but the institute has not enabled it
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.LOCALE_NOT_ENABLED"
+msgid "This language is not enabled for this institute."
+msgstr ""
+
+#. Unsupported language code
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.LOCALE_NOT_SUPPORTED"
+msgid "This language is not supported."
+msgstr ""
+
+#. Mobile-number sign-in is disabled by the institute
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.MOBILE_LOGIN_DISABLED"
+msgid "Sign-in with a mobile number is turned off for this institute. Use your email instead."
+msgstr ""
+
+#. The browser could not contact the server
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.NETWORK_ERROR"
+msgid "Unable to reach the server. Check your connection and try again."
+msgstr ""
+
+#. Publish attempted without drafts
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.NOTHING_TO_PUBLISH"
+msgid "There are no draft changes to publish for this language."
+msgstr ""
+
+#. Upload larger than the allowed size
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.PAYLOAD_TOO_LARGE"
+msgid "The file is too large. The maximum size is 1 MB."
+msgstr ""
+
+#. PO import rejected
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.PO_IMPORT_INVALID"
+msgid "The translation file contains invalid messages. Nothing was imported."
+msgstr ""
+
+#. Student tried to enroll while the institute disabled self-enrollment
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.SELF_ENROLLMENT_DISABLED"
+msgid "Self-enrollment is turned off. Contact your institute to join this course."
+msgstr ""
+
+#. Sign-in refused because the institute site is unavailable or suspended
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.TENANT_UNAVAILABLE"
+msgid "This institute is not available right now."
+msgstr ""
+
+#. Rate limit reached, e.g. too many failed sign-ins
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.TOO_MANY_REQUESTS"
+msgid "Too many attempts. Please wait a few minutes and try again."
+msgstr ""
+
+#. Translation editor: optimistic-concurrency conflict on a draft
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.TRANSLATION_DRAFT_STALE"
+msgid "This translation was changed by someone else. Reload to see the latest version."
+msgstr ""
+
+#. Translation editor: the server rejected the message format
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.TRANSLATION_INVALID"
+msgid "This translation is not valid. Fix the problems listed and try again."
+msgstr ""
+
+#. Publish/rollback conflict with another release
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.TRANSLATION_RELEASE_STALE"
+msgid "Someone published or rolled back translations in the meantime. Reload and try again."
+msgstr ""
+
+#. Fallback for an unexpected server response
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.UNKNOWN_ERROR"
+msgid "An unexpected error occurred."
+msgstr ""
+
+#. Translation editor: unknown key
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.UNKNOWN_MESSAGE_KEY"
+msgid "This text key does not exist."
+msgstr ""
+
+#. Sign-in refused for a suspended account. Use exactly the same text as errors.INVALID_CREDENTIALS (anti-enumeration)
+#: i18n/source/errors.json
+#, icu-format
+msgctxt "errors.USER_SUSPENDED"
+msgid "The sign-in details you entered are incorrect."
+msgstr ""
+
+#. Badge: an unpublished change exists
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.badge.draft"
+msgid "Draft"
+msgstr ""
+
+#. Badge: a draft will remove your override on publish
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.badge.draftReset"
+msgid "Draft: reset"
+msgstr ""
+
+#. Badge: the platform translation is served
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.badge.inheritedPlatform"
+msgid "Inherited: platform"
+msgstr ""
+
+#. Badge: no translation, the English text is served
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.badge.inheritedSource"
+msgid "Inherited: English"
+msgstr ""
+
+#. Badge: no translation
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.badge.missing"
+msgid "Missing"
+msgstr ""
+
+#. Badge
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.badge.needsReview"
+msgid "Needs review"
+msgstr ""
+
+#. Badge: your institute's own published wording is served
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.badge.override"
+msgid "Override"
+msgstr ""
+
+#. Button that reloads the latest data after a conflict
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.common.reload"
+msgid "Reload"
+msgstr ""
+
+#. Button text while saving
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.common.saving"
+msgid "Saving…"
+msgstr ""
+
+#. Field label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.description"
+msgid "Description"
+msgstr ""
+
+#. The course's original language is unknown
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.languageNotDeclared"
+msgid "Language not declared"
+msgstr ""
+
+#. Loading text
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.loading"
+msgid "Loading course translations…"
+msgstr ""
+
+#. Heading of the course's original title and description
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.original"
+msgid "Original"
+msgstr ""
+
+#. {language} is a language name and code
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.originalLanguage"
+msgid "Written in {language}"
+msgstr ""
+
+#. Toggle button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.preview"
+msgid "Preview"
+msgstr ""
+
+#. Preview placeholder
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.previewEmpty"
+msgid "No title yet"
+msgstr ""
+
+#. Preview box heading
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.previewHeading"
+msgid "Preview (not public yet unless published)"
+msgstr ""
+
+#. Button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.publish"
+msgid "Publish"
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.published"
+msgid "Published. Visitors using this language now see this title and description."
+msgstr ""
+
+#. Button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.saveDraft"
+msgid "Save draft"
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.saved"
+msgid "Draft saved."
+msgstr ""
+
+#. Conflict message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.stale"
+msgid "This translation was changed by someone else. Reload the page to see the latest version."
+msgstr ""
+
+#. Status badge
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.statusDraft"
+msgid "Draft"
+msgstr ""
+
+#. Status badge
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.statusNone"
+msgid "Not translated"
+msgstr ""
+
+#. Status badge
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.statusPublished"
+msgid "Published"
+msgstr ""
+
+#. Field label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.title"
+msgid "Title"
+msgstr ""
+
+#. Button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.unpublish"
+msgid "Unpublish"
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.unpublished"
+msgid "Unpublished. Visitors see the original again."
+msgstr ""
+
+#. Badge: the draft differs from the published variant
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.unpublishedChanges"
+msgid "Unpublished changes"
+msgstr ""
+
+#. Validation message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.validation.descriptionTooLong"
+msgid "Use at most {max} characters."
+msgstr ""
+
+#. Validation message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.validation.titleRequired"
+msgid "Enter a title."
+msgstr ""
+
+#. Validation message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.course.validation.titleTooLong"
+msgid "Use at most {max} characters."
+msgstr ""
+
+#. Label of the translator note
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.context"
+msgid "Context"
+msgstr ""
+
+#. Button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.discard"
+msgid "Discard draft"
+msgstr ""
+
+#. Label of the unpublished draft
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.draft"
+msgid "Draft"
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.draftDiscarded"
+msgid "Draft discarded."
+msgstr ""
+
+#. Shown for a reset draft
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.draftIsReset"
+msgid "Reset to the platform translation when published"
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.draftSaved"
+msgid "Draft saved. Publish to make it live."
+msgstr ""
+
+#. {when} is a date and time
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.draftUpdated"
+msgid "Last changed {when}"
+msgstr ""
+
+#. Shown when a value does not exist
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.none"
+msgid "None"
+msgstr ""
+
+#. Warning on an outdated override
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.overrideNeedsReview"
+msgid "The English text changed after this was published. Please check it."
+msgstr ""
+
+#. Label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.platform"
+msgid "Platform translation"
+msgstr ""
+
+#. Label of the institute's published override
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.published"
+msgid "Your published wording"
+msgstr ""
+
+#. Shown to view-only roles
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.readOnly"
+msgid "You can view translations but not edit them."
+msgstr ""
+
+#. Button that removes your override when published
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.reset"
+msgid "Reset to platform translation"
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.resetQueued"
+msgid "Reset saved as a draft. Publish to make it live."
+msgstr ""
+
+#. Button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.saveDraft"
+msgid "Save draft"
+msgstr ""
+
+#. Shown before a text is selected
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.selectPrompt"
+msgid "Select a text to see its English source and edit the translation."
+msgstr ""
+
+#. Label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.source"
+msgid "English source"
+msgstr ""
+
+#. Conflict message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.stale"
+msgid "This text was changed by someone else. Reload to see the latest version."
+msgstr ""
+
+#. Label of an unreviewed platform suggestion
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.suggestion"
+msgid "Suggested translation (needs review)"
+msgstr ""
+
+#. Label of the translation field; {language} is the language name
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.translationLabel"
+msgid "Translation ({language})"
+msgstr ""
+
+#. Button that copies the suggestion into the editor
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.editor.useSuggestion"
+msgid "Use suggestion"
+msgstr ""
+
+#. Export help
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.description"
+msgid "Download translations as a gettext file."
+msgstr ""
+
+#. Success message; {file} is a file name
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.done"
+msgid "Downloaded {file}."
+msgstr ""
+
+#. Button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.download"
+msgid "Download"
+msgstr ""
+
+#. Radio group label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.format"
+msgid "Format"
+msgstr ""
+
+#. Export format option
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.formatMo"
+msgid "MO (compiled)"
+msgstr ""
+
+#. Export format option
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.formatPo"
+msgid "PO (editable)"
+msgstr ""
+
+#. Section heading
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.heading"
+msgid "Export"
+msgstr ""
+
+#. Radio group label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.scope"
+msgid "Contents"
+msgstr ""
+
+#. Export scope option
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.scopeEffective"
+msgid "Everything visitors see"
+msgstr ""
+
+#. Export scope option
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.scopeOverrides"
+msgid "Your published wording only"
+msgstr ""
+
+#. Button while exporting
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.export.working"
+msgid "Preparing…"
+msgstr ""
+
+#. Filter option
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.filter.allNamespaces"
+msgid "All modules"
+msgstr ""
+
+#. Language select label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.filter.locale"
+msgid "Language"
+msgstr ""
+
+#. Filter by area of the app (namespace)
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.filter.namespace"
+msgid "Module"
+msgstr ""
+
+#. Search field label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.filter.search"
+msgid "Search"
+msgstr ""
+
+#. Search placeholder
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.filter.searchPlaceholder"
+msgid "Search keys or English text"
+msgstr ""
+
+#. Accessible name of the status filter buttons
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.filter.status"
+msgid "Status"
+msgstr ""
+
+#. Report line
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.additions"
+msgid "{count, plural, one {# new translation} other {# new translations}}"
+msgstr ""
+
+#. Shown when invalid messages block the import
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.blocked"
+msgid "Fix the invalid messages in the file before importing."
+msgstr ""
+
+#. Report line
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.changes"
+msgid "{count, plural, one {# changed translation} other {# changed translations}}"
+msgstr ""
+
+#. Confirm import button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.confirm"
+msgid "{count, plural, one {Import # draft} other {Import # drafts}}"
+msgstr ""
+
+#. Import help
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.description"
+msgid "Check the file first. Importing creates drafts only; nothing goes live until you publish."
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.done"
+msgid "{count, plural, one {# draft imported.} other {# drafts imported.}}"
+msgstr ""
+
+#. Button that runs a dry run
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.dryRun"
+msgid "Check file"
+msgstr ""
+
+#. File field label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.file"
+msgid "PO file"
+msgstr ""
+
+#. Section heading; PO is the gettext translation file format
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.heading"
+msgid "Import a PO file: {language}"
+msgstr ""
+
+#. Report line
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.invalid"
+msgid "{count, plural, one {# invalid message} other {# invalid messages}}"
+msgstr ""
+
+#. Expandable list heading
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.invalidDetails"
+msgid "Invalid messages"
+msgstr ""
+
+#. Heading of the dry-run report
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.reportTitle"
+msgid "File check result"
+msgstr ""
+
+#. Report line
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.skipped"
+msgid "{count, plural, one {# skipped (empty, needs review or obsolete)} other {# skipped (empty, needs review or obsolete)}}"
+msgstr ""
+
+#. Report line
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.unchanged"
+msgid "{count, plural, one {# unchanged} other {# unchanged}}"
+msgstr ""
+
+#. Report line
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.unknown"
+msgid "{count, plural, one {# unknown key (ignored)} other {# unknown keys (ignored)}}"
+msgstr ""
+
+#. Expandable list heading
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.unknownDetails"
+msgid "Unknown keys"
+msgstr ""
+
+#. Label of the default language select
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.default"
+msgid "Default language"
+msgstr ""
+
+#. Default language help
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.defaultHelp"
+msgid "Shown to visitors who have not chosen a language. It must be enabled."
+msgstr ""
+
+#. Language settings help
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.description"
+msgid "Choose which languages visitors can switch to and which one is shown first."
+msgstr ""
+
+#. Switch label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.detection"
+msgid "Detect the browser's language"
+msgstr ""
+
+#. Switch help text
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.detectionHelp"
+msgid "For visitors without a saved choice, use their browser's preferred language when it is enabled."
+msgstr ""
+
+#. Label of the language checkboxes
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.enabled"
+msgid "Enabled languages"
+msgstr ""
+
+#. Language settings section heading
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.heading"
+msgid "Languages"
+msgstr ""
+
+#. Loading text
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.loading"
+msgid "Loading language settings…"
+msgstr ""
+
+#. 403 on save
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.noPermission"
+msgid "You don't have permission to change language settings."
+msgstr ""
+
+#. Shown to read-only roles
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.readOnly"
+msgid "You can view these settings but not change them."
+msgstr ""
+
+#. Save button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.save"
+msgid "Save language settings"
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.saved"
+msgid "Language settings saved."
+msgstr ""
+
+#. Validation message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.validation.atLeastOne"
+msgid "Enable at least one language."
+msgstr ""
+
+#. Validation message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.languages.validation.defaultEnabled"
+msgid "The default language must be one of the enabled languages."
+msgstr ""
+
+#. Settings > Translations page subtitle
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.page.description"
+msgid "Languages offered to visitors and your institute's wording for every text."
+msgstr ""
+
+#. Banner shown across the app while previewing
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.preview.banner"
+msgid "Previewing unpublished translation drafts. Only you can see them."
+msgstr ""
+
+#. Banner button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.preview.exit"
+msgid "Exit preview"
+msgstr ""
+
+#. Banner when the preview catalog failed
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.preview.failed"
+msgid "Draft preview could not be loaded; showing published texts."
+msgstr ""
+
+#. Preview switch help
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.preview.help"
+msgid "Only you see drafts, in this tab, until you reload."
+msgstr ""
+
+#. Switch that shows unpublished drafts in this browser tab
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.preview.toggle"
+msgid "Preview drafts"
+msgstr ""
+
+#. Validation problem
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.empty"
+msgid "Enter a translation."
+msgstr ""
+
+#. Validation problem; keep the quoted braces
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.placeholderMissing"
+msgid "The placeholder '{'{name}'}' from the English text is missing."
+msgstr ""
+
+#. Validation problem; keep the quoted braces
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.placeholderUnknown"
+msgid "The placeholder '{'{name}'}' is not in the English text."
+msgstr ""
+
+#. Validation problem
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.pluralInvalidCategory"
+msgid "\"{category}\" is not a valid plural form for this language."
+msgstr ""
+
+#. Validation problem
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.pluralMissing"
+msgid "The plural for {name} from the English text is missing."
+msgstr ""
+
+#. Validation problem; {name} is a technical name
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.pluralMissingOther"
+msgid "The plural for {name} needs an \"other\" form."
+msgstr ""
+
+#. Validation problem
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.pluralUnknown"
+msgid "The plural for {name} is not in the English text."
+msgstr ""
+
+#. Validation problem. Keep the quoted braces exactly as they are: they display literal braces
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.syntax"
+msgid "The text has unbalanced braces or quotes. Placeholders look like '{'name'}'."
+msgstr ""
+
+#. Validation problem
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.problem.tooLong"
+msgid "The text is longer than {max} characters."
+msgstr ""
+
+#. Confirm button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.confirm"
+msgid "Publish"
+msgstr ""
+
+#. Dialog text; {version} is a number
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.description"
+msgid "{count, plural, =0 {There are no drafts to publish.} one {# draft will go live as version {version}.} other {# drafts will go live as version {version}.}}"
+msgstr ""
+
+#. Dialog text when the draft count is unknown
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.descriptionUnknown"
+msgid "All drafts for this language will go live as a new version."
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.done"
+msgid "Published version {version}."
+msgstr ""
+
+#. Button that opens the publish dialog
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.open"
+msgid "Publish"
+msgstr ""
+
+#. Button while publishing
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.publishing"
+msgid "Publishing…"
+msgstr ""
+
+#. Field label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.summary"
+msgid "Summary of the changes"
+msgstr ""
+
+#. Validation message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.summaryRequired"
+msgid "Describe what changed."
+msgstr ""
+
+#. Validation message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.summaryTooLong"
+msgid "Use at most {max} characters."
+msgstr ""
+
+#. Dialog title
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.publish.title"
+msgid "Publish {language} translations?"
+msgstr ""
+
+#. Badge on the live version
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.current"
+msgid "Current"
+msgstr ""
+
+#. Releases help
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.description"
+msgid "Every publish creates a new version. Rolling back creates a new version too; nothing is deleted."
+msgstr ""
+
+#. Empty state description
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.empty.description"
+msgid "Visitors see the platform translations until you publish your own wording."
+msgstr ""
+
+#. Empty state
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.empty.title"
+msgid "Nothing published yet"
+msgstr ""
+
+#. Releases section heading; {language} is the language name
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.heading"
+msgid "Published versions: {language}"
+msgstr ""
+
+#. Loading text
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.loading"
+msgid "Loading published versions…"
+msgstr ""
+
+#. Release line: publish date and number of overridden texts
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.publishedOn"
+msgid "{when} · {count, plural, one {# text} other {# texts}}"
+msgstr ""
+
+#. Button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.rollback"
+msgid "Roll back"
+msgstr ""
+
+#. Shown on a release created by a rollback
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.rollbackOf"
+msgid "Rollback to version {version}"
+msgstr ""
+
+#. Release label
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.releases.version"
+msgid "Version {version}"
+msgstr ""
+
+#. Confirm button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.rollback.confirm"
+msgid "Roll back"
+msgstr ""
+
+#. Dialog text
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.rollback.description"
+msgid "Version {version}'s texts will be published again as version {next}. Later versions stay in the history."
+msgstr ""
+
+#. Success message
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.rollback.done"
+msgid "Rolled back; now live as version {version}."
+msgstr ""
+
+#. Dialog title
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.rollback.title"
+msgid "Roll back to version {version}?"
+msgstr ""
+
+#. Button while working
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.rollback.working"
+msgid "Rolling back…"
+msgstr ""
+
+#. Status filter
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.status.all"
+msgid "All"
+msgstr ""
+
+#. Status filter: unpublished changes
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.status.drafts"
+msgid "Drafts"
+msgstr ""
+
+#. Status filter: no translation yet
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.status.missing"
+msgid "Missing"
+msgstr ""
+
+#. Status filter: translation must be checked because the English text changed
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.status.needsReview"
+msgid "Needs review"
+msgstr ""
+
+#. Status filter: your institute changed the wording
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.status.overridden"
+msgid "Overridden"
+msgstr ""
+
+#. Status filter
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.status.translated"
+msgid "Translated"
+msgstr ""
+
+#. Translation editor help
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.description"
+msgid "Override the platform wording for your institute. Changes are saved as drafts and go live when you publish."
+msgstr ""
+
+#. Empty state description
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.empty.description"
+msgid "This language has no texts yet. Texts appear here as soon as the platform adds them."
+msgstr ""
+
+#. Empty state when the catalog has no texts
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.empty.title"
+msgid "No texts to translate"
+msgstr ""
+
+#. Translation editor heading
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.heading"
+msgid "Translations"
+msgstr ""
+
+#. Accessible name of the list of texts
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.listLabel"
+msgid "Texts"
+msgstr ""
+
+#. Loading text
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.loading"
+msgid "Loading translations…"
+msgstr ""
+
+#. Pagination button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.next"
+msgid "Next"
+msgstr ""
+
+#. Button that resets filters
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.noMatch.clear"
+msgid "Clear filters"
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.noMatch.description"
+msgid "Try another search, module or status, or clear the filters."
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.noMatch.title"
+msgid "No texts match your filters"
+msgstr ""
+
+#. Pagination text
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.pageOf"
+msgid "Page {page} of {total}"
+msgstr ""
+
+#. Pagination button
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.workspace.previous"
+msgid "Previous"
+msgstr ""
+
+#. Position of a slide, e.g. 2 of 5
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.carousel.position"
+msgid "{index} of {total}"
+msgstr ""
+
+#. Screen-reader role description of a slideshow
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.carousel.roleDescription"
+msgid "carousel"
+msgstr ""
+
+#. Screen-reader role description of one slide
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.carousel.slide"
+msgid "slide"
+msgstr ""
+
+#. Browser tab title of a public page; {page} is the page name, {name} the institute
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.documentTitle"
+msgid "{page} | {name}"
+msgstr ""
+
+#. Footer contact label
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.footer.address"
+msgid "Address"
+msgstr ""
+
+#. Footer contact label
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.footer.email"
+msgid "Email"
+msgstr ""
+
+#. Footer contact label
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.footer.phone"
+msgid "Phone"
+msgstr ""
+
+#. Accessible name of the policy links
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.footer.policies"
+msgid "Policies"
+msgstr ""
+
+#. Footer heading of the link list
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.footer.sitemap"
+msgid "Sitemap"
+msgstr ""
+
+#. Header button for a signed-in visitor
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.header.dashboard"
+msgid "Dashboard"
+msgstr ""
+
+#. Button to register a new institute on the platform site
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.header.getStarted"
+msgid "Get started"
+msgstr ""
+
+#. Header button to sign in
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.header.login"
+msgid "Login"
+msgstr ""
+
+#. Button to create a student account
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.header.register"
+msgid "Register"
+msgstr ""
+
+#. Header button to sign in on the platform site
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.header.signIn"
+msgid "Sign in"
+msgstr ""
+
+#. Small label above the institute introduction
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.about.eyebrow"
+msgid "About us"
+msgstr ""
+
+#. Alternative text of a banner image
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.banner.alt"
+msgid "{name} banner {index} of {total}"
+msgstr ""
+
+#. Slideshow button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.banner.next"
+msgid "Next banner"
+msgstr ""
+
+#. Screen-reader announcement of the current banner
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.banner.position"
+msgid "Banner {index} of {total}"
+msgstr ""
+
+#. Slideshow button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.banner.previous"
+msgid "Previous banner"
+msgstr ""
+
+#. Accessible name of the banner slideshow
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.banner.region"
+msgid "Featured banners"
+msgstr ""
+
+#. Slideshow dot button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.banner.show"
+msgid "Show banner {index}"
+msgstr ""
+
+#. Call-to-action text
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.cta.description"
+msgid "Create your account to enrol in courses, join classes and follow your progress from any device."
+msgstr ""
+
+#. Call-to-action heading; {name} is the institute
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.cta.heading"
+msgid "Start learning with {name}"
+msgstr ""
+
+#. Error on the public home page
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.error"
+msgid "We couldn't load this institute's home page."
+msgstr ""
+
+#. Error when courses cannot be loaded
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.error"
+msgid "The course list is temporarily unavailable."
+msgstr ""
+
+#. Small label above the featured courses heading
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.eyebrow"
+msgid "Featured"
+msgstr ""
+
+#. Section heading
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.heading"
+msgid "Featured courses"
+msgstr ""
+
+#. Accessible label while courses load
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.loading"
+msgid "Loading courses"
+msgstr ""
+
+#. Section subtitle
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.subtitle"
+msgid "Hand-picked courses to start with."
+msgstr ""
+
+#. Link to the course catalog
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.viewAll"
+msgid "View all courses"
+msgstr ""
+
+#. Link on a course card
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.viewDetails"
+msgid "View details"
+msgstr ""
+
+#. Screen-reader-only continuation of 'View details'; {name} is the course title
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.featured.viewDetailsFor"
+msgid "for {name}"
+msgstr ""
+
+#. Hero button to the course catalog
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.hero.explore"
+msgid "Explore courses"
+msgstr ""
+
+#. Hero tagline
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.hero.tagline"
+msgid "Explore our courses and start learning with experienced teachers."
+msgstr ""
+
+#. Small text above the institute name in the hero
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.hero.welcome"
+msgid "Welcome to"
+msgstr ""
+
+#. Loading text of the public home page
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.loading"
+msgid "Loading institute home…"
+msgstr ""
+
+#. Heading of the quick-actions section
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.heading"
+msgid "Get an incredible learning experience"
+msgstr ""
+
+#. Quick action description
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.howToDescription"
+msgid "Watch the guide and find out how to get started."
+msgstr ""
+
+#. Quick action title
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.howToTitle"
+msgid "How to use"
+msgstr ""
+
+#. Quick action description
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.registerDescription"
+msgid "Create your student account, then choose the course you want to join."
+msgstr ""
+
+#. Quick action title
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.registerTitle"
+msgid "Register for a course"
+msgstr ""
+
+#. Quick action description
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.signInDescription"
+msgid "Already registered? Sign in and continue where you left off."
+msgstr ""
+
+#. Quick action title
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.signInTitle"
+msgid "Join / sign in"
+msgstr ""
+
+#. Subtitle of the quick-actions section
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.subHero.subtitle"
+msgid "Everything you need to start learning, in one place."
+msgstr ""
+
+#. Small label above the help section heading
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.support.eyebrow"
+msgid "Support"
+msgstr ""
+
+#. Help section heading
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.support.heading"
+msgid "How to use"
+msgstr ""
+
+#. Accessible title of the embedded guide video
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.support.videoTitle"
+msgid "Support video"
+msgstr ""
+
+#. Help text when a guide video exists
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.support.withVideo"
+msgid "Watch this short guide to get started."
+msgstr ""
+
+#. Help text when there is no guide video
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.support.withoutVideo"
+msgid "Need a hand getting started? Sign in or contact us and we'll help."
+msgstr ""
+
+#. {name} is the institute name
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.unavailable.description"
+msgid "{name} has not published its public home page. Students and staff can still sign in."
+msgstr ""
+
+#. Button to the sign-in page
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.unavailable.signIn"
+msgid "Sign in to the portal"
+msgstr ""
+
+#. Heading when the institute has no public page
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.home.unavailable.title"
+msgid "Public page unavailable"
+msgstr ""
+
+#. Accessible label of the mobile menu button while open
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.closeMenu"
+msgid "Close menu"
+msgstr ""
+
+#. Navigation link / page name: course catalog
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.courses"
+msgid "Courses"
+msgstr ""
+
+#. Navigation link to the home page
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.home"
+msgid "Home"
+msgstr ""
+
+#. Accessible name of the desktop header navigation
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.main"
+msgid "Main"
+msgstr ""
+
+#. Accessible name of the mobile menu navigation
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.mobile"
+msgid "Mobile"
+msgstr ""
+
+#. Accessible label of the mobile menu button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.openMenu"
+msgid "Open menu"
+msgstr ""
+
+#. Navigation link to the help section
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.support"
+msgid "Support"
+msgstr ""
+
+#. Navigation link / page name: teachers
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.nav.teachers"
+msgid "Teachers"
+msgstr ""
+
+#. Price label for courses priced individually
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.price.contactUs"
+msgid "Contact us for pricing"
+msgstr ""
+
+#. Course price label
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.price.free"
+msgid "Free"
+msgstr ""
+
+#. Price label when no price is configured yet
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.price.notAvailable"
+msgid "Pricing not yet available"
+msgstr ""
+
+#. Monthly price; {price} is an amount with currency
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.price.perMonth"
+msgid "{price}/month"
+msgstr ""
+
+#. Per-session price; {price} is an amount with currency
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.price.perSession"
+msgid "{price}/session"
+msgstr ""
+
+#. Keyboard skip link
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.skipToContent"
+msgid "Skip to content"
+msgstr ""
+
+#. {name} is the institute, {network} is Facebook or YouTube
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.social.linkLabel"
+msgid "{name} on {network} (opens in a new tab)"
+msgstr ""
+
+#. Error when teachers cannot be loaded
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.error"
+msgid "Teacher profiles are temporarily unavailable."
+msgstr ""
+
+#. Small label above the teachers heading
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.eyebrow"
+msgid "Our teachers"
+msgstr ""
+
+#. Teachers section heading
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.heading"
+msgid "Meet our teachers"
+msgstr ""
+
+#. Accessible label while teachers load
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.loading"
+msgid "Loading teachers"
+msgstr ""
+
+#. Carousel button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.next"
+msgid "Next teachers"
+msgstr ""
+
+#. Carousel button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.pause"
+msgid "Pause teacher rotation"
+msgstr ""
+
+#. Alternative text of a teacher photo
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.photoAlt"
+msgid "{name} profile photo"
+msgstr ""
+
+#. Carousel button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.previous"
+msgid "Previous teachers"
+msgstr ""
+
+#. Accessible name of the teacher carousel
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.region"
+msgid "Teachers"
+msgstr ""
+
+#. Carousel button
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.resume"
+msgid "Resume teacher rotation"
+msgstr ""
+
+#. Teachers section subtitle
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.subtitle"
+msgid "Experienced educators to guide you toward your goals."
+msgstr ""
+
+#. Link to all teachers
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.viewAll"
+msgid "View all"
+msgstr ""
+
+#. Link on a teacher card
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.viewProfile"
+msgid "View profile"
+msgstr ""
+
+#. Screen-reader-only continuation of 'View profile'; {name} is the teacher
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.teachers.viewProfileOf"
+msgid "of {name}"
+msgstr ""
+
+#. Link in the empty state
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.browseCourses"
+msgid "Browse courses"
+msgstr ""
+
+#. Text after the 'Browse courses' link
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.browseSuffix"
+msgid "to see what's coming up."
+msgstr ""
+
+#. Empty state
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.empty"
+msgid "No classes scheduled today."
+msgstr ""
+
+#. Error text
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.error"
+msgid "Today's classes couldn't be loaded."
+msgstr ""
+
+#. Small label above today's classes
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.eyebrow"
+msgid "Timetable"
+msgstr ""
+
+#. Section heading
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.heading"
+msgid "Today's Classes"
+msgstr ""
+
+#. Accessible label while classes load
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.loading"
+msgid "Loading today's classes"
+msgstr ""
+
+#. Part of the summary line, e.g. '2 live now · 3 scheduled'
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.summaryLive"
+msgid "{count} live now"
+msgstr ""
+
+#. Part of the summary line
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.summaryOver"
+msgid "{count} over"
+msgstr ""
+
+#. Part of the summary line
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.summaryScheduled"
+msgid "{count} scheduled"
+msgstr ""
+
+#. Link on a class card
+#: i18n/source/public.json
+#, icu-format
+msgctxt "public.todaysClasses.viewCourse"
+msgid "View course"
+msgstr ""
+
+#. Empty state button
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.empty.action"
+msgid "Create your first course"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.empty.description"
+msgid "You don't own any courses yet. Create your first course to get started, or contact your tenant admin if you expected to see courses assigned here already."
+msgstr ""
+
+#. Empty state title
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.empty.title"
+msgid "No assigned courses yet"
+msgstr ""
+
+#. Filter option
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.filter.allCategories"
+msgid "All categories"
+msgstr ""
+
+#. Filter option
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.filter.allStatuses"
+msgid "All statuses"
+msgstr ""
+
+#. Filter label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.filter.category"
+msgid "Category"
+msgstr ""
+
+#. Search field label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.filter.search"
+msgid "Search"
+msgstr ""
+
+#. Search field placeholder; a slug is the course's web address name
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.filter.searchPlaceholder"
+msgid "Search by course name or slug"
+msgstr ""
+
+#. Filter label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.filter.status"
+msgid "Status"
+msgstr ""
+
+#. Accessible name of the course card list
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.listLabel"
+msgid "My courses"
+msgstr ""
+
+#. Loading text
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.loading"
+msgid "Loading your courses…"
+msgstr ""
+
+#. Menu button on a course card
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.manageCourse"
+msgid "Manage course"
+msgstr ""
+
+#. Accessible label of the menu button; {course} is the course title
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.manageCourseFor"
+msgid "Manage course {course}"
+msgstr ""
+
+#. Course menu item
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.menu.classSchedule"
+msgid "Class schedule"
+msgstr ""
+
+#. Course menu item
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.menu.editDetails"
+msgid "Edit details"
+msgstr ""
+
+#. Course menu item
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.menu.liveClasses"
+msgid "Live classes"
+msgstr ""
+
+#. Course menu item
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.menu.modules"
+msgid "Modules & sessions"
+msgstr ""
+
+#. Course menu item: list of enrolled students
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.menu.roster"
+msgid "Roster"
+msgstr ""
+
+#. Course menu item: printed notes
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.menu.tutes"
+msgid "Tutes"
+msgstr ""
+
+#. Button to create a course
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.newCourse"
+msgid "New course"
+msgstr ""
+
+#. Button that resets the filters
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.noMatch.clear"
+msgid "Clear filters"
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.noMatch.description"
+msgid "Try a different search term, or clear your filters to see all your courses."
+msgstr ""
+
+#. Empty state after filtering
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.noMatch.title"
+msgid "No courses match your filters"
+msgstr ""
+
+#. Button on a course card
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.openCourse"
+msgid "Open course"
+msgstr ""
+
+#. Notification; {course} is the course title
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.scheduleSaved"
+msgid "Class schedule saved for “{course}”."
+msgstr ""
+
+#. Count below the list
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.showing"
+msgid "Showing {shown} of {total} courses."
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.subtitle"
+msgid "Courses you are assigned to teach. Open a course to see it as students do, or use Manage course to edit it."
+msgstr ""
+
+#. Page heading
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.courses.title"
+msgid "My Courses"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.attendanceReports"
+msgid "Attendance Reports"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.calendar"
+msgid "Calendar"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.courses"
+msgid "Courses"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.dashboard"
+msgid "Dashboard"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.exams"
+msgid "Exams"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.liveClasses"
+msgid "Live Classes"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.markAttendance"
+msgid "Mark Attendance"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.mediaLibrary"
+msgid "Media Library"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.messages"
+msgid "Messages"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.myProfile"
+msgid "My Profile"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.notifications"
+msgid "Notifications"
+msgstr ""
+
+#. Teacher portal navigation
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.settings"
+msgid "Settings"
+msgstr ""
+
+#. Teacher portal navigation: sending printed notes (tutes) to students
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.nav.tuteDispatch"
+msgid "Tute Dispatch"
+msgstr ""
+
+#. Read-only field label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.details.contactNumber"
+msgid "Contact number"
+msgstr ""
+
+#. Read-only field label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.details.email"
+msgid "Email"
+msgstr ""
+
+#. Read-only field label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.details.firstName"
+msgid "First name"
+msgstr ""
+
+#. Section heading
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.details.heading"
+msgid "Details"
+msgstr ""
+
+#. Read-only field label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.details.lastName"
+msgid "Last name"
+msgstr ""
+
+#. Section help text
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.details.managed"
+msgid "Managed by your institute. Ask an administrator to change these."
+msgstr ""
+
+#. Loading text
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.loading"
+msgid "Loading your profile…"
+msgstr ""
+
+#. Field label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.professional.biography"
+msgid "Biography"
+msgstr ""
+
+#. Section heading
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.professional.heading"
+msgid "Professional details"
+msgstr ""
+
+#. Field label
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.professional.qualifications"
+msgid "Qualifications"
+msgstr ""
+
+#. Save button
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.save"
+msgid "Save changes"
+msgstr ""
+
+#. Error after saving
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.saveFailed"
+msgid "We couldn't save your profile. Try again."
+msgstr ""
+
+#. Error after saving
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.saveInvalid"
+msgid "Some details aren't valid. Check the fields and try again."
+msgstr ""
+
+#. Success message
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.saved"
+msgid "Profile saved."
+msgstr ""
+
+#. Save button while saving
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.saving"
+msgid "Saving…"
+msgstr ""
+
+#. Page subtitle
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.subtitle"
+msgid "Your teacher profile at this institute."
+msgstr ""
+
+#. Page heading
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.title"
+msgid "My Profile"
+msgstr ""
+
+#. Empty state description
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.unavailable.description"
+msgid "No teacher record is linked to this account yet. Contact your institute administrator."
+msgstr ""
+
+#. Empty state when no teacher record is linked
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.unavailable.title"
+msgid "Your teacher profile isn't available"
+msgstr ""
+
+#. Validation message; {max} is a number
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.validation.biographyTooLong"
+msgid "Biography must be {max} characters or fewer."
+msgstr ""
+
+#. Validation message; {max} is a number
+#: i18n/source/teacher.json
+#, icu-format
+msgctxt "teacher.profile.validation.qualificationsTooLong"
+msgid "Qualifications must be {max} characters or fewer."
+msgstr ""

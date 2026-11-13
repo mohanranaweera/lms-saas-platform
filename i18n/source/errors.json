@@ -1,0 +1,20 @@
+{
+  "errors.INVALID_CREDENTIALS": { "source": "The sign-in details you entered are incorrect.", "context": "Sign-in failed: wrong email/mobile or password. Keep it generic - never say which part was wrong" },
+  "errors.TENANT_UNAVAILABLE": { "source": "This institute is not available right now.", "context": "Sign-in refused because the institute site is unavailable or suspended" },
+  "errors.USER_SUSPENDED": { "source": "The sign-in details you entered are incorrect.", "context": "Sign-in refused for a suspended account. Use exactly the same text as errors.INVALID_CREDENTIALS (anti-enumeration)" },
+  "errors.DEVICE_LIMIT_REACHED": { "source": "You have reached the maximum number of devices for this account. Ask your institute to remove a device.", "context": "Sign-in refused: device limit reached" },
+  "errors.TOO_MANY_REQUESTS": { "source": "Too many attempts. Please wait a few minutes and try again.", "context": "Rate limit reached, e.g. too many failed sign-ins" },
+  "errors.MOBILE_LOGIN_DISABLED": { "source": "Sign-in with a mobile number is turned off for this institute. Use your email instead.", "context": "Mobile-number sign-in is disabled by the institute" },
+  "errors.NETWORK_ERROR": { "source": "Unable to reach the server. Check your connection and try again.", "context": "The browser could not contact the server" },
+  "errors.UNKNOWN_ERROR": { "source": "An unexpected error occurred.", "context": "Fallback for an unexpected server response" },
+  "errors.SELF_ENROLLMENT_DISABLED": { "source": "Self-enrollment is turned off. Contact your institute to join this course.", "context": "Student tried to enroll while the institute disabled self-enrollment" },
+  "errors.TRANSLATION_INVALID": { "source": "This translation is not valid. Fix the problems listed and try again.", "context": "Translation editor: the server rejected the message format" },
+  "errors.TRANSLATION_DRAFT_STALE": { "source": "This translation was changed by someone else. Reload to see the latest version.", "context": "Translation editor: optimistic-concurrency conflict on a draft" },
+  "errors.TRANSLATION_RELEASE_STALE": { "source": "Someone published or rolled back translations in the meantime. Reload and try again.", "context": "Publish/rollback conflict with another release" },
+  "errors.NOTHING_TO_PUBLISH": { "source": "There are no draft changes to publish for this language.", "context": "Publish attempted without drafts" },
+  "errors.UNKNOWN_MESSAGE_KEY": { "source": "This text key does not exist.", "context": "Translation editor: unknown key" },
+  "errors.LOCALE_NOT_SUPPORTED": { "source": "This language is not supported.", "context": "Unsupported language code" },
+  "errors.LOCALE_NOT_ENABLED": { "source": "This language is not enabled for this institute.", "context": "Language exists but the institute has not enabled it" },
+  "errors.PO_IMPORT_INVALID": { "source": "The translation file contains invalid messages. Nothing was imported.", "context": "PO import rejected" },
+  "errors.PAYLOAD_TOO_LARGE": { "source": "The file is too large. The maximum size is 1 MB.", "context": "Upload larger than the allowed size" }
+}
