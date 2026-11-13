@@ -26,7 +26,7 @@ jobs:
 
       # I18N-01: unregistered keys, invalid placeholders/plurals, or stale POT/PO/JSON fail here.
       - name: Message format and PO tests
-        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/i18n/icu.test.mjs scripts/i18n/po.test.mjs scripts/i18n/merge.test.mjs
+        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/i18n/icu.test.mjs scripts/i18n/po.test.mjs scripts/i18n/merge.test.mjs scripts/i18n/machine-translate.test.mjs
 
       - name: Catalogs valid and up to date
         run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/i18n/catalog.mjs check

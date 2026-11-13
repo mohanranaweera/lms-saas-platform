@@ -25,11 +25,14 @@ storage always use the canonical tag.
 
 Tenant settings (existing tenant-config framework, `ConfigDomain.GENERAL`, no migration):
 
-- `enabled_locales` — list, default `["en-LK"]`; must contain `default_locale`.
+- `enabled_locales` — list, default **every supported locale** (changed 2026-11-13 so the
+  switcher is offered everywhere); must contain `default_locale`.
 - `default_locale` — default `en-LK`; must be enabled.
 - `browser_language_detection` — boolean, default `false`.
 
-Existing tenants have no rows for these keys, so they keep running in English.
+Existing tenants have no rows for these keys, so they get all three languages offered in
+the switcher while `default_locale` keeps them in English unless a visitor chooses
+otherwise. A tenant admin can switch languages off.
 
 ## 2. Locale resolution (same order on server and client)
 

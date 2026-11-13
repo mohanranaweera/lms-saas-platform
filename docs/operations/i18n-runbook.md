@@ -41,9 +41,37 @@ obsolete entries; they are never deleted automatically.
   `i18n/build/si-LK.mo` (not committed). It contains ICU strings, so gettext clients
   can use simple placeholders directly but need an ICU formatter for plurals.
 
+## Machine translation (Google Cloud Translation)
+
+Machine translation produces **drafts for reviewers**, not finished translations.
+
+1. Create an API key in Google Cloud: enable "Cloud Translation API" and restrict
+   the key to that API. Never commit the key or paste it into chat or tickets.
+2. In your own terminal (so the key stays out of shell history shared with tools):
+   - PowerShell: `$env:GOOGLE_TRANSLATE_API_KEY = "<key>"`
+   - bash: `export GOOGLE_TRANSLATE_API_KEY=<key>`
+3. `node scripts/i18n/machine-translate.mjs si-LK --dry-run` shows how many
+   entries are empty. Drop `--dry-run` to translate them (`--limit N` to try a few
+   first).
+4. `node scripts/i18n/catalog.mjs generate`, then commit the PO and generated JSON.
+
+What the script guarantees:
+
+- It only fills **empty** entries. It never overwrites a human translation.
+- Placeholders (`{name}`), `#` and plural structure are never sent for translation.
+  Each plural branch is translated separately, and every result is re-validated
+  against the English source. A result that fails validation is left empty and
+  listed.
+- Every filled entry is flagged `fuzzy` and gets the comment
+  "machine translation (Google Cloud Translation), needs human review". Visitors keep
+  seeing English until a reviewer checks the text and clears `fuzzy`.
+- Tenant admins see these drafts as suggestions in Settings → Translations.
+- The key is sent in the `X-goog-api-key` header, never in the URL, and is never
+  printed.
+
 ## Add a language
 
-1. Add it to `i18n/locales.json` (canonical tag `xx-LK`, language, autonym, `dir`,
+1. Add it to `i18n/locales.json` and to `ConfigPropertyRegistry.SUPPORTED_LOCALES` (canonical tag `xx-LK`, language, autonym, `dir`,
    aliases).
 2. Add its CLDR integer plural categories to `PLURAL_CATEGORIES`/`pluralCategory` in
    `frontend/src/i18n/icu.ts` and to the Java `MessageFormatter`. Add vectors to
@@ -51,8 +79,9 @@ obsolete entries; they are never deleted automatically.
 3. If the script is not covered by the current font stack, add a Noto font in the
    root layout.
 4. `extract` creates `i18n/po/<tag>.po`; translate, then `generate`.
-5. Tenants enable it in Settings → Translations → Languages. Nothing is enabled
-   automatically.
+5. Every supported language is enabled for every tenant by default, so the
+   switcher offers it immediately. English stays the default. Tenant admins can turn
+   languages off in Settings → Translations → Languages.
 
 ## Tenant overrides: edit, import, publish, roll back
 
