@@ -1,2879 +1,3290 @@
 msgid ""
 msgstr "Project-Id-Version: lms-saas-platform\nLanguage: si-LK\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Message-Format: icu-subset (docs/architecture/i18n-translation-management.md)\nX-Generator: scripts/i18n/catalog.mjs\n"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link to student registration
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.createAccount"
 msgid "Create one"
-msgstr ""
+msgstr "එකක් සාදන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in page subtitle when the institute name is unknown
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.description"
 msgid "Access your account."
-msgstr ""
+msgstr "ඔබගේ ගිණුමට පිවිසෙන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in page subtitle; {name} is the institute name
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.descriptionNamed"
 msgid "Access your {name} account."
-msgstr ""
+msgstr "ඔබගේ {name} ගිණුමට පිවිසෙන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Browser tab title of the sign-in page; {name} is the institute name
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.documentTitle"
 msgid "Sign in | {name}"
-msgstr ""
+msgstr "පුරනය වන්න | {name}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Email field label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.email"
 msgid "Email"
-msgstr ""
+msgstr "විද්‍යුත් තැපෑල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Title when the device limit blocks sign-in
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.error.deviceLimit"
 msgid "Device limit reached"
-msgstr ""
+msgstr "උපාංග සීමාවට ළඟා වී ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Title of the sign-in error message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.error.failed"
 msgid "Sign-in failed"
-msgstr ""
+msgstr "පුරනය වීම අසාර්ථක විය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Title when sign-in is rate limited
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.error.tooMany"
 msgid "Too many attempts"
-msgstr ""
+msgstr "උත්සාහයන් ඕනෑවට වඩා වැඩිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link to the password reset page
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.forgotPassword"
 msgid "Forgot password?"
-msgstr ""
+msgstr "මුරපදය අමතකද?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the button that hides the password
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.hidePassword"
 msgid "Hide password"
-msgstr ""
+msgstr "මුරපදය සඟවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text of the sign-in page
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.loading"
 msgid "Loading sign-in…"
-msgstr ""
+msgstr "පුරනය වීමේ පිටුව පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tab: sign in with email
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.methodEmail"
 msgid "Email"
-msgstr ""
+msgstr "විද්‍යුත් තැපෑල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the email/mobile tabs
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.methodLabel"
 msgid "Sign in with"
-msgstr ""
+msgstr "පුරනය වන ආකාරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tab: sign in with mobile number
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.methodMobile"
 msgid "Mobile"
-msgstr ""
+msgstr "ජංගම දුරකථනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Mobile number field label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.mobile"
 msgid "Mobile number"
-msgstr ""
+msgstr "ජංගම දුරකථන අංකය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Example mobile number shown in the empty field
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.mobilePlaceholder"
 msgid "e.g. 077 123 4567"
-msgstr ""
+msgstr "උදා: 077 123 4567"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Text before the create-account link
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.noAccount"
 msgid "Don't have an account?"
-msgstr ""
+msgstr "ගිණුමක් නැද්ද?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. {role} is a technical role name
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.noDashboard"
 msgid "No dashboard is available for your role ({role}) yet. Contact your administrator."
-msgstr ""
+msgstr "ඔබගේ භූමිකාව ({role}) සඳහා තවමත් උපකරණ පුවරුවක් නොමැත. ඔබගේ පරිපාලක අමතන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Password field label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.password"
 msgid "Password"
-msgstr ""
+msgstr "මුරපදය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Notice text after a session expired
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.sessionExpired.description"
 msgid "Sign in again to continue."
-msgstr ""
+msgstr "ඉදිරියට යාමට නැවත පුරනය වන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Notice on the sign-in page after a session expired
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.sessionExpired.title"
 msgid "Your session has expired"
-msgstr ""
+msgstr "ඔබගේ සැසිය කල් ඉකුත් වී ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the button that reveals the password
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.showPassword"
 msgid "Show password"
-msgstr ""
+msgstr "මුරපදය පෙන්වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Title when sign-in worked but no dashboard exists for the role
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.signedIn"
 msgid "Signed in"
-msgstr ""
+msgstr "පුරනය විය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in button
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.submit"
 msgid "Sign in"
-msgstr ""
+msgstr "පුරනය වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in button while in progress
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.submitting"
 msgid "Signing in…"
-msgstr ""
+msgstr "පුරනය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in page heading
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.title"
 msgid "Sign in"
-msgstr ""
+msgstr "පුරනය වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.emailInvalid"
 msgid "Enter a valid email address."
-msgstr ""
+msgstr "වලංගු විද්‍යුත් තැපැල් ලිපිනයක් ඇතුළත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.emailRequired"
 msgid "Email is required."
-msgstr ""
+msgstr "විද්‍යුත් තැපෑල අවශ්‍යයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.mobileInvalid"
 msgid "Enter a valid mobile number."
-msgstr ""
+msgstr "වලංගු ජංගම දුරකථන අංකයක් ඇතුළත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.mobileRequired"
 msgid "Mobile number is required."
-msgstr ""
+msgstr "ජංගම දුරකථන අංකය අවශ්‍යයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.passwordRequired"
 msgid "Password is required."
-msgstr ""
+msgstr "මුරපදය අවශ්‍යයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Joins the two policy links
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.policyConsent.and"
 msgid "and"
-msgstr ""
+msgstr "සහ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Start of 'By using this service you agree to the Terms of Service and Privacy Policy.'; the policy links follow
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.policyConsent.prefix"
 msgid "By using this service you agree to the"
-msgstr ""
+msgstr "මෙම සේවාව භාවිත කිරීමෙන් ඔබ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. End of the policy consent sentence (punctuation or closing words after the links)
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.policyConsent.suffix"
 msgid "."
-msgstr ""
+msgstr " වලට එකඟ වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Generic cancel button
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.actions.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Retry button on error states
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.actions.retry"
 msgid "Try again"
-msgstr ""
+msgstr "නැවත උත්සාහ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Generic save button
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.actions.save"
 msgid "Save"
-msgstr ""
+msgstr "සුරකින්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Header link to the change-password page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.changePassword"
 msgid "Change password"
-msgstr ""
+msgstr "මුරපදය වෙනස් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link to the sign-in page after a sign-out problem
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.continueToSignIn"
 msgid "Continue to sign-in"
-msgstr ""
+msgstr "පුරනය වීමට ඉදිරියට යන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that signs the user out
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOut"
 msgid "Sign out"
-msgstr ""
+msgstr "ඉවත් වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-out confirmation text; {portal} is the portal name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOutDescription"
 msgid "You'll need to sign in again to access {portal}."
-msgstr ""
+msgstr "{portal} වෙත පිවිසීමට ඔබට නැවත පුරනය වීමට සිදු වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-out confirmation title; {portal} is the portal name, e.g. Tenant Admin
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOutOf"
 msgid "Sign out of {portal}?"
-msgstr ""
+msgstr "{portal} වෙතින් ඉවත් වන්නද?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown when sign-out could not be confirmed by the server
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOutUnconfirmed"
 msgid "You were signed out on this device, but we couldn't confirm it with the server. Please check your connection."
-msgstr ""
+msgstr "ඔබ මෙම උපාංගයෙන් ඉවත් කරන ලදී, නමුත් සේවාදායකය සමඟ එය තහවුරු කිරීමට නොහැකි විය. කරුණාකර ඔබගේ සම්බන්ධතාවය පරීක්ෂා කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-out button text while in progress
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signingOut"
 msgid "Signing out…"
-msgstr ""
+msgstr "ඉවත් වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course status: not visible to students yet
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.courseStatus.draft"
 msgid "Draft"
-msgstr ""
+msgstr "කෙටුම්පත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course status: visible only to enrolled students
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.courseStatus.private"
 msgid "Private"
-msgstr ""
+msgstr "පෞද්ගලික"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course status: listed on the public site
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.courseStatus.public"
 msgid "Public"
-msgstr ""
+msgstr "පොදු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Footer heading / label of the contact details list
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.footer.contactUs"
 msgid "Contact us"
-msgstr ""
+msgstr "අප අමතන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Footer copyright line; {year} is the year, {name} the institute name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.footer.copyright"
 msgid "© {year} {name}. All rights reserved."
-msgstr ""
+msgstr "© {year} {name}. සියලු හිමිකම් ඇවිරිණි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the institute logo link; {name} is the institute name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.institute.home"
 msgid "{name} home"
-msgstr ""
+msgstr "{name} මුල් පිටුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the logo placeholder while the institute loads
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.institute.loading"
 msgid "Loading institute"
-msgstr ""
+msgstr "ආයතනය පූරණය වෙමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader announcement after switching; {language} is the language's own name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.language.changed"
 msgid "Language changed to {language}"
-msgstr ""
+msgstr "භාෂාව {language} ලෙස වෙනස් කරන ලදී"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the language switcher
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.language.label"
 msgid "Language"
-msgstr ""
+msgstr "භාෂාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the mobile menu button in portals
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.nav.openMenu"
 msgid "Open navigation menu"
-msgstr ""
+msgstr "සංචාලන මෙනුව විවෘත කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the main portal navigation landmark
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.nav.primary"
 msgid "Primary"
-msgstr ""
+msgstr "ප්‍රධාන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tag next to a navigation item that is not available yet
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.nav.soon"
 msgid "Soon"
-msgstr ""
+msgstr "ළඟදීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Title of the institute's privacy policy page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.policy.privacy"
 msgid "Privacy Policy"
-msgstr ""
+msgstr "රහස්‍යතා ප්‍රතිපත්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Title of the institute's refund policy page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.policy.refund"
 msgid "Refund Policy"
-msgstr ""
+msgstr "මුදල් ආපසු ගෙවීමේ ප්‍රතිපත්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Title of the institute's terms of service page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.policy.terms"
 msgid "Terms of Service"
-msgstr ""
+msgstr "සේවා නියමයන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Name of the teacher portal, shown in the sidebar and browser tab
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.portal.teacher"
 msgid "Teacher Portal"
-msgstr ""
+msgstr "ගුරු ද්වාරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Explains that 'Live now' is based on the timetable, not on the meeting itself
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.basedOnSchedule"
 msgid "Based on the scheduled class time"
-msgstr ""
+msgstr "සැලසුම් කළ පන්ති වේලාව අනුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Class status: cancelled
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.cancelled"
 msgid "Cancelled"
-msgstr ""
+msgstr "අවලංගු කර ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Class status: inside its scheduled time window
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.live"
 msgid "Live now"
-msgstr ""
+msgstr "දැන් සජීවී"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Class status: scheduled time has passed
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.over"
 msgid "Over"
-msgstr ""
+msgstr "අවසන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Class status: has not started yet
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.scheduled"
 msgid "Scheduled"
-msgstr ""
+msgstr "සැලසුම් කර ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link on the permission-denied state
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.backToDashboard"
 msgid "Back to your dashboard"
-msgstr ""
+msgstr "ඔබගේ උපකරණ පුවරුවට ආපසු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text while the sign-in session is verified
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.checkingSession"
 msgid "Checking your session…"
-msgstr ""
+msgstr "ඔබගේ සැසිය පරීක්ෂා කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Generic error state heading
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.error"
 msgid "Something went wrong."
-msgstr ""
+msgstr "යම් දෝෂයක් සිදු විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown under an error message; {code} is a technical code such as VALIDATION_ERROR (do not translate the code)
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.errorCode"
 msgid "Error code: {code}"
-msgstr ""
+msgstr "දෝෂ කේතය: {code}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Generic error when no server message is available
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.genericError"
 msgid "Something went wrong. Please try again."
-msgstr ""
+msgstr "යම් දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Generic loading indicator text
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.loading"
 msgid "Loading…"
-msgstr ""
+msgstr "පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Permission-denied state heading
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.noPermission"
 msgid "You don't have permission to view this."
-msgstr ""
+msgstr "මෙය බැලීමට ඔබට අවසර නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Permission-denied state
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.permissionDenied"
 msgid "You do not have permission to view this page."
-msgstr ""
+msgstr "මෙම පිටුව බැලීමට ඔබට අවසර නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Error when the sign-in session could not be verified
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.sessionCheckFailed"
 msgid "We couldn't verify your session. Please try again."
-msgstr ""
+msgstr "ඔබගේ සැසිය තහවුරු කිරීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the light/dark theme toggle button
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.theme.dark"
 msgid "Dark theme"
-msgstr ""
+msgstr "අඳුරු තේමාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tooltip of the theme toggle while light theme is on
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.theme.switchToDark"
 msgid "Switch to dark theme"
-msgstr ""
+msgstr "අඳුරු තේමාවට මාරු වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tooltip of the theme toggle while dark theme is on
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.theme.switchToLight"
 msgid "Switch to light theme"
-msgstr ""
+msgstr "ආලෝකමත් තේමාවට මාරු වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the close button on a notification toast
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.toast.dismiss"
 msgid "Dismiss notification"
-msgstr ""
+msgstr "දැනුම්දීම ඉවත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. How long an emailed link stays valid, e.g. in the password reset email; {count} is a number of minutes
 #: i18n/source/email.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "email.common.expiresInMinutes"
 msgid "{count, plural, one {# minute} other {# minutes}}"
-msgstr ""
+msgstr "{count, plural, one {මිනිත්තු #} other {මිනිත්තු #}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Password reset email body (plain text). Keep {link} on its own line. {tenantName} is the institute name; {expiresIn} is a duration such as '60 minutes'
 #: i18n/source/email.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "email.passwordReset.body"
 msgid "Hi,\n\nWe received a request to reset your password at {tenantName}. Choose a new one here:\n\n{link}\n\nThis link can be used once and expires in {expiresIn}. If you didn't ask for this, you can ignore this email - your password won't change.\n"
-msgstr ""
+msgstr "ආයුබෝවන්,\n\n{tenantName} හි ඔබගේ මුරපදය යළි සැකසීමට අපට ඉල්ලීමක් ලැබුණි. නව මුරපදයක් මෙතැනින් තෝරන්න:\n\n{link}\n\nමෙම සබැඳිය එක් වරක් පමණක් භාවිත කළ හැකි අතර {expiresIn} කින් කල් ඉකුත් වේ. ඔබ මෙය ඉල්ලුවේ නැත්නම්, මෙම විද්‍යුත් තැපෑල නොසලකා හරින්න - ඔබගේ මුරපදය වෙනස් නොවේ.\n"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Password reset email subject; {tenantName} is the institute name
 #: i18n/source/email.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "email.passwordReset.subject"
 msgid "Reset your {tenantName} password"
-msgstr ""
+msgstr "ඔබගේ {tenantName} මුරපදය යළි සකසන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in refused: device limit reached
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.DEVICE_LIMIT_REACHED"
 msgid "You have reached the maximum number of devices for this account. Ask your institute to remove a device."
-msgstr ""
+msgstr "ඔබ මෙම ගිණුම සඳහා උපරිම උපාංග ගණනට ළඟා වී ඇත. උපාංගයක් ඉවත් කරන ලෙස ඔබගේ ආයතනයෙන් ඉල්ලන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in failed: wrong email/mobile or password. Keep it generic - never say which part was wrong
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.INVALID_CREDENTIALS"
 msgid "The sign-in details you entered are incorrect."
-msgstr ""
+msgstr "ඔබ ඇතුළත් කළ පුරනය වීමේ විස්තර වැරදියි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Language exists but the institute has not enabled it
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.LOCALE_NOT_ENABLED"
 msgid "This language is not enabled for this institute."
-msgstr ""
+msgstr "මෙම භාෂාව මෙම ආයතනය සඳහා සක්‍රිය කර නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Unsupported language code
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.LOCALE_NOT_SUPPORTED"
 msgid "This language is not supported."
-msgstr ""
+msgstr "මෙම භාෂාවට සහාය නොදක්වයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Mobile-number sign-in is disabled by the institute
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.MOBILE_LOGIN_DISABLED"
 msgid "Sign-in with a mobile number is turned off for this institute. Use your email instead."
-msgstr ""
+msgstr "මෙම ආයතනය සඳහා ජංගම දුරකථන අංකයෙන් පුරනය වීම අක්‍රිය කර ඇත. ඒ වෙනුවට ඔබගේ විද්‍යුත් තැපෑල භාවිත කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. The browser could not contact the server
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.NETWORK_ERROR"
 msgid "Unable to reach the server. Check your connection and try again."
-msgstr ""
+msgstr "සේවාදායකය වෙත ළඟා විය නොහැක. ඔබගේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Publish attempted without drafts
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.NOTHING_TO_PUBLISH"
 msgid "There are no draft changes to publish for this language."
-msgstr ""
+msgstr "මෙම භාෂාව සඳහා ප්‍රකාශයට පත් කිරීමට කෙටුම්පත් වෙනස්කම් නොමැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Upload larger than the allowed size
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.PAYLOAD_TOO_LARGE"
 msgid "The file is too large. The maximum size is 1 MB."
-msgstr ""
+msgstr "ගොනුව ඉතා විශාලයි. උපරිම ප්‍රමාණය 1 MB වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. PO import rejected
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.PO_IMPORT_INVALID"
 msgid "The translation file contains invalid messages. Nothing was imported."
-msgstr ""
+msgstr "පරිවර්තන ගොනුවේ වලංගු නොවන පණිවිඩ ඇත. කිසිවක් ආයාත කළේ නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student tried to enroll while the institute disabled self-enrollment
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.SELF_ENROLLMENT_DISABLED"
 msgid "Self-enrollment is turned off. Contact your institute to join this course."
-msgstr ""
+msgstr "ස්වයං ලියාපදිංචිය අක්‍රිය කර ඇත. මෙම පාඨමාලාවට එක්වීමට ඔබගේ ආයතනය අමතන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in refused because the institute site is unavailable or suspended
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TENANT_UNAVAILABLE"
 msgid "This institute is not available right now."
-msgstr ""
+msgstr "මෙම ආයතනය මේ මොහොතේ ලබා ගත නොහැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Rate limit reached, e.g. too many failed sign-ins
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TOO_MANY_REQUESTS"
 msgid "Too many attempts. Please wait a few minutes and try again."
-msgstr ""
+msgstr "උත්සාහයන් ඕනෑවට වඩා වැඩිය. කරුණාකර මිනිත්තු කිහිපයක් රැඳී සිට නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Translation editor: optimistic-concurrency conflict on a draft
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TRANSLATION_DRAFT_STALE"
 msgid "This translation was changed by someone else. Reload to see the latest version."
-msgstr ""
+msgstr "මෙම පරිවර්තනය වෙනත් අයෙකු විසින් වෙනස් කර ඇත. නවතම අනුවාදය බැලීමට නැවත පූරණය කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Translation editor: the server rejected the message format
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TRANSLATION_INVALID"
 msgid "This translation is not valid. Fix the problems listed and try again."
-msgstr ""
+msgstr "මෙම පරිවර්තනය වලංගු නැත. දක්වා ඇති ගැටලු නිවැරදි කර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Publish/rollback conflict with another release
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TRANSLATION_RELEASE_STALE"
 msgid "Someone published or rolled back translations in the meantime. Reload and try again."
-msgstr ""
+msgstr "මේ අතරතුර වෙනත් අයෙකු පරිවර්තන ප්‍රකාශයට පත් කර හෝ ආපසු හරවා ඇත. නැවත පූරණය කර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Fallback for an unexpected server response
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.UNKNOWN_ERROR"
 msgid "An unexpected error occurred."
-msgstr ""
+msgstr "අනපේක්ෂිත දෝෂයක් සිදු විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Translation editor: unknown key
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.UNKNOWN_MESSAGE_KEY"
 msgid "This text key does not exist."
-msgstr ""
+msgstr "මෙම පාඨ යතුර නොපවතී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Sign-in refused for a suspended account. Use exactly the same text as errors.INVALID_CREDENTIALS (anti-enumeration)
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.USER_SUSPENDED"
 msgid "The sign-in details you entered are incorrect."
-msgstr ""
+msgstr "ඔබ ඇතුළත් කළ පුරනය වීමේ විස්තර වැරදියි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge: an unpublished change exists
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.draft"
 msgid "Draft"
-msgstr ""
+msgstr "කෙටුම්පත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge: a draft will remove your override on publish
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.draftReset"
 msgid "Draft: reset"
-msgstr ""
+msgstr "කෙටුම්පත: යළි සැකසීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge: the platform translation is served
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.inheritedPlatform"
 msgid "Inherited: platform"
-msgstr ""
+msgstr "උරුම: වේදිකාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge: no translation, the English text is served
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.inheritedSource"
 msgid "Inherited: English"
-msgstr ""
+msgstr "උරුම: ඉංග්‍රීසි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge: no translation
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.missing"
 msgid "Missing"
-msgstr ""
+msgstr "නොමැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.needsReview"
 msgid "Needs review"
-msgstr ""
+msgstr "සමාලෝචනය අවශ්‍යයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge: your institute's own published wording is served
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.override"
 msgid "Override"
-msgstr ""
+msgstr "ආයතනයේ වචන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that reloads the latest data after a conflict
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.common.reload"
 msgid "Reload"
-msgstr ""
+msgstr "නැවත පූරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button text while saving
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.common.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "සුරකිමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.description"
 msgid "Description"
-msgstr ""
+msgstr "විස්තරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. The course's original language is unknown
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.languageNotDeclared"
 msgid "Language not declared"
-msgstr ""
+msgstr "භාෂාව සඳහන් කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.loading"
 msgid "Loading course translations…"
-msgstr ""
+msgstr "පාඨමාලා පරිවර්තන පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Heading of the course's original title and description
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.original"
 msgid "Original"
-msgstr ""
+msgstr "මුල් පිටපත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. {language} is a language name and code
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.originalLanguage"
 msgid "Written in {language}"
-msgstr ""
+msgstr "{language} භාෂාවෙන් ලියා ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Toggle button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.preview"
 msgid "Preview"
-msgstr ""
+msgstr "පෙරදසුන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Preview placeholder
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.previewEmpty"
 msgid "No title yet"
-msgstr ""
+msgstr "තවමත් මාතෘකාවක් නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Preview box heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.previewHeading"
 msgid "Preview (not public yet unless published)"
-msgstr ""
+msgstr "පෙරදසුන (ප්‍රකාශයට පත් කරන තුරු පොදු නොවේ)"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.publish"
 msgid "Publish"
-msgstr ""
+msgstr "ප්‍රකාශයට පත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.published"
 msgid "Published. Visitors using this language now see this title and description."
-msgstr ""
+msgstr "ප්‍රකාශයට පත් කරන ලදී. මෙම භාෂාව භාවිත කරන අමුත්තන් දැන් මෙම මාතෘකාව සහ විස්තරය දකියි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.saveDraft"
 msgid "Save draft"
-msgstr ""
+msgstr "කෙටුම්පත සුරකින්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.saved"
 msgid "Draft saved."
-msgstr ""
+msgstr "කෙටුම්පත සුරකින ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Conflict message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.stale"
 msgid "This translation was changed by someone else. Reload the page to see the latest version."
-msgstr ""
+msgstr "මෙම පරිවර්තනය වෙනත් අයෙකු විසින් වෙනස් කර ඇත. නවතම අනුවාදය බැලීමට පිටුව නැවත පූරණය කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.statusDraft"
 msgid "Draft"
-msgstr ""
+msgstr "කෙටුම්පත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.statusNone"
 msgid "Not translated"
-msgstr ""
+msgstr "පරිවර්තනය කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.statusPublished"
 msgid "Published"
-msgstr ""
+msgstr "ප්‍රකාශිතයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.title"
 msgid "Title"
-msgstr ""
+msgstr "මාතෘකාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.unpublish"
 msgid "Unpublish"
-msgstr ""
+msgstr "ප්‍රකාශනය ඉවත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.unpublished"
 msgid "Unpublished. Visitors see the original again."
-msgstr ""
+msgstr "ප්‍රකාශනය ඉවත් කරන ලදී. අමුත්තන් නැවත මුල් පිටපත දකියි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge: the draft differs from the published variant
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.unpublishedChanges"
 msgid "Unpublished changes"
-msgstr ""
+msgstr "ප්‍රකාශයට පත් නොකළ වෙනස්කම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.validation.descriptionTooLong"
 msgid "Use at most {max} characters."
-msgstr ""
+msgstr "උපරිම අක්ෂර {max} ක් භාවිත කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.validation.titleRequired"
 msgid "Enter a title."
-msgstr ""
+msgstr "මාතෘකාවක් ඇතුළත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.validation.titleTooLong"
 msgid "Use at most {max} characters."
-msgstr ""
+msgstr "උපරිම අක්ෂර {max} ක් භාවිත කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label of the translator note
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.context"
 msgid "Context"
-msgstr ""
+msgstr "සන්දර්භය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.discard"
 msgid "Discard draft"
-msgstr ""
+msgstr "කෙටුම්පත ඉවත දමන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label of the unpublished draft
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draft"
 msgid "Draft"
-msgstr ""
+msgstr "කෙටුම්පත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftDiscarded"
 msgid "Draft discarded."
-msgstr ""
+msgstr "කෙටුම්පත ඉවත දමන ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown for a reset draft
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftIsReset"
 msgid "Reset to the platform translation when published"
-msgstr ""
+msgstr "ප්‍රකාශයට පත් කළ විට වේදිකා පරිවර්තනයට යළි සකසයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftSaved"
 msgid "Draft saved. Publish to make it live."
-msgstr ""
+msgstr "කෙටුම්පත සුරකින ලදී. එය සජීවී කිරීමට ප්‍රකාශයට පත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. {when} is a date and time
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftUpdated"
 msgid "Last changed {when}"
-msgstr ""
+msgstr "අවසන් වරට වෙනස් කළේ {when}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown when a value does not exist
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.none"
 msgid "None"
-msgstr ""
+msgstr "කිසිවක් නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Warning on an outdated override
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.overrideNeedsReview"
 msgid "The English text changed after this was published. Please check it."
-msgstr ""
+msgstr "මෙය ප්‍රකාශයට පත් කිරීමෙන් පසු ඉංග්‍රීසි පාඨය වෙනස් විය. කරුණාකර එය පරීක්ෂා කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.platform"
 msgid "Platform translation"
-msgstr ""
+msgstr "වේදිකා පරිවර්තනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label of the institute's published override
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.published"
 msgid "Your published wording"
-msgstr ""
+msgstr "ඔබ ප්‍රකාශයට පත් කළ වචන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown to view-only roles
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.readOnly"
 msgid "You can view translations but not edit them."
-msgstr ""
+msgstr "ඔබට පරිවර්තන බැලිය හැකි නමුත් සංස්කරණය කළ නොහැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that removes your override when published
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.reset"
 msgid "Reset to platform translation"
-msgstr ""
+msgstr "වේදිකා පරිවර්තනයට යළි සකසන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.resetQueued"
 msgid "Reset saved as a draft. Publish to make it live."
-msgstr ""
+msgstr "යළි සැකසීම කෙටුම්පතක් ලෙස සුරකින ලදී. එය සජීවී කිරීමට ප්‍රකාශයට පත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.saveDraft"
 msgid "Save draft"
-msgstr ""
+msgstr "කෙටුම්පත සුරකින්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown before a text is selected
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.selectPrompt"
 msgid "Select a text to see its English source and edit the translation."
-msgstr ""
+msgstr "එහි ඉංග්‍රීසි මූලාශ්‍රය බැලීමට සහ පරිවර්තනය සංස්කරණය කිරීමට පාඨයක් තෝරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.source"
 msgid "English source"
-msgstr ""
+msgstr "ඉංග්‍රීසි මූලාශ්‍රය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Conflict message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.stale"
 msgid "This text was changed by someone else. Reload to see the latest version."
-msgstr ""
+msgstr "මෙම පාඨය වෙනත් අයෙකු විසින් වෙනස් කර ඇත. නවතම අනුවාදය බැලීමට නැවත පූරණය කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label of an unreviewed platform suggestion
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.suggestion"
 msgid "Suggested translation (needs review)"
-msgstr ""
+msgstr "යෝජිත පරිවර්තනය (සමාලෝචනය අවශ්‍යයි)"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label of the translation field; {language} is the language name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.translationLabel"
 msgid "Translation ({language})"
-msgstr ""
+msgstr "පරිවර්තනය ({language})"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that copies the suggestion into the editor
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.useSuggestion"
 msgid "Use suggestion"
-msgstr ""
+msgstr "යෝජනාව භාවිත කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Export help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.description"
 msgid "Download translations as a gettext file."
-msgstr ""
+msgstr "පරිවර්තන gettext ගොනුවක් ලෙස බාගන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message; {file} is a file name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.done"
 msgid "Downloaded {file}."
-msgstr ""
+msgstr "{file} බාගන්නා ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.download"
 msgid "Download"
-msgstr ""
+msgstr "බාගන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Radio group label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.format"
 msgid "Format"
-msgstr ""
+msgstr "ආකෘතිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Export format option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.formatMo"
 msgid "MO (compiled)"
-msgstr ""
+msgstr "MO (සම්පාදිත)"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Export format option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.formatPo"
 msgid "PO (editable)"
-msgstr ""
+msgstr "PO (සංස්කරණය කළ හැකි)"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.heading"
 msgid "Export"
-msgstr ""
+msgstr "අපනයනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Radio group label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.scope"
 msgid "Contents"
-msgstr ""
+msgstr "අන්තර්ගතය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Export scope option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.scopeEffective"
 msgid "Everything visitors see"
-msgstr ""
+msgstr "අමුත්තන් දකින සියල්ල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Export scope option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.scopeOverrides"
 msgid "Your published wording only"
-msgstr ""
+msgstr "ඔබ ප්‍රකාශයට පත් කළ වචන පමණි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button while exporting
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.working"
 msgid "Preparing…"
-msgstr ""
+msgstr "සූදානම් කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Filter option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.allNamespaces"
 msgid "All modules"
-msgstr ""
+msgstr "සියලු මොඩියුල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Language select label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.locale"
 msgid "Language"
-msgstr ""
+msgstr "භාෂාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Filter by area of the app (namespace)
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.namespace"
 msgid "Module"
-msgstr ""
+msgstr "මොඩියුලය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Search field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.search"
 msgid "Search"
-msgstr ""
+msgstr "සොයන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Search placeholder
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.searchPlaceholder"
 msgid "Search keys or English text"
-msgstr ""
+msgstr "යතුරු හෝ ඉංග්‍රීසි පාඨ සොයන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the status filter buttons
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.status"
 msgid "Status"
-msgstr ""
+msgstr "තත්ත්වය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.additions"
 msgid "{count, plural, one {# new translation} other {# new translations}}"
-msgstr ""
+msgstr "{count, plural, one {නව පරිවර්තන # ක්} other {නව පරිවර්තන # ක්}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown when invalid messages block the import
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.blocked"
 msgid "Fix the invalid messages in the file before importing."
-msgstr ""
+msgstr "ආයාත කිරීමට පෙර ගොනුවේ වලංගු නොවන පණිවිඩ නිවැරදි කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.changes"
 msgid "{count, plural, one {# changed translation} other {# changed translations}}"
-msgstr ""
+msgstr "{count, plural, one {වෙනස් කළ පරිවර්තන # ක්} other {වෙනස් කළ පරිවර්තන # ක්}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Confirm import button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.confirm"
 msgid "{count, plural, one {Import # draft} other {Import # drafts}}"
-msgstr ""
+msgstr "{count, plural, one {කෙටුම්පත් # ක් ආයාත කරන්න} other {කෙටුම්පත් # ක් ආයාත කරන්න}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Import help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.description"
 msgid "Check the file first. Importing creates drafts only; nothing goes live until you publish."
-msgstr ""
+msgstr "පළමුව ගොනුව පරීක්ෂා කරන්න. ආයාත කිරීමෙන් සාදන්නේ කෙටුම්පත් පමණි; ඔබ ප්‍රකාශයට පත් කරන තුරු කිසිවක් සජීවී නොවේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.done"
 msgid "{count, plural, one {# draft imported.} other {# drafts imported.}}"
-msgstr ""
+msgstr "{count, plural, one {කෙටුම්පත් # ක් ආයාත කරන ලදී.} other {කෙටුම්පත් # ක් ආයාත කරන ලදී.}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that runs a dry run
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.dryRun"
 msgid "Check file"
-msgstr ""
+msgstr "ගොනුව පරීක්ෂා කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. File field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.file"
 msgid "PO file"
-msgstr ""
+msgstr "PO ගොනුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section heading; PO is the gettext translation file format
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.heading"
 msgid "Import a PO file: {language}"
-msgstr ""
+msgstr "PO ගොනුවක් ආයාත කරන්න: {language}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.invalid"
 msgid "{count, plural, one {# invalid message} other {# invalid messages}}"
-msgstr ""
+msgstr "{count, plural, one {වලංගු නොවන පණිවිඩ # ක්} other {වලංගු නොවන පණිවිඩ # ක්}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Expandable list heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.invalidDetails"
 msgid "Invalid messages"
-msgstr ""
+msgstr "වලංගු නොවන පණිවිඩ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Heading of the dry-run report
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.reportTitle"
 msgid "File check result"
-msgstr ""
+msgstr "ගොනු පරීක්ෂණ ප්‍රතිඵලය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.skipped"
 msgid "{count, plural, one {# skipped (empty, needs review or obsolete)} other {# skipped (empty, needs review or obsolete)}}"
-msgstr ""
+msgstr "{count, plural, one {මඟ හැරුණු # ක් (හිස්, සමාලෝචනය අවශ්‍ය හෝ යල් පැන ගිය)} other {මඟ හැරුණු # ක් (හිස්, සමාලෝචනය අවශ්‍ය හෝ යල් පැන ගිය)}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.unchanged"
 msgid "{count, plural, one {# unchanged} other {# unchanged}}"
-msgstr ""
+msgstr "{count, plural, one {වෙනස් නොවූ # ක්} other {වෙනස් නොවූ # ක්}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.unknown"
 msgid "{count, plural, one {# unknown key (ignored)} other {# unknown keys (ignored)}}"
-msgstr ""
+msgstr "{count, plural, one {නොදන්නා යතුරු # ක් (නොසලකා හරින ලදී)} other {නොදන්නා යතුරු # ක් (නොසලකා හරින ලදී)}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Expandable list heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.unknownDetails"
 msgid "Unknown keys"
-msgstr ""
+msgstr "නොදන්නා යතුරු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label of the default language select
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.default"
 msgid "Default language"
-msgstr ""
+msgstr "පෙරනිමි භාෂාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Default language help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.defaultHelp"
 msgid "Shown to visitors who have not chosen a language. It must be enabled."
-msgstr ""
+msgstr "භාෂාවක් තෝරා නොගත් අමුත්තන්ට පෙන්වයි. එය සක්‍රිය කර තිබිය යුතුය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Language settings help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.description"
 msgid "Choose which languages visitors can switch to and which one is shown first."
-msgstr ""
+msgstr "අමුත්තන්ට මාරු විය හැකි භාෂා සහ මුලින්ම පෙන්වන භාෂාව තෝරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Switch label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.detection"
 msgid "Detect the browser's language"
-msgstr ""
+msgstr "බ්‍රවුසරයේ භාෂාව හඳුනා ගන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Switch help text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.detectionHelp"
 msgid "For visitors without a saved choice, use their browser's preferred language when it is enabled."
-msgstr ""
+msgstr "සුරකින ලද තේරීමක් නොමැති අමුත්තන් සඳහා, ඔවුන්ගේ බ්‍රවුසරයේ කැමති භාෂාව සක්‍රිය නම් එය භාවිත කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Label of the language checkboxes
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.enabled"
 msgid "Enabled languages"
-msgstr ""
+msgstr "සක්‍රිය භාෂා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Language settings section heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.heading"
 msgid "Languages"
-msgstr ""
+msgstr "භාෂා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.loading"
 msgid "Loading language settings…"
-msgstr ""
+msgstr "භාෂා සැකසුම් පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. 403 on save
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.noPermission"
 msgid "You don't have permission to change language settings."
-msgstr ""
+msgstr "භාෂා සැකසුම් වෙනස් කිරීමට ඔබට අවසර නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown to read-only roles
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.readOnly"
 msgid "You can view these settings but not change them."
-msgstr ""
+msgstr "ඔබට මෙම සැකසුම් බැලිය හැකි නමුත් වෙනස් කළ නොහැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Save button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.save"
 msgid "Save language settings"
-msgstr ""
+msgstr "භාෂා සැකසුම් සුරකින්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.saved"
 msgid "Language settings saved."
-msgstr ""
+msgstr "භාෂා සැකසුම් සුරකින ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.validation.atLeastOne"
 msgid "Enable at least one language."
-msgstr ""
+msgstr "අවම වශයෙන් එක් භාෂාවක් සක්‍රිය කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.validation.defaultEnabled"
 msgid "The default language must be one of the enabled languages."
-msgstr ""
+msgstr "පෙරනිමි භාෂාව සක්‍රිය භාෂාවලින් එකක් විය යුතුය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Settings > Translations page subtitle
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.page.description"
 msgid "Languages offered to visitors and your institute's wording for every text."
-msgstr ""
+msgstr "අමුත්තන්ට ලබා දෙන භාෂා සහ සෑම පාඨයක් සඳහාම ඔබගේ ආයතනයේ වචන භාවිතය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Banner shown across the app while previewing
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.banner"
 msgid "Previewing unpublished translation drafts. Only you can see them."
-msgstr ""
+msgstr "ප්‍රකාශයට පත් නොකළ පරිවර්තන කෙටුම්පත් පෙරදසුන් කරමින්. ඒවා දැකිය හැක්කේ ඔබට පමණි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Banner button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.exit"
 msgid "Exit preview"
-msgstr ""
+msgstr "පෙරදසුනෙන් ඉවත් වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Banner when the preview catalog failed
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.failed"
 msgid "Draft preview could not be loaded; showing published texts."
-msgstr ""
+msgstr "කෙටුම්පත් පෙරදසුන පූරණය කළ නොහැකි විය; ප්‍රකාශිත පාඨ පෙන්වයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Preview switch help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.help"
 msgid "Only you see drafts, in this tab, until you reload."
-msgstr ""
+msgstr "ඔබ නැවත පූරණය කරන තුරු, මෙම ටැබයේ කෙටුම්පත් දකින්නේ ඔබ පමණි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Switch that shows unpublished drafts in this browser tab
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.toggle"
 msgid "Preview drafts"
-msgstr ""
+msgstr "කෙටුම්පත් පෙරදසුන් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.empty"
 msgid "Enter a translation."
-msgstr ""
+msgstr "පරිවර්තනයක් ඇතුළත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem; keep the quoted braces
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.placeholderMissing"
 msgid "The placeholder '{'{name}'}' from the English text is missing."
-msgstr ""
+msgstr "ඉංග්‍රීසි පාඨයේ ඇති '{'{name}'}' ස්ථාන දරන්නා නොමැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem; keep the quoted braces
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.placeholderUnknown"
 msgid "The placeholder '{'{name}'}' is not in the English text."
-msgstr ""
+msgstr "'{'{name}'}' ස්ථාන දරන්නා ඉංග්‍රීසි පාඨයේ නොමැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralInvalidCategory"
 msgid "\"{category}\" is not a valid plural form for this language."
-msgstr ""
+msgstr "\"{category}\" මෙම භාෂාව සඳහා වලංගු බහුවචන ආකාරයක් නොවේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralMissing"
 msgid "The plural for {name} from the English text is missing."
-msgstr ""
+msgstr "ඉංග්‍රීසි පාඨයේ ඇති {name} සඳහා බහුවචනය නොමැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem; {name} is a technical name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralMissingOther"
 msgid "The plural for {name} needs an \"other\" form."
-msgstr ""
+msgstr "{name} සඳහා බහුවචනයට \"other\" ආකාරයක් අවශ්‍යයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralUnknown"
 msgid "The plural for {name} is not in the English text."
-msgstr ""
+msgstr "{name} සඳහා බහුවචනය ඉංග්‍රීසි පාඨයේ නොමැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem. Keep the quoted braces exactly as they are: they display literal braces
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.syntax"
 msgid "The text has unbalanced braces or quotes. Placeholders look like '{'name'}'."
-msgstr ""
+msgstr "පාඨයේ අසමතුලිත වරහන් හෝ උද්ධෘත ලකුණු ඇත. ස්ථාන දරන්නන් '{'name'}' ලෙස දිස් වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.tooLong"
 msgid "The text is longer than {max} characters."
-msgstr ""
+msgstr "පාඨය අක්ෂර {max} කට වඩා දිගය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Confirm button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.confirm"
 msgid "Publish"
-msgstr ""
+msgstr "ප්‍රකාශයට පත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Dialog text; {version} is a number
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.description"
 msgid "{count, plural, =0 {There are no drafts to publish.} one {# draft will go live as version {version}.} other {# drafts will go live as version {version}.}}"
-msgstr ""
+msgstr "{count, plural, =0 {ප්‍රකාශයට පත් කිරීමට කෙටුම්පත් නොමැත.} one {කෙටුම්පත් # ක් අනුවාදය {version} ලෙස සජීවී වේ.} other {කෙටුම්පත් # ක් අනුවාදය {version} ලෙස සජීවී වේ.}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Dialog text when the draft count is unknown
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.descriptionUnknown"
 msgid "All drafts for this language will go live as a new version."
-msgstr ""
+msgstr "මෙම භාෂාව සඳහා සියලු කෙටුම්පත් නව අනුවාදයක් ලෙස සජීවී වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.done"
 msgid "Published version {version}."
-msgstr ""
+msgstr "අනුවාදය {version} ප්‍රකාශයට පත් කරන ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that opens the publish dialog
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.open"
 msgid "Publish"
-msgstr ""
+msgstr "ප්‍රකාශයට පත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button while publishing
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.publishing"
 msgid "Publishing…"
-msgstr ""
+msgstr "ප්‍රකාශයට පත් කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.summary"
 msgid "Summary of the changes"
-msgstr ""
+msgstr "වෙනස්කම්වල සාරාංශය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.summaryRequired"
 msgid "Describe what changed."
-msgstr ""
+msgstr "වෙනස් වූ දේ විස්තර කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.summaryTooLong"
 msgid "Use at most {max} characters."
-msgstr ""
+msgstr "උපරිම අක්ෂර {max} ක් භාවිත කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Dialog title
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.title"
 msgid "Publish {language} translations?"
-msgstr ""
+msgstr "{language} පරිවර්තන ප්‍රකාශයට පත් කරන්නද?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Badge on the live version
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.current"
 msgid "Current"
-msgstr ""
+msgstr "වත්මන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Releases help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.description"
 msgid "Every publish creates a new version. Rolling back creates a new version too; nothing is deleted."
-msgstr ""
+msgstr "සෑම ප්‍රකාශනයක්ම නව අනුවාදයක් සාදයි. ආපසු හැරවීමද නව අනුවාදයක් සාදයි; කිසිවක් මකා නොදමයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state description
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.empty.description"
 msgid "Visitors see the platform translations until you publish your own wording."
-msgstr ""
+msgstr "ඔබ ඔබගේම වචන ප්‍රකාශයට පත් කරන තුරු අමුත්තන් වේදිකා පරිවර්තන දකියි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.empty.title"
 msgid "Nothing published yet"
-msgstr ""
+msgstr "තවමත් කිසිවක් ප්‍රකාශයට පත් කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Releases section heading; {language} is the language name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.heading"
 msgid "Published versions: {language}"
-msgstr ""
+msgstr "ප්‍රකාශිත අනුවාද: {language}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.loading"
 msgid "Loading published versions…"
-msgstr ""
+msgstr "ප්‍රකාශිත අනුවාද පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Release line: publish date and number of overridden texts
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.publishedOn"
 msgid "{when} · {count, plural, one {# text} other {# texts}}"
-msgstr ""
+msgstr "{when} · {count, plural, one {පාඨ # ක්} other {පාඨ # ක්}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.rollback"
 msgid "Roll back"
-msgstr ""
+msgstr "ආපසු හරවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Shown on a release created by a rollback
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.rollbackOf"
 msgid "Rollback to version {version}"
-msgstr ""
+msgstr "අනුවාදය {version} වෙත ආපසු හැරවීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Release label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.version"
 msgid "Version {version}"
-msgstr ""
+msgstr "අනුවාදය {version}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Confirm button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.confirm"
 msgid "Roll back"
-msgstr ""
+msgstr "ආපසු හරවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Dialog text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.description"
 msgid "Version {version}'s texts will be published again as version {next}. Later versions stay in the history."
-msgstr ""
+msgstr "අනුවාදය {version} හි පාඨ අනුවාදය {next} ලෙස නැවත ප්‍රකාශයට පත් කෙරේ. පසු අනුවාද ඉතිහාසයේ රැඳේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.done"
 msgid "Rolled back; now live as version {version}."
-msgstr ""
+msgstr "ආපසු හරවන ලදී; දැන් අනුවාදය {version} ලෙස සජීවීය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Dialog title
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.title"
 msgid "Roll back to version {version}?"
-msgstr ""
+msgstr "අනුවාදය {version} වෙත ආපසු හරවන්නද?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button while working
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.working"
 msgid "Rolling back…"
-msgstr ""
+msgstr "ආපසු හරවමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status filter
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.all"
 msgid "All"
-msgstr ""
+msgstr "සියල්ල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status filter: unpublished changes
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.drafts"
 msgid "Drafts"
-msgstr ""
+msgstr "කෙටුම්පත්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status filter: no translation yet
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.missing"
 msgid "Missing"
-msgstr ""
+msgstr "නොමැති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status filter: translation must be checked because the English text changed
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.needsReview"
 msgid "Needs review"
-msgstr ""
+msgstr "සමාලෝචනය අවශ්‍යයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status filter: your institute changed the wording
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.overridden"
 msgid "Overridden"
-msgstr ""
+msgstr "වෙනස් කළ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status filter
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.translated"
 msgid "Translated"
-msgstr ""
+msgstr "පරිවර්තනය කළ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Translation editor help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.description"
 msgid "Override the platform wording for your institute. Changes are saved as drafts and go live when you publish."
-msgstr ""
+msgstr "ඔබගේ ආයතනය සඳහා වේදිකාවේ වචන භාවිතය වෙනස් කරන්න. වෙනස්කම් කෙටුම්පත් ලෙස සුරකින අතර ඔබ ප්‍රකාශයට පත් කළ විට සජීවී වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state description
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.empty.description"
 msgid "This language has no texts yet. Texts appear here as soon as the platform adds them."
-msgstr ""
+msgstr "මෙම භාෂාවට තවමත් පාඨ නොමැත. වේදිකාව ඒවා එක් කළ විගස පාඨ මෙහි දිස් වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state when the catalog has no texts
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.empty.title"
 msgid "No texts to translate"
-msgstr ""
+msgstr "පරිවර්තනය කිරීමට පාඨ නොමැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Translation editor heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.heading"
 msgid "Translations"
-msgstr ""
+msgstr "පරිවර්තන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the list of texts
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.listLabel"
 msgid "Texts"
-msgstr ""
+msgstr "පාඨ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.loading"
 msgid "Loading translations…"
-msgstr ""
+msgstr "පරිවර්තන පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Pagination button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.next"
 msgid "Next"
-msgstr ""
+msgstr "ඊළඟ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that resets filters
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.noMatch.clear"
 msgid "Clear filters"
-msgstr ""
+msgstr "පෙරහන් ඉවත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state after filtering
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.noMatch.description"
 msgid "Try another search, module or status, or clear the filters."
-msgstr ""
+msgstr "වෙනත් සෙවුමක්, මොඩියුලයක් හෝ තත්ත්වයක් උත්සාහ කරන්න, නැතහොත් පෙරහන් ඉවත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state after filtering
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.noMatch.title"
 msgid "No texts match your filters"
-msgstr ""
+msgstr "ඔබගේ පෙරහන්වලට ගැළපෙන පාඨ නොමැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Pagination text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.pageOf"
 msgid "Page {page} of {total}"
-msgstr ""
+msgstr "පිටුව {page} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Pagination button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.previous"
 msgid "Previous"
-msgstr ""
+msgstr "පෙර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Position of a slide, e.g. 2 of 5
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.carousel.position"
 msgid "{index} of {total}"
-msgstr ""
+msgstr "{index} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader role description of a slideshow
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.carousel.roleDescription"
 msgid "carousel"
-msgstr ""
+msgstr "කැරසලය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader role description of one slide
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.carousel.slide"
 msgid "slide"
-msgstr ""
+msgstr "ස්ලයිඩය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Browser tab title of a public page; {page} is the page name, {name} the institute
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.documentTitle"
 msgid "{page} | {name}"
-msgstr ""
+msgstr "{page} | {name}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Footer contact label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.address"
 msgid "Address"
-msgstr ""
+msgstr "ලිපිනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Footer contact label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.email"
 msgid "Email"
-msgstr ""
+msgstr "විද්‍යුත් තැපෑල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Footer contact label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.phone"
 msgid "Phone"
-msgstr ""
+msgstr "දුරකථනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the policy links
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.policies"
 msgid "Policies"
-msgstr ""
+msgstr "ප්‍රතිපත්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Footer heading of the link list
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.sitemap"
 msgid "Sitemap"
-msgstr ""
+msgstr "අඩවි සිතියම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Header button for a signed-in visitor
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.dashboard"
 msgid "Dashboard"
-msgstr ""
+msgstr "උපකරණ පුවරුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button to register a new institute on the platform site
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.getStarted"
 msgid "Get started"
-msgstr ""
+msgstr "ආරම්භ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Header button to sign in
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.login"
 msgid "Login"
-msgstr ""
+msgstr "පිවිසෙන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button to create a student account
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.register"
 msgid "Register"
-msgstr ""
+msgstr "ලියාපදිංචි වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Header button to sign in on the platform site
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.signIn"
 msgid "Sign in"
-msgstr ""
+msgstr "පුරනය වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Small label above the institute introduction
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.about.eyebrow"
 msgid "About us"
-msgstr ""
+msgstr "අප ගැන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Alternative text of a banner image
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.alt"
 msgid "{name} banner {index} of {total}"
-msgstr ""
+msgstr "{name} බැනරය {index} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Slideshow button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.next"
 msgid "Next banner"
-msgstr ""
+msgstr "ඊළඟ බැනරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader announcement of the current banner
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.position"
 msgid "Banner {index} of {total}"
-msgstr ""
+msgstr "බැනරය {index} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Slideshow button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.previous"
 msgid "Previous banner"
-msgstr ""
+msgstr "පෙර බැනරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the banner slideshow
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.region"
 msgid "Featured banners"
-msgstr ""
+msgstr "විශේෂාංගගත බැනර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Slideshow dot button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.show"
 msgid "Show banner {index}"
-msgstr ""
+msgstr "බැනරය {index} පෙන්වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Call-to-action text
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.cta.description"
 msgid "Create your account to enrol in courses, join classes and follow your progress from any device."
-msgstr ""
+msgstr "ඕනෑම උපාංගයකින් පාඨමාලාවලට ලියාපදිංචි වීමට, පන්තිවලට එක්වීමට සහ ඔබගේ ප්‍රගතිය අනුගමනය කිරීමට ඔබගේ ගිණුම සාදන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Call-to-action heading; {name} is the institute
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.cta.heading"
 msgid "Start learning with {name}"
-msgstr ""
+msgstr "{name} සමඟ ඉගෙනීම අරඹන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Error on the public home page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.error"
 msgid "We couldn't load this institute's home page."
-msgstr ""
+msgstr "මෙම ආයතනයේ මුල් පිටුව පූරණය කිරීමට නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Error when courses cannot be loaded
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.error"
 msgid "The course list is temporarily unavailable."
-msgstr ""
+msgstr "පාඨමාලා ලැයිස්තුව තාවකාලිකව ලබා ගත නොහැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Small label above the featured courses heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.eyebrow"
 msgid "Featured"
-msgstr ""
+msgstr "විශේෂාංගගත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.heading"
 msgid "Featured courses"
-msgstr ""
+msgstr "විශේෂාංගගත පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label while courses load
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.loading"
 msgid "Loading courses"
-msgstr ""
+msgstr "පාඨමාලා පූරණය වෙමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section subtitle
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.subtitle"
 msgid "Hand-picked courses to start with."
-msgstr ""
+msgstr "ආරම්භ කිරීමට තෝරාගත් පාඨමාලා."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link to the course catalog
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.viewAll"
 msgid "View all courses"
-msgstr ""
+msgstr "සියලු පාඨමාලා බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link on a course card
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.viewDetails"
 msgid "View details"
-msgstr ""
+msgstr "විස්තර බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader-only continuation of 'View details'; {name} is the course title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.viewDetailsFor"
 msgid "for {name}"
-msgstr ""
+msgstr "{name} සඳහා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Hero button to the course catalog
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.hero.explore"
 msgid "Explore courses"
-msgstr ""
+msgstr "පාඨමාලා ගවේෂණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Hero tagline
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.hero.tagline"
 msgid "Explore our courses and start learning with experienced teachers."
-msgstr ""
+msgstr "අපගේ පාඨමාලා ගවේෂණය කර පළපුරුදු ගුරුවරුන් සමඟ ඉගෙනීම අරඹන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Small text above the institute name in the hero
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.hero.welcome"
 msgid "Welcome to"
-msgstr ""
+msgstr "සාදරයෙන් පිළිගනිමු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text of the public home page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.loading"
 msgid "Loading institute home…"
-msgstr ""
+msgstr "ආයතනයේ මුල් පිටුව පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Heading of the quick-actions section
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.heading"
 msgid "Get an incredible learning experience"
-msgstr ""
+msgstr "විශිෂ්ට ඉගෙනුම් අත්දැකීමක් ලබා ගන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Quick action description
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.howToDescription"
 msgid "Watch the guide and find out how to get started."
-msgstr ""
+msgstr "මාර්ගෝපදේශය නරඹා ආරම්භ කරන්නේ කෙසේදැයි සොයා ගන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Quick action title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.howToTitle"
 msgid "How to use"
-msgstr ""
+msgstr "භාවිත කරන ආකාරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Quick action description
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.registerDescription"
 msgid "Create your student account, then choose the course you want to join."
-msgstr ""
+msgstr "ඔබගේ ශිෂ්‍ය ගිණුම සාදා, ඔබට එක්වීමට අවශ්‍ය පාඨමාලාව තෝරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Quick action title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.registerTitle"
 msgid "Register for a course"
-msgstr ""
+msgstr "පාඨමාලාවක් සඳහා ලියාපදිංචි වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Quick action description
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.signInDescription"
 msgid "Already registered? Sign in and continue where you left off."
-msgstr ""
+msgstr "දැනටමත් ලියාපදිංචි වී සිටිනවාද? පුරනය වී ඔබ නතර කළ තැනින් ඉදිරියට යන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Quick action title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.signInTitle"
 msgid "Join / sign in"
-msgstr ""
+msgstr "එක්වන්න / පුරනය වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Subtitle of the quick-actions section
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.subtitle"
 msgid "Everything you need to start learning, in one place."
-msgstr ""
+msgstr "ඉගෙනීම ආරම්භ කිරීමට ඔබට අවශ්‍ය සියල්ල, එකම ස්ථානයක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Small label above the help section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.eyebrow"
 msgid "Support"
-msgstr ""
+msgstr "සහාය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Help section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.heading"
 msgid "How to use"
-msgstr ""
+msgstr "භාවිත කරන ආකාරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible title of the embedded guide video
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.videoTitle"
 msgid "Support video"
-msgstr ""
+msgstr "සහාය වීඩියෝව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Help text when a guide video exists
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.withVideo"
 msgid "Watch this short guide to get started."
-msgstr ""
+msgstr "ආරම්භ කිරීමට මෙම කෙටි මාර්ගෝපදේශය නරඹන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Help text when there is no guide video
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.withoutVideo"
 msgid "Need a hand getting started? Sign in or contact us and we'll help."
-msgstr ""
+msgstr "ආරම්භ කිරීමට උදව් අවශ්‍යද? පුරනය වන්න හෝ අප අමතන්න, අපි උදව් කරන්නෙමු."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. {name} is the institute name
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.unavailable.description"
 msgid "{name} has not published its public home page. Students and staff can still sign in."
-msgstr ""
+msgstr "{name} තම පොදු මුල් පිටුව ප්‍රකාශයට පත් කර නැත. සිසුන්ට සහ කාර්ය මණ්ඩලයට තවමත් පුරනය විය හැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button to the sign-in page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.unavailable.signIn"
 msgid "Sign in to the portal"
-msgstr ""
+msgstr "ද්වාරයට පුරනය වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Heading when the institute has no public page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.unavailable.title"
 msgid "Public page unavailable"
-msgstr ""
+msgstr "පොදු පිටුව ලබා ගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the mobile menu button while open
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.closeMenu"
 msgid "Close menu"
-msgstr ""
+msgstr "මෙනුව වසන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Navigation link / page name: course catalog
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.courses"
 msgid "Courses"
-msgstr ""
+msgstr "පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Navigation link to the home page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.home"
 msgid "Home"
-msgstr ""
+msgstr "මුල් පිටුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the desktop header navigation
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.main"
 msgid "Main"
-msgstr ""
+msgstr "ප්‍රධාන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the mobile menu navigation
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.mobile"
 msgid "Mobile"
-msgstr ""
+msgstr "ජංගම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the mobile menu button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.openMenu"
 msgid "Open menu"
-msgstr ""
+msgstr "මෙනුව විවෘත කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Navigation link to the help section
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.support"
 msgid "Support"
-msgstr ""
+msgstr "සහාය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Navigation link / page name: teachers
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.teachers"
 msgid "Teachers"
-msgstr ""
+msgstr "ගුරුවරු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Price label for courses priced individually
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.contactUs"
 msgid "Contact us for pricing"
-msgstr ""
+msgstr "මිල ගණන් සඳහා අප අමතන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course price label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.free"
 msgid "Free"
-msgstr ""
+msgstr "නොමිලේ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Price label when no price is configured yet
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.notAvailable"
 msgid "Pricing not yet available"
-msgstr ""
+msgstr "මිල ගණන් තවමත් ලබා ගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Monthly price; {price} is an amount with currency
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.perMonth"
 msgid "{price}/month"
-msgstr ""
+msgstr "{price}/මසකට"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Per-session price; {price} is an amount with currency
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.perSession"
 msgid "{price}/session"
-msgstr ""
+msgstr "{price}/සැසියකට"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Keyboard skip link
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.skipToContent"
 msgid "Skip to content"
-msgstr ""
+msgstr "අන්තර්ගතයට යන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. {name} is the institute, {network} is Facebook or YouTube
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.social.linkLabel"
 msgid "{name} on {network} (opens in a new tab)"
-msgstr ""
+msgstr "{network} හි {name} (නව ටැබයක විවෘත වේ)"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Error when teachers cannot be loaded
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.error"
 msgid "Teacher profiles are temporarily unavailable."
-msgstr ""
+msgstr "ගුරු පැතිකඩ තාවකාලිකව ලබා ගත නොහැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Small label above the teachers heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.eyebrow"
 msgid "Our teachers"
-msgstr ""
+msgstr "අපගේ ගුරුවරු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teachers section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.heading"
 msgid "Meet our teachers"
-msgstr ""
+msgstr "අපගේ ගුරුවරුන් හමුවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label while teachers load
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.loading"
 msgid "Loading teachers"
-msgstr ""
+msgstr "ගුරුවරුන් පූරණය වෙමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.next"
 msgid "Next teachers"
-msgstr ""
+msgstr "ඊළඟ ගුරුවරු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.pause"
 msgid "Pause teacher rotation"
-msgstr ""
+msgstr "ගුරුවරුන් මාරු වීම නවත්වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Alternative text of a teacher photo
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.photoAlt"
 msgid "{name} profile photo"
-msgstr ""
+msgstr "{name} ගේ පැතිකඩ ඡායාරූපය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.previous"
 msgid "Previous teachers"
-msgstr ""
+msgstr "පෙර ගුරුවරු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the teacher carousel
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.region"
 msgid "Teachers"
-msgstr ""
+msgstr "ගුරුවරු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.resume"
 msgid "Resume teacher rotation"
-msgstr ""
+msgstr "ගුරුවරුන් මාරු වීම නැවත අරඹන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teachers section subtitle
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.subtitle"
 msgid "Experienced educators to guide you toward your goals."
-msgstr ""
+msgstr "ඔබගේ ඉලක්ක කරා ඔබට මඟ පෙන්වන පළපුරුදු අධ්‍යාපනඥයින්."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link to all teachers
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.viewAll"
 msgid "View all"
-msgstr ""
+msgstr "සියල්ල බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link on a teacher card
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.viewProfile"
 msgid "View profile"
-msgstr ""
+msgstr "පැතිකඩ බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader-only continuation of 'View profile'; {name} is the teacher
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.viewProfileOf"
 msgid "of {name}"
-msgstr ""
+msgstr "{name} ගේ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link in the empty state
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.browseCourses"
 msgid "Browse courses"
-msgstr ""
+msgstr "පාඨමාලා පිරික්සන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Text after the 'Browse courses' link
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.browseSuffix"
 msgid "to see what's coming up."
-msgstr ""
+msgstr "සහ ඉදිරියට එන දේ බලන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.empty"
 msgid "No classes scheduled today."
-msgstr ""
+msgstr "අද පන්ති සැලසුම් කර නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Error text
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.error"
 msgid "Today's classes couldn't be loaded."
-msgstr ""
+msgstr "අද පන්ති පූරණය කළ නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Small label above today's classes
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.eyebrow"
 msgid "Timetable"
-msgstr ""
+msgstr "කාලසටහන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.heading"
 msgid "Today's Classes"
-msgstr ""
+msgstr "අද පන්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label while classes load
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.loading"
 msgid "Loading today's classes"
-msgstr ""
+msgstr "අද පන්ති පූරණය වෙමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Part of the summary line, e.g. '2 live now · 3 scheduled'
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.summaryLive"
 msgid "{count} live now"
-msgstr ""
+msgstr "දැන් සජීවී {count}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Part of the summary line
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.summaryOver"
 msgid "{count} over"
-msgstr ""
+msgstr "අවසන් {count}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Part of the summary line
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.summaryScheduled"
 msgid "{count} scheduled"
-msgstr ""
+msgstr "සැලසුම් කළ {count}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link on a class card
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.viewCourse"
 msgid "View course"
-msgstr ""
+msgstr "පාඨමාලාව බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state button
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.empty.action"
 msgid "Create your first course"
-msgstr ""
+msgstr "ඔබගේ පළමු පාඨමාලාව සාදන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.empty.description"
 msgid "You don't own any courses yet. Create your first course to get started, or contact your tenant admin if you expected to see courses assigned here already."
-msgstr ""
+msgstr "ඔබට තවමත් පාඨමාලා කිසිවක් නැත. ආරම්භ කිරීමට ඔබගේ පළමු පාඨමාලාව සාදන්න, නැතහොත් මෙහි පාඨමාලා පවරා ඇතැයි ඔබ අපේක්ෂා කළේ නම් ඔබගේ ආයතන පරිපාලක අමතන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.empty.title"
 msgid "No assigned courses yet"
-msgstr ""
+msgstr "තවමත් පවරා ඇති පාඨමාලා නොමැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Filter option
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.allCategories"
 msgid "All categories"
-msgstr ""
+msgstr "සියලු ප්‍රවර්ග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Filter option
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.allStatuses"
 msgid "All statuses"
-msgstr ""
+msgstr "සියලු තත්ත්වයන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Filter label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.category"
 msgid "Category"
-msgstr ""
+msgstr "ප්‍රවර්ගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Search field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.search"
 msgid "Search"
-msgstr ""
+msgstr "සොයන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Search field placeholder; a slug is the course's web address name
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.searchPlaceholder"
 msgid "Search by course name or slug"
-msgstr ""
+msgstr "පාඨමාලා නාමය හෝ slug අනුව සොයන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Filter label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.status"
 msgid "Status"
-msgstr ""
+msgstr "තත්ත්වය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible name of the course card list
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.listLabel"
 msgid "My courses"
-msgstr ""
+msgstr "මගේ පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.loading"
 msgid "Loading your courses…"
-msgstr ""
+msgstr "ඔබගේ පාඨමාලා පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Menu button on a course card
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.manageCourse"
 msgid "Manage course"
-msgstr ""
+msgstr "පාඨමාලාව කළමනාකරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of the menu button; {course} is the course title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.manageCourseFor"
 msgid "Manage course {course}"
-msgstr ""
+msgstr "{course} පාඨමාලාව කළමනාකරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.classSchedule"
 msgid "Class schedule"
-msgstr ""
+msgstr "පන්ති කාලසටහන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.editDetails"
 msgid "Edit details"
-msgstr ""
+msgstr "විස්තර සංස්කරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.liveClasses"
 msgid "Live classes"
-msgstr ""
+msgstr "සජීවී පන්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.modules"
 msgid "Modules & sessions"
-msgstr ""
+msgstr "මොඩියුල සහ සැසි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course menu item: list of enrolled students
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.roster"
 msgid "Roster"
-msgstr ""
+msgstr "සිසු නාමාවලිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Course menu item: printed notes
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.tutes"
 msgid "Tutes"
-msgstr ""
+msgstr "නිබන්ධන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button to create a course
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.newCourse"
 msgid "New course"
-msgstr ""
+msgstr "නව පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that resets the filters
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.noMatch.clear"
 msgid "Clear filters"
-msgstr ""
+msgstr "පෙරහන් ඉවත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state after filtering
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.noMatch.description"
 msgid "Try a different search term, or clear your filters to see all your courses."
-msgstr ""
+msgstr "වෙනත් සෙවුම් පදයක් උත්සාහ කරන්න, නැතහොත් ඔබගේ සියලු පාඨමාලා බැලීමට පෙරහන් ඉවත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state after filtering
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.noMatch.title"
 msgid "No courses match your filters"
-msgstr ""
+msgstr "ඔබගේ පෙරහන්වලට ගැළපෙන පාඨමාලා නොමැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button on a course card
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.openCourse"
 msgid "Open course"
-msgstr ""
+msgstr "පාඨමාලාව විවෘත කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Notification; {course} is the course title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.scheduleSaved"
 msgid "Class schedule saved for “{course}”."
-msgstr ""
+msgstr "“{course}” සඳහා පන්ති කාලසටහන සුරකින ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Count below the list
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.showing"
 msgid "Showing {shown} of {total} courses."
-msgstr ""
+msgstr "පාඨමාලා {total} න් {shown} ක් පෙන්වයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Page subtitle
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.subtitle"
 msgid "Courses you are assigned to teach. Open a course to see it as students do, or use Manage course to edit it."
-msgstr ""
+msgstr "ඔබට ඉගැන්වීමට පවරා ඇති පාඨමාලා. සිසුන් දකින ආකාරයට බැලීමට පාඨමාලාවක් විවෘත කරන්න, නැතහොත් එය සංස්කරණය කිරීමට “පාඨමාලාව කළමනාකරණය කරන්න” භාවිත කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Page heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.title"
 msgid "My Courses"
-msgstr ""
+msgstr "මගේ පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.attendanceReports"
 msgid "Attendance Reports"
-msgstr ""
+msgstr "පැමිණීම් වාර්තා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.calendar"
 msgid "Calendar"
-msgstr ""
+msgstr "දින දර්ශනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.courses"
 msgid "Courses"
-msgstr ""
+msgstr "පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.dashboard"
 msgid "Dashboard"
-msgstr ""
+msgstr "උපකරණ පුවරුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.exams"
 msgid "Exams"
-msgstr ""
+msgstr "විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.liveClasses"
 msgid "Live Classes"
-msgstr ""
+msgstr "සජීවී පන්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.markAttendance"
 msgid "Mark Attendance"
-msgstr ""
+msgstr "පැමිණීම සලකුණු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.mediaLibrary"
 msgid "Media Library"
-msgstr ""
+msgstr "මාධ්‍ය පුස්තකාලය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.messages"
 msgid "Messages"
-msgstr ""
+msgstr "පණිවිඩ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.myProfile"
 msgid "My Profile"
-msgstr ""
+msgstr "මගේ පැතිකඩ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.notifications"
 msgid "Notifications"
-msgstr ""
+msgstr "දැනුම්දීම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.settings"
 msgid "Settings"
-msgstr ""
+msgstr "සැකසුම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation: sending printed notes (tutes) to students
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.tuteDispatch"
 msgid "Tute Dispatch"
-msgstr ""
+msgstr "නිබන්ධන යැවීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.contactNumber"
 msgid "Contact number"
-msgstr ""
+msgstr "සම්බන්ධතා අංකය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.email"
 msgid "Email"
-msgstr ""
+msgstr "විද්‍යුත් තැපෑල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.firstName"
 msgid "First name"
-msgstr ""
+msgstr "මුල් නම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.heading"
 msgid "Details"
-msgstr ""
+msgstr "විස්තර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.lastName"
 msgid "Last name"
-msgstr ""
+msgstr "අවසන් නම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section help text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.managed"
 msgid "Managed by your institute. Ask an administrator to change these."
-msgstr ""
+msgstr "ඔබගේ ආයතනය විසින් කළමනාකරණය කෙරේ. මේවා වෙනස් කිරීමට පරිපාලකයෙකුගෙන් ඉල්ලන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.loading"
 msgid "Loading your profile…"
-msgstr ""
+msgstr "ඔබගේ පැතිකඩ පූරණය වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.professional.biography"
 msgid "Biography"
-msgstr ""
+msgstr "චරිතාපදානය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.professional.heading"
 msgid "Professional details"
-msgstr ""
+msgstr "වෘත්තීය විස්තර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.professional.qualifications"
 msgid "Qualifications"
-msgstr ""
+msgstr "සුදුසුකම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Save button
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.save"
 msgid "Save changes"
-msgstr ""
+msgstr "වෙනස්කම් සුරකින්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Error after saving
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saveFailed"
 msgid "We couldn't save your profile. Try again."
-msgstr ""
+msgstr "ඔබගේ පැතිකඩ සුරැකීමට නොහැකි විය. නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Error after saving
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saveInvalid"
 msgid "Some details aren't valid. Check the fields and try again."
-msgstr ""
+msgstr "සමහර විස්තර වලංගු නැත. ක්ෂේත්‍ර පරීක්ෂා කර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Success message
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saved"
 msgid "Profile saved."
-msgstr ""
+msgstr "පැතිකඩ සුරකින ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Save button while saving
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "සුරකිමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Page subtitle
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.subtitle"
 msgid "Your teacher profile at this institute."
-msgstr ""
+msgstr "මෙම ආයතනයේ ඔබගේ ගුරු පැතිකඩ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Page heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.title"
 msgid "My Profile"
-msgstr ""
+msgstr "මගේ පැතිකඩ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.unavailable.description"
 msgid "No teacher record is linked to this account yet. Contact your institute administrator."
-msgstr ""
+msgstr "මෙම ගිණුමට තවමත් ගුරු වාර්තාවක් සම්බන්ධ කර නැත. ඔබගේ ආයතන පරිපාලක අමතන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state when no teacher record is linked
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.unavailable.title"
 msgid "Your teacher profile isn't available"
-msgstr ""
+msgstr "ඔබගේ ගුරු පැතිකඩ ලබා ගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message; {max} is a number
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.validation.biographyTooLong"
 msgid "Biography must be {max} characters or fewer."
-msgstr ""
+msgstr "චරිතාපදානය අක්ෂර {max} හෝ ඊට අඩු විය යුතුය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message; {max} is a number
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.validation.qualificationsTooLong"
 msgid "Qualifications must be {max} characters or fewer."
-msgstr ""
+msgstr "සුදුසුකම් අක්ෂර {max} හෝ ඊට අඩු විය යුතුය."

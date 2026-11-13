@@ -69,6 +69,16 @@ What the script guarantees:
 - The key is sent in the `X-goog-api-key` header, never in the URL, and is never
   printed.
 
+## Apply drafts from any source (AI, translator, spreadsheet)
+
+Put the drafts in a JSON map `{ "<key>": "<translation>" }`, then:
+
+`node scripts/i18n/apply-drafts.mjs si-LK drafts.json "<where the text came from>"`
+
+Like the machine-translation script, it only fills empty entries, validates each one
+against the English source and flags it `fuzzy`. It also records the provenance as a
+translator comment.
+
 ## Add a language
 
 1. Add it to `i18n/locales.json` and to `ConfigPropertyRegistry.SUPPORTED_LOCALES` (canonical tag `xx-LK`, language, autonym, `dir`,
@@ -155,7 +165,16 @@ switcher is present but the surface's text is still hard-coded English.
 
 411 registered keys: common 44, auth 34, errors 18, public 92, teacher 62,
 i18nAdmin 158, email 3. **`si-LK` and `ta-LK` have 0 reviewed platform translations.**
-No reviewed Sinhala or Tamil text was available, so every key falls back to English
-until a fluent reviewer fills `i18n/po/*.po` (see "Translate platform strings").
+`si-LK` has AI drafts (Claude, 2026-11-13) for all 411 keys, every one flagged
+`fuzzy` with the comment "AI draft translation (Claude), needs review by a fluent
+Sinhala speaker". `ta-LK` has the same for all 411 keys ("... a fluent Tamil
+speaker"). Visitors still see English until a reviewer checks each entry and clears
+`fuzzy`. Tenant admins see the drafts as suggestions.
+Review first: `auth.*`, `public.*`, `teacher.*`, `errors.*`. Known judgement calls to
+check in both languages: `auth.policyConsent.*` (verb-final word order around the
+policy links),
+`public.todaysClasses.browseSuffix` (reworded so it reads after the link), the
+sign-in/sign-out terms (Sinhala පුරනය වන්න / ඉවත් වන්න, Tamil உள்நுழைக / வெளியேறு), and
+Tamil "Tute" (குறிப்புகள்).
 Tenants can already publish their own overrides. Run
 `node scripts/i18n/catalog.mjs generate` to print the current counts.

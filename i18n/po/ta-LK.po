@@ -1,2879 +1,3290 @@
 msgid ""
 msgstr "Project-Id-Version: lms-saas-platform\nLanguage: ta-LK\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Message-Format: icu-subset (docs/architecture/i18n-translation-management.md)\nX-Generator: scripts/i18n/catalog.mjs\n"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link to student registration
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.createAccount"
 msgid "Create one"
-msgstr ""
+msgstr "புதிதாக உருவாக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in page subtitle when the institute name is unknown
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.description"
 msgid "Access your account."
-msgstr ""
+msgstr "உங்கள் கணக்கை அணுகவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in page subtitle; {name} is the institute name
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.descriptionNamed"
 msgid "Access your {name} account."
-msgstr ""
+msgstr "உங்கள் {name} கணக்கை அணுகவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Browser tab title of the sign-in page; {name} is the institute name
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.documentTitle"
 msgid "Sign in | {name}"
-msgstr ""
+msgstr "உள்நுழைக | {name}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Email field label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.email"
 msgid "Email"
-msgstr ""
+msgstr "மின்னஞ்சல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Title when the device limit blocks sign-in
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.error.deviceLimit"
 msgid "Device limit reached"
-msgstr ""
+msgstr "சாதன வரம்பை அடைந்துவிட்டீர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Title of the sign-in error message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.error.failed"
 msgid "Sign-in failed"
-msgstr ""
+msgstr "உள்நுழைவு தோல்வியடைந்தது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Title when sign-in is rate limited
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.error.tooMany"
 msgid "Too many attempts"
-msgstr ""
+msgstr "அதிகமான முயற்சிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link to the password reset page
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.forgotPassword"
 msgid "Forgot password?"
-msgstr ""
+msgstr "கடவுச்சொல் மறந்துவிட்டதா?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the button that hides the password
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.hidePassword"
 msgid "Hide password"
-msgstr ""
+msgstr "கடவுச்சொல்லை மறை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text of the sign-in page
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.loading"
 msgid "Loading sign-in…"
-msgstr ""
+msgstr "உள்நுழைவுப் பக்கம் ஏற்றப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tab: sign in with email
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.methodEmail"
 msgid "Email"
-msgstr ""
+msgstr "மின்னஞ்சல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the email/mobile tabs
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.methodLabel"
 msgid "Sign in with"
-msgstr ""
+msgstr "உள்நுழையும் முறை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tab: sign in with mobile number
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.methodMobile"
 msgid "Mobile"
-msgstr ""
+msgstr "கைபேசி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Mobile number field label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.mobile"
 msgid "Mobile number"
-msgstr ""
+msgstr "கைபேசி எண்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Example mobile number shown in the empty field
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.mobilePlaceholder"
 msgid "e.g. 077 123 4567"
-msgstr ""
+msgstr "எ.கா. 077 123 4567"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Text before the create-account link
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.noAccount"
 msgid "Don't have an account?"
-msgstr ""
+msgstr "கணக்கு இல்லையா?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. {role} is a technical role name
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.noDashboard"
 msgid "No dashboard is available for your role ({role}) yet. Contact your administrator."
-msgstr ""
+msgstr "உங்கள் பாத்திரத்திற்கு ({role}) இன்னும் கட்டுப்பாட்டுப் பலகை இல்லை. உங்கள் நிர்வாகியைத் தொடர்புகொள்ளவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Password field label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.password"
 msgid "Password"
-msgstr ""
+msgstr "கடவுச்சொல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Notice text after a session expired
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.sessionExpired.description"
 msgid "Sign in again to continue."
-msgstr ""
+msgstr "தொடர மீண்டும் உள்நுழையவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Notice on the sign-in page after a session expired
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.sessionExpired.title"
 msgid "Your session has expired"
-msgstr ""
+msgstr "உங்கள் அமர்வு காலாவதியாகிவிட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the button that reveals the password
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.showPassword"
 msgid "Show password"
-msgstr ""
+msgstr "கடவுச்சொல்லைக் காட்டு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Title when sign-in worked but no dashboard exists for the role
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.signedIn"
 msgid "Signed in"
-msgstr ""
+msgstr "உள்நுழைந்துவிட்டீர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in button
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.submit"
 msgid "Sign in"
-msgstr ""
+msgstr "உள்நுழைக"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in button while in progress
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.submitting"
 msgid "Signing in…"
-msgstr ""
+msgstr "உள்நுழைகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in page heading
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.title"
 msgid "Sign in"
-msgstr ""
+msgstr "உள்நுழைக"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.emailInvalid"
 msgid "Enter a valid email address."
-msgstr ""
+msgstr "சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.emailRequired"
 msgid "Email is required."
-msgstr ""
+msgstr "மின்னஞ்சல் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.mobileInvalid"
 msgid "Enter a valid mobile number."
-msgstr ""
+msgstr "சரியான கைபேசி எண்ணை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.mobileRequired"
 msgid "Mobile number is required."
-msgstr ""
+msgstr "கைபேசி எண் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.login.validation.passwordRequired"
 msgid "Password is required."
-msgstr ""
+msgstr "கடவுச்சொல் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Joins the two policy links
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.policyConsent.and"
 msgid "and"
-msgstr ""
+msgstr "மற்றும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Start of 'By using this service you agree to the Terms of Service and Privacy Policy.'; the policy links follow
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.policyConsent.prefix"
 msgid "By using this service you agree to the"
-msgstr ""
+msgstr "இந்தச் சேவையைப் பயன்படுத்துவதன் மூலம் நீங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. End of the policy consent sentence (punctuation or closing words after the links)
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.policyConsent.suffix"
 msgid "."
-msgstr ""
+msgstr " ஆகியவற்றை ஏற்றுக்கொள்கிறீர்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Generic cancel button
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.actions.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "ரத்துசெய்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Retry button on error states
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.actions.retry"
 msgid "Try again"
-msgstr ""
+msgstr "மீண்டும் முயற்சிக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Generic save button
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.actions.save"
 msgid "Save"
-msgstr ""
+msgstr "சேமி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Header link to the change-password page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.changePassword"
 msgid "Change password"
-msgstr ""
+msgstr "கடவுச்சொல்லை மாற்று"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link to the sign-in page after a sign-out problem
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.continueToSignIn"
 msgid "Continue to sign-in"
-msgstr ""
+msgstr "உள்நுழைவுக்குத் தொடரவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that signs the user out
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOut"
 msgid "Sign out"
-msgstr ""
+msgstr "வெளியேறு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-out confirmation text; {portal} is the portal name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOutDescription"
 msgid "You'll need to sign in again to access {portal}."
-msgstr ""
+msgstr "{portal} ஐ அணுக நீங்கள் மீண்டும் உள்நுழைய வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-out confirmation title; {portal} is the portal name, e.g. Tenant Admin
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOutOf"
 msgid "Sign out of {portal}?"
-msgstr ""
+msgstr "{portal} இலிருந்து வெளியேறவா?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown when sign-out could not be confirmed by the server
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signOutUnconfirmed"
 msgid "You were signed out on this device, but we couldn't confirm it with the server. Please check your connection."
-msgstr ""
+msgstr "இந்தச் சாதனத்தில் நீங்கள் வெளியேற்றப்பட்டீர்கள், ஆனால் சேவையகத்துடன் அதை உறுதிப்படுத்த முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்க்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-out button text while in progress
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.auth.signingOut"
 msgid "Signing out…"
-msgstr ""
+msgstr "வெளியேறுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course status: not visible to students yet
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.courseStatus.draft"
 msgid "Draft"
-msgstr ""
+msgstr "வரைவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course status: visible only to enrolled students
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.courseStatus.private"
 msgid "Private"
-msgstr ""
+msgstr "தனிப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course status: listed on the public site
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.courseStatus.public"
 msgid "Public"
-msgstr ""
+msgstr "பொது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Footer heading / label of the contact details list
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.footer.contactUs"
 msgid "Contact us"
-msgstr ""
+msgstr "எங்களைத் தொடர்புகொள்ள"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Footer copyright line; {year} is the year, {name} the institute name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.footer.copyright"
 msgid "© {year} {name}. All rights reserved."
-msgstr ""
+msgstr "© {year} {name}. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the institute logo link; {name} is the institute name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.institute.home"
 msgid "{name} home"
-msgstr ""
+msgstr "{name} முகப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the logo placeholder while the institute loads
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.institute.loading"
 msgid "Loading institute"
-msgstr ""
+msgstr "நிறுவனம் ஏற்றப்படுகிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader announcement after switching; {language} is the language's own name
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.language.changed"
 msgid "Language changed to {language}"
-msgstr ""
+msgstr "மொழி {language} ஆக மாற்றப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the language switcher
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.language.label"
 msgid "Language"
-msgstr ""
+msgstr "மொழி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the mobile menu button in portals
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.nav.openMenu"
 msgid "Open navigation menu"
-msgstr ""
+msgstr "வழிசெலுத்தல் பட்டியைத் திற"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the main portal navigation landmark
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.nav.primary"
 msgid "Primary"
-msgstr ""
+msgstr "முதன்மை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tag next to a navigation item that is not available yet
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.nav.soon"
 msgid "Soon"
-msgstr ""
+msgstr "விரைவில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Title of the institute's privacy policy page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.policy.privacy"
 msgid "Privacy Policy"
-msgstr ""
+msgstr "தனியுரிமைக் கொள்கை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Title of the institute's refund policy page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.policy.refund"
 msgid "Refund Policy"
-msgstr ""
+msgstr "பணத்திருப்பக் கொள்கை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Title of the institute's terms of service page
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.policy.terms"
 msgid "Terms of Service"
-msgstr ""
+msgstr "சேவை விதிமுறைகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Name of the teacher portal, shown in the sidebar and browser tab
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.portal.teacher"
 msgid "Teacher Portal"
-msgstr ""
+msgstr "ஆசிரியர் தளம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Explains that 'Live now' is based on the timetable, not on the meeting itself
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.basedOnSchedule"
 msgid "Based on the scheduled class time"
-msgstr ""
+msgstr "திட்டமிடப்பட்ட வகுப்பு நேரத்தின் அடிப்படையில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class status: cancelled
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.cancelled"
 msgid "Cancelled"
-msgstr ""
+msgstr "ரத்துசெய்யப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class status: inside its scheduled time window
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.live"
 msgid "Live now"
-msgstr ""
+msgstr "இப்போது நேரலை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class status: scheduled time has passed
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.over"
 msgid "Over"
-msgstr ""
+msgstr "முடிந்தது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class status: has not started yet
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.scheduleStatus.scheduled"
 msgid "Scheduled"
-msgstr ""
+msgstr "திட்டமிடப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link on the permission-denied state
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.backToDashboard"
 msgid "Back to your dashboard"
-msgstr ""
+msgstr "உங்கள் கட்டுப்பாட்டுப் பலகைக்குத் திரும்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text while the sign-in session is verified
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.checkingSession"
 msgid "Checking your session…"
-msgstr ""
+msgstr "உங்கள் அமர்வு சரிபார்க்கப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Generic error state heading
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.error"
 msgid "Something went wrong."
-msgstr ""
+msgstr "ஏதோ தவறு நடந்துவிட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown under an error message; {code} is a technical code such as VALIDATION_ERROR (do not translate the code)
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.errorCode"
 msgid "Error code: {code}"
-msgstr ""
+msgstr "பிழைக் குறியீடு: {code}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Generic error when no server message is available
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.genericError"
 msgid "Something went wrong. Please try again."
-msgstr ""
+msgstr "ஏதோ தவறு நடந்துவிட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Generic loading indicator text
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.loading"
 msgid "Loading…"
-msgstr ""
+msgstr "ஏற்றப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Permission-denied state heading
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.noPermission"
 msgid "You don't have permission to view this."
-msgstr ""
+msgstr "இதைப் பார்க்க உங்களுக்கு அனுமதி இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Permission-denied state
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.permissionDenied"
 msgid "You do not have permission to view this page."
-msgstr ""
+msgstr "இந்தப் பக்கத்தைப் பார்க்க உங்களுக்கு அனுமதி இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error when the sign-in session could not be verified
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.state.sessionCheckFailed"
 msgid "We couldn't verify your session. Please try again."
-msgstr ""
+msgstr "உங்கள் அமர்வைச் சரிபார்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the light/dark theme toggle button
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.theme.dark"
 msgid "Dark theme"
-msgstr ""
+msgstr "இருண்ட தீம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tooltip of the theme toggle while light theme is on
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.theme.switchToDark"
 msgid "Switch to dark theme"
-msgstr ""
+msgstr "இருண்ட தீமுக்கு மாறு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tooltip of the theme toggle while dark theme is on
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.theme.switchToLight"
 msgid "Switch to light theme"
-msgstr ""
+msgstr "ஒளி தீமுக்கு மாறு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the close button on a notification toast
 #: i18n/source/common.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "common.toast.dismiss"
 msgid "Dismiss notification"
-msgstr ""
+msgstr "அறிவிப்பை மூடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. How long an emailed link stays valid, e.g. in the password reset email; {count} is a number of minutes
 #: i18n/source/email.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "email.common.expiresInMinutes"
 msgid "{count, plural, one {# minute} other {# minutes}}"
-msgstr ""
+msgstr "{count, plural, one {# நிமிடம்} other {# நிமிடங்கள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Password reset email body (plain text). Keep {link} on its own line. {tenantName} is the institute name; {expiresIn} is a duration such as '60 minutes'
 #: i18n/source/email.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "email.passwordReset.body"
 msgid "Hi,\n\nWe received a request to reset your password at {tenantName}. Choose a new one here:\n\n{link}\n\nThis link can be used once and expires in {expiresIn}. If you didn't ask for this, you can ignore this email - your password won't change.\n"
-msgstr ""
+msgstr "வணக்கம்,\n\n{tenantName} இல் உங்கள் கடவுச்சொல்லை மீட்டமைக்க எங்களுக்குக் கோரிக்கை வந்துள்ளது. புதிய கடவுச்சொல்லை இங்கே தேர்வுசெய்யவும்:\n\n{link}\n\nஇந்த இணைப்பை ஒருமுறை மட்டுமே பயன்படுத்த முடியும், இது {expiresIn} இல் காலாவதியாகும். நீங்கள் இதைக் கோரவில்லை என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம் - உங்கள் கடவுச்சொல் மாறாது.\n"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Password reset email subject; {tenantName} is the institute name
 #: i18n/source/email.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "email.passwordReset.subject"
 msgid "Reset your {tenantName} password"
-msgstr ""
+msgstr "உங்கள் {tenantName} கடவுச்சொல்லை மீட்டமைக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in refused: device limit reached
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.DEVICE_LIMIT_REACHED"
 msgid "You have reached the maximum number of devices for this account. Ask your institute to remove a device."
-msgstr ""
+msgstr "இந்தக் கணக்கிற்கான அதிகபட்ச சாதனங்களின் எண்ணிக்கையை அடைந்துவிட்டீர்கள். ஒரு சாதனத்தை நீக்குமாறு உங்கள் நிறுவனத்திடம் கேளுங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in failed: wrong email/mobile or password. Keep it generic - never say which part was wrong
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.INVALID_CREDENTIALS"
 msgid "The sign-in details you entered are incorrect."
-msgstr ""
+msgstr "நீங்கள் உள்ளிட்ட உள்நுழைவு விவரங்கள் தவறானவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Language exists but the institute has not enabled it
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.LOCALE_NOT_ENABLED"
 msgid "This language is not enabled for this institute."
-msgstr ""
+msgstr "இந்த நிறுவனத்திற்கு இந்த மொழி இயக்கப்படவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Unsupported language code
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.LOCALE_NOT_SUPPORTED"
 msgid "This language is not supported."
-msgstr ""
+msgstr "இந்த மொழி ஆதரிக்கப்படவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Mobile-number sign-in is disabled by the institute
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.MOBILE_LOGIN_DISABLED"
 msgid "Sign-in with a mobile number is turned off for this institute. Use your email instead."
-msgstr ""
+msgstr "இந்த நிறுவனத்திற்குக் கைபேசி எண் மூலம் உள்நுழைவது முடக்கப்பட்டுள்ளது. பதிலாக உங்கள் மின்னஞ்சலைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. The browser could not contact the server
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.NETWORK_ERROR"
 msgid "Unable to reach the server. Check your connection and try again."
-msgstr ""
+msgstr "சேவையகத்தை அடைய முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Publish attempted without drafts
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.NOTHING_TO_PUBLISH"
 msgid "There are no draft changes to publish for this language."
-msgstr ""
+msgstr "இந்த மொழிக்கு வெளியிட வரைவு மாற்றங்கள் எதுவும் இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Upload larger than the allowed size
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.PAYLOAD_TOO_LARGE"
 msgid "The file is too large. The maximum size is 1 MB."
-msgstr ""
+msgstr "கோப்பு மிகப் பெரியது. அதிகபட்ச அளவு 1 MB."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. PO import rejected
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.PO_IMPORT_INVALID"
 msgid "The translation file contains invalid messages. Nothing was imported."
-msgstr ""
+msgstr "மொழிபெயர்ப்புக் கோப்பில் செல்லாத செய்திகள் உள்ளன. எதுவும் இறக்குமதி செய்யப்படவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student tried to enroll while the institute disabled self-enrollment
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.SELF_ENROLLMENT_DISABLED"
 msgid "Self-enrollment is turned off. Contact your institute to join this course."
-msgstr ""
+msgstr "சுய பதிவு முடக்கப்பட்டுள்ளது. இந்தப் பாடநெறியில் சேர உங்கள் நிறுவனத்தைத் தொடர்புகொள்ளவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in refused because the institute site is unavailable or suspended
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TENANT_UNAVAILABLE"
 msgid "This institute is not available right now."
-msgstr ""
+msgstr "இந்த நிறுவனம் தற்போது கிடைக்கவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Rate limit reached, e.g. too many failed sign-ins
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TOO_MANY_REQUESTS"
 msgid "Too many attempts. Please wait a few minutes and try again."
-msgstr ""
+msgstr "அதிகமான முயற்சிகள். சில நிமிடங்கள் காத்திருந்து மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Translation editor: optimistic-concurrency conflict on a draft
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TRANSLATION_DRAFT_STALE"
 msgid "This translation was changed by someone else. Reload to see the latest version."
-msgstr ""
+msgstr "இந்த மொழிபெயர்ப்பை வேறொருவர் மாற்றியுள்ளார். சமீபத்திய பதிப்பைப் பார்க்க மீண்டும் ஏற்றவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Translation editor: the server rejected the message format
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TRANSLATION_INVALID"
 msgid "This translation is not valid. Fix the problems listed and try again."
-msgstr ""
+msgstr "இந்த மொழிபெயர்ப்பு செல்லுபடியாகாது. பட்டியலிடப்பட்ட சிக்கல்களைச் சரிசெய்து மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Publish/rollback conflict with another release
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.TRANSLATION_RELEASE_STALE"
 msgid "Someone published or rolled back translations in the meantime. Reload and try again."
-msgstr ""
+msgstr "இதற்கிடையில் வேறொருவர் மொழிபெயர்ப்புகளை வெளியிட்டுள்ளார் அல்லது திரும்பப் பெற்றுள்ளார். மீண்டும் ஏற்றி மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Fallback for an unexpected server response
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.UNKNOWN_ERROR"
 msgid "An unexpected error occurred."
-msgstr ""
+msgstr "எதிர்பாராத பிழை ஏற்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Translation editor: unknown key
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.UNKNOWN_MESSAGE_KEY"
 msgid "This text key does not exist."
-msgstr ""
+msgstr "இந்த உரைச் சாவி இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Sign-in refused for a suspended account. Use exactly the same text as errors.INVALID_CREDENTIALS (anti-enumeration)
 #: i18n/source/errors.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "errors.USER_SUSPENDED"
 msgid "The sign-in details you entered are incorrect."
-msgstr ""
+msgstr "நீங்கள் உள்ளிட்ட உள்நுழைவு விவரங்கள் தவறானவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge: an unpublished change exists
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.draft"
 msgid "Draft"
-msgstr ""
+msgstr "வரைவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge: a draft will remove your override on publish
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.draftReset"
 msgid "Draft: reset"
-msgstr ""
+msgstr "வரைவு: மீட்டமைப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge: the platform translation is served
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.inheritedPlatform"
 msgid "Inherited: platform"
-msgstr ""
+msgstr "மரபுரிமை: தளம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge: no translation, the English text is served
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.inheritedSource"
 msgid "Inherited: English"
-msgstr ""
+msgstr "மரபுரிமை: ஆங்கிலம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge: no translation
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.missing"
 msgid "Missing"
-msgstr ""
+msgstr "இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.needsReview"
 msgid "Needs review"
-msgstr ""
+msgstr "மதிப்பாய்வு தேவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge: your institute's own published wording is served
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.badge.override"
 msgid "Override"
-msgstr ""
+msgstr "நிறுவனச் சொற்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that reloads the latest data after a conflict
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.common.reload"
 msgid "Reload"
-msgstr ""
+msgstr "மீண்டும் ஏற்று"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button text while saving
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.common.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "சேமிக்கப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.description"
 msgid "Description"
-msgstr ""
+msgstr "விவரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. The course's original language is unknown
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.languageNotDeclared"
 msgid "Language not declared"
-msgstr ""
+msgstr "மொழி குறிப்பிடப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.loading"
 msgid "Loading course translations…"
-msgstr ""
+msgstr "பாடநெறி மொழிபெயர்ப்புகள் ஏற்றப்படுகின்றன…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Heading of the course's original title and description
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.original"
 msgid "Original"
-msgstr ""
+msgstr "மூலம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. {language} is a language name and code
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.originalLanguage"
 msgid "Written in {language}"
-msgstr ""
+msgstr "{language} இல் எழுதப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Toggle button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.preview"
 msgid "Preview"
-msgstr ""
+msgstr "முன்னோட்டம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Preview placeholder
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.previewEmpty"
 msgid "No title yet"
-msgstr ""
+msgstr "இன்னும் தலைப்பு இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Preview box heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.previewHeading"
 msgid "Preview (not public yet unless published)"
-msgstr ""
+msgstr "முன்னோட்டம் (வெளியிடும் வரை பொதுவில் இல்லை)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.publish"
 msgid "Publish"
-msgstr ""
+msgstr "வெளியிடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.published"
 msgid "Published. Visitors using this language now see this title and description."
-msgstr ""
+msgstr "வெளியிடப்பட்டது. இந்த மொழியைப் பயன்படுத்தும் பார்வையாளர்கள் இப்போது இந்தத் தலைப்பையும் விவரத்தையும் பார்ப்பார்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.saveDraft"
 msgid "Save draft"
-msgstr ""
+msgstr "வரைவைச் சேமி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.saved"
 msgid "Draft saved."
-msgstr ""
+msgstr "வரைவு சேமிக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Conflict message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.stale"
 msgid "This translation was changed by someone else. Reload the page to see the latest version."
-msgstr ""
+msgstr "இந்த மொழிபெயர்ப்பை வேறொருவர் மாற்றியுள்ளார். சமீபத்திய பதிப்பைப் பார்க்கப் பக்கத்தை மீண்டும் ஏற்றவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.statusDraft"
 msgid "Draft"
-msgstr ""
+msgstr "வரைவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.statusNone"
 msgid "Not translated"
-msgstr ""
+msgstr "மொழிபெயர்க்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status badge
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.statusPublished"
 msgid "Published"
-msgstr ""
+msgstr "வெளியிடப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.title"
 msgid "Title"
-msgstr ""
+msgstr "தலைப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.unpublish"
 msgid "Unpublish"
-msgstr ""
+msgstr "வெளியீட்டை நீக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.unpublished"
 msgid "Unpublished. Visitors see the original again."
-msgstr ""
+msgstr "வெளியீடு நீக்கப்பட்டது. பார்வையாளர்கள் மீண்டும் மூலத்தைப் பார்ப்பார்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge: the draft differs from the published variant
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.unpublishedChanges"
 msgid "Unpublished changes"
-msgstr ""
+msgstr "வெளியிடப்படாத மாற்றங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.validation.descriptionTooLong"
 msgid "Use at most {max} characters."
-msgstr ""
+msgstr "அதிகபட்சம் {max} எழுத்துகளைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.validation.titleRequired"
 msgid "Enter a title."
-msgstr ""
+msgstr "தலைப்பை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.course.validation.titleTooLong"
 msgid "Use at most {max} characters."
-msgstr ""
+msgstr "அதிகபட்சம் {max} எழுத்துகளைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label of the translator note
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.context"
 msgid "Context"
-msgstr ""
+msgstr "சூழல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.discard"
 msgid "Discard draft"
-msgstr ""
+msgstr "வரைவை நிராகரி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label of the unpublished draft
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draft"
 msgid "Draft"
-msgstr ""
+msgstr "வரைவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftDiscarded"
 msgid "Draft discarded."
-msgstr ""
+msgstr "வரைவு நிராகரிக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown for a reset draft
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftIsReset"
 msgid "Reset to the platform translation when published"
-msgstr ""
+msgstr "வெளியிடும்போது தள மொழிபெயர்ப்புக்கு மீட்டமைக்கப்படும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftSaved"
 msgid "Draft saved. Publish to make it live."
-msgstr ""
+msgstr "வரைவு சேமிக்கப்பட்டது. நேரலைக்குக் கொண்டுவர வெளியிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. {when} is a date and time
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.draftUpdated"
 msgid "Last changed {when}"
-msgstr ""
+msgstr "கடைசியாக மாற்றியது {when}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown when a value does not exist
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.none"
 msgid "None"
-msgstr ""
+msgstr "எதுவுமில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Warning on an outdated override
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.overrideNeedsReview"
 msgid "The English text changed after this was published. Please check it."
-msgstr ""
+msgstr "இது வெளியிடப்பட்ட பிறகு ஆங்கில உரை மாறியுள்ளது. தயவுசெய்து சரிபார்க்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.platform"
 msgid "Platform translation"
-msgstr ""
+msgstr "தள மொழிபெயர்ப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label of the institute's published override
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.published"
 msgid "Your published wording"
-msgstr ""
+msgstr "நீங்கள் வெளியிட்ட சொற்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown to view-only roles
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.readOnly"
 msgid "You can view translations but not edit them."
-msgstr ""
+msgstr "மொழிபெயர்ப்புகளைப் பார்க்கலாம், ஆனால் திருத்த முடியாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that removes your override when published
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.reset"
 msgid "Reset to platform translation"
-msgstr ""
+msgstr "தள மொழிபெயர்ப்புக்கு மீட்டமை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.resetQueued"
 msgid "Reset saved as a draft. Publish to make it live."
-msgstr ""
+msgstr "மீட்டமைப்பு வரைவாகச் சேமிக்கப்பட்டது. நேரலைக்குக் கொண்டுவர வெளியிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.saveDraft"
 msgid "Save draft"
-msgstr ""
+msgstr "வரைவைச் சேமி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown before a text is selected
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.selectPrompt"
 msgid "Select a text to see its English source and edit the translation."
-msgstr ""
+msgstr "ஆங்கில மூலத்தைப் பார்க்கவும் மொழிபெயர்ப்பைத் திருத்தவும் ஓர் உரையைத் தேர்ந்தெடுக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.source"
 msgid "English source"
-msgstr ""
+msgstr "ஆங்கில மூலம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Conflict message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.stale"
 msgid "This text was changed by someone else. Reload to see the latest version."
-msgstr ""
+msgstr "இந்த உரையை வேறொருவர் மாற்றியுள்ளார். சமீபத்திய பதிப்பைப் பார்க்க மீண்டும் ஏற்றவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label of an unreviewed platform suggestion
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.suggestion"
 msgid "Suggested translation (needs review)"
-msgstr ""
+msgstr "பரிந்துரைக்கப்பட்ட மொழிபெயர்ப்பு (மதிப்பாய்வு தேவை)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label of the translation field; {language} is the language name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.translationLabel"
 msgid "Translation ({language})"
-msgstr ""
+msgstr "மொழிபெயர்ப்பு ({language})"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that copies the suggestion into the editor
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.editor.useSuggestion"
 msgid "Use suggestion"
-msgstr ""
+msgstr "பரிந்துரையைப் பயன்படுத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Export help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.description"
 msgid "Download translations as a gettext file."
-msgstr ""
+msgstr "மொழிபெயர்ப்புகளை gettext கோப்பாகப் பதிவிறக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message; {file} is a file name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.done"
 msgid "Downloaded {file}."
-msgstr ""
+msgstr "{file} பதிவிறக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.download"
 msgid "Download"
-msgstr ""
+msgstr "பதிவிறக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Radio group label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.format"
 msgid "Format"
-msgstr ""
+msgstr "வடிவம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Export format option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.formatMo"
 msgid "MO (compiled)"
-msgstr ""
+msgstr "MO (தொகுக்கப்பட்டது)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Export format option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.formatPo"
 msgid "PO (editable)"
-msgstr ""
+msgstr "PO (திருத்தக்கூடியது)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.heading"
 msgid "Export"
-msgstr ""
+msgstr "ஏற்றுமதி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Radio group label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.scope"
 msgid "Contents"
-msgstr ""
+msgstr "உள்ளடக்கம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Export scope option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.scopeEffective"
 msgid "Everything visitors see"
-msgstr ""
+msgstr "பார்வையாளர்கள் பார்க்கும் அனைத்தும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Export scope option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.scopeOverrides"
 msgid "Your published wording only"
-msgstr ""
+msgstr "நீங்கள் வெளியிட்ட சொற்கள் மட்டும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button while exporting
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.export.working"
 msgid "Preparing…"
-msgstr ""
+msgstr "தயாராகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Filter option
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.allNamespaces"
 msgid "All modules"
-msgstr ""
+msgstr "அனைத்துத் தொகுதிகளும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Language select label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.locale"
 msgid "Language"
-msgstr ""
+msgstr "மொழி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Filter by area of the app (namespace)
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.namespace"
 msgid "Module"
-msgstr ""
+msgstr "தொகுதி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Search field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.search"
 msgid "Search"
-msgstr ""
+msgstr "தேடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Search placeholder
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.searchPlaceholder"
 msgid "Search keys or English text"
-msgstr ""
+msgstr "சாவிகள் அல்லது ஆங்கில உரையைத் தேடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the status filter buttons
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.filter.status"
 msgid "Status"
-msgstr ""
+msgstr "நிலை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.additions"
 msgid "{count, plural, one {# new translation} other {# new translations}}"
-msgstr ""
+msgstr "{count, plural, one {# புதிய மொழிபெயர்ப்பு} other {# புதிய மொழிபெயர்ப்புகள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown when invalid messages block the import
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.blocked"
 msgid "Fix the invalid messages in the file before importing."
-msgstr ""
+msgstr "இறக்குமதி செய்வதற்கு முன் கோப்பிலுள்ள செல்லாத செய்திகளைச் சரிசெய்யவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.changes"
 msgid "{count, plural, one {# changed translation} other {# changed translations}}"
-msgstr ""
+msgstr "{count, plural, one {# மாற்றப்பட்ட மொழிபெயர்ப்பு} other {# மாற்றப்பட்ட மொழிபெயர்ப்புகள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Confirm import button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.confirm"
 msgid "{count, plural, one {Import # draft} other {Import # drafts}}"
-msgstr ""
+msgstr "{count, plural, one {# வரைவை இறக்குமதி செய்} other {# வரைவுகளை இறக்குமதி செய்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Import help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.description"
 msgid "Check the file first. Importing creates drafts only; nothing goes live until you publish."
-msgstr ""
+msgstr "முதலில் கோப்பைச் சரிபார்க்கவும். இறக்குமதி வரைவுகளை மட்டுமே உருவாக்கும்; நீங்கள் வெளியிடும் வரை எதுவும் நேரலைக்கு வராது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.done"
 msgid "{count, plural, one {# draft imported.} other {# drafts imported.}}"
-msgstr ""
+msgstr "{count, plural, one {# வரைவு இறக்குமதி செய்யப்பட்டது.} other {# வரைவுகள் இறக்குமதி செய்யப்பட்டன.}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that runs a dry run
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.dryRun"
 msgid "Check file"
-msgstr ""
+msgstr "கோப்பைச் சரிபார்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. File field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.file"
 msgid "PO file"
-msgstr ""
+msgstr "PO கோப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section heading; PO is the gettext translation file format
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.heading"
 msgid "Import a PO file: {language}"
-msgstr ""
+msgstr "PO கோப்பை இறக்குமதி செய்: {language}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.invalid"
 msgid "{count, plural, one {# invalid message} other {# invalid messages}}"
-msgstr ""
+msgstr "{count, plural, one {# செல்லாத செய்தி} other {# செல்லாத செய்திகள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Expandable list heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.invalidDetails"
 msgid "Invalid messages"
-msgstr ""
+msgstr "செல்லாத செய்திகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Heading of the dry-run report
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.reportTitle"
 msgid "File check result"
-msgstr ""
+msgstr "கோப்புச் சரிபார்ப்பு முடிவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.skipped"
 msgid "{count, plural, one {# skipped (empty, needs review or obsolete)} other {# skipped (empty, needs review or obsolete)}}"
-msgstr ""
+msgstr "{count, plural, one {# தவிர்க்கப்பட்டது (வெற்று, மதிப்பாய்வு தேவை அல்லது வழக்கற்றது)} other {# தவிர்க்கப்பட்டன (வெற்று, மதிப்பாய்வு தேவை அல்லது வழக்கற்றவை)}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.unchanged"
 msgid "{count, plural, one {# unchanged} other {# unchanged}}"
-msgstr ""
+msgstr "{count, plural, one {# மாறாதது} other {# மாறாதவை}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.unknown"
 msgid "{count, plural, one {# unknown key (ignored)} other {# unknown keys (ignored)}}"
-msgstr ""
+msgstr "{count, plural, one {# அறியப்படாத சாவி (புறக்கணிக்கப்பட்டது)} other {# அறியப்படாத சாவிகள் (புறக்கணிக்கப்பட்டன)}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Expandable list heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.import.unknownDetails"
 msgid "Unknown keys"
-msgstr ""
+msgstr "அறியப்படாத சாவிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label of the default language select
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.default"
 msgid "Default language"
-msgstr ""
+msgstr "இயல்பு மொழி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Default language help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.defaultHelp"
 msgid "Shown to visitors who have not chosen a language. It must be enabled."
-msgstr ""
+msgstr "மொழியைத் தேர்வுசெய்யாத பார்வையாளர்களுக்குக் காட்டப்படும். இது இயக்கப்பட்டிருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Language settings help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.description"
 msgid "Choose which languages visitors can switch to and which one is shown first."
-msgstr ""
+msgstr "பார்வையாளர்கள் எந்த மொழிகளுக்கு மாறலாம், எது முதலில் காட்டப்படும் என்பதைத் தேர்வுசெய்யவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Switch label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.detection"
 msgid "Detect the browser's language"
-msgstr ""
+msgstr "உலாவியின் மொழியைக் கண்டறி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Switch help text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.detectionHelp"
 msgid "For visitors without a saved choice, use their browser's preferred language when it is enabled."
-msgstr ""
+msgstr "சேமித்த தேர்வு இல்லாத பார்வையாளர்களுக்கு, அவர்களின் உலாவியின் விருப்ப மொழி இயக்கப்பட்டிருந்தால் அதைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Label of the language checkboxes
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.enabled"
 msgid "Enabled languages"
-msgstr ""
+msgstr "இயக்கப்பட்ட மொழிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Language settings section heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.heading"
 msgid "Languages"
-msgstr ""
+msgstr "மொழிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.loading"
 msgid "Loading language settings…"
-msgstr ""
+msgstr "மொழி அமைப்புகள் ஏற்றப்படுகின்றன…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. 403 on save
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.noPermission"
 msgid "You don't have permission to change language settings."
-msgstr ""
+msgstr "மொழி அமைப்புகளை மாற்ற உங்களுக்கு அனுமதி இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown to read-only roles
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.readOnly"
 msgid "You can view these settings but not change them."
-msgstr ""
+msgstr "இந்த அமைப்புகளைப் பார்க்கலாம், ஆனால் மாற்ற முடியாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Save button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.save"
 msgid "Save language settings"
-msgstr ""
+msgstr "மொழி அமைப்புகளைச் சேமி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.saved"
 msgid "Language settings saved."
-msgstr ""
+msgstr "மொழி அமைப்புகள் சேமிக்கப்பட்டன."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.validation.atLeastOne"
 msgid "Enable at least one language."
-msgstr ""
+msgstr "குறைந்தது ஒரு மொழியையாவது இயக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.languages.validation.defaultEnabled"
 msgid "The default language must be one of the enabled languages."
-msgstr ""
+msgstr "இயல்பு மொழி இயக்கப்பட்ட மொழிகளில் ஒன்றாக இருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Settings > Translations page subtitle
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.page.description"
 msgid "Languages offered to visitors and your institute's wording for every text."
-msgstr ""
+msgstr "பார்வையாளர்களுக்கு வழங்கப்படும் மொழிகளும் ஒவ்வொரு உரைக்குமான உங்கள் நிறுவனத்தின் சொற்களும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Banner shown across the app while previewing
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.banner"
 msgid "Previewing unpublished translation drafts. Only you can see them."
-msgstr ""
+msgstr "வெளியிடப்படாத மொழிபெயர்ப்பு வரைவுகள் முன்னோட்டமிடப்படுகின்றன. அவற்றை நீங்கள் மட்டுமே பார்க்க முடியும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Banner button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.exit"
 msgid "Exit preview"
-msgstr ""
+msgstr "முன்னோட்டத்திலிருந்து வெளியேறு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Banner when the preview catalog failed
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.failed"
 msgid "Draft preview could not be loaded; showing published texts."
-msgstr ""
+msgstr "வரைவு முன்னோட்டத்தை ஏற்ற முடியவில்லை; வெளியிடப்பட்ட உரைகள் காட்டப்படுகின்றன."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Preview switch help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.help"
 msgid "Only you see drafts, in this tab, until you reload."
-msgstr ""
+msgstr "நீங்கள் மீண்டும் ஏற்றும் வரை, இந்தத் தாவலில் வரைவுகளை நீங்கள் மட்டுமே பார்ப்பீர்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Switch that shows unpublished drafts in this browser tab
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.preview.toggle"
 msgid "Preview drafts"
-msgstr ""
+msgstr "வரைவுகளை முன்னோட்டமிடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.empty"
 msgid "Enter a translation."
-msgstr ""
+msgstr "மொழிபெயர்ப்பை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem; keep the quoted braces
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.placeholderMissing"
 msgid "The placeholder '{'{name}'}' from the English text is missing."
-msgstr ""
+msgstr "ஆங்கில உரையில் உள்ள '{'{name}'}' இடஒதுக்கீடு காணவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem; keep the quoted braces
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.placeholderUnknown"
 msgid "The placeholder '{'{name}'}' is not in the English text."
-msgstr ""
+msgstr "'{'{name}'}' இடஒதுக்கீடு ஆங்கில உரையில் இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralInvalidCategory"
 msgid "\"{category}\" is not a valid plural form for this language."
-msgstr ""
+msgstr "\"{category}\" இந்த மொழிக்குச் சரியான பன்மை வடிவம் அல்ல."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralMissing"
 msgid "The plural for {name} from the English text is missing."
-msgstr ""
+msgstr "ஆங்கில உரையில் உள்ள {name} இன் பன்மை காணவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem; {name} is a technical name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralMissingOther"
 msgid "The plural for {name} needs an \"other\" form."
-msgstr ""
+msgstr "{name} இன் பன்மைக்கு \"other\" வடிவம் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.pluralUnknown"
 msgid "The plural for {name} is not in the English text."
-msgstr ""
+msgstr "{name} இன் பன்மை ஆங்கில உரையில் இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem. Keep the quoted braces exactly as they are: they display literal braces
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.syntax"
 msgid "The text has unbalanced braces or quotes. Placeholders look like '{'name'}'."
-msgstr ""
+msgstr "உரையில் சமநிலையற்ற அடைப்புக்குறிகள் அல்லது மேற்கோள்கள் உள்ளன. இடஒதுக்கீடுகள் '{'name'}' போலத் தோன்றும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation problem
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.problem.tooLong"
 msgid "The text is longer than {max} characters."
-msgstr ""
+msgstr "உரை {max} எழுத்துகளை விட நீளமானது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Confirm button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.confirm"
 msgid "Publish"
-msgstr ""
+msgstr "வெளியிடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Dialog text; {version} is a number
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.description"
 msgid "{count, plural, =0 {There are no drafts to publish.} one {# draft will go live as version {version}.} other {# drafts will go live as version {version}.}}"
-msgstr ""
+msgstr "{count, plural, =0 {வெளியிட வரைவுகள் இல்லை.} one {# வரைவு பதிப்பு {version} ஆக நேரலைக்கு வரும்.} other {# வரைவுகள் பதிப்பு {version} ஆக நேரலைக்கு வரும்.}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Dialog text when the draft count is unknown
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.descriptionUnknown"
 msgid "All drafts for this language will go live as a new version."
-msgstr ""
+msgstr "இந்த மொழிக்கான அனைத்து வரைவுகளும் புதிய பதிப்பாக நேரலைக்கு வரும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.done"
 msgid "Published version {version}."
-msgstr ""
+msgstr "பதிப்பு {version} வெளியிடப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that opens the publish dialog
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.open"
 msgid "Publish"
-msgstr ""
+msgstr "வெளியிடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button while publishing
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.publishing"
 msgid "Publishing…"
-msgstr ""
+msgstr "வெளியிடப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Field label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.summary"
 msgid "Summary of the changes"
-msgstr ""
+msgstr "மாற்றங்களின் சுருக்கம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.summaryRequired"
 msgid "Describe what changed."
-msgstr ""
+msgstr "என்ன மாறியது என்பதை விவரிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.summaryTooLong"
 msgid "Use at most {max} characters."
-msgstr ""
+msgstr "அதிகபட்சம் {max} எழுத்துகளைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Dialog title
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.publish.title"
 msgid "Publish {language} translations?"
-msgstr ""
+msgstr "{language} மொழிபெயர்ப்புகளை வெளியிடவா?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Badge on the live version
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.current"
 msgid "Current"
-msgstr ""
+msgstr "தற்போதையது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Releases help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.description"
 msgid "Every publish creates a new version. Rolling back creates a new version too; nothing is deleted."
-msgstr ""
+msgstr "ஒவ்வொரு வெளியீடும் புதிய பதிப்பை உருவாக்கும். திரும்பப் பெறுவதும் புதிய பதிப்பை உருவாக்கும்; எதுவும் நீக்கப்படாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state description
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.empty.description"
 msgid "Visitors see the platform translations until you publish your own wording."
-msgstr ""
+msgstr "நீங்கள் உங்கள் சொந்தச் சொற்களை வெளியிடும் வரை பார்வையாளர்கள் தள மொழிபெயர்ப்புகளைப் பார்ப்பார்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.empty.title"
 msgid "Nothing published yet"
-msgstr ""
+msgstr "இன்னும் எதுவும் வெளியிடப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Releases section heading; {language} is the language name
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.heading"
 msgid "Published versions: {language}"
-msgstr ""
+msgstr "வெளியிடப்பட்ட பதிப்புகள்: {language}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.loading"
 msgid "Loading published versions…"
-msgstr ""
+msgstr "வெளியிடப்பட்ட பதிப்புகள் ஏற்றப்படுகின்றன…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Release line: publish date and number of overridden texts
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.publishedOn"
 msgid "{when} · {count, plural, one {# text} other {# texts}}"
-msgstr ""
+msgstr "{when} · {count, plural, one {# உரை} other {# உரைகள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.rollback"
 msgid "Roll back"
-msgstr ""
+msgstr "திரும்பப் பெறு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Shown on a release created by a rollback
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.rollbackOf"
 msgid "Rollback to version {version}"
-msgstr ""
+msgstr "பதிப்பு {version} க்குத் திரும்பப் பெறல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Release label
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.releases.version"
 msgid "Version {version}"
-msgstr ""
+msgstr "பதிப்பு {version}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Confirm button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.confirm"
 msgid "Roll back"
-msgstr ""
+msgstr "திரும்பப் பெறு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Dialog text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.description"
 msgid "Version {version}'s texts will be published again as version {next}. Later versions stay in the history."
-msgstr ""
+msgstr "பதிப்பு {version} இன் உரைகள் பதிப்பு {next} ஆக மீண்டும் வெளியிடப்படும். பிந்தைய பதிப்புகள் வரலாற்றில் இருக்கும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.done"
 msgid "Rolled back; now live as version {version}."
-msgstr ""
+msgstr "திரும்பப் பெறப்பட்டது; இப்போது பதிப்பு {version} ஆக நேரலையில் உள்ளது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Dialog title
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.title"
 msgid "Roll back to version {version}?"
-msgstr ""
+msgstr "பதிப்பு {version} க்குத் திரும்பப் பெறவா?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button while working
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.rollback.working"
 msgid "Rolling back…"
-msgstr ""
+msgstr "திரும்பப் பெறப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status filter
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.all"
 msgid "All"
-msgstr ""
+msgstr "அனைத்தும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status filter: unpublished changes
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.drafts"
 msgid "Drafts"
-msgstr ""
+msgstr "வரைவுகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status filter: no translation yet
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.missing"
 msgid "Missing"
-msgstr ""
+msgstr "இல்லாதவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status filter: translation must be checked because the English text changed
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.needsReview"
 msgid "Needs review"
-msgstr ""
+msgstr "மதிப்பாய்வு தேவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status filter: your institute changed the wording
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.overridden"
 msgid "Overridden"
-msgstr ""
+msgstr "மாற்றப்பட்டவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Status filter
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.status.translated"
 msgid "Translated"
-msgstr ""
+msgstr "மொழிபெயர்க்கப்பட்டவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Translation editor help
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.description"
 msgid "Override the platform wording for your institute. Changes are saved as drafts and go live when you publish."
-msgstr ""
+msgstr "உங்கள் நிறுவனத்திற்காகத் தளத்தின் சொற்களை மாற்றவும். மாற்றங்கள் வரைவுகளாகச் சேமிக்கப்பட்டு, நீங்கள் வெளியிடும்போது நேரலைக்கு வரும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state description
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.empty.description"
 msgid "This language has no texts yet. Texts appear here as soon as the platform adds them."
-msgstr ""
+msgstr "இந்த மொழிக்கு இன்னும் உரைகள் இல்லை. தளம் உரைகளைச் சேர்த்தவுடன் அவை இங்கே தோன்றும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state when the catalog has no texts
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.empty.title"
 msgid "No texts to translate"
-msgstr ""
+msgstr "மொழிபெயர்க்க உரைகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Translation editor heading
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.heading"
 msgid "Translations"
-msgstr ""
+msgstr "மொழிபெயர்ப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the list of texts
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.listLabel"
 msgid "Texts"
-msgstr ""
+msgstr "உரைகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.loading"
 msgid "Loading translations…"
-msgstr ""
+msgstr "மொழிபெயர்ப்புகள் ஏற்றப்படுகின்றன…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Pagination button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.next"
 msgid "Next"
-msgstr ""
+msgstr "அடுத்தது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that resets filters
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.noMatch.clear"
 msgid "Clear filters"
-msgstr ""
+msgstr "வடிகட்டிகளை அழி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state after filtering
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.noMatch.description"
 msgid "Try another search, module or status, or clear the filters."
-msgstr ""
+msgstr "வேறு தேடல், தொகுதி அல்லது நிலையை முயற்சிக்கவும், அல்லது வடிகட்டிகளை அழிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state after filtering
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.noMatch.title"
 msgid "No texts match your filters"
-msgstr ""
+msgstr "உங்கள் வடிகட்டிகளுக்குப் பொருந்தும் உரைகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Pagination text
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.pageOf"
 msgid "Page {page} of {total}"
-msgstr ""
+msgstr "பக்கம் {page} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Pagination button
 #: i18n/source/i18nAdmin.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "i18nAdmin.workspace.previous"
 msgid "Previous"
-msgstr ""
+msgstr "முந்தையது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Position of a slide, e.g. 2 of 5
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.carousel.position"
 msgid "{index} of {total}"
-msgstr ""
+msgstr "{index} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader role description of a slideshow
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.carousel.roleDescription"
 msgid "carousel"
-msgstr ""
+msgstr "சுழல் காட்சி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader role description of one slide
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.carousel.slide"
 msgid "slide"
-msgstr ""
+msgstr "படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Browser tab title of a public page; {page} is the page name, {name} the institute
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.documentTitle"
 msgid "{page} | {name}"
-msgstr ""
+msgstr "{page} | {name}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Footer contact label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.address"
 msgid "Address"
-msgstr ""
+msgstr "முகவரி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Footer contact label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.email"
 msgid "Email"
-msgstr ""
+msgstr "மின்னஞ்சல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Footer contact label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.phone"
 msgid "Phone"
-msgstr ""
+msgstr "தொலைபேசி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the policy links
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.policies"
 msgid "Policies"
-msgstr ""
+msgstr "கொள்கைகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Footer heading of the link list
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.footer.sitemap"
 msgid "Sitemap"
-msgstr ""
+msgstr "தள வரைபடம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Header button for a signed-in visitor
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.dashboard"
 msgid "Dashboard"
-msgstr ""
+msgstr "கட்டுப்பாட்டுப் பலகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button to register a new institute on the platform site
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.getStarted"
 msgid "Get started"
-msgstr ""
+msgstr "தொடங்குங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Header button to sign in
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.login"
 msgid "Login"
-msgstr ""
+msgstr "உள்நுழைக"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button to create a student account
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.register"
 msgid "Register"
-msgstr ""
+msgstr "பதிவுசெய்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Header button to sign in on the platform site
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.header.signIn"
 msgid "Sign in"
-msgstr ""
+msgstr "உள்நுழைக"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Small label above the institute introduction
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.about.eyebrow"
 msgid "About us"
-msgstr ""
+msgstr "எங்களைப் பற்றி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Alternative text of a banner image
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.alt"
 msgid "{name} banner {index} of {total}"
-msgstr ""
+msgstr "{name} பதாகை {index} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Slideshow button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.next"
 msgid "Next banner"
-msgstr ""
+msgstr "அடுத்த பதாகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader announcement of the current banner
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.position"
 msgid "Banner {index} of {total}"
-msgstr ""
+msgstr "பதாகை {index} / {total}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Slideshow button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.previous"
 msgid "Previous banner"
-msgstr ""
+msgstr "முந்தைய பதாகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the banner slideshow
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.region"
 msgid "Featured banners"
-msgstr ""
+msgstr "சிறப்புப் பதாகைகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Slideshow dot button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.banner.show"
 msgid "Show banner {index}"
-msgstr ""
+msgstr "பதாகை {index} ஐக் காட்டு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Call-to-action text
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.cta.description"
 msgid "Create your account to enrol in courses, join classes and follow your progress from any device."
-msgstr ""
+msgstr "எந்தச் சாதனத்திலிருந்தும் பாடநெறிகளில் சேரவும், வகுப்புகளில் இணையவும், உங்கள் முன்னேற்றத்தைக் கண்காணிக்கவும் உங்கள் கணக்கை உருவாக்குங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Call-to-action heading; {name} is the institute
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.cta.heading"
 msgid "Start learning with {name}"
-msgstr ""
+msgstr "{name} உடன் கற்கத் தொடங்குங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error on the public home page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.error"
 msgid "We couldn't load this institute's home page."
-msgstr ""
+msgstr "இந்த நிறுவனத்தின் முகப்புப் பக்கத்தை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error when courses cannot be loaded
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.error"
 msgid "The course list is temporarily unavailable."
-msgstr ""
+msgstr "பாடநெறிப் பட்டியல் தற்காலிகமாகக் கிடைக்கவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Small label above the featured courses heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.eyebrow"
 msgid "Featured"
-msgstr ""
+msgstr "சிறப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.heading"
 msgid "Featured courses"
-msgstr ""
+msgstr "சிறப்புப் பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label while courses load
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.loading"
 msgid "Loading courses"
-msgstr ""
+msgstr "பாடநெறிகள் ஏற்றப்படுகின்றன"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section subtitle
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.subtitle"
 msgid "Hand-picked courses to start with."
-msgstr ""
+msgstr "தொடங்குவதற்குத் தேர்ந்தெடுக்கப்பட்ட பாடநெறிகள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link to the course catalog
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.viewAll"
 msgid "View all courses"
-msgstr ""
+msgstr "அனைத்துப் பாடநெறிகளையும் பார்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link on a course card
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.viewDetails"
 msgid "View details"
-msgstr ""
+msgstr "விவரங்களைப் பார்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader-only continuation of 'View details'; {name} is the course title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.featured.viewDetailsFor"
 msgid "for {name}"
-msgstr ""
+msgstr "{name} க்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Hero button to the course catalog
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.hero.explore"
 msgid "Explore courses"
-msgstr ""
+msgstr "பாடநெறிகளை ஆராயுங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Hero tagline
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.hero.tagline"
 msgid "Explore our courses and start learning with experienced teachers."
-msgstr ""
+msgstr "எங்கள் பாடநெறிகளை ஆராய்ந்து அனுபவமிக்க ஆசிரியர்களுடன் கற்கத் தொடங்குங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Small text above the institute name in the hero
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.hero.welcome"
 msgid "Welcome to"
-msgstr ""
+msgstr "வரவேற்கிறோம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text of the public home page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.loading"
 msgid "Loading institute home…"
-msgstr ""
+msgstr "நிறுவனத்தின் முகப்பு ஏற்றப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Heading of the quick-actions section
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.heading"
 msgid "Get an incredible learning experience"
-msgstr ""
+msgstr "சிறந்த கற்றல் அனுபவத்தைப் பெறுங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Quick action description
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.howToDescription"
 msgid "Watch the guide and find out how to get started."
-msgstr ""
+msgstr "வழிகாட்டியைப் பார்த்து எப்படித் தொடங்குவது என்பதை அறியுங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Quick action title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.howToTitle"
 msgid "How to use"
-msgstr ""
+msgstr "பயன்படுத்தும் முறை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Quick action description
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.registerDescription"
 msgid "Create your student account, then choose the course you want to join."
-msgstr ""
+msgstr "உங்கள் மாணவர் கணக்கை உருவாக்கி, நீங்கள் சேர விரும்பும் பாடநெறியைத் தேர்வுசெய்யவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Quick action title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.registerTitle"
 msgid "Register for a course"
-msgstr ""
+msgstr "பாடநெறிக்குப் பதிவுசெய்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Quick action description
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.signInDescription"
 msgid "Already registered? Sign in and continue where you left off."
-msgstr ""
+msgstr "ஏற்கெனவே பதிவுசெய்துள்ளீர்களா? உள்நுழைந்து நிறுத்திய இடத்திலிருந்து தொடருங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Quick action title
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.signInTitle"
 msgid "Join / sign in"
-msgstr ""
+msgstr "சேர்க / உள்நுழைக"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Subtitle of the quick-actions section
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.subHero.subtitle"
 msgid "Everything you need to start learning, in one place."
-msgstr ""
+msgstr "கற்கத் தொடங்க உங்களுக்குத் தேவையான அனைத்தும், ஒரே இடத்தில்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Small label above the help section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.eyebrow"
 msgid "Support"
-msgstr ""
+msgstr "உதவி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Help section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.heading"
 msgid "How to use"
-msgstr ""
+msgstr "பயன்படுத்தும் முறை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible title of the embedded guide video
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.videoTitle"
 msgid "Support video"
-msgstr ""
+msgstr "உதவி வீடியோ"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Help text when a guide video exists
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.withVideo"
 msgid "Watch this short guide to get started."
-msgstr ""
+msgstr "தொடங்க இந்தச் சிறிய வழிகாட்டியைப் பாருங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Help text when there is no guide video
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.support.withoutVideo"
 msgid "Need a hand getting started? Sign in or contact us and we'll help."
-msgstr ""
+msgstr "தொடங்க உதவி தேவையா? உள்நுழையுங்கள் அல்லது எங்களைத் தொடர்புகொள்ளுங்கள், நாங்கள் உதவுவோம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. {name} is the institute name
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.unavailable.description"
 msgid "{name} has not published its public home page. Students and staff can still sign in."
-msgstr ""
+msgstr "{name} தனது பொது முகப்புப் பக்கத்தை வெளியிடவில்லை. மாணவர்களும் பணியாளர்களும் தொடர்ந்து உள்நுழையலாம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button to the sign-in page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.unavailable.signIn"
 msgid "Sign in to the portal"
-msgstr ""
+msgstr "தளத்தில் உள்நுழைக"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Heading when the institute has no public page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.home.unavailable.title"
 msgid "Public page unavailable"
-msgstr ""
+msgstr "பொதுப் பக்கம் கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the mobile menu button while open
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.closeMenu"
 msgid "Close menu"
-msgstr ""
+msgstr "பட்டியை மூடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Navigation link / page name: course catalog
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.courses"
 msgid "Courses"
-msgstr ""
+msgstr "பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Navigation link to the home page
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.home"
 msgid "Home"
-msgstr ""
+msgstr "முகப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the desktop header navigation
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.main"
 msgid "Main"
-msgstr ""
+msgstr "முதன்மை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the mobile menu navigation
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.mobile"
 msgid "Mobile"
-msgstr ""
+msgstr "கைபேசி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the mobile menu button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.openMenu"
 msgid "Open menu"
-msgstr ""
+msgstr "பட்டியைத் திற"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Navigation link to the help section
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.support"
 msgid "Support"
-msgstr ""
+msgstr "உதவி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Navigation link / page name: teachers
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.nav.teachers"
 msgid "Teachers"
-msgstr ""
+msgstr "ஆசிரியர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Price label for courses priced individually
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.contactUs"
 msgid "Contact us for pricing"
-msgstr ""
+msgstr "விலைக்கு எங்களைத் தொடர்புகொள்ளுங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course price label
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.free"
 msgid "Free"
-msgstr ""
+msgstr "இலவசம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Price label when no price is configured yet
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.notAvailable"
 msgid "Pricing not yet available"
-msgstr ""
+msgstr "விலை இன்னும் கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Monthly price; {price} is an amount with currency
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.perMonth"
 msgid "{price}/month"
-msgstr ""
+msgstr "{price}/மாதம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Per-session price; {price} is an amount with currency
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.price.perSession"
 msgid "{price}/session"
-msgstr ""
+msgstr "{price}/அமர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Keyboard skip link
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.skipToContent"
 msgid "Skip to content"
-msgstr ""
+msgstr "உள்ளடக்கத்துக்குச் செல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. {name} is the institute, {network} is Facebook or YouTube
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.social.linkLabel"
 msgid "{name} on {network} (opens in a new tab)"
-msgstr ""
+msgstr "{network} இல் {name} (புதிய தாவலில் திறக்கும்)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error when teachers cannot be loaded
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.error"
 msgid "Teacher profiles are temporarily unavailable."
-msgstr ""
+msgstr "ஆசிரியர் சுயவிவரங்கள் தற்காலிகமாகக் கிடைக்கவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Small label above the teachers heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.eyebrow"
 msgid "Our teachers"
-msgstr ""
+msgstr "எங்கள் ஆசிரியர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teachers section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.heading"
 msgid "Meet our teachers"
-msgstr ""
+msgstr "எங்கள் ஆசிரியர்களைச் சந்தியுங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label while teachers load
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.loading"
 msgid "Loading teachers"
-msgstr ""
+msgstr "ஆசிரியர்கள் ஏற்றப்படுகின்றனர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.next"
 msgid "Next teachers"
-msgstr ""
+msgstr "அடுத்த ஆசிரியர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.pause"
 msgid "Pause teacher rotation"
-msgstr ""
+msgstr "ஆசிரியர் சுழற்சியை இடைநிறுத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Alternative text of a teacher photo
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.photoAlt"
 msgid "{name} profile photo"
-msgstr ""
+msgstr "{name} இன் சுயவிவரப் படம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.previous"
 msgid "Previous teachers"
-msgstr ""
+msgstr "முந்தைய ஆசிரியர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the teacher carousel
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.region"
 msgid "Teachers"
-msgstr ""
+msgstr "ஆசிரியர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Carousel button
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.resume"
 msgid "Resume teacher rotation"
-msgstr ""
+msgstr "ஆசிரியர் சுழற்சியைத் தொடர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teachers section subtitle
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.subtitle"
 msgid "Experienced educators to guide you toward your goals."
-msgstr ""
+msgstr "உங்கள் இலக்குகளை நோக்கி வழிநடத்தும் அனுபவமிக்க கல்வியாளர்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link to all teachers
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.viewAll"
 msgid "View all"
-msgstr ""
+msgstr "அனைத்தையும் பார்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link on a teacher card
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.viewProfile"
 msgid "View profile"
-msgstr ""
+msgstr "சுயவிவரத்தைப் பார்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader-only continuation of 'View profile'; {name} is the teacher
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.teachers.viewProfileOf"
 msgid "of {name}"
-msgstr ""
+msgstr "{name} இன்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link in the empty state
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.browseCourses"
 msgid "Browse courses"
-msgstr ""
+msgstr "பாடநெறிகளை உலாவுங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Text after the 'Browse courses' link
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.browseSuffix"
 msgid "to see what's coming up."
-msgstr ""
+msgstr "வரவிருப்பவற்றைப் பாருங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.empty"
 msgid "No classes scheduled today."
-msgstr ""
+msgstr "இன்று வகுப்புகள் எதுவும் திட்டமிடப்படவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error text
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.error"
 msgid "Today's classes couldn't be loaded."
-msgstr ""
+msgstr "இன்றைய வகுப்புகளை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Small label above today's classes
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.eyebrow"
 msgid "Timetable"
-msgstr ""
+msgstr "நேர அட்டவணை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section heading
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.heading"
 msgid "Today's Classes"
-msgstr ""
+msgstr "இன்றைய வகுப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label while classes load
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.loading"
 msgid "Loading today's classes"
-msgstr ""
+msgstr "இன்றைய வகுப்புகள் ஏற்றப்படுகின்றன"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Part of the summary line, e.g. '2 live now · 3 scheduled'
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.summaryLive"
 msgid "{count} live now"
-msgstr ""
+msgstr "இப்போது நேரலை {count}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Part of the summary line
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.summaryOver"
 msgid "{count} over"
-msgstr ""
+msgstr "முடிந்தவை {count}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Part of the summary line
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.summaryScheduled"
 msgid "{count} scheduled"
-msgstr ""
+msgstr "திட்டமிடப்பட்டவை {count}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link on a class card
 #: i18n/source/public.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "public.todaysClasses.viewCourse"
 msgid "View course"
-msgstr ""
+msgstr "பாடநெறியைப் பார்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state button
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.empty.action"
 msgid "Create your first course"
-msgstr ""
+msgstr "உங்கள் முதல் பாடநெறியை உருவாக்குங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.empty.description"
 msgid "You don't own any courses yet. Create your first course to get started, or contact your tenant admin if you expected to see courses assigned here already."
-msgstr ""
+msgstr "உங்களுக்கு இன்னும் பாடநெறிகள் எதுவும் இல்லை. தொடங்க உங்கள் முதல் பாடநெறியை உருவாக்குங்கள், அல்லது இங்கே பாடநெறிகள் ஒதுக்கப்பட்டிருக்கும் என எதிர்பார்த்திருந்தால் உங்கள் நிறுவன நிர்வாகியைத் தொடர்புகொள்ளுங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.empty.title"
 msgid "No assigned courses yet"
-msgstr ""
+msgstr "இன்னும் ஒதுக்கப்பட்ட பாடநெறிகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Filter option
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.allCategories"
 msgid "All categories"
-msgstr ""
+msgstr "அனைத்து வகைகளும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Filter option
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.allStatuses"
 msgid "All statuses"
-msgstr ""
+msgstr "அனைத்து நிலைகளும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Filter label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.category"
 msgid "Category"
-msgstr ""
+msgstr "வகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Search field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.search"
 msgid "Search"
-msgstr ""
+msgstr "தேடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Search field placeholder; a slug is the course's web address name
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.searchPlaceholder"
 msgid "Search by course name or slug"
-msgstr ""
+msgstr "பாடநெறிப் பெயர் அல்லது slug மூலம் தேடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Filter label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.filter.status"
 msgid "Status"
-msgstr ""
+msgstr "நிலை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible name of the course card list
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.listLabel"
 msgid "My courses"
-msgstr ""
+msgstr "எனது பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.loading"
 msgid "Loading your courses…"
-msgstr ""
+msgstr "உங்கள் பாடநெறிகள் ஏற்றப்படுகின்றன…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Menu button on a course card
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.manageCourse"
 msgid "Manage course"
-msgstr ""
+msgstr "பாடநெறியை நிர்வகி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of the menu button; {course} is the course title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.manageCourseFor"
 msgid "Manage course {course}"
-msgstr ""
+msgstr "{course} பாடநெறியை நிர்வகி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.classSchedule"
 msgid "Class schedule"
-msgstr ""
+msgstr "வகுப்பு அட்டவணை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.editDetails"
 msgid "Edit details"
-msgstr ""
+msgstr "விவரங்களைத் திருத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.liveClasses"
 msgid "Live classes"
-msgstr ""
+msgstr "நேரலை வகுப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course menu item
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.modules"
 msgid "Modules & sessions"
-msgstr ""
+msgstr "தொகுதிகள் & அமர்வுகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course menu item: list of enrolled students
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.roster"
 msgid "Roster"
-msgstr ""
+msgstr "மாணவர் பட்டியல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course menu item: printed notes
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.menu.tutes"
 msgid "Tutes"
-msgstr ""
+msgstr "குறிப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button to create a course
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.newCourse"
 msgid "New course"
-msgstr ""
+msgstr "புதிய பாடநெறி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button that resets the filters
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.noMatch.clear"
 msgid "Clear filters"
-msgstr ""
+msgstr "வடிகட்டிகளை அழி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state after filtering
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.noMatch.description"
 msgid "Try a different search term, or clear your filters to see all your courses."
-msgstr ""
+msgstr "வேறு தேடல் சொல்லை முயற்சிக்கவும், அல்லது உங்கள் அனைத்துப் பாடநெறிகளையும் பார்க்க வடிகட்டிகளை அழிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state after filtering
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.noMatch.title"
 msgid "No courses match your filters"
-msgstr ""
+msgstr "உங்கள் வடிகட்டிகளுக்குப் பொருந்தும் பாடநெறிகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button on a course card
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.openCourse"
 msgid "Open course"
-msgstr ""
+msgstr "பாடநெறியைத் திற"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Notification; {course} is the course title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.scheduleSaved"
 msgid "Class schedule saved for “{course}”."
-msgstr ""
+msgstr "“{course}” க்கான வகுப்பு அட்டவணை சேமிக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Count below the list
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.showing"
 msgid "Showing {shown} of {total} courses."
-msgstr ""
+msgstr "{total} பாடநெறிகளில் {shown} காட்டப்படுகின்றன."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Page subtitle
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.subtitle"
 msgid "Courses you are assigned to teach. Open a course to see it as students do, or use Manage course to edit it."
-msgstr ""
+msgstr "நீங்கள் கற்பிக்க ஒதுக்கப்பட்ட பாடநெறிகள். மாணவர்கள் பார்ப்பது போலப் பார்க்க ஒரு பாடநெறியைத் திறக்கவும், அல்லது திருத்த “பாடநெறியை நிர்வகி” என்பதைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Page heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.courses.title"
 msgid "My Courses"
-msgstr ""
+msgstr "எனது பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.attendanceReports"
 msgid "Attendance Reports"
-msgstr ""
+msgstr "வருகை அறிக்கைகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.calendar"
 msgid "Calendar"
-msgstr ""
+msgstr "நாள்காட்டி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.courses"
 msgid "Courses"
-msgstr ""
+msgstr "பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.dashboard"
 msgid "Dashboard"
-msgstr ""
+msgstr "கட்டுப்பாட்டுப் பலகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.exams"
 msgid "Exams"
-msgstr ""
+msgstr "தேர்வுகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.liveClasses"
 msgid "Live Classes"
-msgstr ""
+msgstr "நேரலை வகுப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.markAttendance"
 msgid "Mark Attendance"
-msgstr ""
+msgstr "வருகையைப் பதிவுசெய்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.mediaLibrary"
 msgid "Media Library"
-msgstr ""
+msgstr "ஊடக நூலகம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.messages"
 msgid "Messages"
-msgstr ""
+msgstr "செய்திகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.myProfile"
 msgid "My Profile"
-msgstr ""
+msgstr "எனது சுயவிவரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.notifications"
 msgid "Notifications"
-msgstr ""
+msgstr "அறிவிப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.settings"
 msgid "Settings"
-msgstr ""
+msgstr "அமைப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Teacher portal navigation: sending printed notes (tutes) to students
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.nav.tuteDispatch"
 msgid "Tute Dispatch"
-msgstr ""
+msgstr "குறிப்புகள் அனுப்புதல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.contactNumber"
 msgid "Contact number"
-msgstr ""
+msgstr "தொடர்பு எண்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.email"
 msgid "Email"
-msgstr ""
+msgstr "மின்னஞ்சல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.firstName"
 msgid "First name"
-msgstr ""
+msgstr "முதல் பெயர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.heading"
 msgid "Details"
-msgstr ""
+msgstr "விவரங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Read-only field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.lastName"
 msgid "Last name"
-msgstr ""
+msgstr "கடைசிப் பெயர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section help text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.details.managed"
 msgid "Managed by your institute. Ask an administrator to change these."
-msgstr ""
+msgstr "உங்கள் நிறுவனத்தால் நிர்வகிக்கப்படுகிறது. இவற்றை மாற்ற ஒரு நிர்வாகியிடம் கேளுங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Loading text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.loading"
 msgid "Loading your profile…"
-msgstr ""
+msgstr "உங்கள் சுயவிவரம் ஏற்றப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.professional.biography"
 msgid "Biography"
-msgstr ""
+msgstr "சுயசரிதை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Section heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.professional.heading"
 msgid "Professional details"
-msgstr ""
+msgstr "தொழில்முறை விவரங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Field label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.professional.qualifications"
 msgid "Qualifications"
-msgstr ""
+msgstr "தகுதிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Save button
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.save"
 msgid "Save changes"
-msgstr ""
+msgstr "மாற்றங்களைச் சேமி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error after saving
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saveFailed"
 msgid "We couldn't save your profile. Try again."
-msgstr ""
+msgstr "உங்கள் சுயவிவரத்தைச் சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error after saving
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saveInvalid"
 msgid "Some details aren't valid. Check the fields and try again."
-msgstr ""
+msgstr "சில விவரங்கள் செல்லுபடியாகவில்லை. புலங்களைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Success message
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saved"
 msgid "Profile saved."
-msgstr ""
+msgstr "சுயவிவரம் சேமிக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Save button while saving
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "சேமிக்கப்படுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Page subtitle
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.subtitle"
 msgid "Your teacher profile at this institute."
-msgstr ""
+msgstr "இந்த நிறுவனத்தில் உங்கள் ஆசிரியர் சுயவிவரம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Page heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.title"
 msgid "My Profile"
-msgstr ""
+msgstr "எனது சுயவிவரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.unavailable.description"
 msgid "No teacher record is linked to this account yet. Contact your institute administrator."
-msgstr ""
+msgstr "இந்தக் கணக்குடன் இன்னும் ஆசிரியர் பதிவு இணைக்கப்படவில்லை. உங்கள் நிறுவன நிர்வாகியைத் தொடர்புகொள்ளுங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state when no teacher record is linked
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.unavailable.title"
 msgid "Your teacher profile isn't available"
-msgstr ""
+msgstr "உங்கள் ஆசிரியர் சுயவிவரம் கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message; {max} is a number
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.validation.biographyTooLong"
 msgid "Biography must be {max} characters or fewer."
-msgstr ""
+msgstr "சுயசரிதை {max} எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message; {max} is a number
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.profile.validation.qualificationsTooLong"
 msgid "Qualifications must be {max} characters or fewer."
-msgstr ""
+msgstr "தகுதிகள் {max} எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்."
