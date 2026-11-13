@@ -1247,6 +1247,20 @@ msgctxt "i18nAdmin.import.heading"
 msgid "Import a PO file: {language}"
 msgstr ""
 
+#. Switch label in PO import; 'needs review' = fuzzy entries
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.includeNeedsReview"
+msgid "Also import entries marked “needs review”"
+msgstr ""
+
+#. Help text under the needs-review import switch
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.includeNeedsReviewHelp"
+msgid "They become drafts like any other entry. Check them before you publish: publishing makes them visible to everyone."
+msgstr ""
+
 #. Report line
 #: i18n/source/i18nAdmin.json
 #, icu-format
@@ -1259,6 +1273,13 @@ msgstr ""
 #, icu-format
 msgctxt "i18nAdmin.import.invalidDetails"
 msgid "Invalid messages"
+msgstr ""
+
+#. Import report line: how many imported entries were marked needs review
+#: i18n/source/i18nAdmin.json
+#, icu-format
+msgctxt "i18nAdmin.import.needsReviewIncluded"
+msgid "{count, plural, one {# of them still needs review} other {# of them still need review}}"
 msgstr ""
 
 #. Heading of the dry-run report

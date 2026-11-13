@@ -267,6 +267,10 @@ These are binding. Where they conflict with §5, §6 or §8, this section wins.
   unknownKeys[], sourceChanged[], invalid[{key, problems[]}]}`. A file-level rejection
   returns 422 with `details.reason` set to one of `EMPTY`, `NOT_TEXT`, `ENCODING`,
   `SYNTAX`, `LANGUAGE_MISMATCH` or `CHARSET`. `dryRun` defaults to `true`.
+  `includeNeedsReview` (default `false`, added 2026-11-13) also imports `fuzzy` entries
+  as drafts and counts them in `needsReview`. They are validated like any other entry,
+  and they still only go live through publish (TRANSLATIONS_PUBLISH). The audit entry
+  records the flag.
 - **Drafts**: send `expectedVersion: null` when no draft exists. A blank value is
   rejected (422, problem `EMPTY`). `DELETE` returns `204`. The entries status filter
   value is `DRAFT`, and the page size is capped at 200.

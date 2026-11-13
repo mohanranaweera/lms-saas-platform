@@ -43,8 +43,9 @@ for (const entry of po.entries) {
 }
 writeFileSync(file, serializePo(po), "utf8");
 const unknown = Object.keys(drafts).filter((k) => !known.has(k));
-const missing = [...known].filter((k) => !(k in drafts));
+// Only keys that are still untranslated after this run are worth reporting.
+const missing = po.entries.filter((e) => !e.obsolete && e.msgstr.trim() === "").map((e) => e.msgctxt);
 console.log(`apply-drafts: ${applied} applied as fuzzy, ${kept.length} kept (already translated), ${rejected.length} rejected`);
 for (const r of rejected) console.log(`  rejected ${r}`);
 if (unknown.length) console.log(`  unknown keys ignored: ${unknown.join(", ")}`);
-if (missing.length) console.log(`  no draft for: ${missing.join(", ")}`);
+if (missing.length) console.log(`  still untranslated: ${missing.join(", ")}`);

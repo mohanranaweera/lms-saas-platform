@@ -108,6 +108,10 @@ rollback). Tenant Admin holds all three.
 4. **Import PO**: choose the locale and file. Run the dry run first and review the
    additions, changes, invalid messages and unknown keys. An import with any invalid
    message is rejected without writing anything. An import only writes drafts.
+   Entries marked "needs review" (`fuzzy`, such as the AI/machine drafts) are skipped
+   unless you turn on **Also import entries marked "needs review"**. When it is on,
+   they become drafts too, and the report shows how many still need review. Check
+   them before you publish: publishing makes them visible to everyone.
 5. **Publish**: enter a change summary. This creates the next release number with
    your name and the time. If someone else published first you get a "stale" error;
    reload and try again.

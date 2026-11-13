@@ -1426,6 +1426,22 @@ msgid "Import a PO file: {language}"
 msgstr "PO ගොනුවක් ආයාත කරන්න: {language}"
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
+#. Switch label in PO import; 'needs review' = fuzzy entries
+#: i18n/source/i18nAdmin.json
+#, icu-format, fuzzy
+msgctxt "i18nAdmin.import.includeNeedsReview"
+msgid "Also import entries marked “needs review”"
+msgstr "“සමාලෝචනය අවශ්‍යයි” ලෙස සලකුණු කළ ඇතුළත් කිරීම් ද ආයාත කරන්න"
+
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
+#. Help text under the needs-review import switch
+#: i18n/source/i18nAdmin.json
+#, icu-format, fuzzy
+msgctxt "i18nAdmin.import.includeNeedsReviewHelp"
+msgid "They become drafts like any other entry. Check them before you publish: publishing makes them visible to everyone."
+msgstr "ඒවා අනෙක් ඇතුළත් කිරීම් මෙන්ම කෙටුම්පත් බවට පත් වේ. ප්‍රකාශයට පත් කිරීමට පෙර ඒවා පරීක්ෂා කරන්න: ප්‍රකාශයට පත් කළ විට ඒවා සැමට පෙනේ."
+
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Report line
 #: i18n/source/i18nAdmin.json
 #, icu-format, fuzzy
@@ -1440,6 +1456,14 @@ msgstr "{count, plural, one {වලංගු නොවන පණිවිඩ # �
 msgctxt "i18nAdmin.import.invalidDetails"
 msgid "Invalid messages"
 msgstr "වලංගු නොවන පණිවිඩ"
+
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
+#. Import report line: how many imported entries were marked needs review
+#: i18n/source/i18nAdmin.json
+#, icu-format, fuzzy
+msgctxt "i18nAdmin.import.needsReviewIncluded"
+msgid "{count, plural, one {# of them still needs review} other {# of them still need review}}"
+msgstr "{count, plural, one {ඒවායින් # කට තවමත් සමාලෝචනය අවශ්‍යයි} other {ඒවායින් # කට තවමත් සමාලෝචනය අවශ්‍යයි}}"
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Heading of the dry-run report

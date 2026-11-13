@@ -156,5 +156,8 @@
   "i18nAdmin.releases.publishedOn": { "source": "{when} · {count, plural, one {# text} other {# texts}}", "context": "Release line: publish date and number of overridden texts" },
   "i18nAdmin.import.unchanged": { "source": "{count, plural, one {# unchanged} other {# unchanged}}", "context": "Report line" },
   "i18nAdmin.import.skipped": { "source": "{count, plural, one {# skipped (empty, needs review or obsolete)} other {# skipped (empty, needs review or obsolete)}}", "context": "Report line" },
-  "i18nAdmin.course.unpublishedChanges": { "source": "Unpublished changes", "context": "Badge: the draft differs from the published variant" }
+  "i18nAdmin.course.unpublishedChanges": { "source": "Unpublished changes", "context": "Badge: the draft differs from the published variant" },
+  "i18nAdmin.import.includeNeedsReview": { "source": "Also import entries marked “needs review”", "context": "Switch label in PO import; 'needs review' = fuzzy entries" },
+  "i18nAdmin.import.includeNeedsReviewHelp": { "source": "They become drafts like any other entry. Check them before you publish: publishing makes them visible to everyone.", "context": "Help text under the needs-review import switch" },
+  "i18nAdmin.import.needsReviewIncluded": { "source": "{count, plural, one {# of them still needs review} other {# of them still need review}}", "context": "Import report line: how many imported entries were marked needs review" }
 }
