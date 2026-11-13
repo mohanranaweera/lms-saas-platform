@@ -31,6 +31,8 @@ export const COURSE_WORKSPACE_TABS: CourseWorkspaceTab[] = [
   { segment: "sessions", label: "Live classes" },
   { segment: "recordings", label: "Recordings" },
   { segment: "analytics", label: "Analytics" },
+  // I18N-01 §8: per-locale public title/description variants.
+  { segment: "translations", label: "Translations" },
 ];
 
 /**

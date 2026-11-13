@@ -113,7 +113,7 @@ test.describe("sign-in page", () => {
     );
     await page.goto("/login");
 
-    await page.getByLabel("Email").fill("someone@example.test");
+    await page.getByRole("textbox", { name: "Email" }).fill("someone@example.test");
     await page.getByLabel("Password", { exact: true }).fill("password123");
     await page.getByRole("button", { name: "Sign in" }).click();
 

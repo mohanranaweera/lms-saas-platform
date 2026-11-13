@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoadingState } from "@/components/states/loading-state";
 import { usePublicHome } from "@/lib/api/public-home";
+import { useT } from "@/i18n/i18n-provider";
+import { useTenantDocumentTitle } from "@/lib/branding/use-tenant-head";
 
 
 /**
@@ -16,12 +18,18 @@ import { usePublicHome } from "@/lib/api/public-home";
 export default function LoginPage() {
   // Same cached host-tenant read as the auth shell's logo (no extra request).
   const instituteName = usePublicHome().data?.instituteName?.trim();
+  const t = useT();
+  useTenantDocumentTitle(() =>
+    instituteName ? t("auth.login.documentTitle", { name: instituteName }) : null
+  );
   return (
-    <Suspense fallback={<LoadingState label="Loading sign-in…" />}>
+    <Suspense fallback={<LoadingState label={t("auth.login.loading")} />}>
       <LoginForm
         kind="tenant"
-        title="Sign in"
-        description={instituteName ? `Access your ${instituteName} account.` : "Access your account."}
+        title={t("auth.login.title")}
+        description={
+          instituteName ? t("auth.login.descriptionNamed", { name: instituteName }) : t("auth.login.description")
+        }
         resolveDashboardPath={tenantDashboardPath}
         showRegisterLink
       />

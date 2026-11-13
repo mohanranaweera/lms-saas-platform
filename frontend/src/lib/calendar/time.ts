@@ -171,8 +171,8 @@ export function formatLocalDate(date: LocalDate, options: Intl.DateTimeFormatOpt
 }
 
 /** "8:00 AM" for an instant in the tenant zone. */
-export function formatTime(ms: number, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(new Date(ms));
+export function formatTime(ms: number, timeZone: string, locale = "en-US"): string {
+  return new Intl.DateTimeFormat(locale, { timeZone, hour: "numeric", minute: "2-digit" }).format(new Date(ms));
 }
 
 /** "8:00 AM" for a wall-clock `HH:mm`. */
@@ -200,6 +200,10 @@ export function timeZoneLabel(timeZone: string): string {
 }
 
 /** "Friday, 6 November 2026". */
-export function formatLongDate(date: LocalDate): string {
+export function formatLongDate(date: LocalDate, locale?: string): string {
+  if (locale) {
+    // I18N-01: the resolved UI locale's own long-date pattern.
+    return formatLocalDate(date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }, locale);
+  }
   return `${formatLocalDate(date, { weekday: "long" })}, ${formatLocalDate(date, { day: "numeric", month: "long", year: "numeric" })}`;
 }

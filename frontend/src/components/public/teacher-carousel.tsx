@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/states/error-state";
 import { usePublicTeachers, type PublicTeacher } from "@/lib/api/public-teachers";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 
 const AUTO_ROTATE_MS = 6000;
 
@@ -32,13 +33,14 @@ function initials(name: string): string {
 
 function TeacherPhoto({ teacher }: { teacher: PublicTeacher }) {
   const [failed, setFailed] = useState(false);
+  const t = useT();
   return (
     <div className="relative aspect-[4/5] overflow-hidden bg-(--tenant-primary-soft)">
       {teacher.profileImageUrl && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived profile image URL
         <img
           src={teacher.profileImageUrl}
-          alt={`${teacher.name} profile photo`}
+          alt={t("public.teachers.photoAlt", { name: teacher.name })}
           className="absolute inset-0 size-full object-cover"
           loading="lazy"
           onError={() => setFailed(true)}
@@ -55,17 +57,18 @@ function TeacherPhoto({ teacher }: { teacher: PublicTeacher }) {
 }
 
 function TeacherCard({ teacher }: { teacher: PublicTeacher }) {
+  const t = useT();
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
       <TeacherPhoto teacher={teacher} />
       <div className="flex flex-1 flex-col gap-1.5 p-4">
-        <h3 className="line-clamp-2 text-base font-semibold">{teacher.name}</h3>
+        <h3 className="line-clamp-2 text-base font-semibold break-words">{teacher.name}</h3>
         {teacher.qualifications ? <p className="line-clamp-2 text-sm text-muted-foreground">{teacher.qualifications}</p> : null}
         <Link
           href={`/teachers/${encodeURIComponent(teacher.id)}`}
           className="mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold text-primary hover:underline"
         >
-          View profile<span className="sr-only"> of {teacher.name}</span>
+          {t("public.teachers.viewProfile")}<span className="sr-only"> {t("public.teachers.viewProfileOf", { name: teacher.name })}</span>
           <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
@@ -93,6 +96,7 @@ export function TeacherCarousel({ autoRotate }: { autoRotate: boolean }) {
   const [hovered, setHovered] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
+  const t = useT();
 
   const updateEdges = useCallback(() => {
     const track = trackRef.current;
@@ -144,7 +148,7 @@ export function TeacherCarousel({ autoRotate }: { autoRotate: boolean }) {
 
   if (query.isPending) {
     return (
-      <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-busy="true" aria-label="Loading teachers">
+      <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-busy="true" aria-label={t("public.teachers.loading")}>
         <Skeleton className="h-8 w-56" />
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((index) => (
@@ -157,8 +161,8 @@ export function TeacherCarousel({ autoRotate }: { autoRotate: boolean }) {
 
   if (query.isError) {
     return (
-      <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-label="Teachers">
-        <ErrorState message="Teacher profiles are temporarily unavailable." onRetry={() => void query.refetch()} />
+      <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-label={t("public.teachers.region")}>
+        <ErrorState message={t("public.teachers.error")} onRetry={() => void query.refetch()} />
       </section>
     );
   }
@@ -171,27 +175,27 @@ export function TeacherCarousel({ autoRotate }: { autoRotate: boolean }) {
     <section id="teachers" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-14 sm:px-6 lg:px-8" aria-labelledby="home-teachers-heading" data-testid="teacher-section">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary">Our teachers</p>
-          <h2 id="home-teachers-heading" className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            Meet our teachers
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary">{t("public.teachers.eyebrow")}</p>
+          <h2 id="home-teachers-heading" className="mt-2 text-2xl font-bold tracking-tight break-words sm:text-3xl">
+            {t("public.teachers.heading")}
           </h2>
-          <p className="mt-2 text-muted-foreground">Experienced educators to guide you toward your goals.</p>
+          <p className="mt-2 text-muted-foreground">{t("public.teachers.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/teachers" className="mr-2 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-            View all <ArrowRight className="size-4" aria-hidden="true" />
+            {t("public.teachers.viewAll")} <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
           {showAutoControl ? (
-            <Button type="button" variant="outline" size="icon" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Resume teacher rotation" : "Pause teacher rotation"}>
+            <Button type="button" variant="outline" size="icon" onClick={() => setPaused((value) => !value)} aria-label={paused ? t("public.teachers.resume") : t("public.teachers.pause")}>
               {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
             </Button>
           ) : null}
           {teachers.length > 1 && overflowing ? (
             <>
-              <Button type="button" variant="outline" size="icon" onClick={() => step(-1)} disabled={atStart} aria-label="Previous teachers">
+              <Button type="button" variant="outline" size="icon" onClick={() => step(-1)} disabled={atStart} aria-label={t("public.teachers.previous")}>
                 <ChevronLeft aria-hidden="true" />
               </Button>
-              <Button type="button" variant="outline" size="icon" onClick={() => step(1)} disabled={atEnd} aria-label="Next teachers">
+              <Button type="button" variant="outline" size="icon" onClick={() => step(1)} disabled={atEnd} aria-label={t("public.teachers.next")}>
                 <ChevronRight aria-hidden="true" />
               </Button>
             </>
@@ -201,8 +205,8 @@ export function TeacherCarousel({ autoRotate }: { autoRotate: boolean }) {
       <div
         ref={trackRef}
         role="region"
-        aria-roledescription="carousel"
-        aria-label="Teachers"
+        aria-roledescription={t("public.carousel.roleDescription")}
+        aria-label={t("public.teachers.region")}
         data-testid="teacher-track"
         data-rotating={rotating}
         onMouseEnter={() => setHovered(true)}
@@ -218,8 +222,8 @@ export function TeacherCarousel({ autoRotate }: { autoRotate: boolean }) {
             key={teacher.id}
             data-slide
             role="group"
-            aria-roledescription="slide"
-            aria-label={`${index + 1} of ${teachers.length}`}
+            aria-roledescription={t("public.carousel.slide")}
+            aria-label={t("public.carousel.position", { index: index + 1, total: teachers.length })}
             className={cn(
               "relative shrink-0 snap-start",
               teachers.length === 1

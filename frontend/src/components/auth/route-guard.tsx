@@ -9,6 +9,8 @@ import { ErrorState } from "@/components/states/error-state";
 import { isApiClientError } from "@/lib/api/error";
 import { IMPERSONATION_ENDED_CODE } from "@/lib/auth/auth-context";
 import { SupportSessionEnded } from "./support-session-ended";
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 
 interface RouteGuardProps {
   kind: PrincipalKind;
@@ -30,6 +32,7 @@ interface RouteGuardProps {
  */
 export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
   const { ensureAccessToken, impersonationEnded } = useAuth();
+  const t = useT();
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [authError, setAuthError] = useState<unknown>(null);
@@ -87,8 +90,8 @@ export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
         <ErrorState
           message={
             isApiClientError(authError)
-              ? authError.message
-              : "We couldn't verify your session. Please try again."
+              ? localizeApiError(t, authError)
+              : t("common.state.sessionCheckFailed")
           }
           code={isApiClientError(authError) ? authError.code : undefined}
           onRetry={() => {
@@ -99,7 +102,7 @@ export function RouteGuard({ kind, loginPath, children }: RouteGuardProps) {
       );
     }
 
-    return <LoadingState label="Checking your session…" />;
+    return <LoadingState label={t("common.state.checkingSession")} />;
   }
 
   return <>{children}</>;

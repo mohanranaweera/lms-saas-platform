@@ -5,6 +5,9 @@ import { Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canViewInstituteConfig, canViewIntegrations, canViewPaymentGateway } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils";
+import { TRANSLATION_CAP, useTranslationCapabilities } from "@/lib/i18n-admin/use-translation-capabilities";
+
+type TabGate = (role: string | null, extra: { canViewTranslations: boolean }) => boolean;
 
 /**
  * Settings section tabs (links, not an ARIA tablist — each tab is its own
@@ -33,6 +36,12 @@ const SETTINGS_TABS = [
   { label: "Integrations", href: "/tenant-admin/settings/integrations", visible: canViewIntegrations },
   // Video providers + video settings share the INTEGRATIONS grant.
   { label: "Video", href: "/tenant-admin/settings/video", visible: canViewIntegrations },
+  // I18N-01: language settings + translation overrides (TRANSLATIONS_VIEW, or institute config for the language settings).
+  {
+    label: "Translations",
+    href: "/tenant-admin/settings/translations",
+    visible: ((role, extra) => canViewInstituteConfig(role) || extra.canViewTranslations) as TabGate,
+  },
 ] as const;
 
 export type SettingsTabHref = (typeof SETTINGS_TABS)[number]["href"];
@@ -40,7 +49,9 @@ export type SettingsTabHref = (typeof SETTINGS_TABS)[number]["href"];
 export function SettingsTabStrip({ active }: { active: SettingsTabHref }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
-  const tabs = SETTINGS_TABS.filter((tab) => tab.visible(role));
+  const translations = useTranslationCapabilities();
+  const extra = { canViewTranslations: translations.can(TRANSLATION_CAP.VIEW) };
+  const tabs = SETTINGS_TABS.filter((tab) => (tab.visible as TabGate)(role, extra));
   return (
     <nav aria-label="Settings sections" className="-mx-1 overflow-x-auto">
       <ul className="flex min-w-max gap-1 border-b border-border px-1">

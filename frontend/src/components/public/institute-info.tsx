@@ -1,5 +1,8 @@
+"use client";
+
 import type { PublicInstituteInfo } from "@/lib/api/public-home";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * SET-PAY-01: rendering helpers for the institute's public information on the
@@ -57,6 +60,7 @@ export function InstituteSocialLinks({
   instituteName: string;
   className?: string;
 }) {
+  const t = useT();
   const links = [
     { label: "Facebook", url: safeHttpsUrl(info?.facebookUrl, ["facebook.com", "fb.com"]), Icon: FacebookIcon },
     { label: "YouTube", url: safeHttpsUrl(info?.youtubeUrl, ["youtube.com", "youtu.be"]), Icon: YouTubeIcon },
@@ -71,7 +75,7 @@ export function InstituteSocialLinks({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`${instituteName} on ${label} (opens in a new tab)`}
+            aria-label={t("public.social.linkLabel", { name: instituteName, network: label })}
             className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <Icon className="size-4" />

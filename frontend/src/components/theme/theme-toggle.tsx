@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 import { currentThemeMode, setThemeMode, subscribeThemeMode, type ThemeMode } from "@/lib/theme/theme-mode";
 
 /**
@@ -14,14 +15,15 @@ import { currentThemeMode, setThemeMode, subscribeThemeMode, type ThemeMode } fr
 export function ThemeToggle({ className }: { className?: string }) {
   const mode = useSyncExternalStore<ThemeMode>(subscribeThemeMode, currentThemeMode, () => "light");
   const dark = mode === "dark";
+  const t = useT();
 
   return (
     <button
       type="button"
       onClick={() => setThemeMode(dark ? "light" : "dark")}
-      aria-label="Dark theme"
+      aria-label={t("common.theme.dark")}
       aria-pressed={dark}
-      title={dark ? "Switch to light theme" : "Switch to dark theme"}
+      title={dark ? t("common.theme.switchToLight") : t("common.theme.switchToDark")}
       data-testid="theme-toggle"
       className={cn(
         "inline-flex size-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",

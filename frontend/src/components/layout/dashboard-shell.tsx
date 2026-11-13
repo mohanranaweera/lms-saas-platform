@@ -4,6 +4,8 @@ import { cloneElement, isValidElement, useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LanguageSwitcher } from "@/i18n/language-switcher";
+import { useT } from "@/i18n/i18n-provider";
 import {
   Sheet,
   SheetContent,
@@ -57,6 +59,7 @@ export function DashboardShell({
   footer,
 }: DashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const t = useT();
 
   // Only the mobile drawer instance needs to close itself on navigation — the desktop
   // sidebar has no open/close state to manage, so it renders `nav` as-is.
@@ -68,12 +71,12 @@ export function DashboardShell({
     <div className="flex min-h-svh flex-col md:flex-row">
       <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground md:flex">
         {brand ? <div className="px-2">{brand}</div> : <span className="px-2 text-sm font-semibold">{portalLabel}</span>}
-        <nav aria-label="Primary">{nav}</nav>
+        <nav aria-label={t("common.nav.primary")}>{nav}</nav>
       </aside>
 
       <div className="flex flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger
                 render={
@@ -81,7 +84,7 @@ export function DashboardShell({
                     variant="ghost"
                     size="icon"
                     className="md:hidden"
-                    aria-label="Open navigation menu"
+                    aria-label={t("common.nav.openMenu")}
                   />
                 }
               >
@@ -91,7 +94,7 @@ export function DashboardShell({
                 <SheetHeader>
                   <SheetTitle>{brand ?? portalLabel}</SheetTitle>
                 </SheetHeader>
-                <nav aria-label="Primary" className="px-4 pb-4">
+                <nav aria-label={t("common.nav.primary")} className="px-4 pb-4">
                   {mobileNav}
                 </nav>
               </SheetContent>
@@ -108,6 +111,7 @@ export function DashboardShell({
             {/* Below `sm` the header nav drops to its own row so the actions never push the page sideways. */}
             {headerNav ? <div className="order-last flex w-full items-center gap-1 sm:order-none sm:w-auto">{headerNav}</div> : <span />}
             <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+              <LanguageSwitcher compact />
               <ThemeToggle className="shrink-0" />
               {headerActions}
             </div>

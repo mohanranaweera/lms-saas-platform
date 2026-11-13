@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 
 function dashboardHref(role: string | null, kind: string) {
   if (kind === "platform-admin") return "/platform-admin/dashboard";
@@ -78,6 +79,7 @@ export function PublicAccountActions({
   layout?: "row" | "stack";
 }) {
   const { session, checkingSession, loggingOut, signOut } = state;
+  const t = useT();
   const wrapper = cn("flex gap-2", layout === "stack" ? "flex-col items-stretch" : "items-center");
   const full = layout === "stack" ? "w-full justify-center" : undefined;
 
@@ -87,10 +89,10 @@ export function PublicAccountActions({
     return (
       <div className={wrapper}>
         <Link href={dashboardHref(session.role, session.kind)} className={cn(buttonVariants({ size: "lg" }), full)}>
-          Dashboard
+          {t("public.header.dashboard")}
         </Link>
         <Button size="lg" variant="outline" className={full} onClick={() => void signOut()} disabled={loggingOut}>
-          {loggingOut ? "Signing out…" : "Sign out"}
+          {loggingOut ? t("common.auth.signingOut") : t("common.auth.signOut")}
         </Button>
       </div>
     );
@@ -99,15 +101,15 @@ export function PublicAccountActions({
   return (
     <div className={wrapper}>
       <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), cn("border-primary text-primary hover:text-primary", full))}>
-        {tenantResolved ? "Login" : "Sign in"}
+        {tenantResolved ? t("public.header.login") : t("public.header.signIn")}
       </Link>
       {tenantResolved ? (
         <Link href="/register" className={cn(buttonVariants({ size: "lg" }), cn("tenant-primary-hover", full))}>
-          Register
+          {t("public.header.register")}
         </Link>
       ) : (
         <Link href="/register-institute" className={cn(buttonVariants({ size: "lg" }), full)}>
-          Get started
+          {t("public.header.getStarted")}
         </Link>
       )}
     </div>

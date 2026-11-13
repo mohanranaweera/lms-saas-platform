@@ -65,6 +65,8 @@ export interface CourseResponse {
   resolvedAmount: number | null;
   currency: string;
   requiresManualQuote: boolean;
+  /** I18N-01 §8: declared language of the original title/description (`null` = not declared). Optional until the backend sends it. */
+  contentLocale?: string | null;
 }
 
 /**

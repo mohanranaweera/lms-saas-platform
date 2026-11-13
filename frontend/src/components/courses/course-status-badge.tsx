@@ -1,6 +1,9 @@
+"use client";
+
 import { CheckCircle2, Lock, PencilLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CourseStatus } from "@/lib/api/courses";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 
 /**
  * Course status chip — never color alone (`.claude/rules/ui-ux.md` §4):
@@ -20,7 +23,15 @@ const STATUS_STYLES: Record<CourseStatus, { icon: typeof CheckCircle2; className
   PUBLIC: { icon: CheckCircle2, className: "text-foreground" },
 };
 
+/** Localized status label (I18N-01); `COURSE_STATUS_LABELS` stays the English source. */
+export const COURSE_STATUS_MESSAGES: Record<CourseStatus, (t: TranslateFn) => string> = {
+  DRAFT: (t) => t("common.courseStatus.draft"),
+  PRIVATE: (t) => t("common.courseStatus.private"),
+  PUBLIC: (t) => t("common.courseStatus.public"),
+};
+
 export function CourseStatusBadge({ status }: { status: CourseStatus }) {
+  const t = useT();
   const { icon: Icon, className } = STATUS_STYLES[status];
   return (
     <span
@@ -30,7 +41,7 @@ export function CourseStatusBadge({ status }: { status: CourseStatus }) {
       )}
     >
       <Icon className="size-3.5" aria-hidden="true" />
-      {COURSE_STATUS_LABELS[status]}
+      {COURSE_STATUS_MESSAGES[status]?.(t) ?? COURSE_STATUS_LABELS[status]}
     </span>
   );
 }

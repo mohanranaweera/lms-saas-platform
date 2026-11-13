@@ -43,6 +43,14 @@ export interface PublicCourseResponse {
   teacherName: string | null;
   coverImageUrl: string | null;
   registrationEnabled: boolean;
+  /**
+   * I18N-01 §8: locale of the title/description actually served (a published
+   * variant for the resolved locale, else the original's declared language);
+   * `null` for a legacy original with no declared language. Optional until
+   * every backend build sends it.
+   */
+  contentLocale?: string | null;
+  availableLocales?: string[];
   outline: { modules: Array<{ id: string; title: string; sequence: number; lessons: Array<{ id: string; title: string; label: string | null; resourceType: string | null; sequence: number }> }> };
   tags: Array<{ id: string; name: string }>;
 }

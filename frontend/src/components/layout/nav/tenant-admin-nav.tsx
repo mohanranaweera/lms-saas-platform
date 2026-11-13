@@ -27,6 +27,7 @@ import {
 } from "@/lib/auth/permissions";
 import { CAP, REPORT_CAPABILITIES } from "@/lib/auth/capabilities";
 import { useCapabilities } from "@/lib/api/my-permissions";
+import { TRANSLATION_CAP } from "@/lib/i18n-admin/use-translation-capabilities";
 import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import { NavGroup, type NavItem } from "./nav-links";
 
@@ -206,6 +207,7 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
           "/tenant-admin/settings/video-providers",
           "/tenant-admin/settings/video-configuration",
           "/tenant-admin/settings/branding",
+          "/tenant-admin/settings/translations",
         ],
       },
       { label: "Appearance", href: "/tenant-admin/settings/appearance" }
@@ -214,6 +216,10 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
     // SET-PAY-01: online payments are the Settings → Payments tab now. Finance
     // Staff (PAYMENT_GATEWAY/VIEW, no institute config) land straight on it.
     instituteConfigItems.push({ label: "Settings", href: "/tenant-admin/settings/payments" });
+  }
+  // I18N-01: a staff role granted TRANSLATIONS_VIEW without institute settings access.
+  if (!canViewInstituteConfig(role) && can(TRANSLATION_CAP.VIEW, false)) {
+    instituteConfigItems.push({ label: "Translations", href: "/tenant-admin/settings/translations" });
   }
   // MEDIA-INT-01 - INTEGRATIONS/VIEW (Tenant Admin, Read-only Auditor).
   if (canViewIntegrations(role)) {

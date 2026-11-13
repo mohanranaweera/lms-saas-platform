@@ -3,13 +3,12 @@ import {
   Lato,
   Montserrat,
   Noto_Sans,
-  Noto_Sans_Sinhala,
-  Noto_Sans_Tamil,
   Noto_Serif,
   Open_Sans,
   Poppins,
   Roboto,
 } from "next/font/google";
+import { SCRIPT_FONT_VARIABLE_CLASSES } from "./script-fonts";
 import { APPEARANCE_FONT_OPTIONS, toAppearanceFontId, type AppearanceFontId } from "./font-options";
 
 /**
@@ -34,15 +33,13 @@ const poppins = Poppins({ subsets: ["latin"], display: "swap", preload: false, w
 const montserrat = Montserrat({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-montserrat" });
 const notoSans = Noto_Sans({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-noto-sans" });
 const notoSerif = Noto_Serif({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-noto-serif" });
-const notoSinhala = Noto_Sans_Sinhala({ subsets: ["sinhala"], display: "swap", preload: false, variable: "--font-noto-sinhala" });
-const notoTamil = Noto_Sans_Tamil({ subsets: ["tamil"], display: "swap", preload: false, variable: "--font-noto-tamil" });
 
 const SCRIPT_FALLBACKS = "var(--font-noto-sinhala), var(--font-noto-tamil)";
 const SANS_TAIL = `${SCRIPT_FALLBACKS}, ui-sans-serif, system-ui, sans-serif`;
 const SERIF_TAIL = `${SCRIPT_FALLBACKS}, ui-serif, Georgia, Cambria, "Times New Roman", serif`;
 
 /** Always applied with any tenant font so the Sinhala/Tamil fallbacks resolve. */
-export const SCRIPT_FALLBACK_FONT_CLASSES = `${notoSinhala.variable} ${notoTamil.variable}`;
+export const SCRIPT_FALLBACK_FONT_CLASSES = SCRIPT_FONT_VARIABLE_CLASSES;
 
 export interface PublicFontEntry {
   id: AppearanceFontId;

@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ApiClientError } from "@/lib/api/error";
+import { useT } from "@/i18n/i18n-provider";
 
 interface PermissionDeniedStateAction {
   label: string;
@@ -43,6 +46,7 @@ export function PermissionDeniedState({
   action,
   className,
 }: PermissionDeniedStateProps) {
+  const t = useT();
   return (
     <div
       role="alert"
@@ -53,7 +57,7 @@ export function PermissionDeniedState({
     >
       <ShieldAlert className="size-6 text-muted-foreground" aria-hidden="true" />
       <p className="text-sm font-medium text-foreground">
-        You don&apos;t have permission to view this.
+        {t("common.state.noPermission")}
       </p>
       <p className="text-sm text-muted-foreground">{error.message}</p>
       {action || dashboardHref ? (
@@ -68,7 +72,7 @@ export function PermissionDeniedState({
               href={dashboardHref}
               className="text-sm font-medium text-foreground hover:underline"
             >
-              Back to your dashboard
+              {t("common.state.backToDashboard")}
             </Link>
           ) : null}
         </div>

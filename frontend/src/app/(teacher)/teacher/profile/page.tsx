@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,12 +18,16 @@ import {
   useUpdateOwnTeacherProfile,
   type TeacherSelfProfile,
 } from "@/lib/api/teachers";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 
-const schema = z.object({
-  qualifications: z.string().max(2000, "Qualifications must be 2000 characters or fewer."),
-  description: z.string().max(5000, "Biography must be 5000 characters or fewer."),
-});
-type FormValues = z.infer<typeof schema>;
+function profileSchema(t: TranslateFn) {
+  return z.object({
+    qualifications: z.string().max(2000, t("teacher.profile.validation.qualificationsTooLong", { max: "2000" })),
+    description: z.string().max(5000, t("teacher.profile.validation.biographyTooLong", { max: "5000" })),
+  });
+}
+type FormValues = z.infer<ReturnType<typeof profileSchema>>;
 
 /**
  * Teacher Portal → My Profile (TP-03). `GET/PATCH /v1/teachers/me` resolves
@@ -34,25 +38,26 @@ type FormValues = z.infer<typeof schema>;
  */
 export default function TeacherProfilePage() {
   const query = useOwnTeacherProfile();
+  const t = useT();
   const notFound = query.status === "error" && isApiClientError(query.error) && query.error.status === 404;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">My Profile</h1>
-        <p className="text-sm text-muted-foreground">Your teacher profile at this institute.</p>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("teacher.profile.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("teacher.profile.subtitle")}</p>
       </div>
       {notFound ? (
         <div data-testid="teacher-profile-unavailable">
           <EmptyState
-            title="Your teacher profile isn't available"
-            description="No teacher record is linked to this account yet. Contact your institute administrator."
+            title={t("teacher.profile.unavailable.title")}
+            description={t("teacher.profile.unavailable.description")}
           />
         </div>
       ) : (
         <QueryStateBoundary
           query={query}
-          loadingLabel="Loading your profile…"
+          loadingLabel={t("teacher.profile.loading")}
           loginPath="/login"
           permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
         >
@@ -73,6 +78,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string | null }
 }
 
 function ProfileContent({ profile }: { profile: TeacherSelfProfile }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-6" data-testid="teacher-profile">
       <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center">
@@ -87,16 +93,14 @@ function ProfileContent({ profile }: { profile: TeacherSelfProfile }) {
 
       <section className="rounded-xl border border-border bg-card p-5 shadow-sm" aria-labelledby="teacher-profile-details">
         <h2 id="teacher-profile-details" className="text-base font-semibold text-foreground">
-          Details
+          {t("teacher.profile.details.heading")}
         </h2>
-        <p className="mb-4 text-xs text-muted-foreground">
-          Managed by your institute. Ask an administrator to change these.
-        </p>
+        <p className="mb-4 text-xs text-muted-foreground">{t("teacher.profile.details.managed")}</p>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <ReadOnlyField label="First name" value={profile.firstName} />
-          <ReadOnlyField label="Last name" value={profile.lastName} />
-          <ReadOnlyField label="Email" value={profile.email} />
-          <ReadOnlyField label="Contact number" value={profile.contactNumber} />
+          <ReadOnlyField label={t("teacher.profile.details.firstName")} value={profile.firstName} />
+          <ReadOnlyField label={t("teacher.profile.details.lastName")} value={profile.lastName} />
+          <ReadOnlyField label={t("teacher.profile.details.email")} value={profile.email} />
+          <ReadOnlyField label={t("teacher.profile.details.contactNumber")} value={profile.contactNumber} />
         </dl>
       </section>
 
@@ -107,6 +111,8 @@ function ProfileContent({ profile }: { profile: TeacherSelfProfile }) {
 
 function ProfessionalForm({ profile }: { profile: TeacherSelfProfile }) {
   const update = useUpdateOwnTeacherProfile();
+  const t = useT();
+  const schema = useMemo(() => profileSchema(t), [t]);
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const editable = new Set<string>(profile.editableFields);
@@ -131,8 +137,10 @@ function ProfessionalForm({ profile }: { profile: TeacherSelfProfile }) {
     } catch (err) {
       setServerError(
         isApiClientError(err) && err.status === 400
-          ? "Some details aren't valid. Check the fields and try again."
-          : "We couldn't save your profile. Try again."
+          ? t("teacher.profile.saveInvalid")
+          : isApiClientError(err) && err.code === "NETWORK_ERROR"
+            ? localizeApiError(t, err)
+            : t("teacher.profile.saveFailed")
       );
     }
   });
@@ -147,10 +155,10 @@ function ProfessionalForm({ profile }: { profile: TeacherSelfProfile }) {
       aria-labelledby="teacher-profile-professional"
     >
       <h2 id="teacher-profile-professional" className="text-base font-semibold text-foreground">
-        Professional details
+        {t("teacher.profile.professional.heading")}
       </h2>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="teacher-profile-qualifications">Qualifications</Label>
+        <Label htmlFor="teacher-profile-qualifications">{t("teacher.profile.professional.qualifications")}</Label>
         <Textarea
           id="teacher-profile-qualifications"
           rows={3}
@@ -166,7 +174,7 @@ function ProfessionalForm({ profile }: { profile: TeacherSelfProfile }) {
         ) : null}
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="teacher-profile-description">Biography</Label>
+        <Label htmlFor="teacher-profile-description">{t("teacher.profile.professional.biography")}</Label>
         <Textarea
           id="teacher-profile-description"
           rows={6}
@@ -184,7 +192,7 @@ function ProfessionalForm({ profile }: { profile: TeacherSelfProfile }) {
       {saved ? (
         <Alert role="status" data-testid="teacher-profile-saved">
           <CheckCircle2 aria-hidden="true" />
-          <AlertDescription>Profile saved.</AlertDescription>
+          <AlertDescription>{t("teacher.profile.saved")}</AlertDescription>
         </Alert>
       ) : null}
       {serverError ? (
@@ -195,7 +203,7 @@ function ProfessionalForm({ profile }: { profile: TeacherSelfProfile }) {
       {canEdit ? (
         <div>
           <Button type="submit" disabled={update.isPending} aria-busy={update.isPending} data-testid="teacher-profile-save">
-            {update.isPending ? "Saving…" : "Save changes"}
+            {update.isPending ? t("teacher.profile.saving") : t("teacher.profile.save")}
           </Button>
         </div>
       ) : null}

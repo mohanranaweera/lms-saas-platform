@@ -8,6 +8,7 @@ import { PublicLogo, toLogoDisplaySize } from "@/components/branding/public-logo
 import { TENANT_FALLBACK_NAME } from "@/lib/branding/names";
 import { usePublicHome, type PublicHomeResponse } from "@/lib/api/public-home";
 import { useTenantDocumentTitle, useTenantFavicon } from "@/lib/branding/use-tenant-head";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Tenant branding for the signed-in Student and Teacher portals: the same
@@ -45,8 +46,9 @@ export function PortalBrand({
   /** Mobile header: smaller logo, no label (the label is shown in the drawer). */
   compact?: boolean;
 }) {
+  const t = useT();
   if (pending) {
-    return <Skeleton className={compact ? "h-8 w-28" : "h-11 w-40"} aria-label="Loading institute" />;
+    return <Skeleton className={compact ? "h-8 w-28" : "h-11 w-40"} aria-label={t("common.institute.loading")} />;
   }
   if (!home) {
     return <span className="text-sm font-semibold text-foreground">{portalLabel}</span>;
@@ -67,6 +69,7 @@ export function PortalBrand({
 
 /** Compact portal footer: institute name, public support contacts and copyright. */
 export function PortalFooter({ home }: { home: PublicHomeResponse | undefined }) {
+  const t = useT();
   if (!home) return null;
   const name = instituteName(home);
   const phone = home.supportPhone?.trim();
@@ -77,10 +80,10 @@ export function PortalFooter({ home }: { home: PublicHomeResponse | undefined })
       data-testid="portal-footer"
     >
       <p>
-        &copy; {new Date().getFullYear()} {name}. All rights reserved.
+        {t("common.footer.copyright", { year: String(new Date().getFullYear()), name })}
       </p>
       {phone || email ? (
-        <ul className="flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Contact us">
+        <ul className="flex flex-wrap items-center gap-x-5 gap-y-2" aria-label={t("common.footer.contactUs")}>
           {phone ? (
             <li>
               <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 hover:text-foreground">

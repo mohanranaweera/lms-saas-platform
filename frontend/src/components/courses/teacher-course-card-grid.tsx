@@ -1,6 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { CourseStatusBadge } from "@/components/courses/course-status-badge";
-import { formatMoney } from "@/lib/format";
+import { useT } from "@/i18n/i18n-provider";
+import { useLocaleFormat } from "@/i18n/use-locale-format";
 import type { CourseResponse } from "@/lib/api/courses";
 
 /**
@@ -25,17 +28,19 @@ export function TeacherCourseCardGrid({
   courses: CourseResponse[];
   renderActions: (course: CourseResponse) => ReactNode;
 }) {
+  const t = useT();
+  const { formatMoney } = useLocaleFormat();
   return (
-    <ul aria-label="My courses" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul aria-label={t("teacher.courses.listLabel")} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {courses.map((course) => (
         <li
           key={course.id}
-          className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5"
+          className="flex h-full min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-5"
         >
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="text-base font-semibold text-foreground">{course.name}</h3>
-              <p className="text-xs text-muted-foreground">{course.slug}</p>
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold break-words text-foreground">{course.name}</h3>
+              <p className="text-xs break-all text-muted-foreground">{course.slug}</p>
             </div>
             <CourseStatusBadge status={course.status} />
           </div>

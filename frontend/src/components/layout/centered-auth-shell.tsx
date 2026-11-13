@@ -9,6 +9,8 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePublicHome } from "@/lib/api/public-home";
 import { PLATFORM_DEFAULT_NAME, TENANT_FALLBACK_NAME } from "@/lib/branding/names";
+import { LanguageSwitcher } from "@/i18n/language-switcher";
+import { useNamespaces, useT } from "@/i18n/i18n-provider";
 
 interface CenteredAuthShellProps {
   /**
@@ -32,6 +34,7 @@ interface CenteredAuthShellProps {
  * switch sits top-right on every variant.
  */
 export function CenteredAuthShell({ homeLabel = PLATFORM_DEFAULT_NAME, tenantBranding = false, children }: CenteredAuthShellProps) {
+  useNamespaces(["auth"]);
   if (tenantBranding) {
     return <TenantAuthShell>{children}</TenantAuthShell>;
   }
@@ -51,7 +54,8 @@ export function CenteredAuthShell({ homeLabel = PLATFORM_DEFAULT_NAME, tenantBra
 function ShellFrame({ brand, footer, children }: { brand: ReactNode; footer?: ReactNode; children: ReactNode }) {
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-center gap-8 bg-muted/30 px-4 py-12">
-      <div className="absolute right-3 top-3 sm:right-5 sm:top-5">
+      <div className="absolute right-3 top-3 flex items-center gap-2 sm:right-5 sm:top-5">
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
       {brand}
@@ -70,10 +74,11 @@ function ShellFrame({ brand, footer, children }: { brand: ReactNode; footer?: Re
  */
 function TenantAuthShell({ children }: { children: ReactNode }) {
   const home = usePublicHome();
+  const t = useT();
 
   let brand: ReactNode;
   if (home.isPending) {
-    brand = <Skeleton className="h-14 w-44 rounded-lg" aria-label="Loading institute" data-testid="auth-brand-loading" />;
+    brand = <Skeleton className="h-14 w-44 rounded-lg" aria-label={t("common.institute.loading")} data-testid="auth-brand-loading" />;
   } else if (home.isError || !home.data) {
     brand = (
       <Link href="/" className="text-lg font-semibold text-foreground" data-testid="auth-brand-fallback">
@@ -85,7 +90,7 @@ function TenantAuthShell({ children }: { children: ReactNode }) {
     brand = (
       <Link
         href="/"
-        aria-label={`${name} home`}
+        aria-label={t("common.institute.home", { name })}
         // `public-chrome` is an inline-size container (logo size tokens), so it
         // needs an explicit width — it can't size to its content.
         className="public-chrome flex w-full max-w-sm justify-center rounded-lg focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"

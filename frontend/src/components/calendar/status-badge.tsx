@@ -1,6 +1,17 @@
+"use client";
+
 import { Ban, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ScheduleStatus } from "@/lib/calendar/status";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+
+/** Localized labels (I18N-01); `STATUS_LABELS` stays the English source. */
+const STATUS_MESSAGES: Record<ScheduleStatus, (t: TranslateFn) => string> = {
+  SCHEDULED: (t) => t("common.scheduleStatus.scheduled"),
+  LIVE: (t) => t("common.scheduleStatus.live"),
+  OVER: (t) => t("common.scheduleStatus.over"),
+  CANCELLED: (t) => t("common.scheduleStatus.cancelled"),
+};
 
 export const STATUS_LABELS: Record<ScheduleStatus, string> = {
   SCHEDULED: "Scheduled",
@@ -17,6 +28,7 @@ export const SCHEDULE_BASED_HINT = "Based on the scheduled class time";
  * `prefers-reduced-motion`.
  */
 export function ScheduleStatusBadge({ status, className }: { status: ScheduleStatus; className?: string }) {
+  const t = useT();
   return (
     <span
       data-testid="schedule-status-badge"
@@ -42,8 +54,8 @@ export function ScheduleStatusBadge({ status, className }: { status: ScheduleSta
       ) : (
         <Ban className="size-3.5" aria-hidden="true" />
       )}
-      {STATUS_LABELS[status]}
-      {status === "LIVE" ? <span className="sr-only"> ({SCHEDULE_BASED_HINT})</span> : null}
+      {STATUS_MESSAGES[status]?.(t) ?? STATUS_LABELS[status]}
+      {status === "LIVE" ? <span className="sr-only"> ({t("common.scheduleStatus.basedOnSchedule")})</span> : null}
     </span>
   );
 }

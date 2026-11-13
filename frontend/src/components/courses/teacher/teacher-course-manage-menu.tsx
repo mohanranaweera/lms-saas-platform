@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EditClassScheduleDialog } from "@/components/calendar/edit-class-schedule-dialog";
 import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * TP-02: the Teacher Portal's existing course management actions (edit,
@@ -36,6 +37,7 @@ export function TeacherCourseManageMenu({
   const canViewTutes = useTuteCapabilities().can(TUTE_CAP.VIEW_TUTES);
   // CAL-01: the dialog loads `canEdit` from GET class-schedule and is read-only when false.
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const t = useT();
 
   return (
     <>
@@ -46,27 +48,27 @@ export function TeacherCourseManageMenu({
               type="button"
               variant="outline"
               size={size}
-              aria-label={`Manage course ${courseName}`}
+              aria-label={t("teacher.courses.manageCourseFor", { course: courseName })}
               data-testid="teacher-course-manage"
             />
           }
         >
           <Settings2 aria-hidden="true" />
-          Manage course
+          {t("teacher.courses.manageCourse")}
           <ChevronDown aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuLinkItem render={<Link href={`/teacher/courses/${courseId}/edit`} />}>
             <Pencil aria-hidden="true" />
-            Edit details
+            {t("teacher.courses.menu.editDetails")}
           </DropdownMenuLinkItem>
           <DropdownMenuLinkItem render={<Link href={`/teacher/courses/${courseId}/modules`} />}>
             <BookOpen aria-hidden="true" />
-            Modules & sessions
+            {t("teacher.courses.menu.modules")}
           </DropdownMenuLinkItem>
           <DropdownMenuLinkItem render={<Link href={`/teacher/courses/${courseId}/roster`} />}>
             <Users aria-hidden="true" />
-            Roster
+            {t("teacher.courses.menu.roster")}
           </DropdownMenuLinkItem>
           {canViewTutes ? (
             <DropdownMenuLinkItem
@@ -74,16 +76,16 @@ export function TeacherCourseManageMenu({
               data-testid="teacher-course-tutes"
             >
               <Truck aria-hidden="true" />
-              Tutes
+              {t("teacher.courses.menu.tutes")}
             </DropdownMenuLinkItem>
           ) : null}
           <DropdownMenuLinkItem render={<Link href={`/teacher/live-classes?courseId=${courseId}`} />}>
             <ClipboardList aria-hidden="true" />
-            Live classes
+            {t("teacher.courses.menu.liveClasses")}
           </DropdownMenuLinkItem>
           <DropdownMenuItem onClick={() => setScheduleOpen(true)} data-testid="teacher-course-class-schedule">
             <CalendarDays aria-hidden="true" />
-            Class schedule
+            {t("teacher.courses.menu.classSchedule")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 
 export interface NavItem {
   label: string;
@@ -30,6 +31,7 @@ export function NavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <ul className="flex flex-col gap-1">
@@ -41,8 +43,8 @@ export function NavLinks({
                 aria-disabled="true"
                 className="flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm text-muted-foreground/60"
               >
-                {item.label}
-                <span className="text-xs">Soon</span>
+                <span className="min-w-0 break-words">{item.label}</span>
+                <span className="shrink-0 text-xs">{t("common.nav.soon")}</span>
               </span>
             </li>
           );
@@ -59,7 +61,7 @@ export function NavLinks({
               aria-current={isActive ? "page" : undefined}
               onClick={onNavigate}
               className={cn(
-                "flex items-center rounded-md px-2.5 py-1.5 text-sm text-foreground transition-colors hover:bg-muted",
+                "flex min-w-0 items-center rounded-md px-2.5 py-1.5 text-sm break-words text-foreground transition-colors hover:bg-muted",
                 isActive && "bg-muted font-medium"
               )}
             >

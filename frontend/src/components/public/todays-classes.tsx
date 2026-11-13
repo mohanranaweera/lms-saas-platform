@@ -5,11 +5,13 @@ import Link from "next/link";
 import { AlertCircle, ArrowRight, BookOpen, CalendarClock, Clock, RotateCw, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScheduleStatusBadge, SCHEDULE_BASED_HINT } from "@/components/calendar/status-badge";
+import { ScheduleStatusBadge } from "@/components/calendar/status-badge";
 import { usePublicTodayClasses, type PublicTodayOccurrence } from "@/lib/api/calendar";
 import { occurrenceStatus, useScheduleNow, useServerClock, type ScheduleStatus } from "@/lib/calendar/status";
 import { formatLongDate, formatTime, localDateOf, safeTimeZone, timeZoneLabel } from "@/lib/calendar/time";
 import { cn } from "@/lib/utils";
+import { useI18n, useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { SOURCE_LOCALE } from "@/i18n/locales";
 
 /**
  * Public home "Today's Classes" (CAL-01, docs/specs/class-calendar.md §6.6/§8).
@@ -27,6 +29,7 @@ export function TodaysClasses() {
   const offset = useServerClock(data?.serverNow, data?.receivedAt);
   const occurrences = useMemo(() => data?.occurrences ?? [], [data]);
   const nowMs = useScheduleNow({ offsetMs: offset, events: occurrences, timeZone: data ? timeZone : null });
+  const t = useT();
 
   // Tenant-local midnight passed: today's list is now yesterday's → refetch once for the new date.
   const currentDate = nowMs != null && data ? localDateOf(nowMs, timeZone) : null;
@@ -40,7 +43,7 @@ export function TodaysClasses() {
   if (query.isPending) {
     return (
       <Shell>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading today's classes">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label={t("public.todaysClasses.loading")}>
           {[0, 1, 2].map((key) => (
             <Skeleton key={key} className={cn("h-64 rounded-xl", ["", "hidden sm:block", "hidden lg:block"][key])} />
           ))}
@@ -54,10 +57,10 @@ export function TodaysClasses() {
       <Shell>
         <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 sm:flex-row sm:items-center" data-testid="todays-classes-error">
           <AlertCircle className="size-5 shrink-0 text-destructive" aria-hidden="true" />
-          <p className="flex-1 text-sm">Today&apos;s classes couldn&apos;t be loaded.</p>
+          <p className="flex-1 text-sm">{t("public.todaysClasses.error")}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>
             <RotateCw aria-hidden="true" />
-            Try again
+            {t("common.actions.retry")}
           </Button>
         </div>
       </Shell>
@@ -70,16 +73,17 @@ export function TodaysClasses() {
 }
 
 function Shell({ children, subtitle, summary }: { children: React.ReactNode; subtitle?: string; summary?: string }) {
+  const t = useT();
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-labelledby="todays-classes-heading" data-testid="todays-classes">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-primary">
             <CalendarClock className="size-4" aria-hidden="true" />
-            Timetable
+            {t("public.todaysClasses.eyebrow")}
           </p>
-          <h2 id="todays-classes-heading" className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            Today&apos;s Classes
+          <h2 id="todays-classes-heading" className="mt-2 text-2xl font-bold tracking-tight break-words sm:text-3xl">
+            {t("public.todaysClasses.heading")}
           </h2>
           {subtitle ? (
             <p className="mt-2 text-muted-foreground" data-testid="todays-classes-date">
@@ -98,10 +102,26 @@ function Shell({ children, subtitle, summary }: { children: React.ReactNode; sub
   );
 }
 
-const GROUPS: { status: Exclude<ScheduleStatus, "CANCELLED">; title: string; summary: string }[] = [
-  { status: "LIVE", title: "Live now", summary: "live now" },
-  { status: "SCHEDULED", title: "Scheduled", summary: "scheduled" },
-  { status: "OVER", title: "Over", summary: "over" },
+const GROUPS: {
+  status: Exclude<ScheduleStatus, "CANCELLED">;
+  title: (t: TranslateFn) => string;
+  summary: (t: TranslateFn, count: number) => string;
+}[] = [
+  {
+    status: "LIVE",
+    title: (t) => t("common.scheduleStatus.live"),
+    summary: (t, count) => t("public.todaysClasses.summaryLive", { count }),
+  },
+  {
+    status: "SCHEDULED",
+    title: (t) => t("common.scheduleStatus.scheduled"),
+    summary: (t, count) => t("public.todaysClasses.summaryScheduled", { count }),
+  },
+  {
+    status: "OVER",
+    title: (t) => t("common.scheduleStatus.over"),
+    summary: (t, count) => t("public.todaysClasses.summaryOver", { count }),
+  },
 ];
 
 function TodaysClassesList({
@@ -115,6 +135,9 @@ function TodaysClassesList({
   timeZone: string;
   nowMs: number | null;
 }) {
+  const t = useT();
+  const { locale } = useI18n();
+  const intlLocale = locale === SOURCE_LOCALE ? undefined : locale;
   const groups = GROUPS.map((group) => {
     const items = occurrences.filter((occurrence) => occurrenceStatus(occurrence, nowMs) === group.status);
     items.sort((a, b) =>
@@ -126,20 +149,20 @@ function TodaysClassesList({
   });
   const summary = groups
     .filter((group) => group.items.length > 0)
-    .map((group) => `${group.items.length} ${group.summary}`)
+    .map((group) => group.summary(t, group.items.length))
     .join(" · ");
-  const subtitle = `${formatLongDate(date)} · ${timeZoneLabel(timeZone)}`;
+  const subtitle = `${formatLongDate(date, intlLocale)} · ${timeZoneLabel(timeZone)}`;
 
   if (occurrences.length === 0) {
     return (
       <Shell subtitle={subtitle}>
         <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center" data-testid="todays-classes-empty">
-          <p className="font-medium">No classes scheduled today.</p>
+          <p className="font-medium">{t("public.todaysClasses.empty")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             <Link href="/courses" className="font-semibold text-primary hover:underline">
-              Browse courses
+              {t("public.todaysClasses.browseCourses")}
             </Link>{" "}
-            to see what&apos;s coming up.
+            {t("public.todaysClasses.browseSuffix")}
           </p>
         </div>
       </Shell>
@@ -154,7 +177,7 @@ function TodaysClassesList({
           .map((group) => (
             <div key={group.status} className="flex flex-col gap-4" data-testid="todays-classes-group" data-status={group.status}>
               <h3 className="text-lg font-semibold">
-                {group.title} <span className="text-sm font-normal text-muted-foreground">({group.items.length})</span>
+                {group.title(t)} <span className="text-sm font-normal text-muted-foreground">({group.items.length})</span>
               </h3>
               <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {group.items.map((occurrence) => (
@@ -182,6 +205,10 @@ function ClassCard({
   const [coverFailed, setCoverFailed] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
   const over = status === "OVER";
+  const t = useT();
+  const { locale } = useI18n();
+  const timeLocale = locale === SOURCE_LOCALE ? undefined : locale;
+  const hint = t("common.scheduleStatus.basedOnSchedule");
   return (
     <article
       className={cn(
@@ -208,12 +235,12 @@ function ClassCard({
             <BookOpen className="size-7 opacity-60 sm:size-10" />
           </span>
         )}
-        <span className="absolute top-3 left-3 hidden sm:block" title={status === "LIVE" ? SCHEDULE_BASED_HINT : undefined}>
+        <span className="absolute top-3 left-3 hidden sm:block" title={status === "LIVE" ? hint : undefined}>
           <ScheduleStatusBadge status={status} className="bg-card shadow-sm" />
         </span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:gap-3 sm:p-5">
-        <span className="sm:hidden" title={status === "LIVE" ? SCHEDULE_BASED_HINT : undefined}>
+        <span className="sm:hidden" title={status === "LIVE" ? hint : undefined}>
           <ScheduleStatusBadge status={status} />
         </span>
         <h4 className="line-clamp-2 text-base font-semibold break-words sm:text-lg" title={occurrence.courseName}>
@@ -222,7 +249,7 @@ function ClassCard({
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <Clock className="size-4 shrink-0 text-primary" aria-hidden="true" />
           <span className="tabular-nums" data-testid="todays-class-time">
-            {formatTime(Date.parse(occurrence.start), timeZone)} – {formatTime(Date.parse(occurrence.end), timeZone)}
+            {formatTime(Date.parse(occurrence.start), timeZone, timeLocale)} – {formatTime(Date.parse(occurrence.end), timeZone, timeLocale)}
           </span>
         </p>
         {occurrence.teacherName ? (
@@ -248,7 +275,7 @@ function ClassCard({
           href={`/courses/${encodeURIComponent(occurrence.courseSlug)}`}
           className="mt-auto inline-flex items-center justify-end gap-1 border-t border-border pt-3 text-sm sm:pt-4 font-semibold text-primary hover:underline"
         >
-          View course<span className="sr-only"> {occurrence.courseName}</span>
+          {t("public.todaysClasses.viewCourse")}<span className="sr-only"> {occurrence.courseName}</span>
           <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>

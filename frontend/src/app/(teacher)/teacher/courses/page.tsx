@@ -20,17 +20,13 @@ import { TeacherCourseCardGrid } from "@/components/courses/teacher-course-card-
 import { TeacherCourseManageMenu } from "@/components/courses/teacher/teacher-course-manage-menu";
 import { AdminToast, useAdminToast } from "@/components/courses/admin/admin-toast";
 import { useCourses, type CourseResponse, type CourseStatus } from "@/lib/api/courses";
-import {
-  TEACHER_NO_ASSIGNED_COURSES_TITLE,
-  TEACHER_NO_ASSIGNED_COURSES_DESCRIPTION,
-  TEACHER_NO_ASSIGNED_COURSES_ACTION_LABEL,
-} from "@/lib/copy/teacher-empty-states";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 
-const STATUS_FILTER_OPTIONS: Array<{ value: "all" | CourseStatus; label: string }> = [
-  { value: "all", label: "All statuses" },
-  { value: "DRAFT", label: "Draft" },
-  { value: "PRIVATE", label: "Private" },
-  { value: "PUBLIC", label: "Public" },
+const STATUS_FILTER_OPTIONS: Array<{ value: "all" | CourseStatus; label: (t: TranslateFn) => string }> = [
+  { value: "all", label: (t) => t("teacher.courses.filter.allStatuses") },
+  { value: "DRAFT", label: (t) => t("common.courseStatus.draft") },
+  { value: "PRIVATE", label: (t) => t("common.courseStatus.private") },
+  { value: "PUBLIC", label: (t) => t("common.courseStatus.public") },
 ];
 
 /**
@@ -54,6 +50,7 @@ export default function TeacherCoursesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | CourseStatus>("all");
   const toast = useAdminToast();
+  const t = useT();
 
   const categories = useMemo(() => {
     const values = new Set((query.data?.content ?? []).map((course) => course.category));
@@ -85,28 +82,26 @@ export default function TeacherCoursesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">My Courses</h1>
-          <p className="text-sm text-muted-foreground">
-            Courses you are assigned to teach. Open a course to see it as students do, or use Manage course to edit it.
-          </p>
+          <h1 className="text-xl font-semibold break-words text-foreground">{t("teacher.courses.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("teacher.courses.subtitle")}</p>
         </div>
         <Button render={<Link href="/teacher/courses/new" />}>
           <Plus aria-hidden="true" />
-          New course
+          {t("teacher.courses.newCourse")}
         </Button>
       </div>
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your courses…"
+        loadingLabel={t("teacher.courses.loading")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
         isEmpty={(data) => data.content.length === 0}
         emptyState={{
-          title: TEACHER_NO_ASSIGNED_COURSES_TITLE,
-          description: TEACHER_NO_ASSIGNED_COURSES_DESCRIPTION,
+          title: t("teacher.courses.empty.title"),
+          description: t("teacher.courses.empty.description"),
           action: {
-            label: TEACHER_NO_ASSIGNED_COURSES_ACTION_LABEL,
+            label: t("teacher.courses.empty.action"),
             onClick: () => router.push("/teacher/courses/new"),
           },
         }}
@@ -116,26 +111,30 @@ export default function TeacherCoursesPage() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="flex flex-1 flex-col gap-1.5">
-                  <Label htmlFor="teacher-courses-search">Search</Label>
+                  <Label htmlFor="teacher-courses-search">{t("teacher.courses.filter.search")}</Label>
                   <Input
                     id="teacher-courses-search"
                     type="search"
-                    placeholder="Search by course name or slug"
+                    placeholder={t("teacher.courses.filter.searchPlaceholder")}
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5 sm:w-56">
-                  <Label htmlFor="teacher-courses-category">Category</Label>
+                  <Label htmlFor="teacher-courses-category">{t("teacher.courses.filter.category")}</Label>
                   <Select
                     value={categoryFilter}
                     onValueChange={(value) => setCategoryFilter(value ?? "all")}
                   >
                     <SelectTrigger id="teacher-courses-category" className="w-full">
-                      <SelectValue placeholder="All categories" />
+                      <SelectValue placeholder={t("teacher.courses.filter.allCategories")}>
+                        {(value: string | null) =>
+                          !value || value === "all" ? t("teacher.courses.filter.allCategories") : value
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All categories</SelectItem>
+                      <SelectItem value="all">{t("teacher.courses.filter.allCategories")}</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
@@ -145,18 +144,22 @@ export default function TeacherCoursesPage() {
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1.5 sm:w-56">
-                  <Label htmlFor="teacher-courses-status">Status</Label>
+                  <Label htmlFor="teacher-courses-status">{t("teacher.courses.filter.status")}</Label>
                   <Select
                     value={statusFilter}
                     onValueChange={(value) => setStatusFilter(value as "all" | CourseStatus)}
                   >
                     <SelectTrigger id="teacher-courses-status" className="w-full">
-                      <SelectValue placeholder="All statuses" />
+                      <SelectValue placeholder={t("teacher.courses.filter.allStatuses")}>
+                        {(value: string | null) =>
+                          (STATUS_FILTER_OPTIONS.find((option) => option.value === value) ?? STATUS_FILTER_OPTIONS[0]).label(t)
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {STATUS_FILTER_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                          {option.label(t)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -166,11 +169,11 @@ export default function TeacherCoursesPage() {
 
               {filtered.length === 0 ? (
                 <EmptyState
-                  title="No courses match your filters"
-                  description="Try a different search term, or clear your filters to see all your courses."
+                  title={t("teacher.courses.noMatch.title")}
+                  description={t("teacher.courses.noMatch.description")}
                   action={
                     filtersActive
-                      ? { label: "Clear filters", onClick: clearFilters }
+                      ? { label: t("teacher.courses.noMatch.clear"), onClick: clearFilters }
                       : undefined
                   }
                 />
@@ -184,13 +187,13 @@ export default function TeacherCoursesPage() {
                         className={buttonVariants({ size: "sm" })}
                         data-testid="teacher-course-open"
                       >
-                        Open course
+                        {t("teacher.courses.openCourse")}
                       </Link>
                       <TeacherCourseManageMenu
                         courseId={course.id}
                         courseName={course.name}
                         onScheduleSaved={() =>
-                          toast.show({ kind: "success", text: `Class schedule saved for “${course.name}”.` })
+                          toast.show({ kind: "success", text: t("teacher.courses.scheduleSaved", { course: course.name }) })
                         }
                       />
                     </>
@@ -198,8 +201,8 @@ export default function TeacherCoursesPage() {
                 />
               )}
 
-              <p className="text-xs text-muted-foreground">
-                Showing {filtered.length} of {courses.totalElements} courses.
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {t("teacher.courses.showing", { shown: filtered.length, total: courses.totalElements })}
               </p>
             </div>
           );

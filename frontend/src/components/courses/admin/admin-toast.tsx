@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, AlertCircle, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Minimal per-page toast for the admin course screens. The project has no
@@ -49,6 +50,7 @@ export function AdminToast({
   message: AdminToastMessage | null;
   onDismiss: () => void;
 }) {
+  const t = useT();
   const box = (current: AdminToastMessage) => (
     <div
       data-testid="admin-toast"
@@ -83,7 +85,7 @@ export function AdminToast({
       <button
         type="button"
         onClick={onDismiss}
-        aria-label="Dismiss notification"
+        aria-label={t("common.toast.dismiss")}
         className="rounded text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <XIcon className="size-4" aria-hidden="true" />

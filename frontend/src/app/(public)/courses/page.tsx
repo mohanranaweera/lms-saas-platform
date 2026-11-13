@@ -11,8 +11,10 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { CourseCover } from "@/components/courses/student/course-visuals";
 import { CoursePriceText } from "@/components/courses/course-price-display";
 import { usePublicCourses, usePublicCourseTags, type PublicCourseResponse } from "@/lib/api/public-courses";
+import { useContentLang } from "@/i18n/content-lang";
 
 function CourseCard({ course }: { course: PublicCourseResponse }) {
+  const contentLang = useContentLang(course.contentLocale);
   return (
     <li>
       <Link
@@ -29,7 +31,9 @@ function CourseCard({ course }: { course: PublicCourseResponse }) {
           <span className="w-fit rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
             {course.category}
           </span>
-          <h2 className="line-clamp-2 text-lg font-semibold text-foreground">{course.name}</h2>
+          <h2 className="line-clamp-2 text-lg font-semibold break-words text-foreground" lang={contentLang}>
+            {course.name}
+          </h2>
           {course.teacherName ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <UserRound className="size-4" aria-hidden="true" />

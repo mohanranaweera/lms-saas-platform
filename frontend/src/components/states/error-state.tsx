@@ -1,6 +1,9 @@
+"use client";
+
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 import type { FieldError } from "@/lib/api/types";
 
 interface ErrorStateProps {
@@ -33,6 +36,7 @@ export function ErrorState({
   onRetry,
   className,
 }: ErrorStateProps) {
+  const t = useT();
   return (
     <div
       role="alert"
@@ -44,7 +48,7 @@ export function ErrorState({
       <AlertCircle className="size-6 text-destructive" aria-hidden="true" />
       <p className="text-sm text-destructive">{message}</p>
       {code ? (
-        <p className="text-xs text-destructive/70">Error code: {code}</p>
+        <p className="text-xs text-destructive/70">{t("common.state.errorCode", { code })}</p>
       ) : null}
       {fieldErrors && fieldErrors.length > 0 ? (
         <ul className="flex flex-col gap-1 text-left text-xs text-destructive">
@@ -60,7 +64,7 @@ export function ErrorState({
       ) : null}
       {onRetry ? (
         <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-          Try again
+          {t("common.actions.retry")}
         </Button>
       ) : null}
     </div>
