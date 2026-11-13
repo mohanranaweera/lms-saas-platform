@@ -504,7 +504,9 @@ test.describe("student payment slip upload — no client-side duplicate-detectio
     const apiV1Requests: Array<{ method: string; path: string }> = [];
     page.on("request", (request) => {
       const url = new URL(request.url());
-      if (url.pathname.includes("/api/v1/")) {
+      // I18N-01: UI-text catalog loads (e.g. the portal's namespace arriving
+      // after the session guard) are not business calls; ignore them.
+      if (url.pathname.includes("/api/v1/") && !url.pathname.includes("/v1/public/i18n/")) {
         apiV1Requests.push({ method: request.method(), path: url.pathname });
       }
     });

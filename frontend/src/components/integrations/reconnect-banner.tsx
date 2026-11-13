@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { isTeacherRole } from "@/lib/auth/permissions";
 import { PROVIDER_LABELS, useTeacherIntegrations } from "@/lib/api/integrations";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Teacher-portal banner (MEDIA-INT-01): shown on every teacher page while any
@@ -17,6 +18,7 @@ export function ReconnectBanner() {
   const { session } = useAuth();
   const isTeacher = isTeacherRole(session?.role ?? null);
   const query = useTeacherIntegrations({ enabled: isTeacher });
+  const t = useT();
   if (!isTeacher || !query.data) return null;
 
   const needsReconnect = query.data.providers
@@ -28,10 +30,12 @@ export function ReconnectBanner() {
     <Alert variant="destructive" className="mb-4">
       <RefreshCw aria-hidden="true" />
       <AlertDescription>
-        Your {needsReconnect.join(" and ")} {needsReconnect.length === 1 ? "account needs" : "accounts need"} to be
-        reconnected.{" "}
+        {t("common.integrations.reconnectNeeded", {
+          count: needsReconnect.length,
+          providers: needsReconnect.join(t("common.integrations.listSeparator")),
+        })}{" "}
         <Link href="/teacher/settings/integrations" className="font-medium underline">
-          Go to Integrations
+          {t("common.integrations.goToIntegrations")}
         </Link>
       </AlertDescription>
     </Alert>

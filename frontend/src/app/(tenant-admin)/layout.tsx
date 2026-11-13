@@ -1,7 +1,5 @@
-import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { TenantAdminNav } from "@/components/layout/nav/tenant-admin-nav";
-import { LogoutControl } from "@/components/auth/logout-control";
 import { RouteGuard } from "@/components/auth/route-guard";
+import { TenantAdminShell } from "./tenant-admin-shell";
 
 /**
  * MVP-007 (Teacher Management) note: `RouteGuard` is wired around the
@@ -29,15 +27,7 @@ export default function TenantAdminLayout({
 }) {
   return (
     <RouteGuard kind="tenant" loginPath="/login">
-      <DashboardShell
-        portalLabel="Tenant Admin"
-        nav={<TenantAdminNav />}
-        headerActions={
-          <LogoutControl kind="tenant" portalLabel="Tenant Admin" requireConfirmation />
-        }
-      >
-        {children}
-      </DashboardShell>
+      <TenantAdminShell>{children}</TenantAdminShell>
     </RouteGuard>
   );
 }

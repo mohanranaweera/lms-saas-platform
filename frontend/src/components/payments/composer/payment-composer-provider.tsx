@@ -5,6 +5,7 @@ import { CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PaymentComposerDialog } from "./payment-composer-dialog";
 import type { ComposerPreset } from "./composer-model";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Global PAY composer host for the student portal. One composer instance
@@ -48,6 +49,7 @@ export function usePaymentComposer(): PaymentComposerContextValue | null {
 /** The blue header PAY button - opens the composer with no preselection. */
 export function GlobalPayButton() {
   const composer = usePaymentComposer();
+  const t = useT();
   if (!composer) return null;
   return (
     <Button
@@ -58,7 +60,7 @@ export function GlobalPayButton() {
       className="rounded-full bg-blue-600 px-4 font-semibold text-white hover:bg-blue-700"
     >
       <CreditCard aria-hidden="true" />
-      PAY
+      {t("student.header.pay")}
     </Button>
   );
 }

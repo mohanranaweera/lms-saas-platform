@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useParams } from "next/navigation";
 import { LoadingState } from "@/components/states/loading-state";
+import { useT } from "@/i18n/i18n-provider";
 import { StudentCourseDetailView } from "@/components/courses/student/student-course-detail";
 
 /**
@@ -15,8 +16,9 @@ import { StudentCourseDetailView } from "@/components/courses/student/student-co
  */
 export default function StudentCourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
+  const t = useT();
   return (
-    <Suspense fallback={<LoadingState label="Loading course…" />}>
+    <Suspense fallback={<LoadingState label={t("student.common.loadingCourse")} />}>
       <StudentCourseDetailView courseId={courseId} />
     </Suspense>
   );

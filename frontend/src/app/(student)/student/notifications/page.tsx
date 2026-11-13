@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/i18n/i18n-provider";
 import { NotificationList } from "@/components/notifications/notification-list";
 import { NotificationPreferences } from "@/components/notifications/notification-preferences";
 
@@ -10,16 +13,16 @@ import { NotificationPreferences } from "@/components/notifications/notification
  * channel preferences (email/SMS/WhatsApp consent) are managed below.
  */
 export default function StudentNotificationsPage() {
+  const t = useT();
   return (
     <div className="flex flex-col gap-6">
       <NotificationList
-        heading="Notifications"
-        description="Announcements from your institute and updates about your payments."
+        heading={t("student.notifications.title")}
+        description={t("student.notifications.subtitle")}
         dashboardHref="/student/dashboard"
         emptyState={{
-          title: "No notifications yet",
-          description:
-            "Announcements from your institute and payment updates (confirmed, rejected or refunded) appear here.",
+          title: t("student.notifications.empty.title"),
+          description: t("student.notifications.empty.description"),
         }}
       />
       <NotificationPreferences />

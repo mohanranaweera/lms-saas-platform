@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/i18n/i18n-provider";
+
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { useOwnProfileFields } from "@/lib/api/student-profile-fields";
@@ -13,6 +15,7 @@ import { useOwnProfileFields } from "@/lib/api/student-profile-fields";
  */
 export function ProfileCompletionBanner({ showLink = true }: { showLink?: boolean }) {
   const query = useOwnProfileFields();
+  const t = useT();
   if (query.status !== "success" || query.data.missingRequiredFields.length === 0) {
     return null;
   }
@@ -28,8 +31,8 @@ export function ProfileCompletionBanner({ showLink = true }: { showLink?: boolea
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
         <p>
-          <span className="font-medium">Complete your profile.</span> Your institute asks for:{" "}
-          {labels.join(", ")}.
+          <span className="font-medium">{t("student.profileBanner.title")}</span>{" "}
+          {t("student.profileBanner.asksFor", { fields: labels.join(", ") })}
         </p>
       </div>
       {showLink ? (
@@ -37,7 +40,7 @@ export function ProfileCompletionBanner({ showLink = true }: { showLink?: boolea
           href="/student/profile#additional-details"
           className="shrink-0 font-medium text-foreground underline-offset-4 hover:underline"
         >
-          Complete profile
+          {t("student.profileBanner.link")}
         </Link>
       ) : null}
     </div>

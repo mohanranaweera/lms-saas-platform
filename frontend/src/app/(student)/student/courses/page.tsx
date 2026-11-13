@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { LoadingState } from "@/components/states/loading-state";
+import { StudentCoursesLoading } from "../student-loading";
 import { StudentCourseCatalog } from "@/components/courses/student/student-course-catalog";
 
 /**
@@ -24,7 +24,7 @@ export default async function StudentMyCoursesPage({
 }) {
   await searchParams;
   return (
-    <Suspense fallback={<LoadingState label="Loading courses…" />}>
+    <Suspense fallback={<StudentCoursesLoading />}>
       <StudentCourseCatalog />
     </Suspense>
   );

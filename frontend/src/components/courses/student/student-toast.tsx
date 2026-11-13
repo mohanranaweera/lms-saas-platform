@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Per-page toast for the student course screens (the project has no toast
@@ -46,6 +47,7 @@ export function StudentToast({
   message: StudentToastMessage | null;
   onDismiss: () => void;
 }) {
+  const t = useT();
   const box = (current: StudentToastMessage) => (
     <div
       data-testid="student-toast"
@@ -64,7 +66,7 @@ export function StudentToast({
       <button
         type="button"
         onClick={onDismiss}
-        aria-label="Dismiss notification"
+        aria-label={t("common.toast.dismiss")}
         className="rounded text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <XIcon className="size-4" aria-hidden="true" />

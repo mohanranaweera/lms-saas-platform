@@ -31,7 +31,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { playbackErrorMessage } from "@/components/player/playback-errors";
-import { isApiClientError } from "@/lib/api/error";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
+import { useLocaleFormat } from "@/i18n/use-locale-format";
 import { env } from "@/lib/env";
 import {
   useMyPlayerInstallations,
@@ -55,25 +57,25 @@ import { UnsupportedPlatformNotice } from "@/components/player/native-player-lau
 const PAIRING_WAIT_MS = 2 * 60_000;
 const PAIRING_POLL_MS = 3_000;
 
-const REVOCATION_LABELS: Record<string, string> = {
-  STUDENT: "removed by you",
-  ADMIN: "removed by your institute",
-  DEVICE_REVOKED: "its device was removed",
-  REPAIRED: "replaced by a newer pairing",
+const REVOCATION_LABELS: Record<string, (t: TranslateFn) => string> = {
+  STUDENT: (t) => t("student.player.revoked.student"),
+  ADMIN: (t) => t("student.player.revoked.admin"),
+  DEVICE_REVOKED: (t) => t("student.player.revoked.device"),
+  REPAIRED: (t) => t("student.player.revoked.repaired"),
 };
 
 export default function AocPlayerPage() {
   const query = useMyPlayerInstallations();
   const { refetch } = query;
   const refreshPlayers = useCallback(() => void refetch(), [refetch]);
+  const t = useT();
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">AOC Player</h1>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.player.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          If your institute plays lesson videos in the AOC Player app, pair it
-          with this computer once.
+          {t("student.player.subtitle")}
         </p>
       </div>
       <InstallCard />
@@ -89,18 +91,17 @@ export default function AocPlayerPage() {
           id="players-heading"
           className="text-base font-semibold text-foreground"
         >
-          Your players
+          {t("student.player.yourPlayers")}
         </h2>
         <QueryStateBoundary
           query={query}
-          loadingLabel="Loading your players…"
+          loadingLabel={t("student.player.loading")}
           loginPath="/login"
           permissionDenied={{ dashboardHref: "/student/dashboard" }}
           isEmpty={(data) => data.length === 0}
           emptyState={{
-            title: "No AOC Player paired yet",
-            description:
-              "Install the AOC Player on this computer, then choose “Pair the AOC Player” above.",
+            title: t("student.player.empty.title"),
+            description: t("student.player.empty.description"),
           }}
         >
           {(installations) => (
@@ -128,6 +129,7 @@ function activeIds(installations: PlayerInstallation[] | undefined): string[] {
  */
 function InstallCard() {
   const supported = useAocPlayerSupported();
+  const t = useT();
   if (supported === false) {
     return null;
   }
@@ -138,11 +140,10 @@ function InstallCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Download aria-hidden="true" className="size-4" />
-          Install the AOC Player
+          {t("student.player.install.title")}
         </CardTitle>
         <CardDescription>
-          For Windows 10 and 11. Install it once on this computer. The first
-          time you press Play on a lesson video, it sets itself up.
+          {t("student.player.install.description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -153,12 +154,11 @@ function InstallCard() {
             className={buttonVariants({ variant: "outline" })}
           >
             <Download aria-hidden="true" />
-            Download for Windows
+            {t("student.player.install.download")}
           </a>
         ) : (
           <p className="text-sm text-muted-foreground">
-            The AOC Player download isn&apos;t available yet. Your institute will
-            let you know when it is.
+            {t("student.player.install.unavailable")}
           </p>
         )}
       </CardContent>
@@ -174,6 +174,7 @@ function PairCard({
   activeIds: string[];
 }) {
   const pairing = useStartPairing();
+  const t = useT();
   const [waitingSince, setWaitingSince] = useState<number | null>(null);
   const [baseline, setBaseline] = useState<string[]>(activeIds);
   const [launchFailed, setLaunchFailed] = useState(false);
@@ -223,23 +224,21 @@ function PairCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <MonitorSmartphone aria-hidden="true" className="size-4" />
-          Pair this computer (optional)
+          {t("student.player.pair.title")}
         </CardTitle>
         <CardDescription>
-          Not needed for watching: pressing Play pairs the player
-          automatically. Use this only to set it up ahead of time. Pairing
-          again on this computer replaces the previous player.
+          {t("student.player.pair.description")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div role="status" aria-live="polite" className="text-sm">
           {paired ? (
-            <p className="text-foreground">The AOC Player is paired.</p>
+            <p className="text-foreground">{t("student.player.pair.done")}</p>
           ) : null}
           {waiting ? (
             <p className="flex items-center gap-2 text-muted-foreground">
               <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-              Waiting for the AOC Player to finish pairing…
+              {t("student.player.pair.waiting")}
             </p>
           ) : null}
         </div>
@@ -253,8 +252,7 @@ function PairCard({
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
             <AlertDescription>
-              The AOC Player didn&apos;t finish pairing. Make sure it&apos;s
-              installed on this computer, then try again.
+              {t("student.player.pair.timedOut")}
             </AlertDescription>
           </Alert>
         ) : null}
@@ -262,7 +260,7 @@ function PairCard({
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
             <AlertDescription>
-              Couldn&apos;t open the AOC Player. Please try again.
+              {t("student.player.pair.launchFailed")}
             </AlertDescription>
           </Alert>
         ) : null}
@@ -277,7 +275,7 @@ function PairCard({
               aria-busy={pairing.isPending}
             >
               <Link2 aria-hidden="true" />
-              {pairing.isPending ? "Preparing…" : "Pair the AOC Player"}
+              {pairing.isPending ? t("student.player.preparing") : t("student.player.pair.button")}
             </Button>
           </div>
         )}
@@ -291,8 +289,11 @@ function InstallationList({
 }: {
   installations: PlayerInstallation[];
 }) {
+  const t = useT();
+  const { formatDate } = useLocaleFormat();
+  const shortDate = (iso: string) => formatDate(iso, { year: "numeric", month: "short", day: "numeric" });
   return (
-    <ul className="flex flex-col gap-2" aria-label="Your AOC Players">
+    <ul className="flex flex-col gap-2" aria-label={t("student.player.listLabel")}>
       {installations.map((installation) => (
         <li
           key={installation.id}
@@ -300,22 +301,20 @@ function InstallationList({
         >
           <div className="min-w-0">
             <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
-              AOC Player for Windows
+              {t("student.player.forWindows")}
               <Badge
                 variant={
                   installation.status === "ACTIVE" ? "default" : "outline"
                 }
               >
-                {installation.status === "ACTIVE" ? "Active" : "Removed"}
+                {installation.status === "ACTIVE" ? t("student.player.active") : t("student.player.removedBadge")}
               </Badge>
             </p>
             <p className="text-xs text-muted-foreground">
-              Version {installation.playerVersion} · paired{" "}
-              {formatDate(installation.pairedAt)} · last used{" "}
-              {formatDate(installation.lastSeenAt)}
+              {t("student.player.details", { version: installation.playerVersion, paired: shortDate(installation.pairedAt), lastUsed: shortDate(installation.lastSeenAt) })}
               {installation.status === "REVOKED" &&
               installation.revocationSource
-                ? ` · ${REVOCATION_LABELS[installation.revocationSource] ?? "removed"}`
+                ? ` · ${REVOCATION_LABELS[installation.revocationSource]?.(t) ?? t("student.player.revoked.other")}`
                 : ""}
             </p>
           </div>
@@ -335,11 +334,8 @@ function RemovePlayerDialog({
 }) {
   const mutation = useRevokeMyInstallation();
   const [open, setOpen] = useState(false);
-  const errorMessage = mutation.isError
-    ? isApiClientError(mutation.error)
-      ? mutation.error.message
-      : "Something went wrong. Please try again."
-    : null;
+  const t = useT();
+  const errorMessage = mutation.isError ? localizeApiError(t, mutation.error) : null;
 
   return (
     <AlertDialog
@@ -355,19 +351,18 @@ function RemovePlayerDialog({
             type="button"
             variant="outline"
             size="sm"
-            aria-label="Remove this AOC Player"
+            aria-label={t("student.player.remove.label")}
           />
         }
       >
         <Trash2 aria-hidden="true" />
-        Remove
+        {t("student.player.remove.button")}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove this AOC Player?</AlertDialogTitle>
+          <AlertDialogTitle>{t("student.player.remove.title")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Any video playing in it stops straight away. You can pair it again
-            later.
+            {t("student.player.remove.description")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {errorMessage ? (
@@ -378,7 +373,7 @@ function RemovePlayerDialog({
         ) : null}
         <AlertDialogFooter>
           <AlertDialogClose render={<Button type="button" variant="outline" />}>
-            Cancel
+            {t("common.actions.cancel")}
           </AlertDialogClose>
           <Button
             type="button"
@@ -391,7 +386,7 @@ function RemovePlayerDialog({
               })
             }
           >
-            {mutation.isPending ? "Removing…" : "Remove player"}
+            {mutation.isPending ? t("student.player.remove.removing") : t("student.player.remove.confirm")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -399,10 +394,4 @@ function RemovePlayerDialog({
   );
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+

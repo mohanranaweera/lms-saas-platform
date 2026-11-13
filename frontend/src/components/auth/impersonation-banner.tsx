@@ -5,6 +5,7 @@ import { Eye, LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatZonedDateTime } from "@/lib/datetime";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * ADR-033 §7: persistent, visually loud banner for a support ("Log as
@@ -15,6 +16,7 @@ import { formatZonedDateTime } from "@/lib/datetime";
 export function ImpersonationBanner() {
   const { session, endImpersonation, readOnlyNotice, dismissReadOnlyNotice } = useAuth();
   const [exiting, setExiting] = useState(false);
+  const t = useT();
   const info = session?.impersonation;
   if (!info) return null;
 
@@ -26,14 +28,14 @@ export function ImpersonationBanner() {
     <div className="sticky top-0 z-40" data-testid="impersonation-banner">
       <div
         role="region"
-        aria-label="Support session"
+        aria-label={t("student.impersonation.region")}
         className="flex flex-col gap-2 border-b-2 border-amber-600 bg-amber-100 px-4 py-2 text-amber-950 sm:flex-row sm:items-center sm:justify-between dark:bg-amber-950 dark:text-amber-50"
       >
         <p className="flex items-start gap-2 text-sm font-medium">
           <Eye className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>
-            Viewing as {label} — read-only support session · ends {endsAt}
-            <span className="sr-only"> (started by {info.actorName})</span>
+            {t("student.impersonation.viewingAs", { name: label, time: endsAt })}
+            <span className="sr-only"> {t("student.impersonation.startedBy", { name: info.actorName })}</span>
           </span>
         </p>
         <Button
@@ -47,7 +49,7 @@ export function ImpersonationBanner() {
           }}
         >
           <LogOut aria-hidden="true" />
-          {exiting ? "Exiting…" : "Exit to admin"}
+          {exiting ? t("student.impersonation.exiting") : t("student.impersonation.exit")}
         </Button>
       </div>
       <div role="status" aria-live="polite">
@@ -58,7 +60,7 @@ export function ImpersonationBanner() {
               type="button"
               size="icon-sm"
               variant="ghost"
-              aria-label="Dismiss notice"
+              aria-label={t("student.impersonation.dismiss")}
               onClick={dismissReadOnlyNotice}
             >
               <X aria-hidden="true" />
