@@ -96,6 +96,8 @@ export interface PoImportReport {
   skippedEmpty: number;
   skippedFuzzy: number;
   skippedObsolete: number;
+  /** Needs-review (fuzzy) entries imported as drafts; only with `includeNeedsReview`. */
+  needsReview: number;
   unknownKeys: string[];
   sourceChanged: string[];
   invalid: Array<{ key: string; problems: string[] }>;
@@ -231,12 +233,13 @@ export function useImportPo() {
   const { authorizedFetch } = useAuth();
   const invalidate = useInvalidateTranslations();
   return useMutation({
-    mutationFn: (input: { locale: string; file: File; dryRun: boolean }) => {
+    mutationFn: (input: { locale: string; file: File; dryRun: boolean; includeNeedsReview: boolean }) => {
       const body = new FormData();
       body.append("file", input.file);
       return authorizedFetch<PoImportReport>(
         "tenant",
-        `${BASE}/import?locale=${encodeURIComponent(input.locale)}&dryRun=${input.dryRun}`,
+        `${BASE}/import?locale=${encodeURIComponent(input.locale)}&dryRun=${input.dryRun}` +
+          `&includeNeedsReview=${input.includeNeedsReview}`,
         { method: "POST", body }
       );
     },

@@ -1,5 +1,5 @@
 {
-  "version": "7e96b26eac8a",
+  "version": "aa825ebf673a",
   "sourceLocale": "en-LK",
   "locales": [
     {
@@ -209,8 +209,11 @@
     "i18nAdmin.import.dryRun": "Check file",
     "i18nAdmin.import.file": "PO file",
     "i18nAdmin.import.heading": "Import a PO file: {language}",
+    "i18nAdmin.import.includeNeedsReview": "Also import entries marked “needs review”",
+    "i18nAdmin.import.includeNeedsReviewHelp": "They become drafts like any other entry. Check them before you publish: publishing makes them visible to everyone.",
     "i18nAdmin.import.invalid": "{count, plural, one {# invalid message} other {# invalid messages}}",
     "i18nAdmin.import.invalidDetails": "Invalid messages",
+    "i18nAdmin.import.needsReviewIncluded": "{count, plural, one {# of them still needs review} other {# of them still need review}}",
     "i18nAdmin.import.reportTitle": "File check result",
     "i18nAdmin.import.skipped": "{count, plural, one {# skipped (empty, needs review or obsolete)} other {# skipped (empty, needs review or obsolete)}}",
     "i18nAdmin.import.unchanged": "{count, plural, one {# unchanged} other {# unchanged}}",

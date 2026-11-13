@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, FileUp } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { isApiClientError } from "@/lib/api/error";
 import { useImportPo, type PoImportReport } from "@/lib/api/translations";
 import { useT } from "@/i18n/i18n-provider";
@@ -19,6 +20,7 @@ const MAX_PO_BYTES = 1024 * 1024;
  * PO import (doc §5): a dry run first shows additions, changes, invalid
  * messages (with reasons) and unknown keys; only then can the import be
  * confirmed. Import writes drafts only - nothing is served until published.
+ * Entries marked "needs review" (fuzzy) are skipped unless the admin opts in.
  */
 export function ImportPanel({ locale }: { locale: string }) {
   const t = useT();
@@ -28,6 +30,15 @@ export function ImportPanel({ locale }: { locale: string }) {
   const [report, setReport] = useState<PoImportReport | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [includeNeedsReview, setIncludeNeedsReview] = useState(false);
+
+  function onIncludeNeedsReview(next: boolean) {
+    // The previous file check no longer describes what would be imported.
+    setIncludeNeedsReview(next);
+    setReport(null);
+    setDone(null);
+    mutation.reset();
+  }
 
   function onFile(next: File | null) {
     setReport(null);
@@ -46,7 +57,7 @@ export function ImportPanel({ locale }: { locale: string }) {
     if (!file) return;
     setDone(null);
     mutation.mutate(
-      { locale, file, dryRun },
+      { locale, file, dryRun, includeNeedsReview },
       {
         onSuccess: (result) => {
           if (dryRun) setReport(result);
@@ -88,6 +99,21 @@ export function ImportPanel({ locale }: { locale: string }) {
             {fileError}
           </p>
         ) : null}
+      </div>
+      <div className="flex items-start gap-3">
+        <Switch
+          id={`${id}-needs-review`}
+          checked={includeNeedsReview}
+          onCheckedChange={onIncludeNeedsReview}
+          aria-describedby={`${id}-needs-review-help`}
+          data-testid="include-needs-review"
+        />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label htmlFor={`${id}-needs-review`}>{t("i18nAdmin.import.includeNeedsReview")}</Label>
+          <p id={`${id}-needs-review-help`} className="text-xs text-muted-foreground">
+            {t("i18nAdmin.import.includeNeedsReviewHelp")}
+          </p>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" disabled={!file || mutation.isPending} aria-busy={mutation.isPending} onClick={() => run(true)}>
@@ -141,6 +167,11 @@ function ImportReport({ report }: { report: PoImportReport }) {
       <ul className="flex flex-col gap-0.5">
         <li>{t("i18nAdmin.import.additions", { count: report.created })}</li>
         <li>{t("i18nAdmin.import.changes", { count: report.updated })}</li>
+        {report.needsReview > 0 ? (
+          <li className="text-amber-700 dark:text-amber-400">
+            {t("i18nAdmin.import.needsReviewIncluded", { count: report.needsReview })}
+          </li>
+        ) : null}
         <li>{t("i18nAdmin.import.unchanged", { count: report.unchanged })}</li>
         <li>{t("i18nAdmin.import.skipped", { count: report.skippedEmpty + report.skippedFuzzy + report.skippedObsolete })}</li>
         <li className={report.invalid.length > 0 ? "text-destructive" : undefined}>

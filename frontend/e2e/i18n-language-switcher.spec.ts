@@ -388,4 +388,68 @@ test.describe("translation management", () => {
     await expect(page.getByTestId("live-problems")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Save draft" })).toBeEnabled();
   });
+
+  test("PO import: the needs-review switch is off by default and, when on, is sent with the file check", async ({ page }) => {
+    await mockSignedIn(page, "TENANT_ADMIN");
+    await mockJson(page, "**/v1/tenant-config/GENERAL", 200, apiSuccess([]));
+    await page.route(
+      (url) => url.pathname.endsWith("/v1/i18n/admin/entries"),
+      (route) =>
+        fulfillJson(
+          route,
+          200,
+          apiSuccess({
+            counts: { total: 0, missing: 0, translated: 0, needsReview: 0, overridden: 0, drafts: 0 },
+            page: { content: [], page: 0, size: 25, totalElements: 0, totalPages: 0 },
+          })
+        )
+    );
+    await page.route(
+      (url) => url.pathname.endsWith("/v1/i18n/admin/releases"),
+      (route) => fulfillJson(route, 200, apiSuccess([]))
+    );
+    const importUrls: string[] = [];
+    await page.route(
+      (url) => url.pathname.endsWith("/v1/i18n/admin/import"),
+      (route) => {
+        const url = new URL(route.request().url());
+        importUrls.push(url.search);
+        const include = url.searchParams.get("includeNeedsReview") === "true";
+        return fulfillJson(
+          route,
+          200,
+          apiSuccess({
+            locale: "si-LK", dryRun: true, valid: true, entries: 2,
+            created: include ? 2 : 1, updated: 0, unchanged: 0, skippedEmpty: 0,
+            skippedFuzzy: include ? 0 : 1, skippedObsolete: 0, needsReview: include ? 1 : 0,
+            unknownKeys: [], sourceChanged: [], invalid: [],
+          })
+        );
+      }
+    );
+    await mockI18n(page);
+    await page.goto("/tenant-admin/settings/translations");
+
+    const panel = page.getByTestId("import-panel");
+    const toggle = panel.getByTestId("include-needs-review");
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await panel.getByLabel("PO file").setInputFiles({
+      name: "si-LK.po",
+      mimeType: "text/x-gettext-translation",
+      buffer: Buffer.from(['msgid ""', 'msgstr ""', ""].join("\n")),
+    });
+
+    await panel.getByRole("button", { name: "Check file" }).click();
+    await expect(panel.getByTestId("import-report")).toContainText("1 skipped");
+    expect(importUrls.at(-1)).toContain("includeNeedsReview=false");
+
+    // Switching it on clears the old check; the next check sends the opt-in.
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    await expect(panel.getByTestId("import-report")).toHaveCount(0);
+    await panel.getByRole("button", { name: "Check file" }).click();
+    await expect(panel.getByTestId("import-report")).toContainText("1 of them still needs review");
+    expect(importUrls.at(-1)).toContain("includeNeedsReview=true");
+    await expect(panel.getByTestId("confirm-import")).toHaveText("Import 2 drafts");
+  });
 });
