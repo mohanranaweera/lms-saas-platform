@@ -135,6 +135,15 @@ public enum DomainArea {
 	 * per-capability tenant grant (Staff -> Permissions, Tute group). Never a payment, ledger,
 	 * enrollment or paid-entitlement grant - tutes never create orders, payments or ledger rows.
 	 */
-	TUTES
+	TUTES,
+
+	/**
+	 * I18N-01 (docs/architecture/i18n-translation-management.md section 7): tenant UI
+	 * translation overrides - {@code VIEW} (entries, preview, export, releases),
+	 * {@code CREATE_EDIT} (drafts, PO import), {@code APPROVE} (publish, rollback). Tenant Admin
+	 * only; other staff roles only through an explicit per-capability grant. Platform catalogs
+	 * have no runtime write path.
+	 */
+	TRANSLATIONS
 
 }

@@ -2,6 +2,7 @@ package com.lms.notificationmanagement.service;
 
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.notificationmanagement.domain.NotificationEventType;
+import com.lms.notificationmanagement.domain.NotificationTemplate;
 import com.lms.tenantmanagement.api.TenantRegisteredEvent;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -91,10 +92,25 @@ public class NotificationTemplateSeedingService {
 				"Hi,\n\nAn account has been created for you at {{tenantName}}. Set your password to get started:\n\n"
 						+ "{{link}}\n\nThis link can be used once and expires in {{expiresIn}}. "
 						+ "If you weren't expecting this, you can ignore this email.\n");
-		seedIfAbsent(tenantId, NotificationEventType.PASSWORD_RESET, "Reset your {{tenantName}} password",
-				"Hi,\n\nWe received a request to reset your password at {{tenantName}}. Choose a new one here:\n\n"
-						+ "{{link}}\n\nThis link can be used once and expires in {{expiresIn}}. "
-						+ "If you didn't ask for this, you can ignore this email - your password won't change.\n");
+		seedIfAbsent(tenantId, NotificationEventType.PASSWORD_RESET, PASSWORD_RESET_SUBJECT, PASSWORD_RESET_BODY);
+	}
+
+	/**
+	 * The platform default password-reset template. I18N-01: while a tenant's stored template is
+	 * still exactly this text, the dispatcher renders the email from the localized
+	 * {@code email.passwordReset.*} messages instead (identical English text); a
+	 * tenant-customized template is always sent as written.
+	 */
+	public static final String PASSWORD_RESET_SUBJECT = "Reset your {{tenantName}} password";
+
+	public static final String PASSWORD_RESET_BODY = "Hi,\n\nWe received a request to reset your password at "
+			+ "{{tenantName}}. Choose a new one here:\n\n"
+			+ "{{link}}\n\nThis link can be used once and expires in {{expiresIn}}. "
+			+ "If you didn't ask for this, you can ignore this email - your password won't change.\n";
+
+	/** True while {@code template} is still the platform default password-reset text. */
+	public static boolean isDefaultPasswordResetTemplate(NotificationTemplate template) {
+		return PASSWORD_RESET_SUBJECT.equals(template.getSubject()) && PASSWORD_RESET_BODY.equals(template.getBody());
 	}
 
 	/**

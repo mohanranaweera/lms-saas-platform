@@ -340,7 +340,73 @@ public class ConfigPropertyRegistry {
 				// SET-CFG-01: GA4 measurement id, loaded on the public site and
 				// student portal. Public by nature (it is in the page source).
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "ga_measurement_id", ConfigValueType.STRING, null,
-						(value, batch) -> value instanceof String s && GA_MEASUREMENT_ID_PATTERN.matcher(s).matches()));
+						(value, batch) -> value instanceof String s && GA_MEASUREMENT_ID_PATTERN.matcher(s).matches()),
+				// I18N-01 (docs/architecture/i18n-translation-management.md section 1): UI
+				// languages. Existing tenants have no rows, so they keep running in English.
+				// default_locale must be one of enabled_locales - checked in the same batch
+				// here and against the persisted values by crossFieldErrors.
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, ENABLED_LOCALES_KEY, ConfigValueType.JSON,
+						List.of(DEFAULT_LOCALE), ConfigPropertyRegistry::isEnabledLocales),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, DEFAULT_LOCALE_KEY, ConfigValueType.STRING,
+						DEFAULT_LOCALE, ConfigPropertyRegistry::isDefaultLocale),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, BROWSER_LANGUAGE_DETECTION_KEY,
+						ConfigValueType.BOOLEAN, Boolean.FALSE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	/**
+	 * I18N-01: the platform-supported UI locale tags. Must equal the tags in
+	 * {@code i18n/locales.json} (pinned by {@code LocaleSettingsConsistencyTest}); kept here as
+	 * a constant because tenant-management is foundational and must not depend on the
+	 * localization module.
+	 */
+	public static final List<String> SUPPORTED_LOCALES = List.of("en-LK", "si-LK", "ta-LK");
+
+	public static final String DEFAULT_LOCALE = "en-LK";
+
+	public static final String ENABLED_LOCALES_KEY = "enabled_locales";
+
+	public static final String DEFAULT_LOCALE_KEY = "default_locale";
+
+	public static final String BROWSER_LANGUAGE_DETECTION_KEY = "browser_language_detection";
+
+	/** Non-empty list of distinct canonical supported tags; contains a same-batch default_locale. */
+	private static boolean isEnabledLocales(Object value, Map<String, Object> batch) {
+		if (!(value instanceof List<?> values) || values.isEmpty() || values.size() > SUPPORTED_LOCALES.size()) {
+			return false;
+		}
+		if (!values.stream().allMatch(item -> item instanceof String s && SUPPORTED_LOCALES.contains(s))
+				|| values.stream().distinct().count() != values.size()) {
+			return false;
+		}
+		Object defaultLocale = batch.get(DEFAULT_LOCALE_KEY);
+		return !(defaultLocale instanceof String d) || values.contains(d);
+	}
+
+	/** A canonical supported tag, contained in a same-batch enabled_locales list. */
+	private static boolean isDefaultLocale(Object value, Map<String, Object> batch) {
+		if (!(value instanceof String s) || !SUPPORTED_LOCALES.contains(s)) {
+			return false;
+		}
+		Object enabled = batch.get(ENABLED_LOCALES_KEY);
+		return !(enabled instanceof List<?> list) || list.contains(s);
+	}
+
+	/**
+	 * Cross-property rules checked against the EFFECTIVE values (persisted values overlaid with
+	 * the batch being saved), so a single-key update cannot break an invariant the per-key
+	 * validators only see within one batch. I18N-01: {@code default_locale} must be enabled.
+	 */
+	public List<com.lms.common.api.FieldError> crossFieldErrors(ConfigDomain domain, Map<String, Object> effective) {
+		if (domain != ConfigDomain.GENERAL) {
+			return List.of();
+		}
+		Object enabled = effective.get(ENABLED_LOCALES_KEY);
+		Object defaultLocale = effective.get(DEFAULT_LOCALE_KEY);
+		if (enabled instanceof List<?> list && defaultLocale instanceof String d && !list.contains(d)) {
+			return List.of(new com.lms.common.api.FieldError(DEFAULT_LOCALE_KEY,
+					"default_locale must be one of enabled_locales"));
+		}
+		return List.of();
 	}
 
 	private static ConfigPropertyDefinition policyProperty(String key) {

@@ -104,6 +104,14 @@ public class Course extends Auditable implements TenantOwned {
 	@Column(name = "cover_image_object_key", length = 512)
 	private String coverImageObjectKey;
 
+	/**
+	 * I18N-01 (V124): the language the original name/description are written in; {@code null}
+	 * for legacy rows ("not declared" - nothing is inferred). Variants live in
+	 * {@code course_localization}.
+	 */
+	@Column(name = "content_locale", length = 16)
+	private String contentLocale;
+
 	@Column(name = "whatsapp_invite_url", length = 500)
 	private String whatsappInviteUrl;
 
@@ -231,6 +239,10 @@ public class Course extends Auditable implements TenantOwned {
 
 	public String getDescription() {
 		return description;
+	}
+
+	public String getContentLocale() {
+		return contentLocale;
 	}
 
 	public void setDescription(String description) {

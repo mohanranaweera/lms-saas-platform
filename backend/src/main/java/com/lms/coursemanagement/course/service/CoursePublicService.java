@@ -151,7 +151,8 @@ public class CoursePublicService {
 				course.getDescription(), course.getPrice(), course.getAccessDurationDays(),
 				course.getEnrollmentRule(), course.getPricingModel(), resolved != null ? resolved.amount() : null,
 				resolved != null ? resolved.currency() : null, resolved != null && resolved.requiresManualQuote(),
-				teacherName, coverImageUrl, course.isRegistrationEnabled(), outline, tags);
+				teacherName, coverImageUrl, course.isRegistrationEnabled(), outline, tags, course.getContentLocale(),
+				course.getContentLocale() == null ? List.of() : List.of(course.getContentLocale()));
 	}
 
 }

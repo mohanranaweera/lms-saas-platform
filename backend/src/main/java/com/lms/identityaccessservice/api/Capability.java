@@ -27,6 +27,7 @@ import static com.lms.identityaccessservice.api.DomainArea.STAFF_AND_ROLES;
 import static com.lms.identityaccessservice.api.DomainArea.STUDENTS;
 import static com.lms.identityaccessservice.api.DomainArea.STUDENT_IMPERSONATION;
 import static com.lms.identityaccessservice.api.DomainArea.TEACHERS;
+import static com.lms.identityaccessservice.api.DomainArea.TRANSLATIONS;
 import static com.lms.identityaccessservice.api.DomainArea.TUTES;
 import static com.lms.identityaccessservice.api.PermissionAction.APPROVE;
 import static com.lms.identityaccessservice.api.PermissionAction.CREATE_EDIT;
@@ -293,6 +294,16 @@ public enum Capability {
 	REPORTS_STUDENT_BEHAVIOR(CapabilityGroup.REPORTS, "Generate Student Behaviour Report",
 			om(p(FINANCE_EXPENSES, VIEW))),
 	REPORTS_UNDO_PAYMENTS(CapabilityGroup.REPORTS, "Generate Undo Payments Report", om(p(FINANCE_EXPENSES, VIEW))),
+
+	// ---------------------------------------------------------------- Translations (I18N-01 section 7)
+	// Tenant Admin holds every TRANSLATIONS pair statically; Operator / Manager / seeded roles
+	// only by explicit grant (off by default); Teacher is not configurable.
+	// GET /i18n/admin/entries, /preview-catalog, /export, /releases.
+	TRANSLATIONS_VIEW(CapabilityGroup.TRANSLATIONS, "View Translations", om(p(TRANSLATIONS, VIEW))),
+	// PUT/DELETE /i18n/admin/drafts/..., POST .../reset, POST /i18n/admin/import.
+	TRANSLATIONS_EDIT(CapabilityGroup.TRANSLATIONS, "Edit Translations", om(p(TRANSLATIONS, CREATE_EDIT))),
+	// POST /i18n/admin/publish, POST /i18n/admin/releases/{id}/rollback.
+	TRANSLATIONS_PUBLISH(CapabilityGroup.TRANSLATIONS, "Publish Translations", om(p(TRANSLATIONS, APPROVE))),
 
 	// ---------------------------------------------------------------- Staff (never configurable)
 	STAFF_VIEW(CapabilityGroup.STAFF, "View Staff", locked(CapabilitySpec.TENANT_ADMIN_ONLY, p(STAFF_AND_ROLES, VIEW))),

@@ -457,6 +457,10 @@ public class PermissionCheckServiceImpl implements PermissionCheckService {
 			// TUTE-01 section 8 - Tenant Admin only; every other role needs an explicit
 			// per-capability grant (Teacher: own courses only).
 			.grant(DomainArea.TUTES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT, PermissionAction.DELETE,
+					PermissionAction.APPROVE)
+			// I18N-01 section 7 - tenant translation overrides, Tenant Admin only; other roles
+			// need an explicit per-capability grant (Staff -> Permissions, Translations group).
+			.grant(DomainArea.TRANSLATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
 					PermissionAction.APPROVE)));
 
 		matrix.put(Role.FINANCE_STAFF, roleGrants(builder -> builder.grant(DomainArea.STUDENTS, PermissionAction.VIEW)

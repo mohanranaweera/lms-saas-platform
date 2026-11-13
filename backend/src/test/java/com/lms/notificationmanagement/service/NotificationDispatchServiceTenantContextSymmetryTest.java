@@ -95,7 +95,8 @@ class NotificationDispatchServiceTenantContextSymmetryTest {
 				// AUTH-PWD-01 collaborators - unused on this payment-email path.
 				org.mockito.Mockito.mock(com.lms.identityaccessservice.api.PasswordTokenIssuingApi.class),
 				org.mockito.Mockito.mock(com.lms.tenantmanagement.api.TenantLookupApi.class),
-				org.mockito.Mockito.mock(NotificationTemplateSeedingService.class), "http://{subdomain}.lms.test");
+				org.mockito.Mockito.mock(NotificationTemplateSeedingService.class),
+				org.mockito.Mockito.mock(PasswordResetEmailLocalizer.class), "http://{subdomain}.lms.test");
 
 		NotificationOutbox row = new NotificationOutbox(TENANT_ID, NotificationEventType.PAYMENT_CONFIRMED,
 				RECIPIENT_USER_ID, "{\"amount\":\"10.00\"}", java.time.Instant.now());

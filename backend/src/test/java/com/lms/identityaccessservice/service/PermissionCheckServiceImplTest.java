@@ -187,6 +187,23 @@ class PermissionCheckServiceImplTest {
 	}
 
 	@Test
+	void translationsAreTenantAdminOnlyInTheStaticMatrixAndNeverDelete() {
+		// I18N-01 section 7: VIEW / CREATE_EDIT / APPROVE for Tenant Admin, nothing for anyone else.
+		for (Role role : Role.values()) {
+			AuthenticatedPrincipalHolder.set(principalFor(role));
+			try {
+				for (PermissionAction action : PermissionAction.values()) {
+					assertThat(service.hasPermission(DomainArea.TRANSLATIONS, action)).as("%s / %s", role, action)
+						.isEqualTo(role == Role.TENANT_ADMIN && action != PermissionAction.DELETE);
+				}
+			}
+			finally {
+				AuthenticatedPrincipalHolder.clear();
+			}
+		}
+	}
+
+	@Test
 	void tutesAreTenantAdminOnlyInTheStaticMatrix() {
 		// TUTE-01 section 8: every other role needs an explicit per-capability grant.
 		for (Role role : Role.values()) {
@@ -399,7 +416,10 @@ class PermissionCheckServiceImplTest {
 							cell(DomainArea.STUDENT_IMPERSONATION, PermissionAction.CREATE_EDIT),
 							// TUTE-01 section 8 - Tute Management & Dispatch, Tenant Admin only.
 							cell(DomainArea.TUTES, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
-									PermissionAction.DELETE, PermissionAction.APPROVE))),
+									PermissionAction.DELETE, PermissionAction.APPROVE),
+							// I18N-01 section 7 - tenant translation overrides, Tenant Admin only.
+							cell(DomainArea.TRANSLATIONS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,
+									PermissionAction.APPROVE))),
 			Map.entry(Role.FINANCE_STAFF,
 					row(cell(DomainArea.STUDENTS, PermissionAction.VIEW), cell(DomainArea.COURSES, PermissionAction.VIEW),
 							cell(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW, PermissionAction.CREATE_EDIT,

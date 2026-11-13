@@ -1,6 +1,7 @@
 package com.lms.tenantmanagement.api;
 
 import com.lms.common.money.PlatformCurrency;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -89,6 +90,38 @@ public interface TenantConfigApi {
 		return resolveValue(tenantId, ConfigDomain.NOTIFICATION, "sms_enabled")
 			.map(value -> !Boolean.FALSE.equals(value))
 			.orElse(true);
+	}
+
+	/**
+	 * I18N-01: {@code GENERAL.enabled_locales} as stored (canonical tags), default
+	 * {@code ["en-LK"]}. The localization module re-validates every tag against the supported
+	 * locales before use.
+	 */
+	default List<String> resolveEnabledLocales(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "enabled_locales")
+			.filter(List.class::isInstance)
+			.map(value -> ((List<?>) value).stream()
+				.filter(String.class::isInstance)
+				.map(String.class::cast)
+				.toList())
+			.filter(list -> !list.isEmpty())
+			.orElse(List.of("en-LK"));
+	}
+
+	/** I18N-01: {@code GENERAL.default_locale}, default {@code en-LK}. */
+	default String resolveDefaultLocale(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "default_locale")
+			.filter(String.class::isInstance)
+			.map(String.class::cast)
+			.filter(value -> !value.isBlank())
+			.orElse("en-LK");
+	}
+
+	/** I18N-01: {@code GENERAL.browser_language_detection}, {@code false} unless explicitly {@code true}. */
+	default boolean isBrowserLanguageDetectionEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "browser_language_detection")
+			.map(Boolean.TRUE::equals)
+			.orElse(false);
 	}
 
 	/**

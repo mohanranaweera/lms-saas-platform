@@ -135,6 +135,17 @@ public class TenantConfigService implements TenantConfigApi {
 		if (!valueErrors.isEmpty()) {
 			throw new InvalidConfigValueException(valueErrors);
 		}
+		// I18N-01: cross-property invariants against the effective values (persisted + batch).
+		Map<String, Object> effective = new LinkedHashMap<>();
+		getDomain(domain).forEach(property -> effective.put(property.key(), property.value()));
+		changes.forEach((key, value) -> {
+			ConfigPropertyDefinition definition = definitionsByKey.get(key);
+			effective.put(key, value != null ? value : definition.defaultValue());
+		});
+		List<FieldError> crossFieldErrors = registry.crossFieldErrors(domain, effective);
+		if (!crossFieldErrors.isEmpty()) {
+			throw new InvalidConfigValueException(crossFieldErrors);
+		}
 
 		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
 		// Built with a plain loop, not Collectors.toMap - a property with no

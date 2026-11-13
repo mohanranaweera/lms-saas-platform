@@ -96,6 +96,8 @@ public class NotificationDispatchService {
 
 	private final NotificationTemplateSeedingService templateSeedingService;
 
+	private final PasswordResetEmailLocalizer passwordResetEmailLocalizer;
+
 	/** AUTH-PWD-01: tenant site origin for account-setup / reset links, {subdomain} from the tenant record. */
 	private final String tenantUrlTemplate;
 
@@ -106,6 +108,7 @@ public class NotificationDispatchService {
 			NotificationDispatchFinalizeService notificationDispatchFinalizeService,
 			PasswordTokenIssuingApi passwordTokenIssuingApi, TenantLookupApi tenantLookupApi,
 			NotificationTemplateSeedingService templateSeedingService,
+			PasswordResetEmailLocalizer passwordResetEmailLocalizer,
 			@Value("${app.public.tenant-url-template:}") String tenantUrlTemplate) {
 		this.notificationTemplateRepository = notificationTemplateRepository;
 		this.userProvisioningApi = userProvisioningApi;
@@ -117,6 +120,7 @@ public class NotificationDispatchService {
 		this.passwordTokenIssuingApi = passwordTokenIssuingApi;
 		this.tenantLookupApi = tenantLookupApi;
 		this.templateSeedingService = templateSeedingService;
+		this.passwordResetEmailLocalizer = passwordResetEmailLocalizer;
 		this.tenantUrlTemplate = tenantUrlTemplate;
 	}
 
@@ -159,7 +163,13 @@ public class NotificationDispatchService {
 				payloadMap.putAll(credentialVariables(row, credentialPurpose));
 			}
 
-			RenderedNotification rendered = notificationTemplateRenderer.render(template, payloadMap);
+			// I18N-01: the platform-default reset email goes out in the recipient's language;
+			// a tenant-customized template is sent exactly as written.
+			RenderedNotification rendered = (credentialPurpose == PasswordTokenPurpose.PASSWORD_RESET
+					&& NotificationTemplateSeedingService.isDefaultPasswordResetTemplate(template))
+							? passwordResetEmailLocalizer.render(row.getTenantId(), row.getRecipientUserId(),
+									payloadMap)
+							: notificationTemplateRenderer.render(template, payloadMap);
 
 			messagingProviderApi.sendEmail(recipientEmail, rendered.subject(), rendered.body());
 

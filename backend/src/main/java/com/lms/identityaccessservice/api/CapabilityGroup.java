@@ -6,7 +6,7 @@ public enum CapabilityGroup {
 	FINANCE("Finance"), TEACHERS("Teachers"), COURSES("Courses"), MODULES("Modules"), STUDENTS("Students"),
 	EXAMS("Exams"), ATTENDANCE("Attendance"), PAYMENTS("Payments"), MEDIA_LIBRARY("Media Library"),
 	NOTIFICATIONS("Notifications"), TIMETABLE("Timetable"), INTEGRATIONS("Integrations"), TUTE("Tute"),
-	REPORTS("Reports"), STAFF("Staff");
+	REPORTS("Reports"), TRANSLATIONS("Translations"), STAFF("Staff");
 
 	private final String label;
 

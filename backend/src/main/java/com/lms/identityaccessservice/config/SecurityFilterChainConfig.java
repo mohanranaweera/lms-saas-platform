@@ -156,6 +156,10 @@ public class SecurityFilterChainConfig {
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/calendar/today").permitAll();
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding",
 						"/api/v1/public/tenant-config/home", "/api/v1/public/tenant-config/policies/*").permitAll();
+				// I18N-01: language settings and the published UI catalog - same host-resolved
+				// tenant, GET only, never drafts. See PublicI18nController.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/i18n/settings", "/api/v1/public/i18n/catalog")
+					.permitAll();
 				// Public, unauthenticated student-registration-policy read path
 				// (Wave 3 gap-fill) - same rationale as the branding read
 				// above, for ConfigDomain.STUDENT's registration-relevant
@@ -261,7 +265,8 @@ public class SecurityFilterChainConfig {
 		// registered tenant must work locally too (AUTH-PWD-01 invitation links).
 		configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "http://*.lms.test:3000"));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+		// I18N-01: X-LMS-Locale carries an explicit per-request UI language (never persisted).
+		configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-LMS-Locale"));
 		configuration.setAllowCredentials(true);
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
