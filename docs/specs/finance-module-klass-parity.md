@@ -205,3 +205,21 @@ Frontend: Playwright `finance-hub.spec.ts` (six tabs, desktop + mobile, empty/po
 
 `docs/api/finance-expense-management.md` (new section), this file, `docs/operations/finance-module-operating-note.md`,
 `docs/parity/klass-parity-matrix.md` rows PAR-23-01 / PAR-24-05, `docs/adr/ADR-036` consequence note.
+
+## 14. Backend review findings (security, tenant isolation, payment ledger — 2026-11-15)
+
+Reviewed against local code only (`feat/finance-module-klass`), no production system or data.
+
+| Area | Result | Notes |
+|---|---|---|
+| Endpoint authorisation | Pass | Every controller method: `@PreAuthorize("isAuthenticated()")` + `@RequiresCapability`; every service method re-checks `requireCapability`. Read-only Auditor 403 on every write is covered by `FinanceAccountBookIntegrationTest`. |
+| Tenant identity | Pass | No request carries a tenant id; all repositories are `TenantAwareRepository`; the four native aggregates take `tenantId` from `TenantContext`; the single cross-tenant query (`findTenantIdsWithActiveSchedulesAcrossTenants`) returns tenant ids only and is used by the job, which sets/clears the context per tenant. Both listeners assert `event.tenantId()` equals the request context. |
+| Cross-tenant tests | Pass (one gap noted) | `tenantsAreIsolatedAcrossEveryFinanceSurface` proves 404/empty for accounts, transactions, routing, unposted, schedules, occurrences, budget and every mutation. Not separately asserted: Student Income for tenant B (it reads the ledger through `TeacherIncomeLedgerApi`, whose tenant scoping is proven by the RPT-01 suites). |
+| Schema | Pass | Every new table: `tenant_id NOT NULL`, `UNIQUE (tenant_id, id)`, composite FKs to parents, tenant-leading indexes, CHECK-enforced state/shape invariants, append-only repositories. |
+| Ledger rules | Pass | No `ledger_entry` type or write path changed; `LedgerEntryService` only publishes an event after the row is written. Financial rows are never updated in place or deleted; reversals/refunds are new rows. Enrollment / paid entitlement activation untouched. |
+| Idempotency | Pass | Unique `(tenant, source_type, source_id)`, `(tenant, idempotency_key)`, `(tenant, schedule, due_date)`, single reversal per row; duplicate webhook delivery remains covered by `PaymentAndLedgerIntegrationTest` (green). |
+| New coupling (accepted risk, mitigated) | Hardened | The Finance posting runs inside the payment-confirmation transaction so a confirmed payment and its posting commit together. A database failure in the posting still rolls the confirmation back (correct: never a half-written book); a non-database (logic) failure is logged as `finance.ledger_posting_skipped` and the confirmation commits — Reconcile backfills. Missing routing is not a failure (UNPOSTED). |
+| Secrets / uploads / protected content | n/a | None introduced. |
+| Change-controlled areas | Flagged, not changed | Capability catalog gains Finance account-book rows (same `FINANCE_EXPENSES` static gate; routing Tenant Admin only). ADR-036 addendum records the linked wallet payout posting that decision 6 pre-approved. Ledger entry types, enrollment/entitlement rules, auth architecture and tenancy strategy are unchanged. |
+
+Open product decisions carried forward (not blocking): account-linked wallet **Pay In** meaning (ADR-036 §6); whether the Klass-style **automatic** posting of scheduled transactions should ever be enabled (today: manual recording only); whether Finance expenses should allow a receipt upload from the Transactions tab (today: use the Expenses page).
