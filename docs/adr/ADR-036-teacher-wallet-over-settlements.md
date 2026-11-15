@@ -58,3 +58,12 @@ A separate wallet ledger would create a second, conflicting figure. Tenant Finan
   `CALCULATED` in the settlements list.
 - No opening balance is inferred from history, and no existing row is changed.
 - Adding Finance Accounts, linked postings or automatic wallet credits needs its own decision.
+
+## Addendum A1: Finance account book (FIN-01, 2026-11-15)
+
+Finance Accounts now exist (`docs/specs/finance-module-klass-parity.md`, V125). Per decision 6, an
+account-linked **Pay Out** posts exactly one Finance outflow (`finance_transaction`, source
+`WALLET_ENTRY`, unique per settlement row) in the same transaction, through the synchronous
+`WalletPayoutLinkedEvent`; a validation failure rolls the wallet entry back. Wallet entries remain
+append-only, so that posting has no Finance-side reversal. An account-linked **Pay In** is still
+rejected (400) - its meaning for an account is undecided. Nothing else in this ADR changes.

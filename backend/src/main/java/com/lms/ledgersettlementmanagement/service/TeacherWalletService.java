@@ -13,6 +13,8 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
+import com.lms.ledgersettlementmanagement.api.TeacherWalletApi;
+import com.lms.ledgersettlementmanagement.api.WalletPayoutLinkedEvent;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlement;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementKind;
 import com.lms.ledgersettlementmanagement.domain.TeacherWallet;
@@ -41,6 +43,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -69,12 +72,12 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional
-public class TeacherWalletService {
+public class TeacherWalletService implements TeacherWalletApi {
 
 	static final String TARGET_WALLET = "teacher_wallet";
 
-	static final String ACCOUNT_LINK_UNAVAILABLE = "Finance accounts are not available yet - record a wallet-only "
-			+ "entry (leave Expense Account empty)";
+	static final String PAY_IN_ACCOUNT_LINK_UNAVAILABLE = "An account-linked Pay In is not available yet (ADR-036 "
+			+ "section 6) - record a wallet-only entry (leave Expense Account empty)";
 
 	private static final BigDecimal MAX_AMOUNT = new BigDecimal("9999999999.99");
 
@@ -98,10 +101,12 @@ public class TeacherWalletService {
 
 	private final EntityManager entityManager;
 
+	private final ApplicationEventPublisher eventPublisher;
+
 	public TeacherWalletService(TeacherWalletRepository walletRepository,
 			TeacherSettlementRepository settlementRepository, UserProvisioningApi userProvisioningApi,
 			PermissionCheckService permissionCheckService, AuditLogApi auditLogApi, TenantConfigApi tenantConfigApi,
-			TenantContext tenantContext, EntityManager entityManager) {
+			TenantContext tenantContext, EntityManager entityManager, ApplicationEventPublisher eventPublisher) {
 		this.walletRepository = walletRepository;
 		this.settlementRepository = settlementRepository;
 		this.userProvisioningApi = userProvisioningApi;
@@ -110,6 +115,35 @@ public class TeacherWalletService {
 		this.tenantConfigApi = tenantConfigApi;
 		this.tenantContext = tenantContext;
 		this.entityManager = entityManager;
+		this.eventPublisher = eventPublisher;
+	}
+
+	// ------------------------------------------------------------------
+	// TeacherWalletApi (FIN-01): the signed-in user's own wallet, if any.
+	// ------------------------------------------------------------------
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<WalletSummary> findWalletOwnedBy(UUID tenantUserId, int recentEntries) {
+		return walletRepository.findByTeacher(tenantUserId).map(wallet -> {
+			WalletView view = viewOf(tenantUserId, wallet);
+			int size = Math.max(1, Math.min(recentEntries, 20));
+			return new WalletSummary(tenantUserId, wallet.getId(), view.currency(), view.balance(),
+					view.unpaidSettlements(), view.walletEntries(),
+					movements(tenantUserId, TeacherSettlementKind.PAY_IN, size),
+					movements(tenantUserId, TeacherSettlementKind.PAY_OUT, size));
+		});
+	}
+
+	private List<WalletMovement> movements(UUID teacherId, TeacherSettlementKind kind, int size) {
+		return settlementRepository
+			.findWalletEntries(teacherId, List.of(kind),
+					PageRequest.of(0, size,
+							Sort.by(Sort.Direction.DESC, "calculatedAt").and(Sort.by(Sort.Direction.DESC, "id"))))
+			.stream()
+			.map(entry -> new WalletMovement(entry.getId(), entry.getKind().name(), entry.getShareAmount(),
+					entry.getReason(), entry.getCalculatedAt()))
+			.toList();
 	}
 
 	// ------------------------------------------------------------------
@@ -311,9 +345,11 @@ public class TeacherWalletService {
 			throw new FieldValidationException("Invalid category",
 					List.of(new FieldError("categoryId", "select an expense account before a category")));
 		}
-		if (request.accountId() != null) {
+		// FIN-01 / ADR-036 section 6: a linked Pay Out posts exactly one Finance outflow (below,
+		// same transaction). A linked Pay In still needs a product decision - rejected, never dropped.
+		if (request.accountId() != null && kind != TeacherSettlementKind.PAY_OUT) {
 			throw new FieldValidationException("Account-linked wallet entries are not available",
-					List.of(new FieldError("accountId", ACCOUNT_LINK_UNAVAILABLE)));
+					List.of(new FieldError("accountId", PAY_IN_ACCOUNT_LINK_UNAVAILABLE)));
 		}
 		BigDecimal expected = request.expectedBalance() == null ? null
 				: normalizeSigned(request.expectedBalance(), "expectedBalance");
@@ -340,8 +376,21 @@ public class TeacherWalletService {
 				signed, description, before, key, hash, actorId, Instant.now()));
 		String action = kind == TeacherSettlementKind.PAY_OUT ? "teacher_wallet.pay_out_recorded"
 				: "teacher_wallet.pay_in_recorded";
-		auditLogApi.record(new AuditLogEntry(actorId, action, TARGET_WALLET, wallet.getId(), null,
-				entryMetadata(entry)));
+		Map<String, Object> metadata = entryMetadata(entry);
+		if (request.accountId() != null) {
+			WalletPayoutLinkedEvent linked = new WalletPayoutLinkedEvent(tenantContext.getTenantId(), entry.getId(),
+					teacherId, amount, entry.getCurrency(), request.accountId(), request.categoryId(), description,
+					actorId, entry.getCalculatedAt());
+			// Synchronous: the Finance account book validates the account and posts the outflow
+			// inside this transaction; any failure rolls the wallet entry back too.
+			eventPublisher.publishEvent(linked);
+			if (!linked.isPosted()) {
+				throw new IllegalStateException("Linked wallet payout was not posted to a finance account");
+			}
+			metadata.put("financeAccountId", request.accountId().toString());
+			metadata.put("financeTransactionId", linked.postedTransactionId().toString());
+		}
+		auditLogApi.record(new AuditLogEntry(actorId, action, TARGET_WALLET, wallet.getId(), null, metadata));
 		return new PostResult(viewOf(teacherId, wallet), EntryView.from(entry, emailsOf(List.of(actorId))), true);
 	}
 

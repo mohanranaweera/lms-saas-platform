@@ -114,7 +114,9 @@ class TeacherWalletIntegrationTest extends FinanceTestSupport {
 		assertThat(payOut(t, t.financeToken(), teacher, "60.00", "Final", null, null, null, key()).getStatusCode())
 			.isEqualTo(HttpStatus.CREATED);
 
-		// Account-linked entries are unavailable (no Finance Accounts) - rejected, not dropped;
+		// FIN-01: a linked Pay Out is validated like any payout first (the balance is zero here ->
+		// 400) and must then name an existing finance account (unknown -> 404, nothing written - see
+		// FinanceAccountBookIntegrationTest); a linked Pay In is still unavailable (ADR-036 section 6);
 		// a category without an account is invalid.
 		long before = entryRows(t, null);
 		assertThat(payOut(t, t.financeToken(), teacher, "1.00", "Linked", UUID.randomUUID(), null, null, key())
