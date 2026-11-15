@@ -40,17 +40,20 @@ class LedgerEntryServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
 	private LedgerEntryService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new LedgerEntryService(ledgerEntryRepository, tenantContext);
+		service = new LedgerEntryService(ledgerEntryRepository, tenantContext, eventPublisher);
 	}
 
 	@Test
 	void recordPaymentConfirmedStoresAPositiveAmountWithNoReversalLink() {
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
-		when(ledgerEntryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		when(ledgerEntryRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		UUID orderId = UUID.randomUUID();
 		UUID paymentId = UUID.randomUUID();
 		BigDecimal amount = new BigDecimal("120.00");
@@ -58,7 +61,7 @@ class LedgerEntryServiceTest {
 		service.recordPaymentConfirmed(orderId, paymentId, amount);
 
 		ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
-		verify(ledgerEntryRepository).save(captor.capture());
+		verify(ledgerEntryRepository).saveAndFlush(captor.capture());
 		LedgerEntry saved = captor.getValue();
 		assertThat(saved.getEntryType()).isEqualTo(LedgerEntryType.PAYMENT_CONFIRMED);
 		assertThat(saved.getAmount()).isEqualByComparingTo(amount);
@@ -72,7 +75,7 @@ class LedgerEntryServiceTest {
 	@Test
 	void recordRefundStoresANegativeAmountAndLinksBackToTheConfirmedEntryItReverses() {
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
-		when(ledgerEntryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		when(ledgerEntryRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		UUID orderId = UUID.randomUUID();
 		UUID paymentId = UUID.randomUUID();
 		UUID confirmedEntryId = UUID.randomUUID();
@@ -85,7 +88,7 @@ class LedgerEntryServiceTest {
 		service.recordRefund(orderId, paymentId, refundAmount);
 
 		ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
-		verify(ledgerEntryRepository).save(captor.capture());
+		verify(ledgerEntryRepository).saveAndFlush(captor.capture());
 		LedgerEntry saved = captor.getValue();
 		assertThat(saved.getEntryType()).isEqualTo(LedgerEntryType.REFUND);
 		// The load-bearing assertion: the sign is negated relative to the

@@ -69,8 +69,23 @@ public enum Capability {
 	FINANCE_DASHBOARD_REGISTRATION_PAYMENTS(CapabilityGroup.FINANCE, "View Registration Payments",
 			unavailable("Part of the payments dashboard (View Payments); no separate operation")),
 	FINANCE_VIEW_EXPENSES(CapabilityGroup.FINANCE, "View Expenses", om(p(FINANCE_EXPENSES, VIEW))),
-	FINANCE_DASHBOARD_TRANSACTIONS(CapabilityGroup.FINANCE, "View Transactions",
-			unavailable("Part of the payments dashboard / order list (View Payments); no separate operation")),
+	// FIN-01: the Finance account book (accounts, routing, transactions, budget dashboard).
+	FINANCE_DASHBOARD_TRANSACTIONS(CapabilityGroup.FINANCE, "View Transactions", om(p(FINANCE_EXPENSES, VIEW))),
+	FINANCE_ACCOUNTS_MANAGE(CapabilityGroup.FINANCE, "Manage Finance Accounts",
+			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	// Routing decides where every future student payment is posted: Tenant Admin by default.
+	FINANCE_ROUTING_CONFIGURE(CapabilityGroup.FINANCE, "Configure Payment Account Routing",
+			omFor(new String[] { "TENANT_ADMIN" }, p(FINANCE_EXPENSES, CREATE_EDIT))),
+	FINANCE_RECORD_TRANSACTION(CapabilityGroup.FINANCE, "Record Transaction",
+			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	FINANCE_ADJUST_ACCOUNT_BALANCE(CapabilityGroup.FINANCE, "Adjust Account Balance",
+			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
+	// A reversal appends a mirror row; nothing is deleted (same gate as Void Expense).
+	FINANCE_REVERSE_TRANSACTION(CapabilityGroup.FINANCE, "Reverse Transaction", om(p(FINANCE_EXPENSES, DELETE))),
+	FINANCE_VIEW_SCHEDULES(CapabilityGroup.FINANCE, "View Scheduled Transactions",
+			om(p(FINANCE_EXPENSES, VIEW))),
+	FINANCE_MANAGE_SCHEDULES(CapabilityGroup.FINANCE, "Manage Scheduled Transactions",
+			om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	// Expenses are append-only; void is a state change (never a row delete).
 	FINANCE_ADD_EXPENSE(CapabilityGroup.FINANCE, "Add Expense", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	FINANCE_VOID_EXPENSE(CapabilityGroup.FINANCE, "Void Expense", om(p(FINANCE_EXPENSES, DELETE))),

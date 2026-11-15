@@ -100,13 +100,16 @@ public class ExpenseService {
 
 	private final EntityManager entityManager;
 
+	private final FinancePostingService financePostingService;
+
 	public ExpenseService(ExpenseRepository expenseRepository, ExpenseCategoryRepository categoryRepository,
 			ExpenseWriteService expenseWriteService, PermissionCheckService permissionCheckService,
 			TenantContext tenantContext, ObjectStorageApi objectStorageApi, UserProvisioningApi userProvisioningApi,
 			AuditLogApi auditLogApi, FinancePeriodResolver periodResolver,
 			@Value("${app.finance.expense.max-attachment-size-bytes}") long maxAttachmentSizeBytes,
-			EntityManager entityManager) {
+			EntityManager entityManager, FinancePostingService financePostingService) {
 		this.entityManager = entityManager;
+		this.financePostingService = financePostingService;
 		this.expenseRepository = expenseRepository;
 		this.categoryRepository = categoryRepository;
 		this.expenseWriteService = expenseWriteService;
@@ -193,6 +196,30 @@ public class ExpenseService {
 		return toViews(List.of(saved)).get(0);
 	}
 
+	/**
+	 * FIN-01: an expense recorded from the Finance Transactions tab (or a
+	 * scheduled occurrence). Same validation and audit as {@link #create}; the
+	 * caller has already enforced its own capability and posts the account-book
+	 * row right after this returns, in the same transaction.
+	 */
+	@Transactional
+	public Expense recordForFinance(UUID categoryId, LocalDate expenseDate, String description, BigDecimal amount,
+			ExpenseMethod method, UUID actorId) {
+		ExpenseCategory category = categoryRepository.findById(categoryId)
+			.orElseThrow(() -> new NotFoundException("Expense category not found"));
+		if (category.isArchived()) {
+			throw new FieldValidationException("Expense category is archived",
+					List.of(new FieldError("categoryId", "category is archived")));
+		}
+		if (expenseDate.isAfter(periodResolver.today())) {
+			throw new FieldValidationException("Expense date is in the future",
+					List.of(new FieldError("transactionDate", "must not be in the future")));
+		}
+		Expense expense = new Expense(tenantContext.getTenantId(), category.getId(), expenseDate,
+				description.trim(), normalizeAmount(amount), periodResolver.tenantCurrency(), method, null, actorId);
+		return expenseWriteService.persistNew(expense);
+	}
+
 	@Transactional
 	public ExpenseView voidExpense(UUID expenseId, String reason) {
 		permissionCheckService.requirePermission(DomainArea.FINANCE_EXPENSES, PermissionAction.DELETE);
@@ -212,6 +239,11 @@ public class ExpenseService {
 				saved.getId(), trimmedReason,
 				Map.of("amount", saved.getAmount().toPlainString(), "currency", saved.getCurrency(), "expenseDate",
 						saved.getExpenseDate().toString(), "categoryId", saved.getCategoryId().toString())));
+		// FIN-01: the owning workflow of an expense correction. If the expense was posted to a
+		// finance account, the posting is reversed here, in the same transaction, so the expense
+		// table and the account book can never disagree.
+		financePostingService.reverseBySource(com.lms.financeexpensemanagement.domain.FinanceEnums.SourceType.EXPENSE,
+				saved.getId(), "Expense voided: " + trimmedReason, actorId);
 		return toViews(List.of(saved)).get(0);
 	}
 

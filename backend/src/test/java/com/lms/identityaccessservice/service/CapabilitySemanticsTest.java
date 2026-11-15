@@ -252,8 +252,10 @@ class CapabilitySemanticsTest {
 			.filter(c -> c.availability() == CapabilityAvailability.ENFORCED && c.staticRoleAllowlist() != null))
 			// MEDIA-FOLDERS-01: the folder capabilities are Tenant Admin only by default (Content
 			// Manager holds MATERIALS/CREATE_EDIT but must not gain folders without a grant).
+			// FIN-01: payment-account routing decides where every future student payment is posted,
+			// so it is Tenant Admin only by default (Finance Staff holds FINANCE_EXPENSES/CREATE_EDIT).
 			.containsExactlyInAnyOrder(Capability.COURSES_ENROLL_STUDENTS, Capability.MEDIA_MANAGE_FOLDERS,
-					Capability.MEDIA_SHARE_FOLDERS);
+					Capability.MEDIA_SHARE_FOLDERS, Capability.FINANCE_ROUTING_CONFIGURE);
 	}
 
 	@Test
