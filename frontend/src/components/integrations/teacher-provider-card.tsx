@@ -27,6 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+import { useT } from "@/i18n/i18n-provider";
 const DESCRIPTIONS: Record<TeacherProviderView["provider"], string> = {
   ZOOM: "Host your live classes on your own Zoom account. Each student gets a personal join link. A licensed (paid) Zoom account is required.",
   VIMEO: "Link your own Vimeo account so you can use your private videos in lessons (coming soon).",
@@ -64,6 +65,7 @@ function disconnectedNote(view: TeacherProviderView): string | null {
  * redirects back here. No token ever reaches the browser.
  */
 export function TeacherProviderCard({ view }: { view: TeacherProviderView }) {
+  const t = useT();
   const label = PROVIDER_LABELS[view.provider];
   const state = connectionDisplayState(view.connection, {
     enabledByTenant: view.enabledByTenant,
@@ -118,11 +120,11 @@ export function TeacherProviderCard({ view }: { view: TeacherProviderView }) {
 
       {connection ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          <dt className="text-muted-foreground">Account</dt>
+          <dt className="text-muted-foreground">{t("teacher.providerCard.account")}</dt>
           <dd className="break-all text-foreground">{connection.accountLabel ?? "—"}</dd>
-          <dt className="text-muted-foreground">Last checked</dt>
+          <dt className="text-muted-foreground">{t("teacher.providerCard.lastChecked")}</dt>
           <dd className="text-foreground">
-            {connection.lastVerifiedAt ? formatDateTime(connection.lastVerifiedAt) : "Not yet"}
+            {connection.lastVerifiedAt ? formatDateTime(connection.lastVerifiedAt) : t("teacher.providerCard.notYet")}
           </dd>
         </dl>
       ) : null}
@@ -131,8 +133,7 @@ export function TeacherProviderCard({ view }: { view: TeacherProviderView }) {
         <Alert role="status">
           <AlertCircle aria-hidden="true" />
           <AlertDescription>
-            This is a free (Basic) Zoom account. Live classes need a licensed Zoom account because every
-            student gets a personal join link. Upgrade in Zoom, then choose Reconnect.
+            {t("teacher.providerCard.thisIsAFree")}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -175,7 +176,7 @@ export function TeacherProviderCard({ view }: { view: TeacherProviderView }) {
             disabled={testMutation.isPending}
             aria-busy={testMutation.isPending}
           >
-            {testMutation.isPending ? "Testing…" : "Test connection"}
+            {testMutation.isPending ? t("teacher.providerCard.testing") : t("teacher.providerCard.testConnection")}
           </Button>
         ) : null}
         {connection ? <DisconnectDialog view={view} connectionId={connection.id} /> : null}
@@ -191,6 +192,7 @@ export function TeacherProviderCard({ view }: { view: TeacherProviderView }) {
 }
 
 function DisconnectDialog({ view, connectionId }: { view: TeacherProviderView; connectionId: string }) {
+  const t = useT();
   const label = PROVIDER_LABELS[view.provider];
   const disconnectMutation = useDisconnectTeacherConnection();
   const impactMutation = useTeacherConnectionImpact();
@@ -212,13 +214,13 @@ function DisconnectDialog({ view, connectionId }: { view: TeacherProviderView; c
       await disconnectMutation.mutateAsync(connectionId);
       setOpen(false);
     } catch (error) {
-      setErrorMessage(isApiClientError(error) ? error.message : "Could not disconnect. Please try again.");
+      setErrorMessage(isApiClientError(error) ? error.message : t("teacher.providerCard.couldNotDisconnectPlease"));
     }
   }
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger render={<Button type="button" variant="outline" />}>Disconnect</AlertDialogTrigger>
+      <AlertDialogTrigger render={<Button type="button" variant="outline" />}>{t("teacher.providerCard.disconnect")}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Disconnect {label}?</AlertDialogTitle>
@@ -230,7 +232,7 @@ function DisconnectDialog({ view, connectionId }: { view: TeacherProviderView; c
         {view.provider === "ZOOM" ? (
           <div aria-busy={impactMutation.isPending}>
             {impactMutation.isPending ? (
-              <p className="text-sm text-muted-foreground">Checking your upcoming live classes…</p>
+              <p className="text-sm text-muted-foreground">{t("teacher.providerCard.checkingYourUpcomingLive")}</p>
             ) : impact > 0 ? (
               <Alert variant="destructive">
                 <AlertCircle aria-hidden="true" />
@@ -241,7 +243,7 @@ function DisconnectDialog({ view, connectionId }: { view: TeacherProviderView; c
                 </AlertDescription>
               </Alert>
             ) : impactMutation.isSuccess ? (
-              <p className="text-sm text-muted-foreground">No upcoming live classes use this account.</p>
+              <p className="text-sm text-muted-foreground">{t("teacher.providerCard.noUpcomingLiveClasses")}</p>
             ) : null}
             <LiveRegion message={impactMutation.isSuccess ? `${impact} upcoming live classes affected` : ""} />
           </div>
@@ -253,7 +255,7 @@ function DisconnectDialog({ view, connectionId }: { view: TeacherProviderView; c
           </Alert>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+          <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("teacher.providerCard.cancel")}</AlertDialogClose>
           <Button
             type="button"
             variant="destructive"
@@ -261,7 +263,7 @@ function DisconnectDialog({ view, connectionId }: { view: TeacherProviderView; c
             disabled={disconnectMutation.isPending}
             aria-busy={disconnectMutation.isPending}
           >
-            {disconnectMutation.isPending ? "Disconnecting…" : `Disconnect ${label}`}
+            {disconnectMutation.isPending ? t("teacher.providerCard.disconnecting") : `Disconnect ${label}`}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

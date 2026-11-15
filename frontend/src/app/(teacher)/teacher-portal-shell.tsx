@@ -12,7 +12,7 @@ import { useNamespaces, useT } from "@/i18n/i18n-provider";
  * namespace for every Teacher Portal route and localizes the portal label.
  */
 export function TeacherPortalShell({ children }: { children: ReactNode }) {
-  useNamespaces(["teacher"]);
+  useNamespaces(["teacher", "courses", "exams", "attendance", "notifications", "calendar", "devices", "player"]);
   const t = useT();
   const portalLabel = t("common.portal.teacher");
   return (

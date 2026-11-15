@@ -7,6 +7,7 @@ import { formatExamMarks } from "@/components/exams/config/exam-shared";
 import type { AttemptItem } from "@/lib/api/student-exams";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/i18n-provider";
 export function optionLetter(index: number): string {
   return index < 26 ? String.fromCharCode(65 + index) : String(index + 1);
 }
@@ -32,6 +33,7 @@ export function AttemptQuestion({
   disabled: boolean;
   onSelect: (optionId: string | null) => void;
 }) {
+  const t = useT();
   const headingId = `attempt-q-${item.id}-heading`;
   const bodyId = `attempt-q-${item.id}-body`;
   const marks = formatExamMarks(item.marks);
@@ -45,7 +47,7 @@ export function AttemptQuestion({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id={headingId} tabIndex={-1} className="text-sm font-semibold text-muted-foreground outline-none">
-          Question {number} <span className="font-normal">of {total}</span>
+          {t("exams.question.number", { number })} <span className="font-normal">{t("exams.question.ofTotal", { total })}</span>
         </h2>
         {marks ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">{marks}</span> : null}
       </div>
@@ -87,7 +89,7 @@ export function AttemptQuestion({
               >
                 {optionLetter(index)}
               </span>
-              <span className="sr-only">Option {optionLetter(index)}:</span>
+              <span className="sr-only">{t("exams.question.option", { letter: optionLetter(index) })}</span>
               <RichContent html={option.html} className="min-w-0 flex-1 text-sm text-foreground" />
             </label>
           );
@@ -104,7 +106,7 @@ export function AttemptQuestion({
             data-testid="attempt-clear-answer"
           >
             <Eraser aria-hidden="true" />
-            Clear answer
+            {t("exams.attemptQuestion.clearAnswer")}
           </Button>
         </div>
       ) : null}

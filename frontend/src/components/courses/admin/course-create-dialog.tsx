@@ -36,6 +36,7 @@ import {
 } from "@/lib/api/klass-admin";
 import { randomUuid } from "@/lib/uuid";
 
+import { useT } from "@/i18n/i18n-provider";
 const ID_PREFIX = "add-course";
 
 type FieldName = CourseSettingsFieldName;
@@ -61,6 +62,7 @@ export function CourseCreateDialog({
   /** Teacher mode keeps assignment server-owned and removes staff-only teacher selection. */
   mode?: "staff" | "teacher";
 }) {
+  const t = useT();
   const { session } = useAuth();
   const isTeacher = mode === "teacher";
   const teacherUserId = isTeacher ? (session?.userId ?? "") : "";
@@ -154,7 +156,7 @@ export function CourseCreateDialog({
       onCreated(course, { coverUploaded: true });
     } catch (error) {
       setCreatedCourse(course);
-      setCoverUploadError(isApiClientError(error) ? error.message : "The cover image could not be uploaded.");
+      setCoverUploadError(isApiClientError(error) ? error.message : t("courses.createDialog.theCoverImageCould"));
     }
   };
 
@@ -197,7 +199,7 @@ export function CourseCreateDialog({
       await coverMutation.mutateAsync({ courseId: createdCourse.id, file: coverFile });
       onCreated(createdCourse, { coverUploaded: true });
     } catch (error) {
-      setCoverUploadError(isApiClientError(error) ? error.message : "The cover image could not be uploaded.");
+      setCoverUploadError(isApiClientError(error) ? error.message : t("courses.createDialog.theCoverImageCould"));
     }
   };
 
@@ -212,24 +214,24 @@ export function CourseCreateDialog({
   };
 
   const ids = courseSettingsFieldIds(ID_PREFIX);
-  const teacherSummary = teacherUserId ? "You (current teacher)" : "Current teacher";
+  const teacherSummary = teacherUserId ? t("courses.createDialog.youCurrentTeacher") : "Current teacher";
 
   const footer = createdCourse ? (
     <>
       <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} data-testid="add-course-skip-cover">
-        Close without cover
+        {t("courses.createDialog.closeWithoutCover")}
       </Button>
       <Button type="button" onClick={retryCover} disabled={coverMutation.isPending} data-testid="add-course-retry-cover">
-        {coverMutation.isPending ? "Uploading…" : "Retry cover upload"}
+        {coverMutation.isPending ? t("courses.createDialog.uploading") : t("courses.createDialog.retryCoverUpload")}
       </Button>
     </>
   ) : (
     <>
       <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending} data-testid="add-course-cancel">
-        Cancel
+        {t("courses.createDialog.cancel")}
       </Button>
       <Button type="submit" form="add-course-form" disabled={pending} aria-busy={pending} data-testid="add-course-submit">
-        {createMutation.isPending ? "Creating…" : coverMutation.isPending ? "Uploading cover…" : "Create course"}
+        {createMutation.isPending ? t("courses.createDialog.creating") : coverMutation.isPending ? t("courses.createDialog.uploadingCover") : t("courses.createDialog.createCourse")}
       </Button>
     </>
   );
@@ -238,15 +240,15 @@ export function CourseCreateDialog({
     <AdminFormDialog
       open={open}
       onOpenChange={handleOpenChange}
-      title={isTeacher ? "Create New Course" : "Add New Course"}
-      description={isTeacher ? "Create a course you will own as its teacher. Enrollment stays free." : undefined}
+      title={isTeacher ? t("courses.createDialog.createNewCourse") : t("courses.createDialog.addNewCourse")}
+      description={isTeacher ? t("courses.createDialog.createACourseYou") : undefined}
       footer={footer}
       testId="add-course-dialog"
     >
       {createdCourse ? (
         <Alert variant="destructive" data-testid="add-course-cover-error" className="mb-4">
           <AlertCircle aria-hidden="true" />
-          <AlertTitle>Course created, but the cover image was not saved</AlertTitle>
+          <AlertTitle>{t("courses.createDialog.courseCreatedButThe")}</AlertTitle>
           <AlertDescription>
             &ldquo;{createdCourse.name}&rdquo; now exists. {coverUploadError} Retry the upload, or close and add a
             cover later.
@@ -268,16 +270,16 @@ export function CourseCreateDialog({
             register={register}
             errors={errors}
             teachers={{
-              label: "Teacher",
+              label: t("courses.createDialog.teacher"),
               helper: isTeacher
-                ? "This course is assigned to you. Teacher assignment is controlled by the server."
+                ? t("courses.createDialog.thisCourseIsAssigned")
                 : "The first teacher you tick is the primary teacher.",
               options: teachers.options,
               loading: teachers.loading,
               loadError: teachers.loadError,
               emptyText: "No approved, active teachers in this institute yet.",
               readOnly: isTeacher
-                ? { summary: teacherSummary, note: "Only institute staff can change course teachers." }
+                ? { summary: teacherSummary, note: t("courses.createDialog.onlyInstituteStaffCan") }
                 : null,
             }}
             pricing={{
@@ -285,7 +287,7 @@ export function CourseCreateDialog({
               placeholderOption: true,
               priceHelper: (model) =>
                 model === "MONTHLY"
-                  ? "Amount students pay for each month. You can change it later from the course's edit page."
+                  ? t("courses.createDialog.amountStudentsPayFor")
                   : "One-time amount for the whole course.",
             }}
             linkedCourses={linkable}
@@ -305,7 +307,7 @@ export function CourseCreateDialog({
                 secondaryAction={
                   coverFile ? (
                     <Button type="button" variant="ghost" size="sm" onClick={() => selectCover(null)}>
-                      Use default
+                      {t("courses.createDialog.useDefault")}
                     </Button>
                   ) : null
                 }

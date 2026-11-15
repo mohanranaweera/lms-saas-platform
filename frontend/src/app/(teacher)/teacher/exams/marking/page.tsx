@@ -13,6 +13,7 @@ import { isTeacherRole } from "@/lib/auth/permissions";
 import { useExam, useMarkingQueueEntries } from "@/lib/api/exams";
 import { formatRoleLabel } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 const PAGE_SIZE = 20;
 
 /**
@@ -30,6 +31,7 @@ const PAGE_SIZE = 20;
  * mismatch whenever the caller isn't a Teacher/Teacher Assistant.
  */
 export default function TeacherMarkingQueuePage() {
+  const t = useT();
   const searchParams = useSearchParams();
   const deepLinkExamId = searchParams.get("examId") ?? "";
   const { session } = useAuth();
@@ -50,9 +52,9 @@ export default function TeacherMarkingQueuePage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Marking Queue</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.examsMarking.markingQueue")}</h1>
         <p className="text-sm text-muted-foreground">
-          Manually mark structured-answer submissions for one exam.
+          {t("teacher.page.examsMarking.manuallyMarkStructuredAnswer")}
         </p>
       </div>
 
@@ -72,7 +74,7 @@ export default function TeacherMarkingQueuePage() {
       {examId ? (
         <QueryStateBoundary
           query={examQuery}
-          loadingLabel="Loading exam…"
+          loadingLabel={t("teacher.page.examsMarking.loadingExam")}
           loginPath="/login"
           permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
         >
@@ -85,12 +87,12 @@ export default function TeacherMarkingQueuePage() {
 
               <QueryStateBoundary
                 query={queueQuery}
-                loadingLabel="Loading the marking queue…"
+                loadingLabel={t("teacher.page.examsMarking.loadingTheMarkingQueue")}
                 loginPath="/login"
                 permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
                 isEmpty={(data) => data.content.length === 0}
                 emptyState={{
-                  title: "Nothing to mark right now.",
+                  title: t("teacher.page.examsMarking.nothingToMarkRight"),
                   description:
                     "Every structured answer for this exam has already been marked, or none have been submitted yet.",
                 }}

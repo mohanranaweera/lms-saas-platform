@@ -45,6 +45,7 @@ import {
 import { ComposerOffersPanel } from "./composer-offers-panel";
 import { ComposerSummaryPanel, SlipSubmittedPanel, type FlowState, type PaymentMethod } from "./composer-summary-panel";
 
+import { useT } from "@/i18n/i18n-provider";
 /** A single network step may take this long before the student gets an actionable retry. */
 const STEP_TIMEOUT_MS = 30_000;
 const TIMEOUT_MESSAGE =
@@ -70,6 +71,7 @@ export function PaymentComposerDialog({
   onOpenChange: (open: boolean) => void;
   preset: ComposerPreset | null;
 }) {
+  const t = useT();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <DialogPrimitive.Portal>
@@ -84,14 +86,14 @@ export function PaymentComposerDialog({
                 <CreditCard className="size-5" aria-hidden="true" />
               </span>
               <div>
-                <DialogPrimitive.Title className="text-base font-semibold text-foreground">Make Payment</DialogPrimitive.Title>
+                <DialogPrimitive.Title className="text-base font-semibold text-foreground">{t("payments.paymentComposerDialog.makePayment")}</DialogPrimitive.Title>
                 <DialogPrimitive.Description className="text-sm text-muted-foreground">
-                  Select what you want to pay for and choose how to pay
+                  {t("payments.paymentComposerDialog.selectWhatYouWant")}
                 </DialogPrimitive.Description>
               </div>
             </div>
             <DialogPrimitive.Close
-              render={<Button type="button" variant="ghost" size="icon-sm" aria-label="Close" data-testid="composer-close" />}
+              render={<Button type="button" variant="ghost" size="icon-sm" aria-label={t("payments.paymentComposerDialog.close")} data-testid="composer-close" />}
             >
               <XIcon aria-hidden="true" />
             </DialogPrimitive.Close>
@@ -104,6 +106,7 @@ export function PaymentComposerDialog({
 }
 
 function ComposerBody({ preset, onClose }: { preset: ComposerPreset | null; onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -251,9 +254,9 @@ function ComposerBody({ preset, onClose }: { preset: ComposerPreset | null; onCl
     if (flow.phase === "working" || cart.items.length === 0) return;
     setPriceChanged(false);
     try {
-      setFlow({ phase: "working", method: "online", step: "Creating your order…" });
+      setFlow({ phase: "working", method: "online", step: t("payments.paymentComposerDialog.creatingYourOrder") });
       const order = await createOrderFromQuote();
-      setFlow({ phase: "working", method: "online", step: "Opening the payment page…" });
+      setFlow({ phase: "working", method: "online", step: t("payments.paymentComposerDialog.openingThePaymentPage") });
       const initiation = await withTimeout(
         initiatePayment.mutateAsync({ orderId: order.id, idempotencyKey: keys.payment }),
         STEP_TIMEOUT_MS,
@@ -265,7 +268,7 @@ function ComposerBody({ preset, onClose }: { preset: ComposerPreset | null; onCl
           setFlow({
             phase: "error",
             method: "online",
-            message: "We couldn't open the secure payment page. Try again, or upload a payment slip instead.",
+            message: t("payments.dialog.gatewayFailed"),
           });
           return;
         }
@@ -286,12 +289,12 @@ function ComposerBody({ preset, onClose }: { preset: ComposerPreset | null; onCl
     try {
       let orderId = slipOrderId.current;
       if (!orderId) {
-        setFlow({ phase: "working", method: "slip", step: "Creating your order…" });
+        setFlow({ phase: "working", method: "slip", step: t("payments.paymentComposerDialog.creatingYourOrder") });
         const order = await createOrderFromQuote();
         orderId = order.id;
         slipOrderId.current = order.id;
       }
-      setFlow({ phase: "working", method: "slip", step: "Uploading your payment slip…" });
+      setFlow({ phase: "working", method: "slip", step: t("payments.paymentComposerDialog.uploadingYourPaymentSlip") });
       await withTimeout(uploadSlip.mutateAsync({ orderId, referenceNumber, file }), 2 * STEP_TIMEOUT_MS, TIMEOUT_MESSAGE);
       setFlow({ phase: "idle" });
       setSubmitted(true);
@@ -373,6 +376,7 @@ function ComposerBody({ preset, onClose }: { preset: ComposerPreset | null; onCl
 }
 
 function ComposerTabs({ tab, onChange }: { tab: ComposerTab; onChange: (tab: ComposerTab) => void }) {
+  const t = useT();
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -389,7 +393,7 @@ function ComposerTabs({ tab, onChange }: { tab: ComposerTab; onChange: (tab: Com
   };
 
   return (
-    <div role="tablist" aria-label="Payment type" className="flex flex-nowrap gap-1 overflow-x-auto border-b border-border">
+    <div role="tablist" aria-label={t("payments.paymentComposerDialog.paymentType")} className="flex flex-nowrap gap-1 overflow-x-auto border-b border-border">
       {COMPOSER_TABS.map((value, index) => {
         const selected = value === tab;
         return (

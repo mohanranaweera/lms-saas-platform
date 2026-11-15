@@ -49,6 +49,7 @@ import {
 } from "@/lib/api/student-exams";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/i18n-provider";
 type FinishReason = "submitted" | "timeout" | "closed";
 
 /** Client-side replace (effect) for states that belong on another page. */
@@ -61,6 +62,7 @@ function Redirect({ href, label }: { href: string; label: string }) {
 }
 
 function SaveIndicator({ states }: { states: Record<string, ItemSaveState> }) {
+  const t = useT();
   const values = Object.values(states);
   const retrying = values.some((state) => state.status === "retrying");
   const saving = values.some((state) => state.status === "saving");
@@ -70,28 +72,28 @@ function SaveIndicator({ states }: { states: Record<string, ItemSaveState> }) {
   if (retrying) {
     content = {
       icon: <CloudOff className="size-4" aria-hidden="true" />,
-      text: "Offline — retrying",
+      text: t("exams.save.offline"),
       tone: "text-amber-700 dark:text-amber-300",
       state: "retrying",
     };
   } else if (saving) {
     content = {
       icon: <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />,
-      text: "Saving…",
+      text: t("exams.save.saving"),
       tone: "text-muted-foreground",
       state: "saving",
     };
   } else if (failed.length > 0) {
     content = {
       icon: <AlertTriangle className="size-4" aria-hidden="true" />,
-      text: failed[0]?.message ? `Not saved — ${failed[0].message}` : "Not saved",
+      text: failed[0]?.message ? t("exams.save.failedWith", { reason: failed[0].message }) : t("exams.save.failed"),
       tone: "text-destructive",
       state: "error",
     };
   } else if (anySaved) {
     content = {
       icon: <Check className="size-4" aria-hidden="true" />,
-      text: "Saved",
+      text: t("exams.save.saved"),
       tone: "text-green-700 dark:text-green-400",
       state: "saved",
     };
@@ -110,18 +112,19 @@ function SaveIndicator({ states }: { states: Record<string, ItemSaveState> }) {
           <span className="truncate">{content.text}</span>
         </>
       ) : (
-        <span className="text-muted-foreground">Answers save automatically</span>
+        <span className="text-muted-foreground">{t("exams.studentExamTake.answersSaveAutomatically")}</span>
       )}
     </p>
   );
 }
 
 function CountdownTimer({ remainingMs }: { remainingMs: number | null }) {
+  const t = useT();
   const low = remainingMs !== null && remainingMs <= 5 * 60_000;
   return (
     <div
       role="timer"
-      aria-label="Time remaining"
+      aria-label={t("exams.studentExamTake.timeRemaining")}
       aria-live="off"
       data-testid="attempt-timer"
       className={cn(
@@ -131,7 +134,7 @@ function CountdownTimer({ remainingMs }: { remainingMs: number | null }) {
     >
       <Timer className="size-4" aria-hidden="true" />
       <span>{remainingMs === null ? "--:--" : formatCountdown(remainingMs)}</span>
-      {low ? <span className="sr-only">(less than 5 minutes left)</span> : null}
+      {low ? <span className="sr-only">{t("exams.studentExamTake.lessThan5Minutes2")}</span> : null}
     </div>
   );
 }
@@ -149,9 +152,10 @@ function QuestionNavigator({
   view: "one" | "all";
   onGo: (index: number) => void;
 }) {
+  const t = useT();
   const answered = attempt.items.filter((item) => answers[item.id]).length;
   return (
-    <nav aria-label="Question navigator" className="flex flex-col gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10 sm:p-4">
+    <nav aria-label={t("exams.studentExamTake.questionNavigator")} className="flex flex-col gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10 sm:p-4">
       <p className="text-sm font-medium text-foreground" data-testid="attempt-answered-count">
         {answered} of {attempt.items.length} answered
       </p>
@@ -185,10 +189,10 @@ function QuestionNavigator({
       </ol>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-hidden="true">
         <span className="flex items-center gap-1">
-          <span className="inline-block size-3 rounded-sm border border-primary bg-primary" /> Answered
+          <span className="inline-block size-3 rounded-sm border border-primary bg-primary" />{" "}{t("exams.studentExamTake.answered")}
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block size-3 rounded-sm border border-dashed border-border" /> Not answered
+          <span className="inline-block size-3 rounded-sm border border-dashed border-border" />{" "}{t("exams.studentExamTake.notAnswered")}
         </span>
       </div>
     </nav>
@@ -203,6 +207,7 @@ function QuestionNavigator({
  * the deadline on its own.
  */
 function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; attempt: Attempt; receivedAtMs: number }) {
+  const t = useT();
   const router = useRouter();
   const queryClient = useQueryClient();
   const items = attempt.items;
@@ -329,7 +334,7 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
       setSubmitError(
         isApiClientError(error) && error.status !== 0
           ? error.message
-          : "We couldn't reach the server to submit. Check your connection and try again — your saved answers are kept."
+          : t("exams.studentExamTake.weCouldntReachThe")
       );
     }
   }
@@ -338,19 +343,19 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
     remainingMs === null
       ? ""
       : remainingMs <= 0
-        ? "Time is up. Your answers were submitted."
+        ? t("exams.studentExamTake.timeIsUpYour")
         : remainingMs <= 60_000
-          ? "Less than 1 minute remaining."
+          ? t("exams.studentExamTake.lessThan1Minute")
           : remainingMs <= 5 * 60_000
-            ? "Less than 5 minutes remaining."
+            ? t("exams.studentExamTake.lessThan5Minutes")
             : "";
 
   if (timeUp) {
     return (
       <div role="alert" className="flex flex-col items-center gap-2 rounded-xl bg-card px-6 py-12 text-center ring-1 ring-foreground/10" data-testid="attempt-time-up">
         <Timer className="size-8 text-primary" aria-hidden="true" />
-        <p className="text-lg font-semibold text-foreground">Time is up — your answers were submitted</p>
-        <p className="text-sm text-muted-foreground">Opening your submission…</p>
+        <p className="text-lg font-semibold text-foreground">{t("exams.studentExamTake.timeIsUpYour2")}</p>
+        <p className="text-sm text-muted-foreground">{t("exams.studentExamTake.openingYourSubmission")}</p>
       </div>
     );
   }
@@ -381,19 +386,19 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
           className="w-full sm:w-auto"
         >
           <Send aria-hidden="true" />
-          Submit
+          {t("exams.studentExamTake.submit")}
         </Button>
       </header>
 
       <p className="text-xs text-muted-foreground">
-        Deadline <time dateTime={attempt.deadlineAt}>{formatExamDateTime(attempt.deadlineAt)}</time>
-. Answers are submitted automatically when time runs out.
+        {t("exams.studentExamTake.deadline")}{" "}<time dateTime={attempt.deadlineAt}>{formatExamDateTime(attempt.deadlineAt)}</time>
+{t("exams.studentExamTake.answersAreSubmittedAutomatically")}
       </p>
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-28">
           <QuestionNavigator attempt={attempt} answers={answers} current={current} view={view} onGo={goTo} />
-          <div role="group" aria-label="Question layout" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+          <div role="group" aria-label={t("exams.studentExamTake.questionLayout")} className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
             <button
               type="button"
               aria-pressed={view === "one"}
@@ -405,7 +410,7 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
               )}
             >
               <Square className="size-3.5" aria-hidden="true" />
-              One at a time
+              {t("exams.studentExamTake.oneAtATime")}
             </button>
             <button
               type="button"
@@ -442,17 +447,17 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
             <div className="flex items-center justify-between gap-2">
               <Button type="button" variant="outline" onClick={() => goTo(current - 1)} disabled={current === 0} data-testid="attempt-prev">
                 <ChevronLeft aria-hidden="true" />
-                Previous
+                {t("exams.studentExamTake.previous")}
               </Button>
               {current < items.length - 1 ? (
                 <Button type="button" variant="outline" onClick={() => goTo(current + 1)} data-testid="attempt-next">
-                  Next
+                  {t("exams.studentExamTake.next")}
                   <ChevronRight aria-hidden="true" />
                 </Button>
               ) : (
                 <Button type="button" onClick={() => setConfirmOpen(true)} disabled={locked} data-testid="attempt-finish">
                   <Send aria-hidden="true" />
-                  Finish
+                  {t("exams.studentExamTake.finish")}
                 </Button>
               )}
             </div>
@@ -460,7 +465,7 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
             <div>
               <Button type="button" onClick={() => setConfirmOpen(true)} disabled={locked} data-testid="attempt-finish">
                 <Send aria-hidden="true" />
-                Submit exam
+                {t("exams.studentExamTake.submitExam")}
               </Button>
             </div>
           )}
@@ -470,19 +475,18 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
       <AlertDialog open={confirmOpen} onOpenChange={(open) => !submit.isPending && setConfirmOpen(open)}>
         <AlertDialogContent data-testid="attempt-submit-dialog" className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Submit your exam?</AlertDialogTitle>
+            <AlertDialogTitle>{t("exams.studentExamTake.submitYourExam")}</AlertDialogTitle>
             <AlertDialogDescription data-testid="attempt-submit-summary">
               {unanswered === 0
-                ? `You have answered all ${items.length} questions.`
-                : `You have ${unanswered} unanswered ${unanswered === 1 ? "question" : "questions"} out of ${items.length}. Unanswered questions score 0.`}{" "}
-              You can&apos;t change your answers after submitting.
+                ? t("exams.submit.allAnswered", { total: items.length })
+                : t("exams.submit.unanswered", { count: unanswered, total: items.length })}{" "}
+              {t("exams.submit.noChanges")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {notSaved > 0 ? (
             <Alert variant="destructive" role="status">
               <AlertDescription>
-                {notSaved === 1 ? "1 answer hasn't" : `${notSaved} answers haven't`} reached the server yet. If you submit
-                now {notSaved === 1 ? "it" : "they"} may not count.
+                {t("exams.submit.notSaved", { count: notSaved })}
               </AlertDescription>
             </Alert>
           ) : null}
@@ -493,7 +497,7 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
           ) : null}
           <AlertDialogFooter>
             <AlertDialogClose render={<Button type="button" variant="outline" disabled={submit.isPending} />}>
-              Keep working
+              {t("exams.studentExamTake.keepWorking")}
             </AlertDialogClose>
             <Button
               type="button"
@@ -502,7 +506,7 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
               aria-busy={submit.isPending}
               data-testid="attempt-submit-confirm"
             >
-              {submit.isPending ? "Submitting…" : "Submit exam"}
+              {submit.isPending ? t("exams.studentExamTake.submitting") : t("exams.studentExamTake.submitExam")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -512,6 +516,7 @@ function AttemptSession({ exam, attempt, receivedAtMs }: { exam: StudentExam; at
 }
 
 function AttemptLoader({ exam, attemptId }: { exam: StudentExam; attemptId: string }) {
+  const t = useT();
   const query = useAttempt(attemptId);
   // Mount the session once, from a settled (fresh) fetch; later refetches never reset local answers.
   const [mounted, setMounted] = useState(false);
@@ -519,11 +524,11 @@ function AttemptLoader({ exam, attemptId }: { exam: StudentExam; attemptId: stri
 
   // Only before the session mounts: afterwards the session itself routes to the result with the reason.
   if (!mounted && query.data && !query.isFetching && query.data.status !== "IN_PROGRESS") {
-    return <Redirect href={studentExamPaths.result(exam.id, "closed")} label="Opening your submission…" />;
+    return <Redirect href={studentExamPaths.result(exam.id, "closed")} label={t("exams.studentExamTake.openingYourSubmission")} />;
   }
   if (query.status === "error") {
     if (isAttemptClosedError(query.error)) {
-      return <Redirect href={studentExamPaths.result(exam.id, "closed")} label="Opening your submission…" />;
+      return <Redirect href={studentExamPaths.result(exam.id, "closed")} label={t("exams.studentExamTake.openingYourSubmission")} />;
     }
     return (
       <QueryStateBoundary query={query} loginPath="/login" permissionDenied={{ dashboardHref: studentExamPaths.list }}>
@@ -531,21 +536,22 @@ function AttemptLoader({ exam, attemptId }: { exam: StudentExam; attemptId: stri
       </QueryStateBoundary>
     );
   }
-  if (!mounted || !query.data) return <LoadingState label="Loading your answers…" />;
+  if (!mounted || !query.data) return <LoadingState label={t("exams.studentExamTake.loadingYourAnswers")} />;
   return <AttemptSession key={attemptId} exam={exam} attempt={query.data} receivedAtMs={query.dataUpdatedAt} />;
 }
 
 /** Take page (Slice C): finds the attempt via `GET /student/exams/{id}`, then resumes it with `GET /student/attempts/{id}`. */
 export function StudentExamTake({ examId }: { examId: string }) {
+  const t = useT();
   const query = useStudentExam(examId);
   const router = useRouter();
   const notFound = query.status === "error" && isApiClientError(query.error) && query.error.status === 404;
   if (notFound) {
     return (
       <EmptyState
-        title="Exam not found"
-        description="This exam doesn't exist, or you aren't enrolled in it."
-        action={{ label: "Back to my exams", onClick: () => router.push(studentExamPaths.list) }}
+        title={t("exams.studentExamTake.examNotFound")}
+        description={t("exams.studentExamTake.thisExamDoesntExist")}
+        action={{ label: t("exams.studentExamTake.backToMyExams"), onClick: () => router.push(studentExamPaths.list) }}
       />
     );
   }
@@ -553,26 +559,26 @@ export function StudentExamTake({ examId }: { examId: string }) {
   return (
     <QueryStateBoundary
       query={query}
-      loadingLabel="Loading your exam…"
+      loadingLabel={t("exams.studentExamTake.loadingYourExam")}
       loginPath="/login"
       permissionDenied={{ dashboardHref: "/student/dashboard" }}
-      genericErrorMessage="We couldn't load this exam."
+      genericErrorMessage={t("exams.studentExamTake.weCouldntLoadThis")}
     >
       {(exam) => {
         if (exam.type !== "MCQ") {
-          return <Redirect href={studentExamPaths.details(exam.id)} label="Opening exam details…" />;
+          return <Redirect href={studentExamPaths.details(exam.id)} label={t("exams.studentExamTake.openingExamDetails")} />;
         }
         if (!exam.attempt) {
           return (
             <EmptyState
-              title="You haven't started this exam"
-              description="Start the exam from its details page. You'll need the exam password from your teacher."
-              action={{ label: "Go to exam details", onClick: () => router.push(studentExamPaths.details(exam.id)) }}
+              title={t("exams.studentExamTake.youHaventStartedThis")}
+              description={t("exams.studentExamTake.startTheExamFrom")}
+              action={{ label: t("exams.studentExamTake.goToExamDetails"), onClick: () => router.push(studentExamPaths.details(exam.id)) }}
             />
           );
         }
         if (exam.attempt.status !== "IN_PROGRESS") {
-          return <Redirect href={studentExamPaths.result(exam.id)} label="Opening your submission…" />;
+          return <Redirect href={studentExamPaths.result(exam.id)} label={t("exams.studentExamTake.openingYourSubmission")} />;
         }
         return <AttemptLoader exam={exam} attemptId={exam.attempt.id} />;
       }}

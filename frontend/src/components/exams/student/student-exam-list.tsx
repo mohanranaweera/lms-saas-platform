@@ -18,51 +18,53 @@ import { formatDuration, formatExamDateTime, relativeToServerNow } from "@/lib/e
 import { useStudentExams, type StudentExam, type StudentExamList } from "@/lib/api/student-exams";
 import { cn } from "@/lib/utils";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 type ListTab = "in-progress" | "upcoming" | "previous";
 
-const TABS: {
+const TABS = (t: TranslateFn): {
   value: ListTab;
   label: string;
   icon: typeof Zap;
   key: keyof Pick<StudentExamList, "inProgress" | "upcoming" | "previous">;
   empty: { title: string; description: string };
-}[] = [
+}[] => ([
   {
     value: "in-progress",
-    label: "In progress",
+    label: t("exams.studentExamList.inProgress"),
     icon: Zap,
     key: "inProgress",
     empty: {
-      title: "No exams are open right now",
-      description: "Exams you're enrolled in appear here while they're open. Check Upcoming for scheduled exams.",
+      title: t("exams.studentExamList.noExamsAreOpen"),
+      description: t("exams.studentExamList.examsYoureEnrolledIn"),
     },
   },
   {
     value: "upcoming",
-    label: "Upcoming",
+    label: t("exams.studentExamList.upcoming"),
     icon: ListTodo,
     key: "upcoming",
     empty: {
-      title: "No upcoming exams",
-      description: "When you're enrolled in an exam that hasn't opened yet, it will be listed here with its start time.",
+      title: t("exams.studentExamList.noUpcomingExams"),
+      description: t("exams.studentExamList.whenYoureEnrolledIn"),
     },
   },
   {
     value: "previous",
-    label: "Previous",
+    label: t("exams.studentExamList.previous"),
     icon: History,
     key: "previous",
     empty: {
-      title: "No previous exams",
-      description: "Exams that have closed appear here, with your result once it's available.",
+      title: t("exams.studentExamList.noPreviousExams"),
+      description: t("exams.studentExamList.examsThatHaveClosed"),
     },
   },
-];
+]);
 
 function ListSkeleton() {
+  const t = useT();
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-4" data-testid="student-exams-loading">
-      <span className="sr-only">Loading your exams…</span>
+      <span className="sr-only">{t("exams.studentExamList.loadingYourExams")}</span>
       <div className="flex gap-3">
         <Skeleton className="h-9 w-32" />
         <Skeleton className="h-9 w-32" />
@@ -84,12 +86,13 @@ function ListSkeleton() {
 
 /** One enrolled exam: type, status, schedule (relative to the server clock), size, attempt status and the next step. */
 export function StudentExamCard({ exam, serverNow }: { exam: StudentExam; serverNow: string }) {
+  const t = useT();
   const headingId = `student-exam-${exam.id}`;
-  const cta = studentExamCta(exam);
-  const duration = formatDuration(exam.durationMinutes);
-  const size = exam.type === "MCQ" ? questionCountText(exam.questionCount) : formatExamMarks(exam.totalMarks);
+  const cta = studentExamCta(exam, t);
+  const duration = formatDuration(exam.durationMinutes, t);
+  const size = exam.type === "MCQ" ? questionCountText(exam.questionCount, t) : formatExamMarks(exam.totalMarks, t);
   const anchor = exam.status === "UPCOMING" ? exam.startAt : exam.endAt;
-  const anchorLabel = exam.status === "UPCOMING" ? "Opens" : exam.status === "FINISHED" ? "Closed" : "Closes";
+  const anchorLabel = exam.status === "UPCOMING" ? t("exams.studentExamList.opens") : exam.status === "FINISHED" ? t("exams.studentExamList.closed") : t("exams.examList.closes");
   return (
     <article
       aria-labelledby={headingId}
@@ -146,18 +149,19 @@ export function StudentExamCard({ exam, serverNow }: { exam: StudentExam; server
  * longer listed here.
  */
 export function StudentExamList() {
+  const t = useT();
   const query = useStudentExams();
   const [tab, setTab] = useState<ListTab>("in-progress");
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <ExamPageTitle
-        title="My exams"
+        title={t("exams.studentExamList.myExams")}
         icon={<ClipboardList className="size-5" aria-hidden="true" />}
         actions={
           <Link href="/student/exams/leaderboards" className={cn(buttonVariants({ variant: "outline" }))} data-testid="student-leaderboards-link">
             <Trophy aria-hidden="true" />
-            Leaderboards
+            {t("exams.studentExamList.leaderboards")}
           </Link>
         }
       />
@@ -168,21 +172,20 @@ export function StudentExamList() {
           query={query}
           loginPath="/login"
           permissionDenied={{ dashboardHref: "/student/dashboard" }}
-          genericErrorMessage="We couldn't load your exams."
+          genericErrorMessage={t("exams.studentExamList.weCouldntLoadYour")}
           isEmpty={(data) => data.inProgress.length + data.upcoming.length + data.previous.length === 0}
           emptyState={{
-            title: "You aren't enrolled in any exams yet",
-            description:
-              "Your teacher enrolls you in exams, or you're added automatically when you pay for the course period an exam covers. Enrolled exams will appear here.",
+            title: t("exams.studentExamList.youArentEnrolledIn"),
+            description: t("exams.list.emptyDescription"),
           }}
         >
           {(data) => (
             <Tabs
-              aria-label="Exam groups"
+              aria-label={t("exams.studentExamList.examGroups")}
               value={tab}
               onValueChange={(next) => setTab(next as ListTab)}
               idPrefix="student-exams-"
-              items={TABS.map((entry) => {
+              items={TABS(t).map((entry) => {
                 const exams = data[entry.key];
                 const Icon = entry.icon;
                 return {

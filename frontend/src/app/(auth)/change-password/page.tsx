@@ -18,13 +18,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 type FieldName = keyof ChangePasswordFormValues;
 
-const FIELDS: { name: FieldName; label: string; autoComplete: string; hint?: string }[] = [
-  { name: "currentPassword", label: "Current password", autoComplete: "current-password" },
-  { name: "newPassword", label: "New password", autoComplete: "new-password", hint: "At least 8 characters, not your email, and different from your current password." },
-  { name: "confirmPassword", label: "Confirm new password", autoComplete: "new-password" },
-];
+const FIELDS = (t: TranslateFn): { name: FieldName; label: string; autoComplete: string; hint?: string }[] => ([
+  { name: "currentPassword", label: t("auth.changePassword.currentPassword"), autoComplete: "current-password" },
+  { name: "newPassword", label: t("auth.changePassword.newPassword"), autoComplete: "new-password", hint: t("auth.changePassword.atLeast8Characters") },
+  { name: "confirmPassword", label: t("auth.changePassword.confirmNewPassword"), autoComplete: "new-password" },
+]);
 
 /**
  * AUTH-PWD-01 — change password for any signed-in tenant user. Also where an
@@ -33,6 +35,7 @@ const FIELDS: { name: FieldName; label: string; autoComplete: string; hint?: str
  * else until this succeeds. Other devices are signed out; this one stays in.
  */
 function ChangePasswordForm() {
+  const t = useT();
   const { session } = useAuth();
   const mutation = useChangePassword();
   const [done, setDone] = useState(false);
@@ -58,13 +61,13 @@ function ChangePasswordForm() {
       if (isApiClientError(error) && error.fieldErrors.length > 0) {
         for (const fieldError of error.fieldErrors) {
           if (fieldError.field === "currentPassword" || fieldError.field === "newPassword") {
-            const label = fieldError.field === "currentPassword" ? "Current password" : "Password";
+            const label = fieldError.field === "currentPassword" ? t("auth.changePassword.currentPassword") : "Password";
             setError(fieldError.field, { type: "server", message: `${label} ${fieldError.message}.` });
           }
         }
         return;
       }
-      setFailure(isApiClientError(error) ? error.message : "Something went wrong. Please try again.");
+      setFailure(isApiClientError(error) ? error.message : t("auth.changePassword.somethingWentWrongPlease"));
     }
   });
 
@@ -73,9 +76,9 @@ function ChangePasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Change your password</CardTitle>
+        <CardTitle>{t("auth.changePassword.changeYourPassword")}</CardTitle>
         <CardDescription>
-          If your password was set for you by your institute, choose your own before continuing.
+          {t("auth.changePassword.ifYourPasswordWas")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -83,17 +86,17 @@ function ChangePasswordForm() {
           <>
             <Alert role="status">
               <CheckCircle2 aria-hidden="true" />
-              <AlertDescription>Your password has been changed. Your other devices have been signed out.</AlertDescription>
+              <AlertDescription>{t("auth.changePassword.yourPasswordHasBeen")}</AlertDescription>
             </Alert>
             <Link href={dashboard} className={buttonVariants()}>
-              Continue
+              {t("auth.changePassword.continue")}
             </Link>
           </>
         ) : (
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             {failure ? <ErrorState message={failure} /> : null}
-            {FIELDS.map((field) => {
-              const error = errors[field.name]?.message;
+            {FIELDS(t).map((field) => {
+              const error = translateSource(t, errors[field.name]?.message);
               const describedBy = [field.hint ? `${field.name}-hint` : null, error ? `${field.name}-error` : null]
                 .filter(Boolean)
                 .join(" ");
@@ -122,10 +125,10 @@ function ChangePasswordForm() {
               );
             })}
             <Button type="submit" disabled={mutation.isPending} aria-busy={mutation.isPending}>
-              {mutation.isPending ? "Saving…" : "Change password"}
+              {mutation.isPending ? t("auth.changePassword.saving") : t("auth.changePassword.changePassword")}
             </Button>
             <Link href={dashboard} className="text-center text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
-              Back
+              {t("auth.changePassword.back")}
             </Link>
           </form>
         )}

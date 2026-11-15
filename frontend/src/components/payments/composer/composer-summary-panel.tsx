@@ -36,6 +36,8 @@ import {
 } from "./composer-model";
 import { ComposerDiscountPanel } from "./composer-discount-panel";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 export type PaymentMethod = "online" | "slip";
 
 /** DISC-01: discount-code / free-course actions (each changes the cart, which re-quotes). */
@@ -104,6 +106,7 @@ export function ComposerSummaryPanel({
   billingAddressMissing: boolean;
   discount: ComposerDiscountControls;
 }) {
+  const t = useT();
   const busy = flow.phase === "working";
   const empty = cart.items.length === 0;
   const zero = formatCurrency(0, currency);
@@ -118,12 +121,12 @@ export function ComposerSummaryPanel({
     <div className="flex flex-col gap-4" data-testid="composer-summary">
       <section aria-labelledby="composer-summary-heading" className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-4">
         <h3 id="composer-summary-heading" className="text-sm font-semibold text-foreground">
-          Payment summary
+          {t("payments.composerSummaryPanel.paymentSummary")}
         </h3>
 
         {empty ? (
           <p className="text-sm text-muted-foreground" data-testid="composer-summary-empty">
-            No items selected
+            {t("payments.composerSummaryPanel.noItemsSelected")}
           </p>
         ) : quoted ? (
           <div className="flex flex-col gap-3" data-testid="composer-summary-lines">
@@ -151,7 +154,7 @@ export function ComposerSummaryPanel({
                 data-course-id={group.courseId}
               >
                 <p className="truncate text-sm font-medium text-foreground">{group.courseTitle}</p>
-                <ul className="flex flex-col gap-1" aria-label={`Selected items for ${group.courseTitle}`}>
+                <ul className="flex flex-col gap-1" aria-label={t("payments.summary.selectedFor", { course: group.courseTitle })}>
                   {group.items.map((item) => (
                     <li key={item.key} className="flex items-center justify-between gap-2 text-sm">
                       <span className="truncate text-foreground">{item.label}</span>
@@ -159,7 +162,7 @@ export function ComposerSummaryPanel({
                         type="button"
                         variant="ghost"
                         size="icon-xs"
-                        aria-label={`Remove ${item.label} (${group.courseTitle})`}
+                        aria-label={t("payments.summary.removeItem", { item: item.label, course: group.courseTitle })}
                         onClick={() => onRemove(item.key)}
                         disabled={busy}
                         data-testid="composer-summary-remove"
@@ -175,7 +178,7 @@ export function ComposerSummaryPanel({
                     courseTitle={group.courseTitle}
                     checked
                     disabled={busy}
-                    amountText="Postage amount is shown once the total is calculated"
+                    amountText={t("payments.summary.postagePending")}
                     onChange={onTogglePostage}
                   />
                 ) : null}
@@ -187,16 +190,16 @@ export function ComposerSummaryPanel({
         {!empty && quoteStatus === "pending" ? (
           <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
             <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-            Calculating total…
+            {t("payments.composerSummaryPanel.calculatingTotal")}
           </p>
         ) : null}
 
         {!empty && quoteStatus === "error" && quoteError ? (
           <div role="alert" className="flex flex-col items-start gap-2 text-sm text-destructive" data-testid="composer-quote-error">
-            <span>{quoteError}</span>
+            <span>{translateSource(t, quoteError)}</span>
             {deliveryMissing || discount.rateLimited ? null : (
               <Button type="button" size="sm" variant="outline" onClick={onRetryQuote}>
-                Try again
+                {t("payments.composerSummaryPanel.tryAgain")}
               </Button>
             )}
           </div>
@@ -225,20 +228,20 @@ export function ComposerSummaryPanel({
         {priceChanged && quoted ? (
           <Alert role="alert" data-testid="composer-price-changed">
             <AlertCircle aria-hidden="true" />
-            <AlertDescription>Prices changed — review the updated total, then confirm again.</AlertDescription>
+            <AlertDescription>{t("payments.composerSummaryPanel.pricesChangedReviewThe")}</AlertDescription>
           </Alert>
         ) : null}
 
         <dl className="flex flex-col gap-1 border-t border-border pt-3 text-sm">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Course fees</dt>
+            <dt className="text-muted-foreground">{t("payments.composerSummaryPanel.courseFees")}</dt>
             <dd className="text-foreground" data-testid="composer-subtotal">
               {quoted ? formatCurrency(quote.subtotal, quote.currency) : zero}
             </dd>
           </div>
           {quoted && facilityFee > 0 ? (
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Facility fee</dt>
+              <dt className="text-muted-foreground">{t("payments.composerSummaryPanel.facilityFee")}</dt>
               <dd className="text-foreground" data-testid="composer-facility-fee">
                 {formatCurrency(quote.facilityFeeTotal, quote.currency)}
               </dd>
@@ -246,7 +249,7 @@ export function ComposerSummaryPanel({
           ) : null}
           {quoted && postage > 0 ? (
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Postage</dt>
+              <dt className="text-muted-foreground">{t("payments.composerSummaryPanel.postage")}</dt>
               <dd className="text-foreground" data-testid="composer-postage-total">
                 {formatCurrency(quote.postageTotal, quote.currency)}
               </dd>
@@ -254,7 +257,7 @@ export function ComposerSummaryPanel({
           ) : null}
           {quoted ? (
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Discounts</dt>
+              <dt className="text-muted-foreground">{t("payments.composerSummaryPanel.discounts")}</dt>
               <dd className="text-foreground" data-testid="composer-discount-total">
                 {toAmount(quote.discountTotal) > 0
                   ? `− ${formatCurrency(quote.discountTotal, quote.currency)}`
@@ -263,7 +266,7 @@ export function ComposerSummaryPanel({
             </div>
           ) : null}
           <div className="flex justify-between font-semibold">
-            <dt className="text-foreground">Total</dt>
+            <dt className="text-foreground">{t("payments.composerSummaryPanel.total")}</dt>
             <dd className="text-foreground" data-testid="composer-total">
               {quoted ? formatCurrency(quote.total, quote.currency) : zero}
             </dd>
@@ -281,13 +284,12 @@ export function ComposerSummaryPanel({
           <Alert variant="destructive" role="alert" data-testid="composer-blocking-issue">
             <AlertCircle aria-hidden="true" />
             <AlertDescription>
-              {quote.blockingMessage ||
-                "Your discounts cover the whole amount, and an order with a zero total can't be placed. Remove a discount or add another item to continue."}
+              {translateSource(t, quote.blockingMessage || "Your discounts cover the whole amount, and an order with a zero total can't be placed. Remove a discount or add another item to continue.")}
             </AlertDescription>
           </Alert>
           <div className="flex justify-end">
             <Button type="button" variant="outline" onClick={onCancel} data-testid="composer-cancel">
-              CANCEL
+              {t("payments.composerSummaryPanel.cancel")}
             </Button>
           </div>
         </div>
@@ -305,7 +307,7 @@ export function ComposerSummaryPanel({
       ) : (
         <div className="flex justify-end">
           <Button type="button" variant="outline" onClick={onCancel} data-testid="composer-cancel">
-            CANCEL
+            {t("payments.composerSummaryPanel.cancel")}
           </Button>
         </div>
       )}
@@ -331,13 +333,14 @@ function QuotedCourseGroup({
   onTogglePostage: (courseId: string, selected: boolean) => void;
   onDeclineReward: (ruleId: string) => void;
 }) {
+  const t = useT();
   // A free-course reward line isn't a cart item: removing it declines the offer it came from.
   const rewardRuleFor = (lineNo: number) =>
     quote.discounts?.find((discount) => discount.type === "BUNDLE_FREE_COURSE" && discount.lineNos.includes(lineNo))
       ?.ruleId ?? null;
   const charge = group.charge;
   const currency = charge?.currency ?? quote.currency;
-  const feeSource = charge ? facilityFeeSourceText(charge, quote.feeBasis) : null;
+  const feeSource = charge ? translateSource(t, facilityFeeSourceText(charge, quote.feeBasis)) : null;
   return (
     <section
       aria-label={group.courseTitle}
@@ -348,7 +351,7 @@ function QuotedCourseGroup({
       <p className="truncate text-sm font-medium text-foreground" data-testid="composer-summary-course-title">
         {group.courseTitle}
       </p>
-      <ul className="flex flex-col gap-1" aria-label={`Selected items for ${group.courseTitle}`}>
+      <ul className="flex flex-col gap-1" aria-label={t("payments.summary.selectedFor", { course: group.courseTitle })}>
         {group.lines.map((line) => {
           const lineDiscount = toAmount(line.discountAmount);
           const rewardRuleId = line.reward ? rewardRuleFor(line.lineNo) : null;
@@ -363,7 +366,7 @@ function QuotedCourseGroup({
             >
               <span className="flex min-w-0 flex-col text-xs text-muted-foreground">
                 <span>
-                  {linePeriodText(line)} — {SCOPE_LINE_LABELS[line.scope] ?? line.scope}
+                  {linePeriodText(line)} — {translateSource(t, SCOPE_LINE_LABELS[line.scope]) ?? line.scope}
                 </span>
                 {line.reward ? (
                   <span className="text-emerald-700 dark:text-emerald-300" data-testid="composer-line-discount">
@@ -379,7 +382,7 @@ function QuotedCourseGroup({
               <span className="flex shrink-0 items-center gap-1">
                 {line.reward ? (
                   <s className="font-medium text-muted-foreground">
-                    <span className="sr-only">Normally </span>
+                    <span className="sr-only">{t("payments.composerSummaryPanel.normally")}{" "}</span>
                     {plain(line.unitAmount)}
                   </s>
                 ) : (
@@ -391,7 +394,7 @@ function QuotedCourseGroup({
                       type="button"
                       variant="ghost"
                       size="icon-xs"
-                      aria-label={`Remove free ${linePeriodText(line)} (${group.courseTitle})`}
+                      aria-label={t("payments.summary.removeFree", { item: linePeriodText(line), course: group.courseTitle })}
                       onClick={() => onDeclineReward(rewardRuleId)}
                       disabled={busy}
                       data-testid="composer-reward-remove"
@@ -420,7 +423,7 @@ function QuotedCourseGroup({
       {charge ? (
         <dl className="flex flex-col gap-0.5 border-t border-border pt-2 text-xs">
           <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Course fees</dt>
+            <dt className="text-muted-foreground">{t("payments.composerSummaryPanel.courseFees")}</dt>
             <dd className="text-foreground" data-testid="composer-course-subtotal">
               {formatCurrency(charge.subtotal, currency)}
             </dd>
@@ -445,7 +448,7 @@ function QuotedCourseGroup({
           courseTitle={group.courseTitle}
           checked={postageSelected}
           disabled={busy}
-          amountText={hasPostageCharge(charge) ? formatCurrency(charge.postageFee, currency) : "No postage charge"}
+          amountText={hasPostageCharge(charge) ? formatCurrency(charge.postageFee, currency) : t("payments.composerSummaryPanel.noPostageCharge")}
           onChange={onTogglePostage}
         />
       ) : null}
@@ -468,6 +471,7 @@ function PostageCheckbox({
   amountText: string;
   onChange: (courseId: string, selected: boolean) => void;
 }) {
+  const t = useT();
   const id = `composer-postage-${courseId}`;
   return (
     <div className="flex items-start gap-2 text-xs" data-testid="composer-postage">
@@ -483,7 +487,7 @@ function PostageCheckbox({
       />
       <label htmlFor={id} className="flex flex-1 flex-wrap justify-between gap-1">
         <span className="text-foreground">
-          Deliver printed materials by post<span className="sr-only"> for {courseTitle}</span>
+          {t("payments.composerSummaryPanel.deliverPrintedMaterialsBy")}<span className="sr-only"> {t("payments.summary.forCourse", { course: courseTitle })}</span>
         </span>
         <span id={`${id}-amount`} className="text-muted-foreground" data-testid="composer-postage-amount">
           {amountText}
@@ -507,6 +511,7 @@ function DeliveryBlock({
   forceForm: boolean;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const delivery = quote?.delivery ?? null;
   const showForm = forceForm || editing;
@@ -518,7 +523,7 @@ function DeliveryBlock({
     >
       <h4 id="composer-delivery-heading" className="flex items-center gap-1.5 text-sm font-medium text-foreground">
         <Truck className="size-4" aria-hidden="true" />
-        Delivery address
+        {t("payments.composerSummaryPanel.deliveryAddress")}
       </h4>
       {!showForm && delivery ? (
         <>
@@ -529,15 +534,15 @@ function DeliveryBlock({
             {delivery.phone ? <span className="block text-muted-foreground">{delivery.phone}</span> : null}
           </address>
           <Button type="button" size="sm" variant="outline" className="w-fit" onClick={() => setEditing(true)}>
-            Change address
+            {t("payments.composerSummaryPanel.changeAddress")}
           </Button>
         </>
       ) : (
         <BillingAddressForm
           idPrefix="composer-delivery"
           variant="inline"
-          heading={forceForm ? "Add your delivery address" : "Change your delivery address"}
-          description="Postage is sent to your billing address. Saving it updates your profile and recalculates the total."
+          heading={forceForm ? t("payments.composerSummaryPanel.addYourDeliveryAddress") : t("payments.composerSummaryPanel.changeYourDeliveryAddress")}
+          description={t("payments.composerSummaryPanel.postageIsSentTo")}
           onSaved={() => {
             setEditing(false);
             onSaved();
@@ -568,6 +573,7 @@ function MethodSection({
   onCancel: () => void;
   billingAddressMissing: boolean;
 }) {
+  const t = useT();
   const groupName = useId();
   const busy = flow.phase === "working";
   const bank = quote.bankDetails;
@@ -576,7 +582,7 @@ function MethodSection({
   return (
     <section aria-labelledby={`${groupName}-heading`} className="flex flex-col gap-3">
       <h3 id={`${groupName}-heading`} className="text-sm font-semibold text-foreground">
-        Payment method
+        {t("payments.composerSummaryPanel.paymentMethod")}
       </h3>
       <div role="radiogroup" aria-labelledby={`${groupName}-heading`} className="flex flex-col gap-2">
         {quote.methods.online ? (
@@ -586,8 +592,8 @@ function MethodSection({
             checked={method === "online"}
             disabled={busy}
             onChange={() => onMethodChange("online")}
-            title="Pay online"
-            subtitle="Card or online banking"
+            title={t("payments.composerSummaryPanel.payOnline")}
+            subtitle={t("payments.composerSummaryPanel.cardOrOnlineBanking")}
             testId="composer-method-online"
           />
         ) : null}
@@ -598,14 +604,14 @@ function MethodSection({
             checked={method === "slip"}
             disabled={busy || !slipAvailable}
             onChange={() => onMethodChange("slip")}
-            title="Upload a payment slip"
-            subtitle={bank ? "Paid at a bank? Upload the deposit slip." : "Your institute hasn't added bank details yet"}
+            title={t("payments.composerSummaryPanel.uploadAPaymentSlip")}
+            subtitle={bank ? t("payments.composerSummaryPanel.paidAtABank") : t("payments.composerSummaryPanel.yourInstituteHasntAdded")}
             testId="composer-method-slip"
           />
         ) : null}
         {!quote.methods.online && !quote.methods.slip ? (
           <p className="text-sm text-muted-foreground" role="status">
-            No payment method is available right now. Contact your institute.
+            {t("payments.composerSummaryPanel.noPaymentMethodIs")}
           </p>
         ) : null}
       </div>
@@ -613,7 +619,7 @@ function MethodSection({
       {flow.phase === "error" ? (
         <Alert variant="destructive" data-testid="composer-flow-error">
           <AlertCircle aria-hidden="true" />
-          <AlertDescription>{flow.message}</AlertDescription>
+          <AlertDescription>{translateSource(t, flow.message)}</AlertDescription>
         </Alert>
       ) : null}
       <LiveRegion message={flow.phase === "working" ? flow.step : ""} />
@@ -626,15 +632,15 @@ function MethodSection({
               <AlertDescription>
                 Online payment needs your billing address.{" "}
                 <Link href="/student/profile" className="font-medium underline">
-                  Add it in My Profile
+                  {t("payments.composerSummaryPanel.addItInMy")}
                 </Link>
-                , then come back to pay online.
+                {t("payments.composerSummaryPanel.thenComeBackTo")}
               </AlertDescription>
             </Alert>
           ) : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={onCancel} data-testid="composer-cancel">
-              CANCEL
+              {t("payments.composerSummaryPanel.cancel")}
             </Button>
             <Button
               type="button"
@@ -647,12 +653,12 @@ function MethodSection({
               {busy ? (
                 <>
                   <Loader2 className="animate-spin" aria-hidden="true" />
-                  {flow.phase === "working" ? flow.step : "Working…"}
+                  {flow.phase === "working" ? flow.step : t("payments.composerSummaryPanel.working")}
                 </>
               ) : flow.phase === "error" ? (
-                "TRY AGAIN"
+                t("payments.summary.tryAgain")
               ) : (
-                "PROCEED TO PAYMENT"
+                t("payments.summary.proceed")
               )}
             </Button>
           </div>
@@ -666,7 +672,7 @@ function MethodSection({
       {method === null ? (
         <div className="flex justify-end">
           <Button type="button" variant="outline" onClick={onCancel} data-testid="composer-cancel">
-            CANCEL
+            {t("payments.composerSummaryPanel.cancel")}
           </Button>
         </div>
       ) : null}
@@ -735,6 +741,7 @@ function SlipForm({
   onSubmit: (input: { referenceNumber: string; file: File }) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const fileId = useId();
   const refId = useId();
   const [copied, setCopied] = useState("");
@@ -757,9 +764,9 @@ function SlipForm({
     if (!bank.accountNumber) return;
     try {
       await navigator.clipboard.writeText(bank.accountNumber);
-      setCopied("Account number copied");
+      setCopied(t("payments.summary.copied"));
     } catch {
-      setCopied("Couldn't copy. Select the number and copy it manually.");
+      setCopied(t("payments.summary.copyFailed"));
     }
   };
 
@@ -775,25 +782,25 @@ function SlipForm({
       onSubmit={handleSubmit((values) => onSubmit(toSlipUploadInput(values)))}
     >
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/20 p-3 text-sm" data-testid="composer-bank-details">
-        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Deposit to</p>
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("payments.composerSummaryPanel.depositTo")}</p>
         <div className="flex items-start gap-2">
           <Building2 className="mt-0.5 size-4 text-blue-700" aria-hidden="true" />
           <div className="flex flex-col">
-            <span className="font-medium text-foreground">{bank.bankName ?? "Bank not set"}</span>
+            <span className="font-medium text-foreground">{bank.bankName ?? t("payments.composerSummaryPanel.bankNotSet")}</span>
             {bank.branch ? <span className="text-xs text-muted-foreground">{bank.branch}</span> : null}
           </div>
         </div>
         <dl className="flex flex-col gap-1">
           <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Account holder</dt>
+            <dt className="text-muted-foreground">{t("payments.composerSummaryPanel.accountHolder")}</dt>
             <dd className="text-right font-medium text-foreground">{bank.accountHolder ?? "—"}</dd>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <dt className="text-muted-foreground">Account number</dt>
+            <dt className="text-muted-foreground">{t("payments.composerSummaryPanel.accountNumber")}</dt>
             <dd className="flex items-center gap-1 font-mono font-medium text-foreground">
               <span data-testid="composer-account-number">{bank.accountNumber ?? "—"}</span>
               {bank.accountNumber ? (
-                <Button type="button" variant="ghost" size="icon-xs" aria-label="Copy account number" onClick={copyAccount} data-testid="composer-copy-account">
+                <Button type="button" variant="ghost" size="icon-xs" aria-label={t("payments.composerSummaryPanel.copyAccountNumber")} onClick={copyAccount} data-testid="composer-copy-account">
                   <Copy aria-hidden="true" />
                 </Button>
               ) : null}
@@ -804,7 +811,7 @@ function SlipForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor={refId}>Deposit reference number *</Label>
+        <Label htmlFor={refId}>{t("payments.composerSummaryPanel.depositReferenceNumber")}</Label>
         <Input
           id={refId}
           maxLength={255}
@@ -816,7 +823,7 @@ function SlipForm({
           {...register("referenceNumber")}
         />
         <p id={`${refId}-help`} className="text-xs text-muted-foreground">
-          The reference or transaction number printed on your deposit slip.
+          {t("payments.composerSummaryPanel.theReferenceOrTransaction")}
         </p>
         {errors.referenceNumber?.message ? (
           <p id={`${refId}-error`} role="alert" className="text-xs text-destructive">
@@ -826,7 +833,7 @@ function SlipForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor={fileId}>Payment slip *</Label>
+        <Label htmlFor={fileId}>{t("payments.composerSummaryPanel.paymentSlip")}</Label>
         <div className="flex items-center gap-2 rounded-lg border border-input px-2.5 py-1.5">
           <Paperclip className="size-4 text-muted-foreground" aria-hidden="true" />
           <input
@@ -856,7 +863,7 @@ function SlipForm({
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" onClick={onCancel} data-testid="composer-cancel">
-          CANCEL
+          {t("payments.composerSummaryPanel.cancel")}
         </Button>
         <Button
           type="submit"
@@ -866,7 +873,7 @@ function SlipForm({
           className="bg-blue-600 text-white hover:bg-blue-700"
         >
           {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-          {busy ? "Submitting…" : retry ? "TRY AGAIN" : "SUBMIT FOR APPROVAL"}
+          {busy ? t("payments.composerSummaryPanel.submitting") : retry ? t("payments.summary.tryAgain") : t("payments.summary.submitForApproval")}
         </Button>
       </div>
     </form>
@@ -875,25 +882,26 @@ function SlipForm({
 
 /** Shown after a slip upload succeeds. Nothing is unlocked; a reviewer decides. */
 export function SlipSubmittedPanel({ onClose, onAnother }: { onClose: () => void; onAnother: () => void }) {
+  const t = useT();
   return (
     <div role="status" className="flex flex-col items-center gap-3 px-4 py-10 text-center" data-testid="composer-slip-submitted">
       <CheckCircle2 className="size-10 text-green-600" aria-hidden="true" />
-      <p className="text-base font-semibold text-foreground">Submitted — pending approval</p>
+      <p className="text-base font-semibold text-foreground">{t("payments.composerSummaryPanel.submittedPendingApproval")}</p>
       <p className="max-w-md text-sm text-muted-foreground">
         Your institute will check your payment slip. The lessons you paid for open after it&apos;s approved — you
         don&apos;t need to do anything else.
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         <Link href="/student/payments/history" onClick={onClose} className="text-sm font-medium text-blue-700 underline dark:text-blue-300">
-          View payment history
+          {t("payments.composerSummaryPanel.viewPaymentHistory")}
         </Link>
       </div>
       <div className="flex gap-2">
         <Button type="button" variant="outline" onClick={onAnother}>
-          Make another payment
+          {t("payments.composerSummaryPanel.makeAnotherPayment")}
         </Button>
         <Button type="button" onClick={onClose} data-testid="composer-done">
-          Close
+          {t("payments.composerSummaryPanel.close")}
         </Button>
       </div>
     </div>

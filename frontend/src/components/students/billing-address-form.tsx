@@ -16,6 +16,8 @@ import {
 } from "@/lib/api/students";
 import { billingAddressSchema, type BillingAddressFormValues } from "@/lib/validation/students";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 /**
  * The student's own billing address (PAY-GW-01 follow-up) -
  * `GET`/`PUT /v1/students/me/billing-address`, no id anywhere. Required for
@@ -29,8 +31,8 @@ import { billingAddressSchema, type BillingAddressFormValues } from "@/lib/valid
 export function BillingAddressForm({
   idPrefix = "billing",
   variant = "page",
-  heading = "Billing address",
-  description = "Needed to pay online. It is shared with the payment gateway only when you pay.",
+  heading: headingProp,
+  description: descriptionProp,
   onSaved,
   onCancel,
 }: {
@@ -41,6 +43,9 @@ export function BillingAddressForm({
   onSaved?: (address: StudentBillingAddress) => void;
   onCancel?: () => void;
 } = {}) {
+  const t = useT();
+  const heading = headingProp ?? t("student.billing.heading");
+  const description = descriptionProp ?? t("student.billing.description");
   const addressQuery = useOwnBillingAddress();
   const updateMutation = useUpdateOwnBillingAddress();
   const [pageError, setPageError] = useState<{ message: string; code?: string } | null>(null);
@@ -90,12 +95,12 @@ export function BillingAddressForm({
         }
         return;
       }
-      setPageError({ message: "An unexpected error occurred. Please try again." });
+      setPageError({ message: t("student.billingAddressForm.anUnexpectedErrorOccurred") });
     }
   });
 
   if (addressQuery.isPending) {
-    return <LoadingState label="Loading your billing address…" />;
+    return <LoadingState label={t("student.billingAddressForm.loadingYourBillingAddress")} />;
   }
 
   return (
@@ -119,16 +124,16 @@ export function BillingAddressForm({
 
       {addressQuery.isError ? (
         <ErrorState
-          message="We couldn't load your billing address."
+          message={t("student.billingAddressForm.weCouldntLoadYour")}
           onRetry={() => addressQuery.refetch()}
         />
       ) : null}
 
-      {pageError ? <ErrorState message={pageError.message} code={pageError.code} /> : null}
+      {pageError ? <ErrorState message={translateSource(t, pageError.message)} code={pageError.code} /> : null}
 
       <form onSubmit={onSubmit} noValidate className={inline ? "flex flex-col gap-3" : "flex flex-col gap-4"}>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={ids.line}>Address</Label>
+          <Label htmlFor={ids.line}>{t("student.billingAddressForm.address")}</Label>
           <Input
             id={ids.line}
             autoComplete="street-address"
@@ -138,13 +143,13 @@ export function BillingAddressForm({
           />
           {errors.addressLine ? (
             <p id={`${ids.line}-error`} role="alert" className="text-sm text-destructive">
-              {errors.addressLine.message}
+              {translateSource(t, errors.addressLine.message)}
             </p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={ids.city}>City</Label>
+          <Label htmlFor={ids.city}>{t("student.billingAddressForm.city")}</Label>
           <Input
             id={ids.city}
             autoComplete="address-level2"
@@ -154,7 +159,7 @@ export function BillingAddressForm({
           />
           {errors.city ? (
             <p id={`${ids.city}-error`} role="alert" className="text-sm text-destructive">
-              {errors.city.message}
+              {translateSource(t, errors.city.message)}
             </p>
           ) : null}
         </div>
@@ -167,16 +172,16 @@ export function BillingAddressForm({
             aria-busy={updateMutation.isPending}
             data-testid={inline ? `${idPrefix}-address-save` : undefined}
           >
-            {updateMutation.isPending ? "Saving…" : "Save address"}
+            {updateMutation.isPending ? t("student.billingAddressForm.saving") : t("student.billingAddressForm.saveAddress")}
           </Button>
           {onCancel ? (
             <Button type="button" size={inline ? "sm" : "default"} variant="outline" onClick={onCancel}>
-              Cancel
+              {t("student.billingAddressForm.cancel")}
             </Button>
           ) : null}
           {saved ? (
             <p role="status" className="text-sm text-muted-foreground">
-              Billing address saved.
+              {t("student.billingAddressForm.billingAddressSaved")}
             </p>
           ) : null}
         </div>

@@ -16,6 +16,7 @@ import {
 import { CourseContentTree } from "./course-content-tree";
 import { CourseCover, PriceBadge } from "./course-visuals";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Shared course presentation (TP-02): the header card, URL-synced tab strip,
  * course-content tree and About panel used by BOTH the Student course detail
@@ -51,6 +52,7 @@ export function CourseDetailFrame<T extends string>({
   children: ReactNode;
   testId: string;
 }) {
+  const t = useT();
   const teacherNames =
     course.teachers && course.teachers.length > 0
       ? [...course.teachers].sort((a, b) => Number(b.primary) - Number(a.primary)).map((t) => t.name).join(", ")
@@ -58,7 +60,7 @@ export function CourseDetailFrame<T extends string>({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6" data-testid={testId}>
-      <nav aria-label="Breadcrumb">
+      <nav aria-label={t("student.courseDetailLayout.breadcrumb")}>
         <Link href={backHref} className="text-sm text-muted-foreground hover:underline">
           ← {backLabel}
         </Link>
@@ -75,7 +77,7 @@ export function CourseDetailFrame<T extends string>({
             {teacherNames ? (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <UserRound className="size-4" aria-hidden="true" />
-                <span className="sr-only">Teacher:</span>
+                <span className="sr-only">{t("student.courseDetailLayout.teacher")}</span>
                 {teacherNames}
               </p>
             ) : null}
@@ -99,6 +101,7 @@ function CourseDetailTabs<T extends string>({
   tab: T;
   onChange: (tab: T) => void;
 }) {
+  const t = useT();
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
@@ -112,7 +115,7 @@ function CourseDetailTabs<T extends string>({
   };
 
   return (
-    <div role="tablist" aria-label="Course sections" className="flex flex-nowrap overflow-x-auto border-t border-border px-2">
+    <div role="tablist" aria-label={t("student.courseDetailLayout.courseSections")} className="flex flex-nowrap overflow-x-auto border-t border-border px-2">
       {tabs.map((item, index) => {
         const selected = item.value === tab;
         return (
@@ -168,15 +171,16 @@ export function CourseContentTab({
   showProgress?: boolean;
   emptyMessage?: string;
 }) {
+  const t = useT();
   const query = useCourseContent(courseId);
-  if (query.status === "pending") return <LoadingState label="Loading course content…" />;
+  if (query.status === "pending") return <LoadingState label={t("student.courseDetailLayout.loadingCourseContent")} />;
   if (query.status === "error") {
     if (isApiClientError(query.error) && (query.error.status === 404 || query.error.status === 403)) {
       return <>{denied}</>;
     }
     return (
       <ErrorState
-        message="We couldn't load this course's content."
+        message={t("student.courseDetailLayout.weCouldntLoadThis")}
         code={isApiClientError(query.error) ? query.error.code : undefined}
         onRetry={() => query.refetch()}
       />
@@ -208,6 +212,7 @@ function safeInviteUrl(url: string | null | undefined): string | null {
 }
 
 export function CourseAboutPanel({ course }: { course: StudentCourseDetail }) {
+  const t = useT();
   const whatsapp = safeInviteUrl(course.whatsappInviteUrl);
   const telegram = safeInviteUrl(course.telegramInviteUrl);
   return (
@@ -217,7 +222,7 @@ export function CourseAboutPanel({ course }: { course: StudentCourseDetail }) {
       data-testid="course-about-panel"
     >
       <h2 id="about-course-heading" className="text-base font-semibold text-foreground">
-        About this course
+        {t("student.courseDetailLayout.aboutThisCourse")}
       </h2>
       {course.description ? (
         // Plain text only - never rendered as HTML.
@@ -229,7 +234,7 @@ export function CourseAboutPanel({ course }: { course: StudentCourseDetail }) {
       )}
       {whatsapp || telegram ? (
         <div className="flex flex-col gap-2 border-t border-border pt-4">
-          <h3 className="text-sm font-semibold text-foreground">Join the class groups</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t("student.courseDetailLayout.joinTheClassGroups")}</h3>
           <div className="flex flex-wrap gap-2">
             {whatsapp ? (
               <a

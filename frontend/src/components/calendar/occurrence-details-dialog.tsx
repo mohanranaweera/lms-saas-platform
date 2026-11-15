@@ -9,6 +9,7 @@ import type { CalendarOccurrence } from "@/lib/api/calendar";
 import type { ScheduleStatus } from "@/lib/calendar/status";
 import { formatLongDate, formatTime, timeZoneLabel } from "@/lib/calendar/time";
 
+import { useT } from "@/i18n/i18n-provider";
 export type CalendarPortal = "tenant-admin" | "teacher" | "student";
 
 /** Role-appropriate course destination. Each route re-checks access server-side. */
@@ -37,23 +38,24 @@ export function OccurrenceDetailsDialog({
   portal: CalendarPortal;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <CalendarDialog
       open={occurrence != null}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title={occurrence?.courseName ?? "Class details"}
+      title={occurrence?.courseName ?? t("calendar.occurrenceDetailsDialog.classDetails")}
       icon={<CalendarDays className="size-5 shrink-0 text-primary" aria-hidden="true" />}
       testId="occurrence-details-dialog"
       footer={
         occurrence ? (
           <>
             <Button type="button" variant="outline" onClick={onClose}>
-              Close
+              {t("calendar.occurrenceDetailsDialog.close")}
             </Button>
             <Link href={courseHref(portal, occurrence.courseId)} className={buttonVariants()}>
-              View course
+              {t("calendar.occurrenceDetailsDialog.viewCourse")}
               <ExternalLink aria-hidden="true" />
             </Link>
           </>
@@ -62,7 +64,7 @@ export function OccurrenceDetailsDialog({
     >
       {occurrence ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3" data-testid="occurrence-details">
-          <dt className="text-muted-foreground">Status</dt>
+          <dt className="text-muted-foreground">{t("calendar.occurrenceDetailsDialog.status")}</dt>
           <dd className="flex flex-col gap-1">
             <ScheduleStatusBadge status={status} />
             {status === "LIVE" || status === "SCHEDULED" ? (
@@ -71,28 +73,28 @@ export function OccurrenceDetailsDialog({
           </dd>
           {occurrence.sessionTitle ? (
             <>
-              <dt className="text-muted-foreground">Session</dt>
+              <dt className="text-muted-foreground">{t("calendar.occurrenceDetailsDialog.session")}</dt>
               <dd data-testid="occurrence-session-title">{occurrence.sessionTitle}</dd>
             </>
           ) : null}
-          <dt className="text-muted-foreground">Date</dt>
+          <dt className="text-muted-foreground">{t("calendar.occurrenceDetailsDialog.date")}</dt>
           <dd data-testid="occurrence-date">
             {formatLongDate(occurrence.localDate)}
           </dd>
-          <dt className="text-muted-foreground">Time</dt>
+          <dt className="text-muted-foreground">{t("calendar.occurrenceDetailsDialog.time")}</dt>
           <dd data-testid="occurrence-time" className={status === "CANCELLED" ? "line-through" : undefined}>
             {formatTime(Date.parse(occurrence.start), timeZone)} – {formatTime(Date.parse(occurrence.end), timeZone)}
           </dd>
-          <dt className="text-muted-foreground">Time zone</dt>
+          <dt className="text-muted-foreground">{t("calendar.occurrenceDetailsDialog.timeZone")}</dt>
           <dd>{timeZoneLabel(timeZone)}</dd>
-          <dt className="text-muted-foreground">{occurrence.teacherNames.length > 1 ? "Teachers" : "Teacher"}</dt>
+          <dt className="text-muted-foreground">{occurrence.teacherNames.length > 1 ? t("calendar.occurrenceDetailsDialog.teachers") : t("calendar.occurrenceDetailsDialog.teacher")}</dt>
           <dd data-testid="occurrence-teachers">
-            {occurrence.teacherNames.length > 0 ? occurrence.teacherNames.join(", ") : "Not assigned"}
+            {occurrence.teacherNames.length > 0 ? occurrence.teacherNames.join(", ") : t("calendar.occurrenceDetailsDialog.notAssigned")}
           </dd>
           {occurrence.source === "SESSION" ? (
             <>
-              <dt className="text-muted-foreground">Type</dt>
-              <dd>{occurrence.replacesOccurrenceId ? "Live session (rescheduled class)" : "Live session"}</dd>
+              <dt className="text-muted-foreground">{t("calendar.occurrenceDetailsDialog.type")}</dt>
+              <dd>{occurrence.replacesOccurrenceId ? t("calendar.occurrenceDetailsDialog.liveSessionRescheduledClass") : t("calendar.occurrenceDetailsDialog.liveSession")}</dd>
             </>
           ) : null}
         </dl>

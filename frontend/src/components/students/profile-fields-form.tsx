@@ -19,6 +19,8 @@ import {
 } from "@/lib/validation/student-profile-fields";
 import { ProfileFieldInputs } from "./profile-field-inputs";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 interface ProfileFieldsFormProps {
   fields: StudentProfileFieldEntry[];
   idPrefix: string;
@@ -44,6 +46,7 @@ export function ProfileFieldsForm({
   savingLabel,
   savedLabel,
 }: ProfileFieldsFormProps) {
+  const t = useT();
   const [pageError, setPageError] = useState<{ message: string; code?: string; fieldErrors?: FieldError[] } | null>(
     null
   );
@@ -93,7 +96,7 @@ export function ProfileFieldsForm({
           });
         }
       } else {
-        setPageError({ message: "An unexpected error occurred. Please try again." });
+        setPageError({ message: t("student.profileFieldsForm.anUnexpectedErrorOccurred") });
       }
     } finally {
       setSaving(false);
@@ -105,7 +108,7 @@ export function ProfileFieldsForm({
       <LiveRegion message={saving ? savingLabel : saved ? savedLabel : ""} />
       {pageError ? (
         <ErrorState
-          message={pageError.message}
+          message={translateSource(t, pageError.message)}
           code={pageError.code}
           fieldErrors={pageError.fieldErrors}
           onRetry={() => {
@@ -115,7 +118,7 @@ export function ProfileFieldsForm({
         />
       ) : null}
       <fieldset disabled={saving} className="min-w-0">
-        <legend className="sr-only">Additional details</legend>
+        <legend className="sr-only">{t("student.profileFieldsForm.additionalDetails")}</legend>
         <ProfileFieldInputs
           fields={fields}
           idPrefix={idPrefix}
@@ -126,7 +129,7 @@ export function ProfileFieldsForm({
       </fieldset>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={saving || !isDirty}>
-          {saving ? "Saving…" : "Save details"}
+          {saving ? t("student.profileFieldsForm.saving") : t("student.profileFieldsForm.saveDetails")}
         </Button>
         {saved && !isDirty ? (
           <span role="status" className="text-sm text-muted-foreground">

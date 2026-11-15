@@ -245,7 +245,7 @@ function PublicSiteFooter({ home }: { home: PublicHomeResponse | undefined }) {
  * never another tenant's cached branding (cache key includes the host).
  */
 export function PublicChrome({ children }: { children: React.ReactNode }) {
-  useNamespaces(["public"]);
+  useNamespaces(["public", "courses", "student", "payments", "player", "exams"]);
   const t = useT();
   const home = usePublicHome();
   const data = home.data;

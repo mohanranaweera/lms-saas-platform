@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Small centered modal for the student course screens (lesson launch
  * outcomes, external-player handoff). Built on the `@base-ui/react` Dialog
@@ -30,6 +31,7 @@ export function StudentDialog({
   testId?: string;
   className?: string;
 }) {
+  const t = useT();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <DialogPrimitive.Portal>
@@ -47,7 +49,7 @@ export function StudentDialog({
               {title}
             </DialogPrimitive.Title>
             <DialogPrimitive.Close
-              render={<Button type="button" variant="ghost" size="icon-sm" aria-label="Close" />}
+              render={<Button type="button" variant="ghost" size="icon-sm" aria-label={t("student.studentDialog.close")} />}
             >
               <XIcon aria-hidden="true" />
             </DialogPrimitive.Close>

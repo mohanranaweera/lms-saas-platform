@@ -43,6 +43,7 @@ import { FormField, describedBy, fieldIds } from "@/components/courses/admin/for
 import { mutationErrorMessage } from "@/components/courses/admin/confirm-delete-dialog";
 import { ExamFilePicker, UploadProgress, marksText, sequentialLabel } from "@/components/exams/management/management-shared";
 import { studentExamPaths } from "@/components/exams/student/student-exam-shared";
+import { formatExamMarks } from "@/components/exams/config/exam-shared";
 import { formatDuration, formatExamDateTime } from "@/lib/exams/exam-time";
 import { formatCountdown, useServerCountdown } from "@/lib/exams/server-clock";
 import { isApiClientError } from "@/lib/api/error";
@@ -65,6 +66,7 @@ import {
 } from "@/lib/api/exam-management";
 import { cn } from "@/lib/utils";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 /** Upload/paper failures that mean the student's time is over (server-decided). */
 /** 409 `NOT_STARTED`: no open written attempt (open the paper with the password first). */
 function isNotStartedError(error: unknown): boolean {
@@ -80,29 +82,27 @@ function isDeadlineError(error: unknown): boolean {
 }
 
 function WrittenRules({ exam }: { exam: StudentExam }) {
-  const duration = formatDuration(exam.durationMinutes);
+  const t = useT();
+  const duration = formatDuration(exam.durationMinutes, t);
   return (
     <section aria-labelledby="written-rules-title" className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5">
       <h2 id="written-rules-title" className="flex items-center gap-2 text-base font-semibold text-foreground">
         <Info className="size-4 text-primary" aria-hidden="true" />
-        How this written exam works
+        {t("exams.studentWrittenExam.howThisWrittenExam")}
       </h2>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-foreground" data-testid="written-rules">
         <li>
-          Your time starts when you open the question paper.{" "}
+          {t("exams.written.timeStarts")}{" "}
           {duration ? (
-            <>
-              You then have <strong>{duration}</strong> to upload your answer sheet, but never past the exam&apos;s closing
-              time ({formatExamDateTime(exam.endAt)}).
-            </>
+            <>{t("exams.written.duration", { duration, closes: formatExamDateTime(exam.endAt) })}</>
           ) : (
-            <>You can upload until the exam closes at {formatExamDateTime(exam.endAt)}.</>
+            <>{t("exams.written.untilClose", { closes: formatExamDateTime(exam.endAt) })}</>
           )}
         </li>
-        <li>Write your answers on paper, then photograph or scan every page.</li>
-        <li>Upload PDF, PNG or JPEG files, up to 20 MB each. You can upload several files.</li>
-        <li>Uploads are not accepted after your deadline.</li>
-        <li>Your marks appear here after your teacher publishes them.</li>
+        <li>{t("exams.studentWrittenExam.writeYourAnswersOn")}</li>
+        <li>{t("exams.studentWrittenExam.uploadPdfPngOr")}</li>
+        <li>{t("exams.studentWrittenExam.uploadsAreNotAccepted")}</li>
+        <li>{t("exams.studentWrittenExam.yourMarksAppearHere")}</li>
       </ul>
     </section>
   );
@@ -119,16 +119,17 @@ function OpenPaperForm({
   /** Keeps this form mounted while start → paper runs (the start response already adds the attempt to the cache). */
   onBusy: (busy: boolean) => void;
 }) {
+  const t = useT();
   const start = useStartAttempt(exam.id);
   const openPaper = useOpenStudentPaper(exam.id);
   const schema = useMemo(
     () =>
       z.object({
         password: exam.requiresPassword
-          ? z.string().trim().min(1, "Enter the exam password your teacher gave you.").max(64, "The password is at most 64 characters.")
+          ? z.string().trim().min(1, t("exams.password.required")).max(64, t("exams.password.tooLong", { max: "64" }))
           : z.string(),
       }),
-    [exam.requiresPassword]
+    [exam.requiresPassword, t]
   );
   const form = useForm<PasswordValues>({ resolver: zodResolver(schema), defaultValues: { password: "" } });
   const [stateError, setStateError] = useState<string | null>(null);
@@ -177,14 +178,14 @@ function OpenPaperForm({
       <LiveRegion message={announcement} />
       <h2 id="written-open-title" className="flex items-center gap-2 text-base font-semibold text-foreground">
         <FileQuestion className="size-4 text-primary" aria-hidden="true" />
-        Open the question paper
+        {t("exams.studentWrittenExam.openTheQuestionPaper")}
       </h2>
       {exam.requiresPassword ? (
         <FormField
           ids={ids}
-          label="Exam password"
+          label={t("exams.studentWrittenExam.examPassword")}
           required
-          helper="Your teacher gives you this password when the exam begins."
+          helper={t("exams.password.helper")}
           error={passwordError}
           className="max-w-sm"
         >
@@ -210,7 +211,7 @@ function OpenPaperForm({
       <div>
         <Button type="submit" size="lg" disabled={pending} aria-busy={pending} data-testid="written-open-paper">
           <FileQuestion aria-hidden="true" />
-          {pending ? "Opening…" : "Open question paper"}
+          {pending ? t("exams.studentWrittenExam.opening") : t("exams.studentWrittenExam.openQuestionPaper")}
         </Button>
       </div>
     </form>
@@ -218,20 +219,21 @@ function OpenPaperForm({
 }
 
 function MyUploads({ examId }: { examId: string }) {
+  const t = useT();
   const query = useMyAnswerDocuments(examId);
   return (
     <section aria-labelledby="my-uploads-title" className="flex min-w-0 flex-col gap-2" data-testid="written-my-uploads">
       <h3 id="my-uploads-title" className="text-sm font-semibold text-foreground">
-        Your uploaded answer sheets
+        {t("exams.studentWrittenExam.yourUploadedAnswerSheets")}
       </h3>
       {query.status === "pending" ? (
         <div role="status" aria-busy="true" className="flex flex-col gap-1">
-          <span className="sr-only">Loading your uploads…</span>
+          <span className="sr-only">{t("exams.studentWrittenExam.loadingYourUploads")}</span>
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-8 w-full" />
         </div>
       ) : query.status === "error" ? (
-        <ErrorState message="We couldn't load your uploads." onRetry={() => void query.refetch()} />
+        <ErrorState message={t("exams.studentWrittenExam.weCouldntLoadYour")} onRetry={() => void query.refetch()} />
       ) : query.data.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground" data-testid="written-my-uploads-empty">
           You haven&apos;t uploaded an answer sheet yet.
@@ -256,6 +258,7 @@ function MyUploads({ examId }: { examId: string }) {
 }
 
 function UploadAnswers({ examId, onClosed }: { examId: string; onClosed: (code: "deadline" | "not-started") => void }) {
+  const t = useT();
   const upload = useUploadAnswerDocument(examId);
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState<SequentialUploadProgress | null>(null);
@@ -265,7 +268,7 @@ function UploadAnswers({ examId, onClosed }: { examId: string; onClosed: (code: 
 
   async function submit() {
     if (files.length === 0) {
-      setError("Attach at least one file of your answer sheet.");
+      setError(t("exams.written.attachFile"));
       return;
     }
     setError(null);
@@ -294,7 +297,7 @@ function UploadAnswers({ examId, onClosed }: { examId: string; onClosed: (code: 
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="written-upload">
       <ExamFilePicker
-        label="Answer sheet files"
+        label={t("exams.studentWrittenExam.answerSheetFiles")}
         files={files}
         onChange={(next) => {
           setFiles(next);
@@ -315,7 +318,7 @@ function UploadAnswers({ examId, onClosed }: { examId: string; onClosed: (code: 
       <div>
         <Button type="button" onClick={() => void submit()} disabled={uploading} aria-busy={uploading} data-testid="written-upload-submit">
           <Upload aria-hidden="true" />
-          {uploading ? "Uploading…" : "Upload answer sheet"}
+          {uploading ? t("exams.studentWrittenExam.uploading") : t("exams.studentWrittenExam.uploadAnswerSheet")}
         </Button>
       </div>
     </div>
@@ -325,20 +328,21 @@ function UploadAnswers({ examId, onClosed }: { examId: string; onClosed: (code: 
 type ClosedReason = "deadline" | "submitted";
 
 function AttemptClosed({ exam, reason }: { exam: StudentExam; reason: ClosedReason }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5" data-testid="written-deadline-passed" data-reason={reason}>
       <Alert role="status">
         {reason === "submitted" ? <CheckCircle2 aria-hidden="true" /> : <Clock aria-hidden="true" />}
         <AlertDescription className="text-foreground">
           {reason === "submitted"
-            ? "You submitted this exam. Uploads are closed; your teacher marks the answer sheets below."
-            : "The deadline for this exam has passed. Uploads are closed; the answer sheets you uploaded before the deadline are what your teacher marks."}
+            ? t("exams.studentWrittenExam.youSubmittedThisExam")
+            : t("exams.studentWrittenExam.theDeadlineForThis")}
         </AlertDescription>
       </Alert>
       <MyUploads examId={exam.id} />
       <div>
         <Link href={studentExamPaths.result(exam.id)} className={buttonVariants({ variant: "outline" })} data-testid="written-result-link">
-          {exam.resultAvailable ? "View result" : "Result status"}
+          {exam.resultAvailable ? t("exams.studentWrittenExam.viewResult") : t("exams.studentWrittenExam.resultStatus")}
         </Link>
       </div>
     </div>
@@ -347,6 +351,7 @@ function AttemptClosed({ exam, reason }: { exam: StudentExam; reason: ClosedReas
 
 /** "Finish and submit": ends the written attempt early (`POST /student/attempts/{id}/submit`, idempotent). */
 function FinishButton({ attemptId, examId, onSubmitted }: { attemptId: string; examId: string; onSubmitted: () => void }) {
+  const t = useT();
   const submit = useSubmitAttempt(attemptId, examId);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -371,7 +376,7 @@ function FinishButton({ attemptId, examId, onSubmitted }: { attemptId: string; e
     <>
       <Button type="button" variant="outline" onClick={() => setOpen(true)} data-testid="written-finish-open">
         <Send aria-hidden="true" />
-        Finish and submit
+        {t("exams.studentWrittenExam.finishAndSubmit")}
       </Button>
       <AlertDialog
         open={open}
@@ -382,7 +387,7 @@ function FinishButton({ attemptId, examId, onSubmitted }: { attemptId: string; e
       >
         <AlertDialogContent data-testid="written-finish-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Finish this exam?</AlertDialogTitle>
+            <AlertDialogTitle>{t("exams.studentWrittenExam.finishThisExam")}</AlertDialogTitle>
             <AlertDialogDescription>
               After you submit, you can&apos;t upload more answer sheets. Make sure every page is uploaded.
             </AlertDialogDescription>
@@ -393,9 +398,9 @@ function FinishButton({ attemptId, examId, onSubmitted }: { attemptId: string; e
             </Alert>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button type="button" variant="outline" />}>Keep working</AlertDialogClose>
+            <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("exams.studentWrittenExam.keepWorking")}</AlertDialogClose>
             <Button type="button" onClick={() => void run()} disabled={submit.isPending} aria-busy={submit.isPending} data-testid="written-finish-confirm">
-              {submit.isPending ? "Submitting…" : "Submit"}
+              {submit.isPending ? t("exams.studentWrittenExam.submitting") : t("exams.studentWrittenExam.submit")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -420,6 +425,7 @@ function WrittenInProgress({
   anchor: { serverNow: string | null; receivedAt: number };
   onClosed: (code: CloseCode) => void;
 }) {
+  const t = useT();
   const { remainingMs } = useServerCountdown(deadlineAt, anchor.serverNow, anchor.receivedAt);
   const openPaper = useOpenStudentPaper(exam.id);
   const [paperError, setPaperError] = useState<string | null>(null);
@@ -450,19 +456,19 @@ function WrittenInProgress({
       >
         <p className="flex items-center gap-2 text-sm">
           <Timer className="size-4" aria-hidden="true" />
-          Time left to upload
+          {t("exams.studentWrittenExam.timeLeftToUpload")}
         </p>
         <p className="text-2xl font-semibold tabular-nums" data-testid="written-countdown" role="timer" aria-live="off">
           {remainingMs === null ? "—" : formatCountdown(remainingMs)}
         </p>
         <p className="w-full text-xs text-muted-foreground">
-          Deadline <time dateTime={deadlineAt}>{formatExamDateTime(deadlineAt)}</time>
+          {t("exams.studentWrittenExam.deadline")}{" "}<time dateTime={deadlineAt}>{formatExamDateTime(deadlineAt)}</time>
         </p>
       </div>
       <div>
         <Button type="button" variant="outline" onClick={() => void reopen()} disabled={openPaper.isPending} aria-busy={openPaper.isPending} data-testid="written-reopen-paper">
           <FileQuestion aria-hidden="true" />
-          {openPaper.isPending ? "Opening…" : "Open question paper"}
+          {openPaper.isPending ? t("exams.studentWrittenExam.opening") : t("exams.studentWrittenExam.openQuestionPaper")}
         </Button>
       </div>
       {paperError ? (
@@ -495,8 +501,9 @@ function ResumedAttempt({
   fallbackDeadline: string | null;
   onClosed: (code: CloseCode) => void;
 }) {
+  const t = useT();
   const query = useAttempt(attemptId);
-  if (query.status === "pending") return <LoadingState label="Loading your exam…" />;
+  if (query.status === "pending") return <LoadingState label={t("exams.studentWrittenExam.loadingYourExam")} />;
   if (query.status === "success") {
     if (query.data.status !== "IN_PROGRESS") {
       return <AttemptClosed exam={exam} reason={query.data.status === "SUBMITTED" ? "submitted" : "deadline"} />;
@@ -515,7 +522,7 @@ function ResumedAttempt({
   return fallbackDeadline ? (
     <WrittenInProgress exam={exam} attemptId={attemptId} deadlineAt={fallbackDeadline} anchor={{ serverNow: null, receivedAt: 0 }} onClosed={onClosed} />
   ) : (
-    <ErrorState message="We couldn't load your exam." onRetry={() => void query.refetch()} />
+    <ErrorState message={t("exams.studentWrittenExam.weCouldntLoadYour2")} onRetry={() => void query.refetch()} />
   );
 }
 
@@ -527,6 +534,7 @@ function ResumedAttempt({
  * server; the countdown is display-only on the server clock.
  */
 export function StudentWrittenExam({ exam }: { exam: StudentExam }) {
+  const t = useT();
   const queryClient = useQueryClient();
   const [closed, setClosed] = useState<ClosedReason | null>(null);
   const [opening, setOpening] = useState(false);
@@ -541,8 +549,8 @@ export function StudentWrittenExam({ exam }: { exam: StudentExam }) {
   if (exam.status === "UPCOMING" || exam.status === "DRAFT") {
     return (
       <EmptyState
-        title="This exam hasn't opened yet"
-        description={`You can open the question paper from ${formatExamDateTime(exam.startAt)}. Come back then with the exam password.`}
+        title={t("exams.studentWrittenExam.thisExamHasntOpened")}
+        description={t("exams.written.notOpenDescription", { when: formatExamDateTime(exam.startAt) })}
       />
     );
   }
@@ -555,8 +563,8 @@ export function StudentWrittenExam({ exam }: { exam: StudentExam }) {
       <AttemptClosed exam={exam} reason="deadline" />
     ) : (
       <EmptyState
-        title="This exam has closed"
-        description="The exam window ended before you opened the question paper, so answers can no longer be uploaded."
+        title={t("exams.studentWrittenExam.thisExamHasClosed")}
+        description={t("exams.studentWrittenExam.theExamWindowEnded")}
       />
     );
   }
@@ -576,16 +584,17 @@ function OpeningForm(props: { exam: StudentExam; onBusy: (busy: boolean) => void
 
 /** Physical exam (student): schedule is in the summary; results once published. */
 export function StudentPhysicalExam({ exam }: { exam: StudentExam }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3" data-testid="physical-exam-info">
       <EmptyState
-        title="This exam is held in class"
-        description={`Attend the exam at the scheduled time (${formatExamDateTime(exam.startAt)}). Your teacher records your attendance and marks.`}
+        title={t("exams.studentWrittenExam.thisExamIsHeld")}
+        description={t("exams.physical.description", { when: formatExamDateTime(exam.startAt) })}
       />
       {exam.resultAvailable ? (
         <div>
           <Link href={studentExamPaths.result(exam.id)} className={buttonVariants({ variant: "outline" })} data-testid="physical-result-link">
-            View result
+            {t("exams.studentWrittenExam.viewResult")}
           </Link>
         </div>
       ) : null}
@@ -593,13 +602,14 @@ export function StudentPhysicalExam({ exam }: { exam: StudentExam }) {
   );
 }
 
-const NOT_PUBLISHED = {
-  title: "Marks will be available after they are published",
-  description: "Your teacher publishes the marks for this exam when marking is complete. You'll be notified when they're available.",
-};
+const NOT_PUBLISHED = (t: TranslateFn) => ({
+  title: t("exams.studentWrittenExam.marksWillBeAvailable"),
+  description: t("exams.studentWrittenExam.yourTeacherPublishesThe"),
+});
 
 /** Published written/physical result: marks, pass/fail (when a cut-off is set), attendance, marked paper. */
 export function StudentMarksResult({ exam }: { exam: StudentExam }) {
+  const t = useT();
   const query = useStudentMarksResult(exam.id, { enabled: exam.resultAvailable });
   const [openingPaper, setOpeningPaper] = useState(false);
   const [paperError, setPaperError] = useState<string | null>(null);
@@ -607,20 +617,20 @@ export function StudentMarksResult({ exam }: { exam: StudentExam }) {
   if (!exam.resultAvailable) {
     return (
       <div data-testid="result-not-published">
-        <EmptyState title={NOT_PUBLISHED.title} description={NOT_PUBLISHED.description} icon={<Clock className="size-8" aria-hidden="true" />} />
+        <EmptyState title={NOT_PUBLISHED(t).title} description={NOT_PUBLISHED(t).description} icon={<Clock className="size-8" aria-hidden="true" />} />
       </div>
     );
   }
-  if (query.status === "pending") return <LoadingState label="Loading your result…" />;
+  if (query.status === "pending") return <LoadingState label={t("exams.studentWrittenExam.loadingYourResult")} />;
   if (query.status === "error") {
     if (isResultNotPublishedError(query.error)) {
       return (
         <div data-testid="result-not-published">
-          <EmptyState title={NOT_PUBLISHED.title} description={NOT_PUBLISHED.description} icon={<Clock className="size-8" aria-hidden="true" />} />
+          <EmptyState title={NOT_PUBLISHED(t).title} description={NOT_PUBLISHED(t).description} icon={<Clock className="size-8" aria-hidden="true" />} />
         </div>
       );
     }
-    return <ErrorState message="We couldn't load your result." onRetry={() => void query.refetch()} />;
+    return <ErrorState message={t("exams.studentWrittenExam.weCouldntLoadYour3")} onRetry={() => void query.refetch()} />;
   }
 
   const result = query.data;
@@ -635,7 +645,7 @@ export function StudentMarksResult({ exam }: { exam: StudentExam }) {
       const fresh = await query.refetch();
       const link = fresh.data?.markedPaper;
       if (link?.url) window.open(link.url, "_blank", "noopener,noreferrer");
-      else setPaperError(fresh.error ? mutationErrorMessage(fresh.error) : "The marked paper is no longer available.");
+      else setPaperError(fresh.error ? mutationErrorMessage(fresh.error) : t("exams.studentWrittenExam.theMarkedPaperIs"));
     } finally {
       setOpeningPaper(false);
     }
@@ -644,7 +654,7 @@ export function StudentMarksResult({ exam }: { exam: StudentExam }) {
   return (
     <section aria-labelledby="marks-result-title" className="flex flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5" data-testid="marks-result">
       <h2 id="marks-result-title" className="text-base font-semibold text-foreground">
-        Your result
+        {t("exams.studentWrittenExam.yourResult")}
       </h2>
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         <p className="flex items-baseline gap-1 text-foreground">
@@ -654,7 +664,7 @@ export function StudentMarksResult({ exam }: { exam: StudentExam }) {
           <span className="text-lg text-muted-foreground tabular-nums">
             / <span data-testid="result-total">{marksText(result.totalMarks)}</span>
           </span>
-          <span className="sr-only">marks</span>
+          <span className="sr-only">{t("exams.result.marksWord")}</span>
         </p>
         {hasOutcome ? (
           <span
@@ -665,7 +675,7 @@ export function StudentMarksResult({ exam }: { exam: StudentExam }) {
             )}
           >
             {result.passed ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <XCircle className="size-4" aria-hidden="true" />}
-            {result.passed ? "Passed" : "Not passed"}
+            {result.passed ? t("exams.studentWrittenExam.passed") : t("exams.studentWrittenExam.notPassed")}
           </span>
         ) : null}
       </div>
@@ -673,15 +683,15 @@ export function StudentMarksResult({ exam }: { exam: StudentExam }) {
         {hasOutcome ? (
           <div className="flex items-center gap-1.5">
             <Sigma className="size-4 text-muted-foreground" aria-hidden="true" />
-            <dt className="text-muted-foreground">Cut-off</dt>
-            <dd>{marksText(result.cutoffMarks)} marks</dd>
+            <dt className="text-muted-foreground">{t("exams.studentWrittenExam.cutOff")}</dt>
+            <dd>{formatExamMarks(result.cutoffMarks, t) ?? marksText(result.cutoffMarks)}</dd>
           </div>
         ) : null}
         {exam.type === "PHYSICAL" && result.attendance ? (
           <div className="flex items-center gap-1.5">
             {absent ? <UserX className="size-4 text-muted-foreground" aria-hidden="true" /> : <UserCheck className="size-4 text-muted-foreground" aria-hidden="true" />}
-            <dt className="text-muted-foreground">Attendance</dt>
-            <dd data-testid="result-attendance">{absent ? "Absent" : "Present"}</dd>
+            <dt className="text-muted-foreground">{t("exams.studentWrittenExam.attendance")}</dt>
+            <dd data-testid="result-attendance">{absent ? t("exams.studentWrittenExam.absent") : t("exams.studentWrittenExam.present")}</dd>
           </div>
         ) : null}
       </dl>
@@ -690,7 +700,7 @@ export function StudentMarksResult({ exam }: { exam: StudentExam }) {
           <div>
             <Button type="button" variant="outline" onClick={() => void openMarkedPaper()} disabled={openingPaper} aria-busy={openingPaper} data-testid="result-marked-paper">
               <FileText aria-hidden="true" />
-              {openingPaper ? "Opening…" : `View marked paper (${result.markedPaper.fileName})`}
+              {openingPaper ? t("exams.studentWrittenExam.opening") : t("exams.written.viewMarked", { file: result.markedPaper.fileName })}
             </Button>
           </div>
         ) : (

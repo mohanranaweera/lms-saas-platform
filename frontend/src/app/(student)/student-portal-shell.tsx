@@ -10,7 +10,7 @@ import { useNamespaces, useT } from "@/i18n/i18n-provider";
 
 /** Student Portal chrome (I18N-01): loads the `student` namespace and localizes the portal label and header links. */
 export function StudentPortalShell({ children }: { children: ReactNode }) {
-  useNamespaces(["student"]);
+  useNamespaces(["student", "courses", "exams", "attendance", "payments", "notifications", "calendar", "devices", "player"]);
   const t = useT();
   return (
     <BrandedDashboardShell

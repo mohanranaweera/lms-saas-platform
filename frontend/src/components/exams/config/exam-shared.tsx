@@ -5,6 +5,7 @@ import { CalendarClock, CheckCircle2, ClipboardList, Hourglass, ListChecks, PenT
 import { cn } from "@/lib/utils";
 import { marksNumber } from "@/lib/api/question-bank";
 import type { ExamLiveStatus, ExamType } from "@/lib/api/exam-config";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 
 /** Which portal route tree the exam screens are rendered in. */
 export type ExamPortal = "tenant-admin" | "teacher";
@@ -26,6 +27,14 @@ export const EXAM_TYPE_LABELS: Record<ExamType, string> = {
   WRITTEN: "Written",
   PHYSICAL: "Physical",
 };
+
+/** Localized exam type label (I18N-01); `EXAM_TYPE_LABELS` stays the English source. */
+export function examTypeLabel(type: ExamType, t: TranslateFn): string {
+  if (type === "MCQ") return t("exams.type.mcq");
+  if (type === "WRITTEN") return t("exams.type.written");
+  if (type === "PHYSICAL") return t("exams.type.physical");
+  return EXAM_TYPE_LABELS[type] ?? type;
+}
 
 export const EXAM_TYPE_ICONS: Record<ExamType, ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }>> = {
   MCQ: ListChecks,
@@ -55,7 +64,15 @@ const STATUS: Record<ExamLiveStatus, { label: string; icon: typeof CheckCircle2;
 };
 
 /** Server-derived status chip: icon + text, never colour alone. */
+const STATUS_TEXT: Record<ExamLiveStatus, (t: TranslateFn) => string> = {
+  DRAFT: (t) => t("exams.status.draft"),
+  UPCOMING: (t) => t("exams.status.upcoming"),
+  IN_PROGRESS: (t) => t("exams.status.inProgress"),
+  FINISHED: (t) => t("exams.status.finished"),
+};
+
 export function ExamLiveStatusChip({ status, className }: { status: ExamLiveStatus; className?: string }) {
+  const t = useT();
   const entry = STATUS[status] ?? STATUS.DRAFT;
   const Icon = entry.icon;
   return (
@@ -68,15 +85,16 @@ export function ExamLiveStatusChip({ status, className }: { status: ExamLiveStat
       )}
     >
       <Icon className="size-3" aria-hidden="true" />
-      {entry.label}
+      {(STATUS_TEXT[status] ?? STATUS_TEXT.DRAFT)(t)}
     </span>
   );
 }
 
-export function formatExamMarks(value: number | string | null | undefined): string | null {
+export function formatExamMarks(value: number | string | null | undefined, t?: TranslateFn): string | null {
   if (value === null || value === undefined || value === "") return null;
   const marks = marksNumber(value);
   const text = Number.isInteger(marks) ? String(marks) : String(Number(marks.toFixed(2)));
+  if (t) return t("exams.marks", { count: marks, marks: text });
   return `${text} ${marks === 1 ? "mark" : "marks"}`;
 }
 

@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/materials";
 import { isApiClientError } from "@/lib/api/error";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 /**
  * Shared "Lesson/Material View" (moved from the Student route for TP-02; the
  * Teacher Portal course view reuses it - the server's material/video guards
@@ -76,7 +77,7 @@ export function LessonMaterialsView({
   moduleId,
   lessonId,
   backHref,
-  description = "Files your teacher has shared for this lesson.",
+  description,
 }: {
   courseId: string;
   moduleId: string;
@@ -84,11 +85,12 @@ export function LessonMaterialsView({
   backHref: string;
   description?: string;
 }) {
+  const t = useT();
   const materialsQuery = useMaterials(courseId, moduleId, lessonId);
 
   return (
     <div className="flex flex-col gap-6">
-      <nav aria-label="Breadcrumb">
+      <nav aria-label={t("courses.lessonMaterials.breadcrumb")}>
         <Link
           href={backHref}
           className="text-sm text-muted-foreground hover:underline"
@@ -97,8 +99,8 @@ export function LessonMaterialsView({
         </Link>
       </nav>
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Lesson materials</h1>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <h1 className="text-xl font-semibold text-foreground">{t("courses.lessonMaterials.lessonMaterials")}</h1>
+        <p className="text-sm text-muted-foreground">{description ?? t("courses.lessonMaterials.defaultDescription")}</p>
       </div>
 
       <MaterialsBody
@@ -122,8 +124,9 @@ function MaterialsBody({
   lessonId: string;
   query: ReturnType<typeof useMaterials>;
 }) {
+  const t = useT();
   if (query.status === "pending") {
-    return <LoadingState label="Loading materials…" />;
+    return <LoadingState label={t("courses.lessonMaterials.loadingMaterials")} />;
   }
 
   if (query.status === "error") {
@@ -133,15 +136,15 @@ function MaterialsBody({
     if (status === 403 || status === 404) {
       return (
         <EmptyState
-          title="This material isn't available"
-          description="It may have been removed, or you may not have access to it."
+          title={t("courses.lessonMaterials.thisMaterialIsntAvailable")}
+          description={t("courses.lessonMaterials.itMayHaveBeen")}
         />
       );
     }
 
     return (
       <ErrorState
-        message={isApiClientError(error) ? error.message : "Something went wrong. Please try again."}
+        message={isApiClientError(error) ? error.message : t("courses.lessonMaterials.somethingWentWrongPlease")}
         code={isApiClientError(error) ? error.code : undefined}
         onRetry={() => query.refetch()}
       />
@@ -175,6 +178,7 @@ function MaterialsList({
   lessonId: string;
   materials: MaterialResponse[];
 }) {
+  const t = useT();
   const hasLessonVideo = materials.some((material) => material.materialType === "VIDEO");
   const lessonMediaQuery = useLessonMedia(courseId, lessonId, hasLessonVideo);
 
@@ -191,8 +195,8 @@ function MaterialsList({
   if (materials.length === 0) {
     return (
       <EmptyState
-        title="No materials yet"
-        description="Your teacher hasn't added any materials to this lesson yet. Check back later."
+        title={t("courses.lessonMaterials.noMaterialsYet")}
+        description={t("courses.lessonMaterials.yourTeacherHasntAdded")}
       />
     );
   }
@@ -224,13 +228,26 @@ const MATERIAL_TYPE_LABELS: Record<MaterialResponse["materialType"], string> = {
   RECORDING: "Recording",
 };
 
-function materialTypeLabel(material: MaterialResponse): string {
+function materialTypeLabel(material: MaterialResponse, t: TranslateFn): string {
+  const label = (type: string) => {
+    switch (type) {
+      case "IMAGE": return t("courses.materialType.image");
+      case "DOCUMENT": return t("courses.materialType.document");
+      case "OTHER": return t("courses.materialType.file");
+      case "LINK": return t("courses.materialType.link");
+      case "NOTE": return t("courses.materialType.note");
+      case "VIDEO": return t("courses.materialType.video");
+      case "RECORDING": return t("courses.materialType.recording");
+      case "TEXT": return t("courses.materialType.text");
+      default: return "PDF";
+    }
+  };
   if (material.materialType === "OTHER" && material.mimeType) {
     if (material.mimeType === "application/pdf") return "PDF";
-    if (material.mimeType.startsWith("image/")) return "Image";
-    if (material.mimeType === "text/plain") return "Text";
+    if (material.mimeType.startsWith("image/")) return label("IMAGE");
+    if (material.mimeType === "text/plain") return label("TEXT");
   }
-  return MATERIAL_TYPE_LABELS[material.materialType];
+  return MATERIAL_TYPE_LABELS[material.materialType] === "PDF" ? "PDF" : label(material.materialType);
 }
 
 function StudentMaterialRow({
@@ -246,6 +263,7 @@ function StudentMaterialRow({
   material: MaterialResponse;
   videoSource: VideoSource;
 }) {
+  const t = useT();
   const downloadUrlMutation = useMaterialDownloadUrl(courseId, moduleId, lessonId);
   const [viewError, setViewError] = useState<string | null>(null);
   // Controlled so `SecureVideoPlayer` mounts (and issues a playback session)
@@ -254,8 +272,7 @@ function StudentMaterialRow({
   // own internal state isn't enough on its own.
   const [videoOpen, setVideoOpen] = useState(false);
 
-  const ANTI_ENUMERATION_FALLBACK =
-    "This material isn't available. It may have been removed, or you may not have access to it.";
+  const ANTI_ENUMERATION_FALLBACK = t("courses.lessonMaterials.unavailable");
 
   const handleOpen = async () => {
     setViewError(null);
@@ -273,7 +290,7 @@ function StudentMaterialRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate text-sm font-medium text-foreground">{material.title}</p>
-            <Badge variant="outline">{materialTypeLabel(material)}</Badge>
+            <Badge variant="outline">{materialTypeLabel(material, t)}</Badge>
           </div>
           {material.materialType !== "LINK" && material.materialType !== "NOTE" ? (
             <p className="text-xs text-muted-foreground">
@@ -300,10 +317,10 @@ function StudentMaterialRow({
             aria-busy={downloadUrlMutation.isPending}
           >
             {downloadUrlMutation.isPending
-              ? "Opening…"
+              ? t("courses.lessonMaterials.opening")
               : material.materialType === "LINK"
-                ? "Open link"
-                : "View"}
+                ? t("courses.lessonMaterials.openLink")
+                : t("courses.lessonMaterials.view")}
           </Button>
         ) : null}
       </div>
@@ -316,7 +333,7 @@ function StudentMaterialRow({
 
       {(material.materialType === "VIDEO" || material.materialType === "RECORDING") &&
       material.videoAssetId ? (
-        <Accordion title="Open video" open={videoOpen} onOpenChange={setVideoOpen}>
+        <Accordion title={t("courses.lessonMaterials.openVideo")} open={videoOpen} onOpenChange={setVideoOpen}>
           {videoOpen ? (
             <LessonVideo material={material} videoAssetId={material.videoAssetId} videoSource={videoSource} />
           ) : null}
@@ -341,15 +358,16 @@ function LessonVideo({
   videoAssetId: string;
   videoSource: VideoSource;
 }) {
+  const t = useT();
   if (videoSource.state === "loading") {
-    return <LoadingState label="Loading video…" />;
+    return <LoadingState label={t("courses.lessonMaterials.loadingVideo")} />;
   }
   if (videoSource.state === "error") {
     return (
       <div role="alert" className="flex flex-col items-start gap-2 text-sm text-foreground">
         <p>Couldn&apos;t load this video. Please try again.</p>
         <Button type="button" variant="outline" size="sm" onClick={videoSource.retry}>
-          Try again
+          {t("courses.lessonMaterials.tryAgain")}
         </Button>
       </div>
     );

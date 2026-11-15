@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatZonedDateTime } from "@/lib/datetime";
 import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 
 /**
  * ADR-033 §7: persistent, visually loud banner for a support ("Log as
@@ -55,7 +56,7 @@ export function ImpersonationBanner() {
       <div role="status" aria-live="polite">
         {readOnlyNotice ? (
           <div className="flex items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-950 dark:bg-amber-900 dark:text-amber-50">
-            <span data-testid="impersonation-read-only-notice">{readOnlyNotice}</span>
+            <span data-testid="impersonation-read-only-notice">{translateSource(t, readOnlyNotice)}</span>
             <Button
               type="button"
               size="icon-sm"

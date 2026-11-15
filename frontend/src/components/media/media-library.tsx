@@ -26,19 +26,20 @@ import { MediaFilesPanel } from "./media-files-panel";
 import { MediaLibrarySummary } from "./media-library-summary";
 import { MediaDialog } from "./media-dialog";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 const PAGE_SIZE = 24;
 
 /** VIDEO Phase 13: where a Tenant Admin sets up the DynTube account. */
 const DYNTUBE_SETTINGS_HREF = "/tenant-admin/settings/integrations";
 
-const STATUS_OPTIONS: { value: "" | MediaProcessingStatus; label: string }[] = [
-  { value: "", label: "All statuses" },
-  { value: "READY", label: "Ready" },
-  { value: "PROCESSING", label: "Processing" },
-  { value: "UPLOADING", label: "Uploading" },
-  { value: "CREATED", label: "Waiting for the file" },
-  { value: "FAILED", label: "Failed" },
-];
+const STATUS_OPTIONS = (t: TranslateFn): { value: "" | MediaProcessingStatus; label: string }[] => ([
+  { value: "", label: t("teacher.mediaLibrary.allStatuses") },
+  { value: "READY", label: t("teacher.mediaLibrary.ready") },
+  { value: "PROCESSING", label: t("teacher.mediaLibrary.processing") },
+  { value: "UPLOADING", label: t("teacher.mediaLibrary.uploading") },
+  { value: "CREATED", label: t("teacher.mediaLibrary.waitingForTheFile") },
+  { value: "FAILED", label: t("teacher.mediaLibrary.failed") },
+]);
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -52,6 +53,7 @@ const cardLinkClass =
  * not on YouTube yet opens the details page as before.
  */
 function MediaCard({ asset, href }: { asset: MediaAsset; href: string }) {
+  const t = useT();
   if (!asset.youtubeUrl) {
     return (
       <li className="flex flex-col overflow-hidden rounded-lg border border-border">
@@ -75,10 +77,10 @@ function MediaCard({ asset, href }: { asset: MediaAsset; href: string }) {
       <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-sm">
         <span className="inline-flex items-center gap-1 text-muted-foreground">
           <ExternalLink aria-hidden="true" className="size-3.5" />
-          Opens on YouTube
+          {t("teacher.mediaLibrary.opensOnYoutube")}
         </span>
         <Link href={href} className="font-medium text-foreground hover:underline">
-          Details<span className="sr-only"> for {asset.title}</span>
+          {t("teacher.mediaLibrary.details")}<span className="sr-only"> for {asset.title}</span>
         </Link>
       </div>
     </li>
@@ -86,6 +88,7 @@ function MediaCard({ asset, href }: { asset: MediaAsset; href: string }) {
 }
 
 function MediaCardBody({ asset }: { asset: MediaAsset }) {
+  const t = useT();
   const progress = asset.uploadProgress;
   const transferring = asset.processingStatus === "UPLOADING" && progress && progress.totalBytes > 0;
   const duration = formatDuration(asset.durationSeconds);
@@ -111,16 +114,16 @@ function MediaCardBody({ asset }: { asset: MediaAsset }) {
             {asset.attached ? (
               <Badge variant="outline">
                 <Link2 aria-hidden="true" />
-                In a lesson
+                {t("teacher.mediaLibrary.inALesson")}
               </Badge>
             ) : null}
             {asset.privacyStatus ? (
-              <Badge variant="outline">{asset.privacyStatus === "PRIVATE" ? "Private" : "Unlisted"}</Badge>
+              <Badge variant="outline">{asset.privacyStatus === "PRIVATE" ? t("teacher.mediaLibrary.private") : t("teacher.mediaLibrary.unlisted")}</Badge>
             ) : null}
             {asset.canEdit === false && asset.canDelete === false ? (
               <Badge variant="outline" data-testid="media-video-view-only">
                 <Eye aria-hidden="true" />
-                View only
+                {t("teacher.mediaLibrary.viewOnly")}
               </Badge>
             ) : null}
           </div>
@@ -171,6 +174,7 @@ export function MediaLibrary({
   settingsHref?: string;
   scopeNote: string;
 }) {
+  const t = useT();
   const tabsQuery = useMediaTabs();
   const [selected, setSelected] = useState<TabKey | null>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
@@ -178,12 +182,12 @@ export function MediaLibrary({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Media Library</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.mediaLibrary.mediaLibrary")}</h1>
         <p className="text-sm text-muted-foreground">{scopeNote}</p>
       </div>
       <QueryStateBoundary
         query={tabsQuery}
-        loadingLabel="Loading media…"
+        loadingLabel={t("teacher.mediaLibrary.loadingMedia")}
         loginPath="/login"
         permissionDenied={{ dashboardHref }}
       >
@@ -194,7 +198,7 @@ export function MediaLibrary({
             key === "uploads" ? (
               active === "uploads" ? (
                 // The open folder is read from `?folder=`; `useSearchParams` needs a Suspense boundary.
-                <Suspense fallback={<LoadingState label="Loading uploads…" />}>
+                <Suspense fallback={<LoadingState label={t("teacher.mediaLibrary.loadingUploads")} />}>
                 <MediaFilesPanel
                   dashboardHref={dashboardHref}
                   canUpload={canUpload}
@@ -229,7 +233,7 @@ export function MediaLibrary({
               />
             ) : null;
           const items = [
-            { value: "uploads" as TabKey, label: "Uploads" },
+            { value: "uploads" as TabKey, label: t("teacher.mediaLibrary.uploads") },
             ...(managed
               ? [
                   {
@@ -237,7 +241,7 @@ export function MediaLibrary({
                     label: managed.name,
                     badge: !managed.connected ? (
                       <Badge variant="outline" className="text-xs">
-                        Not connected
+                        {t("teacher.mediaLibrary.notConnected")}
                       </Badge>
                     ) : undefined,
                   },
@@ -248,27 +252,27 @@ export function MediaLibrary({
               label: tab.name,
               badge: !tab.connected ? (
                 <Badge variant="outline" className="text-xs">
-                  Not connected
+                  {t("teacher.mediaLibrary.notConnected")}
                 </Badge>
               ) : undefined,
             })),
-            ...(tabs.hasArchived ? [{ value: "archived" as TabKey, label: "Archived" }] : []),
+            ...(tabs.hasArchived ? [{ value: "archived" as TabKey, label: t("teacher.mediaLibrary.archived") }] : []),
           ].map((item) => ({ ...item, content: panel(item.value) }));
           return (
             <div className="flex flex-col gap-4">
               <MediaLibrarySummary />
-              {uploadBusy ? <p role="status" className="text-sm text-muted-foreground">Upload in progress. Finish or cancel it before switching tabs.</p> : null}
+              {uploadBusy ? <p role="status" className="text-sm text-muted-foreground">{t("teacher.mediaLibrary.uploadInProgressFinish")}</p> : null}
               {tabs.integrations.length === 0 && !managed && settingsHref ? (
                 <p className="text-sm text-muted-foreground">
                   No YouTube integration yet.{" "}
                   <Link href={settingsHref} className="font-medium underline">
-                    Add one in Video providers
+                    {t("teacher.mediaLibrary.addOneInVideo")}
                   </Link>{" "}
                   for YouTube uploads. Internal storage uploads are available in Uploads.
                 </p>
               ) : null}
               <Tabs
-                aria-label="Media sources"
+                aria-label={t("teacher.mediaLibrary.mediaSources")}
                 items={items}
                 value={active}
                 onValueChange={(value) => { if (!uploadBusy) setSelected(value as TabKey); }}
@@ -309,6 +313,7 @@ function MediaTabPanel({
   canUpload: boolean;
   settingsHref?: string;
 }) {
+  const t = useT();
   const ids = { search: useId(), status: useId() };
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | MediaProcessingStatus>("");
@@ -346,7 +351,7 @@ function MediaTabPanel({
   // VIDEO Phase 13: the DynTube tab says why there's no Upload button instead of hiding it silently.
   const uploadBlockedReason =
     managed && !uploadHere
-      ? (managed.uploadBlockedReason ?? "You don't have permission to upload videos.")
+      ? (managed.uploadBlockedReason ?? t("teacher.mediaLibrary.youDontHavePermission"))
       : null;
 
   return (
@@ -356,15 +361,15 @@ function MediaTabPanel({
           {tab
             ? `Videos on the "${tab.name}" YouTube channel.`
             : managed
-              ? "Videos hosted on your institute's DynTube account. Students play them through short-lived signed links."
+              ? t("teacher.mediaLibrary.videosHostedOnYour")
               : tabKey === "uploads"
-              ? "Videos stored in your institute's own storage on this platform. Use New media to upload a video to tenant internal storage (up to 25 MiB)."
-              : "Videos from YouTube integrations that were removed. They stay on YouTube and in the lessons that use them."}
+              ? t("teacher.mediaLibrary.videosStoredInYour")
+              : t("teacher.mediaLibrary.videosFromYoutubeIntegrations")}
         </p>
         {uploadHere ? (
           <Button type="button" onClick={() => setShowUpload(true)}>
             <Plus aria-hidden="true" />
-            New media
+            {t("teacher.mediaLibrary.newMedia")}
           </Button>
         ) : null}
         {uploadBlockedReason ? (
@@ -374,10 +379,10 @@ function MediaTabPanel({
           >
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span>
-              <span className="font-medium text-foreground">Uploading is unavailable.</span> {uploadBlockedReason}{" "}
+              <span className="font-medium text-foreground">{t("teacher.mediaLibrary.uploadingIsUnavailable")}</span> {uploadBlockedReason}{" "}
               {settingsHref ? (
                 <Link href={DYNTUBE_SETTINGS_HREF} className="font-medium underline">
-                  Open integrations
+                  {t("teacher.mediaLibrary.openIntegrations")}
                 </Link>
               ) : null}
             </span>
@@ -389,8 +394,8 @@ function MediaTabPanel({
         <MediaDialog
           open
           onOpenChange={handleUploadOpenChange}
-          title="New media"
-          description={tab ? `Upload a video to ${tab.name} on YouTube.` : "Upload a video to your institute's DynTube account."}
+          title={t("teacher.mediaLibrary.newMedia")}
+          description={tab ? `Upload a video to ${tab.name} on YouTube.` : t("teacher.mediaLibrary.uploadAVideoTo")}
           testId="media-provider-upload-dialog"
           className="sm:max-w-2xl"
           footer={null}
@@ -409,11 +414,11 @@ function MediaTabPanel({
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem]">
         {uploadsSearch === undefined ? <div className="flex flex-col gap-1.5">
-          <Label htmlFor={ids.search}>Search</Label>
+          <Label htmlFor={ids.search}>{t("teacher.mediaLibrary.search")}</Label>
           <Input
             id={ids.search}
             type="search"
-            placeholder="Title or file name"
+            placeholder={t("teacher.mediaLibrary.titleOrFileName")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -422,7 +427,7 @@ function MediaTabPanel({
           />
         </div> : null}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={ids.status}>{tabKey === "uploads" ? "Video status" : "Status"}</Label>
+          <Label htmlFor={ids.status}>{tabKey === "uploads" ? t("teacher.mediaLibrary.videoStatus") : t("teacher.mediaLibrary.status")}</Label>
           <select
             id={ids.status}
             value={status}
@@ -432,7 +437,7 @@ function MediaTabPanel({
             }}
             className={selectClass}
           >
-            {STATUS_OPTIONS.map((option) => (
+            {STATUS_OPTIONS(t).map((option) => (
               <option key={option.value || "all"} value={option.value}>
                 {option.label}
               </option>
@@ -443,17 +448,17 @@ function MediaTabPanel({
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading media…"
+        loadingLabel={t("teacher.mediaLibrary.loadingMedia")}
         loginPath="/login"
         permissionDenied={{ dashboardHref }}
         isEmpty={(data) => data.content.length === 0}
         emptyState={
           filtered
             ? {
-                title: "No media matches",
-                description: "Try another search or status.",
+                title: t("teacher.mediaLibrary.noMediaMatches"),
+                description: t("teacher.mediaLibrary.tryAnotherSearchOr"),
                 action: {
-                  label: "Clear filters",
+                  label: t("teacher.mediaLibrary.clearFilters"),
                   onClick: () => {
                     setSearch("");
                     onClearUploadsSearch?.();
@@ -464,28 +469,28 @@ function MediaTabPanel({
               }
             : managed
               ? {
-                  title: "No DynTube videos yet",
+                  title: t("teacher.mediaLibrary.noDyntubeVideosYet"),
                   description: uploadHere
-                    ? "Upload a lesson video to send it to DynTube."
+                    ? t("teacher.mediaLibrary.uploadALessonVideo")
                     : "Videos uploaded to DynTube will appear here.",
-                  action: uploadHere ? { label: "Upload video", onClick: () => setShowUpload(true) } : undefined,
+                  action: uploadHere ? { label: t("teacher.mediaLibrary.uploadVideo"), onClick: () => setShowUpload(true) } : undefined,
                 }
               : tab
               ? {
-                  title: "No videos on this channel yet",
+                  title: t("teacher.mediaLibrary.noVideosOnThis"),
                   description: uploadHere
-                    ? "Upload a lesson video to add it to this channel."
+                    ? t("teacher.mediaLibrary.uploadALessonVideo2")
                     : "Videos uploaded to this channel will appear here.",
-                  action: uploadHere ? { label: "Upload video", onClick: () => setShowUpload(true) } : undefined,
+                  action: uploadHere ? { label: t("teacher.mediaLibrary.uploadVideo"), onClick: () => setShowUpload(true) } : undefined,
                 }
               : tabKey === "uploads"
                 ? {
-                    title: "No stored videos",
-                    description: "Videos kept in your institute's own storage will appear here.",
+                    title: t("teacher.mediaLibrary.noStoredVideos"),
+                    description: t("teacher.mediaLibrary.videosKeptInYour"),
                   }
                 : {
-                    title: "No archived videos",
-                    description: "Videos of removed YouTube integrations will appear here.",
+                    title: t("teacher.mediaLibrary.noArchivedVideos"),
+                    description: t("teacher.mediaLibrary.videosOfRemovedYoutube"),
                   }
         }
       >
@@ -494,15 +499,15 @@ function MediaTabPanel({
             <p className="text-sm text-muted-foreground" aria-live="polite">
               {data.totalElements} {data.totalElements === 1 ? "video" : "videos"}
             </p>
-            <ul aria-label="Media" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <ul aria-label={t("teacher.mediaLibrary.media")} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {data.content.map((asset) => (
                 <MediaCard key={asset.id} asset={asset} href={`${basePath}/${asset.id}`} />
               ))}
             </ul>
             {data.totalPages > 1 ? (
-              <nav aria-label="Video pages" className="flex items-center justify-between gap-2">
+              <nav aria-label={t("teacher.mediaLibrary.videoPages")} className="flex items-center justify-between gap-2">
                 <Button type="button" variant="outline" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                  Previous
+                  {t("teacher.mediaLibrary.previous")}
                 </Button>
                 <span className="text-sm text-muted-foreground">
                   Page {data.page + 1} of {data.totalPages}

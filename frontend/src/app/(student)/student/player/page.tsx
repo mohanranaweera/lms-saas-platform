@@ -31,6 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { playbackErrorMessage } from "@/components/player/playback-errors";
+import { translateSource } from "@/i18n/translate-source";
 import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 import { localizeApiError } from "@/i18n/errors";
 import { useLocaleFormat } from "@/i18n/use-locale-format";
@@ -245,7 +246,7 @@ function PairCard({
         {error ? (
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
-            <AlertDescription>{error.message}</AlertDescription>
+            <AlertDescription>{translateSource(t, error.message)}</AlertDescription>
           </Alert>
         ) : null}
         {timedOut ? (

@@ -90,10 +90,13 @@ test.describe("auth route group", () => {
     await expect(page.getByRole("button", { name: "Create account" })).toBeEnabled();
   });
 
-  test("forgot-password page renders a disabled placeholder form", async ({ page }) => {
+  // The page became the real reset-request form in AUTH-PWD-01 (fa65faa); the
+  // old "Not yet implemented" placeholder assertion was stale.
+  test("forgot-password page renders the reset-request form", async ({ page }) => {
     await page.goto("/forgot-password");
-    await expect(page.getByText("Not yet implemented", { exact: false })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Send reset link" })).toBeDisabled();
+    await expect(page.getByText("Reset your password")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Email" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Send reset link" })).toBeEnabled();
   });
 });
 

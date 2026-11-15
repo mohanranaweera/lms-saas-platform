@@ -7,6 +7,8 @@ import { ResourceIcon } from "./course-visuals";
 import { LessonAccessAction, PayNowButton, StatusPill, accessStatusText } from "./lesson-access-action";
 import { formatLessonDateTime, resourceLabel } from "./student-format";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 export function periodId(period: PeriodNode): string {
   return `period:${period.key ?? "none"}`;
 }
@@ -32,7 +34,7 @@ export function CourseContentTree({
   onPayPeriod,
   onPayLesson,
   showProgress = true,
-  emptyMessage = "Your teacher hasn't added any lessons to this course yet. Check back later.",
+  emptyMessage,
 }: {
   content: CourseContent;
   expanded: ReadonlySet<string>;
@@ -45,6 +47,7 @@ export function CourseContentTree({
   showProgress?: boolean;
   emptyMessage?: string;
 }) {
+  const t = useT();
   const percent = content.totalCount > 0 ? Math.round((content.viewedCount / content.totalCount) * 100) : 0;
 
   return (
@@ -55,7 +58,7 @@ export function CourseContentTree({
     >
       <div className="flex flex-col gap-2 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <h2 id="course-content-heading" className="text-base font-semibold text-foreground">
-          Course content
+          {t("student.courseContentTree.courseContent")}
         </h2>
         {showProgress ? (
         <div className="flex items-center gap-3">
@@ -64,7 +67,7 @@ export function CourseContentTree({
           </span>
           <div
             role="progressbar"
-            aria-label="Lessons viewed"
+            aria-label={t("student.courseContentTree.lessonsViewed")}
             aria-valuemin={0}
             aria-valuemax={content.totalCount}
             aria-valuenow={content.viewedCount}
@@ -78,10 +81,10 @@ export function CourseContentTree({
 
       {content.periods.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-muted-foreground" role="status" data-testid="course-content-empty">
-          {emptyMessage}
+          {emptyMessage ?? t("student.contentTree.empty")}
         </p>
       ) : (
-        <ul aria-label="Course content folders" className="divide-y divide-border">
+        <ul aria-label={t("student.courseContentTree.courseContentFolders")} className="divide-y divide-border">
           {content.periods.map((period) => (
             <PeriodFolder
               key={periodId(period)}
@@ -102,15 +105,16 @@ export function CourseContentTree({
 }
 
 function PeriodBadge({ period, onPay }: { period: PeriodNode; onPay: ((period: PeriodNode) => void) | null }) {
+  const t = useT();
   const status = period.payment.status;
   if ((status === "REQUIRED" || status === "PARTIAL") && period.payment.purchase && onPay) {
-    return <PayNowButton onClick={() => onPay(period)} label={`Pay now for ${period.label}`} testId="period-pay-now" />;
+    return <PayNowButton onClick={() => onPay(period)} label={t("student.payNowFor", { item: period.label })} testId="period-pay-now" />;
   }
   if (status === "PENDING") {
     return (
       <StatusPill tone="pending" testId="period-status-pending">
         <Clock className="size-3" aria-hidden="true" />
-        Pending approval
+        {t("student.courseContentTree.pendingApproval")}
       </StatusPill>
     );
   }
@@ -118,7 +122,7 @@ function PeriodBadge({ period, onPay }: { period: PeriodNode; onPay: ((period: P
     return (
       <StatusPill tone="paid" testId="period-status-paid">
         <Check className="size-3" aria-hidden="true" />
-        Paid
+        {t("student.courseContentTree.paid")}
       </StatusPill>
     );
   }
@@ -183,9 +187,10 @@ function PeriodFolder({
   onPayPeriod: ((period: PeriodNode) => void) | null;
   onPayLesson: ((lesson: LessonNode) => void) | null;
 }) {
+  const t = useT();
   const id = periodId(period);
   const open = expanded.has(id);
-  const label = period.key === null ? "Course content" : period.label;
+  const label = period.key === null ? t("student.courseContentTree.courseContent") : period.label;
   return (
     <li data-testid="content-period" data-period-key={period.key ?? ""} data-payment-status={period.payment.status}>
       <div className="flex items-center justify-between gap-2 px-4 sm:px-6">
@@ -195,7 +200,7 @@ function PeriodFolder({
       <div id={`${id}-children`} hidden={!open}>
         {open ? (
           period.modules.length === 0 ? (
-            <p className="px-10 pb-3 text-sm text-muted-foreground">Nothing in this folder yet.</p>
+            <p className="px-10 pb-3 text-sm text-muted-foreground">{t("student.courseContentTree.nothingInThisFolder")}</p>
           ) : (
             <ul aria-label={`${label} modules`}>
               {period.modules.map((module) => (
@@ -238,6 +243,7 @@ function ModuleFolder({
   onLaunch: (lesson: LessonNode) => void;
   onPayLesson: ((lesson: LessonNode) => void) | null;
 }) {
+  const t = useT();
   const open = expanded.has(id);
   return (
     <li data-testid="content-module" data-module-id={module.moduleId}>
@@ -247,9 +253,9 @@ function ModuleFolder({
       <div id={`${id}-children`} hidden={!open}>
         {open ? (
           module.lessons.length === 0 ? (
-            <p className="px-14 pb-3 text-sm text-muted-foreground">No lessons in this module yet.</p>
+            <p className="px-14 pb-3 text-sm text-muted-foreground">{t("student.courseContentTree.noLessonsInThis")}</p>
           ) : (
-            <ul aria-label={`Lessons in ${module.title}`}>
+            <ul aria-label={t("student.contentTree.lessonsIn", { module: module.title })}>
               {module.lessons.map((lesson) => (
                 <LessonRow
                   key={lesson.lessonId}
@@ -304,6 +310,7 @@ function LessonRow({
   onLaunch: (lesson: LessonNode) => void;
   onPay: ((lesson: LessonNode) => void) | null;
 }) {
+  const t = useT();
   const allowed = lesson.access.status === "ALLOWED";
   const canPay = lesson.access.requiredPurchase !== null && onPay !== null;
 
@@ -322,7 +329,7 @@ function LessonRow({
         </span>
         <LessonSchedule lesson={lesson} timeZone={timeZone} />
         <span className="sr-only">
-          {resourceLabel(lesson.resourceType)}. {lesson.viewed ? "Viewed" : "Not viewed"}. {accessStatusText(lesson)}.
+          {translateSource(t, resourceLabel(lesson.resourceType))}. {lesson.viewed ? t("student.courseContentTree.viewed") : t("student.courseContentTree.notViewed")}. {accessStatusText(lesson, t)}.
         </span>
       </span>
     </>

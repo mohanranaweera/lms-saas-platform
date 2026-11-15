@@ -12,10 +12,12 @@ import {
 } from "@/components/exams/bank/bank-shared";
 import { useBankQuestion } from "@/lib/api/question-bank";
 
+import { useT } from "@/i18n/i18n-provider";
 function FormSkeleton() {
+  const t = useT();
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-5">
-      <span className="sr-only">Loading question…</span>
+      <span className="sr-only">{t("exams.questionEditor.loadingQuestion")}</span>
       <Skeleton className="h-48 w-full rounded-xl" />
       <Skeleton className="h-72 w-full rounded-xl" />
       <Skeleton className="h-36 w-full rounded-xl" />
@@ -39,6 +41,7 @@ export function QuestionEditorPage({
   /** Present on the edit route. */
   questionId?: string;
 }) {
+  const t = useT();
   const paths = bankPaths(portal, courseId, moduleId);
   const context = useBankContext(courseId, moduleId);
   const questionQuery = useBankQuestion(questionId ?? "");
@@ -47,7 +50,7 @@ export function QuestionEditorPage({
   if (context.status === "pending") {
     return (
       <div className="flex flex-col gap-6">
-        <BankHeaderSkeleton label="Loading course…" />
+        <BankHeaderSkeleton label={t("exams.questionEditor.loadingCourse")} />
         <FormSkeleton />
       </div>
     );
@@ -56,7 +59,7 @@ export function QuestionEditorPage({
   return (
     <QueryStateBoundary
       query={context}
-      loadingLabel="Loading course…"
+      loadingLabel={t("exams.questionEditor.loadingCourse")}
       loginPath="/login"
       permissionDenied={{ dashboardHref: paths.dashboard }}
     >
@@ -65,10 +68,10 @@ export function QuestionEditorPage({
           <BankPageHeader
             title={editing ? `Edit a Question in ${course.name}` : `Add a Question to ${course.name}`}
             breadcrumbs={[
-              { label: "Courses", href: paths.courses },
+              { label: t("exams.questionEditor.courses"), href: paths.courses },
               { label: course.name, href: paths.course },
               { label: `Questions in ${module.title}`, href: paths.bank },
-              { label: editing ? "Edit" : "Create" },
+              { label: editing ? t("exams.questionEditor.edit") : t("exams.questionEditor.create") },
             ]}
           />
           {editing ? (
@@ -77,7 +80,7 @@ export function QuestionEditorPage({
             ) : (
               <QueryStateBoundary
                 query={questionQuery}
-                loadingLabel="Loading question…"
+                loadingLabel={t("exams.questionEditor.loadingQuestion")}
                 loginPath="/login"
                 permissionDenied={{ dashboardHref: paths.dashboard }}
               >

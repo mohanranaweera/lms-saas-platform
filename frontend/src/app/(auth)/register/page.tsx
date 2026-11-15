@@ -43,6 +43,9 @@ import { ErrorState } from "@/components/states/error-state";
 import { EmptyState } from "@/components/states/empty-state";
 import { LoadingState } from "@/components/states/loading-state";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
+import { localizeApiError } from "@/i18n/errors";
 /**
  * Real, tenant-driven student self-registration (Wave 3, PAR-03-01 —
  * replaces the previous disabled placeholder shell).
@@ -107,6 +110,7 @@ function toRegistrationInput(
 }
 
 export default function RegisterPage() {
+  const t = useT();
   const router = useRouter();
   const policyQuery = useStudentRegistrationPolicy();
 
@@ -114,7 +118,7 @@ export default function RegisterPage() {
     return (
       <Card>
         <CardContent className="py-8">
-          <LoadingState label="Loading registration options…" />
+          <LoadingState label={t("auth.register.loadingRegistrationOptions")} />
         </CardContent>
       </Card>
     );
@@ -128,7 +132,7 @@ export default function RegisterPage() {
             message={
               isApiClientError(policyQuery.error)
                 ? policyQuery.error.message
-                : "We couldn't load this institute's registration settings. Please try again."
+                : t("auth.register.weCouldntLoadThis")
             }
             code={isApiClientError(policyQuery.error) ? policyQuery.error.code : undefined}
             onRetry={() => policyQuery.refetch()}
@@ -145,15 +149,15 @@ export default function RegisterPage() {
       <Card>
         <CardHeader>
           <h1 data-slot="card-title" className="font-heading text-base leading-snug font-medium">
-            Registration is not open
+            {t("auth.register.registrationIsNotOpen")}
           </h1>
         </CardHeader>
         <CardContent>
           <EmptyState
             icon={<Lock className="size-6" aria-hidden="true" />}
-            title="Self-registration isn't available"
-            description="This institute isn't accepting new student sign-ups right now. Contact your institute administrator for an account."
-            action={{ label: "Back to sign in", onClick: () => router.push("/login") }}
+            title={t("auth.register.selfRegistrationIsntAvailable")}
+            description={t("auth.register.thisInstituteIsntAccepting")}
+            action={{ label: t("auth.register.backToSignIn"), onClick: () => router.push("/login") }}
           />
         </CardContent>
       </Card>
@@ -168,6 +172,7 @@ interface RegisterFormFlowProps {
 }
 
 function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
+  const t = useT();
   const [step, setStep] = useState<Step>("form");
   const [pageError, setPageError] = useState<PageErrorState | null>(null);
   const [pendingApproval, setPendingApproval] = useState(false);
@@ -215,7 +220,7 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
   function confirmDiscardUnsavedChanges(): boolean {
     if (!isDirty) return true;
     return window.confirm(
-      "You have unsaved changes to this registration form. Leave without saving?"
+      t("auth.register.unsavedChanges")
     );
   }
 
@@ -238,7 +243,7 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
         }
         if (unmapped.length > 0) {
           setPageError({
-            message: "Some information couldn't be validated.",
+            message: t("auth.register.someInvalid"),
             code: error.code,
             fieldErrors: unmapped,
           });
@@ -254,11 +259,11 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
         return;
       }
 
-      setPageError({ message: error.message, code: error.code });
+      setPageError({ message: localizeApiError(t, error), code: error.code });
       return;
     }
 
-    setPageError({ message: "An unexpected error occurred. Please try again." });
+    setPageError({ message: t("auth.register.anUnexpectedErrorOccurred") });
   }
 
   async function submitRegistration(values: StudentRegistrationFormValues) {
@@ -294,7 +299,7 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
       <Card>
         <CardHeader>
           <h1 data-slot="card-title" className="font-heading text-base leading-snug font-medium">
-            {pendingApproval ? "Application submitted" : "Account created"}
+            {pendingApproval ? t("auth.register.applicationSubmitted") : t("auth.register.accountCreated")}
           </h1>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -307,14 +312,14 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
                 <Clock className="mt-0.5 size-5 shrink-0 text-foreground" aria-hidden="true" />
                 <p>
                   Your account has been created and is{" "}
-                  <span className="font-medium">pending approval</span>. You&apos;ll be able to
+                  <span className="font-medium">{t("auth.register.pendingApproval")}</span>. You&apos;ll be able to
                   sign in once a staff member at your institute activates your account.
                 </p>
               </>
             ) : (
               <>
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-foreground" aria-hidden="true" />
-                <p>Your account has been created. You can now sign in.</p>
+                <p>{t("auth.register.yourAccountHasBeen")}</p>
               </>
             )}
           </div>
@@ -359,12 +364,12 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
     <Card>
       <CardHeader>
         <h1 data-slot="card-title" className="font-heading text-base leading-snug font-medium">
-          Create your student account
+          {t("auth.register.createYourStudentAccount")}
         </h1>
         <CardDescription>
           Sign up for access to your institute&apos;s LMS.
           {policy.approvalRequired
-            ? " Accounts created here require staff approval before you can sign in."
+            ? t("auth.register.accountsCreatedHereRequire")
             : null}
         </CardDescription>
       </CardHeader>
@@ -385,27 +390,27 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
         >
           <span role="status" aria-live="polite" className="sr-only">
             {registerMutation.isPending
-              ? "Creating your account…"
+              ? t("auth.register.creatingYourAccount")
               : sendOtpMutation.isPending
-                ? "Sending a verification code…"
+                ? t("auth.register.sendingAVerificationCode")
                 : ""}
           </span>
           <fieldset
             disabled={registerMutation.isPending || sendOtpMutation.isPending}
             className="flex flex-col gap-4"
           >
-            <legend className="sr-only">Create your student account</legend>
+            <legend className="sr-only">{t("auth.register.createYourStudentAccount")}</legend>
 
             <RegisterField
               name="name"
-              label="Full name"
+              label={t("auth.register.fullName")}
               autoComplete="name"
               register={register}
               errors={errors}
             />
             <RegisterField
               name="email"
-              label="Email"
+              label={t("auth.register.email")}
               type="email"
               autoComplete="email"
               register={register}
@@ -413,16 +418,16 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
             />
             <RegisterField
               name="password"
-              label="Password"
+              label={t("auth.register.password")}
               type="password"
               autoComplete="new-password"
-              helperText="At least 8 characters."
+              helperText={t("auth.register.passwordHint")}
               register={register}
               errors={errors}
             />
             <RegisterField
               name="confirmPassword"
-              label="Confirm password"
+              label={t("auth.register.confirmPassword")}
               type="password"
               autoComplete="new-password"
               register={register}
@@ -432,18 +437,18 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
             {registrationFields.length > 0 ? (
               <fieldset className="flex flex-col gap-4 rounded-md border border-border p-3">
                 <legend className="px-1 text-xs font-medium text-muted-foreground">
-                  Additional information
+                  {t("auth.register.additionalInformation")}
                 </legend>
                 <p className="text-xs text-muted-foreground">
                   {hasRequiredAdditionalField
-                    ? "Fields marked (optional) aren't required — every other field below is required by this institute."
-                    : "These fields are optional for this institute."}
+                    ? t("auth.register.fieldsMarkedOptionalArent")
+                    : t("auth.register.theseFieldsAreOptional")}
                 </p>
                 <ProfileFieldInputs
                   fields={registrationFields}
                   idPrefix="register"
                   register={(name) => register(`profile.${name}`)}
-                  errorFor={(name) => errors.profile?.[name]?.message}
+                  errorFor={(name) => translateSource(t, errors.profile?.[name]?.message) ?? undefined}
                 />
               </fieldset>
             ) : null}
@@ -454,10 +459,10 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
               disabled={registerMutation.isPending || sendOtpMutation.isPending}
             >
               {registerMutation.isPending
-                ? "Creating account…"
+                ? t("auth.register.creatingAccount")
                 : sendOtpMutation.isPending
-                  ? "Sending code…"
-                  : "Create account"}
+                  ? t("auth.register.sendingCode")
+                  : t("auth.register.createAccount")}
             </Button>
           </fieldset>
         </form>
@@ -499,6 +504,7 @@ function RegisterField({
   register,
   errors,
 }: RegisterFieldProps) {
+  const t = useT();
   const fieldError = errors[name];
   const errorId = `register-${name}-error`;
   const helperId = helperText ? `register-${name}-helper` : undefined;
@@ -507,7 +513,7 @@ function RegisterField({
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={`register-${name}`}>
         {label}
-        {optional ? <span className="font-normal text-muted-foreground"> (optional)</span> : null}
+        {optional ? <span className="font-normal text-muted-foreground">{" "}{t("auth.register.optional")}</span> : null}
       </Label>
       <Input
         id={`register-${name}`}
@@ -526,7 +532,7 @@ function RegisterField({
       ) : null}
       {fieldError ? (
         <p id={errorId} role="alert" className="text-xs text-destructive">
-          {fieldError.message as string}
+          {translateSource(t, fieldError.message as string)}
         </p>
       ) : null}
     </div>
@@ -551,6 +557,7 @@ function OtpStep({
   onVerified,
   confirmDiscardUnsavedChanges,
 }: OtpStepProps) {
+  const t = useT();
   const {
     register,
     handleSubmit,
@@ -570,25 +577,25 @@ function OtpStep({
         setError("otp", { type: "server", message: error.message });
         return;
       }
-      setError("otp", { type: "server", message: "An unexpected error occurred. Please try again." });
+      setError("otp", { type: "server", message: t("auth.register.anUnexpectedErrorOccurred") });
     }
   });
 
-  const sendError = isApiClientError(sendOtpMutation.error) ? sendOtpMutation.error.message : null;
+  const sendError = isApiClientError(sendOtpMutation.error) ? localizeApiError(t, sendOtpMutation.error) : null;
   const busy = verifyOtpMutation.isPending;
 
   return (
     <Card>
       <CardHeader>
         <h1 data-slot="card-title" className="font-heading text-base leading-snug font-medium">
-          Verify your email
+          {t("auth.register.verifyYourEmail")}
         </h1>
         <CardDescription>
           {sendOtpMutation.isPending
-            ? "Sending a verification code…"
+            ? t("auth.register.sendingAVerificationCode")
             : sendError
-              ? "We couldn't send a verification code."
-              : `We sent a verification code to ${email}.`}
+              ? t("auth.register.weCouldntSendA")
+              : t("auth.register.codeSentTo", { email })}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -600,12 +607,12 @@ function OtpStep({
         ) : null}
         <form className="flex flex-col gap-4" onSubmit={onSubmit} aria-busy={busy} noValidate>
           <span role="status" aria-live="polite" className="sr-only">
-            {busy ? "Verifying…" : ""}
+            {busy ? t("auth.register.verifying") : ""}
           </span>
           <fieldset disabled={busy} className="flex flex-col gap-4">
-            <legend className="sr-only">Verify your email</legend>
+            <legend className="sr-only">{t("auth.register.verifyYourEmail")}</legend>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="register-otp">Verification code</Label>
+              <Label htmlFor="register-otp">{t("auth.register.verificationCode")}</Label>
               <Input
                 id="register-otp"
                 type="text"
@@ -617,12 +624,12 @@ function OtpStep({
               />
               {errors.otp ? (
                 <p id="register-otp-error" role="alert" className="text-xs text-destructive">
-                  {errors.otp.message}
+                  {translateSource(t, errors.otp.message)}
                 </p>
               ) : null}
             </div>
             <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? "Verifying…" : "Verify and create account"}
+              {busy ? t("auth.register.verifying") : t("auth.register.verifyAndCreateAccount")}
             </Button>
           </fieldset>
         </form>

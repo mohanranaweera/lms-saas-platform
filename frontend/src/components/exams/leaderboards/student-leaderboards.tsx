@@ -11,6 +11,7 @@ import { ExamPageTitle } from "@/components/exams/config/exam-shared";
 import { LeaderboardRanksView, RANKS_PAGE_SIZE, RankBadge } from "@/components/exams/leaderboards/leaderboard-ranks-view";
 import { useStudentLeaderboardRanks, useStudentLeaderboards } from "@/lib/api/exam-results";
 
+import { useT } from "@/i18n/i18n-provider";
 const STUDENT_PATHS = {
   exams: "/student/exams",
   list: "/student/exams/leaderboards",
@@ -19,25 +20,26 @@ const STUDENT_PATHS = {
 
 /** Student: published leaderboards that include one of the student's exams (server-filtered). */
 export function StudentLeaderboardList() {
+  const t = useT();
   const query = useStudentLeaderboards();
   return (
     <div className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-col gap-2">
         <ExamPageTitle
-          title="Leaderboards"
+          title={t("exams.studentLeaderboards.leaderboards")}
           icon={<Trophy className="size-5" aria-hidden="true" />}
           actions={
             <Link href={STUDENT_PATHS.exams} className={buttonVariants({ variant: "outline" })}>
               <ArrowLeft aria-hidden="true" />
-              My exams
+              {t("exams.studentLeaderboards.myExams")}
             </Link>
           }
         />
-        <Breadcrumbs items={[{ label: "My exams", href: STUDENT_PATHS.exams }, { label: "Leaderboards" }]} />
+        <Breadcrumbs items={[{ label: t("exams.studentLeaderboards.myExams"), href: STUDENT_PATHS.exams }, { label: t("exams.studentLeaderboards.leaderboards") }]} />
       </div>
       {query.status === "pending" ? (
         <div role="status" aria-busy="true" className="grid gap-3 md:grid-cols-2">
-          <span className="sr-only">Loading leaderboards…</span>
+          <span className="sr-only">{t("exams.studentLeaderboards.loadingLeaderboards")}</span>
           <Skeleton className="h-20 w-full rounded-xl" />
           <Skeleton className="h-20 w-full rounded-xl" />
         </div>
@@ -46,11 +48,11 @@ export function StudentLeaderboardList() {
           query={query}
           loginPath="/login"
           permissionDenied={{ dashboardHref: "/student/dashboard" }}
-          genericErrorMessage="We couldn't load the leaderboards."
+          genericErrorMessage={t("exams.studentLeaderboards.weCouldntLoadThe")}
           isEmpty={(rows) => rows.length === 0}
           emptyState={{
-            title: "No leaderboards yet",
-            description: "When your teachers publish a leaderboard for exams you're enrolled in, it will appear here.",
+            title: t("exams.studentLeaderboards.noLeaderboardsYet"),
+            description: t("exams.studentLeaderboards.whenYourTeachersPublish"),
             icon: <Trophy className="size-8" aria-hidden="true" />,
           }}
         >
@@ -86,10 +88,11 @@ export function StudentLeaderboardList() {
 
 /** Student ranks: other students' index numbers and per-exam marks are masked by the server; the own row (`self`) is highlighted. */
 export function StudentLeaderboardRanks({ leaderboardId }: { leaderboardId: string }) {
+  const t = useT();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const query = useStudentLeaderboardRanks(leaderboardId, { search, page, size: RANKS_PAGE_SIZE });
-  const name = query.data?.name ?? "Leaderboard";
+  const name = query.data?.name ?? t("exams.leaderboard.fallbackName");
   const own = query.data?.rows.find((row) => row.self) ?? null;
   const onSearch = useCallback((value: string) => {
     setSearch(value);
@@ -104,11 +107,11 @@ export function StudentLeaderboardRanks({ leaderboardId }: { leaderboardId: stri
           actions={
             <Link href={STUDENT_PATHS.list} className={buttonVariants({ variant: "outline" })}>
               <ArrowLeft aria-hidden="true" />
-              Leaderboards
+              {t("exams.studentLeaderboards.leaderboards")}
             </Link>
           }
         />
-        <Breadcrumbs items={[{ label: "My exams", href: STUDENT_PATHS.exams }, { label: "Leaderboards", href: STUDENT_PATHS.list }, { label: name }]} />
+        <Breadcrumbs items={[{ label: t("exams.studentLeaderboards.myExams"), href: STUDENT_PATHS.exams }, { label: t("exams.studentLeaderboards.leaderboards"), href: STUDENT_PATHS.list }, { label: name }]} />
       </div>
       <LeaderboardRanksView
         query={query}
@@ -120,7 +123,7 @@ export function StudentLeaderboardRanks({ leaderboardId }: { leaderboardId: stri
         header={
           own ? (
             <p className="flex flex-wrap items-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm text-foreground" data-testid="student-own-rank">
-              <span className="font-medium">Your rank:</span>
+              <span className="font-medium">{t("exams.studentLeaderboards.yourRank")}</span>
               <RankBadge rank={own.rank} tied={(query.data?.rows ?? []).filter((row) => row.rank === own.rank).length > 1} />
             </p>
           ) : null

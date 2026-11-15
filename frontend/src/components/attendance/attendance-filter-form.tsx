@@ -22,6 +22,7 @@ import {
   type AttendanceFilterFormValues,
 } from "@/lib/validation/attendance";
 
+import { useT } from "@/i18n/i18n-provider";
 export interface AttendanceCourseOption {
   id: string;
   label: string;
@@ -58,6 +59,7 @@ export function AttendanceFilterForm({
   onClear,
   disabled = false,
 }: AttendanceFilterFormProps) {
+  const t = useT();
   const {
     register,
     control,
@@ -88,7 +90,7 @@ export function AttendanceFilterForm({
       className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:flex-wrap sm:items-end"
     >
       <div className="flex flex-1 flex-col gap-1.5 sm:min-w-48">
-        <Label htmlFor={`${idPrefix}-course`}>Course</Label>
+        <Label htmlFor={`${idPrefix}-course`}>{t("attendance.attendanceFilterForm.course")}</Label>
         <Select
           value={courseId}
           onValueChange={(value) =>
@@ -96,16 +98,16 @@ export function AttendanceFilterForm({
           }
         >
           <SelectTrigger id={`${idPrefix}-course`} className="w-full">
-            <SelectValue placeholder="All courses">
+            <SelectValue placeholder={t("attendance.attendanceFilterForm.allCourses")}>
               {(selected: string | null) =>
                 selected && selected !== ALL_COURSES_VALUE
                   ? courseOptions.find((c) => c.id === selected)?.label ?? selected
-                  : "All courses"
+                  : t("attendance.attendanceFilterForm.allCourses")
               }
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_COURSES_VALUE}>All courses</SelectItem>
+            <SelectItem value={ALL_COURSES_VALUE}>{t("attendance.attendanceFilterForm.allCourses")}</SelectItem>
             {courseOptions.map((course) => (
               <SelectItem key={course.id} value={course.id}>
                 {course.label}
@@ -115,9 +117,9 @@ export function AttendanceFilterForm({
         </Select>
       </div>
       <fieldset className="flex flex-col gap-1.5 border-0 p-0 m-0 sm:flex-row sm:gap-3">
-        <legend className="sr-only">Date range</legend>
+        <legend className="sr-only">{t("attendance.attendanceFilterForm.dateRange")}</legend>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-from`}>From</Label>
+          <Label htmlFor={`${idPrefix}-from`}>{t("attendance.attendanceFilterForm.from")}</Label>
           <Input
             id={`${idPrefix}-from`}
             type="date"
@@ -127,7 +129,7 @@ export function AttendanceFilterForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-to`}>To</Label>
+          <Label htmlFor={`${idPrefix}-to`}>{t("attendance.attendanceFilterForm.to")}</Label>
           <Input
             id={`${idPrefix}-to`}
             type="date"
@@ -149,7 +151,7 @@ export function AttendanceFilterForm({
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={disabled} aria-busy={disabled}>
           <Filter aria-hidden="true" />
-          Apply filters
+          {t("attendance.attendanceFilterForm.applyFilters")}
         </Button>
         <Button
           type="button"
@@ -160,7 +162,7 @@ export function AttendanceFilterForm({
           aria-busy={disabled}
         >
           <X aria-hidden="true" />
-          Clear filters
+          {t("attendance.attendanceFilterForm.clearFilters")}
         </Button>
       </div>
     </form>

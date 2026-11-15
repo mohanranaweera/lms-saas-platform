@@ -21,13 +21,14 @@ import { useCourses } from "@/lib/api/courses";
 import { useClassSessions, type ClassSessionStatus } from "@/lib/api/class-sessions";
 import { formatDateTime } from "@/lib/format";
 
-const STATUS_FILTER_OPTIONS: Array<{ value: "all" | ClassSessionStatus; label: string }> = [
-  { value: "all", label: "All statuses" },
-  { value: "SCHEDULED", label: "Scheduled" },
-  { value: "LIVE", label: "Live" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "CANCELLED", label: "Cancelled" },
-];
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+const STATUS_FILTER_OPTIONS = (t: TranslateFn): Array<{ value: "all" | ClassSessionStatus; label: string }> => ([
+  { value: "all", label: t("teacher.page.liveClasses.allStatuses") },
+  { value: "SCHEDULED", label: t("teacher.page.liveClasses.scheduled") },
+  { value: "LIVE", label: t("teacher.page.liveClasses.live") },
+  { value: "COMPLETED", label: t("teacher.page.liveClasses.completed") },
+  { value: "CANCELLED", label: t("teacher.page.liveClasses.cancelled") },
+]);
 
 const ALL_COURSES_VALUE = "all";
 
@@ -47,6 +48,7 @@ const ALL_COURSES_VALUE = "all";
  * server-scoped to this Teacher's own courses regardless).
  */
 function TeacherLiveClassesPageContent() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const coursesQuery = useCourses();
@@ -70,32 +72,32 @@ function TeacherLiveClassesPageContent() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Live Classes</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.liveClasses.liveClasses")}</h1>
           <p className="text-sm text-muted-foreground">
-            Schedule and manage live class sessions for the courses you teach.
+            {t("teacher.page.liveClasses.scheduleAndManageLive")}
           </p>
         </div>
         <Button render={<Link href="/teacher/live-classes/new" />}>
           <Plus aria-hidden="true" />
-          Schedule live class
+          {t("teacher.page.liveClasses.scheduleLiveClass")}
         </Button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex flex-col gap-1.5 sm:w-64">
-          <Label htmlFor="teacher-live-classes-course">Course</Label>
+          <Label htmlFor="teacher-live-classes-course">{t("teacher.page.liveClasses.course")}</Label>
           <Select value={courseFilter} onValueChange={(value) => setCourseFilter(value ?? ALL_COURSES_VALUE)}>
             <SelectTrigger id="teacher-live-classes-course" className="w-full">
-              <SelectValue placeholder="All courses">
+              <SelectValue placeholder={t("teacher.page.liveClasses.allCourses")}>
                 {(selected: string | null) =>
                   selected && selected !== ALL_COURSES_VALUE
                     ? courseNameById.get(selected) ?? selected
-                    : "All courses"
+                    : t("teacher.page.liveClasses.allCourses")
                 }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_COURSES_VALUE}>All courses</SelectItem>
+              <SelectItem value={ALL_COURSES_VALUE}>{t("teacher.page.liveClasses.allCourses")}</SelectItem>
               {courseOptions.map((course) => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.name}
@@ -105,13 +107,13 @@ function TeacherLiveClassesPageContent() {
           </Select>
         </div>
         <div className="flex flex-col gap-1.5 sm:w-56">
-          <Label htmlFor="teacher-live-classes-status">Status</Label>
+          <Label htmlFor="teacher-live-classes-status">{t("teacher.page.liveClasses.status")}</Label>
           <Select value={statusFilter} onValueChange={(value) => setStatusFilter((value as "all" | ClassSessionStatus) ?? "all")}>
             <SelectTrigger id="teacher-live-classes-status" className="w-full">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue placeholder={t("teacher.page.liveClasses.allStatuses")} />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_FILTER_OPTIONS.map((option) => (
+              {STATUS_FILTER_OPTIONS(t).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -123,24 +125,24 @@ function TeacherLiveClassesPageContent() {
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your live classes…"
+        loadingLabel={t("teacher.page.liveClasses.loadingYourLiveClasses")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
         isEmpty={(data) => data.length === 0}
         emptyState={
           filtersActive
             ? {
-                title: "No live classes match your filters",
-                description: "Try a different course or status, or clear your filters.",
-                action: { label: "Clear filters", onClick: () => {
+                title: t("teacher.page.liveClasses.noLiveClassesMatch"),
+                description: t("teacher.page.liveClasses.tryADifferentCourse"),
+                action: { label: t("teacher.page.liveClasses.clearFilters"), onClick: () => {
                   setCourseFilter(ALL_COURSES_VALUE);
                   setStatusFilter("all");
                 } },
               }
             : {
-                title: "No live classes scheduled yet",
-                description: "Schedule your first live class session for one of your courses.",
-                action: { label: "Schedule live class", onClick: () => router.push("/teacher/live-classes/new") },
+                title: t("teacher.page.liveClasses.noLiveClassesScheduled"),
+                description: t("teacher.page.liveClasses.scheduleYourFirstLive"),
+                action: { label: t("teacher.page.liveClasses.scheduleLiveClass"), onClick: () => router.push("/teacher/live-classes/new") },
               }
         }
       >
@@ -160,7 +162,7 @@ function TeacherLiveClassesPageContent() {
                     ) : null}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {courseNameById.get(session.courseId) ?? "Course"} · {formatDateTime(session.scheduledStart)} –{" "}
+                    {courseNameById.get(session.courseId) ?? t("teacher.page.liveClasses.course")} · {formatDateTime(session.scheduledStart)} –{" "}
                     {formatDateTime(session.scheduledEnd)}
                   </span>
                 </div>
@@ -181,8 +183,9 @@ function TeacherLiveClassesPageContent() {
 
 /** `useSearchParams()` requires a `Suspense` boundary, mirroring `tenant-admin/courses/[courseId]/page.tsx`'s identical wrapper. */
 export default function TeacherLiveClassesPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<LoadingState label="Loading your live classes…" />}>
+    <Suspense fallback={<LoadingState label={t("teacher.page.liveClasses.loadingYourLiveClasses")} />}>
       <TeacherLiveClassesPageContent />
     </Suspense>
   );

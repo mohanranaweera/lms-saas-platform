@@ -12,6 +12,7 @@ import {
   type EnrollmentSummaryResponse,
 } from "@/lib/api/enrollments";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Legacy paid-access renewal entry point (ADR-013) for EXPIRED legacy
  * enrollments, restored after KLASS-T5b replaced the old My Courses grid with
@@ -91,6 +92,7 @@ export function LegacyReactivationAction({
   /** Visible CTA text; the accessible name is `${reactivateText} for ${label}`. */
   reactivateText: string;
 }) {
+  const t = useT();
   const { requestsQuery, approvedUnfulfilledEnrollmentIds } = state;
   if (row.state !== "EXPIRED") return null;
 
@@ -102,7 +104,7 @@ export function LegacyReactivationAction({
           <button
             type="button"
             onClick={() => requestsQuery.refetch()}
-            aria-label={`Retry checking access status for ${label}`}
+            aria-label={t("student.legacy.retryLabel", { course: label })}
             className="font-medium text-foreground underline hover:no-underline"
           >
             Retry
@@ -116,7 +118,7 @@ export function LegacyReactivationAction({
     return (
       <Link
         href={`/student/checkout/${row.courseId}`}
-        aria-label={`Proceed to checkout for ${label}`}
+        aria-label={t("student.legacy.checkoutLabel", { course: label })}
         data-testid="legacy-proceed-to-checkout"
         className="text-sm font-medium text-foreground hover:underline"
       >
@@ -129,7 +131,7 @@ export function LegacyReactivationAction({
     return (
       <Link
         href="/student/payments/reactivation"
-        aria-label={`Reactivation already requested for ${label}`}
+        aria-label={t("student.legacy.requestedLabel", { course: label })}
         data-testid="legacy-reactivation-pending"
         className="text-sm text-muted-foreground hover:underline"
       >
@@ -159,6 +161,7 @@ export function LegacyEnrollmentCard({
   state: LegacyReactivationState;
   reactivateText: string;
 }) {
+  const t = useT();
   const label = state.courseLabel(row);
   const category = state.courseCategory(row);
   return (
@@ -179,7 +182,7 @@ export function LegacyEnrollmentCard({
         <AccessStateBadge state={row.state} />
       </div>
       {row.accessExpiresAt ? (
-        <p className="text-sm text-muted-foreground">Access ended {formatDateTime(row.accessExpiresAt)}</p>
+        <p className="text-sm text-muted-foreground">{t("student.legacy.accessEnded", { when: formatDateTime(row.accessExpiresAt) })}</p>
       ) : null}
       <div className="mt-auto flex items-center pt-1">
         <LegacyReactivationAction row={row} label={label} state={state} reactivateText={reactivateText} />
@@ -195,6 +198,7 @@ export function LegacyEnrollmentCard({
  * rows, nothing renders and the catalog grid is unaffected.
  */
 export function ExpiredLegacyAccessSection() {
+  const t = useT();
   const state = useLegacyReactivationState();
   if (!state.enrollmentsQuery.isSuccess || state.expiredRows.length === 0) return null;
 
@@ -206,18 +210,18 @@ export function ExpiredLegacyAccessSection() {
     >
       <div>
         <h2 id="legacy-expired-access-heading" className="text-base font-semibold text-foreground">
-          Expired paid access
+          {t("student.legacyReactivation.expiredPaidAccess")}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Your paid access to these courses has expired. Request reactivation to renew it.
+          {t("student.legacyReactivation.yourPaidAccessTo")}
         </p>
       </div>
       <ul
-        aria-label="My enrolled courses with expired access"
+        aria-label={t("student.legacyReactivation.myEnrolledCoursesWith")}
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         {state.expiredRows.map((row) => (
-          <LegacyEnrollmentCard key={row.enrollmentId} row={row} state={state} reactivateText="Reactivate access" />
+          <LegacyEnrollmentCard key={row.enrollmentId} row={row} state={state} reactivateText={t("student.dashboard.reactivate")} />
         ))}
       </ul>
     </section>

@@ -9,6 +9,7 @@ import { isApiClientError } from "@/lib/api/error";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { useT } from "@/i18n/i18n-provider";
 const LABELS: Record<NotificationPreference["channel"], string> = {
   EMAIL: "Email announcements",
   SMS: "SMS announcements",
@@ -22,21 +23,22 @@ const LABELS: Record<NotificationPreference["channel"], string> = {
  * access, are always delivered.
  */
 export function NotificationPreferences() {
+  const t = useT();
   const query = useNotificationPreferences();
   const update = useUpdateNotificationPreferences();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>How you receive announcements</CardTitle>
+        <CardTitle>{t("notifications.notificationPreferences.howYouReceiveAnnouncements")}</CardTitle>
         <CardDescription>
-          Announcements always appear here. Messages about your payments and account access are always sent by email.
+          {t("notifications.notificationPreferences.announcementsAlwaysAppearHere")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <QueryStateBoundary query={query} loadingLabel="Loading preferences…" loginPath="/login">
+        <QueryStateBoundary query={query} loadingLabel={t("notifications.notificationPreferences.loadingPreferences")} loginPath="/login">
           {(preferences) => (
             <fieldset className="flex flex-col gap-2" disabled={update.isPending}>
-              <legend className="sr-only">Announcement channels</legend>
+              <legend className="sr-only">{t("notifications.notificationPreferences.announcementChannels")}</legend>
               {preferences.map((preference) => (
                 <label key={preference.channel} className="flex items-center gap-2 text-sm text-foreground">
                   <input
@@ -44,9 +46,9 @@ export function NotificationPreferences() {
                     checked={preference.optedIn}
                     onChange={(event) => update.mutate({ [preference.channel]: event.target.checked })}
                   />
-                  {LABELS[preference.channel]}
+                  {preference.channel === "EMAIL" ? t("notifications.channel.email") : preference.channel === "SMS" ? t("notifications.channel.sms") : preference.channel === "WHATSAPP" ? t("notifications.channel.whatsapp") : LABELS[preference.channel]}
                   {preference.explicitOptInRequired && !preference.optedIn ? (
-                    <span className="text-muted-foreground">(off until you turn it on)</span>
+                    <span className="text-muted-foreground">{t("notifications.notificationPreferences.offUntilYouTurn")}</span>
                   ) : null}
                 </label>
               ))}
@@ -54,10 +56,10 @@ export function NotificationPreferences() {
           )}
         </QueryStateBoundary>
         <div role="status" aria-live="polite">
-          {update.isSuccess ? <p className="text-sm text-muted-foreground">Preferences saved.</p> : null}
+          {update.isSuccess ? <p className="text-sm text-muted-foreground">{t("notifications.notificationPreferences.preferencesSaved")}</p> : null}
           {update.isError ? (
             <p className="text-sm text-destructive">
-              {isApiClientError(update.error) ? update.error.message : "Could not save. Please try again."}
+              {isApiClientError(update.error) ? update.error.message : t("notifications.notificationPreferences.couldNotSavePlease")}
             </p>
           ) : null}
         </div>

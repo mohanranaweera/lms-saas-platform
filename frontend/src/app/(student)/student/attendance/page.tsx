@@ -120,7 +120,7 @@ export default function StudentAttendancePage() {
                         {courseNames.get(record.courseId) ?? shortId(record.courseId, t("student.common.courseIdLabel"))}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatAttendanceSession(record)} · {t("student.attendance.marked", { when: formatDateTime(record.markedAt) })}
+                        {formatAttendanceSession(record, t)} · {t("student.attendance.marked", { when: formatDateTime(record.markedAt) })}
                       </span>
                     </div>
                     <AttendanceStatusChip status={record.status} />

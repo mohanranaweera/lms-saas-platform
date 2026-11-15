@@ -12,7 +12,7 @@ import { useNamespaces, useT } from "@/i18n/i18n-provider";
  * The pages inside are not localized yet.
  */
 export function TenantAdminShell({ children }: { children: ReactNode }) {
-  useNamespaces(["tenantAdmin"]);
+  useNamespaces(["tenantAdmin", "courses", "exams", "attendance", "payments", "notifications", "calendar", "devices", "player"]);
   const t = useT();
   const portalLabel = t("tenantAdmin.portal");
   return (

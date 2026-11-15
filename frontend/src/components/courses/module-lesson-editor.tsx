@@ -13,6 +13,7 @@ import { tenantDashboardPath } from "@/lib/auth/dashboard-paths";
 import { isApiClientError } from "@/lib/api/error";
 import { nextSequence, sortBySequence } from "@/lib/courses/reorder";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Shared Module & Session editor for the Teacher and Tenant Admin course
  * content routes. It renders each module as a `CourseModuleCard`, whose
@@ -27,6 +28,7 @@ export function ModuleLessonEditor({
   /** Builds the module question-bank link; omit to hide "Manage Questions". */
   questionsHref?: (moduleId: string) => string;
 }) {
+  const t = useT();
   const modulesQuery = useKlassModules(courseId);
   const timeZone = useTenantTimeZone();
   const { session } = useAuth();
@@ -53,7 +55,7 @@ export function ModuleLessonEditor({
       await moveModuleMutation.mutateAsync(reordered.map((item) => item.id));
     } catch (error) {
       setReorderError(
-        isApiClientError(error) ? error.message : "Couldn't reorder modules. Please try again."
+        isApiClientError(error) ? error.message : t("courses.moduleLessonEditor.couldntReorderModulesPlease")
       );
     } finally {
       // Refetch even on failure: the server's complete ordering is authoritative.
@@ -65,7 +67,7 @@ export function ModuleLessonEditor({
   return (
     <QueryStateBoundary
       query={modulesQuery}
-      loadingLabel="Loading modules…"
+      loadingLabel={t("courses.moduleLessonEditor.loadingModules")}
       loginPath="/login"
       permissionDenied={{ dashboardHref }}
     >
@@ -77,13 +79,13 @@ export function ModuleLessonEditor({
               <ErrorState message={reorderError} onRetry={() => setReorderError(null)} />
             ) : null}
             <span role="status" aria-live="polite" className="sr-only">
-              {reorderBusyIds.size > 0 ? "Reordering modules…" : ""}
+              {reorderBusyIds.size > 0 ? t("courses.moduleLessonEditor.reorderingModules") : ""}
             </span>
 
             {sorted.length === 0 ? (
               <EmptyState
-                title="No modules yet"
-                description="Add your first module to start structuring this course. Each module can then hold its own ordered list of sessions."
+                title={t("courses.moduleLessonEditor.noModulesYet")}
+                description={t("courses.moduleLessonEditor.addYourFirstModule")}
               />
             ) : (
               <ol className="flex flex-col gap-4">
@@ -107,11 +109,11 @@ export function ModuleLessonEditor({
             )}
 
             <div className="rounded-lg border border-dashed border-border p-4">
-              <h2 className="mb-2 text-sm font-medium text-foreground">Add module</h2>
+              <h2 className="mb-2 text-sm font-medium text-foreground">{t("courses.moduleLessonEditor.addModule")}</h2>
               <TitleInlineForm
                 idPrefix={`add-module-${courseId}`}
-                label="Module title"
-                submitLabel="Add module"
+                label={t("courses.moduleLessonEditor.moduleTitle")}
+                submitLabel={t("courses.moduleLessonEditor.addModule")}
                 pendingLabel="Adding module…"
                 disabled={reorderBusyIds.size > 0}
                 clearOnSuccess

@@ -22,6 +22,7 @@ import { TUTE_PAYMENT_TYPE_LABELS, formatTutePrice } from "@/lib/tutes/tute-form
 import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/i18n-provider";
 export const TUTE_PAGE_SIZES = [10, 25, 50] as const;
 
 /**
@@ -31,6 +32,7 @@ export const TUTE_PAGE_SIZES = [10, 25, 50] as const;
  * UX only; every request is re-authorized by the backend.
  */
 export function TuteListPage({ courseId, routes }: { courseId: string; routes: TuteRoutes }) {
+  const t = useT();
   const { can } = useTuteCapabilities();
   const courseQuery = useCourse(courseId);
   const courseName = courseQuery.data?.name ?? null;
@@ -92,12 +94,12 @@ export function TuteListPage({ courseId, routes }: { courseId: string; routes: T
         </span>
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-xl font-semibold break-words text-foreground">
-            {courseName ? `Tutes of ${courseName}` : "Tutes"}
+            {courseName ? `Tutes of ${courseName}` : t("teacher.tuteList.tutes")}
           </h1>
           <Breadcrumbs
             items={[
-              { label: "Courses", href: routes.courses },
-              { label: courseName ?? "Course" },
+              { label: t("teacher.tuteList.courses"), href: routes.courses },
+              { label: courseName ?? t("teacher.tuteList.course") },
             ]}
           />
         </div>
@@ -108,12 +110,12 @@ export function TuteListPage({ courseId, routes }: { courseId: string; routes: T
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-72">
               <label htmlFor="tutes-search" className="sr-only">
-                Search tutes
+                {t("teacher.tuteList.searchTutes")}
               </label>
               <Input
                 id="tutes-search"
                 type="search"
-                placeholder="Search"
+                placeholder={t("teacher.tuteList.search")}
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 className="pr-8"
@@ -132,24 +134,24 @@ export function TuteListPage({ courseId, routes }: { courseId: string; routes: T
                 data-testid="tutes-show-archived"
               />
               <Label htmlFor="tutes-show-archived" className="font-normal">
-                Show archived
+                {t("teacher.tuteList.showArchived")}
               </Label>
             </div>
           </div>
           {canCreate ? (
             <Button type="button" onClick={() => openForm(null)} data-testid="tutes-add">
               <Plus aria-hidden="true" />
-              Add Tute
+              {t("teacher.tuteList.addTute")}
             </Button>
           ) : null}
         </div>
 
         {query.status === "pending" ? (
-          <TableSkeleton label="Loading tutes…" />
+          <TableSkeleton label={t("teacher.tuteList.loadingTutes")} />
         ) : (
           <QueryStateBoundary
             query={query}
-            loadingLabel="Loading tutes…"
+            loadingLabel={t("teacher.tuteList.loadingTutes")}
             loginPath="/login"
             permissionDenied={{ dashboardHref: routes.dashboard }}
           >
@@ -160,21 +162,21 @@ export function TuteListPage({ courseId, routes }: { courseId: string; routes: T
                     <caption className="sr-only">Tutes of {courseName ?? "this course"}</caption>
                     <thead className="bg-muted/50 text-left">
                       <tr>
-                        <th scope="col" className="px-3 py-2 font-medium">Name</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Quantity</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Payment Type</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Sold Through</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteList.name")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteList.quantity")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteList.paymentType")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteList.soldThrough")}</th>
                         <th scope="col" className="px-3 py-2 text-right font-medium">
                           Price{currency ? ` (${currency})` : ""}
                         </th>
-                        <th scope="col" className="px-3 py-2 text-right font-medium">Actions</th>
+                        <th scope="col" className="px-3 py-2 text-right font-medium">{t("teacher.tuteList.actions")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.content.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground" data-testid="tutes-empty">
-                            {search ? `No tutes match “${search}”.` : "No data available"}
+                            {search ? `No tutes match “${search}”.` : t("teacher.tuteList.noDataAvailable")}
                           </td>
                         </tr>
                       ) : (
@@ -183,7 +185,7 @@ export function TuteListPage({ courseId, routes }: { courseId: string; routes: T
                             <td className="px-3 py-2">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-medium text-foreground">{tute.name}</span>
-                                {tute.status === "ARCHIVED" ? <Badge variant="outline">Archived</Badge> : null}
+                                {tute.status === "ARCHIVED" ? <Badge variant="outline">{t("teacher.tuteList.archived")}</Badge> : null}
                               </div>
                             </td>
                             <td className="px-3 py-2">
@@ -198,7 +200,7 @@ export function TuteListPage({ courseId, routes }: { courseId: string; routes: T
                                 >
                                   {tute.available <= 0 ? <AlertTriangle className="size-3.5" aria-hidden="true" /> : null}
                                   {tute.available.toLocaleString("en-US")} available
-                                  {tute.available <= 0 ? <span className="sr-only"> (out of stock)</span> : null}
+                                  {tute.available <= 0 ? <span className="sr-only">{" "}{t("teacher.tuteList.outOfStock")}</span> : null}
                                 </span>
                               </div>
                             </td>
@@ -294,9 +296,9 @@ export function TuteListPage({ courseId, routes }: { courseId: string; routes: T
         onOpenChange={(next) => {
           if (!next) setDeleting(null);
         }}
-        title={deleting ? `Delete “${deleting.name}”?` : "Delete tute?"}
-        description="A tute that has never been assigned is deleted permanently. A tute with any assignment or dispatch history is archived instead: it is hidden, can't be assigned again, and its history is kept."
-        confirmLabel="Delete tute"
+        title={deleting ? `Delete “${deleting.name}”?` : t("teacher.tuteList.deleteTute2")}
+        description={t("teacher.tuteList.aTuteThatHas")}
+        confirmLabel={t("teacher.tuteList.deleteTute")}
         pending={remove.isPending}
         error={remove.isError ? mutationErrorMessage(remove.error) : null}
         onConfirm={confirmDelete}

@@ -10,6 +10,7 @@ import { AdminToast, useAdminToast } from "@/components/courses/admin/admin-toas
 import { EditClassScheduleDialog, ScheduleSummaryList } from "./edit-class-schedule-dialog";
 import { useClassSchedule } from "@/lib/api/class-schedule";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Course workspace "Schedule" tab (CAL-01): weekly class-time summary plus
  * the shared "Edit Class Schedule" editor. `canEdit` comes from the server
@@ -26,6 +27,7 @@ export function ClassSchedulePanel({
   calendarHref: string;
   dashboardHref: string;
 }) {
+  const t = useT();
   const query = useClassSchedule(courseId);
   const [open, setOpen] = useState(false);
   const toast = useAdminToast();
@@ -36,17 +38,17 @@ export function ClassSchedulePanel({
         <CardTitle>
           <h2 className="flex items-center gap-2 text-base font-semibold">
             <CalendarDays className="size-5 text-primary" aria-hidden="true" />
-            Class schedule
+            {t("calendar.classSchedulePanel.classSchedule")}
           </h2>
         </CardTitle>
         <CardDescription>
-          Weekly class times shown on the student and public pages and in the calendar.
+          {t("calendar.classSchedulePanel.weeklyClassTimesShown")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <QueryStateBoundary
           query={query}
-          loadingLabel="Loading class schedule…"
+          loadingLabel={t("calendar.classSchedulePanel.loadingClassSchedule")}
           loginPath="/login"
           permissionDenied={{ dashboardHref }}
         >
@@ -57,11 +59,11 @@ export function ClassSchedulePanel({
                 {schedule.canEdit ? (
                   <Button type="button" onClick={() => setOpen(true)} data-testid="class-schedule-edit">
                     <Pencil aria-hidden="true" />
-                    Edit Class Schedule
+                    {t("calendar.classSchedulePanel.editClassSchedule")}
                   </Button>
                 ) : null}
                 <Link href={`${calendarHref}?course=${encodeURIComponent(courseId)}`} className={buttonVariants({ variant: "outline" })}>
-                  Open in calendar
+                  {t("calendar.classSchedulePanel.openInCalendar")}
                 </Link>
               </div>
             </>
@@ -73,7 +75,7 @@ export function ClassSchedulePanel({
         courseName={courseName}
         open={open}
         onOpenChange={setOpen}
-        onSaved={() => toast.show({ kind: "success", text: `Class schedule saved for “${courseName}”.` })}
+        onSaved={() => toast.show({ kind: "success", text: t("calendar.scheduleSaved", { course: courseName }) })}
       />
       <AdminToast message={toast.message} onDismiss={toast.dismiss} />
     </Card>

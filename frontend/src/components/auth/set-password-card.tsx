@@ -17,26 +17,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 type Phase =
   | { kind: "checking" }
   | { kind: "invalid" }
   | { kind: "ready"; token: string; info: PasswordTokenInfo }
   | { kind: "done" };
 
-const COPY = {
+const COPY = (t: TranslateFn) => ({
   setup: {
-    title: "Set up your account",
-    description: "Choose a password to finish setting up your account.",
+    title: t("auth.setPassword.setUpYourAccount"),
+    description: t("auth.setPassword.chooseAPasswordTo"),
     submit: "Set password",
     done: "Your account is ready. Sign in with your new password.",
   },
   reset: {
-    title: "Choose a new password",
-    description: "Enter a new password for your account.",
+    title: t("auth.setPassword.chooseANewPassword"),
+    description: t("auth.setPassword.enterANewPassword"),
     submit: "Reset password",
     done: "Your password has been changed. Sign in with your new password.",
   },
-} as const;
+} as const);
 
 /**
  * AUTH-PWD-01 — shared by `/account-setup` (invitation) and `/reset-password`
@@ -46,7 +48,8 @@ const COPY = {
  * backend decides validity, never this page.
  */
 export function SetPasswordCard({ variant }: { variant: "setup" | "reset" }) {
-  const copy = COPY[variant];
+  const t = useT();
+  const copy = COPY(t)[variant];
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>({ kind: "checking" });
   const started = useRef(false);
@@ -90,7 +93,7 @@ export function SetPasswordCard({ variant }: { variant: "setup" | "reset" }) {
         setError("newPassword", { type: "server", message: field ? `Password ${field.message}.` : error.message });
         return;
       }
-      setError("newPassword", { type: "server", message: "Something went wrong. Please try again." });
+      setError("newPassword", { type: "server", message: t("auth.setPassword.somethingWentWrongPlease") });
     }
   });
 
@@ -101,20 +104,20 @@ export function SetPasswordCard({ variant }: { variant: "setup" | "reset" }) {
         {phase.kind === "ready" ? <CardDescription>{copy.description}</CardDescription> : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {phase.kind === "checking" ? <LoadingState label="Checking your link…" /> : null}
+        {phase.kind === "checking" ? <LoadingState label={t("auth.setPassword.checkingYourLink")} /> : null}
 
         {phase.kind === "invalid" ? (
           <>
             <Alert variant="destructive">
               <AlertCircle aria-hidden="true" />
               <AlertDescription>
-                This link is invalid or has expired. Links work once and only for a limited time.
+                {t("auth.setPassword.thisLinkIsInvalid")}
               </AlertDescription>
             </Alert>
             <p className="text-sm text-muted-foreground">
-              {variant === "setup" ? "Ask your platform administrator to send a new invitation, or " : "You can "}
+              {variant === "setup" ? t("auth.setPassword.askYourPlatformAdministrator") : t("auth.setPassword.youCan")}
               <Link href="/forgot-password" className="font-medium text-foreground underline">
-                request a new link
+                {t("auth.setPassword.requestANewLink")}
               </Link>
               .
             </p>
@@ -124,12 +127,12 @@ export function SetPasswordCard({ variant }: { variant: "setup" | "reset" }) {
         {phase.kind === "ready" ? (
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
-              Account: <span className="font-medium text-foreground">{phase.info.emailMasked}</span>
+              {t("auth.setPassword.account")}{" "}<span className="font-medium text-foreground">{phase.info.emailMasked}</span>
               <br />
               Link valid until {formatDateTime(phase.info.expiresAt)}.
             </p>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-password">New password</Label>
+              <Label htmlFor="new-password">{t("auth.setPassword.newPassword")}</Label>
               <Input
                 id="new-password"
                 type="password"
@@ -139,16 +142,16 @@ export function SetPasswordCard({ variant }: { variant: "setup" | "reset" }) {
                 {...register("newPassword")}
               />
               <p id="new-password-hint" className="text-xs text-muted-foreground">
-                At least 8 characters, and not your email address.
+                {t("auth.setPassword.atLeast8Characters")}
               </p>
               {errors.newPassword ? (
                 <p id="new-password-error" role="alert" className="text-sm text-destructive">
-                  {errors.newPassword.message}
+                  {translateSource(t, errors.newPassword.message)}
                 </p>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm-password">Confirm new password</Label>
+              <Label htmlFor="confirm-password">{t("auth.setPassword.confirmNewPassword")}</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -159,12 +162,12 @@ export function SetPasswordCard({ variant }: { variant: "setup" | "reset" }) {
               />
               {errors.confirmPassword ? (
                 <p id="confirm-password-error" role="alert" className="text-sm text-destructive">
-                  {errors.confirmPassword.message}
+                  {translateSource(t, errors.confirmPassword.message)}
                 </p>
               ) : null}
             </div>
             <Button type="submit" disabled={complete.isPending} aria-busy={complete.isPending}>
-              {complete.isPending ? "Saving…" : copy.submit}
+              {complete.isPending ? t("auth.setPassword.saving") : copy.submit}
             </Button>
           </form>
         ) : null}
@@ -176,7 +179,7 @@ export function SetPasswordCard({ variant }: { variant: "setup" | "reset" }) {
               <AlertDescription>{copy.done}</AlertDescription>
             </Alert>
             <Link href="/login" className={buttonVariants()}>
-              Go to sign in
+              {t("auth.setPassword.goToSignIn")}
             </Link>
           </>
         ) : null}

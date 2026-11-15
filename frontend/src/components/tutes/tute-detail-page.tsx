@@ -58,12 +58,13 @@ import {
 import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import { cn } from "@/lib/utils";
 
-const STATUS_FILTERS = [
-  { value: "", label: "All statuses" },
-  { value: "PENDING", label: "Pending" },
-  { value: "DISPATCHED", label: "Dispatched / handed over" },
-  { value: "CANCELLED", label: "Cancelled" },
-];
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+const STATUS_FILTERS = (t: TranslateFn) => ([
+  { value: "", label: t("teacher.tuteDetail.allStatuses") },
+  { value: "PENDING", label: t("teacher.tuteDetail.pending") },
+  { value: "DISPATCHED", label: t("teacher.tuteDetail.dispatchedHandedOver") },
+  { value: "CANCELLED", label: t("teacher.tuteDetail.cancelled") },
+]);
 
 function syncSummary(result: SyncResultView): string {
   return `Sync complete: ${result.added} added, ${result.alreadyAssigned} already assigned, ${result.skippedOutOfStock} skipped (out of stock), ${result.held} on hold (payment reversed).`;
@@ -83,6 +84,7 @@ function statusError(error: unknown): string {
  * course access; the server re-validates every state change.
  */
 export function TuteDetailPage({ courseId, tuteId, routes }: { courseId: string; tuteId: string; routes: TuteRoutes }) {
+  const t = useT();
   const { can } = useTuteCapabilities();
   const courseQuery = useCourse(courseId);
   const tuteQuery = useTute(courseId, tuteId);
@@ -101,20 +103,20 @@ export function TuteDetailPage({ courseId, tuteId, routes }: { courseId: string;
           className="inline-flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to tutes
+          {t("teacher.tuteDetail.backToTutes")}
         </Link>
         <Breadcrumbs
           items={[
-            { label: "Courses", href: routes.courses },
+            { label: t("teacher.tuteDetail.courses"), href: routes.courses },
             { label: courseName, href: routes.tutes(courseId) },
-            { label: tuteQuery.data?.name ?? "Tute" },
+            { label: tuteQuery.data?.name ?? t("teacher.tuteDetail.tute") },
           ]}
         />
       </div>
 
       <QueryStateBoundary
         query={tuteQuery}
-        loadingLabel="Loading tute…"
+        loadingLabel={t("teacher.tuteDetail.loadingTute")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: routes.dashboard }}
       >
@@ -126,7 +128,7 @@ export function TuteDetailPage({ courseId, tuteId, routes }: { courseId: string;
                 <div className="flex min-w-0 flex-col gap-1">
                   <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold break-words text-foreground">
                     {tute.name}
-                    {archived ? <Badge variant="outline">Archived</Badge> : null}
+                    {archived ? <Badge variant="outline">{t("teacher.tuteDetail.archived")}</Badge> : null}
                   </h1>
                   <p className="text-sm text-muted-foreground">
                     {TUTE_PAYMENT_TYPE_LABELS[tute.paymentType]}
@@ -151,7 +153,7 @@ export function TuteDetailPage({ courseId, tuteId, routes }: { courseId: string;
                       data-testid="tute-sync-payments"
                     >
                       <RefreshCw className={cn(sync.isPending && "animate-spin")} aria-hidden="true" />
-                      {sync.isPending ? "Syncing…" : "Sync payments"}
+                      {sync.isPending ? t("teacher.tuteDetail.syncing") : t("teacher.tuteDetail.syncPayments")}
                     </Button>
                   ) : null}
                   {can(TUTE_CAP.ENROLL) && !archived ? (
@@ -164,7 +166,7 @@ export function TuteDetailPage({ courseId, tuteId, routes }: { courseId: string;
                       data-testid="tute-assign-students"
                     >
                       <UserPlus aria-hidden="true" />
-                      Assign students
+                      {t("teacher.tuteDetail.assignStudents")}
                     </Button>
                   ) : null}
                 </div>
@@ -205,11 +207,12 @@ export function TuteDetailPage({ courseId, tuteId, routes }: { courseId: string;
 }
 
 function StockSummary({ tute }: { tute: TuteView }) {
+  const t = useT();
   const items = [
-    { label: "Quantity", value: tute.quantity, hint: "Total copies held" },
-    { label: "Reserved", value: tute.reserved, hint: "Pending delivery" },
-    { label: "Dispatched", value: tute.dispatched, hint: "Sent or handed over" },
-    { label: "Available", value: tute.available, hint: "Free to assign" },
+    { label: t("teacher.tuteDetail.quantity"), value: tute.quantity, hint: t("teacher.tuteDetail.totalCopiesHeld") },
+    { label: t("teacher.tuteDetail.reserved"), value: tute.reserved, hint: t("teacher.tuteDetail.pendingDelivery") },
+    { label: t("teacher.tuteDetail.dispatched"), value: tute.dispatched, hint: t("teacher.tuteDetail.sentOrHandedOver") },
+    { label: t("teacher.tuteDetail.available"), value: tute.available, hint: t("teacher.tuteDetail.freeToAssign") },
   ];
   return (
     <dl className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="tute-stock-summary">
@@ -227,7 +230,7 @@ function StockSummary({ tute }: { tute: TuteView }) {
             {item.value.toLocaleString("en-US")}
           </dd>
           <dd className="text-xs text-muted-foreground">
-            {item.label === "Available" && item.value <= 0 ? "Out of stock" : item.hint}
+            {item.label === "Available" && item.value <= 0 ? t("teacher.tuteDetail.outOfStock") : item.hint}
           </dd>
         </div>
       ))}
@@ -250,6 +253,7 @@ function AssignedStudents({
   routes: TuteRoutes;
   onToast: (message: { kind: "success" | "error"; text: string }) => void;
 }) {
+  const t = useT();
   const { can } = useTuteCapabilities();
   const [status, setStatus] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -299,17 +303,17 @@ function AssignedStudents({
   return (
     <section aria-labelledby="assigned-students-heading" className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
       <h2 id="assigned-students-heading" className="text-base font-semibold">
-        Assigned students
+        {t("teacher.tuteDetail.assignedStudents")}
       </h2>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="relative w-full sm:w-72">
           <label htmlFor="fulfillments-search" className="sr-only">
-            Search assigned students
+            {t("teacher.tuteDetail.searchAssignedStudents")}
           </label>
           <Input
             id="fulfillments-search"
             type="search"
-            placeholder="Search by name or index"
+            placeholder={t("teacher.tuteDetail.searchByNameOr")}
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             className="pr-8"
@@ -318,7 +322,7 @@ function AssignedStudents({
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="fulfillments-status">Status</Label>
+          <Label htmlFor="fulfillments-status">{t("teacher.tuteDetail.status")}</Label>
           <select
             id="fulfillments-status"
             className={cn(nativeSelectClass, "w-56")}
@@ -329,7 +333,7 @@ function AssignedStudents({
             }}
             data-testid="fulfillments-status"
           >
-            {STATUS_FILTERS.map((option) => (
+            {STATUS_FILTERS(t).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -340,17 +344,17 @@ function AssignedStudents({
       <LiveRegion message={announcement} />
 
       {query.status === "pending" ? (
-        <TableSkeleton label="Loading assigned students…" />
+        <TableSkeleton label={t("teacher.tuteDetail.loadingAssignedStudents")} />
       ) : (
-        <QueryStateBoundary query={query} loadingLabel="Loading assigned students…" permissionDenied={{ dashboardHref: routes.dashboard }}>
+        <QueryStateBoundary query={query} loadingLabel={t("teacher.tuteDetail.loadingAssignedStudents")} permissionDenied={{ dashboardHref: routes.dashboard }}>
           {(data) =>
             data.content.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm" data-testid="fulfillments-empty">
-                <p className="font-medium">{search || status ? "No assigned students match these filters" : "No students have this tute yet"}</p>
+                <p className="font-medium">{search || status ? t("teacher.tuteDetail.noAssignedStudentsMatch") : t("teacher.tuteDetail.noStudentsHaveThis")}</p>
                 <p className="text-muted-foreground">
                   {search || status
-                    ? "Change the status or search, or clear them."
-                    : "Use Assign students, or Sync payments to add students whose confirmed payments include this tute."}
+                    ? t("teacher.tuteDetail.changeTheStatusOr")
+                    : t("teacher.tuteDetail.useAssignStudentsOr")}
                 </p>
               </div>
             ) : (
@@ -360,13 +364,13 @@ function AssignedStudents({
                     <caption className="sr-only">Students assigned to {tute.name}</caption>
                     <thead className="bg-muted/50 text-left">
                       <tr>
-                        <th scope="col" className="sticky left-0 bg-muted px-3 py-2 font-medium">Index Number</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Student Name</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Status</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Method</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Source</th>
-                        <th scope="col" className="px-3 py-2 font-medium">Notes</th>
-                        <th scope="col" className="px-3 py-2 text-right font-medium">Actions</th>
+                        <th scope="col" className="sticky left-0 bg-muted px-3 py-2 font-medium">{t("teacher.tuteDetail.indexNumber")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteDetail.studentName")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteDetail.status")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteDetail.method")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteDetail.source")}</th>
+                        <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteDetail.notes")}</th>
+                        <th scope="col" className="px-3 py-2 text-right font-medium">{t("teacher.tuteDetail.actions")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -395,25 +399,25 @@ function AssignedStudents({
                               <FulfillmentStatusBadge row={row} />
                             </td>
                             <td className="px-3 py-2">{METHOD_LABELS[row.method] ?? row.method}</td>
-                            <td className="px-3 py-2">{row.source === "PAYMENT" ? "Payment" : "Manual"}</td>
+                            <td className="px-3 py-2">{row.source === "PAYMENT" ? t("teacher.tuteDetail.payment") : t("teacher.tuteDetail.manual")}</td>
                             <td className="px-3 py-2">
                               <div className="flex flex-wrap gap-1">
                                 {row.held || row.paymentReversedAt ? (
                                   <Badge variant="destructive" data-testid="fulfillment-hold">
                                     <AlertTriangle aria-hidden="true" />
                                     {row.status === "DISPATCHED"
-                                      ? "Payment reversed after dispatch"
+                                      ? t("teacher.tuteDetail.paymentReversedAfterDispatch")
                                       : row.held
-                                        ? "Payment reversed — on hold"
+                                        ? t("teacher.tuteDetail.paymentReversedOnHold")
                                         : row.holdReleasedAt
-                                          ? "Payment reversed — hold released"
-                                          : "Payment reversed"}
+                                          ? t("teacher.tuteDetail.paymentReversedHoldReleased")
+                                          : t("teacher.tuteDetail.paymentReversed")}
                                   </Badge>
                                 ) : null}
                                 {row.addressMissing && row.method === "POSTAL" && pending ? (
                                   <Badge variant="warning" data-testid="fulfillment-no-address">
                                     <AlertTriangle aria-hidden="true" />
-                                    No address
+                                    {t("teacher.tuteDetail.noAddress")}
                                   </Badge>
                                 ) : null}
                                 {row.status === "CANCELLED" && row.cancelReason ? (
@@ -435,13 +439,13 @@ function AssignedStudents({
                                     {actions.handedOver ? (
                                       <DropdownMenuItem onClick={() => markHandedOver(row)} data-testid="fulfillment-action-handed-over">
                                         <HandHelping aria-hidden="true" />
-                                        Mark handed over
+                                        {t("teacher.tuteDetail.markHandedOver")}
                                       </DropdownMenuItem>
                                     ) : null}
                                     {actions.method ? (
                                       <DropdownMenuItem onClick={() => changeMethod(row)} data-testid="fulfillment-action-method">
                                         <Repeat aria-hidden="true" />
-                                        {row.method === "POSTAL" ? "Change to Collection" : "Change to Postal"}
+                                        {row.method === "POSTAL" ? t("teacher.tuteDetail.changeToCollection") : t("teacher.tuteDetail.changeToPostal")}
                                       </DropdownMenuItem>
                                     ) : null}
                                     {actions.release ? (
@@ -454,7 +458,7 @@ function AssignedStudents({
                                         data-testid="fulfillment-action-release"
                                       >
                                         <ShieldCheck aria-hidden="true" />
-                                        Release hold
+                                        {t("teacher.tuteDetail.releaseHold")}
                                       </DropdownMenuItem>
                                     ) : null}
                                     {actions.cancel ? (
@@ -468,13 +472,13 @@ function AssignedStudents({
                                         data-testid="fulfillment-action-cancel"
                                       >
                                         <Ban aria-hidden="true" />
-                                        Cancel (unroll)
+                                        {t("teacher.tuteDetail.cancelUnroll")}
                                       </DropdownMenuItem>
                                     ) : null}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               ) : (
-                                <span className="sr-only">No actions</span>
+                                <span className="sr-only">{t("teacher.tuteDetail.noActions")}</span>
                               )}
                             </td>
                           </tr>
@@ -507,9 +511,9 @@ function AssignedStudents({
         onOpenChange={(next) => {
           if (!next) setAction(null);
         }}
-        title={action ? `Cancel ${action.row.studentName}'s copy?` : "Cancel copy?"}
-        description="The pending copy is cancelled and returned to stock. This doesn't change the student's enrollment, payments or course access."
-        confirmLabel="Cancel copy"
+        title={action ? `Cancel ${action.row.studentName}'s copy?` : t("teacher.tuteDetail.cancelCopy2")}
+        description={t("teacher.tuteDetail.thePendingCopyIs")}
+        confirmLabel={t("teacher.tuteDetail.cancelCopy")}
         destructive
         testId="unroll-dialog"
         pending={cancel.isPending}
@@ -537,9 +541,9 @@ function AssignedStudents({
         onOpenChange={(next) => {
           if (!next) setAction(null);
         }}
-        title={action ? `Release hold for ${action.row.studentName}?` : "Release hold?"}
-        description="This copy's payment was refunded or charged back. Releasing the hold puts it back in the dispatch queue. It doesn't change any payment."
-        confirmLabel="Release hold"
+        title={action ? `Release hold for ${action.row.studentName}?` : t("teacher.tuteDetail.releaseHold2")}
+        description={t("teacher.tuteDetail.thisCopysPaymentWas")}
+        confirmLabel={t("teacher.tuteDetail.releaseHold")}
         testId="release-hold-dialog"
         pending={statusChange.isPending}
         error={statusChange.isError ? statusError(statusChange.error) : null}

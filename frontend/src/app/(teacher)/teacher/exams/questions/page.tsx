@@ -21,6 +21,7 @@ import { useCourses } from "@/lib/api/courses";
 import { useCourseQuestions, useCreateDraftExam } from "@/lib/api/exams";
 import { isApiClientError } from "@/lib/api/error";
 
+import { useT } from "@/i18n/i18n-provider";
 const PAGE_SIZE = 20;
 
 /**
@@ -36,6 +37,7 @@ const PAGE_SIZE = 20;
  * (`/teacher/exams/{examId}/schedule`) is how a Teacher reaches that screen.
  */
 export default function TeacherQuestionBankPage() {
+  const t = useT();
   const router = useRouter();
   const { session } = useAuth();
   const canAuthor = canAuthorExams(session?.role ?? null);
@@ -56,41 +58,40 @@ export default function TeacherQuestionBankPage() {
   const handleCreateExam = async () => {
     setCreateExamError(null);
     try {
-      const exam = await createExamMutation.mutateAsync({ title: "Untitled exam" });
+      const exam = await createExamMutation.mutateAsync({ title: t("teacher.page.examsQuestions.untitledExam") });
       router.push(`/teacher/exams/${exam.id}/schedule`);
     } catch (error) {
-      setCreateExamError(isApiClientError(error) ? error.message : "Could not create a new exam. Please try again.");
+      setCreateExamError(isApiClientError(error) ? error.message : t("teacher.page.examsQuestions.couldNotCreateA"));
     }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Question Bank</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.examsQuestions.questionBank")}</h1>
         <p className="text-sm text-muted-foreground">
-          Author reusable multiple-choice and structured questions for a course, then assemble them into an
-          exam from the Scheduler.
+          {t("teacher.page.examsQuestions.authorReusableMultipleChoice")}
         </p>
       </div>
 
       <QueryStateBoundary
         query={coursesQuery}
-        loadingLabel="Loading your courses…"
+        loadingLabel={t("teacher.page.examsQuestions.loadingYourCourses")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
         isEmpty={(data) => data.content.length === 0}
         emptyState={{
-          title: "No courses yet",
-          description: "You need at least one course before you can author exam questions.",
-          action: { label: "Create a course", onClick: () => router.push("/teacher/courses/new") },
+          title: t("teacher.page.examsQuestions.noCoursesYet"),
+          description: t("teacher.page.examsQuestions.youNeedAtLeast"),
+          action: { label: t("teacher.page.examsQuestions.createACourse"), onClick: () => router.push("/teacher/courses/new") },
         }}
       >
         {(courses) => (
           <div className="flex flex-col gap-1.5 sm:max-w-sm">
-            <Label htmlFor="question-bank-course">Course</Label>
+            <Label htmlFor="question-bank-course">{t("teacher.page.examsQuestions.course")}</Label>
             <Select value={courseId} onValueChange={(value) => value && handleCourseChange(value)}>
               <SelectTrigger id="question-bank-course" className="w-full">
-                <SelectValue placeholder="Select a course" />
+                <SelectValue placeholder={t("teacher.page.examsQuestions.selectACourse")} />
               </SelectTrigger>
               <SelectContent>
                 {courses.content.map((course) => (
@@ -109,7 +110,7 @@ export default function TeacherQuestionBankPage() {
           {canAuthor ? (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Button type="button" onClick={() => setShowCreateForm((v) => !v)} className="w-full sm:w-fit">
-                {showCreateForm ? "Close" : "Add question"}
+                {showCreateForm ? t("teacher.page.examsQuestions.close") : t("teacher.page.examsQuestions.addQuestion")}
               </Button>
               <Button
                 type="button"
@@ -119,11 +120,11 @@ export default function TeacherQuestionBankPage() {
                 aria-busy={createExamMutation.isPending}
                 className="w-full sm:w-fit"
               >
-                {createExamMutation.isPending ? "Creating exam…" : "Create a new exam for this course"}
+                {createExamMutation.isPending ? t("teacher.page.examsQuestions.creatingExam") : t("teacher.page.examsQuestions.createANewExam")}
               </Button>
             </div>
           ) : null}
-          <LiveRegion message={createExamMutation.isPending ? "Creating a new exam…" : ""} />
+          <LiveRegion message={createExamMutation.isPending ? t("teacher.page.examsQuestions.creatingANewExam") : ""} />
           {createExamError ? (
             <p role="alert" className="text-sm text-destructive">
               {createExamError}
@@ -138,20 +139,20 @@ export default function TeacherQuestionBankPage() {
 
           <QueryStateBoundary
             query={questionsQuery}
-            loadingLabel="Loading the question bank…"
+            loadingLabel={t("teacher.page.examsQuestions.loadingTheQuestionBank")}
             loginPath="/login"
             permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
             isEmpty={(data) => data.content.length === 0}
             emptyState={
               canAuthor
                 ? {
-                    title: "No questions in the bank yet",
-                    description: "Add your first multiple-choice or structured question for this course.",
-                    action: { label: "Add your first question", onClick: () => setShowCreateForm(true) },
+                    title: t("teacher.page.examsQuestions.noQuestionsInThe"),
+                    description: t("teacher.page.examsQuestions.addYourFirstMultiple"),
+                    action: { label: t("teacher.page.examsQuestions.addYourFirstQuestion"), onClick: () => setShowCreateForm(true) },
                   }
                 : {
-                    title: "No questions in the bank yet",
-                    description: "This course has no exam questions yet. You do not have permission to add any here.",
+                    title: t("teacher.page.examsQuestions.noQuestionsInThe"),
+                    description: t("teacher.page.examsQuestions.thisCourseHasNo"),
                   }
             }
           >

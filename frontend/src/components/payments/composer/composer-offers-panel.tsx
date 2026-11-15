@@ -27,6 +27,8 @@ import {
   type SelectedItem,
 } from "./composer-model";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 /**
  * Left side of the composer: "Select a course" for the active tab's scope,
  * then that course's server-provided offers. Offer state (AVAILABLE / PAID /
@@ -59,6 +61,7 @@ export function ComposerOffersPanel({
   /** How many items of a course are already in the cart (display hint only). */
   cartCountFor?: (courseId: string) => number;
 }) {
+  const t = useT();
   const scope = scopeForTab(tab);
   const selectId = useId();
   const coursesQuery = useCheckoutCourses(scope);
@@ -85,11 +88,11 @@ export function ComposerOffersPanel({
 
   return (
     <div className="flex flex-col gap-4" data-testid="composer-offers-panel" data-scope={scope}>
-      <h3 className="text-sm font-semibold text-foreground">{TAB_HEADINGS[tab]}</h3>
+      <h3 className="text-sm font-semibold text-foreground">{translateSource(t, TAB_HEADINGS[tab])}</h3>
 
       {coursesQuery.isSuccess && tags.length > 0 ? (
         <div className="flex flex-col gap-1.5">
-          <div role="group" aria-label="Filter courses by tag" className="flex flex-wrap gap-2" data-testid="composer-tags">
+          <div role="group" aria-label={t("payments.composerOffersPanel.filterCoursesByTag")} className="flex flex-wrap gap-2" data-testid="composer-tags">
             {tags.map((tag) => {
               const selected = tag.id === activeTagId;
               return (
@@ -116,20 +119,20 @@ export function ComposerOffersPanel({
           <p className="text-xs text-muted-foreground" aria-live="polite" data-testid="composer-tag-filter-status">
             {tagMatchCount === null
               ? ""
-              : `${tagMatchCount} ${tagMatchCount === 1 ? "course matches" : "courses match"} this tag. Select the tag again to show all courses.`}
+              : t("payments.offers.tagMatches", { count: tagMatchCount })}
           </p>
         </div>
       ) : null}
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor={selectId}>Select a course</Label>
+        <Label htmlFor={selectId}>{t("payments.composerOffersPanel.selectACourse")}</Label>
         {coursesQuery.isPending ? (
           <Skeleton className="h-8 w-full" />
         ) : coursesQuery.isError ? (
           <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-destructive">
-            {composerErrorMessage(coursesQuery.error)}
+            {translateSource(t, composerErrorMessage(coursesQuery.error))}
             <Button type="button" size="sm" variant="outline" onClick={() => coursesQuery.refetch()}>
-              Try again
+              {t("payments.composerOffersPanel.tryAgain")}
             </Button>
           </div>
         ) : (
@@ -145,7 +148,7 @@ export function ComposerOffersPanel({
             className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
           >
             <option value="" disabled>
-              {courses.length === 0 ? "No data available" : "Select a course"}
+              {courses.length === 0 ? t("payments.composerOffersPanel.noDataAvailable") : t("payments.composerOffersPanel.selectACourse")}
             </option>
             {visibleCourses.map((course) => {
               const inCart = cartCountFor?.(course.courseId) ?? 0;
@@ -163,16 +166,15 @@ export function ComposerOffersPanel({
         <NoData
           text={
             tab === "DAILY" || tab === "INSTALLMENT"
-              ? "No data available. Your institute doesn't offer this payment type yet."
-              : "No data available. None of your enrolled courses has this payment type."
+              ? t("payments.composerOffersPanel.noDataAvailableYour")
+              : t("payments.composerOffersPanel.noDataAvailableNone")
           }
         />
       ) : null}
 
       {coursesQuery.isSuccess && courseId !== null && !courseInList && courses.length > 0 ? (
         <p className="text-sm text-muted-foreground" data-testid="composer-course-not-in-scope">
-          {courseTitle ?? "The selected course"} has no {TAB_HEADINGS[tab].toLowerCase()}. Pick another course or
-          payment type.
+          {t("payments.offers.notInScope", { course: courseTitle ?? t("payments.composerOffersPanel.theSelectedCourse"), type: translateSource(t, TAB_HEADINGS[tab]).toLowerCase() })}
         </p>
       ) : null}
 
@@ -183,14 +185,14 @@ export function ComposerOffersPanel({
               <Skeleton key={index} className="h-16" />
             ))}
             <span className="sr-only" role="status">
-              Loading offers…
+              {t("payments.composerOffersPanel.loadingOffers")}
             </span>
           </div>
         ) : offersQuery.isError ? (
           <div role="alert" className="flex flex-col items-start gap-2 text-sm text-destructive">
-            {composerErrorMessage(offersQuery.error)}
+            {translateSource(t, composerErrorMessage(offersQuery.error))}
             <Button type="button" size="sm" variant="outline" onClick={() => offersQuery.refetch()}>
-              Try again
+              {t("payments.composerOffersPanel.tryAgain")}
             </Button>
           </div>
         ) : offersQuery.data ? (
@@ -234,11 +236,12 @@ function NoData({ text }: { text: string }) {
 }
 
 function StateTag({ state }: { state: CheckoutOfferItem["state"] }) {
+  const t = useT();
   if (state === "PAID") {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400">
         <Check className="size-3" aria-hidden="true" />
-        Paid
+        {t("payments.composerOffersPanel.paid")}
       </span>
     );
   }
@@ -246,7 +249,7 @@ function StateTag({ state }: { state: CheckoutOfferItem["state"] }) {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
         <Clock className="size-3" aria-hidden="true" />
-        Pending
+        {t("payments.composerOffersPanel.pending")}
       </span>
     );
   }
@@ -272,8 +275,9 @@ function OffersBody({
   onToggleItem: (item: SelectedItem) => void;
   onCloseForCheckout: () => void;
 }) {
+  const t = useT();
   if (!offers.supported || (offers.items.length === 0 && tab !== "MONTHLY")) {
-    return <NoData text="No data available for this course." />;
+    return <NoData text={t("payments.offers.noData")} />;
   }
 
   if (tab === "MONTHLY") {
@@ -325,7 +329,7 @@ function OffersBody({
   // MODULE / SESSION: checkbox list.
   return (
     <fieldset className="flex flex-col gap-2" data-testid="composer-item-list">
-      <legend className="sr-only">{tab === "MODULE" ? "Modules" : "Sessions"}</legend>
+      <legend className="sr-only">{tab === "MODULE" ? t("payments.composerOffersPanel.modules") : t("payments.composerOffersPanel.sessions")}</legend>
       {offers.items.map((item) => {
         const key = itemKey({ ...item, courseId: offers.courseId });
         const selectable = item.state === "AVAILABLE";
@@ -389,10 +393,11 @@ function MonthlyGrid({
   onYearChange: (year: number) => void;
   onToggleItem: (item: SelectedItem) => void;
 }) {
+  const t = useT();
   const years = [...offers.years].sort((a, b) => a - b);
   const year = monthlyYear ?? offers.items.find((item) => item.year !== null)?.year ?? years[years.length - 1] ?? null;
   if (year === null) {
-    return <NoData text="No data available for this course." />;
+    return <NoData text={t("payments.offers.noData")} />;
   }
   const index = years.indexOf(year);
   const prevYear = index > 0 ? years[index - 1] : undefined;
@@ -405,7 +410,7 @@ function MonthlyGrid({
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={prevYear !== undefined ? `Previous year, ${prevYear}` : "No earlier year"}
+          aria-label={prevYear !== undefined ? t("payments.offers.prevYear", { year: String(prevYear) }) : t("payments.composerOffersPanel.noEarlierYear")}
           disabled={prevYear === undefined}
           onClick={() => prevYear !== undefined && onYearChange(prevYear)}
           data-testid="composer-year-prev"
@@ -419,7 +424,7 @@ function MonthlyGrid({
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={nextYear !== undefined ? `Next year, ${nextYear}` : "No later year"}
+          aria-label={nextYear !== undefined ? t("payments.offers.nextYear", { year: String(nextYear) }) : t("payments.composerOffersPanel.noLaterYear")}
           disabled={nextYear === undefined}
           onClick={() => nextYear !== undefined && onYearChange(nextYear)}
           data-testid="composer-year-next"
@@ -428,13 +433,13 @@ function MonthlyGrid({
         </Button>
       </div>
 
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label={`Months in ${year}`}>
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label={t("payments.offers.monthsIn", { year: String(year) })}>
         {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
           const offer = offers.items.find((item) => item.year === year && item.month === month);
           const key = itemKey({ courseId: offers.courseId, scope: "MONTHLY", year, month });
           const selected = selectedKeys.has(key);
           const selectable = offer?.state === "AVAILABLE";
-          const stateText = !offer ? "Not offered" : offer.state === "PAID" ? "Paid" : offer.state === "PENDING" ? "Pending" : null;
+          const stateText = !offer ? t("payments.composerOffersPanel.notOffered") : offer.state === "PAID" ? t("payments.composerOffersPanel.paid") : offer.state === "PENDING" ? t("payments.composerOffersPanel.pending") : null;
           return (
             <li key={month}>
               <button

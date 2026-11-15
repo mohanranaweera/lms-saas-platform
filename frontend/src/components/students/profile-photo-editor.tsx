@@ -13,6 +13,8 @@ import {
 } from "@/lib/api/student-management";
 import { StudentAvatar } from "./student-avatar";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 const ACCEPTED = ["image/jpeg", "image/png"];
 const MAX_BYTES = 2 * 1024 * 1024;
 const VIEW = 240;
@@ -79,6 +81,7 @@ export function ProfilePhotoEditor({
   canEdit?: boolean;
   onChanged?: (message: string) => void;
 }) {
+  const t = useT();
   const inputId = useId();
   const guidanceId = useId();
   const photoQuery = useStudentPhoto(owner);
@@ -228,7 +231,7 @@ export function ProfilePhotoEditor({
   const busy = upload.isPending || remove.isPending;
 
   return (
-    <section className="flex flex-col gap-3" aria-label="Profile photo" data-testid="profile-photo-editor">
+    <section className="flex flex-col gap-3" aria-label={t("student.profilePhotoEditor.profilePhoto")} data-testid="profile-photo-editor">
       <div className="flex flex-wrap items-center gap-4">
         <StudentAvatar name={name} photoUrl={photoUrl} size="lg" />
         {canEdit ? (
@@ -239,7 +242,7 @@ export function ProfilePhotoEditor({
                 className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted focus-within:ring-3 focus-within:ring-ring/50"
               >
                 <ImagePlus className="size-4" aria-hidden="true" />
-                {photoUrl ? "Change photo" : "Upload photo"}
+                {photoUrl ? t("student.profilePhotoEditor.changePhoto") : t("student.profilePhotoEditor.uploadPhoto")}
               </Label>
               <input
                 ref={fileRef}
@@ -254,12 +257,12 @@ export function ProfilePhotoEditor({
               {photoUrl && !crop ? (
                 <Button type="button" variant="outline" disabled={busy} onClick={() => void removePhoto()}>
                   <Trash2 aria-hidden="true" />
-                  {remove.isPending ? "Removing…" : "Remove photo"}
+                  {remove.isPending ? t("student.profilePhotoEditor.removing") : t("student.profilePhotoEditor.removePhoto")}
                 </Button>
               ) : null}
             </div>
             <p id={guidanceId} className="text-xs text-muted-foreground">
-              JPG or PNG, max 2 MB, square ~400×400 px recommended.
+              {t("student.profilePhotoEditor.jpgOrPngMax")}
             </p>
           </div>
         ) : null}
@@ -268,7 +271,7 @@ export function ProfilePhotoEditor({
       {crop ? (
         <div className="flex flex-col gap-3 rounded-lg border border-border p-3" data-testid="photo-cropper">
           <p className="text-sm text-muted-foreground">
-            Drag the photo (or use the arrow keys) to position it, and zoom to frame the face.
+            {t("student.profilePhotoEditor.dragThePhotoOr")}
           </p>
           <canvas
             ref={canvasRef}
@@ -276,7 +279,7 @@ export function ProfilePhotoEditor({
             height={VIEW}
             tabIndex={0}
             role="img"
-            aria-label="Photo crop preview. Use arrow keys to move the photo."
+            aria-label={t("student.profilePhotoEditor.photoCropPreviewUse")}
             className="size-60 cursor-move touch-none rounded-full border border-border bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -285,7 +288,7 @@ export function ProfilePhotoEditor({
             onKeyDown={onKeyDown}
           />
           <div className="flex max-w-60 flex-col gap-1.5">
-            <Label htmlFor={`${inputId}-zoom`}>Zoom</Label>
+            <Label htmlFor={`${inputId}-zoom`}>{t("student.profilePhotoEditor.zoom")}</Label>
             <input
               id={`${inputId}-zoom`}
               type="range"
@@ -298,7 +301,7 @@ export function ProfilePhotoEditor({
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" disabled={busy} onClick={() => void save()} aria-busy={upload.isPending}>
-              {upload.isPending ? "Uploading…" : "Save photo"}
+              {upload.isPending ? t("student.profilePhotoEditor.uploading") : t("student.profilePhotoEditor.savePhoto")}
             </Button>
             <Button
               type="button"
@@ -316,11 +319,11 @@ export function ProfilePhotoEditor({
       ) : null}
 
       <div role="status" aria-live="polite" className="text-sm text-muted-foreground">
-        {notice}
+        {translateSource(t, notice)}
       </div>
       {error ? (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          {translateSource(t, error)}
         </p>
       ) : null}
     </section>

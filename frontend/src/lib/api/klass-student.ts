@@ -754,12 +754,20 @@ export function formatCurrency(value: MoneyValue | null | undefined, currency: s
 }
 
 /** Badge text: "LKR 4000 / month", "LKR 2000", "Free", "Charged per module", or null. */
-export function priceBadgeLabel(priceDisplay: PriceDisplay | null, pricingModel: string): string | null {
-  if (pricingModel === "FREE") return "Free";
-  if (pricingModel === "MODULE") return "Charged per module";
+export function priceBadgeLabel(
+  priceDisplay: PriceDisplay | null,
+  pricingModel: string,
+  t?: (key: string, params?: Record<string, string | number>) => string
+): string | null {
+  if (pricingModel === "FREE") return t ? t("courses.price.free") : "Free";
+  if (pricingModel === "MODULE") return t ? t("courses.price.perModule") : "Charged per module";
   if (!priceDisplay) return null;
   const amount = toAmount(priceDisplay.amount);
   const text = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+  if (t) {
+    const price = `${priceDisplay.currency} ${text}`;
+    return priceDisplay.period === "MONTH" ? t("courses.price.perMonthBadge", { price }) : price;
+  }
   const period = priceDisplay.period === "MONTH" ? " / month" : "";
   return `${priceDisplay.currency} ${text}${period}`;
 }

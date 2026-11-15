@@ -13,6 +13,8 @@ import {
 } from "@/lib/api/klass-student";
 import { DISCOUNT_CODE_MAX_LENGTH } from "./composer-model";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 /** Student-facing copy per server code status (the server's own message wins when present). */
 const CODE_STATUS_FALLBACK: Record<DiscountCodeResult["status"], string> = {
   APPLIED: "Discount code applied.",
@@ -49,6 +51,7 @@ export function ComposerDiscountPanel({
   onRemoveCode: () => void;
   onAcceptReward: (ruleId: string) => void;
 }) {
+  const t = useT();
   const discounts = quote?.discounts ?? [];
   const offers = quote?.rewardOffers ?? [];
   const notices = quote?.notices ?? [];
@@ -70,7 +73,7 @@ export function ComposerDiscountPanel({
       />
 
       {discounts.length > 0 && quote ? (
-        <ul className="flex flex-col gap-1.5" aria-label="Applied discounts" data-testid="composer-applied-discounts">
+        <ul className="flex flex-col gap-1.5" aria-label={t("payments.composerDiscountPanel.appliedDiscounts")} data-testid="composer-applied-discounts">
           {discounts.map((discount) => (
             <li
               key={`${discount.ruleId}-${discount.lineNos.join(",")}`}
@@ -93,7 +96,7 @@ export function ComposerDiscountPanel({
       ) : null}
 
       {offers.length > 0 && quote ? (
-        <ul className="flex flex-col gap-2" aria-label="Free course offers" data-testid="composer-reward-offers">
+        <ul className="flex flex-col gap-2" aria-label={t("payments.composerDiscountPanel.freeCourseOffers")} data-testid="composer-reward-offers">
           {offers.map((offer) => (
             <li
               key={offer.ruleId}
@@ -105,7 +108,7 @@ export function ComposerDiscountPanel({
                 {offer.name}
               </span>
               <span className="text-foreground">
-                {offer.courseTitle ?? "A course"} free for {offer.months.map((month) => month.label).join(", ")}
+                {offer.courseTitle ?? t("payments.composerDiscountPanel.aCourse")} free for {offer.months.map((month) => month.label).join(", ")}
                 {toAmount(offer.originalValue) > 0 ? ` (worth ${formatCurrency(offer.originalValue, quote.currency)})` : ""}.
               </span>
               {toAmount(offer.facilityFee) > 0 ? (
@@ -123,7 +126,7 @@ export function ComposerDiscountPanel({
                 disabled={busy}
                 data-testid="composer-reward-accept"
               >
-                Add free months<span className="sr-only"> of {offer.courseTitle ?? offer.name}</span>
+                {t("payments.discount.addFreeMonths")}<span className="sr-only"> {t("payments.discount.ofCourse", { course: offer.courseTitle ?? offer.name })}</span>
               </Button>
             </li>
           ))}
@@ -131,7 +134,7 @@ export function ComposerDiscountPanel({
       ) : null}
 
       {notices.length > 0 ? (
-        <ul className="flex flex-col gap-1" aria-label="Discount notices" data-testid="composer-discount-notices">
+        <ul className="flex flex-col gap-1" aria-label={t("payments.composerDiscountPanel.discountNotices")} data-testid="composer-discount-notices">
           {notices.map((notice) => (
             <li key={notice} className="flex items-start gap-1 text-xs text-muted-foreground">
               <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
@@ -159,6 +162,7 @@ function DiscountCodeField({
   onApply: (code: string) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   const id = useId();
   const [draft, setDraft] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -167,7 +171,7 @@ function DiscountCodeField({
     event.preventDefault();
     const code = draft.trim();
     if (!code) {
-      setLocalError("Enter a discount code.");
+      setLocalError(t("payments.discount.enterCode"));
       return;
     }
     setLocalError(null);
@@ -179,16 +183,16 @@ function DiscountCodeField({
     const applied = !rateLimited && codeResult?.status === "APPLIED";
     const failed = rateLimited || (codeResult !== null && !applied);
     const message = rateLimited
-      ? RATE_LIMITED_MESSAGE
+      ? translateSource(t, RATE_LIMITED_MESSAGE)
       : codeResult
-        ? codeResult.message || CODE_STATUS_FALLBACK[codeResult.status]
-        : "Checking code…";
+        ? translateSource(t, codeResult.message || CODE_STATUS_FALLBACK[codeResult.status])
+        : t("payments.discount.checking");
     return (
       <div className="flex flex-col gap-1" data-testid="composer-code-applied">
         <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5">
           <span className="flex min-w-0 items-center gap-1.5 text-sm">
             <Tag className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <span className="sr-only">Discount code </span>
+            <span className="sr-only">{t("payments.composerDiscountPanel.discountCode")}{" "}</span>
             <span className="truncate font-mono uppercase text-foreground" data-testid="composer-code-value">
               {appliedCode}
             </span>
@@ -197,7 +201,7 @@ function DiscountCodeField({
             type="button"
             variant="ghost"
             size="icon-xs"
-            aria-label={`Remove discount code ${appliedCode}`}
+            aria-label={t("payments.discount.remove", { code: appliedCode })}
             onClick={onRemove}
             disabled={busy}
             data-testid="composer-code-remove"
@@ -222,7 +226,7 @@ function DiscountCodeField({
   return (
     <form className="flex flex-col gap-1" onSubmit={submit} noValidate data-testid="composer-code-form">
       <Label htmlFor={`${id}-code`} className="text-xs">
-        Discount code
+        {t("payments.composerDiscountPanel.discountCode")}
       </Label>
       <div className="flex gap-2">
         <Input
@@ -237,14 +241,14 @@ function DiscountCodeField({
           autoCapitalize="characters"
           spellCheck={false}
           className="uppercase"
-          placeholder="Enter code"
+          placeholder={t("payments.composerDiscountPanel.enterCode")}
           aria-invalid={!!localError}
           aria-describedby={localError ? `${id}-error` : undefined}
           disabled={busy}
           data-testid="composer-code-input"
         />
         <Button type="submit" variant="outline" disabled={busy} data-testid="composer-code-apply">
-          Apply
+          {t("payments.composerDiscountPanel.apply")}
         </Button>
       </div>
       {localError ? (

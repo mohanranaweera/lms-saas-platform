@@ -18,6 +18,7 @@ import { useArchiveCourse, useUnarchiveCourse, type CourseResponse } from "@/lib
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * `POST /api/v1/courses/{id}/archive` / `.../unarchive` (Wave 2) — a purely
  * listing-visibility flag, never a delete (no enrollment/payment/content
@@ -28,6 +29,7 @@ import { formatDateTime } from "@/lib/format";
  * can always be undone from this same screen).
  */
 export function CourseArchiveControl({ courseId, course }: { courseId: string; course: CourseResponse }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const archive = useArchiveCourse(courseId);
   const unarchive = useUnarchiveCourse(courseId);
@@ -37,7 +39,7 @@ export function CourseArchiveControl({ courseId, course }: { courseId: string; c
   const errorMessage = mutation.isError
     ? isApiClientError(mutation.error)
       ? mutation.error.message
-      : "An unexpected error occurred. Please try again."
+      : t("courses.archive.anUnexpectedErrorOccurred")
     : null;
 
   const handleConfirm = async () => {
@@ -53,11 +55,11 @@ export function CourseArchiveControl({ courseId, course }: { courseId: string; c
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div>
-        <h3 className="text-sm font-medium text-foreground">{isArchived ? "Unarchive course" : "Archive course"}</h3>
+        <h3 className="text-sm font-medium text-foreground">{isArchived ? t("courses.archive.unarchiveCourse") : t("courses.archive.archiveCourse")}</h3>
         <p className="text-xs text-muted-foreground">
           {isArchived
             ? `Archived on ${course.archivedAt ? formatDateTime(course.archivedAt) : "unknown date"}. Unarchiving makes it visible in the default course list again.`
-            : "Archiving hides this course from the default course list (staff can still find it with “Show archived courses”). It never deletes enrollment, payment, or content data, and can be undone at any time."}
+            : t("courses.archive.archivingHidesThisCourse")}
         </p>
       </div>
 
@@ -66,7 +68,7 @@ export function CourseArchiveControl({ courseId, course }: { courseId: string; c
           render={<Button type="button" variant={isArchived ? "outline" : "secondary"} className="w-fit" />}
         >
           {isArchived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
-          {isArchived ? "Unarchive course" : "Archive course"}
+          {isArchived ? t("courses.archive.unarchiveCourse") : t("courses.archive.archiveCourse")}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -75,8 +77,8 @@ export function CourseArchiveControl({ courseId, course }: { courseId: string; c
             </AlertDialogTitle>
             <AlertDialogDescription>
               {isArchived
-                ? "This makes the course visible in the default course list again."
-                : "This hides the course from the default course list. No enrollment, payment, or content data is affected, and this can be undone at any time."}
+                ? t("courses.archive.thisMakesTheCourse")
+                : t("courses.archive.thisHidesTheCourse")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {errorMessage ? (
@@ -86,14 +88,14 @@ export function CourseArchiveControl({ courseId, course }: { courseId: string; c
             </Alert>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("courses.archive.cancel")}</AlertDialogClose>
             <Button
               type="button"
               onClick={handleConfirm}
               disabled={mutation.isPending}
               aria-busy={mutation.isPending}
             >
-              {mutation.isPending ? "Saving…" : isArchived ? "Unarchive course" : "Archive course"}
+              {mutation.isPending ? t("courses.archive.saving") : isArchived ? t("courses.archive.unarchiveCourse") : t("courses.archive.archiveCourse")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

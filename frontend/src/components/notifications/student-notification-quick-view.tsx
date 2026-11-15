@@ -20,9 +20,11 @@ import {
 import { formatDateTime } from "@/lib/format";
 import { isApiClientError } from "@/lib/api/error";
 
+import { useT } from "@/i18n/i18n-provider";
 const QUICK_VIEW_SIZE = 6;
 
 function NotificationRow({ notification }: { notification: NotificationResponse }) {
+  const t = useT();
   const markRead = useMarkNotificationRead();
   const unread = notification.readAt === null;
 
@@ -46,7 +48,7 @@ function NotificationRow({ notification }: { notification: NotificationResponse 
           type="button"
           size="icon-xs"
           variant="ghost"
-          aria-label={`Mark as read: ${notification.title}`}
+          aria-label={t("notifications.markReadLabelPlain", { title: notification.title })}
           disabled={markRead.isPending}
           onClick={() => markRead.mutate(notification.id)}
         >
@@ -58,6 +60,7 @@ function NotificationRow({ notification }: { notification: NotificationResponse 
 }
 
 export function StudentNotificationQuickView() {
+  const t = useT();
   const notifications = useNotifications({ page: 0, size: QUICK_VIEW_SIZE });
   const unreadCount = useUnreadNotificationCount();
   const count = unreadCount.data?.unreadCount ?? 0;
@@ -65,7 +68,7 @@ export function StudentNotificationQuickView() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button type="button" variant="ghost" size="icon-sm" aria-label={count ? `${count} unread notifications` : "Notifications"} />}
+        render={<Button type="button" variant="ghost" size="icon-sm" aria-label={count ? t("notifications.unreadLabel", { count }) : t("notifications.studentNotificationQuickView.notifications")} />}
       >
         <span className="relative">
           <Bell aria-hidden="true" />
@@ -79,32 +82,32 @@ export function StudentNotificationQuickView() {
       <DropdownMenuContent className="w-[min(24rem,calc(100vw-2rem))] p-0" align="end">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-foreground">Notifications</h2>
+            <h2 className="text-base font-semibold text-foreground">{t("notifications.studentNotificationQuickView.notifications")}</h2>
             {count > 0 ? <Badge>{count}</Badge> : null}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{count} unread</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("notifications.unreadCount", { count })}</p>
         </div>
         <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-2">
           {notifications.isPending ? (
-            <ul className="flex flex-col gap-2" aria-label="Loading notifications">
+            <ul className="flex flex-col gap-2" aria-label={t("notifications.studentNotificationQuickView.loadingNotifications")}>
               {Array.from({ length: 4 }, (_, index) => <li key={index} className="rounded-lg border border-border p-3"><Skeleton className="h-4 w-2/3" /><Skeleton className="mt-2 h-3 w-full" /><Skeleton className="mt-2 h-3 w-1/3" /></li>)}
             </ul>
           ) : notifications.isError ? (
             <div role="alert" className="p-4 text-center text-sm text-destructive">
-              {isApiClientError(notifications.error) ? notifications.error.message : "Could not load notifications."}
-              <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => notifications.refetch()}>Try again</Button>
+              {isApiClientError(notifications.error) ? notifications.error.message : t("notifications.studentNotificationQuickView.couldNotLoadNotifications")}
+              <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => notifications.refetch()}>{t("notifications.studentNotificationQuickView.tryAgain")}</Button>
             </div>
           ) : notifications.data?.content.length ? (
-            <ul className="flex flex-col gap-1" aria-label="Recent notifications">
+            <ul className="flex flex-col gap-1" aria-label={t("notifications.studentNotificationQuickView.recentNotifications")}>
               {notifications.data.content.map((notification) => <NotificationRow key={notification.id} notification={notification} />)}
             </ul>
           ) : (
-            <p className="p-6 text-center text-sm text-muted-foreground">No notifications yet.</p>
+            <p className="p-6 text-center text-sm text-muted-foreground">{t("notifications.studentNotificationQuickView.noNotificationsYet")}</p>
           )}
         </div>
         <div className="border-t border-border p-2">
           <DropdownMenuLinkItem render={<Link href="/student/notifications" />} className="justify-center font-semibold text-primary">
-            See all notifications →
+            {t("notifications.studentNotificationQuickView.seeAllNotifications")}
           </DropdownMenuLinkItem>
         </div>
       </DropdownMenuContent>
