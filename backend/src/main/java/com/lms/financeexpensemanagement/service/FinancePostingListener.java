@@ -13,11 +13,13 @@ import com.lms.paymentmanagement.api.ManualReceiptFact;
 import com.lms.paymentmanagement.api.PaymentFact;
 import com.lms.paymentmanagement.api.PaymentReportApi;
 import com.lms.paymentmanagement.api.PaymentStatusApi;
+import jakarta.persistence.PersistenceException;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 
 /**
@@ -55,6 +57,27 @@ public class FinancePostingListener {
 	 */
 	@EventListener
 	public void onLedgerEntryRecorded(LedgerEntryRecordedEvent event) {
+		try {
+			postLedgerEntry(event);
+		}
+		catch (DataAccessException | PersistenceException databaseFailure) {
+			// The shared transaction is already aborted: let the ledger write roll back with it
+			// (a confirmed payment must never commit with a half-written posting).
+			throw databaseFailure;
+		}
+		catch (RuntimeException logicFailure) {
+			// A Finance-side bug must not block a verified payment: nothing was written, the ledger
+			// entry commits, and Reconcile (Transactions tab) backfills the missing posting.
+			log.atError()
+				.setMessage("finance.ledger_posting_skipped")
+				.addKeyValue("tenantId", event.tenantId())
+				.addKeyValue("ledgerEntryId", event.entryId())
+				.setCause(logicFailure)
+				.log();
+		}
+	}
+
+	private void postLedgerEntry(LedgerEntryRecordedEvent event) {
 		if (!event.tenantId().equals(tenantContext.getTenantId())) {
 			log.warn("finance.ledger_event_tenant_mismatch entryId={}", event.entryId());
 			return;
