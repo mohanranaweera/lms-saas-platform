@@ -63,5 +63,6 @@
   "common.accessState.expired": { "source": "Expired", "context": "Course access status badge" },
   "common.reactivationStatus.submitted": { "source": "Submitted", "context": "Reactivation request status badge" },
   "common.reactivationStatus.approved": { "source": "Approved", "context": "Reactivation request status badge" },
-  "common.reactivationStatus.rejected": { "source": "Rejected", "context": "Reactivation request status badge" }
+  "common.reactivationStatus.rejected": { "source": "Rejected", "context": "Reactivation request status badge" },
+  "common.supportReadOnly": { "source": "This is a read-only support session. Changes can't be made while viewing as a student.", "context": "Notice in a support (view-as-student) session" }
 }

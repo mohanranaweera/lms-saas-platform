@@ -129,6 +129,17 @@ course URL, owner and access rules stay the same. The original course's language
 is shown as "not declared" until an editor sets it. Nothing is inferred
 automatically.
 
+## Known follow-ups
+
+- The bundled English fallback (`frontend/src/i18n/generated/catalog.json`, about
+  170 KB raw at 2386 keys) ships in the client bundle. Split it per namespace if
+  bundle size matters.
+- Keys created by the semi-automatic pass on 2026-11-15 have word-derived names and
+  generic translator contexts. Give them better contexts when you touch those screens.
+- `translateSource(t, englishText)` (frontend/src/i18n/translate-source.ts) translates
+  fixed English copy from plain `.ts` helpers by exact source match. Such keys are
+  declared in `frontend/src/i18n/source-strings.ts` so the extractor sees them.
+
 ## Troubleshooting
 
 - *A string shows in English in Sinhala/Tamil:* the platform entry is missing or
@@ -139,7 +150,7 @@ automatically.
 - *`check` fails with "stale":* run `extract` and then `generate`, and commit the
   results.
 
-## Coverage by surface (updated 2026-11-14)
+## Coverage by surface (updated 2026-11-15)
 
 "Localized" means every visible string, accessible label, state and validation
 message on that surface goes through the catalog. "Switcher only" means the language
@@ -154,15 +165,17 @@ switcher is present but the surface's text is still hard-coded English.
 | Teacher Portal shell (nav, mobile menu, logout, footer, reconnect banner) | Localized |
 | Teacher → My Courses | Localized |
 | Teacher → My Profile | Localized |
+| Teacher → dashboard, calendar, attendance (mark, reports), exams, live classes, media, tute dispatch, communications, notifications, settings/integrations, course workspace (edit, modules, roster, tutes, materials) | **Partly localized**: page text and first-level components are; template-literal toasts and mixed sentences (e.g. tute "Sync failed: …", provider-card messages, course cover-upload sentence), deeper sub-components (exam management tabs, question editor body, media upload dialogs) and teacher-form validation messages are still English |
 | Shared loading / error / permission-denied states, theme toggle | Localized |
 | Tenant Admin → Settings → Translations; course Translations tab | Localized (`i18nAdmin.*`) |
 | Tenant Admin chrome (sidebar and mobile nav, every item and group, portal label, logout, reconnect banner) | Localized |
 | Tenant Admin pages (students, courses, payments, finance, reports, settings except Translations, ...) | Switcher only |
 | Student shell (nav, header links, account menu, PAY button, support-session banner, footer) | Localized |
 | Student pages: Dashboard, My Courses/catalog (incl. enroll dialog and errors), My Attendance, My Devices, Profile (tabs, personal details, completion banner, attendance and payments tabs), Checkout, Payment cancelled, Slip upload, Awaiting confirmation, Reactivation, Player page, Notifications heading/empty state | Localized |
-| Student page internals still English: course detail body, lesson materials, class calendar, exams and leaderboards, notification list and preferences, profile photo/fields/billing forms, device list, attendance filters and chips, payment status badges, course price labels, player error notices, payment composer dialog body | Not localized |
-| Platform Admin portal (login title/description props) | Switcher only |
-| Registration, forgot/reset password, account setup pages | Not localized |
+| Student page internals: course detail (content tree, tabs, lesson launcher/access), lesson materials, class calendar, exams (list/start/take/result/written) and leaderboards, notification list/preferences/quick view, profile photo/fields/billing forms, device list and limit summary, attendance filters/chips, payment status badges, price labels, player messages, payment composer dialog | Localized |
+| Student leftovers still English: composer month names and month-cell labels, `lib/calendar/schedule-validation.ts` messages | Not localized |
+| Platform Admin portal (beyond the login title) | Switcher only |
+| Registration (incl. OTP and validation), forgot/reset/change password, account setup, Platform Admin login title | Localized |
 | Password-reset email (platform default template) | Localized (recipient locale) |
 | Account-setup email, in-app copy of the reset notice, other notifications | Not localized |
 | PDF/CSV exports | Not localized (CSV stays canonical by design) |
@@ -170,11 +183,14 @@ switcher is present but the surface's text is still hard-coded English.
 
 ### Translation status
 
-767 registered keys: common 65, auth 34, errors 18, public 92, teacher 62,
-i18nAdmin 161, email 3, tenantAdmin 37, student 295. **`si-LK` and `ta-LK` have 0 reviewed platform translations.**
-`si-LK` has AI drafts (Claude, 2026-11-13/14) for all 767 keys, every one flagged
+2386 registered keys (2026-11-15) across common, auth, errors, public, teacher,
+student, tenantAdmin, i18nAdmin, email, courses, exams, payments, calendar, player,
+attendance, notifications and devices. **`si-LK` and `ta-LK` have 0 reviewed platform translations.**
+`si-LK` has AI drafts (Claude, 2026-11-13/14/15) for 905 keys, every one flagged
 `fuzzy` with the comment "AI draft translation (Claude), needs review by a fluent
-Sinhala speaker". `ta-LK` has the same for all 767 keys ("... a fluent Tamil
+Sinhala speaker". `ta-LK` has the same for 905 keys. **1481 keys added on 2026-11-15 (exams, student,
+payments, courses, calendar, auth, teacher) have no draft yet in either language**, so
+those screens show English in Sinhala/Tamil for now. ("... a fluent Tamil
 speaker"). Visitors still see English until a reviewer checks each entry and clears
 `fuzzy`. Tenant admins see the drafts as suggestions.
 Review first: `auth.*`, `public.*`, `teacher.*`, `errors.*`. Known judgement calls to
