@@ -223,3 +223,21 @@ Reviewed against local code only (`feat/finance-module-klass`), no production sy
 | Change-controlled areas | Flagged, not changed | Capability catalog gains Finance account-book rows (same `FINANCE_EXPENSES` static gate; routing Tenant Admin only). ADR-036 addendum records the linked wallet payout posting that decision 6 pre-approved. Ledger entry types, enrollment/entitlement rules, auth architecture and tenancy strategy are unchanged. |
 
 Open product decisions carried forward (not blocking): account-linked wallet **Pay In** meaning (ADR-036 §6); whether the Klass-style **automatic** posting of scheduled transactions should ever be enabled (today: manual recording only); whether Finance expenses should allow a receipt upload from the Transactions tab (today: use the Expenses page).
+
+## 15. Shipped behaviour — frontend (2026-11-16)
+
+Routes (`frontend/src/app/(tenant-admin)/tenant-admin/finance/`), all inside `FinanceHubFrame` + `FinanceTabs`:
+
+| Tab | Route | What ships | Write controls (UX gate; server re-checks) |
+|---|---|---|---|
+| Student Income | `/finance` | Ledger figures for a chosen year: net income hero, income / teacher share / institute commission cards, monthly bar chart (click a month to drill down), "How it was paid", month drilldown with payments, teacher × month table, comparison with the posted account-book total and a link to Unposted, links to Payments / teacher income / registrations reports. Wallet panel only when the server returns `wallet`. | none |
+| Budget Dashboard | `/finance/budget` | Date range (server default when empty), total balance / income / expenses / net activity, transfers and adjustments shown as excluded, income and expense by category, account balances, cash-flow trend chart with table view, server notes. | none |
+| Accounts | `/finance/accounts` | Account cards with balance and the payment methods routed to each, show-archived switch. New account (opening balance), Edit (name/description only), balance pencil → adjustment (target, reason, `expectedBalance` = balance shown, `Idempotency-Key`), Archive / Restore (409s shown on the card), Configure → four routing slots. | `accountsManage`, `adjust`, `routing` (Tenant Admin by default) |
+| Transactions | `/finance/transactions` | Server-paged list (10/25/50) with search, type, status, account, category and date filters. Amount colour plus a text type chip; reversed rows are struck through and labelled. Edit = note/category only. Reverse needs a reason (an expense reversal voids the expense too). Student-payment, wallet and expense rows the server marks `reversibleHere=false` link to their owning workflow instead. Unposted panel: post each row once to a chosen account; Reconcile (start date) for Tenant Admin. | `record`, `reverse`, `routing` (reconcile) |
+| Scheduled | `/finance/scheduled` | Policy note (no automatic posting), "Due now" panel (Record / Retry a FAILED occurrence showing its `lastError` / Skip), schedule cards with cadence, next due, counts, skipped months, history; create/edit (one time or monthly, day 29–31 warning), cancel with confirmation. | `schedulesManage`, `record` |
+| Categories | `/finance/categories` | Card grid (Klass look), show-archived switch, New / Rename / Archive / Restore. Klass "Delete" is Archive (categories are never deleted). | `categoryAdd`, `categoryArchive` |
+
+- The old Finance overview moved to `/finance/summary` (nav "Finance Summary"). The nav's "Finance" entry opens the hub and stays active on every tab; the separate "Expense Categories" nav entry was removed (it is a tab now).
+- Every form uses React Hook Form + Zod (`frontend/src/lib/validation/finance-book.ts`); server 400 `fieldErrors` map onto fields, 403/404/409 show as a form alert. Dialogs are full screen below `sm`.
+- No request carries a tenant id; manual postings and adjustments send an `Idempotency-Key` that is reused when the same payload is resubmitted.
+- Tests: `frontend/e2e/finance-hub.spec.ts` (tabs, populated/empty states, wallet panel, routing/new account/adjustment/transfer/reversal/unposted/schedule request shapes, Finance Staff without routing, Read-only Auditor with no mutating controls, all six tabs at 375px without horizontal scroll); `frontend/e2e/finance.spec.ts` updated for `/finance/summary` and the card categories.
