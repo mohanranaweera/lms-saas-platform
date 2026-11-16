@@ -152,14 +152,37 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   // get each entry from its own capability, so a revoked one disappears. UX
   // only; every /api/v1/finance/** and /api/v1/reports/** endpoint re-enforces it.
   const legacyFinance = canViewFinance(role);
+  // FIN-01 - Klass-style Finance tabs; the hub opens on Student Income and its
+  // tab bar hides tabs the viewer can't read.
+  if (
+    can(
+      [
+        CAP.FINANCE_VIEW_INCOME_SUMMARY,
+        CAP.FINANCE_DASHBOARD_ANNUAL_STATS,
+        CAP.FINANCE_DASHBOARD_TRANSACTIONS,
+        CAP.FINANCE_VIEW_SCHEDULES,
+        CAP.FINANCE_VIEW_CATEGORY,
+      ],
+      legacyFinance
+    )
+  ) {
+    financeItems.push({
+      label: "Finance",
+      href: "/tenant-admin/finance",
+      activePrefixes: [
+        "/tenant-admin/finance/budget",
+        "/tenant-admin/finance/accounts",
+        "/tenant-admin/finance/transactions",
+        "/tenant-admin/finance/scheduled",
+        "/tenant-admin/finance/categories",
+      ],
+    });
+  }
   if (can([CAP.FINANCE_VIEW_EXPENSES, CAP.FINANCE_VIEW_INCOME_SUMMARY], legacyFinance)) {
-    financeItems.push({ label: "Finance Summary", href: "/tenant-admin/finance" });
+    financeItems.push({ label: "Finance Summary", href: "/tenant-admin/finance/summary" });
   }
   if (can(CAP.FINANCE_VIEW_EXPENSES, legacyFinance)) {
     financeItems.push({ label: "Expenses", href: "/tenant-admin/finance/expenses" });
-  }
-  if (can(CAP.FINANCE_VIEW_CATEGORY, legacyFinance)) {
-    financeItems.push({ label: "Expense Categories", href: "/tenant-admin/finance/categories" });
   }
   if (can([CAP.FINANCE_DASHBOARD_ANNUAL_STATS, CAP.FINANCE_VIEW_INCOME_SUMMARY], legacyFinance)) {
     financeItems.push({ label: "Finance Reports", href: "/tenant-admin/finance/reports" });

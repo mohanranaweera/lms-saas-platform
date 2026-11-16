@@ -231,8 +231,8 @@ test.describe("Finance navigation", () => {
   test("Finance Staff sees every Finance entry", async ({ page }) => {
     await mockTenantSession(page, "FINANCE_STAFF");
     await installFinanceFake(page, freshState());
-    await page.goto("/tenant-admin/finance");
-    for (const name of ["Finance Summary", "Expenses", "Expense Categories", "Finance Reports", "Teacher Payouts"]) {
+    await page.goto("/tenant-admin/finance/summary");
+    for (const name of ["Finance", "Finance Summary", "Expenses", "Finance Reports", "Teacher Payouts"]) {
       await expect(page.getByRole("link", { name, exact: true }).first()).toBeVisible();
     }
   });
@@ -246,12 +246,12 @@ test.describe("Finance navigation", () => {
   });
 });
 
-test.describe("Finance overview", () => {
+test.describe("Finance summary", () => {
   test("shows ledger-derived income, expenses and a clearly-marked negative net result", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await installFinanceFake(page, freshState());
-    await page.goto("/tenant-admin/finance");
-    await expect(page.getByRole("heading", { name: "Finance overview" })).toBeVisible();
+    await page.goto("/tenant-admin/finance/summary");
+    await expect(page.getByRole("heading", { name: "Finance summary" })).toBeVisible();
     await expect(page.getByText("490.00")).toBeVisible();
     await expect(page.getByText("560.25").first()).toBeVisible();
     await expect(page.getByText("−100.25")).toBeVisible();
@@ -263,7 +263,7 @@ test.describe("Finance overview", () => {
   test("renders the permission-denied state on a 403", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await installFinanceFake(page, freshState({ forbidden: true }));
-    await page.goto("/tenant-admin/finance");
+    await page.goto("/tenant-admin/finance/summary");
     await expect(page.getByText(/permission|access/i).first()).toBeVisible();
     await expect(page.getByText("490.00")).toHaveCount(0);
   });
@@ -386,7 +386,11 @@ test.describe("Expense categories", () => {
     await mockTenantSession(page, "FINANCE_STAFF");
     await installFinanceFake(page, freshState());
     await page.goto("/tenant-admin/finance/categories");
-    await expect(page.getByRole("table", { name: "Expense categories" }).getByText("Old stuff")).toBeVisible();
+    const list = page.getByRole("list", { name: "Categories" });
+    await expect(list.getByText("Rent")).toBeVisible();
+    await expect(list.getByText("Old stuff")).toHaveCount(0);
+    await page.getByLabel("Show archived categories").click();
+    await expect(list.getByText("Old stuff")).toBeVisible();
     await page.getByRole("button", { name: "New category" }).first().click();
     await page.locator("#category-name").fill("rent");
     await page.getByRole("button", { name: "Save category" }).click();
