@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { UserPlus, Users } from "lucide-react";
@@ -14,6 +15,7 @@ import {
   canViewDevices,
 } from "@/lib/auth/permissions";
 import { useStudentDetail, studentMgmtKeys, type DateRange, type StudentDetail } from "@/lib/api/student-management";
+import { isApiClientError } from "@/lib/api/error";
 import type { StudentResponse } from "@/lib/api/students";
 import { useTenantTimeZone } from "@/lib/api/klass-admin";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
@@ -82,15 +84,27 @@ function StudentProfileContent() {
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: "Students", href: "/tenant-admin/students" }, { label: "Student Profile" }]} />
-      <QueryStateBoundary
-        query={query}
-        loadingLabel="Loading student…"
-        permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
-        loginPath="/login"
-        genericErrorMessage="This student's profile couldn't be loaded."
-      >
-        {(detail) => <StudentProfileBody detail={detail} />}
-      </QueryStateBoundary>
+      {query.status === "error" && isApiClientError(query.error) && query.error.status === 404 ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-6" role="alert">
+          <h1 className="text-lg font-semibold text-foreground">Student profile not found</h1>
+          <p className="text-sm text-muted-foreground">
+            This student ID is not available in your institute. Open Students and use the profile link from the directory.
+          </p>
+          <Link href="/tenant-admin/students" className="text-sm font-medium text-primary underline underline-offset-4">
+            Back to Students
+          </Link>
+        </div>
+      ) : (
+        <QueryStateBoundary
+          query={query}
+          loadingLabel="Loading student…"
+          permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
+          loginPath="/login"
+          genericErrorMessage="This student's profile couldn't be loaded."
+        >
+          {(detail) => <StudentProfileBody detail={detail} />}
+        </QueryStateBoundary>
+      )}
     </div>
   );
 }

@@ -80,8 +80,7 @@ class TranslationImportExportIntegrationTest extends I18nTestSupport {
 	@Test
 	void needsReviewEntriesImportAsDraftsOnlyWhenRequested() {
 		Fx fx = seed("i18n-import-fuzzy");
-		byte[] file = po("si-LK", "#, fuzzy
-" + entry(SAVE_KEY, "Save", "සුරකින්න"),
+		byte[] file = po("si-LK", "#, fuzzy\n" + entry(SAVE_KEY, "Save", "සුරකින්න"),
 				entry("common.actions.cancel", "Cancel", "අවලංගු කරන්න"));
 		String base = "/api/v1/i18n/admin/import?locale=si-LK&dryRun=";
 
@@ -108,8 +107,7 @@ class TranslationImportExportIntegrationTest extends I18nTestSupport {
 			.isEqualTo("Save");
 
 		// A needs-review entry is validated like any other: one bad entry rejects the import.
-		byte[] bad = po("si-LK", "#, fuzzy
-" + entry(CHANGED_KEY, "Language changed to {language}", "භාෂාව"));
+		byte[] bad = po("si-LK", "#, fuzzy\n" + entry(CHANGED_KEY, "Language changed to {language}", "භාෂාව"));
 		MvcResult rejected = upload(fx.host(), fx.adminToken(), base + "false&includeNeedsReview=true",
 				new MockMultipartFile("file", "si-LK.po", "text/x-gettext-translation", bad));
 		assertThat(status(rejected)).isEqualTo(422);
