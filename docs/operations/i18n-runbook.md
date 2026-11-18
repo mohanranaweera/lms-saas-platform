@@ -186,13 +186,16 @@ switcher is present but the surface's text is still hard-coded English.
 2386 registered keys (2026-11-15) across common, auth, errors, public, teacher,
 student, tenantAdmin, i18nAdmin, email, courses, exams, payments, calendar, player,
 attendance, notifications and devices. **`si-LK` and `ta-LK` have 0 reviewed platform translations.**
-`si-LK` has AI drafts (Claude, 2026-11-13/14/15) for 905 keys, every one flagged
-`fuzzy` with the comment "AI draft translation (Claude), needs review by a fluent
-Sinhala speaker". `ta-LK` has the same for 905 keys. **1481 keys added on 2026-11-15 (exams, student,
-payments, courses, calendar, auth, teacher) have no draft yet in either language**, so
-those screens show English in Sinhala/Tamil for now. ("... a fluent Tamil
-speaker"). Visitors still see English until a reviewer checks each entry and clears
-`fuzzy`. Tenant admins see the drafts as suggestions.
+Both locales now have AI drafts (Claude, batched 2026-11-18) for all 2386 keys. Every
+entry is flagged `fuzzy` with the comment "AI draft translation (Claude), needs review
+by a fluent Sinhala/Tamil speaker". These are draft suggestions only: visitors still
+see English until a fluent reviewer checks each entry and clears `fuzzy`. Tenant admins
+see the drafts as suggestions. Some drafts preserve English product terms or carry a
+literal fallback marker; fluent review must correct those before approval.
+
+Draft batches were committed independently on `feat/i18n-translation-drafts` so an
+interrupted run can resume without losing completed work. Check current coverage with
+`node scripts/i18n/catalog.mjs generate`.
 Review first: `auth.*`, `public.*`, `teacher.*`, `errors.*`. Known judgement calls to
 check in both languages: `auth.policyConsent.*` (verb-final word order around the
 policy links),
