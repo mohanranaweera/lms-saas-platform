@@ -297,138 +297,157 @@ msgctxt "attendance.summaryTable.onceAttendanceIsMarked"
 msgid "Once attendance is marked for this course's sessions, each student's totals appear here."
 msgstr "இந்தப் பாடநெறியின் அமர்வுகளுக்கு வருகை பதிவுசெய்யப்பட்டதும், ஒவ்வொரு மாணவரின் மொத்தமும் இங்கே தோன்றும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Account setup page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.accountSetup.checkingYourLink"
 msgid "Checking your link…"
-msgstr ""
+msgstr "உங்கள் இணைப்பைச் சரிபார்க்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: hint
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.atLeast8Characters"
 msgid "At least 8 characters, not your email, and different from your current password."
-msgstr ""
+msgstr "குறைந்தது 8 எழுத்துகள், உங்கள் மின்னஞ்சல் அல்ல, மேலும் தற்போதைய கடவுச்சொல்லிலிருந்து வேறுபட்டதாக இருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.back"
 msgid "Back"
-msgstr ""
+msgstr "பின்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.changePassword"
 msgid "Change password"
-msgstr ""
+msgstr "கடவுச்சொல்லை மாற்று"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.changeYourPassword"
 msgid "Change your password"
-msgstr ""
+msgstr "உங்கள் கடவுச்சொல்லை மாற்றுங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.confirmNewPassword"
 msgid "Confirm new password"
-msgstr ""
+msgstr "புதிய கடவுச்சொல்லை உறுதிப்படுத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.continue"
 msgid "Continue"
-msgstr ""
+msgstr "தொடர்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.currentPassword"
 msgid "Current password"
-msgstr ""
+msgstr "தற்போதைய கடவுச்சொல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.ifYourPasswordWas"
 msgid "If your password was set for you by your institute, choose your own before continuing."
-msgstr ""
+msgstr "உங்கள் கடவுச்சொல் நிறுவனத்தால் அமைக்கப்பட்டிருந்தால், தொடர்வதற்கு முன் உங்களுக்கான கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.newPassword"
 msgid "New password"
-msgstr ""
+msgstr "புதிய கடவுச்சொல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "சேமிக்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.somethingWentWrongPlease"
 msgid "Something went wrong. Please try again."
-msgstr ""
+msgstr "ஏதோ தவறாகிவிட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Change password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.changePassword.yourPasswordHasBeen"
 msgid "Your password has been changed. Your other devices have been signed out."
-msgstr ""
+msgstr "உங்கள் கடவுச்சொல் மாற்றப்பட்டது. உங்கள் பிற சாதனங்களிலிருந்து வெளியேற்றப்பட்டுள்ளீர்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Forgot password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.forgot.backToSignIn"
 msgid "Back to sign in"
-msgstr ""
+msgstr "உள்நுழைவுக்குத் திரும்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Forgot password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.forgot.email"
 msgid "Email"
-msgstr ""
+msgstr "மின்னஞ்சல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Forgot password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.forgot.resetYourPassword"
 msgid "Reset your password"
-msgstr ""
+msgstr "உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Forgot password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.forgot.sendResetLink"
 msgid "Send reset link"
-msgstr ""
+msgstr "மீட்டமைப்பு இணைப்பை அனுப்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Forgot password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.forgot.sending"
 msgid "Sending…"
-msgstr ""
+msgstr "அனுப்புகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Forgot password page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.forgot.somethingWentWrongPlease"
 msgid "Something went wrong. Please try again."
-msgstr ""
+msgstr "ஏதோ தவறாகிவிட்டது. மீண்டும் முயற்சிக்கவும்."
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Link to student registration
@@ -678,26 +697,29 @@ msgctxt "auth.login.validation.passwordRequired"
 msgid "Password is required."
 msgstr "கடவுச்சொல் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Platform Admin sign-in page: description
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.platformLogin.crossTenantAdministrationAccess"
 msgid "Cross-tenant administration access."
-msgstr ""
+msgstr "டெனன்டுகளுக்கு இடையிலான நிர்வாக அணுகல்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Platform Admin sign-in page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.platformLogin.loadingSignIn"
 msgid "Loading sign-in…"
-msgstr ""
+msgstr "உள்நுழைவை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Platform Admin sign-in page: title
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.platformLogin.platformAdminSignIn"
 msgid "Platform Admin sign in"
-msgstr ""
+msgstr "தள நிர்வாகி உள்நுழைவு"
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Joins the two policy links
@@ -723,1160 +745,1325 @@ msgctxt "auth.policyConsent.suffix"
 msgid "."
 msgstr " ஆகியவற்றை ஏற்றுக்கொள்கிறீர்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.accountCreated"
 msgid "Account created"
-msgstr ""
+msgstr "கணக்கு உருவாக்கப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.accountsCreatedHereRequire"
 msgid "Accounts created here require staff approval before you can sign in."
-msgstr ""
+msgstr "இங்கே உருவாக்கப்படும் கணக்குகளுக்கு உள்நுழைவதற்கு முன் பணியாளர் ஒப்புதல் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.additionalInformation"
 msgid "Additional information"
-msgstr ""
+msgstr "கூடுதல் தகவல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.applicationSubmitted"
 msgid "Application submitted"
-msgstr ""
+msgstr "விண்ணப்பம் சமர்ப்பிக்கப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.backToSignIn"
 msgid "Back to sign in"
-msgstr ""
+msgstr "உள்நுழைவுக்குத் திரும்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. OTP step; {email} is the address
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.codeSentTo"
 msgid "We sent a verification code to {email}."
-msgstr ""
+msgstr "சரிபார்ப்புக் குறியீட்டை {email} க்கு அனுப்பியுள்ளோம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.confirmPassword"
 msgid "Confirm password"
-msgstr ""
+msgstr "கடவுச்சொல்லை உறுதிப்படுத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.createAccount"
 msgid "Create account"
-msgstr ""
+msgstr "கணக்கை உருவாக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.createYourStudentAccount"
 msgid "Create your student account"
-msgstr ""
+msgstr "உங்கள் மாணவர் கணக்கை உருவாக்குங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.creatingAccount"
 msgid "Creating account…"
-msgstr ""
+msgstr "கணக்கை உருவாக்குகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.creatingYourAccount"
 msgid "Creating your account…"
-msgstr ""
+msgstr "உங்கள் கணக்கை உருவாக்குகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.email"
 msgid "Email"
-msgstr ""
+msgstr "மின்னஞ்சல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.fieldsMarkedOptionalArent"
 msgid "Fields marked (optional) aren't required — every other field below is required by this institute."
-msgstr ""
+msgstr "(விருப்பத்தேர்வு) என்று குறிக்கப்பட்ட புலங்கள் கட்டாயமில்லை — கீழே உள்ள மற்ற ஒவ்வொரு புலமும் இந்த நிறுவனத்தால் கட்டாயப்படுத்தப்பட்டுள்ளது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.fullName"
 msgid "Full name"
-msgstr ""
+msgstr "முழுப் பெயர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.loadingRegistrationOptions"
 msgid "Loading registration options…"
-msgstr ""
+msgstr "பதிவு விருப்பங்களை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.optional"
 msgid "(optional)"
-msgstr ""
+msgstr "(விருப்பத்தேர்வு)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.password"
 msgid "Password"
-msgstr ""
+msgstr "கடவுச்சொல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Password field help
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.passwordHint"
 msgid "At least 8 characters."
-msgstr ""
+msgstr "குறைந்தது 8 எழுத்துகள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.pendingApproval"
 msgid "pending approval"
-msgstr ""
+msgstr "ஒப்புதல் நிலுவையில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.registrationIsNotOpen"
 msgid "Registration is not open"
-msgstr ""
+msgstr "பதிவு திறக்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: title
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.selfRegistrationIsntAvailable"
 msgid "Self-registration isn't available"
-msgstr ""
+msgstr "சுயப் பதிவு கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.sendingAVerificationCode"
 msgid "Sending a verification code…"
-msgstr ""
+msgstr "சரிபார்ப்புக் குறியீட்டை அனுப்புகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.sendingCode"
 msgid "Sending code…"
-msgstr ""
+msgstr "குறியீட்டை அனுப்புகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error after submitting
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.someInvalid"
 msgid "Some information couldn't be validated."
-msgstr ""
+msgstr "சில தகவல்களைச் சரிபார்க்க முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.theseFieldsAreOptional"
 msgid "These fields are optional for this institute."
-msgstr ""
+msgstr "இந்த நிறுவனத்திற்கு இந்தப் புலங்கள் விருப்பத்தேர்வுகளாகும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: description
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.thisInstituteIsntAccepting"
 msgid "This institute isn't accepting new student sign-ups right now. Contact your institute administrator for an account."
-msgstr ""
+msgstr "இந்த நிறுவனம் தற்போது புதிய மாணவர் பதிவுகளை ஏற்கவில்லை. கணக்கிற்கு உங்கள் நிறுவன நிர்வாகியைத் தொடர்புகொள்ளவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Browser confirmation when leaving the form
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.unsavedChanges"
 msgid "You have unsaved changes to this registration form. Leave without saving?"
-msgstr ""
+msgstr "இந்தப் பதிவு படிவத்தில் சேமிக்கப்படாத மாற்றங்கள் உள்ளன. சேமிக்காமல் வெளியேறவா?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.verificationCode"
 msgid "Verification code"
-msgstr ""
+msgstr "சரிபார்ப்புக் குறியீடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.verifyAndCreateAccount"
 msgid "Verify and create account"
-msgstr ""
+msgstr "சரிபார்த்து கணக்கை உருவாக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.verifyYourEmail"
 msgid "Verify your email"
-msgstr ""
+msgstr "உங்கள் மின்னஞ்சலைச் சரிபார்க்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.verifying"
 msgid "Verifying…"
-msgstr ""
+msgstr "சரிபார்க்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.weCouldntLoadThis"
 msgid "We couldn't load this institute's registration settings. Please try again."
-msgstr ""
+msgstr "இந்த நிறுவனத்தின் பதிவு அமைப்புகளை ஏற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.weCouldntSendA"
 msgid "We couldn't send a verification code."
-msgstr ""
+msgstr "சரிபார்ப்புக் குறியீட்டை அனுப்ப முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student registration page: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.register.yourAccountHasBeen"
 msgid "Your account has been created. You can now sign in."
-msgstr ""
+msgstr "உங்கள் கணக்கு உருவாக்கப்பட்டது. இப்போது உள்நுழையலாம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Reset password page: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.reset.checkingYourLink"
 msgid "Checking your link…"
-msgstr ""
+msgstr "உங்கள் இணைப்பைச் சரிபார்க்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.account"
 msgid "Account:"
-msgstr ""
+msgstr "கணக்கு:"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.askYourPlatformAdministrator"
 msgid "Ask your platform administrator to send a new invitation, or"
-msgstr ""
+msgstr "புதிய அழைப்பை அனுப்புமாறு உங்கள் தள நிர்வாகியிடம் கேட்கவும், அல்லது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.atLeast8Characters"
 msgid "At least 8 characters, and not your email address."
-msgstr ""
+msgstr "குறைந்தது 8 எழுத்துகள், மேலும் உங்கள் மின்னஞ்சல் முகவரி அல்ல."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: label
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.checkingYourLink"
 msgid "Checking your link…"
-msgstr ""
+msgstr "உங்கள் இணைப்பைச் சரிபார்க்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: title
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.chooseANewPassword"
 msgid "Choose a new password"
-msgstr ""
+msgstr "புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: description
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.chooseAPasswordTo"
 msgid "Choose a password to finish setting up your account."
-msgstr ""
+msgstr "உங்கள் கணக்கு அமைப்பை முடிக்க கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.confirmNewPassword"
 msgid "Confirm new password"
-msgstr ""
+msgstr "புதிய கடவுச்சொல்லை உறுதிப்படுத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: description
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.enterANewPassword"
 msgid "Enter a new password for your account."
-msgstr ""
+msgstr "உங்கள் கணக்கிற்கான புதிய கடவுச்சொல்லை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.goToSignIn"
 msgid "Go to sign in"
-msgstr ""
+msgstr "உள்நுழைவுக்குச் செல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.newPassword"
 msgid "New password"
-msgstr ""
+msgstr "புதிய கடவுச்சொல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.requestANewLink"
 msgid "request a new link"
-msgstr ""
+msgstr "புதிய இணைப்பைக் கோருங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "சேமிக்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: title
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.setUpYourAccount"
 msgid "Set up your account"
-msgstr ""
+msgstr "உங்கள் கணக்கை அமைக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.somethingWentWrongPlease"
 msgid "Something went wrong. Please try again."
-msgstr ""
+msgstr "ஏதோ தவறாகிவிட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.thisLinkIsInvalid"
 msgid "This link is invalid or has expired. Links work once and only for a limited time."
-msgstr ""
+msgstr "இந்த இணைப்பு தவறானது அல்லது காலாவதியானது. இணைப்புகள் ஒருமுறை மட்டுமே, குறிப்பிட்ட காலத்திற்கு மட்டுமே செயல்படும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Set a new password card: text
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.setPassword.youCan"
 msgid "You can"
-msgstr ""
+msgstr "உங்களால் முடியும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.atLeast8"
 msgid "Use at least 8 characters."
-msgstr ""
+msgstr "குறைந்தது 8 எழுத்துகளைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.atMost128"
 msgid "Use at most 128 characters."
-msgstr ""
+msgstr "அதிகபட்சம் 128 எழுத்துகளைப் பயன்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.confirmNew"
 msgid "Confirm your new password."
-msgstr ""
+msgstr "உங்கள் புதிய கடவுச்சொல்லை உறுதிப்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.confirmPassword"
 msgid "Confirm your password."
-msgstr ""
+msgstr "உங்கள் கடவுச்சொல்லை உறுதிப்படுத்தவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.currentRequired"
 msgid "Enter your current password."
-msgstr ""
+msgstr "உங்கள் தற்போதைய கடவுச்சொல்லை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.emailInvalid"
 msgid "Enter a valid email address."
-msgstr ""
+msgstr "சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.emailRequired"
 msgid "Email is required."
-msgstr ""
+msgstr "மின்னஞ்சல் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.emailTooLong"
 msgid "Email must be 255 characters or fewer."
-msgstr ""
+msgstr "மின்னஞ்சல் 255 எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.mobileInvalid"
 msgid "Enter a valid mobile number."
-msgstr ""
+msgstr "சரியான கைபேசி எண்ணை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.mobileRequired"
 msgid "Mobile number is required."
-msgstr ""
+msgstr "கைபேசி எண் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.nameRequired"
 msgid "Name is required."
-msgstr ""
+msgstr "பெயர் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.nameTooLong"
 msgid "Name must be 255 characters or fewer."
-msgstr ""
+msgstr "பெயர் 255 எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.newMismatch"
 msgid "The passwords don't match."
-msgstr ""
+msgstr "கடவுச்சொற்கள் பொருந்தவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.otpInvalid"
 msgid "Enter a valid verification code."
-msgstr ""
+msgstr "சரியான சரிபார்ப்புக் குறியீட்டை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.otpRequired"
 msgid "Enter the verification code."
-msgstr ""
+msgstr "சரிபார்ப்புக் குறியீட்டை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.passwordMin8"
 msgid "Password must be at least 8 characters."
-msgstr ""
+msgstr "கடவுச்சொல் குறைந்தது 8 எழுத்துகள் கொண்டிருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.passwordRequired"
 msgid "Password is required."
-msgstr ""
+msgstr "கடவுச்சொல் தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.passwordTooLong"
 msgid "Password must be 255 characters or fewer."
-msgstr ""
+msgstr "கடவுச்சொல் 255 எழுத்துகள் அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Form validation message
 #: i18n/source/auth.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "auth.v.passwordsMismatch"
 msgid "Passwords do not match."
-msgstr ""
+msgstr "கடவுச்சொற்கள் பொருந்தவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (calendar-dialog): aria-label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.calendarDialog.close"
 msgid "Close"
-msgstr ""
+msgstr "மூடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (calendar-views): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.calendarViews.cancelled"
 msgid "Cancelled"
-msgstr ""
+msgstr "ரத்து செய்யப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (calendar-views): aria-label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.calendarViews.days"
 msgid "Days"
-msgstr ""
+msgstr "நாட்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (calendar-views): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.calendarViews.liveNow"
 msgid "Live now"
-msgstr ""
+msgstr "இப்போது நேரலை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (calendar-views): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.calendarViews.noClasses"
 msgid "No classes"
-msgstr ""
+msgstr "வகுப்புகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (calendar-views): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.calendarViews.today"
 msgid "Today"
-msgstr ""
+msgstr "இன்று"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of a class on the calendar
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.chipLabel"
 msgid "{start} to {end}, {course}, {status}"
-msgstr ""
+msgstr "{start} முதல் {end} வரை, {course}, {status}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.allCourses"
 msgid "All courses"
-msgstr ""
+msgstr "அனைத்து பாடநெறிகளும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): aria-label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.calendarView"
 msgid "Calendar view"
-msgstr ""
+msgstr "நாட்காட்டிக் காட்சி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.classTimesForEvery"
 msgid "Class times for every active course in your institute."
-msgstr ""
+msgstr "உங்கள் நிறுவனத்தில் செயலிலுள்ள ஒவ்வொரு பாடநெறிக்குமான வகுப்பு நேரங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.classTimesForThe"
 msgid "Class times for the courses you have access to."
-msgstr ""
+msgstr "நீங்கள் அணுகக்கூடிய பாடநெறிகளுக்கான வகுப்பு நேரங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.classTimesForThe2"
 msgid "Class times for the courses you teach."
-msgstr ""
+msgstr "நீங்கள் கற்பிக்கும் பாடநெறிகளுக்கான வகுப்பு நேரங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.classes"
 msgid "Classes"
-msgstr ""
+msgstr "வகுப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.course"
 msgid "Course"
-msgstr ""
+msgstr "பாடநெறி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.day"
 msgid "Day"
-msgstr ""
+msgstr "நாள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.downloadTimetable"
 msgid "Download timetable"
-msgstr ""
+msgstr "நேர அட்டவணையைப் பதிவிறக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.list"
 msgid "List"
-msgstr ""
+msgstr "பட்டியல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): loadingLabel
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.loadingClasses"
 msgid "Loading classes…"
-msgstr ""
+msgstr "வகுப்புகளை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.month"
 msgid "Month"
-msgstr ""
+msgstr "மாதம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.preparingPdf"
 msgid "Preparing PDF…"
-msgstr ""
+msgstr "PDF ஐத் தயாரிக்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.showAllCourses"
 msgid "Show all courses"
-msgstr ""
+msgstr "அனைத்து பாடநெறிகளையும் காட்டு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): description
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.theSelectedCourseDoesnt"
 msgid "The selected course doesn't exist or isn't one you can see. Show all of your courses instead."
-msgstr ""
+msgstr "தேர்ந்தெடுக்கப்பட்ட பாடநெறி இல்லை அல்லது அதை உங்களால் பார்க்க முடியாது. அதற்குப் பதிலாக உங்கள் அனைத்து பாடநெறிகளையும் காட்டவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): title
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.thisCourseIsntIn"
 msgid "This course isn't in your calendar"
-msgstr ""
+msgstr "இந்தப் பாடநெறி உங்கள் நாட்காட்டியில் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.today"
 msgid "Today"
-msgstr ""
+msgstr "இன்று"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.tryAllCoursesOr"
 msgid "Try “All courses” or another period."
-msgstr ""
+msgstr "“அனைத்து பாடநெறிகளும்” அல்லது வேறு காலப்பகுதியை முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.tryAnotherPeriod"
 msgid "Try another period."
-msgstr ""
+msgstr "வேறு காலப்பகுதியை முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.updating"
 msgid "Updating…"
-msgstr ""
+msgstr "புதுப்பிக்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-calendar): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classCalendar.week"
 msgid "Week"
-msgstr ""
+msgstr "வாரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-schedule-panel): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classSchedulePanel.classSchedule"
 msgid "Class schedule"
-msgstr ""
+msgstr "வகுப்பு அட்டவணை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-schedule-panel): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classSchedulePanel.editClassSchedule"
 msgid "Edit Class Schedule"
-msgstr ""
+msgstr "வகுப்பு அட்டவணையைத் திருத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-schedule-panel): loadingLabel
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classSchedulePanel.loadingClassSchedule"
 msgid "Loading class schedule…"
-msgstr ""
+msgstr "வகுப்பு அட்டவணையை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-schedule-panel): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classSchedulePanel.openInCalendar"
 msgid "Open in calendar"
-msgstr ""
+msgstr "நாட்காட்டியில் திற"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (class-schedule-panel): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classSchedulePanel.weeklyClassTimesShown"
 msgid "Weekly class times shown on the student and public pages and in the calendar."
-msgstr ""
+msgstr "மாணவர் மற்றும் பொது பக்கங்களிலும் நாட்காட்டியிலும் காட்டப்படும் வாராந்த வகுப்பு நேரங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible list name
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.classesOn"
 msgid "Classes on {date}"
-msgstr ""
+msgstr "{date} அன்று வகுப்புகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of a calendar day
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.dayLabel"
 msgid "{date}, {count, plural, =0 {no classes} one {# class} other {# classes}}"
-msgstr ""
+msgstr "{date}, {count, plural, =0 {வகுப்புகள் இல்லை} one {# வகுப்பு} other {# வகுப்புகள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label of a calendar day
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.dayLabelToday"
 msgid "{date}, today, {count, plural, =0 {no classes} one {# class} other {# classes}}"
-msgstr ""
+msgstr "{date}, இன்று, {count, plural, =0 {வகுப்புகள் இல்லை} one {# வகுப்பு} other {# வகுப்புகள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Toast; {reason} explains why
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.downloadFailed"
 msgid "Could not download the timetable: {reason}"
-msgstr ""
+msgstr "நேர அட்டவணையைப் பதிவிறக்க முடியவில்லை: {reason}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Hint when a timetable download is too large
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.downloadHint"
 msgid "Choose a shorter period or a single course."
-msgstr ""
+msgstr "குறுகிய காலப்பகுதி அல்லது ஒரு பாடநெறியைத் தேர்ந்தெடுக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Toast; {file} is a file name
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.downloaded"
 msgid "Timetable downloaded ({file})."
-msgstr ""
+msgstr "நேர அட்டவணை பதிவிறக்கப்பட்டது ({file})."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.addDay"
 msgid "Add day"
-msgstr ""
+msgstr "நாளைச் சேர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "ரத்து செய்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): aria-label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.classSchedule"
 msgid "Class schedule"
-msgstr ""
+msgstr "வகுப்பு அட்டவணை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.close"
 msgid "Close"
-msgstr ""
+msgstr "மூடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.dateRangeOptional"
 msgid "Date range (optional)"
-msgstr ""
+msgstr "தேதி வரம்பு (விருப்பத்தேர்வு)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): title
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.editClassSchedule"
 msgid "Edit Class Schedule"
-msgstr ""
+msgstr "வகுப்பு அட்டவணையைத் திருத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.editTheClassSchedule"
 msgid "Edit the class schedule for"
-msgstr ""
+msgstr "க்கான வகுப்பு அட்டவணையைத் திருத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.endTime"
 msgid "End time"
-msgstr ""
+msgstr "முடிவு நேரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.fixTheHighlightedFields"
 msgid "Fix the highlighted fields to save."
-msgstr ""
+msgstr "சேமிக்க முன்னிலைப்படுத்தப்பட்ட புலங்களைச் சரிசெய்யவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.fromDateOptional"
 msgid "From date (optional)"
-msgstr ""
+msgstr "தொடக்க தேதி (விருப்பத்தேர்வு)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.loadingClassSchedule"
 msgid "Loading class schedule…"
-msgstr ""
+msgstr "வகுப்பு அட்டவணையை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.noClassTimes"
 msgid "No class times"
-msgstr ""
+msgstr "வகுப்பு நேரங்கள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.noDateRangeRepeats"
 msgid "No date range: repeats every week."
-msgstr ""
+msgstr "தேதி வரம்பு இல்லை: ஒவ்வொரு வாரமும் மீண்டும் நிகழும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.noWeeklyClassTimes"
 msgid "No weekly class times are set for this course."
-msgstr ""
+msgstr "இந்தப் பாடநெறிக்கு வாராந்த வகுப்பு நேரங்கள் அமைக்கப்படவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.reload"
 msgid "Reload"
-msgstr ""
+msgstr "மீண்டும் ஏற்று"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.reloading"
 msgid "Reloading…"
-msgstr ""
+msgstr "மீண்டும் ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.save"
 msgid "Save"
-msgstr ""
+msgstr "சேமி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "சேமிக்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.startTime"
 msgid "Start time"
-msgstr ""
+msgstr "தொடக்க நேரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.theseTimesWillBe"
 msgid ". These times will be shown on the student and public page."
-msgstr ""
+msgstr ". இந்த நேரங்கள் மாணவர் மற்றும் பொது பக்கத்தில் காட்டப்படும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.thisCourseWasNot"
 msgid "This course was not found. It may have been deleted."
-msgstr ""
+msgstr "இந்தப் பாடநெறியைக் கண்டறிய முடியவில்லை. அது நீக்கப்பட்டிருக்கலாம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.toAddAWeekly"
 msgid "to add a weekly class time. Saving with no class times clears all future recurring classes for this course. Past classes, lessons, live sessions and attendance are not changed."
-msgstr ""
+msgstr "வாராந்த வகுப்பு நேரத்தைச் சேர்க்க. வகுப்பு நேரங்கள் இல்லாமல் சேமித்தால், இந்தப் பாடநெறிக்கான எதிர்கால மீண்டும் நிகழும் வகுப்புகள் அனைத்தும் அகற்றப்படும். கடந்த வகுப்புகள், பாடங்கள், நேரலை அமர்வுகள் மற்றும் வருகைப் பதிவு மாற்றப்படாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.toDateOptional"
 msgid "To date (optional)"
-msgstr ""
+msgstr "முடிவு தேதி (விருப்பத்தேர்வு)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.use"
 msgid "Use"
-msgstr ""
+msgstr "பயன்படுத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): aria-label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.weeklyClassTimes"
 msgid "Weekly class times"
-msgstr ""
+msgstr "வாராந்த வகுப்பு நேரங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (edit-class-schedule-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.editClassScheduleDialog.youDontHavePermission"
 msgid "You don't have permission to view this course's class schedule."
-msgstr ""
+msgstr "இந்தப் பாடநெறியின் வகுப்பு அட்டவணையைப் பார்க்க உங்களுக்கு அனுமதி இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader word after a +N count
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.more"
 msgid "more"
-msgstr ""
+msgstr "மேலும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.classDetails"
 msgid "Class details"
-msgstr ""
+msgstr "வகுப்பு விவரங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.close"
 msgid "Close"
-msgstr ""
+msgstr "மூடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.date"
 msgid "Date"
-msgstr ""
+msgstr "தேதி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.liveSession"
 msgid "Live session"
-msgstr ""
+msgstr "நேரலை அமர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.liveSessionRescheduledClass"
 msgid "Live session (rescheduled class)"
-msgstr ""
+msgstr "நேரலை அமர்வு (மறுஅட்டவணையிடப்பட்ட வகுப்பு)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.notAssigned"
 msgid "Not assigned"
-msgstr ""
+msgstr "ஒதுக்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.session"
 msgid "Session"
-msgstr ""
+msgstr "அமர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.status"
 msgid "Status"
-msgstr ""
+msgstr "நிலை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.teacher"
 msgid "Teacher"
-msgstr ""
+msgstr "ஆசிரியர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.teachers"
 msgid "Teachers"
-msgstr ""
+msgstr "ஆசிரியர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.time"
 msgid "Time"
-msgstr ""
+msgstr "நேரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.timeZone"
 msgid "Time zone"
-msgstr ""
+msgstr "நேர மண்டலம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.type"
 msgid "Type"
-msgstr ""
+msgstr "வகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Class calendar (occurrence-details-dialog): text
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.occurrenceDetailsDialog.viewCourse"
 msgid "View course"
-msgstr ""
+msgstr "பாடநெறியைக் காண்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Conflict error
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.conflict"
 msgid "This schedule was changed by someone else. Reload to see the latest version."
-msgstr ""
+msgstr "இந்த அட்டவணை வேறொருவரால் மாற்றப்பட்டது. சமீபத்திய பதிப்பைக் காண மீண்டும் ஏற்றவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader continuation of a field label; {context} names the row
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.forContext"
 msgid "for {context}"
-msgstr ""
+msgstr "{context} க்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.loadFailed"
 msgid "We couldn't load the class schedule."
-msgstr ""
+msgstr "வகுப்பு அட்டவணையை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.noPermission"
 msgid "You don't have permission to change this course's class schedule."
-msgstr ""
+msgstr "இந்தப் பாடநெறியின் வகுப்பு அட்டவணையை மாற்ற உங்களுக்கு அனுமதி இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Name of a class-time row, e.g. Monday class 2
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.rowName"
 msgid "{day} class {number}"
-msgstr ""
+msgstr "{day} வகுப்பு {number}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Error
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.saveFailedRetry"
 msgid "The schedule could not be saved. Please try again."
-msgstr ""
+msgstr "அட்டவணையைச் சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Date range of a class schedule
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.shownFrom"
 msgid "Shown from {from} (inclusive). "
-msgstr ""
+msgstr "{from} முதல் காட்டப்படுகிறது (உட்பட). "
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Date range of a class schedule; dates are YYYY-MM-DD
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.shownFromUntil"
 msgid "Shown from {from} until {until} (inclusive). "
-msgstr ""
+msgstr "{from} முதல் {until} வரை காட்டப்படுகிறது (இரண்டும் உட்பட). "
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Date range of a class schedule
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.schedule.shownUntil"
 msgid "Shown until {until} (inclusive). "
-msgstr ""
+msgstr "{until} வரை காட்டப்படுகிறது (உட்பட). "
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Toast
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.scheduleSaved"
 msgid "Class schedule saved for “{course}”."
-msgstr ""
+msgstr "“{course}” க்கான வகுப்பு அட்டவணை சேமிக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.showAll"
 msgid "Show all {count} classes on {date}"
-msgstr ""
+msgstr "{date} அன்று உள்ள அனைத்து {count} வகுப்புகளையும் காட்டு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.showAllOverlap"
 msgid "Show all {count} classes on {date} ({hidden} more overlapping)"
-msgstr ""
+msgstr "{date} அன்று உள்ள அனைத்து {count} வகுப்புகளையும் காட்டு ({hidden} கூடுதல் வகுப்புகள் ஒன்றுடன் ஒன்று மோதுகின்றன)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Accessible label
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.showClasses"
 msgid "{count, plural, one {Show # class on {date}} other {Show # classes on {date}}}"
-msgstr ""
+msgstr "{count, plural, one {{date} அன்று # வகுப்பைக் காட்டு} other {{date} அன்று # வகுப்புகளைக் காட்டு}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. {zone} is a time zone name
 #: i18n/source/calendar.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "calendar.timesIn"
 msgid "Times are in {zone}."
-msgstr ""
+msgstr "நேரங்கள் {zone} இல் உள்ளன."
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course access status badge
@@ -2406,96 +2593,109 @@ msgctxt "common.toast.dismiss"
 msgid "Dismiss notification"
 msgstr "அறிவிப்பை மூடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.archiveCourse"
 msgid "Archive course"
-msgstr ""
+msgstr "பாடநெறியை காப்பகப்படுத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.archivingHidesThisCourse"
 msgid "Archiving hides this course from the default course list (staff can still find it with “Show archived courses”). It never deletes enrollment, payment, or content data, and can be undone at any time."
-msgstr ""
+msgstr "காப்பகப்படுத்துதல் பாடநெறியை இயல்புநிலை பாடநெறிப் பட்டியலிலிருந்து மறைக்கும் (பணியாளர்கள் “காப்பகப்படுத்தப்பட்ட பாடநெறிகளைக் காட்டு” மூலம் அதைக் கண்டறியலாம்). இது பதிவு, கட்டணம் அல்லது உள்ளடக்கத் தரவை ஒருபோதும் நீக்காது; எப்போது வேண்டுமானாலும் மாற்றியமைக்கலாம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "ரத்து செய்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "சேமிக்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.thisHidesTheCourse"
 msgid "This hides the course from the default course list. No enrollment, payment, or content data is affected, and this can be undone at any time."
-msgstr ""
+msgstr "இது இயல்புநிலை பாடநெறிப் பட்டியலிலிருந்து பாடநெறியை மறைக்கும். பதிவு, கட்டணம் அல்லது உள்ளடக்கத் தரவு எதுவும் பாதிக்கப்படாது; எப்போது வேண்டுமானாலும் மாற்றியமைக்கலாம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.thisMakesTheCourse"
 msgid "This makes the course visible in the default course list again."
-msgstr ""
+msgstr "இது இயல்புநிலை பாடநெறிப் பட்டியலில் பாடநெறியை மீண்டும் காட்டும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Archive course control: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.archive.unarchiveCourse"
 msgid "Unarchive course"
-msgstr ""
+msgstr "பாடநெறியை காப்பகத்திலிருந்து நீக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Clone course action: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.clone.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Clone course action: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.clone.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "ரத்து செய்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Clone course action: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.clone.cloneCourse"
 msgid "Clone course"
-msgstr ""
+msgstr "பாடநெறியை நகலாக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Clone course action: text
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.clone.cloning"
 msgid "Cloning…"
-msgstr ""
+msgstr "நகலாக்குகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Alternative text of a course cover
 #: i18n/source/courses.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "courses.coverAlt"
 msgid "Cover image for {title}"
-msgstr ""
+msgstr "{title} க்கான அட்டைப் படம்"
 
 #. Create course dialog: text
 #: i18n/source/courses.json
