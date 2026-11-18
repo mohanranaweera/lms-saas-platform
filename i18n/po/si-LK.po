@@ -8994,362 +8994,413 @@ msgctxt "payments.line.module"
 msgid "Module payment"
 msgstr ""
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Type of an item in the payment summary
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.line.monthly"
 msgid "Monthly payment"
-msgstr ""
+msgstr "මාසික ගෙවීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Type of an item in the payment summary
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.line.session"
 msgid "Session payment"
-msgstr ""
+msgstr "සැසි ගෙවීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.method.free"
 msgid "Free enrollment"
-msgstr ""
+msgstr "නොමිලේ ලියාපදිංචිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.method.gateway"
 msgid "Gateway"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Gateway"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.method.manualSlip"
 msgid "Manual bank transfer"
-msgstr ""
+msgstr "අතින් බැංකු මාරු කිරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.method.recordedByStaff"
 msgid "Recorded by staff"
-msgstr ""
+msgstr "කාර්ය මණ්ඩලය විසින් සටහන් කරන ලදී"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.method.staffGranted"
 msgid "Staff granted"
-msgstr ""
+msgstr "කාර්ය මණ්ඩලය විසින් ලබා දෙන ලදී"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible list name
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.offers.monthsIn"
 msgid "Months in {year}"
-msgstr ""
+msgstr "Months හි {year}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.offers.nextYear"
 msgid "Next year, {year}"
-msgstr ""
+msgstr "ඊළඟ වසර, {year}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.offers.noData"
 msgid "No data available for this course."
-msgstr ""
+msgstr "දත්ත ලබා ගත නොහැක සඳහා මෙම පාඨමාලාව."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. {type} is e.g. 'monthly payments'
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.offers.notInScope"
 msgid "{course} has no {type}. Pick another course or payment type."
-msgstr ""
+msgstr "{course} has නැත {type}. Pick another පාඨමාලාව හෝ ගෙවීම් වර්ගය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.offers.prevYear"
 msgid "Previous year, {year}"
-msgstr ""
+msgstr "පෙර වසර, {year}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tag filter result
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.offers.tagMatches"
 msgid "{count, plural, one {# course matches this tag.} other {# courses match this tag.}} Select the tag again to show all courses."
-msgstr ""
+msgstr "{count, plural, one {# පාඨමාලාව matches මෙම tag.} other {# පාඨමාලා match මෙම tag.}} තෝරන්න  tag again වෙත පෙන්වන්න සියලු පාඨමාලා."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window (payment-composer-dialog): aria-label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.paymentComposerDialog.close"
 msgid "Close"
-msgstr ""
+msgstr "වසන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window (payment-composer-dialog): text
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.paymentComposerDialog.creatingYourOrder"
 msgid "Creating your order…"
-msgstr ""
+msgstr "සාදමින් ඔබගේ order…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window (payment-composer-dialog): text
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.paymentComposerDialog.makePayment"
 msgid "Make Payment"
-msgstr ""
+msgstr "ගෙවීම කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window (payment-composer-dialog): text
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.paymentComposerDialog.openingThePaymentPage"
 msgid "Opening the payment page…"
-msgstr ""
+msgstr "Opening  ගෙවීම් පිටුව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window (payment-composer-dialog): aria-label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.paymentComposerDialog.paymentType"
 msgid "Payment type"
-msgstr ""
+msgstr "ගෙවීම් වර්ගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window (payment-composer-dialog): text
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.paymentComposerDialog.selectWhatYouWant"
 msgid "Select what you want to pay for and choose how to pay"
-msgstr ""
+msgstr "තෝරන්න what you want වෙත pay සඳහා සහ තෝරන්න how වෙත pay"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window (payment-composer-dialog): text
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.paymentComposerDialog.uploadingYourPaymentSlip"
 msgid "Uploading your payment slip…"
-msgstr ""
+msgstr "Uploading ඔබගේ ගෙවීම් පත්‍රිකාව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.slipFlag.duplicateImage"
 msgid "Duplicate image"
-msgstr ""
+msgstr "Duplicate රූපය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.slipFlag.duplicateReference"
 msgid "Duplicate reference"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Duplicate reference"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.approved"
 msgid "Approved"
-msgstr ""
+msgstr "අනුමත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.awaitingPayment"
 msgid "Awaiting payment"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Awaiting payment"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.confirmed"
 msgid "Confirmed"
-msgstr ""
+msgstr "තහවුරු කළ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.orderPlaced"
 msgid "Order placed"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Order placed"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.paid"
 msgid "Paid"
-msgstr ""
+msgstr "ගෙවා ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.paymentConfirmed"
 msgid "Payment confirmed"
-msgstr ""
+msgstr "Payment තහවුරු කළ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.pending"
 msgid "Pending"
-msgstr ""
+msgstr "අපේක්ෂාවෙන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.refund"
 msgid "Refund"
-msgstr ""
+msgstr "මුදල් ආපසු ගෙවීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.refunded"
 msgid "Refunded"
-msgstr ""
+msgstr "මුදල් ආපසු ගෙවා ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.rejected"
 msgid "Rejected"
-msgstr ""
+msgstr "ප්‍රතික්ෂේප කළ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.submittedUnderReview"
 msgid "Submitted — under review"
-msgstr ""
+msgstr "ඉදිරිපත් කරන ලදී — සමාලෝචනය වෙමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.underReview"
 msgid "Under review"
-msgstr ""
+msgstr "සමාලෝචනය වෙමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment status badges: label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.statusBadges.unpaid"
 msgid "Unpaid"
-msgstr ""
+msgstr "ගෙවා නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.copied"
 msgid "Account number copied"
-msgstr ""
+msgstr "ගිණුම් අංකය පිටපත් කරන ලදී"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.copyFailed"
 msgid "Couldn't copy. Select the number and copy it manually."
-msgstr ""
+msgstr "කළ නොහැකි විය පිටපත් කරන්න. තෝරන්න  number සහ පිටපත් කරන්න it අතින්."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader continuation
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.forCourse"
 msgid "for {course}"
-msgstr ""
+msgstr "සඳහා {course}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Postage line before the total is known
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.postagePending"
 msgid "Postage amount is shown once the total is calculated"
-msgstr ""
+msgstr "Postage amount වේ shown once  total වේ calculated"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button; upper case in English
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.proceed"
 msgid "PROCEED TO PAYMENT"
-msgstr ""
+msgstr "PROCEED වෙත PAYMENT"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.removeFree"
 msgid "Remove free {item} ({course})"
-msgstr ""
+msgstr "ඉවත් කරන්න නොමිලේ {item} ({course})"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.removeItem"
 msgid "Remove {item} ({course})"
-msgstr ""
+msgstr "ඉවත් කරන්න {item} ({course})"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible list name
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.selectedFor"
 msgid "Selected items for {course}"
-msgstr ""
+msgstr "තෝරාගත් items සඳහා {course}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button; upper case in English
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.submitForApproval"
 msgid "SUBMIT FOR APPROVAL"
-msgstr ""
+msgstr "ඉදිරිපත් කරන්න සඳහා APPROVAL"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button; upper case in English
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.summary.tryAgain"
 msgid "TRY AGAIN"
-msgstr ""
+msgstr "නැවත උත්සාහ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window tab / section heading
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.tab.course"
 msgid "Course payments"
-msgstr ""
+msgstr "පාඨමාලා ගෙවීම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window tab / section heading
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.tab.daily"
 msgid "Daily payments"
-msgstr ""
+msgstr "දෛනික ගෙවීම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window tab / section heading
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.tab.installment"
 msgid "Installment payments"
-msgstr ""
+msgstr "වාරික ගෙවීම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window tab / section heading
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.tab.module"
 msgid "Module payments"
-msgstr ""
+msgstr "මොඩියුල ගෙවීම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window tab / section heading
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.tab.monthly"
 msgid "Monthly payments"
-msgstr ""
+msgstr "මාසික ගෙවීම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Payment window tab / section heading
 #: i18n/source/payments.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "payments.tab.session"
 msgid "Session payments"
-msgstr ""
+msgstr "සැසි ගෙවීම්"
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Video playback error
@@ -10759,110 +10810,125 @@ msgctxt "student.awaiting.waiting"
 msgid "Awaiting payment confirmation… this page updates automatically."
 msgstr "ගෙවීම තහවුරු වන තෙක් රැඳී සිටිමින්… මෙම පිටුව ස්වයංක්‍රීයව යාවත්කාලීන වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billing.addressRequired"
 msgid "Address is required."
-msgstr ""
+msgstr "ලිපිනය අවශ්‍ය වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billing.addressTooLong"
 msgid "Address must be 255 characters or fewer."
-msgstr ""
+msgstr "ලිපිනය must be 255 characters හෝ fewer."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billing.cityRequired"
 msgid "City is required."
-msgstr ""
+msgstr "නගරය අවශ්‍ය වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billing.cityTooLong"
 msgid "City must be 100 characters or fewer."
-msgstr ""
+msgstr "නගරය must be 100 characters හෝ fewer."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section help text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billing.description"
 msgid "Needed to pay online. It is shared with the payment gateway only when you pay."
-msgstr ""
+msgstr "Needed වෙත pay මාර්ගගත. It වේ shared සමඟ  payment gateway පමණක් when you pay."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Section heading
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billing.heading"
 msgid "Billing address"
-msgstr ""
+msgstr "බිල්පත් ලිපිනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.address"
 msgid "Address"
-msgstr ""
+msgstr "ලිපිනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "An අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.billingAddressSaved"
 msgid "Billing address saved."
-msgstr ""
+msgstr "බිල්පත් ලිපිනය සුරකින ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.city"
 msgid "City"
-msgstr ""
+msgstr "නගරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.loadingYourBillingAddress"
 msgid "Loading your billing address…"
-msgstr ""
+msgstr "ඔබගේ පූරණය කරමින් බිල්පත් ලිපිනය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.saveAddress"
 msgid "Save address"
-msgstr ""
+msgstr "සුරකින්න ලිපිනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "සුරකිමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (billing-address-form): message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.billingAddressForm.weCouldntLoadYour"
 msgid "We couldn't load your billing address."
-msgstr ""
+msgstr "We කළ නොහැකි විය load ඔබගේ බිල්පත් ලිපිනය."
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
@@ -11328,467 +11394,533 @@ msgctxt "student.common.updating"
 msgid "Updating…"
 msgstr "යාවත්කාලීන වෙමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty course content
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.contentTree.empty"
 msgid "Your teacher hasn't added any lessons to this course yet. Check back later."
-msgstr ""
+msgstr "ඔබගේ ගුරුවරයා hasn't added any පාඩම් වෙත මෙම පාඨමාලාව yet. Check ආපසු later."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible list name
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.contentTree.lessonsIn"
 msgid "Lessons in {module}"
-msgstr ""
+msgstr "පාඩම් හි {module}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.courseContent"
 msgid "Course content"
-msgstr ""
+msgstr "පාඨමාලා අන්තර්ගතය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.courseContentFolders"
 msgid "Course content folders"
-msgstr ""
+msgstr "පාඨමාලා අන්තර්ගත ෆෝල්ඩර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.lessonsViewed"
 msgid "Lessons viewed"
-msgstr ""
+msgstr "පාඩම් viewed"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.noLessonsInThis"
 msgid "No lessons in this module yet."
-msgstr ""
+msgstr "පාඩම් නැත හි මෙම මොඩියුලය yet."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.notViewed"
 msgid "Not viewed"
-msgstr ""
+msgstr "නරඹා නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.nothingInThisFolder"
 msgid "Nothing in this folder yet."
-msgstr ""
+msgstr "Nothing හි මෙම folder yet."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.paid"
 msgid "Paid"
-msgstr ""
+msgstr "ගෙවා ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.pendingApproval"
 msgid "Pending approval"
-msgstr ""
+msgstr "අනුමැතිය අපේක්ෂාවෙන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-content-tree): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseContentTree.viewed"
 msgid "Viewed"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Viewed"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.aboutThisCourse"
 msgid "About this course"
-msgstr ""
+msgstr "About මෙම පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.backToMyCourses"
 msgid "Back to my courses"
-msgstr ""
+msgstr "වෙත ආපසු මගේ පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.courseContent"
 msgid "Course content"
-msgstr ""
+msgstr "පාඨමාලා අන්තර්ගතය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.enroll"
 msgid "Enroll"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Enroll"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.enrollForFreeTo"
 msgid "Enroll for free to see the course content and live classes. Paid lessons ask for payment when you open them."
-msgstr ""
+msgstr "Enroll සඳහා නොමිලේ වෙත see  පාඨමාලා අන්තර්ගතය සහ සජීවී පන්ති. ගෙවා ඇත පාඩම් ask සඳහා payment when you විවෘත them."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Toast after enrolling
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.enrolled"
 msgid "You're enrolled in {course}."
-msgstr ""
+msgstr "You're enrolled හි {course}."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.enrolling"
 msgid "Enrolling…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Enrolling…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.exams"
 msgid "Exams"
-msgstr ""
+msgstr "විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: description
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.itMayHaveBeen"
 msgid "It may have been removed, or it isn't open to you. Go back to your courses to find another one."
-msgstr ""
+msgstr "It may have been removed, හෝ it isn't විවෘත වෙත you. Go වෙත ආපසු ඔබගේ පාඨමාලා වෙත find another one."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.liveClasses"
 msgid "Live Classes"
-msgstr ""
+msgstr "සජීවී පන්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.loadingCourse"
 msgid "Loading course…"
-msgstr ""
+msgstr "පූරණය කරමින් පාඨමාලාව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: title
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.thisCourseIsntAvailable"
 msgid "This course isn't available"
-msgstr ""
+msgstr "මෙම පාඨමාලාව isn't ලබා ගත හැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.thisCourseIsntOpen"
 msgid "This course isn't open for enrollment right now."
-msgstr ""
+msgstr "මෙම පාඨමාලාව isn't විවෘත සඳහා enrollment right now."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.tryAgain"
 msgid "Try again"
-msgstr ""
+msgstr "නැවත උත්සාහ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.tuteDelivery"
 msgid "Tute Delivery"
-msgstr ""
+msgstr "ටියුට් Delivery"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.weCouldntLoadThis"
 msgid "We couldn't load this course."
-msgstr ""
+msgstr "We කළ නොහැකි විය load මෙම පාඨමාලාව."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course detail page: text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetail.yourInstituteEnrollsStudents"
 msgid "Your institute enrolls students in courses. Contact your institute to join this course."
-msgstr ""
+msgstr "ඔබගේ ආයතනය enrolls ශිෂ්‍යයන් හි පාඨමාලා. Contact ඔබගේ ආයතනය වෙත සම්බන්ධ වන්න මෙම පාඨමාලාව."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-detail-layout): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetailLayout.aboutThisCourse"
 msgid "About this course"
-msgstr ""
+msgstr "About මෙම පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-detail-layout): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetailLayout.breadcrumb"
 msgid "Breadcrumb"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Breadcrumb"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-detail-layout): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetailLayout.courseSections"
 msgid "Course sections"
-msgstr ""
+msgstr "පාඨමාලා කොටස්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-detail-layout): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetailLayout.joinTheClassGroups"
 msgid "Join the class groups"
-msgstr ""
+msgstr "සම්බන්ධ වන්න  පන්තිය groups"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-detail-layout): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetailLayout.loadingCourseContent"
 msgid "Loading course content…"
-msgstr ""
+msgstr "පූරණය කරමින් පාඨමාලා අන්තර්ගතය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-detail-layout): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetailLayout.teacher"
 msgid "Teacher:"
-msgstr ""
+msgstr "ගුරුවරයා:"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-detail-layout): message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseDetailLayout.weCouldntLoadThis"
 msgid "We couldn't load this course's content."
-msgstr ""
+msgstr "We කළ නොහැකි විය load මෙම පාඨමාලාව's content."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tab of past exams
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExams.previous"
 msgid "Previous"
-msgstr ""
+msgstr "පෙර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.examStatus"
 msgid "Exam status"
-msgstr ""
+msgstr "විභාග තත්ත්වය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.exams"
 msgid "Exams"
-msgstr ""
+msgstr "විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): description
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.examsOfThisCourse"
 msgid "Exams of this course you're enrolled in will appear here before they open."
-msgstr ""
+msgstr "විභාග ගේ මෙම පාඨමාලාව you're enrolled හි වනු ඇත appear here before they විවෘත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): description
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.examsOfThisCourse2"
 msgid "Exams of this course that have closed will appear here."
-msgstr ""
+msgstr "විභාග ගේ මෙම පාඨමාලාව එම have වසා ඇත වනු ඇත appear here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.loadingExams"
 msgid "Loading exams…"
-msgstr ""
+msgstr "පූරණය කරමින් විභාග…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): title
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.noExamsRunningRight"
 msgid "No exams running right now"
-msgstr ""
+msgstr "නැත විභාග running right now"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): title
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.noPreviousExams"
 msgid "No previous exams"
-msgstr ""
+msgstr "පෙර නැත විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): title
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.noUpcomingExams"
 msgid "No upcoming exams"
-msgstr ""
+msgstr "ඉදිරි නැත විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.weCouldntLoadYour"
 msgid "We couldn't load your exams."
-msgstr ""
+msgstr "We කළ නොහැකි විය load ඔබගේ විභාග."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-exams-tab): description
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseExamsTab.whenAnExamYoure"
 msgid "When an exam you're enrolled in opens, it will appear here."
-msgstr ""
+msgstr "When an විභාගය you're enrolled හි opens, it වනු ඇත appear here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader word between start and end time
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLive.until"
 msgid "until"
-msgstr ""
+msgstr "දක්වා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.join"
 msgid "Join"
-msgstr ""
+msgstr "සම්බන්ධ වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.loadingLiveClasses"
 msgid "Loading live classes…"
-msgstr ""
+msgstr "පූරණය කරමින් සජීවී පන්ති…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.noUpcomingLiveClasses"
 msgid "No upcoming live classes. When your teacher schedules one, it will appear here."
-msgstr ""
+msgstr "ඉදිරි නැත සජීවී පන්ති. When ඔබගේ ගුරුවරයා schedules one, it වනු ඇත appear here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.opening"
 msgid "Opening…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Opening…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.timeNotSet"
 msgid "Time not set"
-msgstr ""
+msgstr "වේලාව නැත set"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.upcomingLiveClasses"
 msgid "Upcoming live classes"
-msgstr ""
+msgstr "ඉදිරි සජීවී පන්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.upcomingLiveClassesBy"
 msgid "Upcoming live classes by day"
-msgstr ""
+msgstr "ඉදිරි සජීවී පන්ති by දිනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-live-classes-tab): message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseLiveClassesTab.weCouldntLoadThis"
 msgid "We couldn't load this course's live classes."
-msgstr ""
+msgstr "We කළ නොහැකි විය load මෙම පාඨමාලාව's සජීවී පන්ති."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.byPost"
 msgid "By post"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: By post"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.collectAtClass"
 msgid "Collect at class"
-msgstr ""
+msgstr "Collect දී පන්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.dispatched"
 msgid "Dispatched"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Dispatched"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.handedOver"
 msgid "Handed over"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Handed over"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.loadingYourTutes"
 msgid "Loading your tutes…"
-msgstr ""
+msgstr "ඔබගේ පූරණය කරමින් tutes…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): title
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.noTutesForThis"
 msgid "No tutes for this course yet"
-msgstr ""
+msgstr "නැත tutes සඳහා මෙම පාඨමාලාව yet"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.onHold"
 msgid "On hold"
-msgstr ""
+msgstr "මත hold"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.pending"
 msgid "Pending"
-msgstr ""
+msgstr "අපේක්ෂාවෙන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.weCouldntLoadYour"
 msgid "We couldn't load your tutes for this course."
-msgstr ""
+msgstr "We කළ නොහැකි විය load ඔබගේ tutes සඳහා මෙම පාඨමාලාව."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): description
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.whenYourInstituteSends"
 msgid "When your institute sends printed tutes, you can follow them here."
-msgstr ""
+msgstr "When ඔබගේ ආයතනය sends මුද්‍රිත ටියුට්, you හැක follow them here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (course-tutes-tab): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.courseTutesTab.yourTutes"
 msgid "Your tutes"
-msgstr ""
+msgstr "ඔබගේ tutes"
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Loading text
@@ -12174,390 +12306,445 @@ msgctxt "student.impersonation.viewingAs"
 msgid "Viewing as {name} — read-only support session · ends {time}"
 msgstr "{name} ලෙස බලමින් — කියවීමට පමණක් සහාය සැසිය · අවසන් වන්නේ {time}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. {when} is a date and time
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.legacy.accessEnded"
 msgid "Access ended {when}"
-msgstr ""
+msgstr "ප්‍රවේශය අවසන් විය {when}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.legacy.checkoutLabel"
 msgid "Proceed to checkout for {course}"
-msgstr ""
+msgstr "Proceed වෙත checkout සඳහා {course}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.legacy.requestedLabel"
 msgid "Reactivation already requested for {course}"
-msgstr ""
+msgstr "Reactivation already requested සඳහා {course}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.legacy.retryLabel"
 msgid "Retry checking access status for {course}"
-msgstr ""
+msgstr "නැවත උත්සාහ කරන්න checking ප්‍රවේශය තත්ත්වය සඳහා {course}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (legacy-reactivation): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.legacyReactivation.expiredPaidAccess"
 msgid "Expired paid access"
-msgstr ""
+msgstr "කල් ඉකුත් වී ඇත ගෙවා ඇත ප්‍රවේශය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (legacy-reactivation): aria-label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.legacyReactivation.myEnrolledCoursesWith"
 msgid "My enrolled courses with expired access"
-msgstr ""
+msgstr "මගේ enrolled පාඨමාලා සමඟ කල් ඉකුත් වී ඇත ප්‍රවේශය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (legacy-reactivation): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.legacyReactivation.yourPaidAccessTo"
 msgid "Your paid access to these courses has expired. Request reactivation to renew it."
-msgstr ""
+msgstr "ඔබගේ ගෙවා ඇත ප්‍රවේශය වෙත these පාඨමාලා has කල් ඉකුත් වී ඇත. Request reactivation වෙත renew it."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.device"
 msgid "This course can only be opened on your registered devices, and this device isn't one of them."
-msgstr ""
+msgstr "මෙම පාඨමාලාව හැක පමණක් be opened මත ඔබගේ registered devices, සහ මෙම device isn't one ගේ them."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.expired"
 msgid "This lesson has ended and can't be opened any more."
-msgstr ""
+msgstr "මෙම පාඩම has අවසන් විය සහ හැක't be opened any තවත්."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.generic"
 msgid "We couldn't open this lesson. Please try again."
-msgstr ""
+msgstr "We කළ නොහැකි විය විවෘත මෙම පාඩම. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.notEnrolled"
 msgid "Enroll in this course to open its lessons."
-msgstr ""
+msgstr "Enroll හි මෙම පාඨමාලාව වෙත විවෘත its පාඩම්."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.notOpened"
 msgid "This lesson hasn't opened yet."
-msgstr ""
+msgstr "මෙම පාඩම hasn't opened yet."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened yet; {when} is a date and time
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.opensOn"
 msgid "This lesson opens on {when}."
-msgstr ""
+msgstr "මෙම පාඩම opens මත {when}."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.paymentPending"
 msgid "Your payment for this lesson is waiting for approval. It opens once your institute approves it."
-msgstr ""
+msgstr "ඔබගේ payment සඳහා මෙම පාඩම වේ waiting සඳහා approval. It opens once ඔබගේ ආයතනය approves it."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.paymentRequired"
 msgid "This lesson needs payment before you can open it."
-msgstr ""
+msgstr "මෙම පාඩම needs payment before you හැක විවෘත it."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson cannot be opened
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.denied.unavailable"
 msgid "This lesson isn't available."
-msgstr ""
+msgstr "මෙම පාඩම isn't ලබා ගත හැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Dialog message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.emptyMessage"
 msgid "Your teacher hasn't added anything to this lesson yet. Check back later."
-msgstr ""
+msgstr "ඔබගේ ගුරුවරයා hasn't added anything වෙත මෙම පාඩම yet. Check ආපසු later."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.emptyNotice"
 msgid "Your teacher hasn't added anything to this lesson yet."
-msgstr ""
+msgstr "ඔබගේ ගුරුවරයා hasn't added anything වෙත මෙම පාඩම yet."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Button that opens the payment window
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lesson.payNow"
 msgid "Pay now"
-msgstr ""
+msgstr "දැන් ගෙවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson action: open the lesson
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccess.open"
 msgid "Open"
-msgstr ""
+msgstr "විවෘත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.deviceNotAllowed"
 msgid "Device not allowed"
-msgstr ""
+msgstr "උපාංගයට අවසර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.enrollToOpen"
 msgid "Enroll to open"
-msgstr ""
+msgstr "Enroll වෙත විවෘත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.expired"
 msgid "Expired"
-msgstr ""
+msgstr "කල් ඉකුත් වී ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.opening"
 msgid "Opening…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Opening…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.payNow"
 msgid "Pay now"
-msgstr ""
+msgstr "දැන් ගෙවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.paymentRequired"
 msgid "Payment required"
-msgstr ""
+msgstr "ගෙවීම අවශ්‍යයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.pending"
 msgid "Pending"
-msgstr ""
+msgstr "අපේක්ෂාවෙන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.startsSoon"
 msgid "Starts soon"
-msgstr ""
+msgstr "ළඟදීම ආරම්භ වේ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-access-action): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonAccessAction.unavailable"
 msgid "Unavailable"
-msgstr ""
+msgstr "ලබා ගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.android"
 msgid "Android"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Android"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.cantOpenThisLesson"
 msgid "Can't open this lesson"
-msgstr ""
+msgstr "හැක't විවෘත මෙම පාඩම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.close"
 msgid "Close"
-msgstr ""
+msgstr "වසන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): label
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.ios"
 msgid "iOS"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: iOS"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.join"
 msgid "Join"
-msgstr ""
+msgstr "සම්බන්ධ වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.joiningSharesYourName"
 msgid "Joining shares your name and email with the class meeting."
-msgstr ""
+msgstr "සම්බන්ධ වෙමින් shares ඔබගේ නම සහ ඊමේල් සමඟ  පන්තිය meeting."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.lessonLocked"
 msgid "Lesson locked"
-msgstr ""
+msgstr "පාඩම අගුළු දමා ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.myDevices"
 msgid "My devices"
-msgstr ""
+msgstr "මගේ devices"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.notConfiguredByYour"
 msgid "Not configured by your institute"
-msgstr ""
+msgstr "නැත configured by ඔබගේ ආයතනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.openLessonMaterials"
 msgid "Open lesson materials"
-msgstr ""
+msgstr "විවෘත පාඩම materials"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.openOtherLessonMaterials"
 msgid "Open other lesson materials"
-msgstr ""
+msgstr "විවෘත other පාඩම materials"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.opening"
 msgid "Opening…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Opening…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.orUseTheMobile"
 msgid "Or use the mobile app"
-msgstr ""
+msgstr "හෝ භාවිත කරන්න  mobile app"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.theRecordingIsntAvailable"
 msgid "The recording isn't available yet."
-msgstr ""
+msgstr " පටිගත කිරීම isn't තවම ලබා ගත හැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.watchRecording"
 msgid "Watch recording"
-msgstr ""
+msgstr "නරඹන්න පටිගත කිරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): title
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.webPlaybackIsTurned"
 msgid "Web playback is turned off"
-msgstr ""
+msgstr "Web playback වේ turned off"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.youCantJoinThis"
 msgid "You can't join this class right now. Try again when it starts."
-msgstr ""
+msgstr "You හැක't සම්බන්ධ වන්න මෙම පන්තිය right now. නැවත උත්සාහ කරන්න when it starts."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student course page (lesson-launcher): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonLauncher.yourInstituteHasTurned"
 msgid "Your institute has turned off browser playback. Open this lesson in the AOC Player or the mobile app."
-msgstr ""
+msgstr "ඔබගේ ආයතනය has turned off browser playback. විවෘත මෙම පාඩම හි  AOC Player හෝ  mobile app."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.available"
 msgid "Available"
-msgstr ""
+msgstr "ලබා ගත හැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.device"
 msgid "Not allowed on this device"
-msgstr ""
+msgstr "නැත allowed මත මෙම device"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.expired"
 msgid "Expired"
-msgstr ""
+msgstr "කල් ඉකුත් වී ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.notEnrolled"
 msgid "Not enrolled"
-msgstr ""
+msgstr "ලියාපදිංචි වී නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.notStarted"
 msgid "Not started yet"
-msgstr ""
+msgstr "තවම ආරම්භ කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.paymentPending"
 msgid "Payment pending approval"
-msgstr ""
+msgstr "Payment අනුමැතිය අපේක්ෂාවෙන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.paymentRequired"
 msgid "Payment required"
-msgstr ""
+msgstr "ගෙවීම අවශ්‍යයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Lesson state (screen reader)
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.lessonState.unavailable"
 msgid "Unavailable"
-msgstr ""
+msgstr "ලබා ගත නොහැක"
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student portal navigation: the desktop video player app. 'AOC' is a product name; keep it
@@ -12671,12 +12858,13 @@ msgctxt "student.notifications.title"
 msgid "Notifications"
 msgstr "දැනුම්දීම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Accessible label of a Pay now button; {item} is a month, lesson or period name
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.payNowFor"
 msgid "Pay now for {item}"
-msgstr ""
+msgstr "දැන් ගෙවන්න සඳහා {item}"
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Link
@@ -12838,68 +13026,77 @@ msgctxt "student.paymentHistory.total"
 msgid "Total"
 msgstr "මුළු එකතුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.chooseImage"
 msgid "Choose a JPG or PNG image."
-msgstr ""
+msgstr "තෝරන්න a JPG හෝ PNG රූපය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.prepareFailed"
 msgid "The photo couldn't be prepared. Try another image."
-msgstr ""
+msgstr " ඡායාරූපය කළ නොහැකි විය be prepared. Try another රූපය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.removeFailed"
 msgid "The photo couldn't be removed. Please try again."
-msgstr ""
+msgstr " ඡායාරූපය කළ නොහැකි විය be removed. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.removed"
 msgid "Profile photo removed."
-msgstr ""
+msgstr "පැතිකඩ ඡායාරූපය removed."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.tooLarge"
 msgid "The image is larger than 2 MB. Choose a smaller image."
-msgstr ""
+msgstr " රූපය වේ larger than 2 MB. තෝරන්න a smaller රූපය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.tooSmall"
 msgid "The image is too small. Use at least 64 × 64 pixels."
-msgstr ""
+msgstr " රූපය වේ too small. භාවිත කරන්න දී least 64 × 64 pixels."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.unreadable"
 msgid "This image couldn't be read. Try another file."
-msgstr ""
+msgstr "මෙම රූපය කළ නොහැකි විය be read. Try another file."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.updated"
 msgid "Profile photo updated."
-msgstr ""
+msgstr "පැතිකඩ ඡායාරූපය updated."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.photo.uploadFailed"
 msgid "The photo couldn't be uploaded. Please try again."
-msgstr ""
+msgstr " ඡායාරූපය කළ නොහැකි විය be uploaded. කරුණාකර නැවත උත්සාහ කරන්න."
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Status badge
@@ -13429,26 +13626,29 @@ msgctxt "student.profileBanner.title"
 msgid "Complete your profile."
 msgstr "ඔබේ පැතිකඩ සම්පූර්ණ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Profile message
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.profileFields.saveFailed"
 msgid "Some details couldn't be saved."
-msgstr ""
+msgstr "Some විස්තර කළ නොහැකි විය be සුරකින ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (profile-fields-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.profileFieldsForm.additionalDetails"
 msgid "Additional details"
-msgstr ""
+msgstr "Additional විස්තර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student profile (profile-fields-form): text
 #: i18n/source/student.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "student.profileFieldsForm.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "An අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න."
 
 #. Student profile (profile-fields-form): text
 #: i18n/source/student.json
