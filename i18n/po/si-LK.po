@@ -15674,124 +15674,141 @@ msgctxt "teacher.mediaLibrary.uploadALessonVideo"
 msgid "Upload a lesson video to send it to DynTube."
 msgstr ""
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.uploadALessonVideo2"
 msgid "Upload a lesson video to add it to this channel."
-msgstr ""
+msgstr "උඩුගත කරන්න a පාඩම video වෙත එක් කරන්න it වෙත මෙම channel."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.uploadAVideoTo"
 msgid "Upload a video to your institute's DynTube account."
-msgstr ""
+msgstr "උඩුගත කරන්න a video වෙත ඔබගේ ආයතනය's DynTube ගිණුම."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.uploadInProgressFinish"
 msgid "Upload in progress. Finish or cancel it before switching tabs."
-msgstr ""
+msgstr "උඩුගත කරන්න ක්‍රියාත්මකයි. Finish හෝ අවලංගු කරන්න it before switching tabs."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.uploadVideo"
 msgid "Upload video"
-msgstr ""
+msgstr "උඩුගත කරන්න video"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.uploading"
 msgid "Uploading"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Uploading"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.uploadingIsUnavailable"
 msgid "Uploading is unavailable."
-msgstr ""
+msgstr "Uploading වේ ලබා ගත නොහැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.uploads"
 msgid "Uploads"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Uploads"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: aria-label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.videoPages"
 msgid "Video pages"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Video pages"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.videoStatus"
 msgid "Video status"
-msgstr ""
+msgstr "Video තත්ත්වය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.videosFromYoutubeIntegrations"
 msgid "Videos from YouTube integrations that were removed. They stay on YouTube and in the lessons that use them."
-msgstr ""
+msgstr "Videos සිට YouTube integrations එම were removed. They stay මත YouTube සහ හි  පාඩම් එම භාවිත කරන්න them."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.videosHostedOnYour"
 msgid "Videos hosted on your institute's DynTube account. Students play them through short-lived signed links."
-msgstr ""
+msgstr "Videos hosted මත ඔබගේ ආයතනය's DynTube ගිණුම. ශිෂ්‍යයන් play them through short-lived signed links."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.videosKeptInYour"
 msgid "Videos kept in your institute's own storage will appear here."
-msgstr ""
+msgstr "Videos kept හි ඔබගේ ආයතනය's own storage වනු ඇත appear here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.videosOfRemovedYoutube"
 msgid "Videos of removed YouTube integrations will appear here."
-msgstr ""
+msgstr "Videos ගේ removed YouTube integrations වනු ඇත appear here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.videosStoredInYour"
 msgid "Videos stored in your institute's own storage on this platform. Use New media to upload a video to tenant internal storage (up to 25 MiB)."
-msgstr ""
+msgstr "Videos stored හි ඔබගේ ආයතනය's own storage මත මෙම platform. භාවිත කරන්න නව media වෙත උඩුගත කරන්න a video වෙත tenant internal storage (up වෙත 25 MiB)."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.viewOnly"
 msgid "View only"
-msgstr ""
+msgstr "බලන්න පමණක්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.waitingForTheFile"
 msgid "Waiting for the file"
-msgstr ""
+msgstr "Waiting සඳහා  file"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Media library: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.mediaLibrary.youDontHavePermission"
 msgid "You don't have permission to upload videos."
-msgstr ""
+msgstr "You don't have permission වෙත උඩුගත කරන්න videos."
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher portal navigation
@@ -15897,1041 +15914,1189 @@ msgctxt "teacher.nav.tuteDispatch"
 msgid "Tute Dispatch"
 msgstr "නිබන්ධන යැවීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/mark): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceMark.markAttendance"
 msgid "Mark Attendance"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Mark Attendance"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/mark): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceMark.selectACourseAnd"
 msgid "Select a course and one of its class sessions to record attendance for your students."
-msgstr ""
+msgstr "තෝරන්න a පාඨමාලාව සහ one ගේ its පන්තිය sessions වෙත record attendance සඳහා ඔබගේ ශිෂ්‍යයන්."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.attendanceRecordedForThe"
 msgid "Attendance recorded for the courses you teach."
-msgstr ""
+msgstr "Attendance recorded සඳහා  පාඨමාලා you teach."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.attendanceReports"
 msgid "Attendance Reports"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Attendance Reports"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.clearFilters"
 msgid "Clear filters"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Clear filters"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.loadingAttendanceRecords"
 msgid "Loading attendance records…"
-msgstr ""
+msgstr "පූරණය කරමින් attendance records…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.noAttendanceRecordsYet"
 msgid "No attendance records yet"
-msgstr ""
+msgstr "නැත attendance records yet"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.noMoreResults"
 msgid "No more results"
-msgstr ""
+msgstr "නැත තවත් ප්‍රතිඵල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.noSessionsMatchThe"
 msgid "No sessions match the selected date filter"
-msgstr ""
+msgstr "නැත sessions match  තෝරාගත් දිනය filter"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.thereAreNoRecords"
 msgid "There are no records on this page. Go back to an earlier page."
-msgstr ""
+msgstr "There වේ නැත records මත මෙම page. Go වෙත ආපසු an earlier page."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.tryADifferentCourse"
 msgid "Try a different course or date range, or clear your filters."
-msgstr ""
+msgstr "Try a different පාඨමාලාව හෝ දිනය range, හෝ clear ඔබගේ filters."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/attendance/reports): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.attendanceReports.updating"
 msgid "Updating…"
-msgstr ""
+msgstr "යාවත්කාලීන කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/calendar): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.calendar.loadingCalendar"
 msgid "Loading calendar…"
-msgstr ""
+msgstr "පූරණය කරමින් දින දර්ශනය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/communications): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.communications.messages"
 msgid "Messages"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Messages"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/communications): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.communications.newMessage"
 msgid "New message"
-msgstr ""
+msgstr "නව message"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/communications): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.communications.sendAnAnnouncementTo"
 msgid "Send an announcement to the students enrolled in your courses."
-msgstr ""
+msgstr "Send an announcement වෙත  ශිෂ්‍යයන් enrolled හි ඔබගේ පාඨමාලා."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/communications/new): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.communicationsNew.messageTheStudentsCurrently"
 msgid "Message the students currently enrolled in one of your courses."
-msgstr ""
+msgstr "Message  ශිෂ්‍යයන් currently enrolled හි one ගේ ඔබගේ පාඨමාලා."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/communications/new): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.communicationsNew.newMessage"
 msgid "New message"
-msgstr ""
+msgstr "නව message"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.courses.loadingCourse"
 msgid "Loading course…"
-msgstr ""
+msgstr "පූරණය කරමින් පාඨමාලාව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/edit): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesEdit.courseClonedThisIs"
 msgid "Course cloned. This is a new, separate Draft course with its own content copy — no enrollment, payment, or billing-period history carried over."
-msgstr ""
+msgstr "පාඨමාලාව cloned. මෙම වේ a නව, separate කෙටුම්පත පාඨමාලාව සමඟ its own content පිටපත් කරන්න — නැත enrollment, payment, හෝ බිල්පත්-period history carried over."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/edit): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesEdit.editCourse"
 msgid "Edit course"
-msgstr ""
+msgstr "සංස්කරණය කරන්න පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/edit): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesEdit.loadingCourse"
 msgid "Loading course…"
-msgstr ""
+msgstr "පූරණය කරමින් පාඨමාලාව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/edit): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesEdit.manageLiveClasses"
 msgid "Manage live classes"
-msgstr ""
+msgstr "Manage සජීවී පන්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/edit): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesEdit.manageModulesLessons"
 msgid "Manage modules & lessons"
-msgstr ""
+msgstr "Manage මොඩියුල & පාඩම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/modules): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesModules.backToCourse"
 msgid "Back to course"
-msgstr ""
+msgstr "වෙත ආපසු පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/modules): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesModules.courseCreated"
 msgid "Course created."
-msgstr ""
+msgstr "පාඨමාලාව created."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/modules): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesModules.loadingCourse"
 msgid "Loading course…"
-msgstr ""
+msgstr "පූරණය කරමින් පාඨමාලාව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/modules): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesModules.modulesSessions"
 msgid "Modules & sessions"
-msgstr ""
+msgstr "මොඩියුල & sessions"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/modules): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesModules.structureThisCourseInto"
 msgid "Structure this course into modules, each holding its own ordered list of sessions."
-msgstr ""
+msgstr "Structure මෙම පාඨමාලාව into මොඩියුල, each holding its own ordered list ගේ sessions."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/modules/[moduleId]/lessons/[lessonId]/materials): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesModulesLessonsMaterials.theMaterialsStudentsSee"
 msgid "The materials students see for this session. Manage them from Manage course → Modules & sessions."
-msgstr ""
+msgstr " materials ශිෂ්‍යයන් see සඳහා මෙම session. Manage them සිට Manage පාඨමාලාව → මොඩියුල & sessions."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/new): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesNew.createACourse"
 msgid "Create a course"
-msgstr ""
+msgstr "සාදන්න a පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/new): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesNew.useCurrentCourseWorkflow"
 msgid "Use current course workflow. Course assignment stays tied to your authenticated teacher account."
-msgstr ""
+msgstr "භාවිත කරන්න current පාඨමාලාව workflow. පාඨමාලාව assignment stays tied වෙත ඔබගේ authenticated ගුරුවරයා ගිණුම."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/roster): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesRoster.backToCourse"
 msgid "Back to course"
-msgstr ""
+msgstr "වෙත ආපසු පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/roster): caption
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesRoster.courseRoster"
 msgid "Course roster"
-msgstr ""
+msgstr "පාඨමාලාව roster"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/roster): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesRoster.loadingCourse"
 msgid "Loading course…"
-msgstr ""
+msgstr "පූරණය කරමින් පාඨමාලාව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/roster): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesRoster.loadingRoster"
 msgid "Loading roster…"
-msgstr ""
+msgstr "පූරණය කරමින් roster…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/roster): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesRoster.roster"
 msgid "Roster"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Roster"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/courses/[courseId]/roster): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.coursesRoster.rosterFor"
 msgid "Roster for"
-msgstr ""
+msgstr "Roster සඳහා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/dashboard): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.dashboard.assignedCourses"
 msgid "Assigned courses"
-msgstr ""
+msgstr "Assigned පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/dashboard): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.dashboard.draftPrivate"
 msgid "Draft / private"
-msgstr ""
+msgstr "කෙටුම්පත / private"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/dashboard): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.dashboard.loadingYourCourses"
 msgid "Loading your courses…"
-msgstr ""
+msgstr "ඔබගේ පූරණය කරමින් පාඨමාලා…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/dashboard): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.dashboard.overview"
 msgid "Overview"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Overview"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/dashboard): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.dashboard.published"
 msgid "Published"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Published"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/dashboard): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.dashboard.recentCourses"
 msgid "Recent courses"
-msgstr ""
+msgstr "Recent පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/dashboard): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.dashboard.yourAssignedCoursesAt"
 msgid "Your assigned courses at a glance."
-msgstr ""
+msgstr "ඔබගේ assigned පාඨමාලා දී a glance."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/marking): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsMarking.loadingExam"
 msgid "Loading exam…"
-msgstr ""
+msgstr "පූරණය කරමින් විභාගය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/marking): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsMarking.loadingTheMarkingQueue"
 msgid "Loading the marking queue…"
-msgstr ""
+msgstr "පූරණය කරමින්  marking queue…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/marking): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsMarking.manuallyMarkStructuredAnswer"
 msgid "Manually mark structured-answer submissions for one exam."
-msgstr ""
+msgstr "අතින් mark structured-පිළිතුර submissions සඳහා one විභාගය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/marking): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsMarking.markingQueue"
 msgid "Marking Queue"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Marking Queue"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/marking): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsMarking.nothingToMarkRight"
 msgid "Nothing to mark right now."
-msgstr ""
+msgstr "Nothing වෙත mark right now."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.couldNotPublishResults"
 msgid "Could not publish results. Please try again."
-msgstr ""
+msgstr "කළ නොහැකි විය publish ප්‍රතිඵල. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.loadingExam"
 msgid "Loading exam…"
-msgstr ""
+msgstr "පූරණය කරමින් විභාගය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.publishResults"
 msgid "Publish results"
-msgstr ""
+msgstr "Publish ප්‍රතිඵල"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.publishResultsForThis"
 msgid "Publish results for this exam?"
-msgstr ""
+msgstr "Publish ප්‍රතිඵල සඳහා මෙම විභාගය?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.publishing"
 msgid "Publishing…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Publishing…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.publishingResults"
 msgid "Publishing results…"
-msgstr ""
+msgstr "Publishing ප්‍රතිඵල…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.resultsPublishing"
 msgid "Results Publishing"
-msgstr ""
+msgstr "ප්‍රතිඵල Publishing"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/publish): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsPublish.thisExamIsClosed"
 msgid "This exam is Closed and ready to publish. Every enrolled student will immediately be able to see their score and per-question review."
-msgstr ""
+msgstr "මෙම විභාගය වේ වසා ඇත සහ ready වෙත publish. Every enrolled ශිෂ්‍යයා වනු ඇත immediately be able වෙත see their score සහ per-ප්‍රශ්නය review."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.addQuestion"
 msgid "Add question"
-msgstr ""
+msgstr "එක් කරන්න ප්‍රශ්නය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.addYourFirstMultiple"
 msgid "Add your first multiple-choice or structured question for this course."
-msgstr ""
+msgstr "එක් කරන්න ඔබගේ පළමු multiple-choice හෝ structured ප්‍රශ්නය සඳහා මෙම පාඨමාලාව."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.addYourFirstQuestion"
 msgid "Add your first question"
-msgstr ""
+msgstr "එක් කරන්න ඔබගේ පළමු ප්‍රශ්නය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.authorReusableMultipleChoice"
 msgid "Author reusable multiple-choice and structured questions for a course, then assemble them into an exam from the Scheduler."
-msgstr ""
+msgstr "Author reusable multiple-choice සහ structured ප්‍රශ්න සඳහා a පාඨමාලාව, then assemble them into an විභාගය සිට  Scheduler."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.close"
 msgid "Close"
-msgstr ""
+msgstr "වසන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.couldNotCreateA"
 msgid "Could not create a new exam. Please try again."
-msgstr ""
+msgstr "කළ නොහැකි විය සාදන්න a නව විභාගය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.course"
 msgid "Course"
-msgstr ""
+msgstr "පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.createACourse"
 msgid "Create a course"
-msgstr ""
+msgstr "සාදන්න a පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.createANewExam"
 msgid "Create a new exam for this course"
-msgstr ""
+msgstr "සාදන්න a නව විභාගය සඳහා මෙම පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.creatingANewExam"
 msgid "Creating a new exam…"
-msgstr ""
+msgstr "සාදමින් a නව විභාගය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.creatingExam"
 msgid "Creating exam…"
-msgstr ""
+msgstr "සාදමින් විභාගය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.loadingTheQuestionBank"
 msgid "Loading the question bank…"
-msgstr ""
+msgstr "පූරණය කරමින්  ප්‍රශ්න බැංකුව…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.loadingYourCourses"
 msgid "Loading your courses…"
-msgstr ""
+msgstr "ඔබගේ පූරණය කරමින් පාඨමාලා…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.noCoursesYet"
 msgid "No courses yet"
-msgstr ""
+msgstr "පාඨමාලා නැත yet"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.noQuestionsInThe"
 msgid "No questions in the bank yet"
-msgstr ""
+msgstr "ප්‍රශ්න නැත හි  bank yet"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.questionBank"
 msgid "Question Bank"
-msgstr ""
+msgstr "ප්‍රශ්න බැංකුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): placeholder
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.selectACourse"
 msgid "Select a course"
-msgstr ""
+msgstr "තෝරන්න a පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.thisCourseHasNo"
 msgid "This course has no exam questions yet. You do not have permission to add any here."
-msgstr ""
+msgstr "මෙම පාඨමාලාව has නැත විභාගය ප්‍රශ්න yet. You do නැත have permission වෙත එක් කරන්න any here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.untitledExam"
 msgid "Untitled exam"
-msgstr ""
+msgstr "Untitled විභාගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/questions): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsQuestions.youNeedAtLeast"
 msgid "You need at least one course before you can author exam questions."
-msgstr ""
+msgstr "You need දී least one පාඨමාලාව before you හැක author විභාගය ප්‍රශ්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.copyThisToOpen"
 msgid "— copy this to open the Marking Queue or Publish Results screens later."
-msgstr ""
+msgstr "— පිටපත් කරන්න මෙම වෙත විවෘත  Marking Queue හෝ Publish ප්‍රතිඵල screens later."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.couldNotScheduleThis"
 msgid "Could not schedule this exam. Please try again."
-msgstr ""
+msgstr "කළ නොහැකි විය schedule මෙම විභාගය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.examId"
 msgid "Exam ID:"
-msgstr ""
+msgstr "විභාගය ID:"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.examScheduler"
 msgid "Exam Scheduler"
-msgstr ""
+msgstr "විභාගය Scheduler"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.goToResultsPublishing"
 msgid "Go to Results Publishing →"
-msgstr ""
+msgstr "Go වෙත ප්‍රතිඵල Publishing →"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.loadingExam"
 msgid "Loading exam…"
-msgstr ""
+msgstr "පූරණය කරමින් විභාගය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.scheduleExam"
 msgid "Schedule exam"
-msgstr ""
+msgstr "Schedule විභාගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.scheduleThisExam"
 msgid "Schedule this exam?"
-msgstr ""
+msgstr "Schedule මෙම විභාගය?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.scheduling"
 msgid "Scheduling…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Scheduling…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.schedulingExam"
 msgid "Scheduling exam…"
-msgstr ""
+msgstr "Scheduling විභාගය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.schedulingLocksTheWindow"
 msgid "Scheduling locks the window and questions in and makes this exam visible to enrolled students once its window opens. This is the only way to leave Draft status."
-msgstr ""
+msgstr "Scheduling locks  window සහ ප්‍රශ්න හි සහ makes මෙම විභාගය visible වෙත enrolled ශිෂ්‍යයන් once its window opens. මෙම වේ  පමණක් way වෙත leave කෙටුම්පත තත්ත්වය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.setTheExamWindow"
 msgid "Set the exam window, time limit, and linked questions, then schedule it to make it visible to students."
-msgstr ""
+msgstr "Set  විභාගය window, වේලාව limit, සහ linked ප්‍රශ්න, then schedule it වෙත make it visible වෙත ශිෂ්‍යයන්."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/exams/[examId]/schedule): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.examsSchedule.thisLocksTheWindow"
 msgid "This locks the window and linked questions and makes the exam visible to enrolled students once its window opens. This is the only way to leave Draft status."
-msgstr ""
+msgstr "මෙම locks  window සහ linked ප්‍රශ්න සහ makes  විභාගය visible වෙත enrolled ශිෂ්‍යයන් once its window opens. මෙම වේ  පමණක් way වෙත leave කෙටුම්පත තත්ත්වය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.allCourses"
 msgid "All courses"
-msgstr ""
+msgstr "සියලු පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.allStatuses"
 msgid "All statuses"
-msgstr ""
+msgstr "සියලු statuses"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.cancelled"
 msgid "Cancelled"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Cancelled"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.clearFilters"
 msgid "Clear filters"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Clear filters"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.completed"
 msgid "Completed"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Completed"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.course"
 msgid "Course"
-msgstr ""
+msgstr "පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.live"
 msgid "Live"
-msgstr ""
+msgstr "සජීවී"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.liveClasses"
 msgid "Live Classes"
-msgstr ""
+msgstr "සජීවී පන්ති"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.loadingYourLiveClasses"
 msgid "Loading your live classes…"
-msgstr ""
+msgstr "ඔබගේ පූරණය කරමින් සජීවී පන්ති…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.noLiveClassesMatch"
 msgid "No live classes match your filters"
-msgstr ""
+msgstr "නැත සජීවී පන්ති match ඔබගේ filters"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.noLiveClassesScheduled"
 msgid "No live classes scheduled yet"
-msgstr ""
+msgstr "නැත සජීවී පන්ති scheduled yet"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.scheduleAndManageLive"
 msgid "Schedule and manage live class sessions for the courses you teach."
-msgstr ""
+msgstr "Schedule සහ manage සජීවී පන්තිය sessions සඳහා  පාඨමාලා you teach."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.scheduleLiveClass"
 msgid "Schedule live class"
-msgstr ""
+msgstr "Schedule සජීවී පන්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.scheduleYourFirstLive"
 msgid "Schedule your first live class session for one of your courses."
-msgstr ""
+msgstr "Schedule ඔබගේ පළමු සජීවී පන්තිය session සඳහා one ගේ ඔබගේ පාඨමාලා."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.scheduled"
 msgid "Scheduled"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Scheduled"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.status"
 msgid "Status"
-msgstr ""
+msgstr "තත්ත්වය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses.tryADifferentCourse"
 msgid "Try a different course or status, or clear your filters."
-msgstr ""
+msgstr "Try a different පාඨමාලාව හෝ තත්ත්වය, හෝ clear ඔබගේ filters."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.cancelClass"
 msgid "Cancel class"
-msgstr ""
+msgstr "අවලංගු කරන්න පන්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.cancelling"
 msgid "Cancelling…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Cancelling…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.completing"
 msgid "Completing…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Completing…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.couldNotJoinThe"
 msgid "Could not join the class. Please try again."
-msgstr ""
+msgstr "කළ නොහැකි විය සම්බන්ධ වන්න  පන්තිය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.couldNotLoadThe"
 msgid "Could not load the recording. Please try again."
-msgstr ""
+msgstr "කළ නොහැකි විය load  පටිගත කිරීම. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.couldNotRetryProvisioning"
 msgid "Could not retry provisioning. Please try again."
-msgstr ""
+msgstr "කළ නොහැකි විය නැවත උත්සාහ කරන්න provisioning. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.joinAsHost"
 msgid "Join as host"
-msgstr ""
+msgstr "සම්බන්ධ වන්න as host"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.liveClassScheduled"
 msgid "Live class scheduled."
-msgstr ""
+msgstr "සජීවී පන්තිය scheduled."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.loadingLiveClass"
 msgid "Loading live class…"
-msgstr ""
+msgstr "පූරණය කරමින් සජීවී පන්තිය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.markCompleted"
 msgid "Mark completed"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Mark completed"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.preparingJoinLink"
 msgid "Preparing join link…"
-msgstr ""
+msgstr "Preparing සම්බන්ධ වන්න link…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.preparingPlaybackLink"
 msgid "Preparing playback link…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Preparing playback link…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.reconnectZoom"
 msgid "Reconnect Zoom"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Reconnect Zoom"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.recording"
 msgid "Recording"
-msgstr ""
+msgstr "පටිගත කිරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.recreateMeeting"
 msgid "Recreate meeting"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Recreate meeting"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.recreating"
 msgid "Recreating…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Recreating…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.retryProvisioning"
 msgid "Retry provisioning"
-msgstr ""
+msgstr "නැවත උත්සාහ කරන්න provisioning"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.retrying"
 msgid "Retrying…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Retrying…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.startClass"
 msgid "Start class"
-msgstr ""
+msgstr "ආරම්භ කරන්න පන්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.starting"
 msgid "Starting…"
-msgstr ""
+msgstr "ආරම්භ කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.thatActionCouldNot"
 msgid "That action could not be completed. Please try again."
-msgstr ""
+msgstr "එම action කළ නොහැකි විය be completed. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): genericErrorMessage
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.thisLiveClassCould"
 msgid "This live class could not be found."
-msgstr ""
+msgstr "මෙම සජීවී පන්තිය කළ නොහැකි විය be found."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClasses2.watchRecording"
 msgid "Watch recording"
-msgstr ""
+msgstr "නරඹන්න පටිගත කිරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]/edit): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClassesEdit.editLiveClass"
 msgid "Edit live class"
-msgstr ""
+msgstr "සංස්කරණය කරන්න සජීවී පන්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]/edit): loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClassesEdit.loadingLiveClass"
 msgid "Loading live class…"
-msgstr ""
+msgstr "පූරණය කරමින් සජීවී පන්තිය…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/[sessionId]/edit): genericErrorMessage
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClassesEdit.thisLiveClassCould"
 msgid "This live class could not be found."
-msgstr ""
+msgstr "මෙම සජීවී පන්තිය කළ නොහැකි විය be found."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/new): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClassesNew.scheduleALiveClass"
 msgid "Schedule a live class"
-msgstr ""
+msgstr "Schedule a සජීවී පන්තිය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/live-classes/new): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.liveClassesNew.setUpAZoom"
 msgid "Set up a Zoom-backed live class session for one of your courses."
-msgstr ""
+msgstr "Set up a Zoom-backed සජීවී පන්තිය session සඳහා one ගේ ඔබගේ පාඨමාලා."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/notifications): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.notifications.announcementsFromYourInstitute"
 msgid "Announcements from your institute."
-msgstr ""
+msgstr "Announcements සිට ඔබගේ ආයතනය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/notifications): description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.notifications.announcementsYourInstituteSends"
 msgid "Announcements your institute sends to teachers will appear here."
-msgstr ""
+msgstr "Announcements ඔබගේ ආයතනය sends වෙත ගුරුවරු වනු ඇත appear here."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/notifications): title
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.notifications.noNotificationsYet"
 msgid "No notifications yet"
-msgstr ""
+msgstr "නැත notifications yet"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/notifications): heading
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.notifications.notifications"
 msgid "Notifications"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Notifications"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/settings): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.settings.connectYourOwnZoom"
 msgid "Connect your own Zoom, YouTube and Vimeo accounts."
-msgstr ""
+msgstr "Connect ඔබගේ own Zoom, YouTube සහ Vimeo accounts."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/settings): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.settings.integrations"
 msgid "Integrations"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Integrations"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/settings): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.settings.settings"
 msgid "Settings"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Settings"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/settings): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.settings.yourOwnTeachingAccounts"
 msgid "Your own teaching accounts and preferences."
-msgstr ""
+msgstr "ඔබගේ own teaching accounts සහ preferences."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/settings/integrations): text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.settingsIntegrations.integrations"
 msgid "Integrations"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Integrations"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher Portal page (teacher/settings/integrations): label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.page.settingsIntegrations.loadingYourIntegrations"
 msgid "Loading your integrations…"
-msgstr ""
+msgstr "ඔබගේ පූරණය කරමින් integrations…"
 
 # AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Read-only field label
@@ -17101,250 +17266,285 @@ msgctxt "teacher.profile.validation.qualificationsTooLong"
 msgid "Qualifications must be {max} characters or fewer."
 msgstr "සුදුසුකම් අක්ෂර {max} හෝ ඊට අඩු විය යුතුය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.account"
 msgid "Account"
-msgstr ""
+msgstr "ගිණුම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.checkingYourUpcomingLive"
 msgid "Checking your upcoming live classes…"
-msgstr ""
+msgstr "Checking ඔබගේ ඉදිරි සජීවී පන්ති…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.couldNotDisconnectPlease"
 msgid "Could not disconnect. Please try again."
-msgstr ""
+msgstr "කළ නොහැකි විය disconnect. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.disconnect"
 msgid "Disconnect"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Disconnect"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.disconnecting"
 msgid "Disconnecting…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Disconnecting…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.lastChecked"
 msgid "Last checked"
-msgstr ""
+msgstr "අවසන් checked"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.noUpcomingLiveClasses"
 msgid "No upcoming live classes use this account."
-msgstr ""
+msgstr "ඉදිරි නැත සජීවී පන්ති භාවිත කරන්න මෙම ගිණුම."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.notYet"
 msgid "Not yet"
-msgstr ""
+msgstr "නැත yet"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.testConnection"
 msgid "Test connection"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Test connection"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.testing"
 msgid "Testing…"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Testing…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Teacher integrations card: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.providerCard.thisIsAFree"
 msgid "This is a free (Basic) Zoom account. Live classes need a licensed Zoom account because every student gets a personal join link. Upgrade in Zoom, then choose Reconnect."
-msgstr ""
+msgstr "මෙම වේ a නොමිලේ (Basic) Zoom ගිණුම. සජීවී පන්ති need a licensed Zoom ගිණුම because every ශිෂ්‍යයා gets a personal සම්බන්ධ වන්න link. Upgrade හි Zoom, then තෝරන්න Reconnect."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.actions"
 msgid "Actions"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Actions"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.allStatuses"
 msgid "All statuses"
-msgstr ""
+msgstr "සියලු statuses"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.archived"
 msgid "Archived"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Archived"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.assignStudents"
 msgid "Assign students"
-msgstr ""
+msgstr "Assign ශිෂ්‍යයන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.assignedStudents"
 msgid "Assigned students"
-msgstr ""
+msgstr "Assigned ශිෂ්‍යයන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.available"
 msgid "Available"
-msgstr ""
+msgstr "ලබා ගත හැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.backToTutes"
 msgid "Back to tutes"
-msgstr ""
+msgstr "වෙත ආපසු tutes"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: confirmLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.cancelCopy"
 msgid "Cancel copy"
-msgstr ""
+msgstr "අවලංගු කරන්න පිටපත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.cancelCopy2"
 msgid "Cancel copy?"
-msgstr ""
+msgstr "අවලංගු කරන්න පිටපත් කරන්න?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.cancelUnroll"
 msgid "Cancel (unroll)"
-msgstr ""
+msgstr "අවලංගු කරන්න (unroll)"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.cancelled"
 msgid "Cancelled"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Cancelled"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.changeTheStatusOr"
 msgid "Change the status or search, or clear them."
-msgstr ""
+msgstr "Change  තත්ත්වය හෝ search, හෝ clear them."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.changeToCollection"
 msgid "Change to Collection"
-msgstr ""
+msgstr "Change වෙත Collection"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.changeToPostal"
 msgid "Change to Postal"
-msgstr ""
+msgstr "Change වෙත Postal"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.courses"
 msgid "Courses"
-msgstr ""
+msgstr "පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.dispatched"
 msgid "Dispatched"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Dispatched"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.dispatchedHandedOver"
 msgid "Dispatched / handed over"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Dispatched / handed over"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: hint
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.freeToAssign"
 msgid "Free to assign"
-msgstr ""
+msgstr "නොමිලේ වෙත assign"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.indexNumber"
 msgid "Index Number"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Index Number"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.loadingAssignedStudents"
 msgid "Loading assigned students…"
-msgstr ""
+msgstr "පූරණය කරමින් assigned ශිෂ්‍යයන්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.loadingTute"
 msgid "Loading tute…"
-msgstr ""
+msgstr "පූරණය කරමින් ටියුට්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.manual"
 msgid "Manual"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Manual"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.markHandedOver"
 msgid "Mark handed over"
-msgstr ""
+msgstr "සිංහල කෙටුම්පත: Mark handed over"
 
 #. Tute details page: text
 #: i18n/source/teacher.json
