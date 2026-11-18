@@ -4465,1405 +4465,1605 @@ msgctxt "exams.marks"
 msgid "{count, plural, one {{marks} mark} other {{marks} marks}}"
 msgstr ""
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam duration
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.minutes"
 msgid "{count, plural, one {# minute} other {# minutes}}"
-msgstr ""
+msgstr "{count, plural, one {# මිනිත්තුව} other {# මිනිත්තු}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Password field help
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.password.helper"
 msgid "Your teacher gives you this password when the exam begins."
-msgstr ""
+msgstr "විභාගය ආරම්භ වන විට ඔබේ ගුරුවරයා මෙම මුරපදය ලබා දෙයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.password.required"
 msgid "Enter the exam password your teacher gave you."
-msgstr ""
+msgstr "ඔබේ ගුරුවරයා ලබා දුන් විභාග මුරපදය ඇතුළත් කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Validation message
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.password.tooLong"
 msgid "The password is at most {max} characters."
-msgstr ""
+msgstr "මුරපදය උපරිම වශයෙන් අක්ෂර {max}ක් විය හැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Physical exam note
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.physical.description"
 msgid "Attend the exam at the scheduled time ({when}). Your teacher records your attendance and marks."
-msgstr ""
+msgstr "නියමිත වේලාවේ ({when}) විභාගයට සහභාගී වන්න. ඔබේ ගුරුවරයා ඔබගේ පැමිණීම සහ ලකුණු සටහන් කරයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.course"
 msgid "Course"
-msgstr ""
+msgstr "පාඨමාලාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.exam"
 msgid "Exam"
-msgstr ""
+msgstr "විභාගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.loadingExams"
 msgid "Loading exams…"
-msgstr ""
+msgstr "විභාග පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.loadingYourCourses"
 msgid "Loading your courses…"
-msgstr ""
+msgstr "ඔබගේ පාඨමාලා පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.noCoursesYet"
 msgid "No courses yet"
-msgstr ""
+msgstr "තවම පාඨමාලා නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: placeholder
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.selectACourse"
 msgid "Select a course"
-msgstr ""
+msgstr "පාඨමාලාවක් තෝරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.selectAnExam"
 msgid "Select an exam"
-msgstr ""
+msgstr "විභාගයක් තෝරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam picker: description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.youNeedAtLeast"
 msgid "You need at least one course to browse exams."
-msgstr ""
+msgstr "විභාග බ්‍රවුස් කිරීමට ඔබට අවම වශයෙන් එක් පාඨමාලාවක් අවශ්‍ය වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question heading
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.question.number"
 msgid "Question {number}"
-msgstr ""
+msgstr "ප්‍රශ්නය {number}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Continuation of the question heading
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.question.ofTotal"
 msgid "of {total}"
-msgstr ""
+msgstr "{total} න්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader label before an answer option
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.question.option"
 msgid "Option {letter}:"
-msgstr ""
+msgstr "විකල්පය {letter}:"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.allQuestions"
 msgid "All questions"
-msgstr ""
+msgstr "සියලු ප්‍රශ්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.collapse"
 msgid "Collapse"
-msgstr ""
+msgstr "හකුළන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.copyQuestion"
 msgid "Copy question"
-msgstr ""
+msgstr "ප්‍රශ්නය පිටපත් කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.correctAnswer"
 msgid "Correct answer"
-msgstr ""
+msgstr "නිවැරදි පිළිතුර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.courses"
 msgid "Courses"
-msgstr ""
+msgstr "පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.createQuestion"
 msgid "Create question"
-msgstr ""
+msgstr "ප්‍රශ්නය සාදන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.createQuestionsOneBy"
 msgid "Create questions one by one, or import many at once from a CSV file in the Imports tab. Exams draw their questions from this bank."
-msgstr ""
+msgstr "ප්‍රශ්න එකින් එක සාදන්න, නැතහොත් Imports ටැබයේ CSV ගොනුවකින් එකවර බොහෝ ප්‍රශ්න ආනයනය කරන්න. විභාග ඒවායේ ප්‍රශ්න මෙම බැංකුවෙන් ලබා ගනී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.delete"
 msgid "Delete"
-msgstr ""
+msgstr "මකන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: confirmLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.deleteQuestion"
 msgid "Delete question"
-msgstr ""
+msgstr "ප්‍රශ්නය මකන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.edit"
 msgid "Edit"
-msgstr ""
+msgstr "සංස්කරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.expand"
 msgid "Expand"
-msgstr ""
+msgstr "විහිදන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.explanation"
 msgid "Explanation"
-msgstr ""
+msgstr "පැහැදිලි කිරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.hideAnswers"
 msgid "Hide answers"
-msgstr ""
+msgstr "පිළිතුරු සඟවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.imports"
 msgid "Imports"
-msgstr ""
+msgstr "ආනයන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.loadingModule"
 msgid "Loading module…"
-msgstr ""
+msgstr "මොඩියුලය පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.loadingQuestions"
 msgid "Loading questions…"
-msgstr ""
+msgstr "ප්‍රශ්න පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.nextPage"
 msgid "Next page"
-msgstr ""
+msgstr "ඊළඟ පිටුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.noQuestionsInThis"
 msgid "No questions in this module yet"
-msgstr ""
+msgstr "මෙම මොඩියුලයේ තවම ප්‍රශ්න නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.previousPage"
 msgid "Previous page"
-msgstr ""
+msgstr "පෙර පිටුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionBank"
 msgid "Question bank"
-msgstr ""
+msgstr "ප්‍රශ්න බැංකුව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionCreated"
 msgid "Question created."
-msgstr ""
+msgstr "ප්‍රශ්නය සාදන ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionSaved"
 msgid "Question saved."
-msgstr ""
+msgstr "ප්‍රශ්නය සුරකින ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionsAddedToThis"
 msgid "Questions added to this module by your exam team will appear here."
-msgstr ""
+msgstr "ඔබගේ විභාග කණ්ඩායම විසින් මෙම මොඩියුලයට එක් කරන ප්‍රශ්න මෙහි දිස් වනු ඇත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionsPagination"
 msgid "Questions pagination"
-msgstr ""
+msgstr "ප්‍රශ්න පිටුකරණය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.showAnswers"
 msgid "Show answers"
-msgstr ""
+msgstr "පිළිතුරු පෙන්වන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.theQuestionIsRemoved"
 msgid "The question is removed from this module's bank. Exams that already include it keep their own copy, and student attempts are not changed."
-msgstr ""
+msgstr "ප්‍රශ්නය මෙම මොඩියුලයේ බැංකුවෙන් ඉවත් කර ඇත. දැනටමත් එය ඇතුළත් විභාගවල තමන්ගේම පිටපත පවතින අතර ශිෂ්‍ය උත්සාහ වෙනස් නොවේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.theQuestionsCouldNot"
 msgid "The questions could not be loaded."
-msgstr ""
+msgstr "ප්‍රශ්න පූරණය කළ නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.thereAreNoQuestions"
 msgid "There are no questions to copy yet"
-msgstr ""
+msgstr "තවම පිටපත් කිරීමට ප්‍රශ්න නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Module question bank: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.toggleCorrectAnswerHighlight"
 msgid "Toggle correct answer highlight"
-msgstr ""
+msgstr "නිවැරදි පිළිතුරු උද්දීපනය මාරු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Number of questions
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCount"
 msgid "{count, plural, one {# question} other {# questions}}"
-msgstr ""
+msgstr "{count, plural, one {# ප්‍රශ්නය} other {# ප්‍රශ්න}}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.createQuestion"
 msgid "Create question"
-msgstr ""
+msgstr "ප්‍රශ්නය සාදන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.creating"
 msgid "Creating…"
-msgstr ""
+msgstr "සාදමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.creatingQuestion"
 msgid "Creating question…"
-msgstr ""
+msgstr "ප්‍රශ්නය සාදමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.multipleChoice"
 msgid "Multiple choice"
-msgstr ""
+msgstr "බහු තේරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.newQuestion"
 msgid "New question"
-msgstr ""
+msgstr "නව ප්‍රශ්නය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.questionText"
 msgid "Question text"
-msgstr ""
+msgstr "ප්‍රශ්න පෙළ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.questionType"
 msgid "Question type"
-msgstr ""
+msgstr "ප්‍රශ්න වර්ගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: placeholder
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.selectAType"
 msgid "Select a type"
-msgstr ""
+msgstr "වර්ගයක් තෝරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.structuredFreeText"
 msgid "Structured (free text)"
-msgstr ""
+msgstr "ව්‍යුහගත (නිදහස් පෙළ)"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.structuredQuestionsAreGraded"
 msgid "Structured questions are graded manually via the Marking Queue — no answer options are collected."
-msgstr ""
+msgstr "ව්‍යුහගත ප්‍රශ්න Marking Queue හරහා අතින් ලකුණු කරනු ලැබේ — පිළිතුරු විකල්ප එකතු නොවේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question editor page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.courses"
 msgid "Courses"
-msgstr ""
+msgstr "පාඨමාලා"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question editor page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.create"
 msgid "Create"
-msgstr ""
+msgstr "සාදන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question editor page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.edit"
 msgid "Edit"
-msgstr ""
+msgstr "සංස්කරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question editor page: loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.loadingCourse"
 msgid "Loading course…"
-msgstr ""
+msgstr "පාඨමාලාව පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question editor page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.loadingQuestion"
 msgid "Loading question…"
-msgstr ""
+msgstr "ප්‍රශ්නය පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.delete"
 msgid "Delete"
-msgstr ""
+msgstr "මකන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.deleteQuestion"
 msgid "Delete question"
-msgstr ""
+msgstr "ප්‍රශ්නය මකන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.deleteThisQuestion"
 msgid "Delete this question?"
-msgstr ""
+msgstr "මෙම ප්‍රශ්නය මකන්නද?"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.deleting"
 msgid "Deleting…"
-msgstr ""
+msgstr "මකමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.edit"
 msgid "Edit"
-msgstr ""
+msgstr "සංස්කරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.multipleChoice"
 msgid "Multiple choice"
-msgstr ""
+msgstr "බහු තේරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.structured"
 msgid "Structured"
-msgstr ""
+msgstr "ව්‍යුහගත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.availableAfter"
 msgid "Results will be available after {when}"
-msgstr ""
+msgstr "ප්‍රතිඵල {when} න් පසු ලබා ගත හැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Notice after an exam
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.finished.closed"
 msgid "This attempt has already been submitted. Your saved answers count."
-msgstr ""
+msgstr "මෙම උත්සාහය දැනටමත් ඉදිරිපත් කර ඇත. ඔබගේ සුරැකි පිළිතුරු ගණනය වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Notice after an exam
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.finished.submitted"
 msgid "Your answers were submitted."
-msgstr ""
+msgstr "ඔබගේ පිළිතුරු ඉදිරිපත් කරන ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Notice after an exam
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.finished.timeout"
 msgid "Time is up — your answers were submitted."
-msgstr ""
+msgstr "කාලය අවසන් — ඔබගේ පිළිතුරු ඉදිරිපත් කරන ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Screen-reader word after a score
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.marksWord"
 msgid "marks"
-msgstr ""
+msgstr "ලකුණු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.duration"
 msgid "You have {duration} from the moment you start, but never past the exam's closing time ({closes}). Your deadline is whichever comes first."
-msgstr ""
+msgstr "ඔබ ආරම්භ කළ මොහොතේ සිට {duration} කාලයක් වැඩ කළ හැකි නමුත් විභාගය අවසන් වන වේලාව ({closes}) පසු නොවේ. පළමුව එළඹෙන එක ඔබගේ අවසන් කාලය වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.once"
 msgid "You can attempt this exam only once. Leaving the page doesn't pause the timer."
-msgstr ""
+msgstr "ඔබට මෙම විභාගයට උත්සාහ කළ හැක්කේ එක් වරක් පමණි. පිටුවෙන් ඉවත් වීමෙන් ටයිමරය නවතින්නේ නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.score"
 msgid "Your score is shown after the exam closes. Unanswered questions score 0; there are no negative marks."
-msgstr ""
+msgstr "විභාගය අවසන් වූ පසු ඔබගේ ලකුණු පෙන්වනු ඇත. පිළිතුරු නොදුන් ප්‍රශ්න සඳහා ලකුණු 0කි; සෘණ ලකුණු නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.untilClose"
 msgid "You can work until the exam closes at {closes}."
-msgstr ""
+msgstr "විභාගය {closes} ට අවසන් වන තෙක් ඔබට වැඩ කළ හැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.failed"
 msgid "Not saved"
-msgstr ""
+msgstr "සුරකින ලදී නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.failedWith"
 msgid "Not saved — {reason}"
-msgstr ""
+msgstr "සුරකින ලදී නැත — {reason}"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.offline"
 msgid "Offline — retrying"
-msgstr ""
+msgstr "අසම්බන්ධිතයි — නැවත උත්සාහ කරමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.saved"
 msgid "Saved"
-msgstr ""
+msgstr "සුරකින ලදී"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "සුරකිමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Empty state
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.start.notOpenDescription"
 msgid "You can start it from {when}. Come back then with the exam password."
-msgstr ""
+msgstr "ඔබට එය {when} සිට ආරම්භ කළ හැක. එවිට විභාග මුරපදය සමඟ නැවත එන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.averageMarks"
 msgid "Average Marks"
-msgstr ""
+msgstr "සාමාන්‍ය ලකුණු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.correctAnswer"
 msgid "Correct answer"
-msgstr ""
+msgstr "නිවැරදි පිළිතුර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.exam"
 msgid "Exam"
-msgstr ""
+msgstr "විභාගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.examStats"
 msgid "Exam Stats"
-msgstr ""
+msgstr "විභාග සංඛ්‍යාලේඛන"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.exams"
 msgid "Exams"
-msgstr ""
+msgstr "විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.frequentlyMissedQuestions"
 msgid "Frequently Missed Questions"
-msgstr ""
+msgstr "නිතර මඟහැරුණු ප්‍රශ්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.hideAnswerOptions"
 msgid "Hide answer options"
-msgstr ""
+msgstr "පිළිතුරු විකල්ප සඟවන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.inClass"
 msgid "In-class"
-msgstr ""
+msgstr "පන්ති කාමරයේ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.loadingExam"
 msgid "Loading exam…"
-msgstr ""
+msgstr "විභාගය පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.loadingStatistics"
 msgid "Loading statistics…"
-msgstr ""
+msgstr "සංඛ්‍යාලේඛන පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.manageExam"
 msgid "Manage exam"
-msgstr ""
+msgstr "විභාගය කළමනාකරණය කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.marks"
 msgid "Marks"
-msgstr ""
+msgstr "ලකුණු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.maximumMarks"
 msgid "Maximum Marks"
-msgstr ""
+msgstr "උපරිම ලකුණු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.minimumMarks"
 msgid "Minimum Marks"
-msgstr ""
+msgstr "අවම ලකුණු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noMarksEnteredYet"
 msgid "No marks entered yet"
-msgstr ""
+msgstr "තවම ලකුණු ඇතුළත් කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noOneHasAttended"
 msgid "No one has attended this exam yet"
-msgstr ""
+msgstr "තවම කිසිවෙකු මෙම විභාගයට සහභාගී වී නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noOneHasAttended2"
 msgid "No one has attended yet"
-msgstr ""
+msgstr "තවම කිසිවෙකු සහභාගී වී නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noQuestionWasMissed"
 msgid "No question was missed — every response so far was correct."
-msgstr ""
+msgstr "කිසිදු ප්‍රශ්නයක් මඟහැරී නැත — මෙතෙක් සෑම පිළිතුරක්ම නිවැරදිය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noQuestionsOnThis"
 msgid "No questions on this paper"
-msgstr ""
+msgstr "මෙම ප්‍රශ්න පත්‍රයේ ප්‍රශ්න නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.notAvailableYet"
 msgid "Not available yet"
-msgstr ""
+msgstr "තවම ලබා ගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.passed"
 msgid "Passed"
-msgstr ""
+msgstr "සමත්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.questionDistribution"
 msgid "Question Distribution"
-msgstr ""
+msgstr "ප්‍රශ්න බෙදාහැරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.questionWiseBreakdown"
 msgid "Question-Wise Breakdown"
-msgstr ""
+msgstr "ප්‍රශ්න අනුව විස්තරය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.statisticsAppearHereOnce"
 msgid "Statistics appear here once students sit the exam and marks are recorded."
-msgstr ""
+msgstr "ශිෂ්‍යයන් විභාගයට පෙනී සිට ලකුණු සටහන් කළ පසු සංඛ්‍යාලේඛන මෙහි දිස් වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.thisExamHasNo"
 msgid "This exam has no drawn questions, so there is nothing to break down."
-msgstr ""
+msgstr "මෙම විභාගයට තෝරාගත් ප්‍රශ්න නැත, එබැවින් විස්තර කිරීමට කිසිවක් නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.viewAnswerOptions"
 msgid "View answer options"
-msgstr ""
+msgstr "පිළිතුරු විකල්ප බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.weCouldntLoadThe"
 msgid "We couldn't load the statistics."
-msgstr ""
+msgstr "සංඛ්‍යාලේඛන පූරණය කළ නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.weCouldntLoadThis"
 msgid "We couldn't load this exam."
-msgstr ""
+msgstr "මෙම විභාගය පූරණය කළ නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.written"
 msgid "Written"
-msgstr ""
+msgstr "ලිඛිත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.draft"
 msgid "Draft"
-msgstr ""
+msgstr "කෙටුම්පත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.finished"
 msgid "Finished"
-msgstr ""
+msgstr "අවසන්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.inProgress"
 msgid "In progress"
-msgstr ""
+msgstr "ක්‍රියාත්මකයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.upcoming"
 msgid "Upcoming"
-msgstr ""
+msgstr "ඉදිරි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.closed"
 msgid "Closed"
-msgstr ""
+msgstr "වසා ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.examGroups"
 msgid "Exam groups"
-msgstr ""
+msgstr "විභාග කණ්ඩායම්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.examsThatHaveClosed"
 msgid "Exams that have closed appear here, with your result once it's available."
-msgstr ""
+msgstr "වසා දැමූ විභාග මෙහි දිස් වන අතර, ප්‍රතිඵලය ලබා ගත හැකි වූ පසු එයද පෙන්වයි."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.examsYoureEnrolledIn"
 msgid "Exams you're enrolled in appear here while they're open. Check Upcoming for scheduled exams."
-msgstr ""
+msgstr "ඔබ ලියාපදිංචි වී ඇති විභාග විවෘතව පවතින විට මෙහි දිස් වේ. නියමිත විභාග සඳහා Upcoming පරීක්ෂා කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.inProgress"
 msgid "In progress"
-msgstr ""
+msgstr "ක්‍රියාත්මකයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.leaderboards"
 msgid "Leaderboards"
-msgstr ""
+msgstr "ප්‍රමුඛ පුවරු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.loadingYourExams"
 msgid "Loading your exams…"
-msgstr ""
+msgstr "ඔබගේ විභාග පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.myExams"
 msgid "My exams"
-msgstr ""
+msgstr "මගේ විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.noExamsAreOpen"
 msgid "No exams are open right now"
-msgstr ""
+msgstr "දැනට කිසිදු විභාගයක් විවෘත නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.noPreviousExams"
 msgid "No previous exams"
-msgstr ""
+msgstr "පෙර විභාග නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.noUpcomingExams"
 msgid "No upcoming exams"
-msgstr ""
+msgstr "ඉදිරි විභාග නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.opens"
 msgid "Opens"
-msgstr ""
+msgstr "විවෘත වේ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.previous"
 msgid "Previous"
-msgstr ""
+msgstr "පෙර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.upcoming"
 msgid "Upcoming"
-msgstr ""
+msgstr "ඉදිරි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.weCouldntLoadYour"
 msgid "We couldn't load your exams."
-msgstr ""
+msgstr "ඔබගේ විභාග පූරණය කළ නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.whenYoureEnrolledIn"
 msgid "When you're enrolled in an exam that hasn't opened yet, it will be listed here with its start time."
-msgstr ""
+msgstr "තවම විවෘත නොවූ විභාගයකට ඔබ ලියාපදිංචි වූ විට, එය ආරම්භක වේලාව සමඟ මෙහි ලැයිස්තුගත වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.youArentEnrolledIn"
 msgid "You aren't enrolled in any exams yet"
-msgstr ""
+msgstr "ඔබ තවම කිසිදු විභාගයක ලියාපදිංචි වී නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.answerReview"
 msgid "Answer review"
-msgstr ""
+msgstr "පිළිතුරු සමාලෝචනය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.answered"
 msgid "Answered"
-msgstr ""
+msgstr "පිළිතුරු දී ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.backToMyExams"
 msgid "Back to my exams"
-msgstr ""
+msgstr "මගේ විභාග වෙත ආපසු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.correct"
 msgid "Correct"
-msgstr ""
+msgstr "නිවැරදි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.correctAnswer"
 msgid "Correct answer"
-msgstr ""
+msgstr "නිවැරදි පිළිතුර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.cutOff"
 msgid "Cut-off"
-msgstr ""
+msgstr "සීමාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.examNotFound"
 msgid "Exam not found"
-msgstr ""
+msgstr "විභාගය සොයාගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.explanation"
 msgid "Explanation"
-msgstr ""
+msgstr "පැහැදිලි කිරීම"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.goToExamDetails"
 msgid "Go to exam details"
-msgstr ""
+msgstr "විභාග විස්තර වෙත යන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.incorrect"
 msgid "Incorrect"
-msgstr ""
+msgstr "වැරදි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.loadingYourResult"
 msgid "Loading your result…"
-msgstr ""
+msgstr "ඔබගේ ප්‍රතිඵලය පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.myExams"
 msgid "My exams"
-msgstr ""
+msgstr "මගේ විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.notAnswered"
 msgid "Not answered"
-msgstr ""
+msgstr "පිළිතුරු දී නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.notPassed"
 msgid "Not passed"
-msgstr ""
+msgstr "සමත් නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.passed"
 msgid "Passed"
-msgstr ""
+msgstr "සමත්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.result"
 msgid "Result"
-msgstr ""
+msgstr "ප්‍රතිඵලය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.resultNotFound"
 msgid "Result not found"
-msgstr ""
+msgstr "ප්‍රතිඵලය සොයාගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.resumeExam"
 msgid "Resume exam"
-msgstr ""
+msgstr "විභාගය නැවත ආරම්භ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.scoresAreReleasedWhen"
 msgid "Scores are released when the exam window closes for everyone. Check back then."
-msgstr ""
+msgstr "සෑම දෙනාටම විභාග කවුළුව වැසුණු විට ලකුණු නිකුත් වේ. එවිට නැවත පරීක්ෂා කරන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.theExamClosedWithout"
 msgid "The exam closed without an attempt from you, so there's no result to show."
-msgstr ""
+msgstr "ඔබගේ උත්සාහයකින් තොරව විභාගය අවසන් විය, එබැවින් පෙන්වීමට ප්‍රතිඵලයක් නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.theresNoResultYet"
 msgid "There's no result yet because you haven't attempted this exam."
-msgstr ""
+msgstr "ඔබ මෙම විභාගයට උත්සාහ කර නැති නිසා තවම ප්‍රතිඵලයක් නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.thisAttemptDoesntExist"
 msgid "This attempt doesn't exist, or it isn't yours."
-msgstr ""
+msgstr "මෙම උත්සාහය නොපවතී හෝ එය ඔබගේ නොවේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.thisExamDoesntExist"
 msgid "This exam doesn't exist, or you aren't enrolled in it."
-msgstr ""
+msgstr "මෙම විභාගය නොපවතී හෝ ඔබ එහි ලියාපදිංචි වී නැත."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.weCouldntLoadThis"
 msgid "We couldn't load this exam."
-msgstr ""
+msgstr "මෙම විභාගය පූරණය කළ නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.youDidntAttemptThis"
 msgid "You didn't attempt this exam"
-msgstr ""
+msgstr "ඔබ මෙම විභාගයට උත්සාහ කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.youHaventStartedThis"
 msgid "You haven't started this exam"
-msgstr ""
+msgstr "ඔබ මෙම විභාගය ආරම්භ කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.yourAnswer"
 msgid "Your answer"
-msgstr ""
+msgstr "ඔබගේ පිළිතුර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.yourResult"
 msgid "Your result"
-msgstr ""
+msgstr "ඔබගේ ප්‍රතිඵලය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.beingFinalized"
 msgid "Being finalized"
-msgstr ""
+msgstr "අවසන් කරමින්"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.closes"
 msgid "Closes"
-msgstr ""
+msgstr "වසා දමයි"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.continue"
 msgid "Continue"
-msgstr ""
+msgstr "ඉදිරියට යන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.duration"
 msgid "Duration"
-msgstr ""
+msgstr "කාලසීමාව"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.noFixedDuration"
 msgid "No fixed duration"
-msgstr ""
+msgstr "ස්ථාවර කාලසීමාවක් නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.notAttempted"
 msgid "Not attempted"
-msgstr ""
+msgstr "උත්සාහ කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.open"
 msgid "Open"
-msgstr ""
+msgstr "විවෘත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.opens"
 msgid "Opens"
-msgstr ""
+msgstr "විවෘත වේ"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.resume"
 msgid "Resume"
-msgstr ""
+msgstr "නැවත ආරම්භ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.size"
 msgid "Size"
-msgstr ""
+msgstr "ප්‍රමාණය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.start"
 msgid "Start"
-msgstr ""
+msgstr "ආරම්භ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.viewDetails"
 msgid "View details"
-msgstr ""
+msgstr "විස්තර බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.viewResult"
 msgid "View result"
-msgstr ""
+msgstr "ප්‍රතිඵලය බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.backToMyExams"
 msgid "Back to my exams"
-msgstr ""
+msgstr "මගේ විභාග වෙත ආපසු"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.beforeYouStart"
 msgid "Before you start"
-msgstr ""
+msgstr "ඔබ ආරම්භ කිරීමට පෙර"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.exam"
 msgid "Exam"
-msgstr ""
+msgstr "විභාගය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.examNotFound"
 msgid "Exam not found"
-msgstr ""
+msgstr "විභාගය සොයාගත නොහැක"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.examPassword"
 msgid "Exam password"
-msgstr ""
+msgstr "විභාග මුරපදය"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.loadingExam"
 msgid "Loading exam…"
-msgstr ""
+msgstr "විභාගය පූරණය කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.myExams"
 msgid "My exams"
-msgstr ""
+msgstr "මගේ විභාග"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.resumeExam"
 msgid "Resume exam"
-msgstr ""
+msgstr "විභාගය නැවත ආරම්භ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.seeYourResult"
 msgid "See your result"
-msgstr ""
+msgstr "ඔබගේ ප්‍රතිඵලය බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.startExam"
 msgid "Start exam"
-msgstr ""
+msgstr "විභාගය ආරම්භ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.startTheExam"
 msgid "Start the exam"
-msgstr ""
+msgstr "විභාගය ආරම්භ කරන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.starting"
 msgid "Starting…"
-msgstr ""
+msgstr "ආරම්භ කරමින්…"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.theExamWindowEnded"
 msgid "The exam window ended before you started, so it can no longer be attempted."
-msgstr ""
+msgstr "ඔබ ආරම්භ කිරීමට පෙර විභාග කවුළුව අවසන් විය, එබැවින් තවදුරටත් උත්සාහ කළ නොහැක."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.thisExamDoesntExist"
 msgid "This exam doesn't exist, or you aren't enrolled in it. Ask your teacher if you expected to see it."
-msgstr ""
+msgstr "මෙම විභාගය නොපවතී හෝ ඔබ එහි ලියාපදිංචි වී නැත. එය දැකිය යුතු යැයි සිතන්නේ නම් ඔබේ ගුරුවරයාගෙන් විමසන්න."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.thisExamHasClosed"
 msgid "This exam has closed"
-msgstr ""
+msgstr "මෙම විභාගය වසා ඇත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.thisExamHasntOpened"
 msgid "This exam hasn't opened yet"
-msgstr ""
+msgstr "මෙම විභාගය තවම විවෘත කර නැත"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.viewResult"
 msgid "View result"
-msgstr ""
+msgstr "ප්‍රතිඵලය බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.viewSubmissionStatus"
 msgid "View submission status"
-msgstr ""
+msgstr "ඉදිරිපත් කිරීමේ තත්ත්වය බලන්න"
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.weCouldntLoadThis"
 msgid "We couldn't load this exam."
-msgstr ""
+msgstr "මෙම විභාගය පූරණය කළ නොහැකි විය."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.whenTheTimeRuns"
 msgid "When the time runs out, your saved answers are submitted automatically."
-msgstr ""
+msgstr "කාලය අවසන් වූ විට ඔබගේ සුරැකි පිළිතුරු ස්වයංක්‍රීයව ඉදිරිපත් වේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.yourAnswersAreSaved"
 msgid "Your answers are saved automatically each time you choose an option."
-msgstr ""
+msgstr "ඔබ විකල්පයක් තෝරන සෑම අවස්ථාවකම ඔබගේ පිළිතුරු ස්වයංක්‍රීයව සුරැකේ."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.yourAnswersWereSubmitted"
 msgid "Your answers were submitted."
-msgstr ""
+msgstr "ඔබගේ පිළිතුරු ඉදිරිපත් කරන ලදී."
 
+# AI draft translation (Claude), needs review by a fluent Sinhala speaker
 #. Student exam screens (student-exam-take): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamTake.answered"
 msgid "Answered"
-msgstr ""
+msgstr "පිළිතුරු දී ඇත"
 
 #. Student exam screens (student-exam-take): text
 #: i18n/source/exams.json

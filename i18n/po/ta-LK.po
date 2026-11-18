@@ -4465,1405 +4465,1605 @@ msgctxt "exams.marks"
 msgid "{count, plural, one {{marks} mark} other {{marks} marks}}"
 msgstr ""
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam duration
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.minutes"
 msgid "{count, plural, one {# minute} other {# minutes}}"
-msgstr ""
+msgstr "{count, plural, one {# நிமிடம்} other {# நிமிடங்கள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Password field help
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.password.helper"
 msgid "Your teacher gives you this password when the exam begins."
-msgstr ""
+msgstr "தேர்வு தொடங்கும்போது உங்கள் ஆசிரியர் இந்தக் கடவுச்சொல்லை வழங்குவார்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.password.required"
 msgid "Enter the exam password your teacher gave you."
-msgstr ""
+msgstr "உங்கள் ஆசிரியர் வழங்கிய தேர்வுக் கடவுச்சொல்லை உள்ளிடவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Validation message
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.password.tooLong"
 msgid "The password is at most {max} characters."
-msgstr ""
+msgstr "கடவுச்சொல் அதிகபட்சம் {max} எழுத்துகளாக இருக்கலாம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Physical exam note
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.physical.description"
 msgid "Attend the exam at the scheduled time ({when}). Your teacher records your attendance and marks."
-msgstr ""
+msgstr "திட்டமிடப்பட்ட நேரத்தில் ({when}) தேர்வில் கலந்துகொள்ளுங்கள். உங்கள் ஆசிரியர் உங்கள் வருகையையும் மதிப்பெண்களையும் பதிவு செய்வார்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.course"
 msgid "Course"
-msgstr ""
+msgstr "பாடநெறி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.exam"
 msgid "Exam"
-msgstr ""
+msgstr "தேர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.loadingExams"
 msgid "Loading exams…"
-msgstr ""
+msgstr "தேர்வுகளை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.loadingYourCourses"
 msgid "Loading your courses…"
-msgstr ""
+msgstr "உங்கள் பாடநெறிகளை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.noCoursesYet"
 msgid "No courses yet"
-msgstr ""
+msgstr "இன்னும் பாடநெறிகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: placeholder
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.selectACourse"
 msgid "Select a course"
-msgstr ""
+msgstr "ஒரு பாடநெறியைத் தேர்ந்தெடுக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.selectAnExam"
 msgid "Select an exam"
-msgstr ""
+msgstr "ஒரு தேர்வைத் தேர்ந்தெடுக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam picker: description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.picker.youNeedAtLeast"
 msgid "You need at least one course to browse exams."
-msgstr ""
+msgstr "தேர்வுகளை உலாவ குறைந்தது ஒரு பாடநெறி தேவை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question heading
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.question.number"
 msgid "Question {number}"
-msgstr ""
+msgstr "கேள்வி {number}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Continuation of the question heading
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.question.ofTotal"
 msgid "of {total}"
-msgstr ""
+msgstr "{total} இல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader label before an answer option
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.question.option"
 msgid "Option {letter}:"
-msgstr ""
+msgstr "விருப்பம் {letter}:"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.allQuestions"
 msgid "All questions"
-msgstr ""
+msgstr "அனைத்து கேள்விகளும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.collapse"
 msgid "Collapse"
-msgstr ""
+msgstr "சுருக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.copyQuestion"
 msgid "Copy question"
-msgstr ""
+msgstr "கேள்வியை நகலெடு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.correctAnswer"
 msgid "Correct answer"
-msgstr ""
+msgstr "சரியான பதில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.courses"
 msgid "Courses"
-msgstr ""
+msgstr "பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.createQuestion"
 msgid "Create question"
-msgstr ""
+msgstr "கேள்வியை உருவாக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.createQuestionsOneBy"
 msgid "Create questions one by one, or import many at once from a CSV file in the Imports tab. Exams draw their questions from this bank."
-msgstr ""
+msgstr "கேள்விகளை ஒவ்வொன்றாக உருவாக்கவும் அல்லது Imports தாவலில் CSV கோப்பிலிருந்து ஒரே நேரத்தில் பலவற்றை இறக்குமதி செய்யவும். தேர்வுகள் தங்கள் கேள்விகளை இந்த வங்கியிலிருந்து பெறுகின்றன."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.delete"
 msgid "Delete"
-msgstr ""
+msgstr "நீக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: confirmLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.deleteQuestion"
 msgid "Delete question"
-msgstr ""
+msgstr "கேள்வியை நீக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.edit"
 msgid "Edit"
-msgstr ""
+msgstr "திருத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.expand"
 msgid "Expand"
-msgstr ""
+msgstr "விரி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.explanation"
 msgid "Explanation"
-msgstr ""
+msgstr "விளக்கம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.hideAnswers"
 msgid "Hide answers"
-msgstr ""
+msgstr "பதில்களை மறை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.imports"
 msgid "Imports"
-msgstr ""
+msgstr "இறக்குமதிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.loadingModule"
 msgid "Loading module…"
-msgstr ""
+msgstr "தொகுதியை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.loadingQuestions"
 msgid "Loading questions…"
-msgstr ""
+msgstr "கேள்விகளை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.nextPage"
 msgid "Next page"
-msgstr ""
+msgstr "அடுத்த பக்கம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.noQuestionsInThis"
 msgid "No questions in this module yet"
-msgstr ""
+msgstr "இந்தத் தொகுதியில் இன்னும் கேள்விகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.previousPage"
 msgid "Previous page"
-msgstr ""
+msgstr "முந்தைய பக்கம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionBank"
 msgid "Question bank"
-msgstr ""
+msgstr "கேள்வி வங்கி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionCreated"
 msgid "Question created."
-msgstr ""
+msgstr "கேள்வி உருவாக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionSaved"
 msgid "Question saved."
-msgstr ""
+msgstr "கேள்வி சேமிக்கப்பட்டது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionsAddedToThis"
 msgid "Questions added to this module by your exam team will appear here."
-msgstr ""
+msgstr "உங்கள் தேர்வுக் குழு இந்தத் தொகுதியில் சேர்க்கும் கேள்விகள் இங்கே தோன்றும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.questionsPagination"
 msgid "Questions pagination"
-msgstr ""
+msgstr "கேள்விப் பக்கமாக்கல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.showAnswers"
 msgid "Show answers"
-msgstr ""
+msgstr "பதில்களைக் காட்டு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.theQuestionIsRemoved"
 msgid "The question is removed from this module's bank. Exams that already include it keep their own copy, and student attempts are not changed."
-msgstr ""
+msgstr "இந்தத் தொகுதியின் வங்கியிலிருந்து கேள்வி அகற்றப்பட்டது. ஏற்கனவே அதை உள்ளடக்கிய தேர்வுகள் தங்கள் சொந்த நகலை வைத்திருக்கும்; மாணவர் முயற்சிகள் மாற்றப்படாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.theQuestionsCouldNot"
 msgid "The questions could not be loaded."
-msgstr ""
+msgstr "கேள்விகளை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.thereAreNoQuestions"
 msgid "There are no questions to copy yet"
-msgstr ""
+msgstr "இன்னும் நகலெடுக்க கேள்விகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Module question bank: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionBank.toggleCorrectAnswerHighlight"
 msgid "Toggle correct answer highlight"
-msgstr ""
+msgstr "சரியான பதில் முன்னிலைப்படுத்தலை மாற்று"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Number of questions
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCount"
 msgid "{count, plural, one {# question} other {# questions}}"
-msgstr ""
+msgstr "{count, plural, one {# கேள்வி} other {# கேள்விகள்}}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.createQuestion"
 msgid "Create question"
-msgstr ""
+msgstr "கேள்வியை உருவாக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.creating"
 msgid "Creating…"
-msgstr ""
+msgstr "உருவாக்குகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.creatingQuestion"
 msgid "Creating question…"
-msgstr ""
+msgstr "கேள்வியை உருவாக்குகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.multipleChoice"
 msgid "Multiple choice"
-msgstr ""
+msgstr "பல தேர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.newQuestion"
 msgid "New question"
-msgstr ""
+msgstr "புதிய கேள்வி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.questionText"
 msgid "Question text"
-msgstr ""
+msgstr "கேள்வி உரை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.questionType"
 msgid "Question type"
-msgstr ""
+msgstr "கேள்வி வகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: placeholder
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.selectAType"
 msgid "Select a type"
-msgstr ""
+msgstr "ஒரு வகையைத் தேர்ந்தெடுக்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.structuredFreeText"
 msgid "Structured (free text)"
-msgstr ""
+msgstr "கட்டமைக்கப்பட்ட (சுதந்திர உரை)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question form: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionCreate.structuredQuestionsAreGraded"
 msgid "Structured questions are graded manually via the Marking Queue — no answer options are collected."
-msgstr ""
+msgstr "கட்டமைக்கப்பட்ட கேள்விகள் Marking Queue மூலம் கைமுறையாக மதிப்பிடப்படும் — பதில் விருப்பங்கள் சேகரிக்கப்படாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question editor page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.courses"
 msgid "Courses"
-msgstr ""
+msgstr "பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question editor page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.create"
 msgid "Create"
-msgstr ""
+msgstr "உருவாக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question editor page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.edit"
 msgid "Edit"
-msgstr ""
+msgstr "திருத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question editor page: loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.loadingCourse"
 msgid "Loading course…"
-msgstr ""
+msgstr "பாடநெறியை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question editor page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionEditor.loadingQuestion"
 msgid "Loading question…"
-msgstr ""
+msgstr "கேள்வியை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.anUnexpectedErrorOccurred"
 msgid "An unexpected error occurred. Please try again."
-msgstr ""
+msgstr "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "ரத்து செய்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.delete"
 msgid "Delete"
-msgstr ""
+msgstr "நீக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.deleteQuestion"
 msgid "Delete question"
-msgstr ""
+msgstr "கேள்வியை நீக்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.deleteThisQuestion"
 msgid "Delete this question?"
-msgstr ""
+msgstr "இந்தக் கேள்வியை நீக்கவா?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.deleting"
 msgid "Deleting…"
-msgstr ""
+msgstr "நீக்குகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.edit"
 msgid "Edit"
-msgstr ""
+msgstr "திருத்து"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.multipleChoice"
 msgid "Multiple choice"
-msgstr ""
+msgstr "பல தேர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Question list item: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.questionItem.structured"
 msgid "Structured"
-msgstr ""
+msgstr "கட்டமைக்கப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.availableAfter"
 msgid "Results will be available after {when}"
-msgstr ""
+msgstr "{when} க்குப் பிறகு முடிவுகள் கிடைக்கும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Notice after an exam
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.finished.closed"
 msgid "This attempt has already been submitted. Your saved answers count."
-msgstr ""
+msgstr "இந்த முயற்சி ஏற்கனவே சமர்ப்பிக்கப்பட்டது. உங்கள் சேமிக்கப்பட்ட பதில்கள் கணக்கில் எடுத்துக்கொள்ளப்படும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Notice after an exam
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.finished.submitted"
 msgid "Your answers were submitted."
-msgstr ""
+msgstr "உங்கள் பதில்கள் சமர்ப்பிக்கப்பட்டன."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Notice after an exam
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.finished.timeout"
 msgid "Time is up — your answers were submitted."
-msgstr ""
+msgstr "நேரம் முடிந்தது — உங்கள் பதில்கள் சமர்ப்பிக்கப்பட்டன."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Screen-reader word after a score
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.result.marksWord"
 msgid "marks"
-msgstr ""
+msgstr "மதிப்பெண்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.duration"
 msgid "You have {duration} from the moment you start, but never past the exam's closing time ({closes}). Your deadline is whichever comes first."
-msgstr ""
+msgstr "நீங்கள் தொடங்கிய தருணத்திலிருந்து {duration} நேரம் பணியாற்றலாம்; ஆனால் தேர்வு முடியும் நேரத்தை ({closes}) தாண்ட முடியாது. முதலில் வரும் நேரமே உங்கள் காலக்கெடு."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.once"
 msgid "You can attempt this exam only once. Leaving the page doesn't pause the timer."
-msgstr ""
+msgstr "இந்தத் தேர்வை ஒருமுறை மட்டுமே முயற்சிக்கலாம். பக்கத்திலிருந்து வெளியேறுவது நேரக் கணிப்பை இடைநிறுத்தாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.score"
 msgid "Your score is shown after the exam closes. Unanswered questions score 0; there are no negative marks."
-msgstr ""
+msgstr "தேர்வு முடிந்த பிறகு உங்கள் மதிப்பெண் காட்டப்படும். பதிலளிக்காத கேள்விகளுக்கு 0 மதிப்பெண்; எதிர்மறை மதிப்பெண்கள் இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam rule
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.rules.untilClose"
 msgid "You can work until the exam closes at {closes}."
-msgstr ""
+msgstr "தேர்வு {closes} மணிக்கு மூடப்படும் வரை பணியாற்றலாம்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.failed"
 msgid "Not saved"
-msgstr ""
+msgstr "சேமிக்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.failedWith"
 msgid "Not saved — {reason}"
-msgstr ""
+msgstr "சேமிக்கப்படவில்லை — {reason}"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.offline"
 msgid "Offline — retrying"
-msgstr ""
+msgstr "ஆஃப்லைன் — மீண்டும் முயற்சிக்கிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.saved"
 msgid "Saved"
-msgstr ""
+msgstr "சேமிக்கப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Answer save status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.save.saving"
 msgid "Saving…"
-msgstr ""
+msgstr "சேமிக்கிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Empty state
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.start.notOpenDescription"
 msgid "You can start it from {when}. Come back then with the exam password."
-msgstr ""
+msgstr "{when} முதல் தொடங்கலாம். தேர்வுக் கடவுச்சொல்லுடன் அப்போது திரும்பி வாருங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.averageMarks"
 msgid "Average Marks"
-msgstr ""
+msgstr "சராசரி மதிப்பெண்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.correctAnswer"
 msgid "Correct answer"
-msgstr ""
+msgstr "சரியான பதில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.exam"
 msgid "Exam"
-msgstr ""
+msgstr "தேர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.examStats"
 msgid "Exam Stats"
-msgstr ""
+msgstr "தேர்வு புள்ளிவிவரங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.exams"
 msgid "Exams"
-msgstr ""
+msgstr "தேர்வுகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.frequentlyMissedQuestions"
 msgid "Frequently Missed Questions"
-msgstr ""
+msgstr "அடிக்கடி தவறவிடப்பட்ட கேள்விகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.hideAnswerOptions"
 msgid "Hide answer options"
-msgstr ""
+msgstr "பதில் விருப்பங்களை மறை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.inClass"
 msgid "In-class"
-msgstr ""
+msgstr "வகுப்பில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.loadingExam"
 msgid "Loading exam…"
-msgstr ""
+msgstr "தேர்வை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.loadingStatistics"
 msgid "Loading statistics…"
-msgstr ""
+msgstr "புள்ளிவிவரங்களை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.manageExam"
 msgid "Manage exam"
-msgstr ""
+msgstr "தேர்வை நிர்வகி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.marks"
 msgid "Marks"
-msgstr ""
+msgstr "மதிப்பெண்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.maximumMarks"
 msgid "Maximum Marks"
-msgstr ""
+msgstr "அதிகபட்ச மதிப்பெண்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.minimumMarks"
 msgid "Minimum Marks"
-msgstr ""
+msgstr "குறைந்தபட்ச மதிப்பெண்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noMarksEnteredYet"
 msgid "No marks entered yet"
-msgstr ""
+msgstr "இன்னும் மதிப்பெண்கள் உள்ளிடப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noOneHasAttended"
 msgid "No one has attended this exam yet"
-msgstr ""
+msgstr "இந்தத் தேர்வில் இன்னும் யாரும் கலந்துகொள்ளவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noOneHasAttended2"
 msgid "No one has attended yet"
-msgstr ""
+msgstr "இன்னும் யாரும் கலந்துகொள்ளவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noQuestionWasMissed"
 msgid "No question was missed — every response so far was correct."
-msgstr ""
+msgstr "எந்தக் கேள்வியும் தவறவிடப்படவில்லை — இதுவரை ஒவ்வொரு பதிலும் சரியானது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.noQuestionsOnThis"
 msgid "No questions on this paper"
-msgstr ""
+msgstr "இந்த வினாத்தாளில் கேள்விகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.notAvailableYet"
 msgid "Not available yet"
-msgstr ""
+msgstr "இன்னும் கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.passed"
 msgid "Passed"
-msgstr ""
+msgstr "தேர்ச்சி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.questionDistribution"
 msgid "Question Distribution"
-msgstr ""
+msgstr "கேள்விப் பகிர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.questionWiseBreakdown"
 msgid "Question-Wise Breakdown"
-msgstr ""
+msgstr "கேள்வி வாரியான விவரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.statisticsAppearHereOnce"
 msgid "Statistics appear here once students sit the exam and marks are recorded."
-msgstr ""
+msgstr "மாணவர்கள் தேர்வில் அமர்ந்து மதிப்பெண்கள் பதிவு செய்யப்பட்டவுடன் புள்ளிவிவரங்கள் இங்கே தோன்றும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.thisExamHasNo"
 msgid "This exam has no drawn questions, so there is nothing to break down."
-msgstr ""
+msgstr "இந்தத் தேர்வில் வரையப்பட்ட கேள்விகள் இல்லை, எனவே விவரிக்க எதுவும் இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.viewAnswerOptions"
 msgid "View answer options"
-msgstr ""
+msgstr "பதில் விருப்பங்களைக் காண்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.weCouldntLoadThe"
 msgid "We couldn't load the statistics."
-msgstr ""
+msgstr "புள்ளிவிவரங்களை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.weCouldntLoadThis"
 msgid "We couldn't load this exam."
-msgstr ""
+msgstr "இந்தத் தேர்வை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam statistics page: text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.stats.written"
 msgid "Written"
-msgstr ""
+msgstr "எழுத்துத் தேர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.draft"
 msgid "Draft"
-msgstr ""
+msgstr "வரைவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.finished"
 msgid "Finished"
-msgstr ""
+msgstr "முடிந்தது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.inProgress"
 msgid "In progress"
-msgstr ""
+msgstr "நடைபெறுகிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Exam status
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.status.upcoming"
 msgid "Upcoming"
-msgstr ""
+msgstr "வரவிருப்பவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.closed"
 msgid "Closed"
-msgstr ""
+msgstr "மூடப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): aria-label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.examGroups"
 msgid "Exam groups"
-msgstr ""
+msgstr "தேர்வுக் குழுக்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.examsThatHaveClosed"
 msgid "Exams that have closed appear here, with your result once it's available."
-msgstr ""
+msgstr "மூடப்பட்ட தேர்வுகள் இங்கே தோன்றும்; முடிவு கிடைத்ததும் அது காட்டப்படும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.examsYoureEnrolledIn"
 msgid "Exams you're enrolled in appear here while they're open. Check Upcoming for scheduled exams."
-msgstr ""
+msgstr "நீங்கள் பதிவுசெய்துள்ள தேர்வுகள் திறந்திருக்கும் போது இங்கே தோன்றும். திட்டமிடப்பட்ட தேர்வுகளுக்கு Upcoming ஐப் பார்க்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.inProgress"
 msgid "In progress"
-msgstr ""
+msgstr "நடைபெறுகிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.leaderboards"
 msgid "Leaderboards"
-msgstr ""
+msgstr "தரவரிசைப் பலகைகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.loadingYourExams"
 msgid "Loading your exams…"
-msgstr ""
+msgstr "உங்கள் தேர்வுகளை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.myExams"
 msgid "My exams"
-msgstr ""
+msgstr "என் தேர்வுகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.noExamsAreOpen"
 msgid "No exams are open right now"
-msgstr ""
+msgstr "இப்போது தேர்வுகள் எதுவும் திறக்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.noPreviousExams"
 msgid "No previous exams"
-msgstr ""
+msgstr "முந்தைய தேர்வுகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.noUpcomingExams"
 msgid "No upcoming exams"
-msgstr ""
+msgstr "வரவிருக்கும் தேர்வுகள் இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.opens"
 msgid "Opens"
-msgstr ""
+msgstr "திறக்கிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.previous"
 msgid "Previous"
-msgstr ""
+msgstr "முந்தையவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.upcoming"
 msgid "Upcoming"
-msgstr ""
+msgstr "வரவிருப்பவை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.weCouldntLoadYour"
 msgid "We couldn't load your exams."
-msgstr ""
+msgstr "உங்கள் தேர்வுகளை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.whenYoureEnrolledIn"
 msgid "When you're enrolled in an exam that hasn't opened yet, it will be listed here with its start time."
-msgstr ""
+msgstr "இன்னும் திறக்கப்படாத தேர்வில் நீங்கள் பதிவு செய்திருந்தால், அதன் தொடக்க நேரத்துடன் அது இங்கே பட்டியலிடப்படும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-list): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamList.youArentEnrolledIn"
 msgid "You aren't enrolled in any exams yet"
-msgstr ""
+msgstr "நீங்கள் இன்னும் எந்தத் தேர்விலும் பதிவு செய்யவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.answerReview"
 msgid "Answer review"
-msgstr ""
+msgstr "பதில் சோதனை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.answered"
 msgid "Answered"
-msgstr ""
+msgstr "பதிலளிக்கப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.backToMyExams"
 msgid "Back to my exams"
-msgstr ""
+msgstr "என் தேர்வுகளுக்குத் திரும்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.correct"
 msgid "Correct"
-msgstr ""
+msgstr "சரி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.correctAnswer"
 msgid "Correct answer"
-msgstr ""
+msgstr "சரியான பதில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.cutOff"
 msgid "Cut-off"
-msgstr ""
+msgstr "குறைந்தபட்ச வரம்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.examNotFound"
 msgid "Exam not found"
-msgstr ""
+msgstr "தேர்வு கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.explanation"
 msgid "Explanation"
-msgstr ""
+msgstr "விளக்கம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.goToExamDetails"
 msgid "Go to exam details"
-msgstr ""
+msgstr "தேர்வு விவரங்களுக்குச் செல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.incorrect"
 msgid "Incorrect"
-msgstr ""
+msgstr "தவறு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.loadingYourResult"
 msgid "Loading your result…"
-msgstr ""
+msgstr "உங்கள் முடிவை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.myExams"
 msgid "My exams"
-msgstr ""
+msgstr "என் தேர்வுகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.notAnswered"
 msgid "Not answered"
-msgstr ""
+msgstr "பதிலளிக்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.notPassed"
 msgid "Not passed"
-msgstr ""
+msgstr "தேர்ச்சி பெறவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.passed"
 msgid "Passed"
-msgstr ""
+msgstr "தேர்ச்சி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.result"
 msgid "Result"
-msgstr ""
+msgstr "முடிவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.resultNotFound"
 msgid "Result not found"
-msgstr ""
+msgstr "முடிவு கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.resumeExam"
 msgid "Resume exam"
-msgstr ""
+msgstr "தேர்வைத் தொடர்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.scoresAreReleasedWhen"
 msgid "Scores are released when the exam window closes for everyone. Check back then."
-msgstr ""
+msgstr "அனைவருக்கும் தேர்வு சாளரம் மூடப்பட்டதும் மதிப்பெண்கள் வெளியிடப்படும். அப்போது மீண்டும் பார்க்கவும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.theExamClosedWithout"
 msgid "The exam closed without an attempt from you, so there's no result to show."
-msgstr ""
+msgstr "நீங்கள் முயற்சி செய்யாமல் தேர்வு மூடப்பட்டது, எனவே காட்ட முடிவு இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.theresNoResultYet"
 msgid "There's no result yet because you haven't attempted this exam."
-msgstr ""
+msgstr "இந்தத் தேர்வை நீங்கள் முயற்சிக்காததால் இன்னும் முடிவு இல்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.thisAttemptDoesntExist"
 msgid "This attempt doesn't exist, or it isn't yours."
-msgstr ""
+msgstr "இந்த முயற்சி இல்லை அல்லது இது உங்களுடையது அல்ல."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.thisExamDoesntExist"
 msgid "This exam doesn't exist, or you aren't enrolled in it."
-msgstr ""
+msgstr "இந்தத் தேர்வு இல்லை அல்லது நீங்கள் அதில் பதிவு செய்யவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.weCouldntLoadThis"
 msgid "We couldn't load this exam."
-msgstr ""
+msgstr "இந்தத் தேர்வை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.youDidntAttemptThis"
 msgid "You didn't attempt this exam"
-msgstr ""
+msgstr "இந்தத் தேர்வை நீங்கள் முயற்சிக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.youHaventStartedThis"
 msgid "You haven't started this exam"
-msgstr ""
+msgstr "இந்தத் தேர்வை நீங்கள் தொடங்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.yourAnswer"
 msgid "Your answer"
-msgstr ""
+msgstr "உங்கள் பதில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-result): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamResult.yourResult"
 msgid "Your result"
-msgstr ""
+msgstr "உங்கள் முடிவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.beingFinalized"
 msgid "Being finalized"
-msgstr ""
+msgstr "இறுதிசெய்கிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.closes"
 msgid "Closes"
-msgstr ""
+msgstr "மூடுகிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.continue"
 msgid "Continue"
-msgstr ""
+msgstr "தொடர்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.duration"
 msgid "Duration"
-msgstr ""
+msgstr "கால அளவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.noFixedDuration"
 msgid "No fixed duration"
-msgstr ""
+msgstr "நிலையான கால அளவு இல்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.notAttempted"
 msgid "Not attempted"
-msgstr ""
+msgstr "முயற்சிக்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.open"
 msgid "Open"
-msgstr ""
+msgstr "திறந்தது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.opens"
 msgid "Opens"
-msgstr ""
+msgstr "திறக்கிறது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.resume"
 msgid "Resume"
-msgstr ""
+msgstr "தொடர்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.size"
 msgid "Size"
-msgstr ""
+msgstr "அளவு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.start"
 msgid "Start"
-msgstr ""
+msgstr "தொடங்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.viewDetails"
 msgid "View details"
-msgstr ""
+msgstr "விவரங்களைக் காண்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-shared): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamShared.viewResult"
 msgid "View result"
-msgstr ""
+msgstr "முடிவைக் காண்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.backToMyExams"
 msgid "Back to my exams"
-msgstr ""
+msgstr "என் தேர்வுகளுக்குத் திரும்பு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.beforeYouStart"
 msgid "Before you start"
-msgstr ""
+msgstr "நீங்கள் தொடங்குவதற்கு முன்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.exam"
 msgid "Exam"
-msgstr ""
+msgstr "தேர்வு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.examNotFound"
 msgid "Exam not found"
-msgstr ""
+msgstr "தேர்வு கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.examPassword"
 msgid "Exam password"
-msgstr ""
+msgstr "தேர்வுக் கடவுச்சொல்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): loadingLabel
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.loadingExam"
 msgid "Loading exam…"
-msgstr ""
+msgstr "தேர்வை ஏற்றுகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): label
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.myExams"
 msgid "My exams"
-msgstr ""
+msgstr "என் தேர்வுகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.resumeExam"
 msgid "Resume exam"
-msgstr ""
+msgstr "தேர்வைத் தொடர்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.seeYourResult"
 msgid "See your result"
-msgstr ""
+msgstr "உங்கள் முடிவைக் காண்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.startExam"
 msgid "Start exam"
-msgstr ""
+msgstr "தேர்வைத் தொடங்கு"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.startTheExam"
 msgid "Start the exam"
-msgstr ""
+msgstr "தேர்வைத் தொடங்குங்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.starting"
 msgid "Starting…"
-msgstr ""
+msgstr "தொடங்குகிறது…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.theExamWindowEnded"
 msgid "The exam window ended before you started, so it can no longer be attempted."
-msgstr ""
+msgstr "நீங்கள் தொடங்குவதற்கு முன் தேர்வு சாளரம் முடிந்தது, எனவே இனி முயற்சிக்க முடியாது."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): description
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.thisExamDoesntExist"
 msgid "This exam doesn't exist, or you aren't enrolled in it. Ask your teacher if you expected to see it."
-msgstr ""
+msgstr "இந்தத் தேர்வு இல்லை அல்லது நீங்கள் அதில் பதிவு செய்யவில்லை. இதைப் பார்க்க வேண்டும் என்று எதிர்பார்த்திருந்தால் உங்கள் ஆசிரியரிடம் கேளுங்கள்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.thisExamHasClosed"
 msgid "This exam has closed"
-msgstr ""
+msgstr "இந்தத் தேர்வு மூடப்பட்டது"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): title
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.thisExamHasntOpened"
 msgid "This exam hasn't opened yet"
-msgstr ""
+msgstr "இந்தத் தேர்வு இன்னும் திறக்கப்படவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.viewResult"
 msgid "View result"
-msgstr ""
+msgstr "முடிவைக் காண்க"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.viewSubmissionStatus"
 msgid "View submission status"
-msgstr ""
+msgstr "சமர்ப்பிப்பு நிலையைப் பார்க்கவும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): genericErrorMessage
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.weCouldntLoadThis"
 msgid "We couldn't load this exam."
-msgstr ""
+msgstr "இந்தத் தேர்வை ஏற்ற முடியவில்லை."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.whenTheTimeRuns"
 msgid "When the time runs out, your saved answers are submitted automatically."
-msgstr ""
+msgstr "நேரம் முடிந்ததும், உங்கள் சேமித்த பதில்கள் தானாகச் சமர்ப்பிக்கப்படும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.yourAnswersAreSaved"
 msgid "Your answers are saved automatically each time you choose an option."
-msgstr ""
+msgstr "ஒவ்வொரு முறையும் நீங்கள் ஒரு விருப்பத்தைத் தேர்ந்தெடுக்கும்போது உங்கள் பதில்கள் தானாகச் சேமிக்கப்படும்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-start): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamStart.yourAnswersWereSubmitted"
 msgid "Your answers were submitted."
-msgstr ""
+msgstr "உங்கள் பதில்கள் சமர்ப்பிக்கப்பட்டன."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Student exam screens (student-exam-take): text
 #: i18n/source/exams.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "exams.studentExamTake.answered"
 msgid "Answered"
-msgstr ""
+msgstr "பதிலளிக்கப்பட்டது"
 
 #. Student exam screens (student-exam-take): text
 #: i18n/source/exams.json
