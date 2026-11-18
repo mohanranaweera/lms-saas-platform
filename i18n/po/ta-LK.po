@@ -17546,572 +17546,653 @@ msgctxt "teacher.tuteDetail.markHandedOver"
 msgid "Mark handed over"
 msgstr "தமிழ் வரைவு: Mark handed over"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.method"
 msgid "Method"
-msgstr ""
+msgstr "தமிழ் வரைவு: Method"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.noActions"
 msgid "No actions"
-msgstr ""
+msgstr "இல்லை actions"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.noAddress"
 msgid "No address"
-msgstr ""
+msgstr "இல்லை முகவரி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.noAssignedStudentsMatch"
 msgid "No assigned students match these filters"
-msgstr ""
+msgstr "இல்லை assigned மாணவர்கள் match these filters"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.noStudentsHaveThis"
 msgid "No students have this tute yet"
-msgstr ""
+msgstr "இல்லை மாணவர்கள் have இந்த ட்யூட் yet"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.notes"
 msgid "Notes"
-msgstr ""
+msgstr "தமிழ் வரைவு: Notes"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.outOfStock"
 msgid "Out of stock"
-msgstr ""
+msgstr "Out இன் stock"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.payment"
 msgid "Payment"
-msgstr ""
+msgstr "தமிழ் வரைவு: Payment"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.paymentReversed"
 msgid "Payment reversed"
-msgstr ""
+msgstr "தமிழ் வரைவு: Payment reversed"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.paymentReversedAfterDispatch"
 msgid "Payment reversed after dispatch"
-msgstr ""
+msgstr "தமிழ் வரைவு: Payment reversed after dispatch"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.paymentReversedHoldReleased"
 msgid "Payment reversed — hold released"
-msgstr ""
+msgstr "தமிழ் வரைவு: Payment reversed — hold released"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.paymentReversedOnHold"
 msgid "Payment reversed — on hold"
-msgstr ""
+msgstr "Payment reversed — அன்று hold"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.pending"
 msgid "Pending"
-msgstr ""
+msgstr "நிலுவையில்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: hint
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.pendingDelivery"
 msgid "Pending delivery"
-msgstr ""
+msgstr "நிலுவையில் delivery"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.quantity"
 msgid "Quantity"
-msgstr ""
+msgstr "தமிழ் வரைவு: Quantity"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.releaseHold"
 msgid "Release hold"
-msgstr ""
+msgstr "தமிழ் வரைவு: Release hold"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.releaseHold2"
 msgid "Release hold?"
-msgstr ""
+msgstr "தமிழ் வரைவு: Release hold?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.reserved"
 msgid "Reserved"
-msgstr ""
+msgstr "தமிழ் வரைவு: Reserved"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.searchAssignedStudents"
 msgid "Search assigned students"
-msgstr ""
+msgstr "Search assigned மாணவர்கள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: placeholder
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.searchByNameOr"
 msgid "Search by name or index"
-msgstr ""
+msgstr "Search by பெயர் அல்லது index"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: hint
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.sentOrHandedOver"
 msgid "Sent or handed over"
-msgstr ""
+msgstr "அனுப்பப்பட்டது அல்லது handed over"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.source"
 msgid "Source"
-msgstr ""
+msgstr "தமிழ் வரைவு: Source"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.status"
 msgid "Status"
-msgstr ""
+msgstr "நிலை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.studentName"
 msgid "Student Name"
-msgstr ""
+msgstr "மாணவர் பெயர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.syncPayments"
 msgid "Sync payments"
-msgstr ""
+msgstr "தமிழ் வரைவு: Sync payments"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.syncing"
 msgid "Syncing…"
-msgstr ""
+msgstr "தமிழ் வரைவு: Syncing…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.thePendingCopyIs"
 msgid "The pending copy is cancelled and returned to stock. This doesn't change the student's enrollment, payments or course access."
-msgstr ""
+msgstr " நிலுவையில் நகலெடு உள்ளது cancelled மற்றும் returned க்கு stock. இந்த doesn't change  மாணவர்'s enrollment, payments அல்லது பாடநெறி அணுகல்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.thisCopysPaymentWas"
 msgid "This copy's payment was refunded or charged back. Releasing the hold puts it back in the dispatch queue. It doesn't change any payment."
-msgstr ""
+msgstr "இந்த நகலெடு's payment இருந்தது பணம் திருப்பியளிக்கப்பட்டது அல்லது charged பின். Releasing  hold puts it பின் இல்  dispatch queue. It doesn't change any payment."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: hint
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.totalCopiesHeld"
 msgid "Total copies held"
-msgstr ""
+msgstr "தமிழ் வரைவு: Total copies held"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.tute"
 msgid "Tute"
-msgstr ""
+msgstr "ட்யூட்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute details page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDetail.useAssignStudentsOr"
 msgid "Use Assign students, or Sync payments to add students whose confirmed payments include this tute."
-msgstr ""
+msgstr "பயன்படுத்து Assign மாணவர்கள், அல்லது Sync payments க்கு சேர் மாணவர்கள் whose உறுதிப்படுத்தப்பட்டது payments include இந்த ட்யூட்."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.allCourses"
 msgid "All courses"
-msgstr ""
+msgstr "அனைத்து பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.allTutes"
 msgid "All tutes"
-msgstr ""
+msgstr "அனைத்து tutes"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.allTutesOfThis"
 msgid "All tutes of this course"
-msgstr ""
+msgstr "அனைத்து tutes இன் இந்த பாடநெறி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.cancel"
 msgid "Cancel"
-msgstr ""
+msgstr "ரத்து செய்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.clearSelection"
 msgid "Clear selection"
-msgstr ""
+msgstr "தமிழ் வரைவு: Clear selection"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.confirmDispatch"
 msgid "Confirm dispatch"
-msgstr ""
+msgstr "தமிழ் வரைவு: Confirm dispatch"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.confirmDispatch2"
 msgid "Confirm dispatch?"
-msgstr ""
+msgstr "தமிழ் வரைவு: Confirm dispatch?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.confirming"
 msgid "Confirming…"
-msgstr ""
+msgstr "தமிழ் வரைவு: Confirming…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.course"
 msgid "Course"
-msgstr ""
+msgstr "பாடநெறி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.courseAndTuteFilters"
 msgid "Course and tute filters could not be loaded."
-msgstr ""
+msgstr "பாடநெறி மற்றும் ட்யூட் filters முடியவில்லை be loaded."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.everyPendingPostalTute"
 msgid "Every pending postal tute has been dispatched. New ones appear here when students are assigned a tute by post."
-msgstr ""
+msgstr "Every நிலுவையில் postal ட்யூட் செய்யப்பட்டது dispatched. புதிய ones appear here when மாணவர்கள் உள்ளன assigned a ட்யூட் by post."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.loadingDispatchQueue"
 msgid "Loading dispatch queue…"
-msgstr ""
+msgstr "ஏற்றுகிறது dispatch queue…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.n2TutesOnly"
 msgid "2+ tutes only"
-msgstr ""
+msgstr "2+ tutes மட்டும்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: placeholder
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.nameIndexOrCity"
 msgid "Name, index or city"
-msgstr ""
+msgstr "பெயர், index அல்லது நகரம்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.noAddress"
 msgid "No address"
-msgstr ""
+msgstr "இல்லை முகவரி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.noMatchesForThese"
 msgid "No matches for these filters"
-msgstr ""
+msgstr "இல்லை matches க்கான these filters"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.nothingToSend"
 msgid "Nothing to send"
-msgstr ""
+msgstr "Nothing க்கு send"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.pageDeselected"
 msgid "Page deselected."
-msgstr ""
+msgstr "தமிழ் வரைவு: Page deselected."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.pendingPostalTutesOne"
 msgid "Pending postal tutes, one row per recipient address."
-msgstr ""
+msgstr "நிலுவையில் postal tutes, one row per recipient முகவரி."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.preparingPdf"
 msgid "Preparing PDF…"
-msgstr ""
+msgstr "தமிழ் வரைவு: Preparing PDF…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.printAnyway"
 msgid "Print anyway"
-msgstr ""
+msgstr "தமிழ் வரைவு: Print anyway"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.search"
 msgid "Search"
-msgstr ""
+msgstr "தமிழ் வரைவு: Search"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: aria-label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.selectAllOnThis"
 msgid "Select all on this page"
-msgstr ""
+msgstr "தேர்ந்தெடு அனைத்து அன்று இந்த page"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.someLabelsHaveNo"
 msgid "Some labels have no address"
-msgstr ""
+msgstr "Some labels have இல்லை முகவரி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.someSelectedCopiesHave"
 msgid "Some selected copies have"
-msgstr ""
+msgstr "Some தேர்ந்தெடுக்கப்பட்டது copies have"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.toSend"
 msgid "To Send"
-msgstr ""
+msgstr "க்கு Send"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.tryAnotherSearchCourse"
 msgid "Try another search, course or tute, or clear the filters."
-msgstr ""
+msgstr "Try another search, பாடநெறி அல்லது ட்யூட், அல்லது clear  filters."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.tute"
 msgid "Tute"
-msgstr ""
+msgstr "ட்யூட்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.tuteDispatch"
 msgid "Tute Dispatch"
-msgstr ""
+msgstr "ட்யூட் Dispatch"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tute dispatch page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteDispatch.tutesToSendOne"
 msgid "Tutes to send, one row per recipient. Sortable columns have buttons in their headers."
-msgstr ""
+msgstr "Tutes க்கு send, one row per recipient. Sortable columns have buttons இல் their headers."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: description
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.aTuteThatHas"
 msgid "A tute that has never been assigned is deleted permanently. A tute with any assignment or dispatch history is archived instead: it is hidden, can't be assigned again, and its history is kept."
-msgstr ""
+msgstr "A ட்யூட் அந்த has never been assigned உள்ளது deleted permanently. A ட்யூட் உடன் any assignment அல்லது dispatch history உள்ளது archived instead: it உள்ளது hidden, முடியும்'t be assigned again, மற்றும் its history உள்ளது kept."
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.actions"
 msgid "Actions"
-msgstr ""
+msgstr "தமிழ் வரைவு: Actions"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.addTute"
 msgid "Add Tute"
-msgstr ""
+msgstr "சேர் ட்யூட்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.archived"
 msgid "Archived"
-msgstr ""
+msgstr "தமிழ் வரைவு: Archived"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.course"
 msgid "Course"
-msgstr ""
+msgstr "பாடநெறி"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: label
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.courses"
 msgid "Courses"
-msgstr ""
+msgstr "பாடநெறிகள்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: confirmLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.deleteTute"
 msgid "Delete tute"
-msgstr ""
+msgstr "நீக்கு ட்யூட்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.deleteTute2"
 msgid "Delete tute?"
-msgstr ""
+msgstr "நீக்கு ட்யூட்?"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: loadingLabel
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.loadingTutes"
 msgid "Loading tutes…"
-msgstr ""
+msgstr "ஏற்றுகிறது tutes…"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.name"
 msgid "Name"
-msgstr ""
+msgstr "பெயர்"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.noDataAvailable"
 msgid "No data available"
-msgstr ""
+msgstr "தரவு கிடைக்கவில்லை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.outOfStock"
 msgid "(out of stock)"
-msgstr ""
+msgstr "(out இன் stock)"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.paymentType"
 msgid "Payment Type"
-msgstr ""
+msgstr "கட்டண வகை"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.quantity"
 msgid "Quantity"
-msgstr ""
+msgstr "தமிழ் வரைவு: Quantity"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: placeholder
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.search"
 msgid "Search"
-msgstr ""
+msgstr "தமிழ் வரைவு: Search"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.searchTutes"
 msgid "Search tutes"
-msgstr ""
+msgstr "தமிழ் வரைவு: Search tutes"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.showArchived"
 msgid "Show archived"
-msgstr ""
+msgstr "காட்டு archived"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.soldThrough"
 msgid "Sold Through"
-msgstr ""
+msgstr "தமிழ் வரைவு: Sold Through"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Course tutes page: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.tuteList.tutes"
 msgid "Tutes"
-msgstr ""
+msgstr "தமிழ் வரைவு: Tutes"
 
+# AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Zoom host notice: text
 #: i18n/source/teacher.json
-#, icu-format
+#, icu-format, fuzzy
 msgctxt "teacher.zoomNotice.openSettingsIntegrations"
 msgid "Open Settings → Integrations"
-msgstr ""
+msgstr "திறந்தது Settings → Integrations"
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Tenant Admin portal navigation
