@@ -101,11 +101,14 @@ export function StudentPaymentWorkspace({ options }: { options: StudentPaymentOp
   // Keep the last successfully loaded page on screen while another page /
   // grouping loads or fails (e.g. a 429), so the table never blanks out.
   const freshRows = rowsQuery.isSuccess && !rowsQuery.isPlaceholderData ? rowsQuery.data : null;
-  useEffect(() => {
-    if (!freshRows) return;
-    setShownRows((previous) => (previous === freshRows ? previous : freshRows));
+  // Adjust state during render when a new page arrives (not in an effect,
+  // which would cascade a second render).
+  const [lastFreshRows, setLastFreshRows] = useState<StudentPaymentRowsPage | null>(null);
+  if (freshRows && freshRows !== lastFreshRows) {
+    setLastFreshRows(freshRows);
+    setShownRows(freshRows);
     setAnnouncement(`Page ${freshRows.page + 1} loaded.`);
-  }, [freshRows]);
+  }
 
   const rowsExpired = isApiClientError(rowsQuery.error) && rowsQuery.error.status === 404;
   const expired = exportExpired || rowsExpired;
