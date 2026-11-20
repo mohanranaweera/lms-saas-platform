@@ -269,8 +269,11 @@ class TeacherStorefrontAdminAndCheckoutIntegrationTest extends StorefrontTestSup
 				fx.aliceOnly().id())));
 		assertOk(call(fx.host(), newcomer, post("/api/v1/enrollments/my/courses/{courseId}", fx.bobOnly().id())));
 
-		// A student keeps everything already joined, on any host (idempotent re-enroll too).
-		assertThat(catalogIds(fx.aliceHost(), fx.studentToken(), "ENROLLED")).contains(
+		// A student keeps everything already joined (idempotent re-enroll on any host). The ENROLLED
+		// list is scoped on a storefront (decision 9, amended) but complete on the tenant site.
+		assertThat(catalogIds(fx.aliceHost(), fx.studentToken(), "ENROLLED")).doesNotContain(
+				fx.bobOnly().id().toString(), fx.aliceHidden().id().toString());
+		assertThat(catalogIds(fx.host(), fx.studentToken(), "ENROLLED")).contains(
 				fx.bobOnly().id().toString(), fx.aliceHidden().id().toString());
 		assertOk(call(fx.aliceHost(), fx.studentToken(),
 				post("/api/v1/enrollments/my/courses/{courseId}", fx.bobOnly().id())));

@@ -79,6 +79,9 @@ Admin (`TEACHER_STOREFRONT_MANAGE`; Teacher may GET own via `/me`):
 - Login/register keep working; `returnTo` validated as same-host relative path.
 - Tenant Admin: Teachers -> Storefront page (toggle, slug, preview/published URL, product picker).
 - Teacher profile: read-only storefront status + URL.
+- Student portal on a storefront host (ADR-037 decision 9, amended 2026-11-20): banner "Showing
+  your courses from <teacher>'s page." + "See all your courses" link to the tenant site; course
+  lists are filtered by the backend, the course page's Exams tab asks per course (`courseId`).
 
 ## 8. Security / 9. Tenant impact
 Tenant resolved first, storefront second, both server-side from trusted host. Storefront is not

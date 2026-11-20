@@ -43,6 +43,7 @@ import com.lms.exammanagement.service.questionbank.RichContentSanitizer;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.integrationmanagement.api.ExamPasswordCipherApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -143,13 +144,17 @@ public class StudentExamService {
 
 	private final AuditLogApi auditLogApi;
 
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
+
 	public StudentExamService(ExamRepository examRepository, ExamEnrollmentRepository enrollmentRepository,
 			ExamAttemptRepository attemptRepository, ExamAttemptItemRepository itemRepository,
 			ExamPaperItemRepository paperItemRepository, ExamPaperOptionRepository paperOptionRepository,
 			ExamPasswordFailureRepository passwordFailureRepository, ExamEnrollmentService enrollmentService,
 			ExamAttemptFinalizer finalizer, ExamPaperRandomSource randomSource, ExamPasswordCipherApi passwordCipher,
 			ExamQuestionMediaApi mediaApi, ExamDocumentMediaApi documentApi, ExamResultRepository resultRepository,
-			CourseLookupApi courseLookupApi, TenantContext tenantContext, Clock clock, AuditLogApi auditLogApi) {
+			CourseLookupApi courseLookupApi, TenantContext tenantContext, Clock clock, AuditLogApi auditLogApi,
+			TeacherStorefrontLookupApi storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.auditLogApi = auditLogApi;
 		this.examRepository = examRepository;
 		this.enrollmentRepository = enrollmentRepository;
@@ -174,7 +179,14 @@ public class StudentExamService {
 	// Exams.
 	// ------------------------------------------------------------------
 
-	public StudentExamListView list() {
+	/**
+	 * The caller's exam list. {@code courseId} narrows it to one course (the
+	 * course page's Exams tab - a per-course view, never storefront-filtered).
+	 * Without it, on a storefront host the list keeps only exams of courses
+	 * that storefront publishes (ADR-037 decision 9, amended); the tenant host
+	 * is unchanged. Exam detail, attempts and results are never filtered.
+	 */
+	public StudentExamListView list(UUID courseId) {
 		UUID studentId = requireStudent();
 		Instant now = clock.instant();
 		enrollmentService.materializeForStudent(studentId);
@@ -183,6 +195,15 @@ public class StudentExamService {
 			.map(ExamEnrollment::getExamId)
 			.collect(Collectors.toSet());
 		List<Exam> exams = examRepository.findLiveKlassExamsByIds(examIds);
+		if (courseId != null) {
+			exams = exams.stream().filter(exam -> courseId.equals(exam.getCourseId())).toList();
+		}
+		else {
+			Set<UUID> scope = storefrontLookupApi.currentStorefrontCourseIds().orElse(null);
+			if (scope != null) {
+				exams = exams.stream().filter(exam -> scope.contains(exam.getCourseId())).toList();
+			}
+		}
 		Map<UUID, ExamAttempt> attempts = attemptRepository
 			.findKlassAttemptsOfStudent(studentId, exams.stream().map(Exam::getId).toList())
 			.stream()

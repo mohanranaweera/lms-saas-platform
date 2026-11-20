@@ -70,7 +70,8 @@ class EnrollmentQueryServiceTest {
 	void setUp() {
 		service = new EnrollmentQueryService(enrollmentRepository, enrollmentExpiryService, courseLookupApi,
 				studentLookupApi, permissionCheckService, AccessPolicyTestDouble.calculatorWithoutOverrides(),
-				org.mockito.Mockito.mock(com.lms.enrollmentmanagement.api.AccessPolicyApi.class));
+				org.mockito.Mockito.mock(com.lms.enrollmentmanagement.api.AccessPolicyApi.class),
+				org.mockito.Mockito.mock(com.lms.usermanagement.api.TeacherStorefrontLookupApi.class));
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(STUDENT_ID, TENANT_ID, "STUDENT", UUID.randomUUID()));
 	}
 

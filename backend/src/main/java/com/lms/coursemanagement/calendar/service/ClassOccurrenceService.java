@@ -31,6 +31,7 @@ import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.liveclassmanagement.api.ClassSessionLookupApi;
 import com.lms.liveclassmanagement.api.ClassSessionSummary;
 import com.lms.usermanagement.api.TeacherLookupApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import java.time.Clock;
 import java.time.Duration;
@@ -103,6 +104,8 @@ public class ClassOccurrenceService implements ClassCalendarApi {
 
 	private final TeacherLookupApi teacherLookupApi;
 
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
+
 	private final TenantContext tenantContext;
 
 	private final TenantZoneResolver zoneResolver;
@@ -115,7 +118,8 @@ public class ClassOccurrenceService implements ClassCalendarApi {
 			ClassSessionLookupApi classSessionLookupApi, ContentCoverageApi contentCoverageApi,
 			EnrollmentAccessApi enrollmentAccessApi, PermissionCheckService permissionCheckService,
 			TeacherLookupApi teacherLookupApi, TenantContext tenantContext, TenantZoneResolver zoneResolver,
-			ObjectStorageApi objectStorageApi, Clock clock) {
+			ObjectStorageApi objectStorageApi, Clock clock, TeacherStorefrontLookupApi storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.objectStorageApi = objectStorageApi;
 		this.courseRepository = courseRepository;
 		this.assignmentRepository = assignmentRepository;
@@ -149,7 +153,9 @@ public class ClassOccurrenceService implements ClassCalendarApi {
 	@Override
 	public CalendarOccurrences listCallerOccurrences(LocalDate from, LocalDate to, UUID courseId) {
 		validateRange(from, to);
-		Scope scope = callerScope();
+		// An explicit course is a per-course view (never storefront-filtered);
+		// the unfiltered calendar is a list (ADR-037 decision 9).
+		Scope scope = callerScope(courseId == null);
 		List<Course> courses = scope.courses();
 		String courseName = null;
 		if (courseId != null) {
@@ -170,7 +176,7 @@ public class ClassOccurrenceService implements ClassCalendarApi {
 
 	/** Filter options of {@code GET /api/v1/calendar/courses}: the caller's scope, by name. */
 	public List<CourseOption> listCallerCourses() {
-		return callerScope().courses()
+		return callerScope(true).courses()
 			.stream()
 			.sorted(Comparator.comparing(Course::getName, String.CASE_INSENSITIVE_ORDER).thenComparing(Course::getId))
 			.map(course -> new CourseOption(course.getId(), course.getName()))
@@ -230,7 +236,12 @@ public class ClassOccurrenceService implements ClassCalendarApi {
 	private record Scope(boolean staff, List<Course> courses) {
 	}
 
-	private Scope callerScope() {
+	/**
+	 * @param storefrontList ADR-037 decision 9 (amended): when true and the
+	 * caller is a STUDENT on a storefront host, keep only the courses that
+	 * storefront publishes. Staff scopes and tenant hosts are unchanged.
+	 */
+	private Scope callerScope(boolean storefrontList) {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		Specification<Course> active = CourseSpecifications.excludeArchivedUnless(false);
 		if (TEACHER_ROLE.equals(principal.role())) {
@@ -240,6 +251,9 @@ public class ClassOccurrenceService implements ClassCalendarApi {
 		if (STUDENT_ROLE.equals(principal.role())) {
 			Set<UUID> ids = new HashSet<>(contentCoverageApi.findCallerCourseIds());
 			ids.addAll(enrollmentAccessApi.listCurrentlyEnrolledCourseIds(principal.userId()));
+			if (storefrontList) {
+				storefrontLookupApi.currentStorefrontCourseIds().ifPresent(ids::retainAll);
+			}
 			if (ids.isEmpty()) {
 				return new Scope(false, List.of());
 			}

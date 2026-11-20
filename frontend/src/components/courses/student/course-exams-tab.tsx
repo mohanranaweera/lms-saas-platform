@@ -54,7 +54,8 @@ function belongsTo(exam: StudentExam, courseId: string, courseName: string): boo
  */
 export function CourseExamsTab({ courseId, courseName }: { courseId: string; courseName: string }) {
   const t = useT();
-  const query = useStudentExams();
+  // Per-course list: never narrowed to a storefront, so this tab works for every joined course.
+  const query = useStudentExams(courseId);
   const [bucket, setBucket] = useState<ExamBucket>("inProgress");
 
   if (query.status === "pending") return <LoadingState label={t("student.courseExamsTab.loadingExams")} />;

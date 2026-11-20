@@ -108,7 +108,9 @@ export interface ExamResult {
 
 export const studentExamKeys = {
   all: ["student-exams"] as const,
-  list: () => [...studentExamKeys.all, "list"] as const,
+  /** `list()` is also the prefix of every per-course list, so invalidating it refreshes those too. */
+  list: (courseId?: string) =>
+    courseId ? ([...studentExamKeys.all, "list", courseId] as const) : ([...studentExamKeys.all, "list"] as const),
   detail: (examId: string) => [...studentExamKeys.all, "detail", examId] as const,
   attempt: (attemptId: string) => [...studentExamKeys.all, "attempt", attemptId] as const,
   result: (attemptId: string) => [...studentExamKeys.all, "result", attemptId] as const,
@@ -116,12 +118,21 @@ export const studentExamKeys = {
 
 const enc = encodeURIComponent;
 
-/** `GET /student/exams` — only exams the student is exam-enrolled in, grouped by the server. */
-export function useStudentExams() {
+/**
+ * `GET /student/exams` — only exams the student is exam-enrolled in, grouped by the server.
+ * With `courseId` it is one course's exams (the course page's Exams tab), which the
+ * backend never narrows to a storefront; without it, on a storefront host the list
+ * shows only that storefront's courses (ADR-037 decision 9).
+ */
+export function useStudentExams(courseId?: string) {
   const { authorizedFetch } = useAuth();
   return useQuery({
-    queryKey: studentExamKeys.list(),
-    queryFn: () => authorizedFetch<StudentExamList>("tenant", "/v1/student/exams"),
+    queryKey: studentExamKeys.list(courseId),
+    queryFn: () =>
+      authorizedFetch<StudentExamList>(
+        "tenant",
+        courseId ? `/v1/student/exams?courseId=${enc(courseId)}` : "/v1/student/exams"
+      ),
     staleTime: 0,
   });
 }

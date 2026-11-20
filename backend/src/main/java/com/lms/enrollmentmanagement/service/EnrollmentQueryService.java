@@ -14,6 +14,7 @@ import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.usermanagement.api.StudentLookupApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -68,10 +69,14 @@ public class EnrollmentQueryService {
 
 	private final AccessPolicyApi accessPolicyApi;
 
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
+
 	public EnrollmentQueryService(EnrollmentRepository enrollmentRepository,
 			EnrollmentExpiryService enrollmentExpiryService, CourseLookupApi courseLookupApi,
 			StudentLookupApi studentLookupApi, PermissionCheckService permissionCheckService,
-			AccessWindowCalculator accessWindowCalculator, AccessPolicyApi accessPolicyApi) {
+			AccessWindowCalculator accessWindowCalculator, AccessPolicyApi accessPolicyApi,
+			TeacherStorefrontLookupApi storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.accessWindowCalculator = accessWindowCalculator;
 		this.accessPolicyApi = accessPolicyApi;
 		this.enrollmentRepository = enrollmentRepository;
@@ -128,7 +133,7 @@ public class EnrollmentQueryService {
 	@Transactional
 	public List<EnrollmentSummaryView> listMyEnrollments() {
 		AuthenticatedPrincipal principal = requireStudent();
-		List<Enrollment> current = enrollmentRepository.findAllCurrentByStudentId(principal.userId());
+		List<Enrollment> current = myCurrentEnrollmentsForList(principal.userId());
 		return current.stream()
 			.map(enrollment -> new EnrollmentSummaryView(enrollment.getId(), enrollment.getCourseId(),
 					enrollmentExpiryService.resolveAccessState(enrollment.getStudentId(), enrollment.getCourseId())))
@@ -146,11 +151,24 @@ public class EnrollmentQueryService {
 	@Transactional(readOnly = true)
 	public List<CourseSummary> listMyEnrolledCourseSummaries() {
 		AuthenticatedPrincipal principal = requireStudent();
-		Set<UUID> courseIds = enrollmentRepository.findAllCurrentByStudentId(principal.userId())
+		Set<UUID> courseIds = myCurrentEnrollmentsForList(principal.userId())
 			.stream()
 			.map(Enrollment::getCourseId)
 			.collect(Collectors.toSet());
 		return courseLookupApi.getCourseSummaries(courseIds);
+	}
+
+	/**
+	 * ADR-037 decision 9 (amended): on a storefront host the student's own
+	 * course LISTS show only courses that storefront publishes. Lists only -
+	 * enrollment rows and every per-course access check are untouched, and the
+	 * tenant host (no storefront context) lists everything.
+	 */
+	private List<Enrollment> myCurrentEnrollmentsForList(UUID studentId) {
+		List<Enrollment> current = enrollmentRepository.findAllCurrentByStudentId(studentId);
+		return storefrontLookupApi.currentStorefrontCourseIds()
+			.map(scope -> current.stream().filter(enrollment -> scope.contains(enrollment.getCourseId())).toList())
+			.orElse(current);
 	}
 
 	private AuthenticatedPrincipal requireStudent() {
