@@ -212,7 +212,7 @@ test.describe("sign-in return path", () => {
     await mockJson(page, "**/v1/auth/login", 200, apiSuccess(loginResponseBody(fakeJwt({ role: "STUDENT" }))));
     await page.goto(`${STORE}/login?returnTo=${encodeURIComponent("/courses/al-biology-theory")}`);
 
-    await page.getByLabel("Email").fill("student@example.test");
+    await page.getByRole("textbox", { name: "Email" }).fill("student@example.test");
     await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple");
     await page.getByRole("button", { name: "Sign in" }).click();
     // Generous timeout: the dev server may compile the course route on first use.
@@ -223,7 +223,7 @@ test.describe("sign-in return path", () => {
     await mockJson(page, "**/v1/auth/login", 200, apiSuccess(loginResponseBody(fakeJwt({ role: "STUDENT" }))));
     await page.goto(`/login?returnTo=${encodeURIComponent("//evil.test/phish")}`);
 
-    await page.getByLabel("Email").fill("student@example.test");
+    await page.getByRole("textbox", { name: "Email" }).fill("student@example.test");
     await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/student\/dashboard$/, { timeout: 30_000 });
