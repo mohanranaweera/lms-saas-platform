@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { isApiClientError } from "@/lib/api/error";
+import { STOREFRONT_PRODUCT_OUT_OF_SCOPE } from "@/lib/storefront/site-context";
 import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 
 /**
@@ -75,6 +76,10 @@ export function enrollErrorMessage(error: unknown, t?: TranslateFn): string {
   if (isApiClientError(error)) {
     if (error.code === "SELF_ENROLLMENT_DISABLED") {
       return t ? t("common.enroll.error.selfDisabled") : "Your institute enrolls students for you. Contact your institute to join this course.";
+    }
+    if (error.code === STOREFRONT_PRODUCT_OUT_OF_SCOPE) {
+      // STORE-01: new storefront copy is plain English (I18N-01 paused).
+      return "This course isn't offered on this teacher's page. Join it from the institute's main site.";
     }
     if (error.code === "REGISTRATION_CLOSED") {
       return t ? t("common.enroll.error.closed") : "Registration for this course is closed right now. Contact your institute if you need to join.";

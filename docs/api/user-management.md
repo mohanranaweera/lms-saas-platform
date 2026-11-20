@@ -653,7 +653,10 @@ Operator/Manager, never Teacher):
 Public: `GET /api/v1/public/site-context` -> `{kind: TENANT|STOREFRONT, storefront}`.
 On storefront hosts the public course and teacher endpoints are scoped to published listed
 courses; checkout `quote`/`orders`/`offers` reject out-of-scope courses with 422
-`STOREFRONT_PRODUCT_OUT_OF_SCOPE` and `GET /checkout/courses` filters them out. Order lines
+`STOREFRONT_PRODUCT_OUT_OF_SCOPE` and `GET /checkout/courses` filters them out. The student
+catalog `GET /api/v1/enrollments/my/catalog?view=AVAILABLE` lists only storefront courses, and
+`POST /api/v1/enrollments/my/courses/{id}` refuses a new out-of-scope enrollment with the same
+422 (an existing participation stays idempotent 200; `view=ENROLLED` is unfiltered). Order lines
 record `storefront_id` (attribution only). Unknown/disabled hosts: 404 `STOREFRONT_NOT_FOUND`;
 retired slug: 404 `STOREFRONT_MOVED` (`details.host`).
 Audit: storefront create, slug change, enable/disable and product-list change (before/after).

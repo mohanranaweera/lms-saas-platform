@@ -43,7 +43,11 @@ Change-controlled areas touched (root `CLAUDE.md`):
 6. **Server-side scoping.** With a storefront context, public course list/search/counts/
    pagination/detail and checkout quote/order accept only published listed courses that are
    also visible on the tenant catalog (tenant merchandising rules still apply). Out-of-scope
-   detail = 404; out-of-scope quote/order = 422 `STOREFRONT_PRODUCT_OUT_OF_SCOPE`.
+   detail = 404; out-of-scope quote/order = 422 `STOREFRONT_PRODUCT_OUT_OF_SCOPE`. The signed-in
+   student portal follows the same rule on a storefront host: Browse (`/enrollments/my/catalog`,
+   view AVAILABLE) lists only the storefront's courses and a new free self-enrollment outside it
+   is refused (422). What a student already joined or bought (ENROLLED view, My courses,
+   re-enrolling) is never filtered. The tenant host still shows the whole institute.
 7. **Sessions.** The API is same-origin per host, and the refresh cookie stays host-only, so a
    storefront host has its own session against the same tenant account. No cookie widening,
    no cross-host handoff. `returnTo` accepts only a same-host relative path.

@@ -247,6 +247,45 @@ class TeacherStorefrontAdminAndCheckoutIntegrationTest extends StorefrontTestSup
 	}
 
 	@Test
+	void theStudentPortalCatalogAndFreeEnrollmentAreScopedOnAStorefront() {
+		Fx fx = seed("sf-portal");
+		seedActiveStudent(fx.tenant().getId(), "newcomer@example.test");
+		String newcomer = loginAndGetToken(fx.host(), "newcomer@example.test");
+
+		// Browse (AVAILABLE): only Alice's published products on her storefront.
+		assertThat(catalogIds(fx.aliceHost(), newcomer, "AVAILABLE")).containsExactlyInAnyOrder(
+				fx.aliceOnly().id().toString(), fx.sharedAliceListed().id().toString(),
+				fx.sharedBoth().id().toString());
+		// The tenant site still offers every course.
+		assertThat(catalogIds(fx.host(), newcomer, "AVAILABLE")).contains(fx.bobOnly().id().toString(),
+				fx.aliceHidden().id().toString());
+
+		// Free enrollment: out of scope refused, in scope allowed, tenant site unchanged.
+		MvcResult refused = call(fx.aliceHost(), newcomer,
+				post("/api/v1/enrollments/my/courses/{courseId}", fx.bobOnly().id()));
+		assertThat(status(refused)).isEqualTo(422);
+		assertThat(errorCode(refused)).isEqualTo("STOREFRONT_PRODUCT_OUT_OF_SCOPE");
+		assertOk(call(fx.aliceHost(), newcomer, post("/api/v1/enrollments/my/courses/{courseId}",
+				fx.aliceOnly().id())));
+		assertOk(call(fx.host(), newcomer, post("/api/v1/enrollments/my/courses/{courseId}", fx.bobOnly().id())));
+
+		// A student keeps everything already joined, on any host (idempotent re-enroll too).
+		assertThat(catalogIds(fx.aliceHost(), fx.studentToken(), "ENROLLED")).contains(
+				fx.bobOnly().id().toString(), fx.aliceHidden().id().toString());
+		assertOk(call(fx.aliceHost(), fx.studentToken(),
+				post("/api/v1/enrollments/my/courses/{courseId}", fx.bobOnly().id())));
+	}
+
+	private List<String> catalogIds(String host, String token, String view) {
+		List<String> ids = new ArrayList<>();
+		json(call(host, token, get("/api/v1/enrollments/my/catalog").param("view", view).param("size", "100")))
+			.path("data")
+			.path("content")
+			.forEach(c -> ids.add(c.path("courseId").asString()));
+		return ids;
+	}
+
+	@Test
 	void orderLinesRecordTheStorefrontAndPurchasedAccessSurvivesDisablingIt() {
 		Fx fx = seed("sf-attribution");
 		UUID storefrontId = jdbcTemplate.queryForObject("SELECT id FROM teacher_storefront WHERE teacher_id = ?",

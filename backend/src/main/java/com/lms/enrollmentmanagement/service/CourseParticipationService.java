@@ -2,8 +2,12 @@ package com.lms.enrollmentmanagement.service;
 
 import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
+import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.NotFoundException;
+import com.lms.common.error.StorefrontException;
+import com.lms.common.tenant.StorefrontContext;
+import com.lms.common.tenant.StorefrontContextHolder;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseCatalogApi;
 import com.lms.coursemanagement.api.CourseCatalogApi.CatalogEntry;
@@ -17,11 +21,14 @@ import com.lms.enrollmentmanagement.domain.CourseParticipationSource;
 import com.lms.enrollmentmanagement.repository.CourseParticipationRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.tenantmanagement.api.TenantConfigApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,9 +66,13 @@ public class CourseParticipationService implements CourseParticipationApi {
 
 	private final TenantContext tenantContext;
 
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
+
 	public CourseParticipationService(CourseParticipationRepository participationRepository,
 			CourseLookupApi courseLookupApi, CourseCatalogApi courseCatalogApi, AuditLogApi auditLogApi,
-			TenantConfigApi tenantConfigApi, TenantContext tenantContext) {
+			TenantConfigApi tenantConfigApi, TenantContext tenantContext,
+			TeacherStorefrontLookupApi storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.participationRepository = participationRepository;
 		this.courseLookupApi = courseLookupApi;
 		this.courseCatalogApi = courseCatalogApi;
@@ -102,6 +113,10 @@ public class CourseParticipationService implements CourseParticipationApi {
 		var existing = participationRepository.findByStudentIdAndCourseId(studentId, courseId);
 		if (existing.isPresent()) {
 			return new SelfEnrollResult(courseId, existing.get().getEnrolledAt(), false);
+		}
+		if (storefrontScope().filter(scope -> !scope.contains(courseId)).isPresent()) {
+			throw new StorefrontException(HttpStatus.UNPROCESSABLE_CONTENT,
+					ApiErrorCodes.STOREFRONT_PRODUCT_OUT_OF_SCOPE, "This course is not offered on this site");
 		}
 		if (!tenantConfigApi.isSelfEnrollmentEnabled(tenantContext.getTenantId())) {
 			throw new SelfEnrollmentDisabledException();
@@ -166,12 +181,25 @@ public class CourseParticipationService implements CourseParticipationApi {
 		Set<UUID> participating = participationRepository.findCourseIdsByStudentId(studentId);
 		CatalogQuery query = view == CatalogView.ENROLLED
 				? new CatalogQuery(participating, null, false, search, tagId, sort, page, size)
-				: new CatalogQuery(null, participating, true, search, tagId, sort, page, size);
+				: new CatalogQuery(storefrontScope().orElse(null), participating, true, search, tagId, sort, page,
+						size);
 		PageResponse<CatalogEntry> entries = courseCatalogApi.findCatalog(query);
 		return new PageResponse<>(entries.content()
 			.stream()
 			.map(entry -> new CatalogItem(entry, participating.contains(entry.courseId())))
 			.toList(), entries.page(), entries.size(), entries.totalElements(), entries.totalPages());
+	}
+
+	/**
+	 * STORE-01 / ADR-037 decision 6: on a storefront host the AVAILABLE catalog
+	 * and new self-enrollments are limited to the courses that storefront lists
+	 * and publishes. Empty on a tenant host. ENROLLED and existing
+	 * participations are never filtered - a student keeps what they joined.
+	 */
+	private Optional<Set<UUID>> storefrontScope() {
+		return StorefrontContextHolder.current()
+			.map(StorefrontContext::storefrontId)
+			.map(storefrontLookupApi::findPublishedCourseIds);
 	}
 
 }
