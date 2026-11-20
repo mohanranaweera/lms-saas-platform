@@ -12,6 +12,8 @@ import { useCourse } from "@/lib/api/courses";
 import { useCreateOrder, useInitiatePayment } from "@/lib/api/payments";
 import { useT } from "@/i18n/i18n-provider";
 import { localizeApiError } from "@/i18n/errors";
+import { isApiClientError } from "@/lib/api/error";
+import { STOREFRONT_OUT_OF_SCOPE_MESSAGE, STOREFRONT_PRODUCT_OUT_OF_SCOPE } from "@/lib/storefront/site-context";
 import {
   CoursePriceText,
   CoursePricingNotice,
@@ -101,6 +103,12 @@ export default function CheckoutPage() {
 
   const isSubmitting = mode !== null;
 
+  // STORE-01: friendly copy for a course this storefront doesn't sell (422).
+  const checkoutErrorMessage = (error: unknown) =>
+    isApiClientError(error) && error.code === STOREFRONT_PRODUCT_OUT_OF_SCOPE
+      ? STOREFRONT_OUT_OF_SCOPE_MESSAGE
+      : localizeApiError(t, error);
+
   async function handleEnroll() {
     if (isSubmitting) return;
     setFlowError(null);
@@ -127,7 +135,7 @@ export default function CheckoutPage() {
       }
       router.push(`/student/payments/awaiting-confirmation/${order.id}`);
     } catch (error) {
-      setFlowError(localizeApiError(t, error));
+      setFlowError(checkoutErrorMessage(error));
       setMode(null);
     }
   }
@@ -143,7 +151,7 @@ export default function CheckoutPage() {
       });
       router.push(`/student/payments/slip-upload/${order.id}`);
     } catch (error) {
-      setFlowError(localizeApiError(t, error));
+      setFlowError(checkoutErrorMessage(error));
       setMode(null);
     }
   }

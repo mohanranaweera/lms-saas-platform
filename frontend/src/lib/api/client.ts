@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { getRequestLocale, LOCALE_HEADER } from "@/i18n/locale-store";
+import { reportStorefrontError } from "@/lib/storefront/storefront-signal";
 import { ApiClientError } from "./error";
 import type { ApiResponse } from "./types";
 
@@ -75,6 +76,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit, options?: Ap
       message: "An unexpected error occurred.",
       fieldErrors: [],
     };
+
+    // STORE-01: an unknown/retired storefront host answers every call with a
+    // 404 storefront code; the root StorefrontGate shows not-found / redirects.
+    if (response.status === 404) reportStorefrontError(response.status, error.code, error.details ?? null);
 
     throw new ApiClientError(error, response.status, payload?.traceId);
   }

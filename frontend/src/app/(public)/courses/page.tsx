@@ -1,54 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowRight, Search, UserRound } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/states/empty-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { CourseCover } from "@/components/courses/student/course-visuals";
-import { CoursePriceText } from "@/components/courses/course-price-display";
-import { usePublicCourses, usePublicCourseTags, type PublicCourseResponse } from "@/lib/api/public-courses";
-import { useContentLang } from "@/i18n/content-lang";
-
-function CourseCard({ course }: { course: PublicCourseResponse }) {
-  const contentLang = useContentLang(course.contentLocale);
-  return (
-    <li>
-      <Link
-        href={`/courses/${course.slug}`}
-        className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
-      >
-        <div className="relative">
-          <CourseCover src={course.coverImageUrl} title={course.name} className="rounded-none" />
-          <span className="absolute bottom-3 left-3 rounded-full bg-background/95 px-3 py-1 text-sm font-semibold text-primary shadow-sm">
-            <CoursePriceText course={course} />
-          </span>
-        </div>
-        <div className="flex flex-1 flex-col gap-3 p-5">
-          <span className="w-fit rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            {course.category}
-          </span>
-          <h2 className="line-clamp-2 text-lg font-semibold break-words text-foreground" lang={contentLang}>
-            {course.name}
-          </h2>
-          {course.teacherName ? (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <UserRound className="size-4" aria-hidden="true" />
-              {course.teacherName}
-            </p>
-          ) : null}
-          <span className="mt-auto flex items-center justify-end gap-1 border-t border-border pt-4 text-sm font-semibold text-primary">
-            View details
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-          </span>
-        </div>
-      </Link>
-    </li>
-  );
-}
+import { PublicCourseCard } from "@/components/public/public-course-card";
+import { usePublicCourses, usePublicCourseTags } from "@/lib/api/public-courses";
 
 /** Public course catalog with tenant-scoped courses and responsive course cards. */
 export default function PublicCoursesPage() {
@@ -109,7 +69,7 @@ export default function PublicCoursesPage() {
                   {normalizedSearch ? `${courses.length} matching courses` : `${coursesPage.totalElements} courses`}
                 </p>
                 <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {courses.map((course) => <CourseCard key={course.id} course={course} />)}
+                  {courses.map((course) => <PublicCourseCard key={course.id} course={course} />)}
                 </ul>
                 {coursesPage.totalPages > 1 ? (
                   <nav aria-label="Course catalog pagination" className="flex items-center justify-between gap-3 pt-3">

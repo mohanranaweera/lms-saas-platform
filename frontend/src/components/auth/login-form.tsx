@@ -14,6 +14,7 @@ import { useAuth, type LoginResult } from "@/lib/auth/auth-context";
 import type { LoginRequest, PrincipalKind } from "@/lib/api/auth";
 import { usePublicHome } from "@/lib/api/public-home";
 import { isApiClientError } from "@/lib/api/error";
+import { RETURN_TO_PARAM, safeReturnTo, withReturnTo } from "@/lib/navigation/return-to";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +91,9 @@ export function LoginForm({
 }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // STORE-01: a same-host relative path only (anything else is ignored);
+  // tenant sign-in only. UX routing - every destination re-checks access.
+  const returnTo = kind === "tenant" ? safeReturnTo(searchParams.get(RETURN_TO_PARAM)) : null;
   const { login } = useAuth();
   const t = useT();
   const [showPassword, setShowPassword] = useState(false);
@@ -119,6 +123,10 @@ export function LoginForm({
       // refuses everything else with 403 PASSWORD_CHANGE_REQUIRED anyway).
       if (kind === "tenant" && result.mustChangePassword) {
         router.push("/change-password");
+        return;
+      }
+      if (returnTo) {
+        router.push(returnTo);
         return;
       }
       const target = resolveDashboardPath(result.role);
@@ -303,7 +311,7 @@ export function LoginForm({
         {showRegisterLink ? (
           <p className="text-center text-sm text-muted-foreground">
             {t("auth.login.noAccount")}{" "}
-            <Link href="/register" className="font-medium text-foreground hover:underline">
+            <Link href={withReturnTo("/register", returnTo)} className="font-medium text-foreground hover:underline">
               {t("auth.login.createAccount")}
             </Link>
           </p>

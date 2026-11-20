@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { I18nProvider } from "@/i18n/i18n-provider";
+import { StorefrontGate } from "@/components/storefront/storefront-gate";
 import { SCRIPT_FONT_VARIABLE_CLASSES } from "@/lib/fonts/script-fonts";
 import { THEME_INIT_SCRIPT } from "@/lib/theme/theme-mode";
 import "./globals.css";
@@ -47,7 +48,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <QueryProvider>
           <AuthProvider>
-            <I18nProvider>{children}</I18nProvider>
+            <I18nProvider>
+              {/* STORE-01: unknown/retired storefront hosts -> not-found page / redirect. */}
+              <StorefrontGate>{children}</StorefrontGate>
+            </I18nProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

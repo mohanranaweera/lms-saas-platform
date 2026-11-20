@@ -12,6 +12,7 @@ import {
   type RequiredPurchase,
 } from "@/lib/api/klass-student";
 import { isApiClientError } from "@/lib/api/error";
+import { STOREFRONT_OUT_OF_SCOPE_MESSAGE, STOREFRONT_PRODUCT_OUT_OF_SCOPE } from "@/lib/storefront/site-context";
 
 /**
  * Pure model helpers for the PAY composer: tabs ↔ API scopes, selection keys
@@ -364,6 +365,9 @@ export function composerErrorMessage(error: unknown): string {
         return "Too many incorrect discount codes. Remove the code and try again later.";
       case "ORDER_TOTAL_ZERO":
         return "Your discounts cover the whole amount, and an order with a zero total can't be placed. Remove a discount or add another item to continue.";
+      case STOREFRONT_PRODUCT_OUT_OF_SCOPE:
+        // STORE-01: a course this teacher's storefront doesn't sell (422).
+        return STOREFRONT_OUT_OF_SCOPE_MESSAGE;
       case "BANK_TRANSFER_DISABLED":
         return "Your institute no longer accepts bank transfers. Please pay online instead.";
       case "NETWORK_ERROR":

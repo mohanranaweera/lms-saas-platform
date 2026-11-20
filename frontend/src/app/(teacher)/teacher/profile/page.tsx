@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/teachers";
 import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 import { localizeApiError } from "@/i18n/errors";
+import { TeacherStorefrontStatus } from "./storefront-status";
 
 function profileSchema(t: TranslateFn) {
   return z.object({
@@ -64,6 +65,8 @@ export default function TeacherProfilePage() {
           {(profile) => <ProfileContent profile={profile} />}
         </QueryStateBoundary>
       )}
+      {/* STORE-01: read-only; the institute manages storefronts. */}
+      <TeacherStorefrontStatus />
     </div>
   );
 }

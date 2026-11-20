@@ -6,6 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/i18n-provider";
+import { useStorefrontAuthHref } from "@/lib/storefront/use-storefront-return-to";
 
 function dashboardHref(role: string | null, kind: string) {
   if (kind === "platform-admin") return "/platform-admin/dashboard";
@@ -82,6 +83,9 @@ export function PublicAccountActions({
   const t = useT();
   const wrapper = cn("flex gap-2", layout === "stack" ? "flex-col items-stretch" : "items-center");
   const full = layout === "stack" ? "w-full justify-center" : undefined;
+  // STORE-01: on a storefront host, come back to this page after sign-in.
+  const loginHref = useStorefrontAuthHref("/login");
+  const registerHref = useStorefrontAuthHref("/register");
 
   if (checkingSession) return <div className={cn(wrapper, "min-h-8")} aria-hidden="true" />;
 
@@ -100,11 +104,11 @@ export function PublicAccountActions({
 
   return (
     <div className={wrapper}>
-      <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), cn("border-primary text-primary hover:text-primary", full))}>
+      <Link href={loginHref} className={cn(buttonVariants({ variant: "outline", size: "lg" }), cn("border-primary text-primary hover:text-primary", full))}>
         {tenantResolved ? t("public.header.login") : t("public.header.signIn")}
       </Link>
       {tenantResolved ? (
-        <Link href="/register" className={cn(buttonVariants({ size: "lg" }), cn("tenant-primary-hover", full))}>
+        <Link href={registerHref} className={cn(buttonVariants({ size: "lg" }), cn("tenant-primary-hover", full))}>
           {t("public.header.register")}
         </Link>
       ) : (

@@ -92,6 +92,15 @@ export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   if (can(CAP.TEACHERS_VIEW, canViewTeachers(role))) {
     academicItems.push({ label: t("tenantAdmin.nav.teachers"), href: "/tenant-admin/teachers" });
   }
+  // STORE-01 / ADR-037 - TEACHER_STOREFRONT_MANAGE (Tenant Admin by default;
+  // grantable to Operator/Manager). UX only; /api/v1/teacher-storefronts re-checks it.
+  if (can(CAP.TEACHER_STOREFRONT_MANAGE, role === "TENANT_ADMIN")) {
+    academicItems.push({
+      label: "Teacher storefronts",
+      href: "/tenant-admin/teachers/storefronts",
+      activePrefixes: ["/tenant-admin/teachers/storefronts"],
+    });
+  }
   if (can(CAP.COURSES_VIEW, true)) {
     academicItems.push({ label: t("tenantAdmin.nav.courses"), href: "/tenant-admin/courses" });
   }

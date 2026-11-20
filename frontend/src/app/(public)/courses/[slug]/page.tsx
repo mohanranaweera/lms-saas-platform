@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useSelfEnroll, useStudentCourse } from "@/lib/api/klass-student";
 import { isApiClientError } from "@/lib/api/error";
 import { useContentLang } from "@/i18n/content-lang";
+import { useStorefrontAuthHref } from "@/lib/storefront/use-storefront-return-to";
 
 export default function PublicCourseDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -32,6 +33,8 @@ export default function PublicCourseDetailPage() {
   const studentCourseId = isStudent && publicQuery.status === "success" ? publicQuery.data.id : "";
   const studentQuery = useStudentCourse(studentCourseId);
   const contentLang = useContentLang(publicQuery.data?.contentLocale);
+  // STORE-01: on a storefront host, sign-in returns to this course page.
+  const loginHref = useStorefrontAuthHref("/login");
 
   useEffect(() => {
     let cancelled = false;
@@ -60,7 +63,7 @@ export default function PublicCourseDetailPage() {
               {publicCourse.resolvedAmount !== null ? <PriceBadge priceDisplay={{ amount: publicCourse.resolvedAmount, currency: publicCourse.currency, period: publicCourse.pricingModel === "MONTHLY" ? "MONTH" : null }} pricingModel={publicCourse.pricingModel} /> : null}
               <h1 className="break-words text-2xl font-bold text-foreground sm:text-3xl" lang={contentLang}>{publicCourse.name}</h1>
               {publicCourse.teacherName ? <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><UserRound className="size-4" aria-hidden="true" />{publicCourse.teacherName}</p> : null}
-              <Button className="mt-2 w-fit" render={<Link href="/login" />}>Register now</Button>
+              <Button className="mt-2 w-fit" render={<Link href={loginHref} />}>Register now</Button>
             </div>
           </div>
         </section>
