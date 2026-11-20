@@ -191,7 +191,7 @@ test.describe("Appearance settings", () => {
     await page.goto("/tenant-admin/settings/appearance");
     const tabs = page.getByRole("navigation", { name: "Settings sections" });
     // SET-PAY-01 added Payments after General; LOGIN-01 added Policies after Site media.
-    await expect(tabs.getByRole("link")).toHaveText(["General", "Payments", "Appearance", "Student fields", "Site media", "Policies", "Integrations", "Video"]);
+    await expect(tabs.getByRole("link")).toHaveText(["General", "Payments", "Appearance", "Student fields", "Site media", "Policies", "Configs", "Integrations", "Video", "Translations"]);
     await expect(page.getByRole("link", { name: "Student Fields", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Branding", exact: true })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Primary" }).first().getByRole("link", { name: "Settings", exact: true })).toHaveAttribute("href", "/tenant-admin/settings/general");
