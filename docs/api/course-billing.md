@@ -162,6 +162,14 @@ A genuine change publishes `CoursePricingModelChangedEvent` for audit-log covera
 `course_pricing_model_history` append-only table exists (unlike `course.price`) — only the audit
 event, a documented, narrower scope than `changePrice`'s history-table discipline.
 
+**Switching to `MONTHLY`** also fills the billing month of existing `COVERED_BY_CLASS_FEES`
+sessions that have a `startsAt` but no month (sessions saved before the switch), using the same
+tenant-timezone rule as saving a session. Without it those sessions offer no month at checkout.
+A month that already exists is never changed, FREE/PAID and unscheduled sessions are skipped,
+and switching away from `MONTHLY` clears nothing. Each filled session writes a
+`course_lesson.billing_month_assigned` audit event in the same transaction. No payment,
+entitlement or ledger row is touched.
+
 ### `POST /api/v1/courses/{id}/archive` / `POST /api/v1/courses/{id}/unarchive`
 
 Sets/clears `course.archivedAt`. **`200`** (`ApiResponse<CourseResponse>`). A true no-op (already

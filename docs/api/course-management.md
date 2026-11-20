@@ -206,7 +206,8 @@ nullable windows can be preserved or cleared. End must be after start when both 
 `paymentType` is `FREE`, `COVERED_BY_CLASS_FEES` or `PAID`; paid sessions require a positive
 price. `billingYear`/`billingMonth` remain compatibility fields but are not trusted: for a
 `MONTHLY` course with `COVERED_BY_CLASS_FEES`, backend derives both from `startsAt` in the
-trusted tenant timezone; otherwise both are stored null. Response includes `expired` and the
+trusted tenant timezone; otherwise both are stored null. A later switch of the course to
+`MONTHLY` fills a missing month the same way (see `course-billing.md`). Response includes `expired` and the
 derived/null billing fields. Existing paid-entitlement activation rules remain unchanged.
 
 `resourceType` comes from `GET /api/v1/courses/lesson-resource-types` and includes `IMAGE`

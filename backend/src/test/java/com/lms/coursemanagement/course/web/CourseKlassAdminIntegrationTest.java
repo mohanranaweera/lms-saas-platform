@@ -500,6 +500,51 @@ class CourseKlassAdminIntegrationTest extends CourseManagementTestSupport {
 	}
 
 	@Test
+	void switchingToMonthlyFillsOnlyMissingMonthsOfCoveredSessionsSavedBeforeTheSwitch() {
+		Ctx ctx = tenantWithAdmin("klass-switch-month");
+		assertThat(status(send(ctx, put("/api/v1/tenant-config/GENERAL"),
+				Map.of("default_timezone", "Asia/Colombo")))).isEqualTo(200);
+		// Sessions are added while the course is NOT monthly, so none gets a month.
+		String courseId = createOk(ctx, courseBody("Switch later", "teacherIds", List.of(ctx.teacher().getId()),
+				"pricingModel", "ONE_TIME", "price", "100.00")).path("id").asString();
+		String moduleId = createModule(ctx, courseId, "Module", 1, null);
+		String covered = json(createLesson(ctx, courseId, moduleId, Map.of("title", "Covered", "startsAt",
+				"2026-01-31T20:00:00Z", "paymentType", "COVERED_BY_CLASS_FEES"))).path("data").path("id").asString();
+		String paid = json(createLesson(ctx, courseId, moduleId, Map.of("title", "Paid", "startsAt",
+				"2026-03-10T05:00:00Z", "paymentType", "PAID", "price", "100.00"))).path("data").path("id").asString();
+		assertThat(lessonMonths(ctx, courseId, moduleId).get(covered)).isNull();
+
+		switchPricingModel(ctx, courseId, "MONTHLY");
+		// Same tenant-local rule as saving a session: 31 Jan 20:00 UTC is February in Colombo.
+		assertThat(lessonMonths(ctx, courseId, moduleId).get(covered)).isEqualTo("2026-02");
+		assertThat(lessonMonths(ctx, courseId, moduleId).get(paid)).isNull();
+		assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM audit_log WHERE target_id = ?::uuid "
+				+ "AND action = 'course_lesson.billing_month_assigned'", Long.class, covered)).isEqualTo(1L);
+
+		// A month that already exists is never overwritten, and leaving Monthly never clears one.
+		jdbcTemplate.update("UPDATE course_lesson SET billing_month = 5 WHERE id = ?::uuid", covered);
+		switchPricingModel(ctx, courseId, "ONE_TIME");
+		assertThat(lessonMonths(ctx, courseId, moduleId).get(covered)).isEqualTo("2026-05");
+		switchPricingModel(ctx, courseId, "MONTHLY");
+		assertThat(lessonMonths(ctx, courseId, moduleId).get(covered)).isEqualTo("2026-05");
+	}
+
+	private void switchPricingModel(Ctx ctx, String courseId, String pricingModel) {
+		MvcResult result = send(ctx, patch("/api/v1/courses/" + courseId + "/pricing-model"),
+				Map.of("pricingModel", pricingModel));
+		assertThat(status(result)).as(rawContent(result)).isEqualTo(200);
+	}
+
+	/** lessonId -> "yyyy-MM" billing month, or null when the session has none. */
+	private Map<String, String> lessonMonths(Ctx ctx, String courseId, String moduleId) {
+		Map<String, String> months = new HashMap<>();
+		json(send(ctx, get("/api/v1/courses/" + courseId + "/modules/" + moduleId + "/lessons"), null)).path("data")
+			.forEach(lesson -> months.put(lesson.path("id").asString(), lesson.path("billingMonth").isNull() ? null
+					: String.format("%d-%02d", lesson.path("billingYear").asInt(), lesson.path("billingMonth").asInt())));
+		return months;
+	}
+
+	@Test
 	@Tag("cross-tenant")
 	void crossTenantModuleAndLessonKlassEndpointsReturn404() {
 		Ctx a = tenantWithAdmin("klass-ml-xt-a");
