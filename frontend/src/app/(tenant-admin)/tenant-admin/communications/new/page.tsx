@@ -1,47 +1,17 @@
-"use client";
-
-import { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/lib/auth/auth-context";
-import { canSendCommunications } from "@/lib/auth/permissions";
-import { PageHeader } from "@/components/ui/page-header";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { BroadcastComposer } from "@/components/communications/broadcast-composer";
+import { NewBroadcastPageClient } from "./page-client";
 
 /**
- * Tenant Admin → New broadcast (Wave 11). `COMMUNICATIONS`/`CREATE_EDIT`. A
- * role without it (e.g. Read-only Auditor) gets a plain notice instead of the
- * composer - UX only; the backend 403 on send is the real enforcement.
+ * Reading `searchParams` opts this route out of static prerendering. As a
+ * static route, a production build's client router reused one cached entry -
+ * with its canonical URL - for `/tenant-admin/communications/new` and its query-string variants, so a
+ * router.replace/push that changes the query wrote the previous one straight
+ * back. The page still reads its state client-side from the URL.
  */
-export default function NewBroadcastPage() {
-  return (
-    <Suspense fallback={null}>
-      <NewBroadcastContent />
-    </Suspense>
-  );
-}
-
-function NewBroadcastContent() {
-  const router = useRouter();
-  // STU-MGMT-02: `?studentId=` (repeatable) preselects recipients for "Send Message".
-  const searchParams = useSearchParams();
-  const initialStudentIds = searchParams.getAll("studentId").filter(Boolean);
-  const { session } = useAuth();
-  if (!canSendCommunications(session?.role ?? null)) {
-    return (
-      <Alert>
-        <AlertDescription>Your role can view broadcasts but not send them.</AlertDescription>
-      </Alert>
-    );
-  }
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title="New broadcast" description="Choose who receives it, write the message, then pick channels." />
-      <BroadcastComposer
-        mode="staff"
-        initialStudentIds={initialStudentIds}
-        onSent={(broadcast) => router.push(`/tenant-admin/communications/${broadcast.id}`)}
-      />
-    </div>
-  );
+export default async function NewBroadcastPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await searchParams;
+  return <NewBroadcastPageClient />;
 }
