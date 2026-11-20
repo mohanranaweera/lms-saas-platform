@@ -750,7 +750,7 @@ test.describe("payment history — a 403 on the underlying ledger read renders P
       apiError("FORBIDDEN", "You do not have permission to view this.")
     );
 
-    await page.goto("/student/payments/history");
+    await gotoPaymentHistory(page);
 
     await expect(
       page.getByRole("alert").filter({ hasText: "You don't have permission to view this." })

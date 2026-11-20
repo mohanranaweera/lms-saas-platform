@@ -23,6 +23,7 @@ import { courseAction, openCourseActions } from "./fixtures/klass/course-row-men
  * data, so reruns never collide.
  */
 
+test.skip(!process.env.KLASS_LIVE, "live backend check; set KLASS_LIVE=1");
 test.describe.configure({ mode: "serial" });
 
 let adminToken: string;

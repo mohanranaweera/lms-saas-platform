@@ -22,6 +22,7 @@ import {
  * (non-PUBLIC 404, invite links hidden from non-participants, partial PATCH).
  */
 
+test.skip(!process.env.KLASS_LIVE, "live backend check; set KLASS_LIVE=1");
 test.describe.configure({ mode: "serial" });
 
 let adminToken: string;

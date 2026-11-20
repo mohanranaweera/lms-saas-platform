@@ -30,6 +30,7 @@ import {
  *   fake test values ("Test Bank", "000-TEST", ...). See PAYMENT_DEFAULTS.
  */
 
+test.skip(!process.env.KLASS_LIVE, "live backend check; set KLASS_LIVE=1");
 test.describe.configure({ mode: "serial" });
 
 let adminToken: string;
