@@ -41,12 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class LedgerViewEnrichmentService {
 
-	private static final String FREE_PREFIX = "FREE-";
-
-	private static final String STAFF_GRANTED_PREFIX = "STAFF_GRANTED-";
-
-	private static final String SLIP_PREFIX = "SLIP-";
-
+	/** ADR-030: {@code ManualPaymentService#record}. */
 	private final PaymentStatusApi paymentStatusApi;
 
 	private final SlipStatusApi slipStatusApi;
@@ -82,10 +77,15 @@ public class LedgerViewEnrichmentService {
 		Set<UUID> courseIds = paymentDetailsByOrderId.values()
 			.stream()
 			.map(OrderPaymentDetail::courseId)
+			// V90: a multi-course line order has no single course.
+			.filter(java.util.Objects::nonNull)
 			.collect(Collectors.toSet());
 		Map<UUID, String> courseTitlesByCourseId = courseLookupApi.getCourseSummaries(courseIds)
 			.stream()
 			.collect(Collectors.toMap(CourseSummary::id, CourseSummary::name));
+
+		Map<UUID, String> multiCourseTitles = MultiCourseOrderTitles.of(paymentStatusApi,
+				paymentDetailsByOrderId.values());
 
 		Map<UUID, PaymentOperationalState> operationalStatesByOrderId = paymentOperationalStateService
 			.resolveForOrders(orderIds);
@@ -103,26 +103,17 @@ public class LedgerViewEnrichmentService {
 			PaymentMethod method = deriveMethod(paymentDetail.confirmedGatewayReference());
 			String reference = (method == PaymentMethod.MANUAL_SLIP && slipDetail != null)
 					? slipDetail.approvedReferenceNumber() : paymentDetail.confirmedGatewayReference();
-			return view.withEnrichment(paymentDetail.courseId(), courseTitlesByCourseId.get(paymentDetail.courseId()),
+			String courseTitle = paymentDetail.courseId() == null ? multiCourseTitles.get(view.orderId())
+					: courseTitlesByCourseId.get(paymentDetail.courseId());
+			return view.withEnrichment(paymentDetail.courseId(), courseTitle,
 					paymentDetail.billingPeriodId(), operationalStatesByOrderId.get(view.orderId()), method,
 					reference);
 		}).toList();
 	}
 
-	private static PaymentMethod deriveMethod(String gatewayReference) {
-		if (gatewayReference == null) {
-			return null;
-		}
-		if (gatewayReference.startsWith(FREE_PREFIX)) {
-			return PaymentMethod.FREE;
-		}
-		if (gatewayReference.startsWith(STAFF_GRANTED_PREFIX)) {
-			return PaymentMethod.STAFF_GRANTED;
-		}
-		if (gatewayReference.startsWith(SLIP_PREFIX)) {
-			return PaymentMethod.MANUAL_SLIP;
-		}
-		return PaymentMethod.GATEWAY;
+	/** The single derivation of a payment's method from its reference prefix (also used by RPT-01). */
+	static PaymentMethod deriveMethod(String gatewayReference) {
+		return PaymentMethod.fromGatewayReference(gatewayReference);
 	}
 
 }

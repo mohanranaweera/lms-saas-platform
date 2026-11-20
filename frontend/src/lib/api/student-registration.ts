@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
+import type { ProfileFieldDescriptor } from "./student-profile-fields";
 
 /**
  * Typed client for the public, unauthenticated student self-registration
@@ -26,16 +27,17 @@ import { apiFetch } from "./client";
  * the policy moved to this prefetch.
  */
 
+/**
+ * `profileFields` (STU-PROF-01) carries the tenant-configured fields asked at
+ * registration, keyed by catalogue key (see `registrationFields` on the
+ * policy). The backend validates them against the tenant's settings and
+ * ignores any field not asked at registration.
+ */
 export interface StudentRegistrationInput {
   name: string;
   email: string;
   password: string;
-  guardianName?: string;
-  guardianPhone?: string;
-  school?: string;
-  grade?: string;
-  stream?: string;
-  mobile?: string;
+  profileFields?: Record<string, unknown>;
 }
 
 /** Mirrors `StudentRegistrationResponse`. `pendingApproval` reflects the calling tenant's `approval_required` policy at registration time. */
@@ -84,11 +86,12 @@ export function useRegisterStudent() {
 }
 
 /**
- * Mirrors the backend's `StudentRegistrationPolicyResponse` field-for-field
+ * Mirrors the backend's `PublicStudentRegistrationPolicyResponse`
  * (`GET /api/v1/public/tenant-config/student-registration-policy`).
- * `requireGuardianInfo` gates both `guardianName` and `guardianPhone` in the
- * form (there is no separate name/phone split server-side); the remaining
- * four `require*` flags each gate exactly one field.
+ * `registrationFields` (STU-PROF-01) is what the form renders: the fields
+ * the tenant asks at registration, in display order, with required-ness.
+ * The five legacy `require*` booleans are still returned for older clients;
+ * this app no longer reads them.
  */
 export interface StudentRegistrationPolicy {
   publicRegistrationEnabled: boolean;
@@ -99,6 +102,7 @@ export interface StudentRegistrationPolicy {
   requireGrade: boolean;
   requireStream: boolean;
   requireMobile: boolean;
+  registrationFields: ProfileFieldDescriptor[];
 }
 
 export const studentRegistrationPolicyKeys = {

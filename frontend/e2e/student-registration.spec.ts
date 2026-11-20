@@ -403,13 +403,13 @@ test.describe("student registration — conditional required fields", () => {
 
     await page.goto("/register");
 
-    await expect(page.locator('label[for="register-guardianName"]')).toHaveText("Guardian name");
-    await expect(page.locator('label[for="register-guardianPhone"]')).toHaveText("Guardian phone");
-    await expect(page.locator('label[for="register-school"]')).toHaveText("School");
+    await expect(page.locator('label[for="register-GUARDIAN_name"]')).toHaveText("Guardian name");
+    await expect(page.locator('label[for="register-GUARDIAN_phone"]')).toHaveText("Guardian phone");
+    await expect(page.locator('label[for="register-SCHOOL"]')).toHaveText("School");
     // grade/stream/mobile stay optional under this policy permutation.
-    await expect(page.locator('label[for="register-grade"]')).toHaveText("Grade (optional)");
-    await expect(page.locator('label[for="register-stream"]')).toHaveText("Stream (optional)");
-    await expect(page.locator('label[for="register-mobile"]')).toHaveText("Mobile number (optional)");
+    await expect(page.locator('label[for="register-GRADE"]')).toHaveText("Grade (optional)");
+    await expect(page.locator('label[for="register-AL_STREAM"]')).toHaveText("A/L stream (optional)");
+    await expect(page.locator('label[for="register-MOBILE"]')).toHaveText("Mobile number (optional)");
 
     await fillBaseFields(page);
     await page.getByRole("button", { name: "Create account" }).click();
@@ -436,11 +436,11 @@ test.describe("student registration — conditional required fields", () => {
     );
 
     await page.goto("/register");
-    await expect(page.locator('label[for="register-guardianName"]')).toHaveText("Guardian name (optional)");
-    await expect(page.locator('label[for="register-school"]')).toHaveText("School (optional)");
-    await expect(page.locator('label[for="register-grade"]')).toHaveText("Grade (optional)");
-    await expect(page.locator('label[for="register-stream"]')).toHaveText("Stream (optional)");
-    await expect(page.locator('label[for="register-mobile"]')).toHaveText("Mobile number (optional)");
+    await expect(page.locator('label[for="register-GUARDIAN_name"]')).toHaveText("Guardian name (optional)");
+    await expect(page.locator('label[for="register-SCHOOL"]')).toHaveText("School (optional)");
+    await expect(page.locator('label[for="register-GRADE"]')).toHaveText("Grade (optional)");
+    await expect(page.locator('label[for="register-AL_STREAM"]')).toHaveText("A/L stream (optional)");
+    await expect(page.locator('label[for="register-MOBILE"]')).toHaveText("Mobile number (optional)");
 
     await fillBaseFields(page);
     await page.getByRole("button", { name: "Create account" }).click();
@@ -459,14 +459,68 @@ test.describe("student registration — conditional required fields", () => {
     });
 
     await page.goto("/register");
-    await expect(page.locator('label[for="register-mobile"]')).toHaveText("Mobile number");
-    await expect(page.locator('label[for="register-guardianName"]')).toHaveText("Guardian name (optional)");
+    await expect(page.locator('label[for="register-MOBILE"]')).toHaveText("Mobile number");
+    await expect(page.locator('label[for="register-GUARDIAN_name"]')).toHaveText("Guardian name (optional)");
 
     await fillBaseFields(page);
     await page.getByRole("button", { name: "Create account" }).click();
 
     await expect(page.getByText("Mobile number is required.")).toBeVisible();
     expect(requestMade).toBe(false);
+  });
+});
+
+test.describe("student registration — tenant-configured fields (STU-PROF-01)", () => {
+  test("renders exactly the fields asked at registration and sends them as profileFields", async ({ page }) => {
+    await mockStudentRegistrationPolicy(page, {
+      registrationFields: [
+        { key: "BIRTHDAY", label: "Birthday", group: "PERSONAL", type: "DATE", maxLength: 10, required: true },
+        { key: "WHATSAPP_NUMBER", label: "WhatsApp number", group: "CONTACT", type: "PHONE", maxLength: 50, required: false },
+      ],
+    });
+    let body: Record<string, unknown> | null = null;
+    await page.route(REGISTER_ENDPOINT, async (route) => {
+      body = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(
+          apiSuccess({
+            studentProfileId: "55555555-5555-5555-5555-555555555555",
+            email: "new-student@example-institute.test",
+            pendingApproval: false,
+          })
+        ),
+      });
+    });
+
+    await page.goto("/register");
+    await expect(page.getByLabel("Birthday")).toBeVisible();
+    await expect(page.locator('label[for="register-WHATSAPP_NUMBER"]')).toHaveText("WhatsApp number (optional)");
+    await expect(page.getByLabel("School")).toHaveCount(0);
+
+    await fillBaseFields(page);
+    await page.getByLabel("WhatsApp number").fill("not a phone");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByText("Birthday is required.")).toBeVisible();
+    await expect(page.getByText("Enter a valid phone number.")).toBeVisible();
+    expect(body).toBeNull();
+
+    await page.getByLabel("Birthday").fill("2008-04-01");
+    await page.getByLabel("WhatsApp number").fill("+94 77 123 4567");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByText("Account created")).toBeVisible();
+    expect(body).toMatchObject({
+      name: "New Student",
+      profileFields: { BIRTHDAY: "2008-04-01", WHATSAPP_NUMBER: "+94 77 123 4567" },
+    });
+  });
+
+  test("shows no additional-information section when the institute asks nothing extra", async ({ page }) => {
+    await mockStudentRegistrationPolicy(page, { registrationFields: [] });
+    await page.goto("/register");
+    await expect(page.getByLabel("Full name")).toBeVisible();
+    await expect(page.getByText("Additional information")).toHaveCount(0);
   });
 });
 
@@ -480,9 +534,9 @@ test.describe("student registration — genuine submit-time failures", () => {
       REGISTER_ENDPOINT,
       400,
       apiError("VALIDATION_ERROR", "Registration is missing required fields for this institute", [
-        { field: "guardianName", message: "Guardian name is required" },
-        { field: "guardianPhone", message: "Guardian phone is required" },
-        { field: "school", message: "School is required" },
+        { field: "profileFields.GUARDIAN.name", message: "Guardian name is required" },
+        { field: "profileFields.GUARDIAN.phone", message: "Guardian phone is required" },
+        { field: "profileFields.SCHOOL", message: "School is required" },
       ])
     );
     await page.goto("/register");

@@ -23,4 +23,13 @@ import java.util.UUID;
 public record PaymentConfirmedEvent(UUID tenantId, UUID paymentId, UUID orderId, PaymentStatus previousStatus,
 		PaymentStatus newStatus, Instant confirmedAt, UUID studentId, BigDecimal amount, String currency) {
 
+	/**
+	 * {@code true} when the event reports a transition to {@code CONFIRMED}. Lets consumers in
+	 * other modules check the outcome through this api type without importing the payment
+	 * module's internal {@code PaymentStatus} domain enum.
+	 */
+	public boolean isConfirmed() {
+		return newStatus == PaymentStatus.CONFIRMED;
+	}
+
 }

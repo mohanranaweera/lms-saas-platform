@@ -221,4 +221,18 @@ public interface EnrollmentActivationApi {
 	 */
 	void revoke(UUID enrollmentId, String reason);
 
+	/**
+	 * PAY-GW-01 / ADR-017 owner decision 2: a verified gateway chargeback
+	 * revokes the access that payment granted. System-initiated (no signed-in
+	 * actor, no permission check - the caller has already verified the
+	 * gateway's signature against the payment's own tenant account). Revokes
+	 * only the CURRENT enrollment whose {@code activatingPaymentId} is this
+	 * payment; if that enrollment has since been superseded (e.g. reactivated
+	 * by a later payment) nothing is revoked. Audit-logged with {@code
+	 * SystemActors.PAYMENT_GATEWAY}. Caller must have set the payment's tenant
+	 * context.
+	 * @return {@code true} if an enrollment was revoked.
+	 */
+	boolean revokeActivatedByPayment(UUID paymentId, String reason);
+
 }

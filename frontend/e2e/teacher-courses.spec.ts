@@ -138,28 +138,41 @@ test.describe("teacher course list — content and actions", () => {
     await expect(grid.getByText(COURSES[0].teacherId)).toHaveCount(0);
   });
 
-  test("each card's Edit, Modules, and Roster actions link to the right routes", async ({ page }) => {
+  test("each card opens the course view, and Manage course holds the Edit, Modules and Roster links", async ({ page }) => {
     await loginAsTeacher(page);
-    await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
+    const listUrls: string[] = [];
+    await page.route("**/v1/courses*", async (route) => {
+      listUrls.push(route.request().url());
+      await fulfillJson(route, 200, apiPageSuccess(COURSES));
+    });
 
     await page.goto("/teacher/courses");
     const grid = page.getByRole("list", { name: "My courses" });
     await expect(grid).toBeVisible();
+    // TP-01: the portal always asks for the caller's own assignments.
+    expect(listUrls.some((url) => url.includes("assignedToMe=true"))).toBe(true);
 
     const card = grid.getByRole("listitem").filter({ hasText: "Intro to Biology" });
-    await expect(card.getByRole("link", { name: "Edit" })).toHaveAttribute(
+    await expect(card.getByRole("link", { name: "Open course" })).toHaveAttribute(
+      "href",
+      `/teacher/courses/${COURSES[0].id}`
+    );
+    await card.getByRole("button", { name: `Manage course ${COURSES[0].name}` }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem", { name: "Edit details" })).toHaveAttribute(
       "href",
       `/teacher/courses/${COURSES[0].id}/edit`
     );
-    await expect(card.getByRole("link", { name: "Modules" })).toHaveAttribute(
+    await expect(menu.getByRole("menuitem", { name: "Modules & sessions" })).toHaveAttribute(
       "href",
       `/teacher/courses/${COURSES[0].id}/modules`
     );
     // Wave 3 (PAR-03-06) addition — a course-scoped Roster view.
-    await expect(card.getByRole("link", { name: "Roster" })).toHaveAttribute(
+    await expect(menu.getByRole("menuitem", { name: "Roster" })).toHaveAttribute(
       "href",
       `/teacher/courses/${COURSES[0].id}/roster`
     );
+    await expect(menu.getByRole("menuitem", { name: "Class schedule" })).toBeVisible();
   });
 
   test("lays out 1/2/3 columns in the course card grid at base/sm/lg widths", async ({ page }) => {
@@ -248,16 +261,12 @@ test.describe("teacher course list — filters", () => {
 });
 
 test.describe("teacher course list — keyboard-only navigation", () => {
-  test("Tab traversal reaches every card's Edit, Modules, and Roster actions, in DOM order, across multiple cards", async ({
+  test("Tab traversal reaches every card's Open course and Manage course actions, in DOM order, across multiple cards", async ({
     page,
   }) => {
-    // Mirrors `teacher-dashboard.spec.ts`'s "Tab order flows..." test's own
-    // documented rigor: real sequential `Tab` presses only, starting from
-    // page load, no `.focus()` jump to a target element. This proves a
-    // keyboard-only user can actually *reach* the first card's Edit link
-    // (not just that the relative order among links, once reached, is
-    // correct), bounded so a regression that removes a link (or traps focus)
-    // fails loudly instead of hanging.
+    // Real sequential `Tab` presses only, starting from page load, no
+    // `.focus()` jump - bounded so a regression that removes an action (or
+    // traps focus) fails loudly instead of hanging.
     await loginAsTeacher(page);
     await mockJson(page, "**/v1/courses*", 200, apiPageSuccess(COURSES));
 
@@ -266,33 +275,27 @@ test.describe("teacher course list — keyboard-only navigation", () => {
     await expect(grid).toBeVisible();
 
     const firstCard = grid.getByRole("listitem").filter({ hasText: "Intro to Biology" });
-    const firstEdit = firstCard.getByRole("link", { name: "Edit" });
+    const firstOpen = firstCard.getByRole("link", { name: "Open course" });
 
     for (let i = 0; i < 30; i += 1) {
       await page.keyboard.press("Tab");
-      if (await firstEdit.evaluate((el) => el === document.activeElement)) {
+      if (await firstOpen.evaluate((el) => el === document.activeElement)) {
         break;
       }
     }
-    await expect(firstEdit).toBeFocused();
+    await expect(firstOpen).toBeFocused();
 
     await page.keyboard.press("Tab");
-    await expect(firstCard.getByRole("link", { name: "Modules" })).toBeFocused();
-
-    await page.keyboard.press("Tab");
-    await expect(firstCard.getByRole("link", { name: "Roster" })).toBeFocused();
+    await expect(firstCard.getByRole("button", { name: `Manage course ${COURSES[0].name}` })).toBeFocused();
 
     const secondCard = grid.getByRole("listitem").filter({ hasText: "Advanced Calculus" });
     await page.keyboard.press("Tab");
-    await expect(secondCard.getByRole("link", { name: "Edit" })).toBeFocused();
+    const secondOpen = secondCard.getByRole("link", { name: "Open course" });
+    await expect(secondOpen).toBeFocused();
+    await expect(secondOpen).toHaveAttribute("href", `/teacher/courses/${COURSES[1].id}`);
 
     await page.keyboard.press("Tab");
-    await expect(secondCard.getByRole("link", { name: "Modules" })).toBeFocused();
-
-    await page.keyboard.press("Tab");
-    const secondRoster = secondCard.getByRole("link", { name: "Roster" });
-    await expect(secondRoster).toBeFocused();
-    await expect(secondRoster).toHaveAttribute("href", `/teacher/courses/${COURSES[1].id}/roster`);
+    await expect(secondCard.getByRole("button", { name: `Manage course ${COURSES[1].name}` })).toBeFocused();
   });
 });
 

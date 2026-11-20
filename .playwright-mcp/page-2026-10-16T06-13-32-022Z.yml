@@ -1,0 +1,224 @@
+- generic [ref=f2e1]:
+  - button "Open Next.js Dev Tools" [ref=f2e11] [cursor=pointer]
+  - alert [ref=f2e15]
+  - generic [ref=f2e16]:
+    - complementary [aria-hidden] [ref=f2e17]:
+      - generic [ref=f2e18]: Tenant Admin
+      - navigation [ref=f2e167]:
+        - generic [ref=f2e20]:
+          - generic [ref=f2e21]:
+            - generic [ref=f2e22]: Dashboard
+            - list [ref=f2e23]:
+              - listitem [ref=f2e24]:
+                - link [ref=f2e168] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+                  - text: Dashboard
+          - generic [ref=f2e26]:
+            - generic [ref=f2e27]: Academic
+            - list [ref=f2e28]:
+              - listitem [ref=f2e29]:
+                - link [ref=f2e169] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+                  - text: Students
+              - listitem [ref=f2e31]:
+                - link [ref=f2e170] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+                  - text: Teachers
+              - listitem [ref=f2e33]:
+                - link [ref=f2e171] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+                  - text: Courses
+              - listitem [ref=f2e35]:
+                - link [ref=f2e172] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+                  - text: Media Library
+              - listitem [ref=f2e37]:
+                - link [ref=f2e173] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+                  - text: Attendance Reports
+              - listitem [ref=f2e39]:
+                - link [ref=f2e174] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+                  - text: Mark Attendance
+              - listitem [ref=f2e41]:
+                - link [ref=f2e175] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+                  - text: Exams
+              - listitem [ref=f2e43]:
+                - link [ref=f2e176] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+                  - text: Live Classes
+          - generic [ref=f2e45]:
+            - generic [ref=f2e46]: Finance
+            - list [ref=f2e47]:
+              - listitem [ref=f2e48]:
+                - link [ref=f2e177] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+                  - text: Payments
+              - listitem [ref=f2e50]:
+                - link [ref=f2e178] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+                  - text: Refunds
+              - listitem [ref=f2e52]:
+                - link [ref=f2e179] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+                  - text: Payment Slips
+              - listitem [ref=f2e54]:
+                - link [ref=f2e180] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+                  - text: Reactivation Approvals
+              - listitem [ref=f2e56]:
+                - link [ref=f2e181] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+                  - text: Finance Summary
+              - listitem [ref=f2e58]:
+                - link [ref=f2e182] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+                  - text: Expenses
+              - listitem [ref=f2e60]:
+                - link [ref=f2e183] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+                  - text: Expense Categories
+              - listitem [ref=f2e62]:
+                - link [ref=f2e184] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+                  - text: Finance Reports
+              - listitem [ref=f2e64]:
+                - link [ref=f2e185] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+                  - text: Teacher Payouts
+          - generic [ref=f2e66]:
+            - generic [ref=f2e67]: Communication
+            - list [ref=f2e68]:
+              - listitem [ref=f2e69]:
+                - link [ref=f2e186] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+                  - text: Broadcasts
+              - listitem [ref=f2e71]:
+                - link [ref=f2e187] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+                  - text: Message Templates
+          - generic [ref=f2e73]:
+            - generic [ref=f2e74]: Administration
+            - list [ref=f2e75]:
+              - listitem [ref=f2e76]:
+                - link [ref=f2e188] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+                  - text: Staff
+              - listitem [ref=f2e78]:
+                - link [ref=f2e189] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+                  - text: Roles & Permissions
+              - listitem [ref=f2e80]:
+                - link [ref=f2e190] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+                  - text: Audit Log
+          - generic [ref=f2e82]:
+            - generic [ref=f2e83]: Institute Configuration
+            - list [ref=f2e84]:
+              - listitem [ref=f2e85]:
+                - link [ref=f2e191] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+                  - text: General
+              - listitem [ref=f2e87]:
+                - link [ref=f2e192] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+                  - text: Branding
+              - listitem [ref=f2e89]:
+                - link [ref=f2e193] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+                  - text: Student Fields
+              - listitem [ref=f2e91]:
+                - link [ref=f2e194] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+                  - text: Online Payments
+              - listitem [ref=f2e93]:
+                - link [ref=f2e195] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+                  - text: Integrations
+              - listitem [ref=f2e95]:
+                - link [ref=f2e196] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+                  - text: Messaging (SMS & WhatsApp)
+              - listitem [ref=f2e97]:
+                - link [ref=f2e197] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+                  - text: Video Providers
+              - listitem [ref=f2e99]:
+                - link [ref=f2e198] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+                  - text: Video Settings
+              - listitem [ref=f2e101]:
+                - link [ref=f2e199] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+                  - text: Custom Domain
+              - listitem [ref=f2e103]:
+                - link [ref=f2e200] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+                  - text: Devices & Access
+    - generic [ref=f2e105]:
+      - banner [aria-hidden] [ref=f2e106]:
+        - generic [ref=f2e107]:
+          - link [ref=f2e201] [cursor=pointer]:
+            - /url: /change-password
+            - text: Change password
+          - button [ref=f2e202]: Sign out
+      - main [ref=f2e111]:
+        - generic [ref=f2e112]:
+          - generic [aria-hidden] [ref=f2e113]:
+            - heading [level=1] [ref=f2e203]: Media Library
+            - paragraph [ref=f2e115]: Every document, image and lesson video your institute has uploaded.
+          - generic [ref=f2e116]:
+            - region [aria-hidden] [ref=f2e204]:
+              - paragraph [ref=f2e118]: Media library
+              - heading [level=2] [ref=f2e205]: 8 items
+              - paragraph [ref=f2e120]: Everything this institute can attach to a session
+              - list [ref=f2e206]:
+                - listitem [ref=f2e122]: 8 videos
+                - listitem [ref=f2e126]: 0 documents
+                - listitem [ref=f2e130]: 0 images
+                - listitem [ref=f2e136]: Updated 11:42 AM
+            - generic [ref=f2e141]:
+              - tablist [aria-hidden] [ref=f2e207]:
+                - tab [selected] [ref=f2e208]: Uploads
+                - tab [ref=f2e209]: DynTube
+                - tab [ref=f2e210]: Active Youtube Connection
+                - tab [ref=f2e211]: Youtube Integration Two
+                - tab [ref=f2e212]:
+                  - text: An another youtube
+                  - generic [ref=f2e148]: Not connected
+              - tabpanel "Uploads" [ref=f2e149]:
+                - generic [ref=f2e150]:
+                  - generic [ref=f2e151]:
+                    - generic [aria-hidden] [ref=f2e152]:
+                      - generic [ref=f2e153]: Search media
+                      - searchbox [ref=f2e213]
+                    - generic [aria-hidden] [ref=f2e156]:
+                      - generic [ref=f2e157]: Type
+                      - combobox [ref=f2e214]
+                    - generic [ref=f2e159]: 0 items
+                    - button [aria-hidden] [ref=f2e215]: New media
+                  - status [ref=f2e162]:
+                    - generic [ref=f2e163]:
+                      - paragraph [ref=f2e164]: No files yet
+                      - paragraph [ref=f2e165]: Upload documents or images your sessions can use.
+                    - button "New media" [ref=f2e166]
+  - dialog [ref=f2e219]:
+    - generic [ref=f2e220]:
+      - heading "New media" [level=2] [ref=f2e221]
+      - button "Close" [active] [ref=f2e222]
+    - paragraph [ref=f2e223]: Upload a document or image your sessions can use. PDF, PNG, JPEG, GIF or plain text, up to 25 MB.
+    - generic [ref=f2e225]:
+      - generic [ref=f2e226]:
+        - generic [ref=f2e227]: File
+        - button "File" [ref=f2e228]
+        - paragraph [ref=f2e229]: PDF, PNG, JPEG, GIF or .txt, up to 25 MB.
+      - generic [ref=f2e230]:
+        - generic [ref=f2e231]:
+          - text: Title
+          - generic [ref=f2e232]: (optional)
+        - textbox "Title (optional)" [ref=f2e233]:
+          - /placeholder: Defaults to the file name
+    - generic [ref=f2e234]:
+      - button "Cancel" [ref=f2e235]
+      - button "Upload" [ref=f2e236]

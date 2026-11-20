@@ -306,7 +306,12 @@ class CourseBillingAndLifecycleIntegrationTest extends CourseManagementTestSuppo
 	// proves the real thing - two genuinely concurrent HTTP requests racing
 	// to insert the FIRST billing period for the same course (so neither
 	// sees an existing "current open" period to close first) - produces
-	// exactly one 201 and one clean 409, never an unhandled 500. See the
+	// one open period, and every request either 201 or a clean 409 - never an
+	// unhandled 500. Whether the two requests truly overlap depends on
+	// scheduling: when they do, the loser gets the 409; when the first commits
+	// before the second reads, the second legitimately supersedes it (closes
+	// it and opens its own), so both are 201. Both outcomes keep the invariant
+	// the partial unique index guarantees: at most one open period. See the
 	// in-test comment below: the new period's own insert is now explicitly
 	// `saveAndFlush()`ed inside BillingConfigurationService#addBillingPeriod's
 	// own try/catch (Wave 2 QA gap fix), so the loser's 409 is produced by
@@ -316,7 +321,7 @@ class CourseBillingAndLifecycleIntegrationTest extends CourseManagementTestSuppo
 	// ------------------------------------------------------------------
 
 	@Test
-	void concurrentFirstBillingPeriodInsertsForTheSameCourseProduceExactlyOneSuccessAndOneCleanConflict()
+	void concurrentFirstBillingPeriodInsertsForTheSameCourseLeaveExactlyOneOpenPeriodAndNeverA500()
 			throws Exception {
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("bill-race"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
@@ -351,32 +356,38 @@ class CourseBillingAndLifecycleIntegrationTest extends CourseManagementTestSuppo
 
 		long successCount = results.stream().filter(r -> r.getStatusCode() == HttpStatus.CREATED).count();
 		long conflictCount = results.stream().filter(r -> r.getStatusCode() == HttpStatus.CONFLICT).count();
-		assertThat(successCount).isEqualTo(1L);
-		assertThat(conflictCount).isEqualTo(1L);
+		assertThat(successCount + conflictCount).as("every response is 201 or 409").isEqualTo(concurrency);
+		assertThat(successCount).isGreaterThanOrEqualTo(1L);
 
-		HttpResult<CourseBillingPeriodResponse> conflictResult = results.stream()
-			.filter(r -> r.getStatusCode() == HttpStatus.CONFLICT)
-			.findFirst()
-			.orElseThrow();
 		// Fixed (Wave 2 QA gap): the new CourseBillingPeriod row is now
 		// `saveAndFlush()`d, not `save()`d, inside addBillingPeriod's own
 		// `catch (DataIntegrityViolationException ex)` block - so for a
 		// GENUINE two-thread race, the loser's unique-constraint violation is
-		// now actually thrown and caught INSIDE that method, and this is the
-		// service's own dedicated "A current billing period already exists
-		// for this course" ConflictException message, not
+		// thrown and caught INSIDE that method, and this is the service's own
+		// dedicated "A current billing period already exists for this course"
+		// ConflictException message, not
 		// GlobalExceptionHandler#handleDataIntegrityViolation's generic
 		// fallback message.
-		assertThat(conflictResult.getBody().error().code()).isEqualTo("CONFLICT");
-		assertThat(conflictResult.getBody().error().message())
-			.isEqualTo("A current billing period already exists for this course");
+		results.stream().filter(r -> r.getStatusCode() == HttpStatus.CONFLICT).forEach(conflict -> {
+			assertThat(conflict.getBody().error().code()).isEqualTo("CONFLICT");
+			assertThat(conflict.getBody().error().message())
+				.isEqualTo("A current billing period already exists for this course");
+		});
+
+		Long openCount = jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM course_billing_period cbp "
+						+ "JOIN course_billing_configuration cbc ON cbp.billing_configuration_id = cbc.id "
+						+ "WHERE cbc.course_id = ? AND cbp.effective_to IS NULL",
+				Long.class, course.id());
+		assertThat(openCount).as("at most one open period (uq_course_billing_period_current)").isEqualTo(1L);
 
 		Long periodCount = jdbcTemplate.queryForObject(
 				"SELECT count(*) FROM course_billing_period cbp "
 						+ "JOIN course_billing_configuration cbc ON cbp.billing_configuration_id = cbc.id "
 						+ "WHERE cbc.course_id = ?",
 				Long.class, course.id());
-		assertThat(periodCount).isEqualTo(1L); // only the winner's row was ever persisted
+		// A loser's insert is never persisted; a superseding 201 closes the earlier row.
+		assertThat(periodCount).isEqualTo(successCount);
 	}
 
 	/**

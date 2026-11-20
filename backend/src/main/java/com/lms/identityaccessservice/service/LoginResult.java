@@ -12,9 +12,10 @@ import java.util.UUID;
  * (the session's absolute expiry, not the access token's) and must be used
  * for the cookie's {@code Max-Age} instead - the two are deliberately kept
  * distinct so a caller cannot accidentally expire the refresh cookie after
- * only 15 minutes.
+ * only 15 minutes. {@code rawDeviceToken} (Wave 10) is likewise only ever
+ * set as the {@code HttpOnly} device cookie.
  */
 public record LoginResult(String accessToken, Duration expiresIn, UUID sessionId, String rawRefreshToken,
-		Duration refreshCookieMaxAge, boolean mustChangePassword) {
+		Duration refreshCookieMaxAge, boolean mustChangePassword, String rawDeviceToken) {
 
 }

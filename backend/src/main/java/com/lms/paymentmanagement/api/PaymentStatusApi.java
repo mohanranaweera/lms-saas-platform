@@ -1,7 +1,14 @@
 package com.lms.paymentmanagement.api;
 
+import java.time.Instant;
+import java.time.YearMonth;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * The narrow, read-only contract other domains are permitted to depend on
@@ -39,6 +46,9 @@ public interface PaymentStatusApi {
 	 */
 	List<UUID> findOrderIdsForStudent(UUID studentId);
 
+	/** Batched tenant-scoped order ids for a report population. */
+	Map<UUID, List<UUID>> findOrderIdsForStudents(Collection<UUID> studentIds);
+
 	/**
 	 * Wave 6 (§3.2/§4) batched read - one {@link OrderPaymentDetail} per id in
 	 * {@code orderIds} that resolves to a real order in the current tenant
@@ -65,7 +75,8 @@ public interface PaymentStatusApi {
 
 	/**
 	 * Wave 6 (§4) - every order id for {@code courseId} within the current
-	 * tenant context, used by {@code GET /api/v1/ledger/courses/{courseId}/
+	 * tenant context (ADR-029: legacy orders placed for it AND line orders with
+	 * at least one line for it), used by {@code GET /api/v1/ledger/courses/{courseId}/
 	 * summary}. A {@code courseId} that does not resolve to a course with
 	 * any orders in the caller's own tenant (nonexistent, cross-tenant, or
 	 * simply never ordered) returns an empty list - never distinguishable
@@ -75,5 +86,84 @@ public interface PaymentStatusApi {
 	 * -enumeration).
 	 */
 	List<UUID> findOrderIdsForCourse(UUID courseId);
+
+	/**
+	 * ADR-029 batched read: one {@link OrderRevenueBasis} per id in {@code
+	 * orderIds} that resolves to an order of the current tenant (unknown /
+	 * cross-tenant ids are absent). Read-only; used by ledger revenue
+	 * allocation.
+	 */
+	List<OrderRevenueBasis> findOrderRevenueBases(Collection<UUID> orderIds);
+
+	/**
+	 * KLASS-T4b (D04/D05, ADR-028): the {@code coverage_key}s (V86/V87 format
+	 * {@code MONTHLY:<courseId>:<yyyy>-<mm>} / {@code MODULE:<moduleId>} /
+	 * {@code LESSON:<lessonId>}) of {@code studentId}'s order lines for {@code
+	 * courseId} whose order is still awaiting payment evidence - a {@code
+	 * PENDING} payment, or a {@code SUBMITTED}/{@code UNDER_REVIEW} slip. (An
+	 * entitlement only follows confirmation/approval, and the evaluator checks
+	 * active coverage before pending, so no join to enrollment-management's
+	 * {@code content_entitlement} is needed here.) Read side of the lesson access
+	 * evaluator's {@code PAYMENT_PENDING} status only; grants nothing. Tenant
+	 * from {@link com.lms.common.tenant.TenantContext}; empty for an unknown or
+	 * cross-tenant course/student.
+	 */
+	Set<String> findPendingCoverageKeys(UUID studentId, UUID courseId);
+
+	/**
+	 * KLASS-T4c: {@code true} only if {@code paymentId} exists in the current
+	 * tenant context, belongs to {@code orderId} and is {@code CONFIRMED} -
+	 * the grant path's independent re-verification (never trusting the
+	 * caller's claim).
+	 */
+	boolean isConfirmedForOrder(UUID paymentId, UUID orderId);
+
+	/**
+	 * ADR-030 (R1): {@link #isConfirmedForOrder} AND the payment is a
+	 * staff-recorded manual receipt payment ({@code gateway_reference} starts
+	 * with {@code "MANUAL-"}) - so the staff-recorded grant path can never be
+	 * pointed at a gateway, slip or other confirmation.
+	 */
+	boolean isConfirmedManualReceiptForOrder(UUID paymentId, UUID orderId);
+
+	/**
+	 * KLASS-T4c: the lines of {@code orderId} in line order; empty for a legacy
+	 * (line-less) order and for an unknown / cross-tenant order id.
+	 */
+	List<OrderLineSnapshot> findOrderLines(UUID orderId);
+
+	/**
+	 * RPT-01 batched read: the lines of every order in {@code orderIds} (unknown
+	 * / cross-tenant ids are absent), ordered by order then {@code line_no}.
+	 * Read-only; tenant from {@link com.lms.common.tenant.TenantContext}.
+	 */
+	List<OrderLineSnapshot> findOrderLinesForOrders(Collection<UUID> orderIds);
+
+	/**
+	 * RPT-01 batched read: currency / gateway reference of each payment id in
+	 * {@code paymentIds} that exists in the current tenant (others are absent).
+	 */
+	List<PaymentFact> findPaymentFacts(Collection<UUID> paymentIds);
+
+	/**
+	 * RPT-01 (spec section 3, MONTHS mode): ids of the current tenant's orders with at
+	 * least one line billed in {@code months} - a {@code MONTHLY} line whose
+	 * {@code (period_year, period_month)} is in the set, or a {@code LESSON}
+	 * line whose lesson is in {@code lessonIdsInMonths} (resolved by the caller
+	 * from {@code course-management}'s lesson billing months). Read-only.
+	 */
+	Set<UUID> findOrderIdsWithLinesInMonths(Set<YearMonth> months, Collection<UUID> lessonIdsInMonths);
+
+
+	/**
+	 * PAY-HUB-01 "All Orders": the current tenant's orders, newest first,
+	 * optionally narrowed to an exact order number and a
+	 * {@code [createdFrom, createdBefore)} window (either bound nullable).
+	 */
+	Page<AdminOrderSummary> searchOrders(Long orderNumber, Instant createdFrom, Instant createdBefore,
+			Pageable pageable);
+
+	/** As {@link #searchOrders} but every match, for filters only resolvable outside this module. */
+	List<AdminOrderSummary> searchAllOrders(Long orderNumber, Instant createdFrom, Instant createdBefore);
 
 }

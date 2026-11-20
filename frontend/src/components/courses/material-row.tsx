@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion } from "@/components/ui/accordion";
 import { TitleInlineForm } from "@/components/courses/title-inline-form";
 import { SecureVideoPlayer } from "@/components/courses/secure-video-player";
+import { StaffVideoPreview } from "@/components/courses/staff-video-preview";
 import {
   formatFileSize,
   materialDownloadErrorMessage,
@@ -204,7 +205,7 @@ export function MaterialRow({
           <div className="mt-2">
             <Accordion title="Preview video" open={videoPreviewOpen} onOpenChange={setVideoPreviewOpen}>
               {videoPreviewOpen ? (
-                <SecureVideoPlayer videoAssetId={material.videoAssetId} title={material.title} />
+                <StaffVideoPreview videoAssetId={material.videoAssetId} title={material.title} />
               ) : null}
             </Accordion>
           </div>

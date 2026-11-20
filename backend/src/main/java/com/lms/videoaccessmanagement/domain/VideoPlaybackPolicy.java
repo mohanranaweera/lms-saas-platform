@@ -107,6 +107,11 @@ public class VideoPlaybackPolicy extends Auditable implements TenantOwned {
 		return maxViewsPerStudent;
 	}
 
+	/** Only the watch-time limit (VIDEO Phase 12); null = use the institute default. */
+	public void changeMaxWatchDurationSeconds(Integer maxWatchDurationSeconds) {
+		this.maxWatchDurationSeconds = maxWatchDurationSeconds;
+	}
+
 	public Integer getMaxWatchDurationSeconds() {
 		return maxWatchDurationSeconds;
 	}

@@ -105,7 +105,9 @@ Primary navigation:
   - Course Reviews — view reviews, respond to reviews (module 19)
 - **Students / Roster** — students enrolled per assigned course (read scope only;
   never a platform-wide student directory)
-- **Live Classes** — schedule/manage Zoom sessions, recordings (module 9)
+- **Live Classes** — schedule/manage Zoom sessions, recordings (module 9); hosted on the
+  teacher's own Zoom account (MEDIA-INT-01)
+- **Settings** — Integrations: the teacher's own Zoom/YouTube/Vimeo connections (MEDIA-INT-01)
 - **Attendance** — mark/review attendance for assigned courses/sessions (module 10)
 - **Exams** — question bank, exam creation/scheduling, manual marking, results
   publishing, exam analytics (module 11)
@@ -155,6 +157,10 @@ Primary navigation:
   wallet transactions, financial reports (module 14; phase 2 settlement views)
 - **Communications** — templates (email/SMS/WhatsApp), bulk messaging, segment
   messaging, delivery logs (module 15)
+- **Integrations (MEDIA-INT-01, shipped under Institute Configuration)** — which services
+  teachers may connect, DynTube/Bunny.net video hosting, each teacher's Bunny.net library
+  (MEDIA-INT-01A), teachers' connections. Zoom is per teacher (ADR-018), not a tenant
+  account.
 - **Integrations** — tenant-level Zoom/SMS/WhatsApp/email/payment gateway/storage
   settings, integration health, webhook logs (module 16)
 - **Devices** — device policy overrides, device reset, login activity, suspicious

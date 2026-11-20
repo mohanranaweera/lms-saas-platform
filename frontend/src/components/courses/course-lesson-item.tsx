@@ -1,51 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { TitleInlineForm } from "@/components/courses/title-inline-form";
 import { MaterialsSection } from "@/components/courses/materials-section";
-import {
-  useDeleteCourseLesson,
-  useUpdateCourseLesson,
-  type CourseLessonResponse,
-} from "@/lib/api/courses";
-import { isApiClientError } from "@/lib/api/error";
+import { SessionFormDialog } from "@/components/courses/admin/session-form-dialog";
+import { ConfirmDeleteDialog, mutationErrorMessage } from "@/components/courses/admin/confirm-delete-dialog";
+import { formatZonedDateTime } from "@/components/courses/admin/tenant-time";
+import { useDeleteCourseLesson } from "@/lib/api/courses";
+import { useUpdateKlassLesson, type KlassLesson, type KlassLessonRequest, type TenantTimeZone } from "@/lib/api/klass-admin";
 
-interface CourseLessonItemProps {
-  courseId: string;
-  moduleId: string;
-  lesson: CourseLessonResponse;
-  isFirst: boolean;
-  isLast: boolean;
-  /**
-   * True while *any* lesson reorder is in flight within this lesson's own
-   * module (not just the two rows actually moving) — every Move Up/Down and
-   * Delete button in this module's lesson list must be disabled during the
-   * whole reorder dance, not only the two rows involved.
-   */
-  reorderBusy: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+/** PATCH replaces all session metadata, including on an inline rename. */
+function renameRequest(lesson: KlassLesson, title: string): KlassLessonRequest {
+  return {
+    title,
+    sequence: lesson.sequence,
+    startsAt: lesson.startsAt ?? null,
+    endsAt: lesson.endsAt ?? null,
+    resourceType: lesson.resourceType ?? null,
+    paymentType: lesson.paymentType ?? "COVERED_BY_CLASS_FEES",
+    price: lesson.price == null ? null : String(lesson.price),
+    description: lesson.description ?? null,
+    lessonLabel: lesson.lessonLabel ?? null,
+    billingYear: lesson.billingYear ?? null,
+    billingMonth: lesson.billingMonth ?? null,
+  };
 }
 
-/**
- * Single lesson row: inline rename form, keyboard-reachable Move Up/Down
- * (per module plan §11 — the explicit alternative to any drag-and-drop
- * reordering), and a delete action confirmed via `AlertDialog`, copying the
- * confirmation pattern from `course-delete-action.tsx`.
- */
 export function CourseLessonItem({
   courseId,
   moduleId,
@@ -55,120 +37,89 @@ export function CourseLessonItem({
   reorderBusy,
   onMoveUp,
   onMoveDown,
-}: CourseLessonItemProps) {
+  timeZone,
+}: {
+  courseId: string;
+  moduleId: string;
+  lesson: KlassLesson;
+  isFirst: boolean;
+  isLast: boolean;
+  reorderBusy: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  timeZone: TenantTimeZone;
+}) {
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const renameMutation = useUpdateCourseLesson(courseId, moduleId);
-  const deleteMutation = useDeleteCourseLesson(courseId, moduleId);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editKey, setEditKey] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rename = useUpdateKlassLesson(courseId, moduleId);
+  const remove = useDeleteCourseLesson(courseId, moduleId);
+  const disabled = reorderBusy || remove.isPending || rename.isPending;
+  const anchorId = `session-${lesson.id}`;
 
-  const deleteErrorMessage = deleteMutation.isError
-    ? isApiClientError(deleteMutation.error)
-      ? deleteMutation.error.message
-      : "An unexpected error occurred. Please try again."
-    : null;
-
-  const handleDelete = async () => {
-    try {
-      await deleteMutation.mutateAsync(lesson.id);
-      setDeleteOpen(false);
-    } catch {
-      // Surfaced via deleteErrorMessage below; keep the dialog open so the
-      // teacher can see the failure and retry or cancel.
-    }
-  };
-
-  const disabled = reorderBusy || deleteMutation.isPending;
+  useEffect(() => {
+    if (window.location.hash !== `#${anchorId}`) return;
+    const frame = window.requestAnimationFrame(() => {
+      containerRef.current?.scrollIntoView({ block: "start" });
+      containerRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [anchorId]);
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-border/70 bg-muted/20 p-3">
+    <div ref={containerRef} id={anchorId} tabIndex={-1} className="scroll-mt-4 flex flex-col gap-3 rounded-md border border-border/70 bg-muted/20 p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1">
           <TitleInlineForm
-            idPrefix={`lesson-${lesson.id}`}
-            label="Lesson title"
+            idPrefix={`session-${lesson.id}`}
+            label="Session title"
             initialTitle={lesson.title}
             submitLabel="Save"
-            pendingLabel={`Saving lesson "${lesson.title}"…`}
+            pendingLabel={`Saving session "${lesson.title}"…`}
             disabled={disabled}
             onSubmit={async (title) => {
-              await renameMutation.mutateAsync({
-                lessonId: lesson.id,
-                body: { title, sequence: lesson.sequence },
-              });
+              await rename.mutateAsync({ lessonId: lesson.id, body: renameRequest(lesson, title) });
             }}
           />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Available from {formatZonedDateTime(lesson.startsAt, timeZone.timeZone) || "No start limit"}
+            {" · "}To {formatZonedDateTime(lesson.endsAt, timeZone.timeZone) || "No end limit"}
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-xs"
-            aria-label={`Move "${lesson.title}" up`}
-            disabled={isFirst || disabled}
-            onClick={onMoveUp}
-          >
-            <ArrowUp aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-xs"
-            aria-label={`Move "${lesson.title}" down`}
-            disabled={isLast || disabled}
-            onClick={onMoveDown}
-          >
-            <ArrowDown aria-hidden="true" />
-          </Button>
-          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <AlertDialogTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon-xs"
-                  aria-label={`Delete lesson "${lesson.title}"`}
-                  disabled={disabled}
-                />
-              }
-            >
-              <Trash2 aria-hidden="true" />
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete &ldquo;{lesson.title}&rdquo;?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This permanently deletes the lesson. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              {deleteErrorMessage ? (
-                <Alert variant="destructive">
-                  <AlertDescription>{deleteErrorMessage}</AlertDescription>
-                </Alert>
-              ) : null}
-              <AlertDialogFooter>
-                <AlertDialogClose render={<Button type="button" variant="outline" />}>
-                  Cancel
-                </AlertDialogClose>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  aria-busy={deleteMutation.isPending}
-                >
-                  {deleteMutation.isPending ? "Deleting…" : "Delete lesson"}
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+        <div className="flex shrink-0 flex-wrap items-center gap-1">
+          <Button type="button" variant="outline" size="icon-xs" aria-label={`Move "${lesson.title}" up`} disabled={isFirst || disabled} onClick={onMoveUp}><ArrowUp aria-hidden="true" /></Button>
+          <Button type="button" variant="outline" size="icon-xs" aria-label={`Move "${lesson.title}" down`} disabled={isLast || disabled} onClick={onMoveDown}><ArrowDown aria-hidden="true" /></Button>
+          <Button type="button" variant="outline" size="sm" disabled={disabled} aria-label={`Edit session ${lesson.title}`} onClick={() => { setEditKey((key) => key + 1); setEditOpen(true); }}><Pencil aria-hidden="true" /> Edit session</Button>
+          <Button type="button" variant="destructive" size="icon-xs" aria-label={`Delete session "${lesson.title}"`} disabled={disabled} onClick={() => { remove.reset(); setDeleteOpen(true); }}><Trash2 aria-hidden="true" /></Button>
         </div>
       </div>
 
-      <MaterialsSection
-        courseId={courseId}
-        moduleId={moduleId}
-        lessonId={lesson.id}
-        lessonTitle={lesson.title}
+      {editOpen ? (
+        <SessionFormDialog
+          key={editKey}
+          courseId={courseId}
+          moduleId={moduleId}
+          open
+          onOpenChange={setEditOpen}
+          lesson={lesson}
+          nextSequence={lesson.sequence}
+          timeZone={timeZone}
+          onSaved={() => setEditOpen(false)}
+        />
+      ) : null}
+      <ConfirmDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete “${lesson.title}”?`}
+        description="This deletes the session. Sessions with attached materials, orders or purchases cannot be deleted."
+        confirmLabel="Delete session"
+        pending={remove.isPending}
+        error={remove.isError ? mutationErrorMessage(remove.error) : null}
+        onConfirm={() => remove.mutate(lesson.id, { onSuccess: () => setDeleteOpen(false) })}
       />
+
+      <MaterialsSection courseId={courseId} moduleId={moduleId} lessonId={lesson.id} lessonTitle={lesson.title} />
     </div>
   );
 }

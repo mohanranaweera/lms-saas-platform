@@ -11,6 +11,7 @@ import com.lms.videoaccessmanagement.web.dto.PlaybackSessionResponse;
 import com.lms.videoaccessmanagement.web.dto.VideoPlaybackPolicyRequest;
 import com.lms.videoaccessmanagement.web.dto.VideoPlaybackPolicyResponse;
 import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -175,24 +176,58 @@ class VideoPlaybackSessionIntegrationTest extends VideoAccessManagementTestSuppo
 		upsertPolicyOrFail(f.host(), f.teacherToken(), f.videoAssetId(),
 				new VideoPlaybackPolicyRequest(null, null, null, 10, true, false, true, 1));
 		PlaybackSessionResponse session = issuePlaybackSessionOrFail(f.host(), f.studentToken(), f.videoAssetId());
+		backdateHeartbeat(f, session.watchSessionId(), 20);
 
 		HttpResult<Void> overLimit = recordProgress(f.host(), f.studentToken(), session.watchSessionId(),
 				session.playbackToken(), 20, 20);
 		assertThat(overLimit.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-		assertThat(overLimit.getBody().error().code()).isEqualTo(ApiErrorCodes.POLICY_VIOLATION);
+		assertThat(overLimit.getBody().error().code()).isEqualTo(ApiErrorCodes.PLAYBACK_WATCH_LIMIT);
+		// The refused heartbeat's accounting is kept: the budget is fully used, not rolled back.
+		assertThat(jdbcTemplate.queryForObject("SELECT authorized_watch_seconds FROM video_watch_progress "
+				+ "WHERE tenant_id = ? AND video_asset_id = ?", Integer.class, f.tenant().getId(), f.videoAssetId()))
+			.isEqualTo(10);
+		assertThat(jdbcTemplate.queryForObject("SELECT revoked_reason FROM video_watch_session WHERE id = ?",
+				String.class, session.watchSessionId())).isEqualTo("WATCH_TIME_EXHAUSTED");
 
 		HttpResult<Void> afterRevocation = recordProgress(f.host(), f.studentToken(), session.watchSessionId(),
 				session.playbackToken(), 21, 1);
 		assertThat(afterRevocation.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+		// Used up: a new session is refused before anything is issued.
+		HttpResult<PlaybackSessionResponse> again = issuePlaybackSession(f.host(), f.studentToken(), f.videoAssetId());
+		assertThat(again.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+		assertThat(again.getBody().error().code()).isEqualTo(ApiErrorCodes.PLAYBACK_WATCH_LIMIT);
+	}
+
+	@Test
+	void rewatchingAnEarlierPartStillUsesWatchTime() {
+		VideoFixture f = seedVideoFixture("vpb-rewatch");
+		upsertPolicyOrFail(f.host(), f.teacherToken(), f.videoAssetId(),
+				new VideoPlaybackPolicyRequest(null, null, null, 100, true, false, true, 1));
+		PlaybackSessionResponse first = issuePlaybackSessionOrFail(f.host(), f.studentToken(), f.videoAssetId());
+		backdateHeartbeat(f, first.watchSessionId(), 30);
+		assertThat(recordProgress(f.host(), f.studentToken(), first.watchSessionId(), first.playbackToken(), 30, 30)
+			.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		// Back to the start: the same 30 s watched again count again.
+		backdateHeartbeat(f, first.watchSessionId(), 30);
+		assertThat(recordProgress(f.host(), f.studentToken(), first.watchSessionId(), first.playbackToken(), 2, 2)
+			.getStatusCode()).isEqualTo(HttpStatus.OK);
+		backdateHeartbeat(f, first.watchSessionId(), 28);
+		assertThat(recordProgress(f.host(), f.studentToken(), first.watchSessionId(), first.playbackToken(), 30, 28)
+			.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		assertThat(jdbcTemplate.queryForObject("SELECT authorized_watch_seconds FROM video_watch_progress "
+				+ "WHERE tenant_id = ? AND video_asset_id = ?", Integer.class, f.tenant().getId(), f.videoAssetId()))
+			.isEqualTo(88);
 	}
 
 	/**
 	 * {@code .claude/rules/security.md}: a server-side session revocation
 	 * triggered by a policy breach must produce an audit/security log entry.
-	 * Also proves the revoke + audit write SURVIVE even though the request
-	 * that triggered them is ultimately rejected (409) and its own
-	 * transaction rolls back - see {@code VideoWatchSessionRevocationRecorder}'s
-	 * javadoc for the {@code REQUIRES_NEW} fix this documents.
+	 * Also proves the revoke + audit write SURVIVE although the request that
+	 * triggered them is rejected (409): the watch-time refusal commits its
+	 * transaction ({@code noRollbackFor}) with the revoke inside it.
 	 */
 	@Test
 	void exceedingMaxWatchDurationWritesAnAuditLogRowThatSurvivesTheRejectedRequest() {
@@ -200,10 +235,12 @@ class VideoPlaybackSessionIntegrationTest extends VideoAccessManagementTestSuppo
 		upsertPolicyOrFail(f.host(), f.teacherToken(), f.videoAssetId(),
 				new VideoPlaybackPolicyRequest(null, null, null, 10, true, false, true, 1));
 		PlaybackSessionResponse session = issuePlaybackSessionOrFail(f.host(), f.studentToken(), f.videoAssetId());
+		backdateHeartbeat(f, session.watchSessionId(), 20);
 
 		HttpResult<Void> overLimit = recordProgress(f.host(), f.studentToken(), session.watchSessionId(),
 				session.playbackToken(), 20, 20);
 		assertThat(overLimit.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+		assertThat(overLimit.getBody().error().code()).isEqualTo(ApiErrorCodes.PLAYBACK_WATCH_LIMIT);
 
 		var rows = jdbcTemplate.queryForList(
 				"SELECT tenant_id, actor_id, action, target_id, reason FROM audit_log "
@@ -212,7 +249,12 @@ class VideoPlaybackSessionIntegrationTest extends VideoAccessManagementTestSuppo
 		assertThat(rows).hasSize(1);
 		assertThat(rows.get(0).get("tenant_id")).isEqualTo(f.tenant().getId());
 		assertThat(rows.get(0).get("actor_id")).isEqualTo(f.student().getId());
-		assertThat(rows.get(0).get("reason")).isEqualTo("max_watch_duration_exceeded");
+		assertThat(rows.get(0).get("reason")).isEqualTo("watch_time_exhausted");
+	}
+
+	private void backdateHeartbeat(VideoFixture fixture, UUID sessionId, int seconds) {
+		jdbcTemplate.update("UPDATE video_watch_session SET last_heartbeat_at = now() - (? * interval '1 second') "
+				+ "WHERE tenant_id = ? AND id = ?", seconds, fixture.tenant().getId(), sessionId);
 	}
 
 	@Test

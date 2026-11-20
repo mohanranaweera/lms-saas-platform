@@ -1,5 +1,7 @@
 package com.lms.financeexpensemanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.financeexpensemanagement.service.ExpenseCategoryService;
 import com.lms.financeexpensemanagement.service.ExpenseCategoryService.CategoryView;
@@ -36,6 +38,7 @@ public class ExpenseCategoryController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_CATEGORY)
 	public ResponseEntity<ApiResponse<List<CategoryView>>> list(
 			@RequestParam(defaultValue = "false") boolean includeArchived) {
 		return ResponseEntity.ok(ApiResponse.success(categoryService.list(includeArchived)));
@@ -43,6 +46,7 @@ public class ExpenseCategoryController {
 
 	@PostMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_ADD_CATEGORY)
 	public ResponseEntity<ApiResponse<CategoryView>> create(@Valid @RequestBody ExpenseCategoryRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse.success(categoryService.create(request.name(), request.description())));
@@ -58,6 +62,7 @@ public class ExpenseCategoryController {
 
 	@PostMapping("/{categoryId}/archive")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_DELETE_CATEGORY)
 	public ResponseEntity<ApiResponse<CategoryView>> archive(@PathVariable UUID categoryId) {
 		return ResponseEntity.ok(ApiResponse.success(categoryService.setArchived(categoryId, true)));
 	}

@@ -32,9 +32,19 @@ public interface NotificationOutboxRepository extends TenantAwareRepository<Noti
 	 * happens per-row in {@link #claimPendingByIdAcrossTenantsForUpdateSkipLocked}
 	 * so one slow/contended row never blocks this batch-listing read.
 	 */
-	@Query(value = "SELECT id FROM notification_outbox WHERE status = 'PENDING' ORDER BY created_at LIMIT :limit",
+	@Query(value = "SELECT id FROM notification_outbox WHERE status = 'PENDING' "
+			+ "AND (next_attempt_at IS NULL OR next_attempt_at <= now()) ORDER BY created_at LIMIT :limit",
 			nativeQuery = true)
 	List<UUID> findPendingIdsAcrossTenants(@Param("limit") int limit);
+
+	/**
+	 * Wave 11 duplicate-event guard: does a row for this business event already
+	 * exist in the current tenant? (The partial unique index on {@code
+	 * (tenant_id, dedupe_key)} is the race-proof backstop.)
+	 */
+	default boolean existsByDedupeKey(String dedupeKey) {
+		return exists((root, query, cb) -> cb.equal(root.get("dedupeKey"), dedupeKey));
+	}
 
 	/**
 	 * Phase 2 of the poller's two-phase claim (plan §9.2 step 1): a single-row,
@@ -51,8 +61,8 @@ public interface NotificationOutboxRepository extends TenantAwareRepository<Noti
 	 * terminal status for this row, the {@code status = 'PENDING'} predicate
 	 * excludes it outright.
 	 */
-	@Query(value = "SELECT * FROM notification_outbox WHERE id = :id AND status = 'PENDING' FOR UPDATE SKIP LOCKED",
-			nativeQuery = true)
+	@Query(value = "SELECT * FROM notification_outbox WHERE id = :id AND status = 'PENDING' "
+			+ "AND (next_attempt_at IS NULL OR next_attempt_at <= now()) FOR UPDATE SKIP LOCKED", nativeQuery = true)
 	Optional<NotificationOutbox> claimPendingByIdAcrossTenantsForUpdateSkipLocked(@Param("id") UUID id);
 
 	/**

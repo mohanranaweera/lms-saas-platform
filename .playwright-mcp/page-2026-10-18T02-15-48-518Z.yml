@@ -1,0 +1,273 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]
+  - alert [ref=e35]
+  - generic [ref=e36]:
+    - complementary [aria-hidden] [ref=e37]:
+      - generic [ref=e38]: Tenant Admin
+      - navigation [ref=e2240]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]: Dashboard
+            - list [ref=e43]:
+              - listitem [ref=e44]:
+                - link [ref=e2241] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+                  - text: Dashboard
+          - generic [ref=e46]:
+            - generic [ref=e47]: Academic
+            - list [ref=e48]:
+              - listitem [ref=e49]:
+                - link [ref=e2242] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+                  - text: Students
+              - listitem [ref=e51]:
+                - link [ref=e2243] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+                  - text: Teachers
+              - listitem [ref=e53]:
+                - link [ref=e2244] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+                  - text: Courses
+              - listitem [ref=e55]:
+                - link [ref=e2245] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+                  - text: Media Library
+              - listitem [ref=e57]:
+                - link [ref=e2246] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+                  - text: Attendance Reports
+              - listitem [ref=e59]:
+                - link [ref=e2247] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+                  - text: Mark Attendance
+              - listitem [ref=e61]:
+                - link [ref=e2248] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+                  - text: Exams
+              - listitem [ref=e63]:
+                - link [ref=e2249] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+                  - text: Live Classes
+          - generic [ref=e65]:
+            - generic [ref=e66]: Finance
+            - list [ref=e67]:
+              - listitem [ref=e68]:
+                - link [ref=e2250] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+                  - text: Payments
+              - listitem [ref=e70]:
+                - link [ref=e2251] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+                  - text: Refunds
+              - listitem [ref=e72]:
+                - link [ref=e2252] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+                  - text: Payment Slips
+              - listitem [ref=e74]:
+                - link [ref=e2253] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+                  - text: Reactivation Approvals
+              - listitem [ref=e76]:
+                - link [ref=e2254] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+                  - text: Finance Summary
+              - listitem [ref=e78]:
+                - link [ref=e2255] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+                  - text: Expenses
+              - listitem [ref=e80]:
+                - link [ref=e2256] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+                  - text: Expense Categories
+              - listitem [ref=e82]:
+                - link [ref=e2257] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+                  - text: Finance Reports
+              - listitem [ref=e84]:
+                - link [ref=e2258] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+                  - text: Teacher Payouts
+          - generic [ref=e86]:
+            - generic [ref=e87]: Communication
+            - list [ref=e88]:
+              - listitem [ref=e89]:
+                - link [ref=e2259] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+                  - text: Broadcasts
+              - listitem [ref=e91]:
+                - link [ref=e2260] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+                  - text: Message Templates
+          - generic [ref=e93]:
+            - generic [ref=e94]: Administration
+            - list [ref=e95]:
+              - listitem [ref=e96]:
+                - link [ref=e2261] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+                  - text: Staff
+              - listitem [ref=e98]:
+                - link [ref=e2262] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+                  - text: Roles & Permissions
+              - listitem [ref=e100]:
+                - link [ref=e2263] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+                  - text: Audit Log
+          - generic [ref=e102]:
+            - generic [ref=e103]: Institute Configuration
+            - list [ref=e104]:
+              - listitem [ref=e105]:
+                - link [ref=e2264] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+                  - text: General
+              - listitem [ref=e107]:
+                - link [ref=e2265] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+                  - text: Branding
+              - listitem [ref=e109]:
+                - link [ref=e2266] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+                  - text: Student Fields
+              - listitem [ref=e111]:
+                - link [ref=e2267] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+                  - text: Online Payments
+              - listitem [ref=e113]:
+                - link [ref=e2268] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+                  - text: Integrations
+              - listitem [ref=e115]:
+                - link [ref=e2269] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+                  - text: Messaging (SMS & WhatsApp)
+              - listitem [ref=e117]:
+                - link [ref=e2270] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+                  - text: Video Providers
+              - listitem [ref=e119]:
+                - link [ref=e2271] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+                  - text: Video Settings
+              - listitem [ref=e121]:
+                - link [ref=e2272] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+                  - text: Custom Domain
+              - listitem [ref=e123]:
+                - link [ref=e2273] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+                  - text: Devices & Access
+    - generic [ref=e125]:
+      - banner [aria-hidden] [ref=e126]:
+        - generic [ref=e127]:
+          - link [ref=e2274] [cursor=pointer]:
+            - /url: /change-password
+            - text: Change password
+          - button [ref=e2275]: Sign out
+      - main [ref=e131]:
+        - generic [ref=e2205]:
+          - generic [aria-hidden] [ref=e2206]:
+            - heading [level=1] [ref=e2276]: Sessions
+            - navigation [ref=e2277]:
+              - list [ref=e2215]:
+                - listitem [ref=e2216]:
+                  - link [ref=e2278] [cursor=pointer]:
+                    - /url: /tenant-admin/courses
+                    - text: Courses
+                - listitem [ref=e2218]:
+                  - link [ref=e2279] [cursor=pointer]:
+                    - /url: /tenant-admin/courses/01a13857-535a-7177-b757-250f1e76ce69
+                    - text: KLASS E2E Modules mv7iqszf7o5
+                - listitem [ref=e2222]:
+                  - link [ref=e2280] [cursor=pointer]:
+                    - /url: /tenant-admin/courses/01a13857-535a-7177-b757-250f1e76ce69/modules
+                    - text: October Theory
+                - listitem [ref=e2226]:
+                  - generic [ref=e2229]: Sessions
+          - generic [aria-hidden] [ref=e2230]:
+            - generic [ref=e2231]:
+              - generic [ref=e2232]: Search sessions
+              - searchbox [ref=e2281]
+            - button [ref=e2282]: Add session
+          - paragraph [aria-hidden] [ref=e2235]: Times shown in the institute's timezone (UTC).
+          - generic [aria-hidden] [ref=e2236]:
+            - paragraph [ref=e2237]: No sessions in this module yet
+            - paragraph [ref=e2238]: Add a session for each class, recording or document students should open.
+            - button [ref=e2283]: Add session
+          - generic:
+            - status
+            - alert
+  - dialog [ref=e2287]:
+    - generic [ref=e2288]:
+      - heading "Add New Session" [level=2] [ref=e2289]
+      - button "Close" [active] [ref=e2292]
+    - group [ref=e2295]:
+      - generic [ref=e2296]:
+        - generic [ref=e2298]:
+          - text: Name
+          - generic [aria-hidden] [ref=e2299]: "*"
+          - generic [ref=e2300]: (required)
+        - textbox "Name (required)" [ref=e2301]
+      - paragraph [ref=e2302]: Dates and times are in the institute's timezone (UTC).
+      - generic [ref=e2303]:
+        - generic [ref=e2304]:
+          - generic [ref=e2306]:
+            - text: From Date
+            - generic [aria-hidden] [ref=e2307]: "*"
+            - generic [ref=e2308]: (required)
+          - textbox "From Date (required)" [ref=e2309]: 2026-10-18
+        - generic [ref=e2310]:
+          - generic [ref=e2312]:
+            - text: From Time
+            - generic [aria-hidden] [ref=e2313]: "*"
+            - generic [ref=e2314]: (required)
+          - textbox "From Time (required)" [ref=e2315]: 02:15
+        - generic [ref=e2316]:
+          - generic [ref=e2317]: To Date
+          - textbox "To Date" [ref=e2319]
+          - paragraph [ref=e2320]: Optional. With a date but no time, the session ends at 23:59 that day.
+        - generic [ref=e2321]:
+          - generic [ref=e2322]: To Time
+          - textbox "To Time" [ref=e2324]
+      - generic [ref=e2325]:
+        - generic [ref=e2326]:
+          - generic [ref=e2327]:
+            - text: Resource Type
+            - generic [aria-hidden] [ref=e2328]: "*"
+            - generic [ref=e2329]: (required)
+          - button "Explain resource types" [ref=e2330]
+        - combobox "Resource Type (required)" [ref=e2334]:
+          - option "Select a resource type" [selected]
+          - option "Vimeo Video (Link only)"
+          - option "AOC Player Video"
+          - option "Document"
+          - option "Zoom Link (Link only)"
+          - option "Zoom Meeting"
+          - option "Zoom Webinar (Link only)"
+          - option "Zoom Recording (Not available yet)"
+          - option "Video Link (Link only)"
+          - option "Google Drive Link (Link only)"
+          - option "MS Teams Link (Link only)"
+          - option "Google Meet (Link only)"
+        - paragraph [ref=e2335]: What students open for this session.
+      - region "Session resources" [ref=e2336]:
+        - heading "Session resources" [level=3] [ref=e2337]
+        - paragraph [ref=e2338]: Add multiple resources, including supplementary images. Changing the resource type keeps existing attachments. New selections are attached when you save.
+        - generic [ref=e2339]:
+          - button "Add document" [ref=e2340]
+          - button "Add image" [ref=e2341]
+          - button "Add player video" [ref=e2342]
+        - paragraph [ref=e2343]: No new resources selected.
+      - generic [ref=e2344]:
+        - generic [ref=e2346]:
+          - text: Payment Type
+          - generic [aria-hidden] [ref=e2347]: "*"
+          - generic [ref=e2348]: (required)
+        - combobox "Payment Type (required)" [ref=e2349]:
+          - option "Select a payment type" [selected]
+          - option "Covered by class fees"
+          - option "Paid"
+          - option "Free"
+      - button "Show additional settings" [ref=e2350]
+    - generic [ref=e2353]:
+      - button "Cancel" [ref=e2354]
+      - button "Create session" [ref=e2355]

@@ -3,15 +3,12 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/data-table";
+import { useCourseRosterView } from "@/components/courses/course-roster-columns";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { useCourse, useCourseRoster, type CourseRosterEntryResponse } from "@/lib/api/courses";
+import { useCourse, useCourseRoster } from "@/lib/api/courses";
 
-const columns: DataTableColumn<CourseRosterEntryResponse>[] = [
-  { key: "name", header: "Name", cell: (row) => row.name, hideOnCard: true },
-  { key: "email", header: "Email", cell: (row) => row.email },
-];
-
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Teacher "Course Roster" (Wave 3, PAR-03-06) — `teacher/courses/[courseId]/roster`.
  * `GET /v1/courses/{courseId}/roster` is backend-filtered to the caller's own
@@ -22,10 +19,12 @@ const columns: DataTableColumn<CourseRosterEntryResponse>[] = [
  * `[courseId]/modules/page.tsx`'s established pattern.
  */
 export default function TeacherCourseRosterPage() {
+  const t = useT();
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
   const courseQuery = useCourse(courseId);
   const rosterQuery = useCourseRoster(courseId);
+  const rosterView = useCourseRosterView();
 
   return (
     <div className="flex flex-col gap-6">
@@ -35,43 +34,38 @@ export default function TeacherCourseRosterPage() {
           className="inline-flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to course
+          {t("teacher.page.coursesRoster.backToCourse")}
         </Link>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Roster</h1>
-          <p className="text-sm text-muted-foreground">
-            Students currently enrolled in this course.
-          </p>
+          <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.coursesRoster.roster")}</h1>
+          <p className="text-sm text-muted-foreground">{rosterView.description}</p>
         </div>
       </div>
 
       <QueryStateBoundary
         query={courseQuery}
-        loadingLabel="Loading course…"
+        loadingLabel={t("teacher.page.coursesRoster.loadingCourse")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
       >
         {(course) => (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
-              Roster for <span className="font-medium text-foreground">{course.name}</span>.
+              {t("teacher.page.coursesRoster.rosterFor")}{" "}<span className="font-medium text-foreground">{course.name}</span>.
             </p>
             <QueryStateBoundary
               query={rosterQuery}
-              loadingLabel="Loading roster…"
+              loadingLabel={t("teacher.page.coursesRoster.loadingRoster")}
               permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
               isEmpty={(data) => data.length === 0}
-              emptyState={{
-                title: "No enrolled students",
-                description: "No student is currently enrolled in this course.",
-              }}
+              emptyState={rosterView.emptyState}
             >
               {(roster) => (
                 <DataTable
-                  columns={columns}
+                  columns={rosterView.columns}
                   rows={roster}
                   rowKey={(row) => row.studentId}
-                  caption="Course roster"
+                  caption={t("teacher.page.coursesRoster.courseRoster")}
                   cardHeading={(row) => row.name}
                 />
               )}

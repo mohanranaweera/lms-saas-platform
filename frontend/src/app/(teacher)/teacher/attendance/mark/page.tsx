@@ -1,5 +1,8 @@
+"use client";
+
 import { MarkAttendancePanel } from "@/components/attendance/mark-attendance-panel";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Teacher Mark Attendance (MVP-016, plan §11 screen #1). Thin route wrapper —
  * all data/behavior lives in `MarkAttendancePanel`, shared verbatim with the
@@ -8,12 +11,13 @@ import { MarkAttendancePanel } from "@/components/attendance/mark-attendance-pan
  * comment).
  */
 export default function TeacherMarkAttendancePage() {
+  const t = useT();
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Mark Attendance</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.attendanceMark.markAttendance")}</h1>
         <p className="text-sm text-muted-foreground">
-          Select a course and one of its class sessions to record attendance for your students.
+          {t("teacher.page.attendanceMark.selectACourseAnd")}
         </p>
       </div>
       <MarkAttendancePanel dashboardHref="/teacher/dashboard" />

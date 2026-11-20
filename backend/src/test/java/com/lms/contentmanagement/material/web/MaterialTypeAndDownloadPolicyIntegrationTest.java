@@ -38,7 +38,7 @@ import org.springframework.http.HttpStatus;
  * ownership check {@code MaterialAccessGuard}/{@code
  * MaterialFetchVisibilityIntegrationTest} already cover; publishing the
  * course is unnecessary since the Teacher branch never checks {@code
- * coursePublished()}.
+ * courseOpenToEnrolledStudents()}.
  */
 class MaterialTypeAndDownloadPolicyIntegrationTest extends ContentManagementTestSupport {
 

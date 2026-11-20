@@ -16,11 +16,14 @@ import java.util.UUID;
  * corresponding request field on {@code MaterialUpdateRequest}, since it is
  * server-maintained exclusively via {@code
  * MaterialRepository#incrementDownloadCountIfUnderLimit}.
+ *
+ * <p>R2-T3 (additive): {@code mediaFileId} is set when the material is backed
+ * by an institute library file ({@code /api/v1/media-files}), else {@code null}.
  */
 public record MaterialResponse(UUID id, UUID lessonId, UUID sessionId, MaterialType materialType, String title,
 		String originalFilename, String mimeType, Long sizeBytes, String externalUrl, String noteContent,
 		UUID videoAssetId, Integer sequence, MaterialVisibility visibility, Integer maxDownloads,
 		Integer downloadCount, Instant availableFromAt, Instant expiryAt, UUID uploadedBy, Instant createdAt,
-		Instant updatedAt) {
+		Instant updatedAt, UUID mediaFileId) {
 
 }

@@ -1,0 +1,113 @@
+- generic [active] [ref=f7e1]:
+  - button "Open Next.js Dev Tools" [ref=f7e11] [cursor=pointer]
+  - alert [ref=f7e15]
+  - generic [ref=f7e16]:
+    - complementary [ref=f7e17]:
+      - generic [ref=f7e18]: Student Portal
+      - navigation "Primary" [ref=f7e19]:
+        - list [ref=f7e20]:
+          - listitem [ref=f7e21]:
+            - link "Dashboard" [ref=f7e22] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f7e23]:
+            - link "My Courses" [ref=f7e24] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f7e25]:
+            - link "Browse Courses" [ref=f7e26] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=f7e27]:
+            - link "My Attendance" [ref=f7e28] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f7e29]:
+            - link "Exams" [ref=f7e30] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f7e31]:
+            - link "Payments" [ref=f7e32] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f7e33]:
+            - link "Reactivation" [ref=f7e34] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f7e35]:
+            - link [ref=f7e36] [cursor=pointer]:
+              - /url: /student/notifications
+              - text: Notifications
+              - generic "1 unread notification" [ref=f7e37]:
+                - generic [aria-hidden] [ref=f7e38]: "1"
+          - listitem [ref=f7e39]:
+            - link "My Devices" [ref=f7e40] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=f7e41]:
+            - link "AOC Player" [ref=f7e42] [cursor=pointer]:
+              - /url: /student/player
+          - listitem [ref=f7e43]:
+            - link "Profile" [ref=f7e44] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f7e45]:
+      - banner [ref=f7e46]:
+        - generic [ref=f7e47]:
+          - link "Change password" [ref=f7e48] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f7e50]
+      - main [ref=f7e51]:
+        - generic [ref=f7e52]:
+          - generic [ref=f7e53]:
+            - heading "AOC Player" [level=1] [ref=f7e54]
+            - paragraph [ref=f7e55]: If your institute plays lesson videos in the AOC Player app, pair it with this computer once.
+          - generic [ref=f7e56]:
+            - generic [ref=f7e57]:
+              - generic [ref=f7e58]: Install the AOC Player
+              - generic [ref=f7e62]: For Windows 10 and 11. Install it once on this computer, then pair it below.
+            - paragraph [ref=f7e64]: The AOC Player download isn't available yet. Your institute will let you know when it is.
+          - generic [ref=f7e65]:
+            - generic [ref=f7e66]:
+              - generic [ref=f7e67]: Pair this computer
+              - generic [ref=f7e71]: With the AOC Player installed, choose “Pair the AOC Player” and allow your browser to open it. Pairing again on this computer replaces the previous player.
+            - generic [ref=f7e72]:
+              - status
+              - button "Pair the AOC Player" [ref=f7e74]
+          - region [ref=f7e75]:
+            - heading "Your players" [level=2] [ref=f7e76]
+            - list "Your AOC Players" [ref=f7e77]:
+              - listitem [ref=f7e78]:
+                - generic [ref=f7e79]:
+                  - paragraph [ref=f7e80]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f7e81]: Active
+                  - paragraph [ref=f7e82]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026
+                - button "Remove this AOC Player" [ref=f7e83]: Remove
+              - listitem [ref=f7e84]:
+                - generic [ref=f7e85]:
+                  - paragraph [ref=f7e86]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f7e87]: Removed
+                  - paragraph [ref=f7e88]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · its device was removed
+              - listitem [ref=f7e89]:
+                - generic [ref=f7e90]:
+                  - paragraph [ref=f7e91]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f7e92]: Removed
+                  - paragraph [ref=f7e93]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · its device was removed
+              - listitem [ref=f7e94]:
+                - generic [ref=f7e95]:
+                  - paragraph [ref=f7e96]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f7e97]: Removed
+                  - paragraph [ref=f7e98]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · removed by your institute
+              - listitem [ref=f7e99]:
+                - generic [ref=f7e100]:
+                  - paragraph [ref=f7e101]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f7e102]: Removed
+                  - paragraph [ref=f7e103]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · replaced by a newer pairing
+              - listitem [ref=f7e104]:
+                - generic [ref=f7e105]:
+                  - paragraph [ref=f7e106]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f7e107]: Removed
+                  - paragraph [ref=f7e108]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · replaced by a newer pairing
+              - listitem [ref=f7e109]:
+                - generic [ref=f7e110]:
+                  - paragraph [ref=f7e111]:
+                    - text: AOC Player for Windows
+                    - generic [ref=f7e112]: Removed
+                  - paragraph [ref=f7e113]: Version 0.1.0 · paired Oct 8, 2026 · last used Oct 8, 2026 · removed by you

@@ -12,6 +12,7 @@ import java.util.UUID;
  */
 public record EnrollmentHistoryEntryView(UUID enrollmentId, UUID courseId, boolean current, Instant activatedAt,
 		Instant accessExpiresAt, Instant supersededAt, Instant revokedAt, String revokeReason,
-		UUID reactivatedFromEnrollmentId) {
+		UUID reactivatedFromEnrollmentId, Instant effectiveExpiresAt, Instant accessEndsAt, boolean extended,
+		boolean accessActive) {
 
 }

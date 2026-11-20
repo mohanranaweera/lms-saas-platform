@@ -64,6 +64,86 @@ public enum DomainArea {
 	 * {@link #COURSES}'s identical Teacher-ownership carve-out) - a grant
 	 * here only ever applies to a staff sub-role.
 	 */
-	LIVE_CLASSES
+	LIVE_CLASSES,
+
+	/**
+	 * PAY-GW-01 / ADR-017: the tenant's own online payment gateway account
+	 * (PayHere merchant credentials). CREATE_EDIT is Tenant Admin only;
+	 * merchant secrets are never readable by any role.
+	 */
+	PAYMENT_GATEWAY,
+
+	/**
+	 * MEDIA-INT-01 / ADR-018: the tenant's media & meeting provider settings
+	 * (DynTube/Bunny accounts, which teacher providers are allowed, oversight
+	 * of teachers' Zoom/YouTube/Vimeo connections). CREATE_EDIT is Tenant
+	 * Admin only. Teachers manage their OWN connections without this grant
+	 * (ownership-checked); no role can ever read a token or API key.
+	 */
+	INTEGRATIONS,
+
+	/**
+	 * TEN-DOM-01 / ADR-021: the tenant's custom domains (add, verify, primary,
+	 * remove). CREATE_EDIT is Tenant Admin only; the Platform Admin switch and
+	 * suspension are Platform Admin endpoints, outside this matrix.
+	 */
+	CUSTOM_DOMAINS,
+
+	/**
+	 * Wave 11 (decision D2): broadcast templates, broadcasts, event-template
+	 * editing and delivery logs. Tenant Admin and Student Support {@code
+	 * V/C/E}; Read-only Auditor {@code V}. Teachers are deliberately absent -
+	 * they may broadcast only to courses they own, an ownership check enforced
+	 * in {@code notification-management}, not a flat grant here. Messaging
+	 * provider credentials stay under {@link #INTEGRATIONS}.
+	 */
+	COMMUNICATIONS,
+
+	/**
+	 * DISC-01 (owner decision 2026-10-21): tenant discount rules (Advance
+	 * Payment, Bundle Amount Off, Bundle Free Course, Discount Code). Tenant
+	 * Admin {@code V/C/E}; Finance Staff, Student Support and Read-only
+	 * Auditor {@code V} only (the roles that view {@link #PAYMENTS_SLIPS}).
+	 * A {@code VIEW}-only caller sees discount codes masked. Never a
+	 * payment/ledger mutation grant ({@code .claude/rules/payments.md} §8).
+	 */
+	DISCOUNTS,
+
+	/**
+	 * Klass Manual Payment &amp; Free Card (ADR-030, decision F1): complimentary
+	 * Free Cards. Tenant Admin {@code V/C-E/D} (issue = {@code CREATE_EDIT},
+	 * revoke = {@code DELETE} - a revocation stamp, never a row delete);
+	 * Finance Staff, Student Support and Read-only Auditor {@code V} only.
+	 * Recording manual payments ({@link #PAYMENTS_SLIPS} {@code APPROVE})
+	 * never implies issuing cards. Never a payment/ledger mutation grant
+	 * ({@code .claude/rules/payments.md} §8).
+	 */
+	FREE_CARDS,
+
+	/**
+	 * STU-MGMT-02 / ADR-033: "Log as Student" - start an audited, read-only support
+	 * session that sees the platform as one student. {@code CREATE_EDIT} is Tenant
+	 * Admin only; no other role (staff sub-roles, teachers, students, Platform Admin)
+	 * holds it.
+	 */
+	STUDENT_IMPERSONATION,
+
+	/**
+	 * TUTE-01 (docs/specs/tute-management-dispatch.md section 8): printed tutes per course,
+	 * their per-student fulfillments and the Tute Dispatch queue / labels. Tenant Admin
+	 * {@code V/C-E/D/A} only; every other role gets tute access only through an explicit
+	 * per-capability tenant grant (Staff -> Permissions, Tute group). Never a payment, ledger,
+	 * enrollment or paid-entitlement grant - tutes never create orders, payments or ledger rows.
+	 */
+	TUTES,
+
+	/**
+	 * I18N-01 (docs/architecture/i18n-translation-management.md section 7): tenant UI
+	 * translation overrides - {@code VIEW} (entries, preview, export, releases),
+	 * {@code CREATE_EDIT} (drafts, PO import), {@code APPROVE} (publish, rollback). Tenant Admin
+	 * only; other staff roles only through an explicit per-capability grant. Platform catalogs
+	 * have no runtime write path.
+	 */
+	TRANSLATIONS
 
 }

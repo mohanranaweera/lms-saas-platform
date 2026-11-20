@@ -7,12 +7,15 @@ import {
   loginResponseBody,
   mockJson,
   refreshResponseBody,
+  TEACHER_LIST_URL,
 } from "./fixtures/auth-mocks";
 
 /**
- * Staff-facing course creation (PAR-05-02, Wave 2 — `tenant-admin/courses/new`,
- * `components/courses/course-create-form.tsx`'s `mode="staff"` variant). No
- * real backend runs in this environment (see `fixtures/auth-mocks.ts`).
+ * Staff-facing course creation. KLASS (EP-C01) replaced the multi-step
+ * `tenant-admin/courses/new` form with the course list's "Add course" dialog
+ * (`components/courses/admin/course-create-dialog.tsx`); `/new` now redirects
+ * to the list. No real backend runs in this environment (see
+ * `fixtures/auth-mocks.ts`).
  */
 
 async function loginAsTenantAdmin(page: Page) {
@@ -29,15 +32,13 @@ async function loginAsTenantAdmin(page: Page) {
   await mockJson(page, "**/v1/students", 200, apiSuccess([]));
   await mockJson(page, "**/v1/courses*", 200, apiPageSuccess([]));
   await mockJson(page, "**/api/v1/ledger/dashboard*", 200, apiPageSuccess([]));
+  await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([]));
+  await mockJson(page, "**/v1/course-tags", 200, apiSuccess([]));
   await page.goto("/login");
   await page.getByLabel("Email").fill("admin@example.com");
   await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/tenant-admin\/dashboard$/);
-}
-
-async function clickNext(page: Page) {
-  await page.getByRole("button", { name: "Next", exact: true }).click();
 }
 
 const NEW_COURSE_ID = "d0000000-0000-0000-0000-000000000001";
@@ -67,46 +68,67 @@ function createdCourseFixture(overrides: Partial<Record<string, unknown>> = {}) 
   };
 }
 
-async function fillThroughToTeacherStep(
-  page: Page,
-  options: { pricingModelOptionLabel?: string; price?: string } = {}
-) {
-  await page.locator("#course-create-name").fill("Intro to Chemistry");
-  await page.locator("#course-create-slug").fill("intro-to-chemistry");
-  await page.locator("#course-create-category").fill("Science");
-  await clickNext(page); // Basics -> Classification
-
-  await clickNext(page); // Classification -> Pricing
-
-  if (options.pricingModelOptionLabel && options.pricingModelOptionLabel !== "One-time") {
-    await page.locator("#course-create-pricingModel").click();
-    await page.getByRole("option", { name: options.pricingModelOptionLabel }).click();
-  }
-  if (options.price !== undefined) {
-    await page.locator("#course-create-price").fill(options.price);
-  }
-  await clickNext(page); // Pricing -> Enrollment & access
-
-  await clickNext(page); // Enrollment & access -> Visibility
-
-  await page.locator("#course-create-status").click();
-  await page.getByRole("option", { name: "Draft" }).click();
-  await clickNext(page); // Visibility -> Teacher
+/** R2: the Overview's Klass edit form reads these `CourseResponse` fields. */
+function createdKlassCourseFixture(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    ...createdCourseFixture(overrides),
+    teachers: [{ id: TEACHER_ID, name: "Teacher Nine", primary: true }],
+    tags: [],
+    linkedCourses: [],
+    priceDisplay: null,
+    enrollmentFee: "0.00",
+    paymentValidDays: null,
+    commissionRate: null,
+    whatsappInviteUrl: null,
+    telegramInviteUrl: null,
+    coverImageUrl: null,
+    registrationEnabled: true,
+    displayOrder: null,
+    timezone: "Asia/Colombo",
+    ...overrides,
+  };
 }
 
-test.describe("tenant admin course create — staff variant", () => {
-  test("has a Teacher ID step and the create form is reachable from the course list", async ({ page }) => {
-    await loginAsTenantAdmin(page);
-    await page.getByRole("link", { name: "Courses" }).click();
-    await page.getByRole("link", { name: "New course" }).first().click();
+const APPROVED_TEACHER = {
+  id: "teacher-profile-9",
+  userId: TEACHER_ID,
+  name: "Teacher Nine",
+  email: "teacher.nine@example.test",
+  approvalStatus: "APPROVED",
+  accountStatus: "ACTIVE",
+  approvedBy: null,
+  approvedAt: null,
+};
 
-    await expect(page).toHaveURL(/\/tenant-admin\/courses\/new$/);
-    await expect(page.getByRole("heading", { name: "Create a course" })).toBeVisible();
-  });
+async function openAddCourseDialog(page: Page) {
+  await page.getByRole("link", { name: "Courses" }).click();
+  await page.getByTestId("courses-add-course").click();
+  const dialog = page.getByTestId("add-course-dialog");
+  await expect(dialog.getByRole("heading", { name: "Add New Course" })).toBeVisible();
+  return dialog;
+}
 
-  test("ONE_TIME: submits teacherId and price, and redirects to the new course's workspace", async ({ page }) => {
+async function fillValidCourse(page: Page) {
+  const dialog = page.getByTestId("add-course-dialog");
+  await dialog.getByTestId("add-course-name").fill("Intro to Chemistry");
+  await dialog.getByTestId("add-course-teachers").getByRole("button").first().click();
+  await dialog.getByTestId("add-course-teachers").getByRole("checkbox", { name: "Teacher Nine" }).check();
+  await dialog.getByTestId("add-course-payment-type").selectOption("MONTHLY");
+  await dialog.getByTestId("add-course-price").fill("3500");
+}
+
+test.describe("tenant admin course create — Add course dialog", () => {
+  test("the legacy /new route redirects to the course list, where Add course opens the dialog", async ({ page }) => {
     await loginAsTenantAdmin(page);
     await page.goto("/tenant-admin/courses/new");
+    await expect(page).toHaveURL(/\/tenant-admin\/courses$/);
+    await page.getByTestId("courses-add-course").click();
+    await expect(page.getByTestId("add-course-dialog").getByRole("heading", { name: "Add New Course" })).toBeVisible();
+  });
+
+  test("submits teacherIds, pricing model and price, then confirms the draft course", async ({ page }) => {
+    await loginAsTenantAdmin(page);
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([APPROVED_TEACHER]));
 
     let postBody: unknown = null;
     await page.route("**/api/v1/courses", async (route) => {
@@ -118,131 +140,46 @@ test.describe("tenant admin course create — staff variant", () => {
       await route.fulfill({
         status: 201,
         contentType: "application/json",
-        body: JSON.stringify(apiSuccess(createdCourseFixture({ price: 49.99 }))),
+        body: JSON.stringify(apiSuccess(createdKlassCourseFixture({ pricingModel: "MONTHLY", price: 3500 }))),
       });
     });
-    await mockJson(page, `**/v1/courses/${NEW_COURSE_ID}`, 200, apiSuccess(createdCourseFixture({ price: 49.99 })));
 
-    await fillThroughToTeacherStep(page, { price: "49.99" });
-    await page.locator("#course-create-teacherId").fill(TEACHER_ID);
-    await page.getByRole("button", { name: "Create course" }).click();
+    const dialog = await openAddCourseDialog(page);
+    await fillValidCourse(page);
+    await dialog.getByTestId("add-course-submit").click();
 
-    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${NEW_COURSE_ID}\\?created=1$`));
-    await expect(page.getByText("Course created.")).toBeVisible();
+    await expect(page.getByText("Course created as a draft. Publish it to show it to students.")).toBeVisible();
     expect(postBody).toMatchObject({
       name: "Intro to Chemistry",
-      slug: "intro-to-chemistry",
-      category: "Science",
-      price: 49.99,
-      status: "DRAFT",
-      teacherId: TEACHER_ID,
+      teacherIds: [TEACHER_ID],
+      pricingModel: "MONTHLY",
+      price: "3500.00",
     });
   });
 
-  test("FREE: creates the course (price 0), then composes a follow-up PATCH .../pricing-model before redirecting", async ({
+  test("a 403 on submit surfaces inline in the dialog, without a full-page permission-denied takeover", async ({
     page,
   }) => {
     await loginAsTenantAdmin(page);
-    await page.goto("/tenant-admin/courses/new");
-
-    let postBody: unknown = null;
-    await page.route("**/api/v1/courses", async (route) => {
-      if (route.request().method() !== "POST") {
-        await route.fallback();
-        return;
-      }
-      postBody = route.request().postDataJSON();
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify(apiSuccess(createdCourseFixture())),
-      });
-    });
-
-    let pricingModelPatchBody: unknown = null;
-    await page.route(`**/api/v1/courses/${NEW_COURSE_ID}/pricing-model`, async (route) => {
-      pricingModelPatchBody = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(apiSuccess(createdCourseFixture({ pricingModel: "FREE" }))),
-      });
-    });
-    await mockJson(page, `**/v1/courses/${NEW_COURSE_ID}`, 200, apiSuccess(createdCourseFixture({ pricingModel: "FREE" })));
-
-    await fillThroughToTeacherStep(page, { pricingModelOptionLabel: "Free" });
-    // Price input must not even be rendered for a non-ONE_TIME model.
-    await expect(page.locator("#course-create-price")).toHaveCount(0);
-    await page.locator("#course-create-teacherId").fill(TEACHER_ID);
-    await page.getByRole("button", { name: "Create course" }).click();
-
-    await expect(page).toHaveURL(new RegExp(`/tenant-admin/courses/${NEW_COURSE_ID}\\?created=1$`));
-    // `CourseCreateRequest` has no `pricingModel` field — `price` is forced
-    // to 0 for a non-ONE_TIME model, and `pricingModel` is set via the
-    // separate follow-up call below, never sent on the create request itself.
-    expect(postBody).toMatchObject({ price: 0 });
-    expect(postBody).not.toHaveProperty("pricingModel");
-    expect(pricingModelPatchBody).toEqual({ pricingModel: "FREE" });
-  });
-
-  test("a failure on the follow-up pricing-model call surfaces an inline error with a link to the created course, without navigating away", async ({
-    page,
-  }) => {
-    await loginAsTenantAdmin(page);
-    await page.goto("/tenant-admin/courses/new");
-
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([APPROVED_TEACHER]));
     await page.route("**/api/v1/courses", async (route) => {
       if (route.request().method() !== "POST") {
         await route.fallback();
         return;
       }
       await route.fulfill({
-        status: 201,
+        status: 403,
         contentType: "application/json",
-        body: JSON.stringify(apiSuccess(createdCourseFixture())),
+        body: JSON.stringify(apiError("FORBIDDEN", "You do not have permission to create a course.")),
       });
     });
-    await mockJson(
-      page,
-      `**/v1/courses/${NEW_COURSE_ID}/pricing-model`,
-      500,
-      apiError("INTERNAL_ERROR", "Could not update the pricing model right now.")
-    );
 
-    await fillThroughToTeacherStep(page, { pricingModelOptionLabel: "Monthly" });
-    await page.locator("#course-create-teacherId").fill(TEACHER_ID);
-    await page.getByRole("button", { name: "Create course" }).click();
+    const dialog = await openAddCourseDialog(page);
+    await fillValidCourse(page);
+    await dialog.getByTestId("add-course-submit").click();
 
-    await expect(
-      page.getByRole("alert").filter({ hasText: "The course was created, but setting its pricing model failed" })
-    ).toBeVisible();
-    const goToCourseLink = page.getByRole("link", { name: "Go to the new course" });
-    await expect(goToCourseLink).toBeVisible();
-    await expect(goToCourseLink).toHaveAttribute("href", `/tenant-admin/courses/${NEW_COURSE_ID}/billing`);
-    // Did not silently navigate away as if nothing went wrong.
-    await expect(page).toHaveURL(/\/tenant-admin\/courses\/new$/);
-  });
-
-  test("a 403 on submit surfaces inline, without a full-page permission-denied takeover (course creation is a pure POST, no GET to fail up front)", async ({
-    page,
-  }) => {
-    await loginAsTenantAdmin(page);
-    await page.goto("/tenant-admin/courses/new");
-
-    await mockJson(
-      page,
-      "**/api/v1/courses",
-      403,
-      apiError("FORBIDDEN", "You do not have permission to create a course.")
-    );
-
-    await fillThroughToTeacherStep(page, { price: "10" });
-    await page.locator("#course-create-teacherId").fill(TEACHER_ID);
-    await page.getByRole("button", { name: "Create course" }).click();
-
-    await expect(
-      page.getByRole("alert").filter({ hasText: "You do not have permission to create a course." })
-    ).toBeVisible();
-    await expect(page).toHaveURL(/\/tenant-admin\/courses\/new$/);
+    await expect(dialog.getByTestId("add-course-form-error")).toContainText("You don't have permission to create courses.");
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/tenant-admin\/courses$/);
   });
 });

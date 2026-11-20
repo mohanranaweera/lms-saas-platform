@@ -1,6 +1,7 @@
 package com.lms.coursemanagement.api;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +37,15 @@ public interface CourseLookupApi {
 	 * if the course does not exist in the caller's tenant.
 	 */
 	Optional<UUID> getTeacherId(UUID courseId);
+
+	/**
+	 * Teacher Portal (TP-01): whether {@code teacherUserId} holds a current
+	 * {@code course_teacher_assignment} row (primary or co-teacher) for
+	 * {@code courseId} in the caller's tenant. Read fresh on every call - an
+	 * assignment removal takes effect on the next request. {@code false} for an
+	 * unknown or cross-tenant course.
+	 */
+	boolean isTeacherAssigned(UUID courseId, UUID teacherUserId);
 
 	/**
 	 * @return the course's current price snapshot, or {@link Optional#empty()}
@@ -91,6 +101,16 @@ public interface CourseLookupApi {
 	List<CourseSummary> getCourseSummaries(Set<UUID> courseIds);
 
 	/**
+	 * Storefront cards for the {@code PUBLIC}-status courses among {@code
+	 * courseIds}, in the given order. Tenant-scoped through the resolved {@link
+	 * com.lms.common.tenant.TenantContext}: an unknown, cross-tenant, DRAFT or
+	 * PRIVATE id is silently dropped (never an error). Pricing is resolved
+	 * exactly as for the public course catalog; {@code coverImageUrl} is signed
+	 * for {@code coverUrlTtl}.
+	 */
+	List<PublishedCourseCard> getPublishedCourseCards(List<UUID> courseIds, java.time.Duration coverUrlTtl);
+
+	/**
 	 * @return a map of {@code courseId -> teacherId} for every id in {@code
 	 * courseIds} that exists in the caller's tenant, resolved via the same
 	 * tenant-scoped {@link com.lms.common.tenant.TenantContext} as every
@@ -124,5 +144,116 @@ public interface CourseLookupApi {
 	 * never silently resolved to a {@code $0} amount.
 	 */
 	Optional<CheckoutAmount> getResolvedCheckoutAmount(UUID courseId);
+
+	/**
+	 * @return all lesson IDs belonging to courses taught by {@code teacherUserId}
+	 * in the caller's tenant. Added for VIDEO Phase 6 (Q-010) - allowing teachers
+	 * to view and manage media attached to courses they teach.
+	 */
+	Set<UUID> findLessonIdsByTeacherId(UUID teacherUserId);
+
+	/**
+	 * KLASS-T4a (for T4b/T4c): every lesson of {@code courseId} with its
+	 * module and payment/schedule metadata, ordered by module sequence then
+	 * lesson sequence. Two tenant-scoped batched reads (modules, then their
+	 * lessons) - never one read per lesson. Empty for an unknown or
+	 * cross-tenant course id.
+	 */
+	List<LessonPolicy> findLessonPolicies(UUID courseId);
+
+	/**
+	 * KLASS-T4a: course-level availability/pricing facts (pricing model,
+	 * status, archived, registration flag, Payment Valid Days, current
+	 * monthly amount). Empty for an unknown or cross-tenant course id.
+	 */
+	Optional<CourseCatalogInfo> findCatalogInfo(UUID courseId);
+
+	/**
+	 * KLASS-T4a (D13): the source courses linked into {@code parentCourseId}
+	 * (one level only), in link creation order. Empty for an unknown or
+	 * cross-tenant parent id.
+	 */
+	List<UUID> findLinkedSourceCourseIds(UUID parentCourseId);
+
+	/**
+	 * KLASS-T4b (D13): the parent courses {@code sourceCourseId} is linked
+	 * INTO (one level only - never transitive). Used by the lesson access
+	 * evaluator: participation in such a parent counts as being enrolled in
+	 * the source course's lessons, which are still evaluated with the SOURCE
+	 * course's own payment rules. Empty for an unknown or cross-tenant id.
+	 */
+	List<UUID> findLinkedParentCourseIds(UUID sourceCourseId);
+
+	/**
+	 * KLASS-T4a (D09): every module of {@code courseId} with its MODULE-offer
+	 * price ({@code null} when not sold separately), in sequence order. Empty
+	 * for an unknown or cross-tenant course id.
+	 */
+	List<ModulePriceInfo> findModulePrices(UUID courseId);
+
+
+	/**
+	 * R2-D6: the tags of each of {@code courseIds} (ordered by name), read in
+	 * one tenant-scoped query. Courses with no tags (or unknown / cross-tenant
+	 * ids) are simply absent from the map.
+	 */
+	Map<UUID, List<CourseTagRef>> findTagsByCourseIds(Set<UUID> courseIds);
+
+	/**
+	 * DISC-01: every course of the caller's tenant (archived included, flagged)
+	 * with its current display price, ordered by name. Tenant-scoped through
+	 * the resolved {@link com.lms.common.tenant.TenantContext} like every other
+	 * method here; never another tenant's course.
+	 */
+	List<CoursePriceOption> findCoursePriceOptions();
+
+	/**
+	 * RPT-01: the current billing month ({@code billing_year}/{@code
+	 * billing_month}) of each lesson in {@code lessonIds} that has one, in the
+	 * caller's tenant. Lessons without a billing month, unknown and cross-tenant
+	 * ids are absent. Read-only.
+	 */
+	Map<UUID, YearMonth> findLessonBillingMonths(Set<UUID> lessonIds);
+
+	/** RPT-01: ids of the caller's tenant's lessons billed in one of {@code months}. */
+	Set<UUID> findLessonIdsInBillingMonths(Set<YearMonth> months);
+
+	/**
+	 * RPT-02: id / name / slug / category of the caller's tenant's courses
+	 * (archived and unpublished included - historical payments stay
+	 * reportable), ordered by name then id, in one tenant-scoped read, bounded
+	 * to the first {@link #MAX_COURSE_SUMMARIES} (the report's course picker is
+	 * a type-to-filter multi-select; selected ids are validated separately, so
+	 * a course beyond the bound can still be reported by id). Never another
+	 * tenant's course.
+	 */
+	List<CourseSummary> listCourseSummaries();
+
+	/**
+	 * RPT-05: all courses whose current primary teacher is {@code teacherId},
+	 * ordered for a dependent report picker. Tenant scope comes from the resolved
+	 * context; a foreign teacher id returns an empty list.
+	 */
+	List<CourseSummary> listCourseSummariesByTeacherId(UUID teacherId);
+
+	/** Public storefront courses assigned to an approved teacher, excluding archived and non-public courses. */
+	List<com.lms.coursemanagement.api.PublicCourseSummary> listPublicCourseSummariesByTeacherId(UUID teacherId);
+
+	/**
+	 * Klass Exam Module Slice A: every module of {@code courseId} in sequence order.
+	 * Tenant-scoped through the resolved {@link com.lms.common.tenant.TenantContext}; empty
+	 * for an unknown or cross-tenant course id.
+	 */
+	List<CourseModuleSummary> findModules(UUID courseId);
+
+	/**
+	 * Klass Exam Module Slice A: the module {@code moduleId} only if it belongs to {@code
+	 * courseId} in the caller's tenant - empty for an unknown id, a module of another
+	 * course, or any cross-tenant id (callers answer 404 for all of them alike).
+	 */
+	Optional<CourseModuleSummary> findModule(UUID courseId, UUID moduleId);
+
+	/** Upper bound of {@link #listCourseSummaries()}. */
+	int MAX_COURSE_SUMMARIES = 2000;
 
 }

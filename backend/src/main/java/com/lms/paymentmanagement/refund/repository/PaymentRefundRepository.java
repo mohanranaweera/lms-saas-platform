@@ -31,6 +31,11 @@ public interface PaymentRefundRepository extends TenantAwareRepository<PaymentRe
 	 * Specification}-backed {@code findOne}, so a caller-supplied {@code
 	 * idempotencyKey} can never resolve to another tenant's refund.
 	 */
+	/** PAY-GW-01 chargeback idempotency - tenant-scoped like every read here. */
+	default Optional<PaymentRefund> findByExternalReference(String externalReference) {
+		return findOne((root, query, cb) -> cb.equal(root.get("externalReference"), externalReference));
+	}
+
 	default Optional<PaymentRefund> findByOriginalPaymentIdAndIdempotencyKey(UUID originalPaymentId,
 			UUID idempotencyKey) {
 		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("originalPaymentId"), originalPaymentId),

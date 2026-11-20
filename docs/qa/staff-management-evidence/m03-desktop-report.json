@@ -1,0 +1,55 @@
+{
+  "rolesShownDefault": "4 of 10 roles shown",
+  "columnHeaders": [
+    "Permission",
+    "OPERATOR",
+    "MANAGER",
+    "TEACHER",
+    "FINANCE STAFF",
+    "COURSE COORDINATOR",
+    "STUDENT SUPPORT",
+    "CONTENT MANAGER",
+    "EXAM MANAGER",
+    "ATTENDANCE OPERATOR",
+    "READ-ONLY AUDITOR"
+  ],
+  "matrixScroll": {
+    "scrollWidth": 1344,
+    "clientWidth": 1100
+  },
+  "pageOverflowPx": 0,
+  "addUserRoles": [
+    "Operator",
+    "Manager",
+    "Finance Staff",
+    "Course Coordinator",
+    "Student Support",
+    "Content Manager",
+    "Exam Manager",
+    "Attendance Operator",
+    "Read-only Auditor"
+  ],
+  "selectedRoleHelper": "Payments, slips, expenses, teacher payouts and finance reports.",
+  "roleGuide": [
+    "Operator",
+    "Manager",
+    "Finance Staff",
+    "Course Coordinator",
+    "Student Support",
+    "Content Manager",
+    "Exam Manager",
+    "Attendance Operator",
+    "Read-only Auditor"
+  ],
+  "roleGuideDescriptions": [
+    "Starts with no access; gets only the permissions you grant it.",
+    "Starts with no access; gets only the permissions you grant it, for a supervising role.",
+    "Payments, slips, expenses, teacher payouts and finance reports.",
+    "Courses, modules, timetable and course content.",
+    "Student accounts, profiles, devices and messages to students.",
+    "Course materials and the media library.",
+    "Exams, question banks, marking, results and leaderboards.",
+    "Marking attendance and attendance reports.",
+    "Can view most areas but can never change anything."
+  ]
+}

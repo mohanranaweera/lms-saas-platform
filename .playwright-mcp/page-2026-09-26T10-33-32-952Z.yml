@@ -1,0 +1,35 @@
+- generic [active] [ref=f1e1]:
+  - button "Open Next.js Dev Tools" [ref=f1e11] [cursor=pointer]
+  - alert [ref=f1e15]
+  - generic [ref=f1e16]:
+    - banner [ref=f1e17]:
+      - link "LMS Platform" [ref=f1e18] [cursor=pointer]:
+        - /url: /
+      - navigation "Account" [ref=f1e19]:
+        - link "Sign in" [ref=f1e20] [cursor=pointer]:
+          - /url: /login
+        - link "Get started" [ref=f1e21] [cursor=pointer]:
+          - /url: /register-institute
+    - main [ref=f1e22]:
+      - generic [ref=f1e23]:
+        - generic [ref=f1e24]:
+          - heading "Courses" [level=1] [ref=f1e25]
+          - paragraph [ref=f1e26]: Browse the courses currently available at this institute.
+        - list [ref=f1e28]:
+          - listitem [ref=f1e29]:
+            - link "2027 Chemistry Theory Class Chemistry This is test description. Class Conducted by Dr. Vajira Senarathne. 4500.00 USD" [ref=f1e30] [cursor=pointer]:
+              - /url: /courses/2027-chemistry-theory-class
+              - generic [ref=f1e31]:
+                - heading "2027 Chemistry Theory Class" [level=2] [ref=f1e32]
+                - generic [ref=f1e33]: Chemistry
+              - paragraph [ref=f1e34]: This is test description. Class Conducted by Dr. Vajira Senarathne.
+              - generic [ref=f1e35]: 4500.00 USD
+          - listitem [ref=f1e36]:
+            - link "2028 Biology Theory Class Biology Test description 4500.00 LKR/month" [ref=f1e37] [cursor=pointer]:
+              - /url: /courses/2028-biology-theory-class
+              - generic [ref=f1e38]:
+                - heading "2028 Biology Theory Class" [level=2] [ref=f1e39]
+                - generic [ref=f1e40]: Biology
+              - paragraph [ref=f1e41]: Test description
+              - generic [ref=f1e42]: 4500.00 LKR/month
+    - contentinfo [ref=f1e43]: © 2026 LMS Platform. All rights reserved.

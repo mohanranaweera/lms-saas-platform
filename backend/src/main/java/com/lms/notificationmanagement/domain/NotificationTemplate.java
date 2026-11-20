@@ -63,4 +63,10 @@ public class NotificationTemplate extends Auditable implements TenantOwned {
 		return body;
 	}
 
+	/** Wave 11: Tenant Admin editing of an event template (validated by {@code EventTemplateService}). */
+	public void updateContent(String subject, String body) {
+		this.subject = subject;
+		this.body = body;
+	}
+
 }

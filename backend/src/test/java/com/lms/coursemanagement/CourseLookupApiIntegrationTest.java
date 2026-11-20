@@ -110,4 +110,29 @@ class CourseLookupApiIntegrationTest extends CourseManagementTestSupport {
 		assertThat(result).isEmpty();
 	}
 
+	@Test
+	@org.junit.jupiter.api.Tag("cross-tenant")
+	void teacherLessonLookupIsLimitedToTheResolvedTenant() {
+		Tenant tenantA = seedActiveTenant(uniqueSubdomain("clu-lessons-a"));
+		Tenant tenantB = seedActiveTenant(uniqueSubdomain("clu-lessons-b"));
+		TenantUser teacherA = seedTenantUser(tenantA.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
+		TenantUser teacherB = seedTenantUser(tenantB.getId(), "teacher@example.test", RAW_PASSWORD, Role.TEACHER);
+		String hostA = hostFor(tenantA.getSubdomain());
+		String hostB = hostFor(tenantB.getSubdomain());
+		String tokenA = loginAndGetToken(hostA, "teacher@example.test");
+		String tokenB = loginAndGetToken(hostB, "teacher@example.test");
+		CourseResponse courseA = createCourseOrFail(hostA, tokenA,
+				newCourseRequest(uniqueSlug("clu-lessons-course-a"), teacherA.getId(), CourseStatus.PUBLIC));
+		CourseResponse courseB = createCourseOrFail(hostB, tokenB,
+				newCourseRequest(uniqueSlug("clu-lessons-course-b"), teacherB.getId(), CourseStatus.PUBLIC));
+		var moduleA = createModuleOrFail(hostA, tokenA, courseA.id(), "Module A", 1);
+		var moduleB = createModuleOrFail(hostB, tokenB, courseB.id(), "Module B", 1);
+		var lessonA = createLessonOrFail(hostA, tokenA, courseA.id(), moduleA.id(), "Lesson A", 1);
+		var lessonB = createLessonOrFail(hostB, tokenB, courseB.id(), moduleB.id(), "Lesson B", 1);
+
+		assertThat(withTenant(tenantA.getId(), () -> courseLookupApi.findLessonIdsByTeacherId(teacherA.getId())))
+			.containsExactly(lessonA.id())
+			.doesNotContain(lessonB.id());
+	}
+
 }

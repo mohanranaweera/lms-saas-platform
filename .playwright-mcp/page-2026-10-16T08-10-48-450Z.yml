@@ -1,0 +1,250 @@
+- generic [ref=f4e1]:
+  - button "Open Next.js Dev Tools" [ref=f4e11] [cursor=pointer]
+  - alert [ref=f4e15]
+  - generic [ref=f4e16]:
+    - complementary [aria-hidden] [ref=f4e17]:
+      - generic [ref=f4e18]: Tenant Admin
+      - navigation [ref=f4e19]:
+        - generic [ref=f4e20]:
+          - generic [ref=f4e21]:
+            - generic [ref=f4e22]: Dashboard
+            - list [ref=f4e23]:
+              - listitem [ref=f4e24]:
+                - link [ref=f4e25] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+                  - text: Dashboard
+          - generic [ref=f4e26]:
+            - generic [ref=f4e27]: Academic
+            - list [ref=f4e28]:
+              - listitem [ref=f4e29]:
+                - link [ref=f4e30] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+                  - text: Students
+              - listitem [ref=f4e31]:
+                - link [ref=f4e32] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+                  - text: Teachers
+              - listitem [ref=f4e33]:
+                - link [ref=f4e34] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+                  - text: Courses
+              - listitem [ref=f4e35]:
+                - link [ref=f4e36] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+                  - text: Media Library
+              - listitem [ref=f4e37]:
+                - link [ref=f4e38] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+                  - text: Attendance Reports
+              - listitem [ref=f4e39]:
+                - link [ref=f4e40] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+                  - text: Mark Attendance
+              - listitem [ref=f4e41]:
+                - link [ref=f4e42] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+                  - text: Exams
+              - listitem [ref=f4e43]:
+                - link [ref=f4e44] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+                  - text: Live Classes
+          - generic [ref=f4e45]:
+            - generic [ref=f4e46]: Finance
+            - list [ref=f4e47]:
+              - listitem [ref=f4e48]:
+                - link [ref=f4e49] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+                  - text: Payments
+              - listitem [ref=f4e50]:
+                - link [ref=f4e51] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+                  - text: Refunds
+              - listitem [ref=f4e52]:
+                - link [ref=f4e53] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+                  - text: Payment Slips
+              - listitem [ref=f4e54]:
+                - link [ref=f4e55] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+                  - text: Reactivation Approvals
+              - listitem [ref=f4e56]:
+                - link [ref=f4e57] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+                  - text: Finance Summary
+              - listitem [ref=f4e58]:
+                - link [ref=f4e59] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+                  - text: Expenses
+              - listitem [ref=f4e60]:
+                - link [ref=f4e61] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+                  - text: Expense Categories
+              - listitem [ref=f4e62]:
+                - link [ref=f4e63] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+                  - text: Finance Reports
+              - listitem [ref=f4e64]:
+                - link [ref=f4e65] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+                  - text: Teacher Payouts
+          - generic [ref=f4e66]:
+            - generic [ref=f4e67]: Communication
+            - list [ref=f4e68]:
+              - listitem [ref=f4e69]:
+                - link [ref=f4e70] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+                  - text: Broadcasts
+              - listitem [ref=f4e71]:
+                - link [ref=f4e72] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+                  - text: Message Templates
+          - generic [ref=f4e73]:
+            - generic [ref=f4e74]: Administration
+            - list [ref=f4e75]:
+              - listitem [ref=f4e76]:
+                - link [ref=f4e77] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+                  - text: Staff
+              - listitem [ref=f4e78]:
+                - link [ref=f4e79] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+                  - text: Roles & Permissions
+              - listitem [ref=f4e80]:
+                - link [ref=f4e81] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+                  - text: Audit Log
+          - generic [ref=f4e82]:
+            - generic [ref=f4e83]: Institute Configuration
+            - list [ref=f4e84]:
+              - listitem [ref=f4e85]:
+                - link [ref=f4e86] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+                  - text: General
+              - listitem [ref=f4e87]:
+                - link [ref=f4e88] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+                  - text: Branding
+              - listitem [ref=f4e89]:
+                - link [ref=f4e90] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+                  - text: Student Fields
+              - listitem [ref=f4e91]:
+                - link [ref=f4e92] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+                  - text: Online Payments
+              - listitem [ref=f4e93]:
+                - link [ref=f4e94] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+                  - text: Integrations
+              - listitem [ref=f4e95]:
+                - link [ref=f4e96] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+                  - text: Messaging (SMS & WhatsApp)
+              - listitem [ref=f4e97]:
+                - link [ref=f4e98] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+                  - text: Video Providers
+              - listitem [ref=f4e99]:
+                - link [ref=f4e100] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+                  - text: Video Settings
+              - listitem [ref=f4e101]:
+                - link [ref=f4e102] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+                  - text: Custom Domain
+              - listitem [ref=f4e103]:
+                - link [ref=f4e104] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+                  - text: Devices & Access
+    - generic [ref=f4e105]:
+      - banner [aria-hidden] [ref=f4e106]:
+        - generic [ref=f4e107]:
+          - link [ref=f4e108] [cursor=pointer]:
+            - /url: /change-password
+            - text: Change password
+          - button [ref=f4e110]: Sign out
+      - main [ref=f4e111]:
+        - generic [ref=f4e112]:
+          - generic [aria-hidden] [ref=f4e113]:
+            - heading [level=1] [ref=f4e114]: Media Library
+            - paragraph [ref=f4e115]: Every document, image and lesson video your institute has uploaded.
+          - generic [ref=f4e116]:
+            - region [aria-hidden] [ref=f4e117]:
+              - paragraph [ref=f4e118]: Media library
+              - heading [level=2] [ref=f4e119]: 10 items
+              - paragraph [ref=f4e120]: Everything this institute can attach to a session
+              - list [ref=f4e121]:
+                - listitem [ref=f4e122]: 8 videos
+                - listitem [ref=f4e126]: 1 document
+                - listitem [ref=f4e130]: 1 image
+                - listitem [ref=f4e136]: Updated 1:39 PM
+            - generic [ref=f4e141]:
+              - tablist [aria-hidden] [ref=f4e142]:
+                - tab [selected] [ref=f4e143]: Uploads
+                - tab [ref=f4e144]: DynTube
+                - tab [ref=f4e145]: Active Youtube Connection
+                - tab [ref=f4e146]: Youtube Integration Two
+                - tab [ref=f4e147]:
+                  - text: An another youtube
+                  - generic [ref=f4e148]: Not connected
+              - tabpanel "Uploads" [ref=f4e149]:
+                - generic [ref=f4e150]:
+                  - generic [ref=f4e151]:
+                    - generic [aria-hidden] [ref=f4e152]:
+                      - generic [ref=f4e153]: Search media
+                      - searchbox [ref=f4e155]
+                    - generic [aria-hidden] [ref=f4e156]:
+                      - generic [ref=f4e157]: Type
+                      - combobox [ref=f4e158]
+                    - generic [ref=f4e159]: 2 items
+                    - button [aria-hidden] [ref=f4e161]: New media
+                  - list [ref=f4e163]:
+                    - listitem [ref=f4e164]:
+                      - generic [ref=f4e165]:
+                        - generic [ref=f4e166]: PDF
+                        - generic [ref=f4e171]: Document
+                      - generic [ref=f4e172]:
+                        - heading [level=3] [ref=f4e173]: doc
+                        - paragraph [ref=f4e174]: 3.2 KB · tenantadmin@demo.test
+                      - generic [ref=f4e175]:
+                        - button [ref=f4e176]:
+                          - text: Open
+                          - generic [ref=f4e177]: doc (opens in a new tab)
+                        - button [ref=f4e178]:
+                          - text: Rename
+                          - generic [ref=f4e179]: doc
+                        - button [ref=f4e180]:
+                          - text: Delete
+                          - generic [ref=f4e181]: doc
+                    - listitem [ref=f4e182]:
+                      - generic [ref=f4e183]: Image
+                      - generic [ref=f4e186]:
+                        - heading [level=3] [ref=f4e187]: QuestionImage_20260102_235302
+                        - paragraph [ref=f4e188]: 16 KB · tenantadmin@demo.test
+                      - generic [ref=f4e189]:
+                        - button [ref=f4e190]:
+                          - text: Open
+                          - generic [ref=f4e191]: QuestionImage_20260102_235302 (opens in a new tab)
+                        - button [ref=f4e192]:
+                          - text: Rename
+                          - generic [ref=f4e193]: QuestionImage_20260102_235302
+                        - button [ref=f4e194]:
+                          - text: Delete
+                          - generic [ref=f4e195]: QuestionImage_20260102_235302
+  - dialog [ref=f4e199]:
+    - generic [ref=f4e200]:
+      - heading "New media" [level=2] [ref=f4e201]
+      - button "Close" [active] [ref=f4e202]
+    - paragraph [ref=f4e203]: Upload this video using your institute's video provider. Provider permissions and file limits are checked by the server.
+    - generic [ref=f4e218]:
+      - paragraph [ref=f4e219]: "Selected file: synthetic-smoke.mp4 · 24 B"
+      - button "Choose a different file" [ref=f4e220]
+      - generic [ref=f4e221]:
+        - generic [ref=f4e222]: Video destination
+        - combobox "Video destination" [ref=f4e223]:
+          - option "Select a video destination"
+          - option "DynTube" [selected]
+          - option "YouTube · Active Youtube Connection"
+          - option "YouTube · Youtube Integration Two"
+          - option "YouTube · An another youtube"
+      - status [ref=f4e224]: Checking upload settings…

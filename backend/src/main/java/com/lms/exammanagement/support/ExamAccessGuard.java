@@ -7,7 +7,9 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -111,6 +113,106 @@ public class ExamAccessGuard {
 	 */
 	public void requireStaffTenantWideViewAccess() {
 		permissionCheckService.requirePermission(DomainArea.EXAMS, PermissionAction.VIEW);
+	}
+
+	/**
+	 * Gates course-less question-bank helpers (Klass Exam Module Slice A: exam image
+	 * upload, CSV template) - the same role rule as {@link #requireAuthoringAccess}
+	 * without a course to own: Teacher and Teacher Assistant may author in general,
+	 * every other role needs {@code DomainArea.EXAMS}/{@code action} (students hold no
+	 * such grant and get 403). The content a caller later attaches these to is still
+	 * gated per course by {@link #requireAuthoringAccess}.
+	 */
+	public void requireAuthoringRole(PermissionAction action) {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (TEACHER_ROLE.equals(principal.role()) || TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
+			return;
+		}
+		permissionCheckService.requirePermission(DomainArea.EXAMS, action);
+	}
+
+	/**
+	 * Klass exam password reveal (D6, contract "staff CREATE_EDIT or owning teacher"): the
+	 * owning Teacher, or staff holding {@code DomainArea.EXAMS}/{@code CREATE_EDIT}. Teacher
+	 * Assistants are denied - they may author, but revealing a secret is not authoring.
+	 * Cross-tenant course is 404 first.
+	 */
+	public void requirePasswordRevealAccess(UUID courseId) {
+		requireNotTeacherAssistant(courseId);
+		requireAuthoringAccess(courseId, PermissionAction.CREATE_EDIT);
+	}
+
+	/**
+	 * Klass exam delete (spec §7: Teacher Assistants author and mark but never delete): the
+	 * owning Teacher, or staff holding {@code DomainArea.EXAMS}/{@code DELETE}.
+	 */
+	public void requireExamDeleteAccess(UUID courseId) {
+		requireNotTeacherAssistant(courseId);
+		requireAuthoringAccess(courseId, PermissionAction.DELETE);
+	}
+
+	/**
+	 * Which courses' exams the caller may list in the Klass exam directory: {@code null} =
+	 * every course of the tenant (Teacher Assistant, staff with {@code DomainArea.EXAMS}/
+	 * {@code VIEW}); otherwise the Teacher's own courses. Every other role (students) is 403.
+	 */
+	public Set<UUID> resolveDirectoryCourseScope() {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (TEACHER_ROLE.equals(principal.role())) {
+			return courseLookupApi.listCourseSummariesByTeacherId(principal.userId())
+				.stream()
+				.map(summary -> summary.id())
+				.collect(Collectors.toSet());
+		}
+		if (TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
+			return null;
+		}
+		permissionCheckService.requirePermission(DomainArea.EXAMS, PermissionAction.VIEW);
+		return null;
+	}
+
+	/**
+	 * Klass exam leaderboards (Slice E): which courses' exams the caller may group / see. {@code
+	 * null} = every course of the tenant (staff holding {@code DomainArea.EXAMS}/{@code action};
+	 * Teacher Assistant for {@code VIEW} only), otherwise the Teacher's own courses. Teacher
+	 * Assistants may not create, change or delete leaderboards (publishing is not authoring);
+	 * students and staff without the grant get 403.
+	 */
+	public Set<UUID> resolveLeaderboardScope(PermissionAction action) {
+		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
+		if (TEACHER_ROLE.equals(principal.role())) {
+			return courseLookupApi.listCourseSummariesByTeacherId(principal.userId())
+				.stream()
+				.map(summary -> summary.id())
+				.collect(Collectors.toSet());
+		}
+		if (TEACHER_ASSISTANT_ROLE.equals(principal.role())) {
+			if (action != PermissionAction.VIEW) {
+				throw new AccessDeniedException("You do not have permission to perform this action");
+			}
+			return null;
+		}
+		permissionCheckService.requirePermission(DomainArea.EXAMS, action);
+		return null;
+	}
+
+	/**
+	 * STAFF-MGMT-03 §6.2: staff reading an archived course's data need View Archived Courses
+	 * (Teacher ownership and Teacher Assistant paths unchanged).
+	 */
+	public void requireArchivedCourseAccess(boolean archived) {
+		String role = AuthenticatedPrincipalHolder.get().role();
+		if (archived && !TEACHER_ROLE.equals(role) && !TEACHER_ASSISTANT_ROLE.equals(role)) {
+			permissionCheckService.requireCapability(com.lms.identityaccessservice.api.Capability.COURSES_VIEW_ARCHIVED);
+		}
+	}
+
+	private void requireNotTeacherAssistant(UUID courseId) {
+		if (TEACHER_ASSISTANT_ROLE.equals(AuthenticatedPrincipalHolder.get().role())) {
+			// Same 404-before-403 order as every other check: an unknown course stays 404.
+			requireCourseExistsInTenant(courseId);
+			throw new AccessDeniedException("You do not have permission to perform this action");
+		}
 	}
 
 	private UUID requireCourseExistsInTenant(UUID courseId) {

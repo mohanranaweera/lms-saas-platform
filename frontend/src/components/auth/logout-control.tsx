@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { isApiClientError } from "@/lib/api/error";
 import {
@@ -18,6 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { PrincipalKind } from "@/lib/api/auth";
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 
 interface LogoutControlProps {
   kind: PrincipalKind;
@@ -39,7 +42,7 @@ function loginPathFor(kind: PrincipalKind): string {
   return kind === "platform-admin" ? "/platform-admin/login" : "/login";
 }
 
-export function LogoutControl({
+function LogoutButton({
   kind,
   portalLabel,
   requireConfirmation = false,
@@ -47,6 +50,7 @@ export function LogoutControl({
 }: LogoutControlProps) {
   const { logout } = useAuth();
   const router = useRouter();
+  const t = useT();
 
   // Local session state is already cleared by `logout()` even on failure
   // (this tab must stop acting as the user regardless of the network
@@ -62,8 +66,8 @@ export function LogoutControl({
 
   const errorMessage = mutation.isError
     ? isApiClientError(mutation.error)
-      ? mutation.error.message
-      : "You were signed out on this device, but we couldn't confirm it with the server. Please check your connection."
+      ? localizeApiError(t, mutation.error)
+      : t("common.auth.signOutUnconfirmed")
     : null;
 
   const errorNotice = errorMessage ? (
@@ -72,7 +76,7 @@ export function LogoutControl({
       <AlertDescription>
         {errorMessage}{" "}
         <a href={loginPathFor(kind)} className="font-medium underline underline-offset-2">
-          Continue to sign-in
+          {t("common.auth.continueToSignIn")}
         </a>
       </AlertDescription>
     </Alert>
@@ -90,7 +94,7 @@ export function LogoutControl({
           aria-busy={mutation.isPending}
         >
           <LogOut aria-hidden="true" />
-          {mutation.isPending ? "Signing out…" : "Sign out"}
+          {mutation.isPending ? t("common.auth.signingOut") : t("common.auth.signOut")}
         </Button>
         {errorNotice}
       </div>
@@ -106,19 +110,19 @@ export function LogoutControl({
           }
         >
           <LogOut aria-hidden="true" />
-          Sign out
+          {t("common.auth.signOut")}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Sign out of {portalLabel}?</AlertDialogTitle>
+            <AlertDialogTitle>{t("common.auth.signOutOf", { portal: portalLabel })}</AlertDialogTitle>
             <AlertDialogDescription>
-              You&apos;ll need to sign in again to access {portalLabel}.
+              {t("common.auth.signOutDescription", { portal: portalLabel })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {errorNotice}
           <AlertDialogFooter>
             <AlertDialogClose render={<Button type="button" variant="outline" />}>
-              Cancel
+              {t("common.actions.cancel")}
             </AlertDialogClose>
             <Button
               type="button"
@@ -127,11 +131,30 @@ export function LogoutControl({
               disabled={mutation.isPending}
               aria-busy={mutation.isPending}
             >
-              {mutation.isPending ? "Signing out…" : "Sign out"}
+              {mutation.isPending ? t("common.auth.signingOut") : t("common.auth.signOut")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+/**
+ * Header account actions. Tenant portals also get "Change password"
+ * (AUTH-PWD-01); Platform Admin accounts are out of that module's scope.
+ */
+export function LogoutControl(props: LogoutControlProps) {
+  const t = useT();
+  if (props.kind !== "tenant") {
+    return <LogoutButton {...props} />;
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <Link href="/change-password" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        {t("common.auth.changePassword")}
+      </Link>
+      <LogoutButton {...props} />
     </div>
   );
 }

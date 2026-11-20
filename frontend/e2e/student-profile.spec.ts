@@ -87,7 +87,7 @@ test.describe("student profile — read-only fields and editable name", () => {
     await loginAsStudent(page);
     await page.getByRole("link", { name: "Profile" }).click();
 
-    await expect(page.getByText(PROFILE.email)).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.getByRole("definition").filter({ hasText: PROFILE.email })).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.getByText("Active", { exact: true })).toBeVisible();
     await expect(page.getByText("STUDENT", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Name")).toHaveValue("Jamie Rivera");
@@ -228,10 +228,12 @@ test.describe("student profile — loading, error, and permission-denied states"
       });
     });
     await loginAsStudent(page);
-    await page.getByRole("link", { name: "Profile" }).click();
+    // A fresh load: the student shell already caches the profile after login,
+    // so the in-app link would render it without a loading state.
+    await page.goto("/student/profile");
 
     await expect(page.getByRole("status").filter({ hasText: "Loading your profile…" })).toBeVisible();
-    await expect(page.getByText(PROFILE.email)).toBeVisible();
+    await expect(page.getByRole("definition").filter({ hasText: PROFILE.email })).toBeVisible();
   });
 
   test("a server error renders the shared error state with a retry action", async ({ page }) => {
@@ -270,7 +272,7 @@ test.describe("student profile — loading, error, and permission-denied states"
 
     await expect(page.getByRole("alert")).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.getByRole("button", { name: "Try again" }).click();
-    await expect(page.getByText(PROFILE.email)).toBeVisible();
+    await expect(page.getByRole("definition").filter({ hasText: PROFILE.email })).toBeVisible();
   });
 
   test("a 403 renders the permission-denied state, not a generic error", async ({ page }) => {

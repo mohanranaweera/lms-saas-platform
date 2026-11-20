@@ -20,6 +20,8 @@ import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.repository.PaymentRepository;
+import com.lms.enrollmentmanagement.api.EntitlementGrantApi;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -62,12 +64,22 @@ class PaymentConfirmationServiceTest {
 	@Mock
 	private ApplicationEventPublisher eventPublisher;
 
+	@Mock
+	private StudentOrderLineRepository studentOrderLineRepository;
+
+	@Mock
+	private EntitlementGrantApi entitlementGrantApi;
+
+	@Mock
+	private com.lms.paymentmanagement.discount.service.DiscountRedemptionService discountRedemptionService;
+
 	private PaymentConfirmationService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new PaymentConfirmationService(paymentRepository, studentOrderRepository, ledgerEntryApi,
-				enrollmentActivationApi, eventPublisher);
+				enrollmentActivationApi, eventPublisher, studentOrderLineRepository, entitlementGrantApi,
+				discountRedemptionService);
 	}
 
 	@AfterEach

@@ -1,8 +1,10 @@
 package com.lms.paymentmanagement.slip.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
-import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.paymentmanagement.slip.service.PaymentSlipView;
+import com.lms.paymentmanagement.slip.service.SlipDownloadLink;
 import com.lms.paymentmanagement.slip.service.SlipReviewService;
 import com.lms.paymentmanagement.slip.web.dto.PaymentSlipFlagResponse;
 import com.lms.paymentmanagement.slip.web.dto.PaymentSlipResponse;
@@ -43,6 +45,7 @@ public class SlipController {
 
 	@GetMapping("/{slipId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<PaymentSlipResponse>> getSlip(@PathVariable UUID slipId) {
 		PaymentSlipView view = slipReviewService.getSlipDetail(slipId);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(view)));
@@ -50,9 +53,11 @@ public class SlipController {
 
 	@GetMapping("/{slipId}/download-url")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.PAYMENTS_VIEW)
 	public ResponseEntity<ApiResponse<SlipDownloadUrlResponse>> getDownloadUrl(@PathVariable UUID slipId) {
-		SignedDownloadUrl signed = slipReviewService.getDownloadUrl(slipId);
-		return ResponseEntity.ok(ApiResponse.success(new SlipDownloadUrlResponse(signed.url(), signed.expiresAt())));
+		SlipDownloadLink link = slipReviewService.getDownloadUrl(slipId);
+		return ResponseEntity
+			.ok(ApiResponse.success(new SlipDownloadUrlResponse(link.url(), link.expiresAt(), link.contentType())));
 	}
 
 	static PaymentSlipResponse toResponse(PaymentSlipView view) {
@@ -62,7 +67,10 @@ public class SlipController {
 					.stream()
 					.map(f -> new PaymentSlipFlagResponse(f.id(), f.flagType(), f.detectedAt()))
 					.toList(),
-				view.studentEmail(), view.reviewerEmail(), view.orderAmount(), view.orderCurrency());
+				view.studentEmail(), view.reviewerEmail(), view.orderAmount(), view.orderCurrency(), view.orderLines(),
+				view.orderSubtotal(), view.orderFacilityFee(), view.orderDiscount(), view.orderPostage(),
+				view.orderDelivery(), view.studentProfileId(), view.studentName(), view.studentMobile(),
+				view.orderNumber(), view.displayOrderNumber());
 	}
 
 }

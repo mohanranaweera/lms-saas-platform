@@ -15,10 +15,10 @@ Read-only: this skill reviews and reports, it does not edit code. Hand fixes bac
 
 ## Checklist
 
-- [ ] Enrollment activates only after verified backend payment confirmation or approved manual payment evidence — confirm no code path activates enrollment directly from a frontend success page
+- [ ] Paid lesson/session entitlements activate only after verified backend payment confirmation or approved manual payment evidence — confirm no code path grants one from a frontend success page; enrollment itself is free and must not depend on, or be cancelled by, payment state (ADR-028)
 - [ ] The change matches the current payment roadmap stage (platform-centralized collection; settlements/tenant accounts/split payments are staged in per `CLAUDE.md`, not assumed all at once)
 - [ ] Financial history is never deleted — refunds, corrections, and reversals are new ledger entries, not mutations or deletions of existing rows
 - [ ] Every payment-related table/query enforces tenant isolation like any other tenant-owned data
-- [ ] Payment ledger rules and enrollment activation rules are change-controlled — flag any change to either instead of approving it silently
+- [ ] Payment ledger rules and enrollment/paid-entitlement activation rules are change-controlled — flag any change to either instead of approving it silently
 - [ ] Tests exist for the payment/ledger paths reviewed, including failure and idempotency cases (e.g. duplicate webhook delivery)
 - [ ] No real payment credentials, real gateway accounts, or production transactions were used in review or testing

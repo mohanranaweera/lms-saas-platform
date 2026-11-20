@@ -108,7 +108,35 @@ Alerting should be built on the metrics/logs described above, prioritized around
 Specific alert thresholds and on-call routing are an operational runbook concern, to
 be defined once the tooling in section 7 is selected.
 
-## 7. Open questions
+## 7. Video metrics registry (Phase 15 baseline)
+
+The backend now registers bounded Micrometer metrics for video access and player
+operations. Prometheus export is disabled by default and may be enabled per
+non-local environment with `VIDEO_PROMETHEUS_ENABLED=true`; exposing the endpoint
+still requires network-level access control and an operational scrape decision.
+
+| Metric | Labels | Cardinality rule |
+|---|---|---|
+| `video.playback.authorizations` | `provider` | fixed provider catalog |
+| `video.playback.denials` | `reason` | fixed error-reason allow-list |
+| `video.player.exchanges` | `outcome`, `provider` or `reason` | fixed outcomes/providers/reasons |
+| `video.playback.heartbeats` | `outcome` | fixed outcome allow-list |
+| `video.provider.latency` | `provider`, `operation`, `outcome` | fixed provider/operation/outcome allow-lists |
+| `video.media.uploads` | `provider`, `outcome` | fixed provider/outcome allow-list |
+| `video.media.upload.failures` | `provider`, `reason` | fixed provider/reason allow-lists |
+
+Tenant ids, asset ids, session ids, user ids, IP addresses, tokens, launch codes,
+provider keys, arbitrary exception messages, and request-supplied strings must
+never be metric labels. The metrics component deliberately normalizes unknown
+values to `unknown` or `other` so a new provider or error cannot create an
+unbounded time-series set.
+
+The metrics are operational signals only. They do not replace tenant-scoped
+audit rows or payment/enrollment records. Playback authorization counters are
+recorded only after the existing server-side entitlement/device/watch-time
+checks succeed; denial counters preserve the existing generic API responses.
+
+## 8. Open questions
 
 The following require a concrete tool/vendor decision that has not been made in
 CLAUDE.md or source requirements. Do not assume a specific product -- flag for

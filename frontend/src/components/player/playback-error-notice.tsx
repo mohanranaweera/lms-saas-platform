@@ -1,0 +1,44 @@
+"use client";
+
+import Link from "next/link";
+import { AlertCircle } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { playbackErrorMessage } from "@/components/player/playback-errors";
+import { translateSource } from "@/i18n/translate-source";
+
+import { useT } from "@/i18n/i18n-provider";
+interface PlaybackErrorNoticeProps {
+  error: unknown;
+  onRetry: () => void;
+}
+
+/**
+ * A refused `POST /api/v1/playback/sessions`, with the copy from
+ * `playbackErrorMessage`, a "Try again" when retrying can help, and a link
+ * to the AOC Player page when the copy suggests it.
+ */
+export function PlaybackErrorNotice({ error, onRetry }: PlaybackErrorNoticeProps) {
+  const t = useT();
+  const { message: englishMessage, retryable, suggestPairing } = playbackErrorMessage(error);
+  const message = translateSource(t, englishMessage);
+  return (
+    <div role="alert" className="flex flex-col items-start gap-2 rounded-md border border-border bg-muted/20 p-3 text-sm">
+      <p className="flex items-center gap-2 text-foreground">
+        <AlertCircle aria-hidden="true" className="size-4 shrink-0 text-destructive" />
+        {message}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {suggestPairing ? (
+          <Link href="/student/player" className={buttonVariants({ size: "sm" })}>
+            {t("player.playbackErrorNotice.pairTheAocPlayer")}
+          </Link>
+        ) : null}
+        {retryable ? (
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+            {t("player.playbackErrorNotice.tryAgain")}
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}

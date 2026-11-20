@@ -17,7 +17,7 @@ import com.lms.common.api.PageResponse;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseLookupApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -75,7 +75,7 @@ class AttendanceReportServiceTest {
 	private CourseLookupApi courseLookupApi;
 
 	@Mock
-	private EnrollmentAccessApi enrollmentAccessApi;
+	private CourseParticipationApi courseParticipationApi;
 
 	@Mock
 	private AttendanceAccessGuard attendanceAccessGuard;
@@ -102,7 +102,7 @@ class AttendanceReportServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new AttendanceReportService(courseLookupApi, enrollmentAccessApi, attendanceAccessGuard,
+		service = new AttendanceReportService(courseLookupApi, courseParticipationApi, attendanceAccessGuard,
 				attendanceRecordRepository, permissionCheckService, tenantContext, studentLookupApi,
 				attendanceSheetService, attendanceRecordViewAssembler);
 	}

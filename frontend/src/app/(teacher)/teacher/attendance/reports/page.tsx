@@ -13,6 +13,7 @@ import { useCourses } from "@/lib/api/courses";
 import { useAttendanceReports, type AttendanceListParams } from "@/lib/api/attendance";
 import { formatDateTime, shortId } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 const PAGE_SIZE = 20;
 
 /**
@@ -32,6 +33,7 @@ const PAGE_SIZE = 20;
  * what was actually submitted, not what's merely typed into the form.
  */
 export default function TeacherAttendanceReportsPage() {
+  const t = useT();
   const coursesQuery = useCourses();
   const [params, setParams] = useState<Pick<AttendanceListParams, "courseId" | "from" | "to">>({});
   const [page, setPage] = useState(0);
@@ -62,9 +64,9 @@ export default function TeacherAttendanceReportsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Attendance Reports</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.attendanceReports.attendanceReports")}</h1>
         <p className="text-sm text-muted-foreground">
-          Attendance recorded for the courses you teach.
+          {t("teacher.page.attendanceReports.attendanceRecordedForThe")}
         </p>
       </div>
 
@@ -90,19 +92,19 @@ export default function TeacherAttendanceReportsPage() {
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading attendance records…"
+        loadingLabel={t("teacher.page.attendanceReports.loadingAttendanceRecords")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
         isEmpty={(data) => data.content.length === 0 && page === 0}
         emptyState={
           filtersActive
             ? {
-                title: "No sessions match the selected date filter",
-                description: "Try a different course or date range, or clear your filters.",
-                action: { label: "Clear filters", onClick: handleClear },
+                title: t("teacher.page.attendanceReports.noSessionsMatchThe"),
+                description: t("teacher.page.attendanceReports.tryADifferentCourse"),
+                action: { label: t("teacher.page.attendanceReports.clearFilters"), onClick: handleClear },
               }
             : {
-                title: "No attendance records yet",
+                title: t("teacher.page.attendanceReports.noAttendanceRecordsYet"),
                 description:
                   "Attendance you record for your own courses' sessions will appear here.",
               }
@@ -110,11 +112,11 @@ export default function TeacherAttendanceReportsPage() {
       >
         {(data) => (
           <div className="flex flex-col gap-3" aria-busy={isRefetching}>
-            <LiveRegion message={isRefetching ? "Updating…" : ""} />
+            <LiveRegion message={isRefetching ? t("teacher.page.attendanceReports.updating") : ""} />
             {data.content.length === 0 ? (
               <EmptyState
-                title="No more results"
-                description="There are no records on this page. Go back to an earlier page."
+                title={t("teacher.page.attendanceReports.noMoreResults")}
+                description={t("teacher.page.attendanceReports.thereAreNoRecords")}
               />
             ) : (
               <ul className={`flex flex-col gap-2 ${isRefetching ? "opacity-60" : ""}`}>

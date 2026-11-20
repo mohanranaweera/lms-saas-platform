@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -44,6 +45,25 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 
 	@Column(name = "totp_secret")
 	private String totpSecret;
+
+	/** When the owner last set/changed the password (AUTH-PWD-01); null for older accounts. */
+	@Column(name = "password_changed_at")
+	private Instant passwordChangedAt;
+
+	/**
+	 * ADR-031: sign-in mobile in E.164 form ({@code +94771234567}), unique per
+	 * tenant (V107); {@code null} = email sign-in only. Written only through
+	 * {@link #changeLoginMobile} by {@code UserProvisioningService}.
+	 */
+	@Column(name = "login_mobile")
+	private String loginMobile;
+
+	/**
+	 * STAFF-MGMT-02 (V119): the account was still {@link AccountStatus#INVITED} when it was
+	 * suspended, so {@link #activate()} returns it to INVITED while it has never set a password.
+	 */
+	@Column(name = "suspended_while_invited", nullable = false)
+	private boolean suspendedWhileInvited;
 
 	protected TenantUser() {
 	}
@@ -98,8 +118,66 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 		return mustChangePassword;
 	}
 
+	public String getLoginMobile() {
+		return loginMobile;
+	}
+
+	/** ADR-031: already-normalised E.164 number, or {@code null} to remove mobile sign-in. */
+	public void changeLoginMobile(String e164) {
+		this.loginMobile = e164;
+	}
+
 	public String getTotpSecret() {
 		return totpSecret;
+	}
+
+	public Instant getPasswordChangedAt() {
+		return passwordChangedAt;
+	}
+
+	/**
+	 * AUTH-PWD-01 / ADR-020: an invited account (e.g. a tenant's first Tenant
+	 * Admin). {@code unusablePasswordHash} is the hash of a random value nobody
+	 * knows, so the account cannot log in until it completes account setup.
+	 */
+	public static TenantUser invited(UUID tenantId, String email, String unusablePasswordHash, Role role) {
+		TenantUser user = new TenantUser(tenantId, email, unusablePasswordHash, role, false);
+		user.status = AccountStatus.INVITED;
+		return user;
+	}
+
+	/** Corrects the email of a still-invited account (a Platform Admin fixing a typo). */
+	public void correctInvitedEmail(String newEmail) {
+		if (status != AccountStatus.INVITED) {
+			throw new IllegalStateException("Only an invited account's email can be corrected");
+		}
+		this.email = newEmail;
+	}
+
+	/**
+	 * Sets a password chosen by the account owner - through an account-setup or
+	 * reset link, or change password. Clears {@code must_change_password}; an
+	 * {@link AccountStatus#INVITED} account becomes {@link AccountStatus#ACTIVE}.
+	 * A suspended account stays suspended.
+	 */
+	public void setOwnPassword(String newPasswordHash, Instant now) {
+		this.passwordHash = newPasswordHash;
+		this.mustChangePassword = false;
+		this.passwordChangedAt = now;
+		if (status == AccountStatus.INVITED) {
+			this.status = AccountStatus.ACTIVE;
+		}
+	}
+
+	/**
+	 * STAFF-MGMT-02: reassigns the membership's single role. Takes effect on the next request
+	 * ({@code JwtAuthenticationFilter} re-reads the role from this row every request).
+	 */
+	public void changeRole(Role newRole) {
+		if (newRole == null) {
+			throw new IllegalArgumentException("role is required");
+		}
+		this.role = newRole;
 	}
 
 	/**
@@ -110,16 +188,24 @@ public class TenantUser extends TimestampedEntity implements TenantOwned {
 	 * otherwise only ever set via the constructor).
 	 */
 	public void suspend() {
+		if (status == AccountStatus.INVITED) {
+			this.suspendedWhileInvited = true;
+		}
 		this.status = AccountStatus.SUSPENDED;
 	}
 
 	/**
-	 * Transitions this row's login-gate status to {@link AccountStatus#ACTIVE}.
-	 * Added for {@code UserProvisioningApi#activateTenantUser} (MVP-007
-	 * Teacher Management).
+	 * Transitions this row's login-gate status to {@link AccountStatus#ACTIVE}
+	 * (or back to {@link AccountStatus#INVITED}, see below). Added for {@code
+	 * UserProvisioningApi#activateTenantUser} (MVP-007 Teacher Management).
 	 */
 	public void activate() {
-		this.status = AccountStatus.ACTIVE;
+		// STAFF-MGMT-02: an invitee suspended before completing account setup still has only an
+		// unusable password - reactivating it restores INVITED (setup link / resend invite), never
+		// ACTIVE. Setting a password while suspended (setOwnPassword) records passwordChangedAt.
+		boolean stillInvited = suspendedWhileInvited && passwordChangedAt == null;
+		this.status = stillInvited ? AccountStatus.INVITED : AccountStatus.ACTIVE;
+		this.suspendedWhileInvited = false;
 	}
 
 	/**

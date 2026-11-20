@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TUTE-01 Tute Dispatch label sheet (docs/specs/tute-management-dispatch.md section 7).
+  Portrait A4, 2 x 3 grid of 277 pt x 267 pt labels filled left to right, dashed cut guides.
+  Each label: "TO", the recipient name (bold), the address lines or "No address provided"
+  (italic), "Tel: ..." when known, the "COURSE - Tute" lines, and a footer with the sender
+  ("From: {institute}") and the tute count. Text shrinks (ScaleFont) instead of overflowing a
+  label; labels never split across pages (splitType=Prevent). Noto Sans + Sinhala + Tamil via
+  the LMS Sans font set. Display-only typed-bean template: no SQL, scriptlets or arithmetic.
+-->
+<jasperReport name="tute-dispatch-labels" columnCount="2" printOrder="Horizontal" pageWidth="595" pageHeight="842"
+		columnWidth="277" columnSpacing="0" leftMargin="20" rightMargin="21" topMargin="20" bottomMargin="21"
+		whenNoDataType="AllSectionsNoDetail">
+	<property name="net.sf.jasperreports.export.pdf.glyph.renderer.blocks.lms" value="sinhala,tamil"/>
+	<style name="Base" default="true" fontName="LMS Sans" fontSize="11.0" forecolor="#000000"/>
+	<parameter name="INSTITUTE" class="java.lang.String"/>
+	<field name="recipientName" class="java.lang.String"/>
+	<field name="addressText" class="java.lang.String"/>
+	<field name="addressMissing" class="java.lang.Boolean"/>
+	<field name="phoneText" class="java.lang.String"/>
+	<field name="tutesText" class="java.lang.String"/>
+	<field name="countText" class="java.lang.String"/>
+	<detail>
+		<band height="267" splitType="Prevent">
+			<element kind="rectangle" x="0" y="0" width="277" height="267" mode="Transparent"><pen lineWidth="0.5" lineStyle="Dashed" lineColor="#9CA3AF"/></element>
+			<element kind="staticText" x="14" y="12" width="249" height="12" fontSize="8.0" bold="true" forecolor="#6B7280"><text><![CDATA[TO]]></text></element>
+			<element kind="textField" x="14" y="26" width="249" height="40" fontSize="14.0" bold="true" textAdjust="ScaleFont"><expression><![CDATA[$F{recipientName}]]></expression></element>
+			<element kind="textField" x="14" y="68" width="249" height="74" fontSize="11.0" textAdjust="ScaleFont"><printWhenExpression><![CDATA[Boolean.FALSE.equals($F{addressMissing})]]></printWhenExpression><expression><![CDATA[$F{addressText}]]></expression></element>
+			<element kind="staticText" x="14" y="68" width="249" height="18" fontSize="11.0" italic="true" forecolor="#B91C1C"><printWhenExpression><![CDATA[Boolean.TRUE.equals($F{addressMissing})]]></printWhenExpression><text><![CDATA[No address provided]]></text></element>
+			<element kind="textField" x="14" y="144" width="249" height="17" fontSize="11.0" bold="true" textAdjust="ScaleFont"><printWhenExpression><![CDATA[$F{phoneText} != null && $F{phoneText}.length() > 0]]></printWhenExpression><expression><![CDATA[$F{phoneText}]]></expression></element>
+			<element kind="textField" x="14" y="165" width="249" height="63" fontSize="10.0" forecolor="#1F2937" textAdjust="ScaleFont"><expression><![CDATA[$F{tutesText}]]></expression></element>
+			<element kind="line" x="14" y="232" width="249" height="1" forecolor="#D1D5DB"/>
+			<element kind="textField" x="14" y="237" width="175" height="22" fontSize="9.0" forecolor="#374151" textAdjust="ScaleFont"><expression><![CDATA["From: " + $P{INSTITUTE}]]></expression></element>
+			<element kind="textField" x="193" y="237" width="70" height="22" fontSize="10.0" bold="true" hTextAlign="Right" textAdjust="ScaleFont"><expression><![CDATA[$F{countText}]]></expression></element>
+		</band>
+	</detail>
+</jasperReport>

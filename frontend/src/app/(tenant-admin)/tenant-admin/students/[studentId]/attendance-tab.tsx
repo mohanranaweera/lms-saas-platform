@@ -19,9 +19,10 @@ const columns: DataTableColumn<AttendanceRecordResponse>[] = [
 ];
 
 /** Attendance tab (Wave 3) — `GET /v1/attendance/students/{id}/report`, paginated. */
-export function AttendanceTab({ studentId }: { studentId: string }) {
+export function AttendanceTab({ studentId, courseId }: { studentId: string; courseId?: string }) {
   const [page, setPage] = useState(0);
-  const query = useStudentAttendanceReport(studentId, { page, size: PAGE_SIZE });
+  // STU-MGMT-02: the full profile's per-course "Show Attendance" narrows to one course.
+  const query = useStudentAttendanceReport(studentId, { page, size: PAGE_SIZE, courseId });
 
   return (
     <QueryStateBoundary

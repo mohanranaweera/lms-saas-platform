@@ -7,6 +7,7 @@ import {
   fulfillJson,
   mockJson,
   refreshResponseBody,
+  TEACHER_LIST_URL,
 } from "./fixtures/auth-mocks";
 
 /**
@@ -41,7 +42,7 @@ import {
  *   - `staff` (Administration: "Staff", "Roles & Permissions") —
  *     `canViewStaff` (`STAFF_AND_ROLES`/`VIEW`: Tenant Admin, Read-only
  *     Auditor only — both entries share this one gate).
- *   - `instituteConfig` (Institute Configuration: "General", "Branding") —
+ *   - `instituteConfig` (Institute Configuration: "Settings", "Appearance") —
  *     `canViewInstituteConfig` (`BRANDING_SETTINGS`/`VIEW`: Tenant Admin,
  *     Read-only Auditor only — both entries share this one gate).
  * "Communication" has no built destination yet and renders nothing (see
@@ -225,19 +226,32 @@ test.describe("tenant admin nav — full 8-nav-item x 8-role visibility matrix (
 
       const gatedItems: Array<[string, boolean]> = [
         ["Teachers", entry.teachers],
+        // PAY-HUB-01: one "Payments" hub link (All Orders / Payment Slips / Free
+        // Cards / Refunds are tabs inside it); the old separate links are gone.
         ["Payments", entry.payments],
-        ["Refunds", entry.refunds],
-        ["Payment Slips", entry.paymentSlips],
+        ["Refunds", false],
+        ["Payment Slips", false],
+        ["Student Payments", false],
+        ["Free Cards", false],
         ["Reactivation Approvals", entry.reactivationApprovals],
         ["Exams", entry.exams],
         ["Audit Log", entry.auditLog],
         ["Staff", entry.staff],
-        ["Roles & Permissions", entry.staff],
-        ["General", entry.instituteConfig],
-        ["Branding", entry.instituteConfig],
+        // STAFF-MGMT-02: Roles & Permissions moved into Staff → Permissions.
+        ["Roles & Permissions", false],
+        // General, Payments, Student Fields and Integrations are tabs inside Settings now, not sidebar items.
+        // SET-PAY-01: Finance Staff (PAYMENT_GATEWAY/VIEW) get Settings too, landing on the Payments tab.
+        ["Settings", entry.instituteConfig || entry.role === "FINANCE_STAFF"],
+        ["Online Payments", false],
+        ["Appearance", entry.instituteConfig],
+        ["General", false],
+        ["Branding", false],
+        ["Student Fields", false],
+        ["Integrations", false],
       ];
       for (const [label, visible] of gatedItems) {
-        const link = page.getByRole("link", { name: label });
+        // exact: "Payments" must not also match PAY-GW-01's "Online Payments".
+        const link = page.getByRole("link", { name: label, exact: true });
         if (visible) {
           await expect(link).toBeVisible();
         } else {
@@ -253,9 +267,7 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
     await mockDashboardReads(page);
   });
 
-  test("Tenant Admin sees every non-empty group heading; Communication (no built destination) renders no heading", async ({
-    page,
-  }) => {
+  test("Tenant Admin sees every group heading, including Communication (Wave 11)", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     await page.goto("/tenant-admin/dashboard");
 
@@ -268,10 +280,13 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
     // single case; every other group heading has no same-named link, so
     // exactly one match is the correct assertion there.
     await expect(nav.getByText("Dashboard", { exact: true }).first()).toBeVisible();
-    for (const heading of ["Academic", "Finance", "Administration", "Institute Configuration"]) {
+    // FIN-01: "Finance" is likewise both a group heading and the Finance hub link.
+    await expect(nav.getByText("Finance", { exact: true }).first()).toBeVisible();
+    for (const heading of ["Academic", "Communication", "Administration", "Institute Configuration"]) {
       await expect(nav.getByText(heading, { exact: true })).toBeVisible();
     }
-    await expect(nav.getByText("Communication", { exact: true })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Broadcasts" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Message Templates" })).toBeVisible();
   });
 
   test("a role without BRANDING_SETTINGS/STAFF_AND_ROLES (Course Coordinator) sees no Institute Configuration/Staff/Roles & Permissions links or headings", async ({
@@ -282,13 +297,15 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
 
     await expect(page.getByRole("link", { name: "Staff" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Roles & Permissions" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "General" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Branding" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Settings", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Appearance", exact: true })).toHaveCount(0);
     // Institute Configuration's heading is only rendered when it has at
     // least one item (`NavGroup` renders nothing for an empty group) — this
     // role has zero items in that group, so the heading itself must be gone
     // too, not just the links inside it.
     await expect(page.getByText("Institute Configuration", { exact: true })).toHaveCount(0);
+    // Wave 11: no COMMUNICATIONS grant, so the Communication group is not rendered at all.
+    await expect(page.getByText("Communication", { exact: true })).toHaveCount(0);
   });
 });
 
@@ -299,7 +316,7 @@ test.describe("tenant admin nav — hidden link is not access control", () => {
     await mockTenantSession(page, "FINANCE_STAFF");
     await mockJson(
       page,
-      "**/v1/teachers",
+      TEACHER_LIST_URL,
       403,
       apiError("FORBIDDEN", "You do not have permission to view teachers.")
     );
@@ -366,7 +383,7 @@ test.describe("tenant admin nav — Read-only Auditor sees zero mutating control
       approvedBy: null,
       approvedAt: null,
     };
-    await mockJson(page, "**/v1/teachers", 200, apiSuccess([pending]));
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([pending]));
     await mockJson(page, `**/v1/teachers/${pending.id}`, 200, apiSuccess(pending));
 
     await page.goto("/tenant-admin/teachers");

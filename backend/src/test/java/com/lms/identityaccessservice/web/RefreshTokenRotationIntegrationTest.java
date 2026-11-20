@@ -21,8 +21,10 @@ class RefreshTokenRotationIntegrationTest extends AuthIntegrationTestSupport {
 		HttpResult<LoginResponse> loginResponse = login(host, "student@example.test", RAW_PASSWORD);
 		String originalAccessToken = loginResponse.getBody().data().accessToken();
 		String originalRefreshCookie = extractCookieValue(loginResponse, "lms_refresh_token");
+		String deviceCookie = extractCookieValue(loginResponse, DEVICE_COOKIE);
 
-		HttpResult<RefreshResponse> refreshResponse = refresh(host, "lms_refresh_token", originalRefreshCookie);
+		HttpResult<RefreshResponse> refreshResponse = refresh(host, "lms_refresh_token", originalRefreshCookie,
+				deviceCookie);
 
 		assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 		String newAccessToken = refreshResponse.getBody().data().accessToken();
@@ -49,12 +51,14 @@ class RefreshTokenRotationIntegrationTest extends AuthIntegrationTestSupport {
 
 		HttpResult<LoginResponse> loginResponse = login(host, "student@example.test", RAW_PASSWORD);
 		String originalRefreshCookie = extractCookieValue(loginResponse, "lms_refresh_token");
+		String deviceCookie = extractCookieValue(loginResponse, DEVICE_COOKIE);
 
 		// First refresh: rotates the token, invalidating the original the instant the new one issues.
-		refresh(host, "lms_refresh_token", originalRefreshCookie);
+		assertThat(refresh(host, "lms_refresh_token", originalRefreshCookie, deviceCookie).getStatusCode())
+			.isEqualTo(HttpStatus.OK);
 
 		// Replaying the now-stale original cookie must be rejected, not silently accepted.
-		HttpResult<RefreshResponse> replay = refresh(host, "lms_refresh_token", originalRefreshCookie);
+		HttpResult<RefreshResponse> replay = refresh(host, "lms_refresh_token", originalRefreshCookie, deviceCookie);
 
 		assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 		assertThat(replay.getBody().success()).isFalse();

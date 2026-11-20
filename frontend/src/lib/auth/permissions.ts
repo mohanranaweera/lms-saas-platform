@@ -63,6 +63,15 @@ export function canReviewSlips(role: string | null): boolean {
 }
 
 /**
+ * PAY-HUB-01: `PAYMENTS_SLIPS`/`CREATE_EDIT` (Tenant Admin, Finance Staff) -
+ * who may add an internal note to a payment slip. Viewing notes needs only
+ * `VIEW`. UX only; `POST /payment-slips/{id}/notes` re-enforces it.
+ */
+export function canAddSlipNotes(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
+}
+
+/**
  * Roles holding `ACCESS_EXPIRY`/`VIEW` per `PermissionCheckServiceImpl`'s
  * matrix (Tenant Admin, Finance Staff, Student Support, Read-only Auditor) —
  * who may view the Reactivation Approvals queue
@@ -106,6 +115,15 @@ export function canViewTeachers(role: string | null): boolean {
     role === "STUDENT_SUPPORT" ||
     role === "READ_ONLY_AUDITOR"
   );
+}
+
+/**
+ * Roles holding `TEACHERS`/`CREATE_EDIT` (Tenant Admin, Course Coordinator):
+ * may edit teacher profiles, including removing a profile photo. UX only - the
+ * backend re-checks every request.
+ */
+export function canManageTeachers(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "COURSE_COORDINATOR";
 }
 
 /**
@@ -204,6 +222,16 @@ export function canAuthorExams(role: string | null): boolean {
 }
 
 /**
+ * Roles that may publish/notify exam marks and create, edit or delete exam
+ * leaderboards (Klass Exam Module Slice E): staff with `DomainArea.EXAMS`
+ * write grants and the owning teacher. Teacher assistants are read-only here,
+ * unlike `canAuthorExams`. UX only — the server re-checks every write.
+ */
+export function canManageExamResults(role: string | null): boolean {
+  return role === "TEACHER" || role === "TENANT_ADMIN" || role === "EXAM_MANAGER";
+}
+
+/**
  * Roles that may submit a manual mark on a structured exam answer, per
  * `MarkingQueueService#requireMarkingAccess` — deliberately narrower than
  * `canAuthorExams` above, and NOT the same role set: marking authorization is
@@ -299,6 +327,66 @@ export function canManageInstituteConfig(role: string | null): boolean {
 }
 
 /**
+ * Roles holding `PAYMENT_GATEWAY`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (PAY-GW-01): Tenant Admin, Finance Staff, Read-only Auditor. UX only
+ * - the backend re-checks every request.
+ */
+export function canViewPaymentGateway(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF" || role === "READ_ONLY_AUDITOR";
+}
+
+/** `PAYMENT_GATEWAY`/`CREATE_EDIT` - Tenant Admin only (PAY-GW-01). UX only. */
+export function canManagePaymentGateway(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * Roles holding `DISCOUNTS`/`VIEW` per `PermissionCheckServiceImpl`'s matrix
+ * (DISC-01): Tenant Admin, Finance Staff, Student Support, Read-only Auditor.
+ * UX only - the backend re-checks every request.
+ */
+export function canViewDiscounts(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/** `DISCOUNTS`/`CREATE_EDIT` - Tenant Admin only (DISC-01). UX only. */
+export function canManageDiscounts(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * Roles holding `INTEGRATIONS`/`VIEW` per `PermissionCheckServiceImpl`'s
+ * matrix (MEDIA-INT-01): Tenant Admin, Read-only Auditor. UX only - the
+ * backend re-checks every request.
+ */
+export function canViewIntegrations(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "READ_ONLY_AUDITOR";
+}
+
+/** `INTEGRATIONS`/`CREATE_EDIT` - Tenant Admin only (MEDIA-INT-01). UX only. */
+export function canManageIntegrations(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * `CUSTOM_DOMAINS`/`VIEW` per `PermissionCheckServiceImpl` (TEN-DOM-01):
+ * Tenant Admin, Read-only Auditor. UX only - the backend re-checks every request.
+ */
+export function canViewCustomDomains(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "READ_ONLY_AUDITOR";
+}
+
+/** `CUSTOM_DOMAINS`/`CREATE_EDIT` - Tenant Admin only (TEN-DOM-01). UX only. */
+export function canManageCustomDomains(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
  * Roles holding `LIVE_CLASSES`/`VIEW` per `PermissionCheckServiceImpl`'s
  * matrix (Wave 4) — Tenant Admin (full grant) and Course Coordinator
  * (`V/C/E/A`, no `DELETE`). No other staff sub-role holds any `LIVE_CLASSES`
@@ -358,4 +446,134 @@ export function canViewFinance(role: string | null): boolean {
  */
 export function canManageFinance(role: string | null): boolean {
   return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
+}
+
+/**
+ * Wave 10 - `DEVICES`/`VIEW` per `PermissionCheckServiceImpl`: Tenant Admin,
+ * Student Support ("V (request only)") and Read-only Auditor. UX only - the
+ * backend re-checks every request.
+ */
+export function canViewDevices(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "STUDENT_SUPPORT" || role === "READ_ONLY_AUDITOR";
+}
+
+/** Wave 10 - `DEVICES`/`CREATE_EDIT` (reset, device limits, device policy): Tenant Admin only. UX only. */
+export function canManageDevices(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * Wave 10 - `ACCESS_EXPIRY`/`VIEW` (access policy, extension history): Tenant
+ * Admin, Finance Staff, Student Support, Read-only Auditor. UX only.
+ */
+export function canViewAccessPolicy(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/** Wave 10 - `ACCESS_EXPIRY`/`CREATE_EDIT` (grace period, course overrides, access extensions): Tenant Admin only. UX only. */
+export function canManageAccessPolicy(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * Wave 11 - `COMMUNICATIONS`/`VIEW` (broadcasts, templates, delivery logs):
+ * Tenant Admin, Student Support, Read-only Auditor. Teachers have their own
+ * ownership-scoped screens instead. UX only - the backend re-checks.
+ */
+export function canViewCommunications(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "STUDENT_SUPPORT" || role === "READ_ONLY_AUDITOR";
+}
+
+/** Wave 11 - `COMMUNICATIONS`/`CREATE_EDIT` (send broadcasts, manage broadcast templates). UX only. */
+export function canSendCommunications(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "STUDENT_SUPPORT";
+}
+
+/**
+ * Wave 11 - editing system (event) message templates and recording WhatsApp
+ * template approval: Tenant Admin only (the latter also needs
+ * `INTEGRATIONS`/`CREATE_EDIT`). UX only.
+ */
+export function canManageSystemMessaging(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * VIDEO Phase 5 - the whole-institute Media Library (`MATERIALS`/`VIEW`:
+ * Tenant Admin, Course Coordinator, Content Manager, Read-only Auditor).
+ * Teachers have their own Media Library of their own uploads. UX only.
+ */
+export function canViewMedia(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "COURSE_COORDINATOR" ||
+    role === "CONTENT_MANAGER" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/**
+ * VIDEO Phase 5 - upload, edit and delete media (`MATERIALS`/`CREATE_EDIT` +
+ * `DELETE`: Tenant Admin, Content Manager; a Teacher for their own uploads).
+ * UX only.
+ */
+export function canManageMedia(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "CONTENT_MANAGER" || isTeacherRole(role);
+}
+
+/**
+ * ADR-030 Student Payments page (`PAYMENTS_SLIPS`/`VIEW`): Tenant Admin,
+ * Finance Staff, Student Support, Read-only Auditor. UX only - every
+ * `/api/v1/staff/students/**` endpoint re-checks.
+ */
+export function canViewStudentPayments(role: string | null): boolean {
+  return (
+    role === "TENANT_ADMIN" ||
+    role === "FINANCE_STAFF" ||
+    role === "STUDENT_SUPPORT" ||
+    role === "READ_ONLY_AUDITOR"
+  );
+}
+
+/** ADR-030 record a manual payment receipt (`PAYMENTS_SLIPS`/`APPROVE`): Tenant Admin, Finance Staff. UX only. */
+export function canRecordManualPayment(role: string | null): boolean {
+  return role === "TENANT_ADMIN" || role === "FINANCE_STAFF";
+}
+
+/** ADR-030 `FREE_CARDS`/`VIEW`: Tenant Admin, Finance Staff, Student Support, Read-only Auditor. UX only. */
+export function canViewFreeCards(role: string | null): boolean {
+  return canViewStudentPayments(role);
+}
+
+/** ADR-030 `FREE_CARDS`/`CREATE_EDIT` (issue): Tenant Admin only. UX only. */
+export function canIssueFreeCard(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/** ADR-030 `FREE_CARDS`/`DELETE` (revoke - a status change, never a row delete): Tenant Admin only. UX only. */
+export function canRevokeFreeCard(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * STU-MGMT-02 - `STUDENTS`/`DELETE` (remove a student from this tenant, soft):
+ * Tenant Admin only per `PermissionCheckServiceImpl`. UX only - `DELETE
+ * /students/{id}` re-checks.
+ */
+export function canDeleteStudents(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
+}
+
+/**
+ * ADR-033 - `STUDENT_IMPERSONATION`/`CREATE_EDIT` ("Log as Student" support
+ * session): Tenant Admin only. Hides the row action for every other role; the
+ * backend refuses the start request for them regardless.
+ */
+export function canImpersonateStudents(role: string | null): boolean {
+  return role === "TENANT_ADMIN";
 }

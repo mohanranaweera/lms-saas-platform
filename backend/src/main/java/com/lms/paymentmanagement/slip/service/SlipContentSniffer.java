@@ -49,6 +49,12 @@ final class SlipContentSniffer {
 		return null;
 	}
 
+	/** PAY-HUB-01: is {@code mimeType} one of the canonical types {@link #sniff} can return? */
+	static boolean isAccepted(String mimeType) {
+		return "application/pdf".equals(mimeType) || "image/png".equals(mimeType) || "image/jpeg".equals(mimeType)
+				|| "image/gif".equals(mimeType);
+	}
+
 	private static boolean matches(byte[] bytes, byte[] signature) {
 		if (bytes.length < signature.length) {
 			return false;

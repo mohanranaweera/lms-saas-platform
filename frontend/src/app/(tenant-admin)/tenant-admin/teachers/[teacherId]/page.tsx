@@ -15,13 +15,10 @@ import { isApiClientError } from "@/lib/api/error";
 import { useTeacher, type Teacher } from "@/lib/api/teachers";
 import { TeacherStatusBadge } from "../status-badge";
 import { TeacherProfileTab } from "./teacher-profile-tab";
-import { AssignedCoursesTab } from "./assigned-courses-tab";
 import { TeacherRosterTab } from "./teacher-roster-tab";
-import { TeacherAttendanceTab } from "./teacher-attendance-tab";
-import { TeacherExamsTab } from "./teacher-exams-tab";
 import { TeacherActivityTab } from "./teacher-activity-tab";
 
-const VALID_TABS = ["profile", "courses", "roster", "attendance", "exams", "activity"] as const;
+const VALID_TABS = ["profile", "roster", "activity"] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 function isTabValue(value: string | null): value is TabValue {
@@ -133,10 +130,7 @@ function TeacherDetailBody({
 }) {
   const items: TabItem[] = [
     { value: "profile", label: "Profile", content: <TeacherProfileTab teacher={teacher} /> },
-    { value: "courses", label: "Assigned Courses", content: <AssignedCoursesTab teacherId={teacher.id} /> },
     { value: "roster", label: "Roster", content: <TeacherRosterTab teacherId={teacher.id} /> },
-    { value: "attendance", label: "Attendance", content: <TeacherAttendanceTab teacherId={teacher.id} /> },
-    { value: "exams", label: "Exams", content: <TeacherExamsTab teacherId={teacher.id} /> },
     { value: "activity", label: "Activity", content: <TeacherActivityTab teacherId={teacher.id} /> },
   ];
 

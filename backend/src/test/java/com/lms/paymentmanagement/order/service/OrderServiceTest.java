@@ -9,6 +9,7 @@ import com.lms.common.error.ConflictException;
 import com.lms.common.persistence.BaseEntity;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CheckoutAmount;
+import com.lms.coursemanagement.api.CourseCatalogInfo;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
@@ -21,6 +22,7 @@ import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
 import com.lms.paymentmanagement.api.PaymentConfirmedEvent;
+import com.lms.paymentmanagement.checkout.service.CheckoutItemException;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
@@ -40,6 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 
 /**
@@ -61,6 +64,9 @@ class OrderServiceTest {
 	private static final UUID STUDENT_ID = UUID.randomUUID();
 
 	private static final UUID COURSE_ID = UUID.randomUUID();
+
+	@org.mockito.Mock
+	private com.lms.paymentmanagement.order.repository.StudentOrderLineRepository studentOrderLineRepository;
 
 	@Mock
 	private StudentOrderRepository studentOrderRepository;
@@ -101,7 +107,7 @@ class OrderServiceTest {
 	void setUp() {
 		service = new OrderService(studentOrderRepository, paymentRepository, courseLookupApi, tenantContext,
 				accessGuard, enrollmentAccessApi, enrollmentActivationApi, reactivationLinkingApi,
-				permissionCheckService, eventPublisher, ledgerEntryApi);
+				permissionCheckService, eventPublisher, ledgerEntryApi, studentOrderLineRepository);
 		when(tenantContext.getTenantId()).thenReturn(TENANT_ID);
 		when(courseLookupApi.getResolvedCheckoutAmount(COURSE_ID))
 			.thenReturn(Optional.of(new CheckoutAmount(new BigDecimal("99.99"), "USD", null, false, false)));
@@ -109,6 +115,7 @@ class OrderServiceTest {
 		AuthenticatedPrincipalHolder
 			.set(new AuthenticatedPrincipal(STUDENT_ID, TENANT_ID, "STUDENT", UUID.randomUUID()));
 		when(studentOrderRepository.save(any(StudentOrder.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(studentOrderRepository.saveAndFlush(any(StudentOrder.class))).thenAnswer(inv -> inv.getArgument(0));
 		when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> {
 			Payment payment = inv.getArgument(0);
 			if (payment.getId() == null) {
@@ -180,6 +187,7 @@ class OrderServiceTest {
 		org.mockito.Mockito.verify(reactivationLinkingApi, org.mockito.Mockito.never())
 			.linkApprovedRequestToNewOrder(any(), any(), any());
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	/**
@@ -200,6 +208,7 @@ class OrderServiceTest {
 		org.mockito.Mockito.verify(reactivationLinkingApi, org.mockito.Mockito.never())
 			.linkApprovedRequestToNewOrder(any(), any(), any());
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	// ------------------------------------------------------------------
@@ -291,6 +300,7 @@ class OrderServiceTest {
 			.hasMessageContaining("not priced as FREE");
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 		org.mockito.Mockito.verify(enrollmentAccessApi, org.mockito.Mockito.never()).resolveAccessState(any(), any());
 		org.mockito.Mockito.verify(paymentRepository, org.mockito.Mockito.never()).save(any());
 		org.mockito.Mockito.verify(enrollmentActivationApi, org.mockito.Mockito.never())
@@ -318,6 +328,7 @@ class OrderServiceTest {
 			.hasMessageContaining("not priced as FREE");
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 		org.mockito.Mockito.verify(enrollmentActivationApi, org.mockito.Mockito.never())
 			.activateOrReactivateFromConfirmedPayment(any(), any(), any(), any());
 	}
@@ -331,6 +342,7 @@ class OrderServiceTest {
 			.isInstanceOf(ConflictException.class);
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	@Test
@@ -343,6 +355,7 @@ class OrderServiceTest {
 		assertThatThrownBy(() -> service.createOrder(COURSE_ID, null)).isInstanceOf(ConflictException.class);
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	/**
@@ -367,6 +380,7 @@ class OrderServiceTest {
 			.isInstanceOf(AccessDeniedException.class);
 
 		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
 	}
 
 	@Test
@@ -386,9 +400,16 @@ class OrderServiceTest {
 				.any(com.lms.paymentmanagement.api.OrderCustomAmountAppliedEvent.class));
 	}
 
+	/**
+	 * KLASS-T8b (D23): previously this test also stood for a MONTHLY legacy
+	 * checkout; a legacy MONTHLY order is now refused (see the two tests
+	 * below), so the billing-period snapshot is proven on a SESSION course,
+	 * which still uses the legacy order path.
+	 */
 	@Test
 	void monthlyOrSessionPricingSnapshotsTheResolvedBillingPeriodIdOntoTheOrder() {
 		UUID billingPeriodId = UUID.randomUUID();
+		when(courseLookupApi.findCatalogInfo(COURSE_ID)).thenReturn(Optional.of(catalogInfo("SESSION")));
 		when(courseLookupApi.getResolvedCheckoutAmount(COURSE_ID))
 			.thenReturn(Optional.of(new CheckoutAmount(new BigDecimal("20.00"), "USD", billingPeriodId, false, false)));
 		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
@@ -398,6 +419,54 @@ class OrderServiceTest {
 
 		org.assertj.core.api.Assertions.assertThat(view.billingPeriodId()).isEqualTo(billingPeriodId);
 		org.assertj.core.api.Assertions.assertThat(view.amount()).isEqualByComparingTo("20.00");
+	}
+
+	/**
+	 * KLASS-T8b (D23, payment review M-1): a legacy course-wide order for a
+	 * MONTHLY course would cover every billing month for one month's price - it
+	 * is refused with 409 {@code USE_PAYMENT_COMPOSER} before any order row.
+	 */
+	@Test
+	void aLegacyOrderForAMonthlyCourseIsRefusedWithUsePaymentComposer() {
+		when(courseLookupApi.getResolvedCheckoutAmount(COURSE_ID))
+			.thenReturn(Optional.of(new CheckoutAmount(new BigDecimal("20.00"), "USD", UUID.randomUUID(), false, false)));
+		when(courseLookupApi.findCatalogInfo(COURSE_ID)).thenReturn(Optional.of(catalogInfo("MONTHLY")));
+		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
+			.thenReturn(EnrollmentAccessState.neverEnrolled());
+
+		assertThatThrownBy(() -> service.createOrder(COURSE_ID, null)).isInstanceOf(CheckoutItemException.class)
+			.satisfies(ex -> {
+				CheckoutItemException error = (CheckoutItemException) ex;
+				org.assertj.core.api.Assertions.assertThat(error.getHttpStatus()).isEqualTo(HttpStatus.CONFLICT);
+				org.assertj.core.api.Assertions.assertThat(error.getErrorCode()).isEqualTo("USE_PAYMENT_COMPOSER");
+			});
+
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).save(any());
+		org.mockito.Mockito.verify(studentOrderRepository, org.mockito.Mockito.never()).saveAndFlush(any());
+		org.mockito.Mockito.verify(paymentRepository, org.mockito.Mockito.never()).save(any());
+	}
+
+	/** ADR-013 reactivation orders keep working for MONTHLY courses (D23 narrows only new legacy orders). */
+	@Test
+	void aMonthlyReactivationOrderIsStillAllowed() {
+		when(courseLookupApi.getResolvedCheckoutAmount(COURSE_ID))
+			.thenReturn(Optional.of(new CheckoutAmount(new BigDecimal("20.00"), "USD", UUID.randomUUID(), false, false)));
+		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
+			.thenReturn(EnrollmentAccessState.expired(UUID.randomUUID(), null, false));
+		when(enrollmentAccessApi.hasApprovedUnfulfilledReactivationRequest(STUDENT_ID, COURSE_ID)).thenReturn(true);
+
+		OrderView view = service.createOrder(COURSE_ID, null);
+
+		org.assertj.core.api.Assertions.assertThat(view.amount()).isEqualByComparingTo("20.00");
+		org.mockito.Mockito.verify(reactivationLinkingApi)
+			.linkApprovedRequestToNewOrder(org.mockito.ArgumentMatchers.eq(STUDENT_ID),
+					org.mockito.ArgumentMatchers.eq(COURSE_ID), any());
+		org.mockito.Mockito.verify(courseLookupApi, org.mockito.Mockito.never()).findCatalogInfo(any());
+	}
+
+	private static CourseCatalogInfo catalogInfo(String pricingModel) {
+		return new CourseCatalogInfo(COURSE_ID, "Course", UUID.randomUUID(), pricingModel, "PUBLIC", false, true, null,
+				null, null, null, "USD");
 	}
 
 }

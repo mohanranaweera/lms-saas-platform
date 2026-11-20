@@ -1,0 +1,84 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]
+  - alert [ref=e35]
+  - generic [ref=e36]:
+    - complementary [ref=e37]:
+      - generic [ref=e38]: Student Portal
+      - navigation "Primary" [ref=e39]:
+        - list [ref=e40]:
+          - listitem [ref=e41]:
+            - link "Dashboard" [ref=e42] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=e43]:
+            - link "My Courses" [ref=e44] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=e45]:
+            - link "Browse Courses" [ref=e46] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=e47]:
+            - link "My Attendance" [ref=e48] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=e49]:
+            - link "Exams" [ref=e50] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=e51]:
+            - link "Payments" [ref=e52] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=e53]:
+            - link "Reactivation" [ref=e54] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=e55]:
+            - link [ref=e56] [cursor=pointer]:
+              - /url: /student/notifications
+              - text: Notifications
+              - generic "1 unread notification" [ref=e57]:
+                - generic [aria-hidden] [ref=e58]: "1"
+          - listitem [ref=e59]:
+            - link "My Devices" [ref=e60] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=e61]:
+            - link "AOC Player" [ref=e62] [cursor=pointer]:
+              - /url: /student/player
+          - listitem [ref=e63]:
+            - link "Profile" [ref=e64] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=e65]:
+      - banner [ref=e66]:
+        - generic [ref=e67]:
+          - link "Change password" [ref=e68] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=e70]
+      - main [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - heading "Overview" [level=1] [ref=e74]
+            - paragraph [ref=e75]: Your enrollments, courses, and recent payment activity at a glance.
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - group [ref=e78]:
+                - paragraph [ref=e80]: Active courses
+                - paragraph [ref=e85]: "2"
+              - group [ref=e86]:
+                - paragraph [ref=e88]: Needs attention
+                - paragraph [ref=e92]: "0"
+            - generic [ref=e93]:
+              - heading "Recent courses" [level=2] [ref=e94]
+              - list "Recent courses" [ref=e95]:
+                - listitem [ref=e96]:
+                  - generic [ref=e97]:
+                    - heading "2028 Biology Theory Class" [level=3] [ref=e98]
+                    - generic [ref=e99]: Active
+                  - generic [ref=e100]: Biology
+                - listitem [ref=e101]:
+                  - generic [ref=e102]:
+                    - heading "2027 Chemistry Theory Class" [level=3] [ref=e103]
+                    - generic [ref=e104]: Active
+                  - generic [ref=e105]: Chemistry
+              - link "View all my courses" [ref=e106] [cursor=pointer]:
+                - /url: /student/courses
+          - region [ref=e107]:
+            - heading "Payment activity" [level=2] [ref=e108]
+            - group [ref=e109]:
+              - paragraph [ref=e111]: Most recent payment
+              - paragraph [ref=e116]: Payment confirmed — 4500.00
+              - paragraph [ref=e117]: Sep 27, 2026, 1:06 PM

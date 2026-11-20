@@ -1,0 +1,326 @@
+- generic [ref=f1e1]:
+  - button "Open Next.js Dev Tools" [ref=f1e11] [cursor=pointer]
+  - alert [ref=f1e15]
+  - generic [ref=f1e16]:
+    - complementary [ref=f1e17]:
+      - generic [ref=f1e18]: Tenant Admin
+      - navigation "Primary" [ref=f1e19]:
+        - generic [ref=f1e20]:
+          - generic [ref=f1e21]:
+            - generic [ref=f1e22]: Dashboard
+            - list [ref=f1e23]:
+              - listitem [ref=f1e24]:
+                - link "Dashboard" [ref=f1e25] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+          - generic [ref=f1e26]:
+            - generic [ref=f1e27]: Academic
+            - list [ref=f1e28]:
+              - listitem [ref=f1e29]:
+                - link "Students" [ref=f1e30] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+              - listitem [ref=f1e31]:
+                - link "Teachers" [ref=f1e32] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+              - listitem [ref=f1e33]:
+                - link "Courses" [ref=f1e34] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+              - listitem [ref=f1e35]:
+                - link "Media Library" [ref=f1e36] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+              - listitem [ref=f1e37]:
+                - link "Attendance Reports" [ref=f1e38] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+              - listitem [ref=f1e39]:
+                - link "Mark Attendance" [ref=f1e40] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+              - listitem [ref=f1e41]:
+                - link "Exams" [ref=f1e42] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+              - listitem [ref=f1e43]:
+                - link "Live Classes" [ref=f1e44] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+          - generic [ref=f1e45]:
+            - generic [ref=f1e46]: Finance
+            - list [ref=f1e47]:
+              - listitem [ref=f1e48]:
+                - link "Payments" [ref=f1e49] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+              - listitem [ref=f1e50]:
+                - link "Refunds" [ref=f1e51] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+              - listitem [ref=f1e52]:
+                - link "Payment Slips" [ref=f1e53] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+              - listitem [ref=f1e54]:
+                - link "Reactivation Approvals" [ref=f1e55] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+              - listitem [ref=f1e56]:
+                - link "Finance Summary" [ref=f1e57] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+              - listitem [ref=f1e58]:
+                - link "Expenses" [ref=f1e59] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+              - listitem [ref=f1e60]:
+                - link "Expense Categories" [ref=f1e61] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+              - listitem [ref=f1e62]:
+                - link "Finance Reports" [ref=f1e63] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+              - listitem [ref=f1e64]:
+                - link "Teacher Payouts" [ref=f1e65] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+          - generic [ref=f1e66]:
+            - generic [ref=f1e67]: Communication
+            - list [ref=f1e68]:
+              - listitem [ref=f1e69]:
+                - link "Broadcasts" [ref=f1e70] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+              - listitem [ref=f1e71]:
+                - link "Message Templates" [ref=f1e72] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+          - generic [ref=f1e73]:
+            - generic [ref=f1e74]: Administration
+            - list [ref=f1e75]:
+              - listitem [ref=f1e76]:
+                - link "Staff" [ref=f1e77] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+              - listitem [ref=f1e78]:
+                - link "Roles & Permissions" [ref=f1e79] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+              - listitem [ref=f1e80]:
+                - link "Audit Log" [ref=f1e81] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+          - generic [ref=f1e82]:
+            - generic [ref=f1e83]: Institute Configuration
+            - list [ref=f1e84]:
+              - listitem [ref=f1e85]:
+                - link "General" [ref=f1e86] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+              - listitem [ref=f1e87]:
+                - link "Branding" [ref=f1e88] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+              - listitem [ref=f1e89]:
+                - link "Student Fields" [ref=f1e90] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+              - listitem [ref=f1e91]:
+                - link "Online Payments" [ref=f1e92] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+              - listitem [ref=f1e93]:
+                - link "Integrations" [ref=f1e94] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+              - listitem [ref=f1e95]:
+                - link "Messaging (SMS & WhatsApp)" [ref=f1e96] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+              - listitem [ref=f1e97]:
+                - link "Video Providers" [ref=f1e98] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+              - listitem [ref=f1e99]:
+                - link "Video Settings" [ref=f1e100] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+              - listitem [ref=f1e101]:
+                - link "Custom Domain" [ref=f1e102] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+              - listitem [ref=f1e103]:
+                - link "Devices & Access" [ref=f1e104] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+    - generic [ref=f1e105]:
+      - banner [ref=f1e106]:
+        - generic [ref=f1e107]:
+          - link "Change password" [ref=f1e108] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f1e110]
+      - main [ref=f1e111]:
+        - generic [ref=f1e112]:
+          - generic [ref=f1e113]:
+            - generic [ref=f1e114]:
+              - heading "2027 Chemistry Theory Class" [level=1] [ref=f1e115]
+              - generic [ref=f1e116]: Public
+              - generic [ref=f1e120]: One-time
+            - paragraph [ref=f1e124]: 2027-chemistry-theory-class
+          - navigation "Course sections" [ref=f1e125]:
+            - list [ref=f1e126]:
+              - listitem [ref=f1e127]:
+                - link "Overview" [ref=f1e128] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c
+              - listitem [ref=f1e129]:
+                - link "Fees & Billing" [ref=f1e130] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/billing
+              - listitem [ref=f1e131]:
+                - link "Settings" [ref=f1e132] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/settings
+              - listitem [ref=f1e133]:
+                - link "Modules & lessons" [ref=f1e134] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/modules
+              - listitem [ref=f1e135]:
+                - link "Roster" [ref=f1e136] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/roster
+              - listitem [ref=f1e137]:
+                - link "Access" [ref=f1e138] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/access
+              - listitem [ref=f1e139]:
+                - link "Schedule" [ref=f1e140] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/schedule
+              - listitem [ref=f1e141]:
+                - link "Sessions" [ref=f1e142] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/sessions
+              - listitem [ref=f1e143]:
+                - link "Recordings" [ref=f1e144] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/recordings
+              - listitem [ref=f1e145]:
+                - link "Analytics" [ref=f1e146] [cursor=pointer]:
+                  - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c/analytics
+          - generic [ref=f1e147]:
+            - link "Back to course overview" [ref=f1e148] [cursor=pointer]:
+              - /url: /tenant-admin/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c
+            - generic [ref=f1e151]:
+              - heading "Modules & lessons" [level=2] [ref=f1e152]
+              - paragraph [ref=f1e153]: Edit the modules, lessons, materials, and Media Library videos for 2027 Chemistry Theory Class.
+            - generic [ref=f1e154]:
+              - status [ref=f1e155]
+              - list [ref=f1e156]:
+                - listitem [ref=f1e157]:
+                  - generic [ref=f1e158]:
+                    - generic [ref=f1e159]:
+                      - generic [ref=f1e162]:
+                        - status [ref=f1e163]
+                        - generic [ref=f1e164]:
+                          - generic [ref=f1e165]: Module title
+                          - textbox "Module title" [ref=f1e166]: Module
+                        - button "Save" [disabled]
+                      - generic [ref=f1e167]:
+                        - button "Move \"Module\" up" [disabled]
+                        - button "Move \"Module\" down" [ref=f1e168]
+                        - button "Delete module \"Module\"" [ref=f1e169]
+                    - generic [ref=f1e170]:
+                      - heading "Lessons" [level=3] [ref=f1e171]
+                      - generic [ref=f1e172]:
+                        - status [ref=f1e173]
+                        - list [ref=f1e174]:
+                          - listitem [ref=f1e175]:
+                            - generic [ref=f1e176]:
+                              - generic [ref=f1e177]:
+                                - generic [ref=f1e180]:
+                                  - status [ref=f1e181]
+                                  - generic [ref=f1e182]:
+                                    - generic [ref=f1e183]: Lesson title
+                                    - textbox "Lesson title" [ref=f1e184]: Test Lesson
+                                  - button "Save" [disabled]
+                                - generic [ref=f1e185]:
+                                  - button "Move \"Test Lesson\" up" [disabled]
+                                  - button "Move \"Test Lesson\" down" [disabled]
+                                  - button "Delete lesson \"Test Lesson\"" [ref=f1e186]
+                              - generic [ref=f1e187]:
+                                - generic [ref=f1e188]:
+                                  - heading "Materials" [level=4] [ref=f1e189]
+                                  - button "Choose from Media Library" [ref=f1e190]
+                                - generic [ref=f1e194]:
+                                  - heading "Media Library videos" [level=5] [ref=f1e195]
+                                  - generic [ref=f1e196]:
+                                    - generic [ref=f1e197]:
+                                      - generic [ref=f1e198]:
+                                        - generic [ref=f1e199]: INTERNAL
+                                        - generic [ref=f1e200]: READY
+                                      - generic [ref=f1e201]: Lesson video title
+                                      - textbox "Lesson video title" [ref=f1e202]: 63794 - No issue found.mp4
+                                    - generic [ref=f1e203]:
+                                      - button "Hide 63794 - No issue found.mp4" [ref=f1e204]
+                                      - button "Remove 63794 - No issue found.mp4 from lesson" [ref=f1e205]
+                                - generic [ref=f1e206]:
+                                  - status [ref=f1e207]
+                                  - list [ref=f1e208]:
+                                    - listitem [ref=f1e209]:
+                                      - generic [ref=f1e210]:
+                                        - generic [ref=f1e211]:
+                                          - generic [ref=f1e213]:
+                                            - status [ref=f1e214]
+                                            - generic [ref=f1e215]:
+                                              - generic [ref=f1e216]: Material title
+                                              - textbox "Material title" [ref=f1e217]: 63794 - No issue found.mp4
+                                            - button "Save" [disabled]
+                                          - generic [ref=f1e218]:
+                                            - generic [ref=f1e219]: Video
+                                            - paragraph
+                                          - generic [ref=f1e221]:
+                                            - button "Preview video" [expanded] [active] [ref=f1e222]
+                                            - generic [ref=f1e314]:
+                                              - generic "63794 - No issue found.mp4" [ref=f1e315]
+                                              - generic [aria-hidden]: 6f716fd8-3b55-45d5-baca-a8db974ec22a · 24c4ed08-f732-46a5-a5c2-4f998d55327d
+                                        - generic [ref=f1e226]:
+                                          - generic [ref=f1e227]:
+                                            - generic [ref=f1e228]: Visibility for “63794 - No issue found.mp4”
+                                            - combobox "Visibility for “63794 - No issue found.mp4”" [ref=f1e229]:
+                                              - generic [ref=f1e230]: Visible
+                                              - img [aria-hidden]: ▼
+                                            - textbox [aria-hidden] [ref=f1e231]: VISIBLE
+                                          - button "Move \"63794 - No issue found.mp4\" up" [disabled]
+                                          - button "Move \"63794 - No issue found.mp4\" down" [disabled]
+                                          - button "Delete material \"63794 - No issue found.mp4\"" [ref=f1e232]
+                                  - generic [ref=f1e233]:
+                                    - heading "Upload material" [level=5] [ref=f1e234]
+                                    - generic [ref=f1e235]:
+                                      - status [ref=f1e236]
+                                      - group "Add a lesson material" [ref=f1e237]:
+                                        - generic [ref=f1e239]:
+                                          - generic [ref=f1e240]: Material type
+                                          - combobox "Material type" [ref=f1e241]:
+                                            - generic [ref=f1e242]: Upload a file
+                                            - img [aria-hidden]: ▼
+                                          - textbox [aria-hidden] [ref=f1e243]: FILE
+                                        - generic [ref=f1e244]:
+                                          - generic [ref=f1e245]: Title
+                                          - textbox "Title" [ref=f1e246]
+                                        - generic [ref=f1e247]:
+                                          - generic [ref=f1e248]: File
+                                          - generic [ref=f1e249]:
+                                            - paragraph [ref=f1e253]: Drag and drop a file here, or
+                                            - button "Browse files" [ref=f1e254]
+                                            - button "File" [ref=f1e255]
+                                            - status [ref=f1e256]
+                                          - paragraph [ref=f1e257]: "Accepted formats: PDF, PNG, JPEG, GIF, or plain text (.txt). Maximum size: 25 MB."
+                                          - button "Availability & limits" [ref=f1e259]
+                                        - button "Upload material" [ref=f1e264]
+                        - generic [ref=f1e265]:
+                          - heading "Add lesson" [level=4] [ref=f1e266]
+                          - generic [ref=f1e268]:
+                            - status [ref=f1e269]
+                            - generic [ref=f1e270]:
+                              - generic [ref=f1e271]: Lesson title
+                              - textbox "Lesson title" [ref=f1e272]
+                            - button "Add lesson" [ref=f1e273]
+                - listitem [ref=f1e274]:
+                  - generic [ref=f1e275]:
+                    - generic [ref=f1e276]:
+                      - generic [ref=f1e279]:
+                        - status [ref=f1e280]
+                        - generic [ref=f1e281]:
+                          - generic [ref=f1e282]: Module title
+                          - textbox "Module title" [ref=f1e283]: Module 2
+                        - button "Save" [disabled]
+                      - generic [ref=f1e284]:
+                        - button "Move \"Module 2\" up" [ref=f1e285]
+                        - button "Move \"Module 2\" down" [disabled]
+                        - button "Delete module \"Module 2\"" [ref=f1e286]
+                    - generic [ref=f1e287]:
+                      - heading "Lessons" [level=3] [ref=f1e288]
+                      - generic [ref=f1e289]:
+                        - status [ref=f1e290]
+                        - status [ref=f1e291]:
+                          - generic [ref=f1e292]:
+                            - paragraph [ref=f1e293]: No lessons yet
+                            - paragraph [ref=f1e294]: Add the first lesson to "Module 2" to start building its content.
+                        - generic [ref=f1e295]:
+                          - heading "Add lesson" [level=4] [ref=f1e296]
+                          - generic [ref=f1e298]:
+                            - status [ref=f1e299]
+                            - generic [ref=f1e300]:
+                              - generic [ref=f1e301]: Lesson title
+                              - textbox "Lesson title" [ref=f1e302]
+                            - button "Add lesson" [ref=f1e303]
+              - generic [ref=f1e304]:
+                - heading "Add module" [level=2] [ref=f1e305]
+                - generic [ref=f1e307]:
+                  - status [ref=f1e308]
+                  - generic [ref=f1e309]:
+                    - generic [ref=f1e310]: Module title
+                    - textbox "Module title" [ref=f1e311]
+                  - button "Add module" [ref=f1e312]

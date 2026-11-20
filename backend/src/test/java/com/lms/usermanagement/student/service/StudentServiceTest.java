@@ -329,7 +329,7 @@ class StudentServiceTest {
 	@Test
 	void listActivityOfANonexistentStudentIdThrowsNotFoundWithoutCallingAuditLogApi() {
 		UUID studentId = UUID.randomUUID();
-		when(studentProfileRepository.existsById(studentId)).thenReturn(false);
+		when(studentProfileRepository.findById(studentId)).thenReturn(java.util.Optional.empty());
 
 		assertThatThrownBy(() -> studentService.listActivity(studentId, org.springframework.data.domain.PageRequest.of(0, 20)))
 			.isInstanceOf(com.lms.common.error.NotFoundException.class);

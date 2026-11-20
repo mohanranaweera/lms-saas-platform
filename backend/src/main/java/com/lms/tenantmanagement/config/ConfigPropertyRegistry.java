@@ -1,6 +1,7 @@
 package com.lms.tenantmanagement.config;
 
 import com.lms.tenantmanagement.api.ConfigDomain;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.ZoneId;
@@ -8,6 +9,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
@@ -30,13 +32,47 @@ public class ConfigPropertyRegistry {
 
 	private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("^#[0-9A-Fa-f]{6}$");
 
+	/** GA4 measurement id (SET-CFG-01) - strict so it can only ever be a gtag config argument. */
+	private static final Pattern GA_MEASUREMENT_ID_PATTERN = Pattern.compile("^G-[A-Z0-9]{4,20}$");
+
 	private static final double MIN_AA_CONTRAST_RATIO = 4.5;
+
+	/** WCAG 2.x AA minimum for large text / UI components (primary color on the page background). */
+	private static final double MIN_UI_CONTRAST_RATIO = 3.0;
+
+	/**
+	 * Curated public-page font allowlist (tenant appearance spec section 3). The
+	 * frontend maps each token to a predeclared self-hosted font; an arbitrary
+	 * family name, CSS fragment or URL can never be stored.
+	 */
+	public static final List<String> APPEARANCE_FONTS = List.of("INTER", "ROBOTO", "OPEN_SANS", "LATO", "POPPINS",
+			"MONTSERRAT", "NOTO_SANS", "NOTO_SERIF", "GEIST", "SYSTEM", "SERIF");
+
+	public static final String DEFAULT_APPEARANCE_FONT = "INTER";
+
+	/** Public header logo size tokens; the frontend owns the pixel dimensions. */
+	public static final List<String> LOGO_DISPLAY_SIZES = List.of("SMALL", "STANDARD", "LARGE");
+
+	public static final String DEFAULT_LOGO_DISPLAY_SIZE = "STANDARD";
 
 	/** Cap for free-text identity/contact fields - generous, not a UX limit, just a storage-pressure guard. */
 	private static final int MAX_TEXT_LENGTH = 255;
 
 	/** Cap for URL fields - generous enough for any real logo/favicon URL, including query strings. */
 	private static final int MAX_URL_LENGTH = 2048;
+
+	/** Cap for the public institute introduction (SET-PAY-01) - a few paragraphs of plain text. */
+	private static final int MAX_LONG_TEXT_LENGTH = 2000;
+
+	/** Cap for one institute policy document (LOGIN-01 Phase B) - a long plain-text document. */
+	public static final int MAX_POLICY_LENGTH = 50_000;
+
+	/** Policy keys in {@link ConfigDomain#GENERAL}, all public plain text (LOGIN-01 Phase B). */
+	public static final List<String> POLICY_KEYS = List.of("terms_of_service", "refund_policy", "privacy_policy");
+
+	private static final int MAX_APPEARANCE_LIST_ITEMS = 50;
+
+	private static final int MAX_APPEARANCE_LIST_VALUE_LENGTH = 4096;
 
 	private final Map<ConfigDomain, List<ConfigPropertyDefinition>> propertiesByDomain = buildRegistry();
 
@@ -56,7 +92,92 @@ public class ConfigPropertyRegistry {
 		registry.put(ConfigDomain.GENERAL, generalProperties());
 		registry.put(ConfigDomain.BRANDING, brandingProperties());
 		registry.put(ConfigDomain.STUDENT, studentProperties());
+		registry.put(ConfigDomain.VIDEO, videoProperties());
+		registry.put(ConfigDomain.PAYMENT, paymentProperties());
+		registry.put(ConfigDomain.NOTIFICATION, notificationProperties());
 		return Map.copyOf(registry);
+	}
+
+	/** Facility fee modes (KLASS-T4c, D07). */
+	public static final List<String> FACILITY_FEE_MODES = com.lms.tenantmanagement.api.FacilityFeeSettings.MODES;
+
+	/** Upper bound for a facility fee amount (NUMERIC(12,2) headroom; not a business limit). */
+	private static final BigDecimal MAX_FACILITY_FEE = new BigDecimal("1000000");
+
+	/**
+	 * KLASS-T4c (D07/D16): payment composer configuration. {@code
+	 * facility_fee_mode} NONE|PER_COURSE|PER_LINE|PER_ORDER (default NONE) and {@code
+	 * facility_fee_amount} (a JSON number &gt;= 0 with at most 2 decimals,
+	 * default 0) are snapshotted onto each composer order. The four bank-slip
+	 * display fields have no default ({@code null} = not configured) - they are
+	 * shown to students on the slip tab only, never used to route money; Tenant
+	 * Admin edits them on Settings -> Payments (SET-PAY-01), audit-logged like
+	 * every config change. {@code bank_transfer_enabled} (SET-PAY-01, default
+	 * {@code true}) is the tenant's raw switch only - whether a student may
+	 * actually submit a slip is decided by {@code BankTransferPolicy}, which
+	 * keeps slips available while online payment is unavailable.
+	 */
+	private static List<ConfigPropertyDefinition> paymentProperties() {
+		return List.of(
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "facility_fee_mode", ConfigValueType.STRING, "NONE",
+						(value, batch) -> value instanceof String s && FACILITY_FEE_MODES.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "facility_fee_amount", ConfigValueType.NUMBER, 0,
+						(value, batch) -> isValidFeeAmount(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_name", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_branch", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_account_holder", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_account_number", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.PAYMENT, "bank_transfer_enabled", ConfigValueType.BOOLEAN,
+						Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	/**
+	 * SET-CFG-01: {@code sms_enabled} (default {@code true}) is the tenant's
+	 * kill switch for SMS notification deliveries; {@code false} makes the
+	 * dispatcher skip every SMS delivery ({@code SMS_DISABLED}). Sign-in and
+	 * registration OTP messages are not notifications and are unaffected.
+	 */
+	private static List<ConfigPropertyDefinition> notificationProperties() {
+		return List.of(ConfigPropertyDefinition.of(ConfigDomain.NOTIFICATION, "sms_enabled", ConfigValueType.BOOLEAN,
+				Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	private static boolean isShortText(Object value, Map<String, Object> batch) {
+		return value instanceof String s && !s.isBlank() && s.length() <= MAX_TEXT_LENGTH;
+	}
+
+	/** A JSON number (never a string) {@code >= 0}, at most 2 decimals, below {@link #MAX_FACILITY_FEE}. */
+	static boolean isValidFeeAmount(Object value) {
+		if (!(value instanceof Number number)) {
+			return false;
+		}
+		try {
+			BigDecimal amount = new BigDecimal(number.toString()).stripTrailingZeros();
+			return amount.signum() >= 0 && amount.scale() <= 2 && amount.compareTo(MAX_FACILITY_FEE) < 0;
+		}
+		catch (NumberFormatException ex) {
+			return false;
+		}
+	}
+
+	/**
+	 * KLASS-T4b (D16): the AOC Player app store links shown to a student whose
+	 * lesson must play in the native player. Optional {@code https://} URLs only
+	 * (SEC L6: a store link is shown to students verbatim), no default
+	 * ({@code null} = not configured; the lesson launch returns {@code null}).
+	 */
+	private static List<ConfigPropertyDefinition> videoProperties() {
+		return List.of(
+				ConfigPropertyDefinition.of(ConfigDomain.VIDEO, "player_android_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isValidHttpsUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.VIDEO, "player_ios_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isValidHttpsUrl(s)));
 	}
 
 	/**
@@ -69,6 +190,12 @@ public class ConfigPropertyRegistry {
 	 * validated only for type (mirrors how a boolean-typed property is
 	 * validated nowhere else yet in this registry, so this is the first
 	 * simple {@code instanceof Boolean} validator here).
+	 *
+	 * <p><b>Deprecated (STU-PROF-01):</b> the five {@code require_*} flags are
+	 * superseded by the per-field {@code student_profile_field_setting} rows
+	 * ({@code StudentProfileFieldConfigService}). They are only read as the
+	 * default required-ness for a tenant that has never saved its student
+	 * profile field settings; kept registered so existing values stay valid.
 	 */
 	private static List<ConfigPropertyDefinition> studentProperties() {
 		return List.of(
@@ -87,19 +214,82 @@ public class ConfigPropertyRegistry {
 				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_stream", ConfigValueType.BOOLEAN,
 						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
 				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "require_mobile", ConfigValueType.BOOLEAN,
-						Boolean.FALSE, ConfigPropertyRegistry::isBoolean));
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				// SET-CFG-01 (ADR-028 amendment): false = students cannot
+				// self-enroll; staff enroll-on-behalf is unaffected.
+				ConfigPropertyDefinition.of(ConfigDomain.STUDENT, "self_enrollment_enabled",
+						ConfigValueType.BOOLEAN, Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
 	}
 
 	private static boolean isBoolean(Object value, Map<String, Object> batch) {
 		return value instanceof Boolean;
 	}
 
+	private static boolean isUrlList(Object value, Map<String, Object> batch) {
+		if (!(value instanceof List<?> values) || values.size() > MAX_APPEARANCE_LIST_ITEMS) {
+			return false;
+		}
+		return values.stream().allMatch(item -> item instanceof String s && !s.isBlank()
+				&& s.length() <= MAX_APPEARANCE_LIST_VALUE_LENGTH && isValidHttpUrl(s));
+	}
+
+	private static boolean isUuidList(Object value, Map<String, Object> batch) {
+		if (!(value instanceof List<?> values) || values.size() > MAX_APPEARANCE_LIST_ITEMS) {
+			return false;
+		}
+		return values.stream().allMatch(item -> {
+			if (!(item instanceof String s) || s.isBlank() || s.length() > 36) {
+				return false;
+			}
+			try {
+				UUID.fromString(s);
+				return true;
+			}
+			catch (IllegalArgumentException ex) {
+				return false;
+			}
+		});
+	}
+
+	/** {@code https://} URL on {@code facebook.com}/{@code fb.com} or one of their subdomains. */
+	private static boolean isFacebookUrl(String value) {
+		try {
+			String host = new URI(value).getHost();
+			if (!isValidHttpsUrl(value) || host == null) {
+				return false;
+			}
+			String normalized = host.toLowerCase(java.util.Locale.ROOT);
+			return normalized.equals("facebook.com") || normalized.endsWith(".facebook.com")
+					|| normalized.equals("fb.com") || normalized.endsWith(".fb.com");
+		}
+		catch (URISyntaxException e) {
+			return false;
+		}
+	}
+
+	private static boolean isYouTubeUrl(String value) {
+		try {
+			URI uri = new URI(value);
+			String host = uri.getHost();
+			if (!isValidHttpsUrl(value) || host == null) {
+				return false;
+			}
+			String normalized = host.toLowerCase(java.util.Locale.ROOT);
+			return normalized.equals("youtube.com") || normalized.endsWith(".youtube.com")
+					|| normalized.equals("youtu.be");
+		}
+		catch (URISyntaxException e) {
+			return false;
+		}
+	}
+
 	private static List<ConfigPropertyDefinition> generalProperties() {
 		return List.of(
 				// Required, no default - GET with no row set surfaces null/absent
 				// rather than throwing (see TenantConfigService#getDomain); PUT
-				// rejects a blank/missing value.
-				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "institute_name", ConfigValueType.STRING, null,
+				// rejects a blank/missing value, and (KLASS-T8d) a null - it is
+				// never clearable once set.
+				ConfigPropertyDefinition.requiredOf(ConfigDomain.GENERAL, "institute_name", ConfigValueType.STRING,
 						(value, batch) -> value instanceof String s && !s.isBlank() && s.length() <= MAX_TEXT_LENGTH),
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "support_email", ConfigValueType.STRING, null,
 						(value, batch) -> value instanceof String s && s.length() <= MAX_TEXT_LENGTH
@@ -112,19 +302,208 @@ public class ConfigPropertyRegistry {
 				// Shape-only ISO-4217 validation (^[A-Z]{3}$) - deliberately no
 				// hardcoded currency allowlist, per the brief.
 				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "default_currency", ConfigValueType.STRING, "USD",
-						(value, batch) -> value instanceof String s && CURRENCY_CODE_PATTERN.matcher(s).matches()));
+						(value, batch) -> value instanceof String s && CURRENCY_CODE_PATTERN.matcher(s).matches()),
+				// SET-PAY-01: institute public information (Klass parity). All
+				// optional and public - shown on the tenant's public home page.
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "address_line1", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "address_line2", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "city", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "postal_code", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::isShortText),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "institute_introduction", ConfigValueType.STRING,
+						null, (value, batch) -> value instanceof String s && !s.isBlank()
+								&& s.length() <= MAX_LONG_TEXT_LENGTH),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "facebook_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isFacebookUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "youtube_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH
+								&& isYouTubeUrl(s)),
+				// LOGIN-01 Phase B: the institute's own policies, plain text,
+				// published on /terms, /refund-policy and /privacy.
+				policyProperty("terms_of_service"), policyProperty("refund_policy"),
+				policyProperty("privacy_policy"),
+				// ADR-031 login options. Email sign-in has no switch (an admin
+				// without a mobile can never be locked out).
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "mobile_login_enabled", ConfigValueType.BOOLEAN,
+						Boolean.TRUE, ConfigPropertyRegistry::isBoolean),
+				// Region for numbers written without a country code (ISO 3166-1
+				// alpha-2 known to libphonenumber, e.g. LK, IN, GB).
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "phone_region", ConfigValueType.STRING, "LK",
+						(value, batch) -> value instanceof String s
+								&& com.google.i18n.phonenumbers.PhoneNumberUtil.getInstance()
+									.getSupportedRegions()
+									.contains(s)),
+				// SET-CFG-01: GA4 measurement id, loaded on the public site and
+				// student portal. Public by nature (it is in the page source).
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, "ga_measurement_id", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && GA_MEASUREMENT_ID_PATTERN.matcher(s).matches()),
+				// I18N-01 (docs/architecture/i18n-translation-management.md section 1): UI
+				// languages. Every supported language is enabled by default so the switcher is
+				// offered; default_locale stays English, so tenants keep running in English
+				// unless a visitor chooses otherwise.
+				// default_locale must be one of enabled_locales - checked in the same batch
+				// here and against the persisted values by crossFieldErrors.
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, ENABLED_LOCALES_KEY, ConfigValueType.JSON,
+						SUPPORTED_LOCALES, ConfigPropertyRegistry::isEnabledLocales),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, DEFAULT_LOCALE_KEY, ConfigValueType.STRING,
+						DEFAULT_LOCALE, ConfigPropertyRegistry::isDefaultLocale),
+				ConfigPropertyDefinition.of(ConfigDomain.GENERAL, BROWSER_LANGUAGE_DETECTION_KEY,
+						ConfigValueType.BOOLEAN, Boolean.FALSE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	/**
+	 * I18N-01: the platform-supported UI locale tags. Must equal the tags in
+	 * {@code i18n/locales.json} (pinned by {@code LocaleSettingsConsistencyTest}); kept here as
+	 * a constant because tenant-management is foundational and must not depend on the
+	 * localization module.
+	 */
+	public static final List<String> SUPPORTED_LOCALES = List.of("en-LK", "si-LK", "ta-LK");
+
+	public static final String DEFAULT_LOCALE = "en-LK";
+
+	public static final String ENABLED_LOCALES_KEY = "enabled_locales";
+
+	public static final String DEFAULT_LOCALE_KEY = "default_locale";
+
+	public static final String BROWSER_LANGUAGE_DETECTION_KEY = "browser_language_detection";
+
+	/** Non-empty list of distinct canonical supported tags; contains a same-batch default_locale. */
+	private static boolean isEnabledLocales(Object value, Map<String, Object> batch) {
+		if (!(value instanceof List<?> values) || values.isEmpty() || values.size() > SUPPORTED_LOCALES.size()) {
+			return false;
+		}
+		if (!values.stream().allMatch(item -> item instanceof String s && SUPPORTED_LOCALES.contains(s))
+				|| values.stream().distinct().count() != values.size()) {
+			return false;
+		}
+		Object defaultLocale = batch.get(DEFAULT_LOCALE_KEY);
+		return !(defaultLocale instanceof String d) || values.contains(d);
+	}
+
+	/** A canonical supported tag, contained in a same-batch enabled_locales list. */
+	private static boolean isDefaultLocale(Object value, Map<String, Object> batch) {
+		if (!(value instanceof String s) || !SUPPORTED_LOCALES.contains(s)) {
+			return false;
+		}
+		Object enabled = batch.get(ENABLED_LOCALES_KEY);
+		return !(enabled instanceof List<?> list) || list.contains(s);
+	}
+
+	/**
+	 * Cross-property rules checked against the EFFECTIVE values (persisted values overlaid with
+	 * the batch being saved), so a single-key update cannot break an invariant the per-key
+	 * validators only see within one batch. I18N-01: {@code default_locale} must be enabled.
+	 */
+	public List<com.lms.common.api.FieldError> crossFieldErrors(ConfigDomain domain, Map<String, Object> effective) {
+		if (domain != ConfigDomain.GENERAL) {
+			return List.of();
+		}
+		Object enabled = effective.get(ENABLED_LOCALES_KEY);
+		Object defaultLocale = effective.get(DEFAULT_LOCALE_KEY);
+		if (enabled instanceof List<?> list && defaultLocale instanceof String d && !list.contains(d)) {
+			return List.of(new com.lms.common.api.FieldError(DEFAULT_LOCALE_KEY,
+					"default_locale must be one of enabled_locales"));
+		}
+		return List.of();
+	}
+
+	private static ConfigPropertyDefinition policyProperty(String key) {
+		return ConfigPropertyDefinition.of(ConfigDomain.GENERAL, key, ConfigValueType.STRING, null,
+				(value, batch) -> value instanceof String s && !s.isBlank() && s.length() <= MAX_POLICY_LENGTH);
 	}
 
 	private static List<ConfigPropertyDefinition> brandingProperties() {
 		return List.of(
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "primary_color", ConfigValueType.STRING, null,
-						(value, batch) -> value instanceof String s && HEX_COLOR_PATTERN.matcher(s).matches()),
+						ConfigPropertyRegistry::validatePrimaryColor),
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "secondary_color", ConfigValueType.STRING, null,
 						ConfigPropertyRegistry::validateSecondaryColor),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "accent_color", ConfigValueType.STRING, null,
+						(value, batch) -> isHexColor(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "background_color", ConfigValueType.STRING, null,
+						(value, batch) -> isHexColor(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "surface_color", ConfigValueType.STRING, null,
+						(value, batch) -> isHexColor(value)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "text_color", ConfigValueType.STRING, null,
+						ConfigPropertyRegistry::validateTextColor),
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "logo_url", ConfigValueType.STRING, null,
 						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
 				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "favicon_url", ConfigValueType.STRING, null,
-						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)));
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "receipt_logo_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "homepage_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isValidHttpUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "public_page_enabled", ConfigValueType.BOOLEAN, Boolean.TRUE,
+						ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "sub_hero_enabled", ConfigValueType.BOOLEAN, Boolean.TRUE,
+						ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "cta_enabled", ConfigValueType.BOOLEAN, Boolean.TRUE,
+						ConfigPropertyRegistry::isBoolean),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "featured_course_ids", ConfigValueType.JSON, List.of(),
+						ConfigPropertyRegistry::isUuidList),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "support_video_url", ConfigValueType.STRING, null,
+						(value, batch) -> value instanceof String s && s.length() <= MAX_URL_LENGTH && isYouTubeUrl(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "desktop_banner_urls", ConfigValueType.JSON, List.of(),
+						ConfigPropertyRegistry::isUrlList),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "mobile_banner_urls", ConfigValueType.JSON, List.of(),
+						ConfigPropertyRegistry::isUrlList),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "header_font_family", ConfigValueType.STRING,
+						DEFAULT_APPEARANCE_FONT, (value, batch) -> value instanceof String s && APPEARANCE_FONTS.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "body_font_family", ConfigValueType.STRING,
+						DEFAULT_APPEARANCE_FONT, (value, batch) -> value instanceof String s && APPEARANCE_FONTS.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "logo_display_size", ConfigValueType.STRING,
+						DEFAULT_LOGO_DISPLAY_SIZE,
+						(value, batch) -> value instanceof String s && LOGO_DISPLAY_SIZES.contains(s)),
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "teacher_auto_rotate", ConfigValueType.BOOLEAN,
+						Boolean.FALSE, ConfigPropertyRegistry::isBoolean),
+				// CAL-01: "Today's Classes" section on the public home.
+				ConfigPropertyDefinition.of(ConfigDomain.BRANDING, "show_todays_classes", ConfigValueType.BOOLEAN,
+						Boolean.TRUE, ConfigPropertyRegistry::isBoolean));
+	}
+
+	private static boolean isHexColor(Object value) {
+		return value instanceof String s && HEX_COLOR_PATTERN.matcher(s).matches();
+	}
+
+	/**
+	 * {@code primary_color}: hex, and - when a valid {@code background_color}
+	 * is saved in the same batch - at least {@value #MIN_UI_CONTRAST_RATIO}:1
+	 * against it (buttons/links must stay visible on the public page). Like
+	 * {@link #validateSecondaryColor}, a single-key update is not cross-checked
+	 * against the already-persisted value.
+	 */
+	private static boolean validatePrimaryColor(Object value, Map<String, Object> batch) {
+		if (!isHexColor(value)) {
+			return false;
+		}
+		Object background = batch.get("background_color");
+		return !isHexColor(background)
+				|| WcagContrast.ratio((String) value, (String) background) >= MIN_UI_CONTRAST_RATIO;
+	}
+
+	/**
+	 * {@code text_color}: hex, and at least {@value #MIN_AA_CONTRAST_RATIO}:1
+	 * (WCAG AA body text) against {@code background_color} and against
+	 * {@code surface_color}, each checked only when that key carries a valid
+	 * hex in the same batch.
+	 */
+	private static boolean validateTextColor(Object value, Map<String, Object> batch) {
+		if (!isHexColor(value)) {
+			return false;
+		}
+		String text = (String) value;
+		for (String key : List.of("background_color", "surface_color")) {
+			Object other = batch.get(key);
+			if (isHexColor(other) && WcagContrast.ratio(text, (String) other) < MIN_AA_CONTRAST_RATIO) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -146,6 +525,11 @@ public class ConfigPropertyRegistry {
 			return WcagContrast.ratio(primary, secondary) >= MIN_AA_CONTRAST_RATIO;
 		}
 		return true;
+	}
+
+	/** Absolute {@code https://} URL with a host (no {@code http}, no other scheme). */
+	private static boolean isValidHttpsUrl(String value) {
+		return isValidHttpUrl(value) && value.regionMatches(true, 0, "https://", 0, 8);
 	}
 
 	private static boolean isValidHttpUrl(String value) {

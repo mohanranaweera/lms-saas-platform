@@ -1,3 +1,4 @@
+import { mockStudentProfile } from "./fixtures/student-profile-mocks";
 import { test, expect, type Page } from "@playwright/test";
 import {
   apiError,
@@ -31,6 +32,7 @@ async function mockTenantSession(page: Page, role: string): Promise<void> {
 async function gotoStudentDetail(page: Page, role = "TENANT_ADMIN") {
   await mockTenantSession(page, role);
   await mockJson(page, `**/v1/students/${STUDENT.id}`, 200, apiSuccess(STUDENT));
+  await mockStudentProfile(page, STUDENT);
   await page.goto(`/tenant-admin/students/${STUDENT.id}`);
   await expect(page.getByRole("heading", { name: STUDENT.name })).toBeVisible();
 }
@@ -40,7 +42,8 @@ test.describe("student detail tabs — tablist is keyboard/aria navigable", () =
     await gotoStudentDetail(page);
     const tablist = page.getByRole("tablist", { name: "Student detail sections" });
     await expect(tablist).toBeVisible();
-    for (const label of ["Profile", "Enrollments", "Payments", "Attendance", "Exams", "Activity"]) {
+    // STU-MGMT-02: profile data moved to the full-profile cards/sidebar; the tabs are the "Manage" tools.
+    for (const label of ["Enrollments", "Payments", "Attendance", "Exams", "Activity", "Additional details"]) {
       await expect(tablist.getByRole("tab", { name: label })).toBeVisible();
     }
   });
@@ -82,8 +85,9 @@ test.describe("student detail — Enrollments tab", () => {
     });
 
     await page.getByRole("tab", { name: "Enrollments" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "Something went wrong." })).toBeVisible();
-    await page.getByRole("button", { name: "Try again" }).click();
+    const manage = page.getByTestId("profile-manage");
+    await expect(manage.getByRole("alert").filter({ hasText: "Something went wrong." })).toBeVisible();
+    await manage.getByRole("button", { name: "Try again" }).click();
     await expect(page.getByText("No enrollments yet")).toBeVisible();
   });
 

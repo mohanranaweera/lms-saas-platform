@@ -10,6 +10,7 @@ import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
 import com.lms.enrollmentmanagement.api.ReactivationLinkingApi;
+import com.lms.paymentmanagement.checkout.service.CheckoutItemException;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -28,10 +29,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,6 +129,8 @@ public class OrderService {
 
 	private final PaymentRepository paymentRepository;
 
+	private final com.lms.paymentmanagement.order.repository.StudentOrderLineRepository studentOrderLineRepository;
+
 	private final CourseLookupApi courseLookupApi;
 
 	private final TenantContext tenantContext;
@@ -145,7 +153,8 @@ public class OrderService {
 			CourseLookupApi courseLookupApi, TenantContext tenantContext, PaymentDomainAccessGuard accessGuard,
 			EnrollmentAccessApi enrollmentAccessApi, EnrollmentActivationApi enrollmentActivationApi,
 			ReactivationLinkingApi reactivationLinkingApi, PermissionCheckService permissionCheckService,
-			ApplicationEventPublisher eventPublisher, LedgerEntryApi ledgerEntryApi) {
+			ApplicationEventPublisher eventPublisher, LedgerEntryApi ledgerEntryApi,
+			com.lms.paymentmanagement.order.repository.StudentOrderLineRepository studentOrderLineRepository) {
 		this.studentOrderRepository = studentOrderRepository;
 		this.paymentRepository = paymentRepository;
 		this.courseLookupApi = courseLookupApi;
@@ -157,6 +166,7 @@ public class OrderService {
 		this.permissionCheckService = permissionCheckService;
 		this.eventPublisher = eventPublisher;
 		this.ledgerEntryApi = ledgerEntryApi;
+		this.studentOrderLineRepository = studentOrderLineRepository;
 	}
 
 	/**
@@ -277,6 +287,16 @@ public class OrderService {
 			}
 			isReactivation = true;
 		}
+		if (!isReactivation && courseLookupApi.findCatalogInfo(courseId)
+			.map(info -> "MONTHLY".equals(info.pricingModel()))
+			.orElse(false)) {
+			// KLASS-T8b (D23, payment review M-1): a legacy course-wide order would
+			// cover EVERY billing month for one month's price. MONTHLY courses are
+			// sold per month through the payment composer; ADR-013 reactivation
+			// orders and existing legacy MONTHLY enrollments are unaffected.
+			throw new CheckoutItemException(HttpStatus.CONFLICT, CheckoutItemException.USE_PAYMENT_COMPOSER,
+					"Monthly class fees are paid per month - choose the months to pay for in the payment composer");
+		}
 
 		StudentOrder order = new StudentOrder(tenantContext.getTenantId(), principal.userId(), courseId, amount,
 				checkout.currency(), checkout.billingPeriodId(), idempotencyKey);
@@ -289,7 +309,7 @@ public class OrderService {
 		// whole transaction and a plain catch cannot "un-abort" it - this
 		// re-throws rather than pretending to recover from a state it
 		// structurally cannot recover from mid-transaction.
-		order = studentOrderRepository.save(order);
+		order = studentOrderRepository.saveAndFlush(order);
 
 		if (checkout.requiresManualQuote()) {
 			eventPublisher.publishEvent(new OrderCustomAmountAppliedEvent(tenantContext.getTenantId(), order.getId(),
@@ -452,6 +472,16 @@ public class OrderService {
 	}
 
 	@Transactional(readOnly = true)
+	public List<OrderLineView> getOrderLines(UUID id) {
+		StudentOrder order = loadOrderForCaller(id);
+		Map<UUID, String> titles = new HashMap<>();
+		Set<UUID> courseIds = studentOrderLineRepository.findAllByOrderId(order.getId()).stream().map(line -> line.getCourseId()).collect(java.util.stream.Collectors.toSet());
+		if (courseIds.isEmpty() && order.getCourseId() != null) courseIds = Set.of(order.getCourseId());
+		for (var summary : courseLookupApi.getCourseSummaries(courseIds)) titles.put(summary.id(), summary.name());
+		return studentOrderLineRepository.findAllByOrderId(order.getId()).stream().map(line -> new OrderLineView(line.getLineNo(), line.getScope(), line.getCourseId(), titles.get(line.getCourseId()), line.getModuleId(), line.getLessonId(), line.getPeriodYear(), line.getPeriodMonth(), line.getBillingPeriodId(), line.getLabel(), line.getUnitAmount(), line.getFacilityFeeAmount(), line.getDiscountAmount(), line.getLineTotal(), line.getCurrency(), line.getCreatedAt())).toList();
+	}
+
+	@Transactional(readOnly = true)
 	public OrderPaymentStatusView getPaymentStatus(UUID id) {
 		StudentOrder order = loadOrderForCaller(id);
 		return paymentRepository.findLatestByOrderId(order.getId())
@@ -502,9 +532,9 @@ public class OrderService {
 	}
 
 	private static OrderView toView(StudentOrder order, boolean idempotentReplay) {
-		return new OrderView(order.getId(), order.getStudentId(), order.getCourseId(), order.getAmount(),
-				order.getCurrency(), order.getBillingPeriodId(), order.getStatus(), order.getCreatedAt(),
-				order.getUpdatedAt(), idempotentReplay);
+		return new OrderView(order.getId(), order.getOrderNumber(), order.getDisplayOrderNumber(), order.getStudentId(), order.getCourseId(), order.getAmount(),
+				order.getCurrency(), order.getBillingPeriodId(), order.getStatus(), order.getCreatedAt(), order.getUpdatedAt(), order.getSubtotalAmount(),
+				order.getFacilityFeeAmount(), order.getPostageAmount(), order.getDiscountAmount(), idempotentReplay);
 	}
 
 }

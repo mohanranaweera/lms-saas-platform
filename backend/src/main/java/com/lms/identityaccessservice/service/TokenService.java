@@ -41,6 +41,12 @@ public class TokenService {
 
 	private static final String CLAIM_SESSION_ID = "session_id";
 
+	/** ADR-033: marks a support-session token. */
+	private static final String CLAIM_IMPERSONATION = "imp";
+
+	/** ADR-033: the admin behind a support-session token. */
+	private static final String CLAIM_ACTOR = "act";
+
 	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private final JwtProperties jwtProperties;
@@ -61,6 +67,32 @@ public class TokenService {
 			.claim(CLAIM_SESSION_ID, sessionId.toString())
 			.issuedAt(Date.from(now))
 			.expiration(Date.from(now.plus(jwtProperties.getAccessTokenTtl())))
+			.signWith(signingKey, Jwts.SIG.HS256)
+			.compact();
+	}
+
+	/**
+	 * ADR-033: a support-session (impersonation) access token - {@code sub} = the
+	 * student, role STUDENT, {@code session_id} = the {@code impersonation_session} id,
+	 * {@code imp=true}, {@code act} = the admin. Expires at the earlier of the normal
+	 * access-token lifetime and the session's absolute {@code sessionExpiresAt}.
+	 */
+	public String issueImpersonationAccessToken(UUID studentUserId, UUID tenantId, UUID impersonationSessionId,
+			UUID actorUserId, Instant sessionExpiresAt) {
+		Instant now = Instant.now();
+		Instant expiry = now.plus(jwtProperties.getAccessTokenTtl());
+		if (sessionExpiresAt.isBefore(expiry)) {
+			expiry = sessionExpiresAt;
+		}
+		return Jwts.builder()
+			.subject(studentUserId.toString())
+			.claim(CLAIM_TENANT_ID, tenantId.toString())
+			.claim(CLAIM_ROLE, Role.STUDENT.name())
+			.claim(CLAIM_SESSION_ID, impersonationSessionId.toString())
+			.claim(CLAIM_IMPERSONATION, true)
+			.claim(CLAIM_ACTOR, actorUserId.toString())
+			.issuedAt(Date.from(now))
+			.expiration(Date.from(expiry))
 			.signWith(signingKey, Jwts.SIG.HS256)
 			.compact();
 	}
@@ -89,7 +121,14 @@ public class TokenService {
 		UUID tenantId = tenantIdClaim == null ? null : UUID.fromString(tenantIdClaim);
 		String role = claims.get(CLAIM_ROLE, String.class);
 		UUID sessionId = UUID.fromString(claims.get(CLAIM_SESSION_ID, String.class));
-		return new ParsedToken(subject, tenantId, role, sessionId, claims.getExpiration().toInstant());
+		boolean impersonation = Boolean.TRUE.equals(claims.get(CLAIM_IMPERSONATION, Boolean.class));
+		String actorClaim = claims.get(CLAIM_ACTOR, String.class);
+		UUID actorUserId = actorClaim == null ? null : UUID.fromString(actorClaim);
+		if (impersonation && (actorUserId == null || tenantId == null)) {
+			throw new IllegalArgumentException("Malformed impersonation token");
+		}
+		return new ParsedToken(subject, tenantId, role, sessionId, claims.getExpiration().toInstant(), impersonation,
+				impersonation ? actorUserId : null);
 	}
 
 	public Duration accessTokenTtl() {

@@ -4,9 +4,16 @@ import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.notificationmanagement.service.InAppNotificationView;
 import com.lms.notificationmanagement.service.NotificationCenterService;
+import com.lms.notificationmanagement.service.NotificationPreferenceService;
+import com.lms.notificationmanagement.service.NotificationPreferenceService.PreferenceView;
 import com.lms.notificationmanagement.web.dto.NotificationResponse;
 import com.lms.notificationmanagement.web.dto.UnreadCountResponse;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -35,8 +42,30 @@ public class NotificationController {
 
 	private final NotificationCenterService notificationCenterService;
 
-	public NotificationController(NotificationCenterService notificationCenterService) {
+	private final NotificationPreferenceService notificationPreferenceService;
+
+	public NotificationController(NotificationCenterService notificationCenterService,
+			NotificationPreferenceService notificationPreferenceService) {
 		this.notificationCenterService = notificationCenterService;
+		this.notificationPreferenceService = notificationPreferenceService;
+	}
+
+	/** Wave 11 - marks all of the caller's own notifications read. */
+	@PostMapping("/read-all")
+	public ResponseEntity<ApiResponse<Map<String, Integer>>> markAllRead() {
+		return ResponseEntity.ok(ApiResponse.success(Map.of("updated", notificationCenterService.markAllRead())));
+	}
+
+	/** Wave 11 (PAR-22-03) - the caller's own broadcast channel consent. */
+	@GetMapping("/preferences")
+	public ResponseEntity<ApiResponse<List<PreferenceView>>> myPreferences() {
+		return ResponseEntity.ok(ApiResponse.success(notificationPreferenceService.myPreferences()));
+	}
+
+	@PutMapping("/preferences")
+	public ResponseEntity<ApiResponse<List<PreferenceView>>> updateMyPreferences(
+			@RequestBody Map<String, Boolean> preferences) {
+		return ResponseEntity.ok(ApiResponse.success(notificationPreferenceService.updateMyPreferences(preferences)));
 	}
 
 	@GetMapping

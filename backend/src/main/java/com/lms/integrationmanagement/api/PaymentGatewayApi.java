@@ -24,6 +24,24 @@ public interface PaymentGatewayApi {
 	PaymentGatewayInitiation initiatePayment(UUID orderId, UUID tenantId, BigDecimal amount, String currency);
 
 	/**
+	 * PAY-GW-01: initiates a hosted checkout, carrying the item description and
+	 * payer details a real gateway (PayHere) needs. Same transaction-boundary
+	 * rule as {@link #initiatePayment}. The default delegates to {@link
+	 * #initiatePayment} for adapters that need nothing more (the fake gateway).
+	 */
+	/**
+	 * Checks, BEFORE any payment row is created, that the checkout can be
+	 * started (e.g. PayHere needs the payer's address). Throws a 4xx
+	 * application exception if not. Default: nothing to check.
+	 */
+	default void validateCheckout(GatewayCheckoutRequest request) {
+	}
+
+	default PaymentGatewayInitiation initiateCheckout(GatewayCheckoutRequest request) {
+		return initiatePayment(request.orderId(), request.tenantId(), request.amount(), request.currency());
+	}
+
+	/**
 	 * Verifies the gateway's signature over the raw webhook request body.
 	 * Must be called, and must pass, before any state change is persisted
 	 * from a webhook delivery - a hard gate, never a best-effort check (per

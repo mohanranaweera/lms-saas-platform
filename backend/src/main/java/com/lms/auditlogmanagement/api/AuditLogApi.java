@@ -91,4 +91,17 @@ public interface AuditLogApi {
 	 */
 	Page<AuditActivityEntry> findForTarget(String targetEntity, UUID targetId, Pageable pageable);
 
+	/**
+	 * STAFF-MGMT-02 Staff Activities: the caller's own tenant's audit feed (every action), most
+	 * recent first. Tenant-scoped structurally like every read here; requires {@code AUDIT_LOG}/
+	 * {@code VIEW} AND the Tenant Admin / Read-only Auditor allowlist ({@code
+	 * AuditViewerAccessGuard}). {@code text} (optional) matches {@code action} or {@code
+	 * target_entity} case-insensitively; rows whose {@code actor_id} is in {@code actorIds}
+	 * (already resolved by the caller from the same search text) also match. {@code from} /
+	 * {@code to} are optional inclusive bounds. {@code actorDisplayName} is left {@code null}:
+	 * the caller resolves display names. The page size is capped at 100.
+	 */
+	Page<AuditActivityEntry> searchTenantActivity(String text, java.util.Collection<UUID> actorIds,
+			java.time.Instant from, java.time.Instant to, Pageable pageable);
+
 }

@@ -1,0 +1,21 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "LMS Platform" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - navigation "Account" [ref=e5]:
+        - link "Sign in" [ref=e6] [cursor=pointer]:
+          - /url: /login
+        - link "Get started" [ref=e7] [cursor=pointer]:
+          - /url: /register-institute
+    - main [ref=e8]:
+      - generic [ref=e9]:
+        - heading "Run your institute on one multi-tenant learning platform" [level=1] [ref=e10]
+        - paragraph [ref=e11]: Courses, enrollments, payments, and exams for schools, tutors, and training institutes — all in one place.
+        - generic [ref=e12]:
+          - link "Get started" [ref=e13] [cursor=pointer]:
+            - /url: /register-institute
+          - link "Sign in" [ref=e14] [cursor=pointer]:
+            - /url: /login
+    - contentinfo [ref=e15]: © 2026 LMS Platform. All rights reserved.
+  - button "Open Next.js Dev Tools" [ref=e21] [cursor=pointer]

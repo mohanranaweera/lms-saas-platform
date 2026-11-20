@@ -73,11 +73,30 @@ public class NotificationOutbox extends BaseEntity implements TenantOwned {
 	@Column(name = "claimed_at")
 	private Instant claimedAt;
 
+	/** Wave 11 (V68, decision D3): claims so far; at most {@link #MAX_ATTEMPTS}. */
+	@Column(name = "attempt_count", nullable = false)
+	private int attemptCount;
+
+	/** Wave 11 (V68): when a retried PENDING row becomes due again; null = due now. */
+	@Column(name = "next_attempt_at")
+	private Instant nextAttemptAt;
+
+	/** Wave 11 (V68): identifies the business event, unique per tenant when set (duplicate-event guard). */
+	@Column(name = "dedupe_key", updatable = false, length = 120)
+	private String dedupeKey;
+
+	public static final int MAX_ATTEMPTS = 3;
+
 	protected NotificationOutbox() {
 	}
 
 	public NotificationOutbox(UUID tenantId, NotificationEventType eventType, UUID recipientUserId, String payload,
 			Instant createdAt) {
+		this(tenantId, eventType, recipientUserId, payload, createdAt, null);
+	}
+
+	public NotificationOutbox(UUID tenantId, NotificationEventType eventType, UUID recipientUserId, String payload,
+			Instant createdAt, String dedupeKey) {
 		this.tenantId = tenantId;
 		this.eventType = eventType;
 		this.recipientUserId = recipientUserId;
@@ -85,6 +104,8 @@ public class NotificationOutbox extends BaseEntity implements TenantOwned {
 		this.status = NotificationDispatchStatus.PENDING;
 		this.createdAt = createdAt;
 		this.dispatchedAt = null;
+		this.attemptCount = 0;
+		this.dedupeKey = dedupeKey;
 	}
 
 	@Override
@@ -138,6 +159,42 @@ public class NotificationOutbox extends BaseEntity implements TenantOwned {
 		}
 		this.status = NotificationDispatchStatus.SENDING;
 		this.claimedAt = claimedAt;
+		this.attemptCount++;
+		this.nextAttemptAt = null;
+	}
+
+	/** True when a transient failure of the current attempt may still be retried (decision D3). */
+	public boolean canRetry() {
+		return attemptCount < MAX_ATTEMPTS;
+	}
+
+	/**
+	 * Wave 11 (decision D3): a transient failure returns the row to {@code
+	 * PENDING}, due again at {@code nextAttemptAt}. Clears {@code claimedAt}
+	 * (V29's claimed-together CHECK requires it for a PENDING row).
+	 */
+	public void markRetry(Instant nextAttemptAt) {
+		if (status != NotificationDispatchStatus.SENDING) {
+			throw new IllegalStateException("Only a SENDING outbox row may be scheduled for retry, was " + status);
+		}
+		if (!canRetry()) {
+			throw new IllegalStateException("Outbox row has used all " + MAX_ATTEMPTS + " attempts");
+		}
+		this.status = NotificationDispatchStatus.PENDING;
+		this.claimedAt = null;
+		this.nextAttemptAt = nextAttemptAt;
+	}
+
+	public int getAttemptCount() {
+		return attemptCount;
+	}
+
+	public Instant getNextAttemptAt() {
+		return nextAttemptAt;
+	}
+
+	public String getDedupeKey() {
+		return dedupeKey;
 	}
 
 	/** The only legal path to {@code SENT}. */

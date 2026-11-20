@@ -8,19 +8,73 @@ import com.lms.videoaccessmanagement.domain.VideoWatchProgress;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.LockModeType;
 
 /** Tenant-scoped per ADR-006, mirroring {@code MaterialRepository}'s style exactly. */
 public interface VideoWatchProgressRepository extends TenantAwareRepository<VideoWatchProgress, UUID> {
+
+	/**
+	 * A video's watch-time limit changed: every Student's budget snapshot for it
+	 * is cleared, so the next heartbeat re-reads the new limit. Time watched and
+	 * grants are untouched.
+	 */
+	@Transactional
+	default int clearBudgetSnapshots(UUID tenantId, UUID videoAssetId) {
+		assertTenantIdMatchesContext(tenantId);
+		return clearBudgetSnapshotsUnchecked(tenantId, videoAssetId);
+	}
+
+	@org.springframework.data.jpa.repository.Modifying
+	@Query(value = "UPDATE video_watch_progress SET watch_budget_seconds_snapshot = NULL "
+			+ "WHERE tenant_id = :tenantId AND video_asset_id = :videoAssetId", nativeQuery = true)
+	int clearBudgetSnapshotsUnchecked(@Param("tenantId") UUID tenantId, @Param("videoAssetId") UUID videoAssetId);
+
+	/** Every video one Student has started, most recently watched first (staff watch-time screen). */
+	default java.util.List<VideoWatchProgress> findAllForStudent(UUID studentId) {
+		return findAll((root, query, cb) -> {
+			query.orderBy(cb.desc(root.get("lastWatchedAt")));
+			return cb.equal(root.get("studentId"), studentId);
+		});
+	}
 
 	/** The (tenant, video, student) lookup key: {@code uq_video_watch_progress} (V51) guarantees at most one row. */
 	default Optional<VideoWatchProgress> findByVideoAssetIdAndStudentId(UUID videoAssetId, UUID studentId) {
 		return findOne((root, query, cb) -> cb.and(cb.equal(root.get("videoAssetId"), videoAssetId),
 				cb.equal(root.get("studentId"), studentId)));
 	}
+
+	default Optional<VideoWatchProgress> findByVideoAssetIdAndStudentIdForUpdate(UUID tenantId, UUID videoAssetId,
+			UUID studentId) {
+		assertTenantIdMatchesContext(tenantId);
+		return findByVideoAssetIdAndStudentIdForUpdateUnchecked(tenantId, videoAssetId, studentId);
+	}
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select progress from VideoWatchProgress progress where progress.tenantId = :tenantId "
+			+ "and progress.videoAssetId = :videoAssetId and progress.studentId = :studentId")
+	Optional<VideoWatchProgress> findByVideoAssetIdAndStudentIdForUpdateUnchecked(@Param("tenantId") UUID tenantId,
+			@Param("videoAssetId") UUID videoAssetId, @Param("studentId") UUID studentId);
+
+	default void ensureExists(UUID tenantId, UUID videoAssetId, UUID studentId, Instant now) {
+		assertTenantIdMatchesContext(tenantId);
+		ensureExistsUnchecked(UuidV7Generator.generate(), tenantId, videoAssetId, studentId, now);
+	}
+
+	@Transactional
+	@Modifying
+	@Query(value = "INSERT INTO video_watch_progress "
+			+ "(id, tenant_id, video_asset_id, student_id, views_count, total_watched_seconds, "
+			+ "furthest_position_seconds, authorized_watch_seconds, last_position_seconds, "
+			+ "watch_budget_seconds_snapshot, last_watched_at, created_at, updated_at) "
+			+ "VALUES (:id, :tenantId, :videoAssetId, :studentId, 0, 0, 0, 0, 0, NULL, NULL, :now, :now) "
+			+ "ON CONFLICT (tenant_id, video_asset_id, student_id) DO NOTHING", nativeQuery = true)
+	void ensureExistsUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId,
+			@Param("videoAssetId") UUID videoAssetId, @Param("studentId") UUID studentId, @Param("now") Instant now);
 
 	/**
 	 * Atomic DB-level upsert incrementing {@code views_count} (and stamping

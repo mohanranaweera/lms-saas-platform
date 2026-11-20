@@ -1,0 +1,74 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]
+  - alert [ref=e35]
+  - generic [ref=e36]:
+    - complementary [ref=e37]:
+      - generic [ref=e38]: Student Portal
+      - navigation "Primary" [ref=e39]:
+        - list [ref=e40]:
+          - listitem [ref=e41]:
+            - link "Dashboard" [ref=e42] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=e43]:
+            - link "My Courses" [active] [ref=e44] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=e45]:
+            - link "Browse Courses" [ref=e46] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=e47]:
+            - link "My Attendance" [ref=e48] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=e49]:
+            - link "Exams" [ref=e50] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=e51]:
+            - link "Payments" [ref=e52] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=e53]:
+            - link "Reactivation" [ref=e54] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=e55]:
+            - link [ref=e56] [cursor=pointer]:
+              - /url: /student/notifications
+              - text: Notifications
+              - generic "1 unread notification" [ref=e57]:
+                - generic [aria-hidden] [ref=e58]: "1"
+          - listitem [ref=e59]:
+            - link "My Devices" [ref=e60] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=e61]:
+            - link "AOC Player" [ref=e62] [cursor=pointer]:
+              - /url: /student/player
+          - listitem [ref=e63]:
+            - link "Profile" [ref=e64] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=e65]:
+      - banner [ref=e66]:
+        - generic [ref=e67]:
+          - link "Change password" [ref=e68] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=e70]
+      - main [ref=e71]:
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - heading "My courses" [level=1] [ref=e120]
+            - paragraph [ref=e121]: Your enrollments and current course access.
+          - list "My enrolled courses" [ref=e122]:
+            - listitem [ref=e123]:
+              - generic [ref=e124]:
+                - heading "2028 Biology Theory Class" [level=2] [ref=e125]
+                - generic [ref=e126]: Biology
+              - generic [ref=e127]: Active
+              - paragraph [ref=e129]: Oct 24, 2026, 11:42 PM
+              - link "Open course 2028 Biology Theory Class" [ref=e131] [cursor=pointer]:
+                - /url: /student/courses/01a0a8c1-c4fd-755c-8fc5-c993482707a4
+                - text: Open course
+            - listitem [ref=e132]:
+              - generic [ref=e133]:
+                - heading "2027 Chemistry Theory Class" [level=2] [ref=e134]
+                - generic [ref=e135]: Chemistry
+              - generic [ref=e136]: Active
+              - paragraph [ref=e138]: Oct 27, 2026, 1:06 PM
+              - link "Open course 2027 Chemistry Theory Class" [ref=e140] [cursor=pointer]:
+                - /url: /student/courses/01a0dd23-1fd7-78f5-8a4d-1bea983d364c
+                - text: Open course

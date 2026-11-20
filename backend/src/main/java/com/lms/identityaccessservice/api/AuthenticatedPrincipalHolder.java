@@ -35,6 +35,15 @@ public final class AuthenticatedPrincipalHolder {
 		return principal;
 	}
 
+	/**
+	 * ADR-033: {@code true} only on a request authenticated by a support-impersonation
+	 * token. Null-safe - {@code false} on threads with no principal (scheduled jobs).
+	 */
+	public static boolean isImpersonating() {
+		AuthenticatedPrincipal principal = CURRENT.get();
+		return principal != null && principal.isImpersonation();
+	}
+
 	public static void clear() {
 		CURRENT.remove();
 	}

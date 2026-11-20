@@ -13,7 +13,9 @@ import com.lms.identityaccessservice.web.dto.LoginResponse;
 import com.lms.tenantmanagement.domain.Tenant;
 import com.lms.tenantmanagement.web.dto.ConfigPropertyResponse;
 import com.lms.tenantmanagement.web.dto.PublicBrandingResponse;
+import com.lms.tenantmanagement.web.dto.PublicRegistrationFieldResponse;
 import com.lms.tenantmanagement.web.dto.PublicStudentRegistrationPolicyResponse;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Tag;
@@ -172,6 +174,163 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 	}
 
 	// ------------------------------------------------------------------
+	// KLASS-T8d: clearing optional (no default, not required) keys.
+	// ------------------------------------------------------------------
+
+	@Test
+	void nullClearsAnOptionalPaymentKeyAndIsAuditedAsCleared() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-clear-bank"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+		putDomainOrFail(host, token, "PAYMENT", Map.of("bank_name", "Bank of Test", "bank_branch", "Colombo",
+				"facility_fee_mode", "PER_ORDER", "facility_fee_amount", 50));
+
+		HttpResult<List<ConfigPropertyResponse>> cleared = putDomainOrFail(host, token, "PAYMENT",
+				nullValued("bank_name"));
+
+		assertThat(valueOf(cleared, "bank_name")).isNull();
+		HttpResult<List<ConfigPropertyResponse>> reread = getDomain(host, token, "PAYMENT");
+		assertThat(valueOf(reread, "bank_name")).isNull();
+		assertThat(valueOf(reread, "bank_branch")).isEqualTo("Colombo");
+		assertThat(valueOf(reread, "facility_fee_mode")).isEqualTo("PER_ORDER");
+		assertThat(((Number) valueOf(reread, "facility_fee_amount")).intValue()).isEqualTo(50);
+		assertThat(configRowCount(tenant, "PAYMENT", "bank_name")).isZero();
+		Map<String, Object> audit = jdbcTemplate.queryForMap(
+				"SELECT metadata::text AS metadata, target_entity FROM audit_log WHERE tenant_id = ? "
+						+ "AND action = 'tenant_config.cleared'",
+				tenant.getId());
+		assertThat(audit.get("target_entity")).isEqualTo("tenant_config_entry");
+		assertThat((String) audit.get("metadata")).contains("bank_name").contains("Bank of Test");
+
+		// Re-settable after clearing.
+		putDomainOrFail(host, token, "PAYMENT", Map.of("bank_name", "Second Bank"));
+		assertThat(valueOf(getDomain(host, token, "PAYMENT"), "bank_name")).isEqualTo("Second Bank");
+	}
+
+	@Test
+	void nullClearsAnOptionalVideoPlayerUrl() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-clear-video"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+		putDomainOrFail(host, token, "VIDEO", Map.of("player_android_url", "https://play.example.test/app",
+				"player_ios_url", "https://apps.example.test/app"));
+
+		putDomainOrFail(host, token, "VIDEO", nullValued("player_android_url"));
+
+		HttpResult<List<ConfigPropertyResponse>> reread = getDomain(host, token, "VIDEO");
+		assertThat(valueOf(reread, "player_android_url")).isNull();
+		assertThat(valueOf(reread, "player_ios_url")).isEqualTo("https://apps.example.test/app");
+	}
+
+	@Test
+	void clearingAnOptionalKeyThatWasNeverSetIsANoOpWithNoAudit() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-clear-unset"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+
+		HttpResult<List<ConfigPropertyResponse>> result = putDomainOrFail(host, token, "PAYMENT",
+				nullValued("bank_account_number"));
+
+		assertThat(valueOf(result, "bank_account_number")).isNull();
+		Long auditCount = jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM audit_log WHERE tenant_id = ? AND action LIKE 'tenant_config.%'", Long.class,
+				tenant.getId());
+		assertThat(auditCount).isZero();
+	}
+
+	@Test
+	void nullOnARequiredKeyIsRejectedAndKeepsTheStoredValue() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-clear-required"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+		putDomainOrFail(host, token, "GENERAL", Map.of("institute_name", "Kept Institute"));
+
+		HttpResult<List<ConfigPropertyResponse>> result = parseList(
+				performPut(host, token, "GENERAL", nullValued("institute_name")));
+
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+		assertThat(result.getBody().error().fieldErrors()).extracting(FieldError::field).contains("institute_name");
+		assertThat(valueOf(getDomain(host, token, "GENERAL"), "institute_name")).isEqualTo("Kept Institute");
+	}
+
+	@Test
+	void nullOnAKeyWithADefaultIsRejectedAndTheWholeBatchIsNotApplied() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-clear-default"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String host = hostFor(tenant.getSubdomain());
+		String token = loginAndGetToken(host, "admin@example.test");
+		putDomainOrFail(host, token, "PAYMENT", Map.of("facility_fee_mode", "PER_LINE", "bank_name", "Kept Bank"));
+
+		Map<String, Object> changes = nullValued("facility_fee_mode");
+		changes.put("bank_name", null);
+		HttpResult<List<ConfigPropertyResponse>> result = parseList(performPut(host, token, "PAYMENT", changes));
+
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+		assertThat(result.getBody().error().fieldErrors()).extracting(FieldError::field)
+			.containsExactly("facility_fee_mode");
+		HttpResult<List<ConfigPropertyResponse>> reread = getDomain(host, token, "PAYMENT");
+		assertThat(valueOf(reread, "facility_fee_mode")).isEqualTo("PER_LINE");
+		assertThat(valueOf(reread, "bank_name")).isEqualTo("Kept Bank");
+	}
+
+	@Test
+	@Tag("cross-tenant")
+	void tenantAClearingAKeyNeverAffectsTenantBsOverride() {
+		Tenant tenantA = seedActiveTenant(uniqueSubdomain("cfg-clear-cross-a"));
+		Tenant tenantB = seedActiveTenant(uniqueSubdomain("cfg-clear-cross-b"));
+		seedTenantUser(tenantA.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		seedTenantUser(tenantB.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		String hostA = hostFor(tenantA.getSubdomain());
+		String hostB = hostFor(tenantB.getSubdomain());
+		String tokenA = loginAndGetToken(hostA, "admin@example.test");
+		String tokenB = loginAndGetToken(hostB, "admin@example.test");
+		putDomainOrFail(hostA, tokenA, "PAYMENT", Map.of("bank_name", "Bank A"));
+		putDomainOrFail(hostB, tokenB, "PAYMENT", Map.of("bank_name", "Bank B"));
+
+		putDomainOrFail(hostA, tokenA, "PAYMENT", nullValued("bank_name"));
+
+		assertThat(configRowCount(tenantA, "PAYMENT", "bank_name")).isZero();
+		assertThat(configRowCount(tenantB, "PAYMENT", "bank_name")).isEqualTo(1L);
+		assertThat(valueOf(getDomain(hostB, tokenB, "PAYMENT"), "bank_name")).isEqualTo("Bank B");
+		Long tenantBClearAudits = jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM audit_log WHERE tenant_id = ? AND action = 'tenant_config.cleared'", Long.class,
+				tenantB.getId());
+		assertThat(tenantBClearAudits).isZero();
+	}
+
+	@Test
+	void auditorCannotClearAnOptionalKey() {
+		Tenant tenant = seedActiveTenant(uniqueSubdomain("cfg-clear-auditor"));
+		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);
+		seedTenantUser(tenant.getId(), "auditor@example.test", RAW_PASSWORD, Role.READ_ONLY_AUDITOR);
+		String host = hostFor(tenant.getSubdomain());
+		putDomainOrFail(host, loginAndGetToken(host, "admin@example.test"), "PAYMENT",
+				Map.of("bank_name", "Kept Bank"));
+
+		MvcResult raw = performPut(host, loginAndGetToken(host, "auditor@example.test"), "PAYMENT",
+				nullValued("bank_name"));
+
+		assertThat(HttpStatus.valueOf(raw.getResponse().getStatus())).isEqualTo(HttpStatus.FORBIDDEN);
+		assertThat(configRowCount(tenant, "PAYMENT", "bank_name")).isEqualTo(1L);
+	}
+
+	private static Map<String, Object> nullValued(String key) {
+		Map<String, Object> changes = new HashMap<>();
+		changes.put(key, null);
+		return changes;
+	}
+
+	private Long configRowCount(Tenant tenant, String domain, String key) {
+		return jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM tenant_config_entry WHERE tenant_id = ? AND config_domain = ? AND config_key = ?",
+				Long.class, tenant.getId(), domain, key);
+	}
+
+	// ------------------------------------------------------------------
 	// Registry defaults.
 	// ------------------------------------------------------------------
 
@@ -269,8 +428,14 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 		HttpResult<PublicStudentRegistrationPolicyResponse> policyB = getPublicStudentRegistrationPolicy(hostB);
 
 		assertThat(policyA.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(policyA.getBody().data()).isEqualTo(new PublicStudentRegistrationPolicyResponse(false, true, true,
-				true, true, true, true, true));
+		PublicStudentRegistrationPolicyResponse dataA = policyA.getBody().data();
+		assertThat(dataA).isEqualTo(new PublicStudentRegistrationPolicyResponse(false, true, true, true, true, true,
+				true, true, dataA.registrationFields()));
+		// STU-PROF-01: the legacy require_* flags still drive the default field
+		// settings, so every legacy registration field is reported required.
+		assertThat(dataA.registrationFields()).extracting(PublicRegistrationFieldResponse::key)
+			.containsExactly("MOBILE", "SCHOOL", "GRADE", "AL_STREAM", "GUARDIAN");
+		assertThat(dataA.registrationFields()).allMatch(PublicRegistrationFieldResponse::required);
 		assertThat(policyB.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(policyB.getBody().data().publicRegistrationEnabled()).isTrue();
 		assertThat(policyB.getBody().data().approvalRequired()).isFalse();
@@ -284,8 +449,12 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 		HttpResult<PublicStudentRegistrationPolicyResponse> policy = getPublicStudentRegistrationPolicy(host);
 
 		assertThat(policy.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(policy.getBody().data()).isEqualTo(
-				new PublicStudentRegistrationPolicyResponse(true, false, false, false, false, false, false, false));
+		PublicStudentRegistrationPolicyResponse data = policy.getBody().data();
+		assertThat(data).isEqualTo(new PublicStudentRegistrationPolicyResponse(true, false, false, false, false, false,
+				false, false, data.registrationFields()));
+		assertThat(data.registrationFields()).extracting(PublicRegistrationFieldResponse::key)
+			.containsExactly("MOBILE", "SCHOOL", "GRADE", "AL_STREAM", "GUARDIAN");
+		assertThat(data.registrationFields()).noneMatch(PublicRegistrationFieldResponse::required);
 	}
 
 	@Test
@@ -300,7 +469,7 @@ class TenantConfigIntegrationTest extends AuthIntegrationTestSupport {
 
 		assertThat(data.keySet()).containsExactlyInAnyOrder("publicRegistrationEnabled", "approvalRequired",
 				"otpRequired", "requireGuardianInfo", "requireSchool", "requireGrade", "requireStream",
-				"requireMobile");
+				"requireMobile", "registrationFields");
 	}
 
 	// ------------------------------------------------------------------

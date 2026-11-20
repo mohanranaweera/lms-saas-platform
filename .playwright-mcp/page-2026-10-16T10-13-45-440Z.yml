@@ -1,0 +1,100 @@
+- generic [ref=f5e1]:
+  - button "Open Next.js Dev Tools" [ref=f5e11] [cursor=pointer]
+  - alert [ref=f5e15]
+  - generic [ref=f5e17]:
+    - banner [aria-hidden] [ref=f5e18]:
+      - generic [ref=f5e19]:
+        - button [ref=f5e20]
+        - generic [ref=f5e21]: Tenant Admin
+      - generic [ref=f5e22]:
+        - link [ref=f5e23] [cursor=pointer]:
+          - /url: /change-password
+          - text: Change password
+        - button [ref=f5e25]: Sign out
+    - main [ref=f5e26]:
+      - generic [ref=f5e27]:
+        - generic [aria-hidden] [ref=f5e28]:
+          - heading [level=1] [ref=f5e29]: Media Library
+          - paragraph [ref=f5e30]: Every document, image and lesson video your institute has uploaded.
+        - generic [ref=f5e31]:
+          - region [aria-hidden] [ref=f5e32]:
+            - paragraph [ref=f5e33]: Media library
+            - heading [level=2] [ref=f5e34]: 10 items
+            - paragraph [ref=f5e35]: Everything this institute can attach to a session
+            - list [ref=f5e36]:
+              - listitem [ref=f5e37]: 8 videos
+              - listitem [ref=f5e41]: 1 document
+              - listitem [ref=f5e45]: 1 image
+              - listitem [ref=f5e51]: Updated 3:43 PM
+          - generic [ref=f5e56]:
+            - tablist [aria-hidden] [ref=f5e57]:
+              - tab [selected] [ref=f5e58]: Uploads
+              - tab [ref=f5e59]: DynTube
+              - tab [ref=f5e60]: Active Youtube Connection
+              - tab [ref=f5e61]: Youtube Integration Two
+              - tab [ref=f5e62]:
+                - text: An another youtube
+                - generic [ref=f5e63]: Not connected
+            - tabpanel "Uploads" [ref=f5e64]:
+              - generic [ref=f5e65]:
+                - generic [ref=f5e66]:
+                  - generic [aria-hidden] [ref=f5e67]:
+                    - generic [ref=f5e68]: Search media
+                    - searchbox [ref=f5e70]
+                  - generic [aria-hidden] [ref=f5e71]:
+                    - generic [ref=f5e72]: Type
+                    - combobox [ref=f5e73]
+                  - generic [ref=f5e74]: 2 items
+                  - button [active] [aria-hidden] [ref=f5e76]: New media
+                - list [ref=f5e78]:
+                  - listitem [ref=f5e79]:
+                    - generic [ref=f5e80]:
+                      - generic [ref=f5e81]: PDF
+                      - generic [ref=f5e86]: Document
+                    - generic [ref=f5e87]:
+                      - heading [level=3] [ref=f5e88]: Income summary
+                      - paragraph [ref=f5e89]: 3.8 KB · tenantadmin@demo.test
+                    - generic [ref=f5e90]:
+                      - button [ref=f5e91]:
+                        - text: Open
+                        - generic [ref=f5e92]: Income summary (opens in a new tab)
+                      - button [ref=f5e93]:
+                        - text: Rename
+                        - generic [ref=f5e94]: Income summary
+                      - button [ref=f5e95]:
+                        - text: Delete
+                        - generic [ref=f5e96]: Income summary
+                  - listitem [ref=f5e97]:
+                    - generic [ref=f5e98]: Image
+                    - generic [ref=f5e101]:
+                      - heading [level=3] [ref=f5e102]: QuestionImage_20260102_235302
+                      - paragraph [ref=f5e103]: 16 KB · tenantadmin@demo.test
+                    - generic [ref=f5e104]:
+                      - button [ref=f5e105]:
+                        - text: Open
+                        - generic [ref=f5e106]: QuestionImage_20260102_235302 (opens in a new tab)
+                      - button [ref=f5e107]:
+                        - text: Rename
+                        - generic [ref=f5e108]: QuestionImage_20260102_235302
+                      - button [ref=f5e109]:
+                        - text: Delete
+                        - generic [ref=f5e110]: QuestionImage_20260102_235302
+  - dialog [ref=f5e114]:
+    - generic [ref=f5e115]:
+      - heading "New media" [level=2] [ref=f5e116]
+      - button "Close" [ref=f5e117]
+    - paragraph [ref=f5e118]: "Upload a video, document or image. Documents/images: PDF, PNG, JPEG, GIF or plain text, up to 25 MB. Internal videos: MP4, WebM or MOV, up to 25 MiB."
+    - generic [ref=f5e120]:
+      - generic [ref=f5e121]:
+        - generic [ref=f5e122]: File
+        - button "File" [ref=f5e123]
+        - paragraph [ref=f5e124]: Video, PDF, PNG, JPEG, GIF or .txt. Documents/images up to 25 MB; internal videos up to 25 MiB.
+      - generic [ref=f5e125]:
+        - generic [ref=f5e126]:
+          - text: Title
+          - generic [ref=f5e127]: (optional)
+        - textbox "Title (optional)" [ref=f5e128]:
+          - /placeholder: Defaults to the file name
+    - generic [ref=f5e129]:
+      - button "Cancel" [ref=f5e130]
+      - button "Upload" [ref=f5e131]

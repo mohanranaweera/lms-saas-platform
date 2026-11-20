@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,12 +10,17 @@ import { LiveRegion } from "@/components/ui/live-region";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useCourse } from "@/lib/api/courses";
 import { useCreateOrder, useInitiatePayment } from "@/lib/api/payments";
-import { isApiClientError } from "@/lib/api/error";
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 import {
   CoursePriceText,
   CoursePricingNotice,
   isCourseCheckoutAvailable,
 } from "@/components/courses/course-price-display";
+import { randomUuid } from "@/lib/uuid";
+import { useCheckoutPaymentOptions } from "@/lib/api/payment-gateway";
+import { hasBillingAddress, useOwnBillingAddress } from "@/lib/api/students";
+import { isAllowedGatewayAction, submitGatewayForm } from "@/lib/payments/submit-gateway-form";
 
 /**
  * Checkout entry point (PAY-1/PAY-2). Shows the course's server-computed
@@ -49,6 +55,18 @@ import {
  * `mode` tracks which action is in flight so clicking one button never
  * visually spins the other, and both are disabled while either is pending.
  *
+ * PAY-GW-01 (ADR-017): for a paid course the online button ("Pay online")
+ * is only offered when `GET /api/v1/checkout/payment-options` reports the
+ * institute's own PayHere account as active, and only enabled once the
+ * student has a billing address (PayHere requires it; the backend re-checks
+ * and refuses before creating any payment). When initiation returns
+ * `formAction`/`formFields`, the backend-signed fields are posted to PayHere
+ * unchanged (`submitGatewayForm`, PayHere origins only); PayHere later
+ * returns the student to awaiting-confirmation, which still only trusts the
+ * polled backend status. A FREE course keeps the single "Enroll" action.
+ * Both helper reads degrade safely: if either fails, the online button is
+ * simply not offered and bank transfer remains.
+ *
  * Wave 6 §3.3/§4/§5: every order-creation and payment-initiation call sends
  * a client-generated `idempotencyKey` (UUID), so a double-click or a
  * network-retry of the *same* submit action replays the original request
@@ -64,14 +82,22 @@ export default function CheckoutPage() {
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
   const router = useRouter();
+  const t = useT();
 
   const courseQuery = useCourse(courseId);
+  const paymentOptionsQuery = useCheckoutPaymentOptions();
+  const onlinePaymentAvailable = paymentOptionsQuery.data?.onlinePayment != null;
+  // SET-PAY-01: the backend reports whether the institute accepts bank transfer
+  // (and rejects a slip upload when it doesn't); unknown = offer it as before.
+  const bankSlipAvailable = paymentOptionsQuery.data?.bankSlip !== false;
+  const billingAddressQuery = useOwnBillingAddress({ enabled: onlinePaymentAvailable });
+  const billingAddressReady = hasBillingAddress(billingAddressQuery.data);
   const createOrder = useCreateOrder();
   const initiatePayment = useInitiatePayment();
   const [flowError, setFlowError] = useState<string | null>(null);
   const [mode, setMode] = useState<"gateway" | "slip" | null>(null);
-  const [orderIdempotencyKey] = useState<string>(() => crypto.randomUUID());
-  const [paymentIdempotencyKey] = useState<string>(() => crypto.randomUUID());
+  const [orderIdempotencyKey] = useState<string>(() => randomUuid());
+  const [paymentIdempotencyKey] = useState<string>(() => randomUuid());
 
   const isSubmitting = mode !== null;
 
@@ -84,15 +110,24 @@ export default function CheckoutPage() {
         courseId,
         idempotencyKey: orderIdempotencyKey,
       });
-      await initiatePayment.mutateAsync({
+      const initiation = await initiatePayment.mutateAsync({
         orderId: order.id,
         idempotencyKey: paymentIdempotencyKey,
       });
+      if (initiation.formAction && initiation.formFields) {
+        if (!isAllowedGatewayAction(initiation.formAction)) {
+          // Never post the student's details anywhere but PayHere.
+          setFlowError(t("student.checkout.gatewayFailed"));
+          setMode(null);
+          return;
+        }
+        // Leaves the app for PayHere; `mode` stays set so nothing re-submits.
+        submitGatewayForm(initiation.formAction, initiation.formFields);
+        return;
+      }
       router.push(`/student/payments/awaiting-confirmation/${order.id}`);
     } catch (error) {
-      setFlowError(
-        isApiClientError(error) ? error.message : "Something went wrong. Please try again."
-      );
+      setFlowError(localizeApiError(t, error));
       setMode(null);
     }
   }
@@ -108,9 +143,7 @@ export default function CheckoutPage() {
       });
       router.push(`/student/payments/slip-upload/${order.id}`);
     } catch (error) {
-      setFlowError(
-        isApiClientError(error) ? error.message : "Something went wrong. Please try again."
-      );
+      setFlowError(localizeApiError(t, error));
       setMode(null);
     }
   }
@@ -118,42 +151,43 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Checkout</h1>
-        <p className="text-sm text-muted-foreground">
-          Review the course details below, then continue to payment.
-        </p>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.checkout.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("student.checkout.subtitle")}</p>
       </div>
 
       <QueryStateBoundary
         query={courseQuery}
-        loadingLabel="Loading course…"
+        loadingLabel={t("student.common.loadingCourse")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
       >
         {(course) => {
           const checkoutAvailable = isCourseCheckoutAvailable(course) && course.status === "PUBLIC";
+          const isFree = course.pricingModel === "FREE";
+          const showOnlineButton = isFree || onlinePaymentAvailable;
+          const needsAddress = !isFree && onlinePaymentAvailable && !billingAddressReady;
 
           return (
             <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
               <div>
-                <h2 className="text-lg font-medium text-foreground">{course.name}</h2>
+                <h2 className="text-lg font-medium break-words text-foreground">{course.name}</h2>
                 <p className="text-sm text-muted-foreground">{course.category}</p>
               </div>
 
               <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4 text-sm">
                 <div>
-                  <dt className="text-xs font-medium text-muted-foreground">Price</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t("student.checkout.price")}</dt>
                   {/* Read-only display only — never a student-editable input. */}
                   <dd className="text-base font-semibold text-foreground">
                     <CoursePriceText course={course} />
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium text-muted-foreground">Access</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t("student.checkout.access")}</dt>
                   <dd className="text-foreground">
                     {course.accessDurationDays
-                      ? `${course.accessDurationDays} days`
-                      : "Lifetime access"}
+                      ? t("student.checkout.days", { count: course.accessDurationDays })
+                      : t("student.checkout.lifetime")}
                   </dd>
                 </div>
               </dl>
@@ -162,7 +196,7 @@ export default function CheckoutPage() {
                 <Alert role="status">
                   <AlertCircle aria-hidden="true" />
                   <AlertDescription>
-                    This course isn&apos;t currently open for enrollment.
+                    {t("student.checkout.notOpen")}
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -181,35 +215,62 @@ export default function CheckoutPage() {
                   <LiveRegion
                     message={
                       mode === "gateway"
-                        ? "Starting checkout…"
+                        ? t("student.checkout.starting")
                         : mode === "slip"
-                          ? "Preparing bank transfer upload…"
+                          ? t("student.checkout.preparingSlip")
                           : ""
                     }
                   />
 
                   <div className="flex flex-col gap-2">
-                    <Button
-                      type="button"
-                      onClick={handleEnroll}
-                      disabled={isSubmitting || !checkoutAvailable}
-                      aria-busy={mode === "gateway"}
-                    >
-                      {mode === "gateway" ? "Starting checkout…" : "Enroll"}
-                    </Button>
+                    {needsAddress && billingAddressQuery.isSuccess ? (
+                      <Alert role="status">
+                        <AlertCircle aria-hidden="true" />
+                        <AlertDescription>
+                          {t("student.checkout.needsAddress")}{" "}
+                          <Link href="/student/profile" className="font-medium underline">
+                            {t("student.checkout.addAddress")}
+                          </Link>
+                          {t("student.checkout.addAddressSuffix")}
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handlePayBySlip}
-                      disabled={isSubmitting || !checkoutAvailable}
-                      aria-busy={mode === "slip"}
-                    >
-                      {mode === "slip" ? "Preparing…" : "Pay by bank transfer"}
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Already sent a bank transfer? Upload your payment slip instead of paying online.
-                    </p>
+                    {showOnlineButton ? (
+                      <Button
+                        type="button"
+                        onClick={handleEnroll}
+                        disabled={isSubmitting || !checkoutAvailable || needsAddress}
+                        aria-busy={mode === "gateway"}
+                      >
+                        {mode === "gateway"
+                          ? t("student.checkout.starting")
+                          : isFree
+                            ? t("student.checkout.enroll")
+                            : t("student.checkout.payOnline")}
+                      </Button>
+                    ) : paymentOptionsQuery.isPending ? null : (
+                      <p className="text-sm text-muted-foreground">
+                        {t("student.checkout.onlineUnavailable")}
+                      </p>
+                    )}
+
+                    {bankSlipAvailable ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handlePayBySlip}
+                          disabled={isSubmitting || !checkoutAvailable}
+                          aria-busy={mode === "slip"}
+                        >
+                          {mode === "slip" ? t("student.checkout.preparing") : t("student.checkout.payByBank")}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          {t("student.checkout.bankHint")}
+                        </p>
+                      </>
+                    ) : null}
                   </div>
                 </>
               )}

@@ -1,7 +1,7 @@
 package com.lms.auditlogmanagement;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 
 import com.lms.auditlogmanagement.api.AuditLogApi;
@@ -32,7 +32,11 @@ class CoursePriceChangeAuditListenerRollbackIntegrationTest extends AuditLogMana
 
 	@Test
 	void aFailureInTheAuditWriteRollsBackTheCoursePriceChange() {
-		doThrow(new RuntimeException("Simulated audit log write failure")).when(auditLogApi).record(any());
+		// Only the audit write under test fails: other synchronous audit
+		// listeners on the same setup path (e.g. course creation audit,
+		// KLASS-T4a) must not abort the fixture before the action runs.
+		doThrow(new RuntimeException("Simulated audit log write failure")).when(auditLogApi)
+			.record(argThat(entry -> entry != null && "course.price_changed".equals(entry.action())));
 
 		Tenant tenant = seedActiveTenant(uniqueSubdomain("audit-price-rollback"));
 		seedTenantUser(tenant.getId(), "admin@example.test", RAW_PASSWORD, Role.TENANT_ADMIN);

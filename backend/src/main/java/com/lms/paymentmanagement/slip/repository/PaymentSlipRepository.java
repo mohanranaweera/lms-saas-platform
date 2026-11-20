@@ -6,6 +6,7 @@ import com.lms.common.tenant.TenantContextHolder;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.domain.PaymentSlipStatus;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -72,6 +73,40 @@ public interface PaymentSlipRepository extends TenantAwareRepository<PaymentSlip
 				: (root, query, cb) -> root.get("status")
 					.in(PaymentSlipStatus.SUBMITTED, PaymentSlipStatus.UNDER_REVIEW);
 		return findAll(spec, pageable);
+	}
+
+	/**
+	 * PAY-HUB-01: {@link #findReviewQueue(PaymentSlipStatus, Pageable)} narrowed
+	 * to slips matching ANY of: a student in {@code studentIds}, a reference
+	 * number LIKE {@code referenceLikePattern} (already lower-cased and
+	 * escaped with {@code '\'}), or an order in {@code orderIds}. All three
+	 * inputs come from tenant-scoped reads by the caller; this read is itself
+	 * tenant-scoped via the inherited {@code findAll(Specification, Pageable)}.
+	 */
+	default Page<PaymentSlip> searchReviewQueue(PaymentSlipStatus status, Collection<UUID> studentIds,
+			String referenceLikePattern, Collection<UUID> orderIds, Pageable pageable) {
+		Specification<PaymentSlip> statusSpec = (status != null)
+				? (root, query, cb) -> cb.equal(root.get("status"), status)
+				: (root, query, cb) -> root.get("status")
+					.in(PaymentSlipStatus.SUBMITTED, PaymentSlipStatus.UNDER_REVIEW);
+		Specification<PaymentSlip> matchSpec = (root, query, cb) -> {
+			List<jakarta.persistence.criteria.Predicate> any = new java.util.ArrayList<>();
+			any.add(cb.like(cb.lower(root.get("referenceNumber")), referenceLikePattern, '\\'));
+			if (!studentIds.isEmpty()) {
+				any.add(root.get("studentId").in(studentIds));
+			}
+			if (!orderIds.isEmpty()) {
+				any.add(root.get("orderId").in(orderIds));
+			}
+			return cb.or(any.toArray(jakarta.persistence.criteria.Predicate[]::new));
+		};
+		return findAll(statusSpec.and(matchSpec), pageable);
+	}
+
+	/** PAY-HUB-01: number of pending-review ({@code SUBMITTED}/{@code UNDER_REVIEW}) slips - tenant-scoped. */
+	default long countPendingReview() {
+		return count((root, query, cb) -> root.get("status")
+			.in(PaymentSlipStatus.SUBMITTED, PaymentSlipStatus.UNDER_REVIEW));
 	}
 
 	/**

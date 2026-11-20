@@ -20,6 +20,7 @@ import { canAuthorExams } from "@/lib/auth/permissions";
 import { useDeleteQuestion, type ExamQuestionResponse } from "@/lib/api/exams";
 import { isApiClientError } from "@/lib/api/error";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * One question-bank row (screen #4): view, edit-in-place, delete-with-confirm
  * (409 `CONFLICT` surfaced, not silently retried). Edit/Delete are hidden for
@@ -28,6 +29,7 @@ import { isApiClientError } from "@/lib/api/error";
  * enforcement for both the update and delete endpoints regardless.
  */
 export function QuestionListItem({ courseId, question }: { courseId: string; question: ExamQuestionResponse }) {
+  const t = useT();
   const { session } = useAuth();
   const canAuthor = canAuthorExams(session?.role ?? null);
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +39,7 @@ export function QuestionListItem({ courseId, question }: { courseId: string; que
   const deleteErrorMessage = deleteMutation.isError
     ? isApiClientError(deleteMutation.error)
       ? deleteMutation.error.message
-      : "An unexpected error occurred. Please try again."
+      : t("exams.questionItem.anUnexpectedErrorOccurred")
     : null;
 
   const handleDelete = async () => {
@@ -67,27 +69,27 @@ export function QuestionListItem({ courseId, question }: { courseId: string; que
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {question.questionType === "MCQ" ? "Multiple choice" : "Structured"}
+            {question.questionType === "MCQ" ? t("exams.questionItem.multipleChoice") : t("exams.questionItem.structured")}
           </span>
           <p className="text-sm text-foreground">{question.body}</p>
         </div>
         {canAuthor ? (
         <div className="flex shrink-0 gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-            Edit
+            {t("exams.questionItem.edit")}
           </Button>
           <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <AlertDialogTrigger
               render={
-                <Button type="button" variant="destructive" size="sm" aria-label="Delete question" />
+                <Button type="button" variant="destructive" size="sm" aria-label={t("exams.questionItem.deleteQuestion")} />
               }
             >
               <Trash2 className="size-3.5" aria-hidden="true" />
-              Delete
+              {t("exams.questionItem.delete")}
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete this question?</AlertDialogTitle>
+                <AlertDialogTitle>{t("exams.questionItem.deleteThisQuestion")}</AlertDialogTitle>
                 <AlertDialogDescription>
                   This permanently removes the question from the bank. If it&apos;s already linked to an exam
                   or has been answered, this will be rejected instead of deleted.
@@ -99,7 +101,7 @@ export function QuestionListItem({ courseId, question }: { courseId: string; que
                 </Alert>
               ) : null}
               <AlertDialogFooter>
-                <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+                <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("exams.questionItem.cancel")}</AlertDialogClose>
                 <Button
                   type="button"
                   variant="destructive"
@@ -107,7 +109,7 @@ export function QuestionListItem({ courseId, question }: { courseId: string; que
                   disabled={deleteMutation.isPending}
                   aria-busy={deleteMutation.isPending}
                 >
-                  {deleteMutation.isPending ? "Deleting…" : "Delete question"}
+                  {deleteMutation.isPending ? t("exams.questionItem.deleting") : t("exams.questionItem.deleteQuestion")}
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>

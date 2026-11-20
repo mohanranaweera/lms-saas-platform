@@ -1,5 +1,8 @@
 package com.lms.tenantmanagement.api;
 
+import com.lms.common.money.PlatformCurrency;
+import com.lms.tenantmanagement.config.ConfigPropertyRegistry;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,5 +40,100 @@ public interface TenantConfigApi {
 	Optional<Object> resolveValue(UUID tenantId, ConfigDomain domain, String key);
 
 	Map<String, Object> resolveDomain(UUID tenantId, ConfigDomain domain);
+
+	/**
+	 * The tenant's configured {@code GENERAL.default_currency} (Tenant Admin
+	 * -> Settings -> General), falling back to {@link
+	 * PlatformCurrency#DEFAULT_CURRENCY} only when the tenant has not set one.
+	 * The single source for every amount that has no currency column of its
+	 * own (FREE/ONE_TIME checkout, expenses, finance reports, settlements).
+	 * Callers snapshot the result onto the row they create, so changing the
+	 * setting never rewrites existing orders/payments/settlements.
+	 */
+	default String resolveDefaultCurrency(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "default_currency")
+			.filter(String.class::isInstance)
+			.map(String.class::cast)
+			.filter(value -> !value.isBlank())
+			.orElse(PlatformCurrency.DEFAULT_CURRENCY);
+	}
+
+	/** ADR-031: {@code GENERAL.mobile_login_enabled}, {@code true} unless explicitly {@code false}. */
+	default boolean isMobileLoginEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "mobile_login_enabled")
+			.map(value -> !Boolean.FALSE.equals(value))
+			.orElse(true);
+	}
+
+	/** ADR-031: {@code GENERAL.phone_region} (ISO region for local numbers), default {@code LK}. */
+	default String resolvePhoneRegion(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "phone_region")
+			.filter(String.class::isInstance)
+			.map(String.class::cast)
+			.orElse("LK");
+	}
+
+	/**
+	 * The tenant's raw {@code PAYMENT.bank_transfer_enabled} switch (Tenant
+	 * Admin -> Settings -> Payments, SET-PAY-01), {@code true} unless explicitly
+	 * set to {@code false}. Not the effective rule: payment-management's {@code
+	 * BankTransferPolicy} also keeps bank transfer open while online payment is
+	 * unavailable, which this foundational module cannot know about.
+	 */
+	default boolean isBankTransferEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.PAYMENT, "bank_transfer_enabled")
+			.map(value -> !Boolean.FALSE.equals(value))
+			.orElse(true);
+	}
+
+	/** SET-CFG-01: {@code NOTIFICATION.sms_enabled}, {@code true} unless explicitly {@code false}. */
+	default boolean isSmsEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.NOTIFICATION, "sms_enabled")
+			.map(value -> !Boolean.FALSE.equals(value))
+			.orElse(true);
+	}
+
+	/**
+	 * I18N-01: {@code GENERAL.enabled_locales} as stored (canonical tags), default
+	 * every supported locale ({@link ConfigPropertyRegistry#SUPPORTED_LOCALES}). The localization module re-validates every tag against the supported
+	 * locales before use.
+	 */
+	default List<String> resolveEnabledLocales(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "enabled_locales")
+			.filter(List.class::isInstance)
+			.map(value -> ((List<?>) value).stream()
+				.filter(String.class::isInstance)
+				.map(String.class::cast)
+				.toList())
+			.filter(list -> !list.isEmpty())
+			.orElse(ConfigPropertyRegistry.SUPPORTED_LOCALES);
+	}
+
+	/** I18N-01: {@code GENERAL.default_locale}, default {@code en-LK}. */
+	default String resolveDefaultLocale(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "default_locale")
+			.filter(String.class::isInstance)
+			.map(String.class::cast)
+			.filter(value -> !value.isBlank())
+			.orElse("en-LK");
+	}
+
+	/** I18N-01: {@code GENERAL.browser_language_detection}, {@code false} unless explicitly {@code true}. */
+	default boolean isBrowserLanguageDetectionEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.GENERAL, "browser_language_detection")
+			.map(Boolean.TRUE::equals)
+			.orElse(false);
+	}
+
+	/**
+	 * SET-CFG-01 (ADR-028 amendment): {@code STUDENT.self_enrollment_enabled},
+	 * {@code true} unless explicitly {@code false}. Gates student self-enrollment
+	 * only; staff enroll-on-behalf never reads it.
+	 */
+	default boolean isSelfEnrollmentEnabled(UUID tenantId) {
+		return resolveValue(tenantId, ConfigDomain.STUDENT, "self_enrollment_enabled")
+			.map(value -> !Boolean.FALSE.equals(value))
+			.orElse(true);
+	}
 
 }

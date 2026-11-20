@@ -23,6 +23,8 @@ import { SignedAmount } from "@/components/finance/signed-amount";
 import { SettlementStatusBadge } from "@/components/finance/settlement-status-badge";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageFinance } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { isApiClientError } from "@/lib/api/error";
 import {
   useAddTeacherShareRate,
@@ -55,7 +57,14 @@ const ALL = "__all__";
  */
 export default function TeacherPayoutsPage() {
   const { session } = useAuth();
-  const canManage = canManageFinance(session?.role ?? null);
+  const legacyManage = canManageFinance(session?.role ?? null);
+  // STAFF-MGMT-03: each action follows its own capability for capability-driven
+  // roles (UX only; the endpoints re-check FINANCE_EDIT_SHARE_RATES /
+  // FINANCE_CALCULATE_SETTLEMENTS server-side).
+  const { can } = useCapabilities();
+  const canEditRates = can(CAP.FINANCE_EDIT_SHARE_RATES, legacyManage);
+  const canCalculate = can(CAP.FINANCE_CALCULATE_SETTLEMENTS, legacyManage);
+  const canManage = canEditRates || canCalculate;
   const [status, setStatus] = useState<string>(ALL);
   const [teacherFilter, setTeacherFilter] = useState<string>(ALL);
   const [page, setPage] = useState(0);
@@ -117,20 +126,24 @@ export default function TeacherPayoutsPage() {
         </div>
         {canManage ? (
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => setPanel(panel === "rate" ? null : "rate")}>
-              <Percent aria-hidden="true" />
-              Set share rate
-            </Button>
-            <Button type="button" onClick={() => setPanel(panel === "calculate" ? null : "calculate")}>
-              <Calculator aria-hidden="true" />
-              Calculate statement
-            </Button>
+            {canEditRates ? (
+              <Button type="button" variant="outline" onClick={() => setPanel(panel === "rate" ? null : "rate")}>
+                <Percent aria-hidden="true" />
+                Set share rate
+              </Button>
+            ) : null}
+            {canCalculate ? (
+              <Button type="button" onClick={() => setPanel(panel === "calculate" ? null : "calculate")}>
+                <Calculator aria-hidden="true" />
+                Calculate statement
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
 
-      {canManage && panel === "rate" ? <RateForm teachers={teachers} onDone={() => setPanel(null)} /> : null}
-      {canManage && panel === "calculate" ? (
+      {canEditRates && panel === "rate" ? <RateForm teachers={teachers} onDone={() => setPanel(null)} /> : null}
+      {canCalculate && panel === "calculate" ? (
         <CalculateForm teachers={teachers} onDone={() => setPanel(null)} />
       ) : null}
 

@@ -27,7 +27,7 @@ import tools.jackson.databind.JavaType;
  * {@code @PreAuthorize("@permissionCheckService.hasPermission('STAFF_AND_ROLES', 'VIEW')")}
  * (per {@link com.lms.identityaccessservice.service.PermissionCheckServiceImpl#buildMatrix()},
  * only {@code TENANT_ADMIN} and {@code READ_ONLY_AUDITOR} are granted that
- * cell), and that the response body is exactly the 11 {@code TENANT}-scope
+ * cell), and that the response body is exactly the 13 {@code TENANT}-scope
  * catalog rows (V7) in {@code sort_order}, excluding {@code PLATFORM_ADMIN}.
  * Modeled directly on {@link PermissionEnforcementIntegrationTest}.
  */
@@ -35,7 +35,7 @@ class RoleCatalogControllerIntegrationTest extends AuthIntegrationTestSupport {
 
 	private static final List<String> EXPECTED_CODES_IN_SORT_ORDER = List.of("TENANT_ADMIN", "FINANCE_STAFF",
 			"COURSE_COORDINATOR", "STUDENT_SUPPORT", "CONTENT_MANAGER", "EXAM_MANAGER", "ATTENDANCE_OPERATOR",
-			"READ_ONLY_AUDITOR", "TEACHER", "TEACHER_ASSISTANT", "STUDENT");
+			"READ_ONLY_AUDITOR", "OPERATOR", "MANAGER", "TEACHER", "TEACHER_ASSISTANT", "STUDENT");
 
 	@Test
 	void noTokenIsRejectedWithUnauthorized() {
@@ -115,7 +115,7 @@ class RoleCatalogControllerIntegrationTest extends AuthIntegrationTestSupport {
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
 		List<RoleSummary> roles = result.getBody().data();
 
-		assertThat(roles).hasSize(11);
+		assertThat(roles).hasSize(13);
 		assertThat(roles).allSatisfy(role -> assertThat(role.scope()).isEqualTo("TENANT"));
 		assertThat(roles).extracting(RoleSummary::code).doesNotContain("PLATFORM_ADMIN");
 		assertThat(roles).extracting(RoleSummary::code).containsExactlyElementsOf(EXPECTED_CODES_IN_SORT_ORDER);

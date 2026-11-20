@@ -609,6 +609,7 @@ class StudentManagementIntegrationTest extends AuthIntegrationTestSupport {
 	// ------------------------------------------------------------------
 
 	private String loginAndGetToken(String host, String email) {
+		markOnboarded(email);
 		HttpResult<LoginResponse> response = login(host, email, RAW_PASSWORD);
 		assertThat(response.getStatusCode()).as("login for " + email).isEqualTo(HttpStatus.OK);
 		return response.getBody().data().accessToken();

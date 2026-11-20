@@ -2,9 +2,8 @@ package com.lms.liveclassmanagement.support;
 
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.LessonAccessApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -53,15 +52,18 @@ public class LiveClassAccessGuard {
 
 	private final CourseLookupApi courseLookupApi;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final AccessPolicyApi accessPolicyApi;
 
 	private final PermissionCheckService permissionCheckService;
 
-	public LiveClassAccessGuard(CourseLookupApi courseLookupApi, EnrollmentAccessApi enrollmentAccessApi,
-			PermissionCheckService permissionCheckService) {
+	private final LessonAccessApi lessonAccessApi;
+
+	public LiveClassAccessGuard(CourseLookupApi courseLookupApi, AccessPolicyApi accessPolicyApi,
+			PermissionCheckService permissionCheckService, LessonAccessApi lessonAccessApi) {
 		this.courseLookupApi = courseLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.accessPolicyApi = accessPolicyApi;
 		this.permissionCheckService = permissionCheckService;
+		this.lessonAccessApi = lessonAccessApi;
 	}
 
 	/**
@@ -100,10 +102,17 @@ public class LiveClassAccessGuard {
 			return;
 		}
 		if (STUDENT_ROLE.equals(principal.role())) {
-			EnrollmentAccessState state = enrollmentAccessApi.resolveAccessState(principal.userId(), session.getCourseId());
-			if (state.state() != EnrollmentAccessStateType.ACTIVE) {
-				throw new NotFoundException("Class session not found");
+			if (session.getLessonId() != null) {
+				// KLASS-T4b (ADR-028): a session attached to a lesson is a protected
+				// leaf of that lesson - the single lesson evaluator decides
+				// (participation, device, lesson window, payment).
+				lessonAccessApi.requireLessonAccess(session.getCourseId(), session.getLessonId(),
+						() -> new NotFoundException("Class session not found"));
+				return;
 			}
+			// No lesson: legacy course-wide rule (entitlement, expiry/extension/grace, device).
+			accessPolicyApi.requireStudentCourseAccess(session.getCourseId(),
+					() -> new NotFoundException("Class session not found"));
 			return;
 		}
 		permissionCheckService.requirePermission(DomainArea.LIVE_CLASSES, action);

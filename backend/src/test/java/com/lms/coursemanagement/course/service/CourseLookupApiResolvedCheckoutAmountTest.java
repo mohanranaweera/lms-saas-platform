@@ -25,6 +25,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.lms.tenantmanagement.api.ConfigDomain;
+import com.lms.tenantmanagement.api.TenantConfigApi;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -56,9 +59,38 @@ class CourseLookupApiResolvedCheckoutAmountTest {
 	@Mock
 	private CourseBillingPeriodRepository billingPeriodRepository;
 
+	@Mock(answer = Answers.CALLS_REAL_METHODS)
+	private TenantConfigApi tenantConfigApi;
+
 	private CourseLookupApiImpl impl() {
 		return new CourseLookupApiImpl(courseRepository, courseModuleRepository, courseLessonRepository,
-				billingConfigurationRepository, billingPeriodRepository);
+				billingConfigurationRepository, billingPeriodRepository, tenantConfigApi, null, null);
+	}
+
+	@Test
+	void oneTimeUsesTheTenantsConfiguredDefaultCurrency() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CoursePricingModel.ONE_TIME, new BigDecimal("4500.00"));
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		when(tenantConfigApi.resolveValue(TENANT_ID, ConfigDomain.GENERAL, "default_currency"))
+			.thenReturn(Optional.of("LKR"));
+
+		CheckoutAmount amount = impl().getResolvedCheckoutAmount(courseId).orElseThrow();
+
+		assertThat(amount.amount()).isEqualByComparingTo("4500.00");
+		assertThat(amount.currency()).isEqualTo("LKR");
+	}
+
+	@Test
+	void aBlankConfiguredCurrencyFallsBackToThePlatformDefault() {
+		UUID courseId = UUID.randomUUID();
+		Course course = courseFixture(courseId, CoursePricingModel.FREE, new BigDecimal("0.00"));
+		when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+		when(tenantConfigApi.resolveValue(TENANT_ID, ConfigDomain.GENERAL, "default_currency"))
+			.thenReturn(Optional.of(" "));
+
+		assertThat(impl().getResolvedCheckoutAmount(courseId).orElseThrow().currency())
+			.isEqualTo(PlatformCurrency.DEFAULT_CURRENCY);
 	}
 
 	@Test

@@ -1,5 +1,7 @@
 package com.lms.ledgersettlementmanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementKind;
@@ -48,18 +50,21 @@ public class TeacherSettlementController {
 
 	@GetMapping("/teachers")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<List<TeacherLookupApi.TeacherSummary>>> listPayees() {
 		return ResponseEntity.ok(ApiResponse.success(settlementService.listPayees()));
 	}
 
 	@GetMapping("/teacher-share-rates")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<List<RateView>>> listRates(@RequestParam(required = false) UUID teacherId) {
 		return ResponseEntity.ok(ApiResponse.success(settlementService.listRates(teacherId)));
 	}
 
 	@PostMapping("/teacher-share-rates")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_EDIT_SHARE_RATES)
 	public ResponseEntity<ApiResponse<RateView>> addRate(@Valid @RequestBody TeacherShareRateRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(ApiResponse.success(settlementService.addRate(request.teacherId(), request.sharePercent(),
@@ -68,6 +73,7 @@ public class TeacherSettlementController {
 
 	@GetMapping("/teacher-settlements")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<PageResponse<SettlementView>>> list(
 			@RequestParam(required = false) UUID teacherId,
 			@RequestParam(required = false) TeacherSettlementStatus status,
@@ -79,6 +85,7 @@ public class TeacherSettlementController {
 
 	@PostMapping("/teacher-settlements")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_CALCULATE_SETTLEMENTS)
 	public ResponseEntity<ApiResponse<SettlementDetail>> calculate(
 			@Valid @RequestBody TeacherSettlementCalculateRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
@@ -88,12 +95,14 @@ public class TeacherSettlementController {
 
 	@GetMapping("/teacher-settlements/{settlementId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.TEACHERS_VIEW_WALLET)
 	public ResponseEntity<ApiResponse<SettlementDetail>> get(@PathVariable UUID settlementId) {
 		return ResponseEntity.ok(ApiResponse.success(settlementService.get(settlementId)));
 	}
 
 	@PostMapping("/teacher-settlements/{settlementId}/mark-paid")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_MARK_SETTLEMENT_PAID)
 	public ResponseEntity<ApiResponse<SettlementDetail>> markPaid(@PathVariable UUID settlementId,
 			@Valid @RequestBody(required = false) TeacherSettlementMarkPaidRequest request) {
 		String reference = (request == null) ? null : request.payoutReference();
@@ -102,6 +111,7 @@ public class TeacherSettlementController {
 
 	@PostMapping("/teacher-settlements/{settlementId}/adjustments")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_ADJUST_SETTLEMENT)
 	public ResponseEntity<ApiResponse<SettlementDetail>> adjust(@PathVariable UUID settlementId,
 			@Valid @RequestBody TeacherSettlementAdjustmentRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)

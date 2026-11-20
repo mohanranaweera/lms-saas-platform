@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/attendance";
 import { shortId } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 const columns: DataTableColumn<AttendanceSummaryRow>[] = [
   {
     key: "student",
@@ -44,27 +45,28 @@ export function AttendanceSummaryTable({
   params?: AttendanceSummaryParams;
   dashboardHref: string;
 }) {
+  const t = useT();
   const query = useCourseAttendanceSummary(courseId, params);
 
   return (
     <section aria-labelledby="attendance-summary-heading" className="flex flex-col gap-3">
       <div>
         <h2 id="attendance-summary-heading" className="text-base font-medium text-foreground">
-          Attendance summary
+          {t("attendance.summaryTable.attendanceSummary")}
         </h2>
         <p className="text-xs text-muted-foreground">
-          Attendance rate counts Present and Late as attended, over all sessions marked for each student.
+          {t("attendance.summaryTable.attendanceRateCountsPresent")}
         </p>
       </div>
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading attendance summary…"
+        loadingLabel={t("attendance.summaryTable.loadingAttendanceSummary")}
         loginPath="/login"
         permissionDenied={{ dashboardHref }}
         isEmpty={(rows) => rows.length === 0}
         emptyState={{
-          title: "No attendance recorded for this course",
-          description: "Once attendance is marked for this course's sessions, each student's totals appear here.",
+          title: t("attendance.summaryTable.noAttendanceRecordedFor"),
+          description: t("attendance.summaryTable.onceAttendanceIsMarked"),
         }}
       >
         {(rows) => (
@@ -72,7 +74,7 @@ export function AttendanceSummaryTable({
             columns={columns}
             rows={rows}
             rowKey={(row) => row.studentId}
-            caption="Attendance summary by student"
+            caption={t("attendance.summaryTable.attendanceSummaryByStudent")}
             cardHeading={(row) => row.studentName ?? shortId(row.studentId, "Student")}
           />
         )}

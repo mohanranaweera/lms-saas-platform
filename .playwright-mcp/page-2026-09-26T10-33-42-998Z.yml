@@ -1,0 +1,69 @@
+- generic [active] [ref=f2e1]:
+  - button "Open Next.js Dev Tools" [ref=f2e11] [cursor=pointer]
+  - alert [ref=f2e15]
+  - generic [ref=f2e16]:
+    - complementary [ref=f2e17]:
+      - generic [ref=f2e18]: Student Portal
+      - navigation "Primary" [ref=f2e19]:
+        - list [ref=f2e20]:
+          - listitem [ref=f2e21]:
+            - link "Dashboard" [ref=f2e22] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f2e23]:
+            - link "My Courses" [ref=f2e24] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f2e25]:
+            - link "Browse Courses" [ref=f2e26] [cursor=pointer]:
+              - /url: /courses
+          - listitem [ref=f2e27]:
+            - link "Live Classes" [ref=f2e28] [cursor=pointer]:
+              - /url: /student/live-classes
+          - listitem [ref=f2e29]:
+            - link "My Attendance" [ref=f2e30] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f2e31]:
+            - link "Exams" [ref=f2e32] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f2e33]:
+            - link "Payments" [ref=f2e34] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f2e35]:
+            - link "Reactivation" [ref=f2e36] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f2e37]:
+            - link "Notifications" [ref=f2e38] [cursor=pointer]:
+              - /url: /student/notifications
+          - listitem [ref=f2e39]:
+            - link "Profile" [ref=f2e40] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f2e41]:
+      - banner [ref=f2e42]:
+        - button "Sign out" [ref=f2e44]
+      - main [ref=f2e45]:
+        - generic [ref=f2e46]:
+          - generic [ref=f2e47]:
+            - heading "Overview" [level=1] [ref=f2e48]
+            - paragraph [ref=f2e49]: Your enrollments, courses, and recent payment activity at a glance.
+          - generic [ref=f2e50]:
+            - generic [ref=f2e51]:
+              - group [ref=f2e52]:
+                - paragraph [ref=f2e54]: Active courses
+                - paragraph [ref=f2e59]: "1"
+              - group [ref=f2e60]:
+                - paragraph [ref=f2e62]: Needs attention
+                - paragraph [ref=f2e66]: "0"
+            - generic [ref=f2e67]:
+              - heading "Recent courses" [level=2] [ref=f2e68]
+              - list "Recent courses" [ref=f2e69]:
+                - listitem [ref=f2e70]:
+                  - generic [ref=f2e71]:
+                    - heading "2028 Biology Theory Class" [level=3] [ref=f2e72]
+                    - generic [ref=f2e73]: Active
+                  - generic [ref=f2e74]: Biology
+              - link "View all my courses" [ref=f2e75] [cursor=pointer]:
+                - /url: /student/courses
+          - region [ref=f2e76]:
+            - heading "Payment activity" [level=2] [ref=f2e77]
+            - group [ref=f2e78]:
+              - paragraph [ref=f2e80]: Most recent payment
+              - paragraph [ref=f2e85]: No payments yet

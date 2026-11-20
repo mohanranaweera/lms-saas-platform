@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/data-table";
+import { useCourseRosterView } from "@/components/courses/course-roster-columns";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
-import { useCourses, useCourseRoster, type CourseRosterEntryResponse } from "@/lib/api/courses";
+import { useCourses, useCourseRoster } from "@/lib/api/courses";
 import { CourseScopeSelect } from "./course-scope-select";
-
-const columns: DataTableColumn<CourseRosterEntryResponse>[] = [
-  { key: "name", header: "Name", cell: (row) => row.name, hideOnCard: true },
-  { key: "email", header: "Email", cell: (row) => row.email },
-];
 
 /**
  * Roster tab (Wave 3, PAR-04-03) — `GET /v1/courses/{courseId}/roster`
@@ -58,19 +54,17 @@ export function TeacherRosterTab({ teacherId }: { teacherId: string }) {
 
 function RosterForCourse({ courseId }: { courseId: string }) {
   const query = useCourseRoster(courseId);
+  const rosterView = useCourseRosterView();
   return (
     <QueryStateBoundary
       query={query}
       loadingLabel="Loading roster…"
       isEmpty={(data) => data.length === 0}
-      emptyState={{
-        title: "No enrolled students",
-        description: "No student is currently enrolled in this course.",
-      }}
+      emptyState={rosterView.emptyState}
     >
       {(roster) => (
         <DataTable
-          columns={columns}
+          columns={rosterView.columns}
           rows={roster}
           rowKey={(row) => row.studentId}
           caption="Course roster"

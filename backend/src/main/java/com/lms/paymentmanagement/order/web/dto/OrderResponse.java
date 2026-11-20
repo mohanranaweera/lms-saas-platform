@@ -5,7 +5,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-public record OrderResponse(UUID id, UUID studentId, UUID courseId, BigDecimal amount, String currency,
-		UUID billingPeriodId, OrderStatus status, Instant createdAt, Instant updatedAt) {
+public record OrderResponse(UUID id, long orderNumber, String displayOrderNumber, UUID studentId, UUID courseId, BigDecimal amount, String currency,
+		UUID billingPeriodId, OrderStatus status, Instant createdAt, Instant updatedAt, BigDecimal subtotalAmount,
+			BigDecimal facilityFeeAmount, BigDecimal postageAmount, BigDecimal discountAmount) {
 
 }

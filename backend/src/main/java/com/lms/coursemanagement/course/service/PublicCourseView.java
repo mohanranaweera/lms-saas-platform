@@ -3,6 +3,7 @@ package com.lms.coursemanagement.course.service;
 import com.lms.coursemanagement.course.domain.CoursePricingModel;
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.List;
 
 /**
  * Public storefront projection of a {@code PUBLIC}-status course. Excludes
@@ -24,6 +25,21 @@ import java.util.UUID;
 public record PublicCourseView(UUID id, String name, String slug, String category, String subject, String stream,
 		String grade, String academicYear, String description, BigDecimal price, Integer accessDurationDays,
 		String enrollmentRule, CoursePricingModel pricingModel, BigDecimal resolvedAmount, String currency,
-		boolean requiresManualQuote) {
+		boolean requiresManualQuote, String teacherName, String coverImageUrl, boolean registrationEnabled,
+			PublicCourseOutline outline, List<PublicCourseTag> tags, String contentLocale,
+			List<String> availableLocales) {
+
+	/**
+	 * I18N-01: the same view with a localized name/description. {@code contentLocale} is the
+	 * locale actually served ({@code null} = legacy original with no declared language);
+	 * {@code availableLocales} the locales this course can be served in.
+	 */
+	public PublicCourseView localized(String localizedName, String localizedDescription, String servedLocale,
+			List<String> locales) {
+		return new PublicCourseView(id, localizedName, slug, category, subject, stream, grade, academicYear,
+				localizedDescription, price, accessDurationDays, enrollmentRule, pricingModel, resolvedAmount, currency,
+				requiresManualQuote, teacherName, coverImageUrl, registrationEnabled, outline, tags, servedLocale,
+				List.copyOf(locales));
+	}
 
 }

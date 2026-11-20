@@ -11,6 +11,8 @@ export class ApiClientError extends Error {
   readonly code: string;
   readonly fieldErrors: FieldError[];
   readonly traceId?: string;
+  /** `ApiError.details` (error-specific payload), or `null` when the server sent none. */
+  readonly details: Record<string, unknown> | null;
 
   constructor(apiError: ApiError, status: number, traceId?: string) {
     super(apiError.message);
@@ -19,6 +21,7 @@ export class ApiClientError extends Error {
     this.code = apiError.code;
     this.fieldErrors = apiError.fieldErrors;
     this.traceId = traceId;
+    this.details = apiError.details ?? null;
   }
 }
 

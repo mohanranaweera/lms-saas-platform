@@ -58,6 +58,18 @@ export interface TenantDetailResponse {
   contactEmail: string | null;
   contactPhone: string | null;
   createdAt: string;
+  /** AUTH-PWD-01: the tenant's first Tenant Admin. */
+  firstAdmin: FirstAdmin;
+}
+
+export type FirstAdminStatus = "NONE" | "INVITED" | "ACTIVE" | "SUSPENDED";
+
+/** Email is masked; the other fields are null when status is NONE. */
+export interface FirstAdmin {
+  status: FirstAdminStatus;
+  emailMasked: string | null;
+  invitedAt: string | null;
+  inviteExpiresAt: string | null;
 }
 
 export interface PlatformAdminTenantsParams {
@@ -147,6 +159,27 @@ export function useRejectTenant(id: string) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformAdminTenantKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: platformAdminTenantKeys.detail(id) });
+    },
+  });
+}
+
+/**
+ * AUTH-PWD-01 `POST /api/v1/platform-admin/tenants/{id}/admin-invitation` -
+ * invite the first Tenant Admin (none yet), resend the invitation, or correct
+ * its email (still invited). `202` → the new `FirstAdmin`; `409` once active;
+ * `429` within a minute of the last send.
+ */
+export function useInviteTenantAdmin(id: string) {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (email?: string) =>
+      authorizedFetch<FirstAdmin>("platform-admin", `/v1/platform-admin/tenants/${id}/admin-invitation`, {
+        method: "POST",
+        body: JSON.stringify(email ? { email } : {}),
+      }),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformAdminTenantKeys.detail(id) });
     },
   });

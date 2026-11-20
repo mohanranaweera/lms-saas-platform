@@ -54,6 +54,9 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 
 	protected static final String WRONG_PASSWORD = "Totally-Wrong-Password-9!";
 
+	/** Wave 10 server-issued device cookie. */
+	protected static final String DEVICE_COOKIE = "lms_device_id";
+
 	@Autowired
 	protected TenantRepository tenantRepository;
 
@@ -126,6 +129,17 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 		return seedTenantUser(tenantId, email, RAW_PASSWORD, Role.STUDENT);
 	}
 
+	/**
+	 * AUTH-PWD-01: accounts created through the staff/student/teacher APIs start
+	 * with must_change_password = true, and such an account may do nothing but
+	 * change its password. Business-flow tests act as already-onboarded users,
+	 * so they clear the flag first; the forced change itself is covered by
+	 * AccountSetupAndPasswordIntegrationTest.
+	 */
+	protected void markOnboarded(String email) {
+		jdbcTemplate.update("UPDATE tenant_user SET must_change_password = false WHERE email = ?", email);
+	}
+
 	protected void suspendTenantUser(UUID tenantUserId) {
 		jdbcTemplate.update("UPDATE tenant_user SET status = 'suspended' WHERE id = ?", tenantUserId);
 	}
@@ -139,8 +153,16 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 	}
 
 	protected HttpResult<LoginResponse> login(String host, String email, String password) {
+		return login(host, email, password, null);
+	}
+
+	/** Wave 10: logs in presenting a previously issued {@code lms_device_id} cookie (null = a new device). */
+	protected HttpResult<LoginResponse> login(String host, String email, String password, String deviceToken) {
 		MockHttpServletRequestBuilder request = jsonPost("/api/v1/auth/login", host)
 			.content(writeJson(new LoginRequest(email, password)));
+		if (deviceToken != null) {
+			request.cookie(new Cookie(DEVICE_COOKIE, deviceToken));
+		}
 		return exchange(request, LoginResponse.class);
 	}
 
@@ -157,8 +179,17 @@ public abstract class AuthIntegrationTestSupport extends AbstractIntegrationTest
 	}
 
 	protected HttpResult<RefreshResponse> refresh(String host, String refreshCookieName, String rawCookieValue) {
+		return refresh(host, refreshCookieName, rawCookieValue, null);
+	}
+
+	/** Wave 10: a tenant refresh must also present the device cookie of the session. */
+	protected HttpResult<RefreshResponse> refresh(String host, String refreshCookieName, String rawCookieValue,
+			String deviceToken) {
 		MockHttpServletRequestBuilder request = jsonPost("/api/v1/auth/refresh", host)
 			.cookie(new Cookie(refreshCookieName, rawCookieValue));
+		if (deviceToken != null) {
+			request.cookie(new Cookie(DEVICE_COOKIE, deviceToken));
+		}
 		return exchange(request, RefreshResponse.class);
 	}
 

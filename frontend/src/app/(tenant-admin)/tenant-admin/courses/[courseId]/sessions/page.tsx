@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { buttonVariants } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { CourseWorkspaceShell } from "@/components/courses/course-workspace-shell";
 import { ClassSessionStatusBadge } from "@/components/live-classes/class-session-status-badge";
@@ -47,14 +48,22 @@ function CourseSessionsList({ courseId }: { courseId: string }) {
       loadingLabel="Loading live class sessions…"
       loginPath="/login"
       permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
-      isEmpty={(data) => data.length === 0}
-      emptyState={{
-        title: "No live class sessions for this course yet",
-        description: "Live classes scheduled by this course's teacher will appear here.",
-      }}
+      isEmpty={() => false}
     >
       {(sessions) => (
-        <ul className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-end">
+            <Button render={<Link href={`/tenant-admin/courses/${courseId}/live-classes/new`} />}>
+              <Plus aria-hidden="true" />
+              Schedule live class
+            </Button>
+          </div>
+          {sessions.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border px-6 py-8 text-center text-sm text-muted-foreground">
+              No live class sessions for this course yet. Schedule the first one above.
+            </p>
+          ) : null}
+          <ul className="flex flex-col gap-2">
           {sessions.map((session) => (
             <li
               key={session.id}
@@ -80,7 +89,8 @@ function CourseSessionsList({ courseId }: { courseId: string }) {
               </Link>
             </li>
           ))}
-        </ul>
+          </ul>
+        </div>
       )}
     </QueryStateBoundary>
   );

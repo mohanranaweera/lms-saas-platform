@@ -1,5 +1,6 @@
 package com.lms.exammanagement.service;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,8 +11,8 @@ import static org.mockito.Mockito.when;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.enrollmentmanagement.api.ContentCoverageApi;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamAnswer;
 import com.lms.exammanagement.domain.ExamAttempt;
@@ -80,6 +81,9 @@ class ExamAttemptServiceTest {
 	private EnrollmentAccessApi enrollmentAccessApi;
 
 	@Mock
+	private ContentCoverageApi contentCoverageApi;
+
+	@Mock
 	private TenantContext tenantContext;
 
 	@Mock
@@ -93,7 +97,8 @@ class ExamAttemptServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new ExamAttemptService(examRepository, examAttemptRepository, examAnswerRepository,
-				examQuestionLinkRepository, examLifecycleService, mcqAutoMarkingService, enrollmentAccessApi,
+				examQuestionLinkRepository, examLifecycleService, mcqAutoMarkingService,
+				AccessPolicyTestDouble.backedBy(enrollmentAccessApi), contentCoverageApi,
 				tenantContext, studentLookupApi, permissionCheckService);
 		when(examLifecycleService.now()).thenReturn(NOW);
 	}
@@ -114,8 +119,7 @@ class ExamAttemptServiceTest {
 
 	private void stubActiveEnrollmentAndPublishedWindow(Exam exam) {
 		when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
-		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
+		when(contentCoverageApi.isParticipant(STUDENT_ID, COURSE_ID)).thenReturn(true);
 		when(examLifecycleService.resolveCurrentStatus(exam)).thenReturn(ExamStatus.PUBLISHED);
 	}
 
@@ -148,7 +152,7 @@ class ExamAttemptServiceTest {
 		assertThat(captor.getValue().getExamId()).isEqualTo(EXAM_ID);
 		assertThat(captor.getValue().getStudentId()).isEqualTo(STUDENT_ID);
 		assertThat(view.examId()).isEqualTo(EXAM_ID);
-		verify(enrollmentAccessApi).resolveAccessState(STUDENT_ID, COURSE_ID);
+		verify(contentCoverageApi).isParticipant(STUDENT_ID, COURSE_ID);
 		verify(examLifecycleService).resolveCurrentStatus(exam);
 	}
 
@@ -168,12 +172,11 @@ class ExamAttemptServiceTest {
 	}
 
 	@Test
-	void startAttemptRejectsWhenTheStudentsEnrollmentIsNotCurrentlyActive() {
+	void startAttemptRejectsWhenTheStudentIsNotEnrolledInTheCourse() {
 		setStudentPrincipal(STUDENT_ID);
 		Exam exam = publishedExam();
 		when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
-		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.expired(UUID.randomUUID(), NOW.minusSeconds(1), false));
+		when(contentCoverageApi.isParticipant(STUDENT_ID, COURSE_ID)).thenReturn(false);
 
 		assertThatThrownBy(() -> service.startAttempt(EXAM_ID)).isInstanceOf(AccessDeniedException.class);
 
@@ -185,8 +188,7 @@ class ExamAttemptServiceTest {
 		setStudentPrincipal(STUDENT_ID);
 		Exam exam = publishedExam();
 		when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
-		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
+		when(contentCoverageApi.isParticipant(STUDENT_ID, COURSE_ID)).thenReturn(true);
 		when(examLifecycleService.resolveCurrentStatus(exam)).thenReturn(ExamStatus.SCHEDULED);
 
 		assertThatThrownBy(() -> service.startAttempt(EXAM_ID)).isInstanceOf(ExamNotYetOpenException.class);
@@ -199,8 +201,7 @@ class ExamAttemptServiceTest {
 		setStudentPrincipal(STUDENT_ID);
 		Exam exam = publishedExam();
 		when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
-		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
+		when(contentCoverageApi.isParticipant(STUDENT_ID, COURSE_ID)).thenReturn(true);
 		when(examLifecycleService.resolveCurrentStatus(exam)).thenReturn(ExamStatus.CLOSED);
 
 		assertThatThrownBy(() -> service.startAttempt(EXAM_ID)).isInstanceOf(ExamWindowClosedException.class);
@@ -258,8 +259,7 @@ class ExamAttemptServiceTest {
 		Exam exam = publishedExam();
 		when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 		when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
-		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
+		when(contentCoverageApi.isParticipant(STUDENT_ID, COURSE_ID)).thenReturn(true);
 		when(examLifecycleService.resolveCurrentStatus(exam)).thenReturn(ExamStatus.PUBLISHED);
 
 		ExamAttemptView view = service.submit(attemptId);
@@ -288,8 +288,7 @@ class ExamAttemptServiceTest {
 		UUID questionId = UUID.randomUUID();
 		when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 		when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
-		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
+		when(contentCoverageApi.isParticipant(STUDENT_ID, COURSE_ID)).thenReturn(true);
 		when(examLifecycleService.resolveCurrentStatus(exam)).thenReturn(ExamStatus.PUBLISHED);
 		when(examQuestionLinkRepository.existsByExamIdAndQuestionId(EXAM_ID, questionId)).thenReturn(true);
 		when(examAnswerRepository.findByAttemptIdAndQuestionId(attemptId, questionId)).thenReturn(Optional.empty());
@@ -312,8 +311,7 @@ class ExamAttemptServiceTest {
 		UUID foreignQuestionId = UUID.randomUUID();
 		when(examAttemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
 		when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
-		when(enrollmentAccessApi.resolveAccessState(STUDENT_ID, COURSE_ID))
-			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
+		when(contentCoverageApi.isParticipant(STUDENT_ID, COURSE_ID)).thenReturn(true);
 		when(examLifecycleService.resolveCurrentStatus(exam)).thenReturn(ExamStatus.PUBLISHED);
 		when(examQuestionLinkRepository.existsByExamIdAndQuestionId(EXAM_ID, foreignQuestionId)).thenReturn(false);
 

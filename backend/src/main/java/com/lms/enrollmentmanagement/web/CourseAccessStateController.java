@@ -1,6 +1,8 @@
 package com.lms.enrollmentmanagement.web;
 
 import com.lms.common.api.ApiResponse;
+import com.lms.enrollmentmanagement.api.AccessOutcome;
+import com.lms.enrollmentmanagement.api.CourseAccessDecision;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.enrollmentmanagement.service.EnrollmentQueryService;
 import com.lms.enrollmentmanagement.web.dto.EnrollmentAccessStateResponse;
@@ -31,12 +33,15 @@ public class CourseAccessStateController {
 	@PreAuthorize("hasRole('STUDENT')")
 	public ResponseEntity<ApiResponse<EnrollmentAccessStateResponse>> getAccessState(@PathVariable UUID courseId) {
 		EnrollmentAccessState state = enrollmentQueryService.getMyAccessState(courseId);
-		return ResponseEntity.ok(ApiResponse.success(toResponse(state)));
+		CourseAccessDecision decision = enrollmentQueryService.getMyAccessDecision(courseId);
+		return ResponseEntity.ok(ApiResponse.success(toResponse(state, decision)));
 	}
 
-	private static EnrollmentAccessStateResponse toResponse(EnrollmentAccessState state) {
+	private static EnrollmentAccessStateResponse toResponse(EnrollmentAccessState state,
+			CourseAccessDecision decision) {
 		return new EnrollmentAccessStateResponse(state.state(), state.enrollmentId(), state.accessExpiresAt(),
-				state.canRequestReactivation());
+				state.canRequestReactivation(), decision.accessEndsAt(), decision.inGracePeriod(),
+				decision.outcome() != AccessOutcome.DEVICE_NOT_AUTHORIZED);
 	}
 
 }

@@ -187,7 +187,7 @@ test.describe("Student Notification Center", () => {
     const emptyState = page.getByRole("status").filter({ hasText: "No notifications yet" });
     await expect(emptyState).toBeVisible();
     await expect(
-      emptyState.getByText(/payment is confirmed, rejected, or refunded/)
+      emptyState.getByText(/payment updates/)
     ).toBeVisible();
   });
 
@@ -219,6 +219,8 @@ test.describe("Student Notification Center", () => {
       403,
       apiError("FORBIDDEN", "You do not have permission to view these notifications.")
     );
+    // The preferences read is a different path; keep it off any live local backend.
+    await mockJson(page, "**/v1/notifications/preferences", 200, apiSuccess([]));
 
     await page.goto("/student/notifications");
 
@@ -378,7 +380,9 @@ test.describe("Student Notification Center — background poll announcement", ()
 
     let fetchCount = 0;
     await page.route("**/v1/notifications?*", async (route) => {
-      fetchCount += 1;
+      // Count only this page's list (size=20); the header's notification
+      // quick view reads the same endpoint with size=6.
+      if (new URL(route.request().url()).searchParams.get("size") === "20") fetchCount += 1;
       // 1st fetch: one unread. 2nd fetch (first poll): unchanged — must stay
       // silent. 3rd fetch (second poll): a new unread notification arrives —
       // must announce.
@@ -420,7 +424,7 @@ test.describe("Teacher Notification Center", () => {
 
     const emptyState = page.getByRole("status").filter({ hasText: "No notifications yet" });
     await expect(emptyState).toBeVisible();
-    await expect(emptyState.getByText(/activity feed/)).toBeVisible();
+    await expect(emptyState.getByText(/Announcements your institute sends to teachers/)).toBeVisible();
   });
 
   test("permission-denied state on a real 403 points at the teacher dashboard", async ({ page }) => {
@@ -434,8 +438,13 @@ test.describe("Teacher Notification Center", () => {
 
     await page.goto("/teacher/notifications");
 
-    const denied = page.getByRole("alert").filter({ hasText: "You don't have permission" });
+    // Pin to this 403's message: other teacher-shell reads are unmocked here and,
+    // against a locally running backend, can render their own denied panel.
+    const denied = page
+      .getByRole("alert")
+      .filter({ hasText: "You do not have permission to view these notifications." });
     await expect(denied).toBeVisible();
+    await expect(denied).toContainText("You don't have permission");
     await expect(denied.getByRole("link", { name: "Back to your dashboard" })).toHaveAttribute(
       "href",
       "/teacher/dashboard"

@@ -1,5 +1,12 @@
 package com.lms.tenantmanagement.web;
 
+import com.lms.identityaccessservice.api.TenantAdminInvitationApi.FirstAdminView;
+import com.lms.tenantmanagement.web.dto.TenantDetailResponse.FirstAdminResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestBody;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.tenantmanagement.api.TenantStatus;
@@ -76,10 +83,31 @@ public class PlatformAdminTenantController {
 				tenant.getRequestedPlan(), tenant.getCreatedAt());
 	}
 
-	private static TenantDetailResponse toDetail(Tenant tenant) {
+	/**
+	 * AUTH-PWD-01: invite the tenant's first Tenant Admin, resend its
+	 * invitation, or correct its email. The tenant is the path variable only.
+	 */
+	@PostMapping("/{id}/admin-invitation")
+	public ResponseEntity<ApiResponse<FirstAdminResponse>> inviteAdmin(@PathVariable UUID id,
+			@Valid @RequestBody(required = false) AdminInvitationRequest request) {
+		FirstAdminView view = tenantApprovalService.inviteAdmin(id, (request == null) ? null : request.email());
+		return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(toFirstAdmin(view)));
+	}
+
+	/** Optional corrected/new email for the invitation. */
+	public record AdminInvitationRequest(@Email @Size(max = 255) String email) {
+
+	}
+
+	private TenantDetailResponse toDetail(Tenant tenant) {
 		return new TenantDetailResponse(tenant.getId(), tenant.getName(), tenant.getSubdomain(), tenant.getStatus(),
 				tenant.getRequestedPlan(), tenant.getContactName(), tenant.getContactEmail(),
-				tenant.getContactPhone(), tenant.getCreatedAt());
+				tenant.getContactPhone(), tenant.getCreatedAt(),
+				toFirstAdmin(tenantApprovalService.firstAdmin(tenant.getId())), tenant.isCustomDomainsEnabled());
+	}
+
+	private static FirstAdminResponse toFirstAdmin(FirstAdminView view) {
+		return new FirstAdminResponse(view.status(), view.emailMasked(), view.invitedAt(), view.inviteExpiresAt());
 	}
 
 }

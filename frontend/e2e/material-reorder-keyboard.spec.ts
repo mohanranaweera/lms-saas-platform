@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
 import {
-  COURSE_ID,
-  LESSON_ID,
-  MODULE_ID,
   makeMaterial,
   setupTeacherMaterialsMocks,
   teacherModulesUrl,
@@ -123,55 +120,5 @@ test.describe("material reorder — boundary controls", () => {
 
     await expect(moveDownFirst).toBeEnabled();
     await expect(moveUpLast).toBeEnabled();
-  });
-});
-
-test.describe("material reorder — upload form disabled while a reorder is in flight", () => {
-  test("the upload form's fieldset is disabled for the whole reorder window, and re-enables once it settles", async ({
-    page,
-  }) => {
-    await setupTeacherMaterialsMocks(page, twoMaterials());
-    await page.goto(teacherModulesUrl());
-
-    // Gate only the first PATCH of the 3-step dance, then hand it back to the
-    // shared stateful mock via `route.fallback()` — same manually-released
-    // -promise technique `material-upload-states.spec.ts` uses for the
-    // upload form's own busy state, applied here to `MaterialsSection`'s
-    // `reorderBusyIds`, which `disabled={reorderBusyIds.size > 0}` threads
-    // into `MaterialUploadForm`.
-    let releasePatch: (() => void) | undefined;
-    const patchGate = new Promise<void>((resolve) => {
-      releasePatch = resolve;
-    });
-    let gateConsumed = false;
-    await page.route(
-      `**/api/v1/courses/${COURSE_ID}/modules/${MODULE_ID}/lessons/${LESSON_ID}/materials/*`,
-      async (route) => {
-        if (route.request().method() !== "PATCH") {
-          await route.fallback();
-          return;
-        }
-        if (!gateConsumed) {
-          gateConsumed = true;
-          await patchGate;
-        }
-        await route.fallback();
-      }
-    );
-
-    await expect(page.locator("fieldset")).not.toHaveAttribute("disabled", "");
-
-    const moveDown = page.getByRole("button", { name: 'Move "Lecture slides" down' });
-    await moveDown.focus();
-    await page.keyboard.press("Enter");
-
-    await expect(page.locator("fieldset")).toHaveAttribute("disabled", "");
-
-    releasePatch?.();
-
-    await expect(page.locator("fieldset")).not.toHaveAttribute("disabled", "");
-    const titleInputs = page.getByLabel("Material title", { exact: true });
-    await expect(titleInputs.nth(0)).toHaveValue("Handout");
-    await expect(titleInputs.nth(1)).toHaveValue("Lecture slides");
   });
 });

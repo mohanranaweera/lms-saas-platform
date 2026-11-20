@@ -36,7 +36,44 @@ until a later wave populates it.
 | `support_email` | STRING | none | basic email format, ≤255 chars |
 | `support_phone` | STRING | none | any string, ≤255 chars |
 | `default_timezone` | STRING | `"UTC"` | must be a valid IANA zone id |
-| `default_currency` | STRING | `"USD"` | `^[A-Z]{3}$` (shape only, no hardcoded allowlist) |
+| `default_currency` | STRING | `"USD"` | `^[A-Z]{3}$` (shape only, no hardcoded allowlist). Edited on Settings → Payments (SET-PAY-01). |
+| `address_line1`, `address_line2`, `city`, `postal_code` | STRING | none | non-blank, ≤255 chars (SET-PAY-01, public) |
+| `institute_introduction` | STRING | none | non-blank, ≤2000 chars; plain text shown on the public home page (SET-PAY-01) |
+| `facebook_url` | STRING | none | `https://` on `facebook.com`/`fb.com` or a subdomain, ≤2048 chars (SET-PAY-01) |
+| `youtube_url` | STRING | none | `https://` on `youtube.com`/`youtu.be` or a subdomain, ≤2048 chars (SET-PAY-01) |
+
+The SET-PAY-01 public keys are projected (nullable) by `GET /api/v1/public/tenant-config/home` as
+`institute { introduction, addressLine1, addressLine2, city, postalCode, facebookUrl, youtubeUrl }`.
+
+LOGIN-01 GENERAL keys:
+
+| Key | Type | Default | Validation |
+|---|---|---|---|
+| `terms_of_service`, `refund_policy`, `privacy_policy` | STRING | none | non-blank plain text, ≤50,000 chars (Settings → Policies) |
+| `mobile_login_enabled` | BOOLEAN | `true` | boolean (ADR-031; email sign-in has no switch) |
+| `phone_region` | STRING | `"LK"` | an ISO 3166-1 region known to libphonenumber (ADR-031) |
+| `ga_measurement_id` | STRING | none | GA4 id, `^G-[A-Z0-9]{4,20}$` (SET-CFG-01; loaded on the public site and student portal) |
+
+`GET /api/v1/public/tenant-config/home` also returns `policies { termsOfService, refundPolicy,
+privacyPolicy }` (published flags), `loginOptions { mobileEnabled }`, and since SET-CFG-01
+`analytics { gaMeasurementId }` (`null` when unset) and `studentOptions { selfEnrollmentEnabled }`.
+
+### `GET /api/v1/public/tenant-config/policies/{kind}` (LOGIN-01)
+
+Anonymous, host-resolved tenant, GET only. `kind` = `terms` | `refund` | `privacy`; any other
+value → `404`. Response `{ "kind": "terms", "text": "..." }`, `text` = `null` when not published.
+Plain text, rendered as text by the client. `Cache-Control: no-cache`.
+
+### PAYMENT properties (summary)
+
+`facility_fee_mode`, `facility_fee_amount`, `bank_name`, `bank_branch`, `bank_account_holder`,
+`bank_account_number` (see `docs/specs/klass-enrollment-payment-workflows.md`) and, since SET-PAY-01,
+`bank_transfer_enabled` (BOOLEAN, default `true`). The bank keys are edited on Settings → Payments →
+Bank details. `bank_transfer_enabled` is the tenant's raw switch; the effective rule is
+**slip allowed = switch on OR online payment unavailable** (`BankTransferPolicy`), used by
+`GET /api/v1/checkout/payment-options` (`bankSlip`), student checkout quotes (`methods.slip`; staff
+manual-payment quotes are always `true`) and `POST /api/v1/orders/{orderId}/slips`, which returns
+`409 BANK_TRANSFER_DISABLED` before any storage write when not allowed.
 
 ### BRANDING properties
 
@@ -54,6 +91,12 @@ is implemented now so a later wave's `INTEGRATION` credentials can use it, per m
 instruction §7's "sensitive integration credentials must never be returned to the
 frontend after persistence."
 
+### NOTIFICATION properties (SET-CFG-01)
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `sms_enabled` | BOOLEAN | `true` | `false` = tenant SMS kill switch: SMS is reported unavailable (`reason: SMS_DISABLED`) by the broadcast channel list, a broadcast naming SMS is refused `409 CHANNEL_NOT_AVAILABLE`, and already-queued SMS deliveries are finalized `SKIPPED` / `SMS_DISABLED` before any provider call. EMAIL, WhatsApp and in-app are unaffected; sign-in/registration OTP is not a notification and is unaffected. |
+
 ### STUDENT properties (Wave 3, master instruction §10 — registration configuration)
 
 All eight are plain `BOOLEAN`s, validated only for type (`instanceof Boolean`) — the
@@ -70,6 +113,7 @@ first simple boolean-typed property registered in this framework (every `GENERAL
 | `require_grade` | BOOLEAN | `false` | `grade` required on registration when `true`. |
 | `require_stream` | BOOLEAN | `false` | `stream` required on registration when `true`. |
 | `require_mobile` | BOOLEAN | `false` | `mobile` required on registration when `true`. |
+| `self_enrollment_enabled` | BOOLEAN | `true` | SET-CFG-01 (ADR-028 refinement). `false` = `POST /api/v1/enrollments/my/courses/{courseId}` returns `409 SELF_ENROLLMENT_DISABLED` for a student who is not already a participant (an existing participant still gets the idempotent `200`). Staff enroll-on-behalf and Free Cards are unaffected; no participation is removed. |
 
 `public_registration_enabled` is the only property defaulting `true` — the public
 self-registration endpoint is reachable out of the box; every other property defaults
@@ -77,6 +121,56 @@ self-registration endpoint is reachable out of the box; every other property def
 matching this registry's existing "safe, unsurprising default" convention. See
 `docs/api/user-management.md`'s "Public student self-registration" section for the full
 registration-endpoint contract these properties gate.
+
+**Deprecated (STU-PROF-01):** the five `require_*` properties are superseded by the
+per-field student profile field settings below. They are read only as the default
+required-ness for a tenant that has never saved its field settings; once a tenant saves,
+they are ignored for that tenant. They stay registered so existing values remain valid.
+
+## Student profile field settings (STU-PROF-01)
+
+A platform-defined catalogue of student profile fields (`StudentProfileField`): Email and
+Full name (locked — always collected), Birthday, Profession, Special talent, Mobile number,
+Fixed telephone, WhatsApp number, Telegram number, Tute delivery phone 1/2, Address line
+1/2, City, Postal code, Country, NIC number, Passport number, Driving licence number
+(the three identity numbers are `sensitive`), School, Grade, A/L stream, A/L year,
+University, Learning medium, Guardian (name + phone), Has siblings, Referral code. For
+each non-locked field a tenant sets:
+
+- `enabled` — students have this field (shown on their profile page, and to staff);
+- `required` — students must fill it in (implies `enabled`);
+- `collectAtRegistration` — also asked on the public registration form (implies `enabled`).
+
+Stored in `student_profile_field_setting` (V59, one row per tenant per field). A tenant with
+no rows gets defaults that reproduce pre-STU-PROF-01 behaviour: Guardian/School/Grade/
+A/L stream/Mobile enabled and asked at registration (required per their legacy
+`require_*` flag), Address line 1 and City enabled on the profile only, everything else off.
+Disabling a field never deletes students' stored values.
+
+### `GET /api/v1/tenant-config/student-profile-fields`
+
+`BRANDING_SETTINGS`/`VIEW` (Tenant Admin, Read-only Auditor). **`200`**:
+
+```jsonc
+{ "fields": [
+    { "key": "NIC_NUMBER", "label": "NIC number", "group": "IDENTITY", "type": "TEXT",
+      "maxLength": 20, "sensitive": true, "locked": false,
+      "enabled": true, "required": false, "collectAtRegistration": false }
+] }
+```
+
+Always the full catalogue, in display order, locked rows included (display only).
+
+### `PUT /api/v1/tenant-config/student-profile-fields`
+
+`BRANDING_SETTINGS`/`CREATE_EDIT` (Tenant Admin only). Body:
+`{ "fields": [ { "key", "enabled", "required", "collectAtRegistration" } ] }` — rows not
+listed keep their current settings; the save writes a row for every non-locked field,
+all-or-nothing. **`200`** → same shape as `GET`. `400 VALIDATION_ERROR`
+(`field = "fields[i].key"`/`"fields[i].enabled"`) for an unknown, duplicate or locked key,
+or `required`/`collectAtRegistration` without `enabled`. `403` for any other role. Writes one
+`student_profile_fields.updated` audit entry (target `tenant`) listing each changed field's
+before/after flags. Last write wins (no optimistic lock in v1).
 
 ## Auth requirements and authorization model
 
@@ -145,8 +239,9 @@ before a prospective student fills out anything, whether registration is open an
 fields/steps to render — display/form-shape information, not a privileged settings read,
 so it deliberately bypasses `TenantConfigController`'s domain-level permission gate).
 
-Returns only the eight `STUDENT`-domain registration-relevant properties above — never
-the full generic `tenant-config` property-list mechanism:
+Returns only the three registration-flow `STUDENT` properties, the five legacy per-field
+`require*` booleans and the fields asked at registration — never the full generic
+`tenant-config` property list or the tenant's full field configuration:
 
 ```jsonc
 {
@@ -159,11 +254,24 @@ the full generic `tenant-config` property-list mechanism:
     "requireSchool": false,
     "requireGrade": false,
     "requireStream": false,
-    "requireMobile": false
+    "requireMobile": false,
+    "registrationFields": [   // STU-PROF-01 (additive)
+      { "key": "MOBILE", "label": "Mobile number", "group": "CONTACT", "type": "PHONE",
+        "maxLength": 50, "required": false }
+    ]
   }
 }
 ```
 
+`registrationFields` lists the non-locked fields with `collectAtRegistration = true`, in
+display order. Since STU-PROF-01 the five `require*` booleans are derived from the student
+profile field settings (`required` AND `collectAtRegistration` of Guardian, School, Grade,
+A/L stream, Mobile) and kept only for older clients.
+
 Consumed by `(auth)/register`'s frontend form before rendering any field — see
 `docs/api/user-management.md`'s "Public student self-registration" section for how the
 registration endpoints themselves use these same eight properties server-side.
+
+## Clearing optional keys
+
+Sending JSON `null` for a key with no default that is not required (e.g. PAYMENT bank keys, VIDEO player links, GENERAL support_email/phone, BRANDING colours/urls) deletes the tenant's value (audited `tenant_config.cleared`); null for required or defaulted keys returns 400. See `docs/specs/klass-enrollment-payment-workflows.md` for the PAYMENT keys `facility_fee_mode`, `facility_fee_amount`, `bank_name`, `bank_branch`, `bank_account_holder`, `bank_account_number` and VIDEO keys `player_android_url`, `player_ios_url` (https only) added in 2026-10.

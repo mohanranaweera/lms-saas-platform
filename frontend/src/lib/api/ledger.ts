@@ -35,7 +35,8 @@ export type PaymentOperationalState =
  * server-side from the confirmed payment's `gatewayReference` prefix
  * convention, never recomputed here.
  */
-export type PaymentMethod = "GATEWAY" | "MANUAL_SLIP" | "FREE" | "STAFF_GRANTED";
+/** `MANUAL_RECEIPT` (ADR-030): a payment staff recorded at the institute. */
+export type PaymentMethod = "GATEWAY" | "MANUAL_SLIP" | "FREE" | "STAFF_GRANTED" | "MANUAL_RECEIPT";
 
 /**
  * Mirrors `LedgerHistoryEntryResponse`. Wave 6 §4 extends this with
@@ -74,13 +75,16 @@ export interface LedgerDashboardParams {
   status?: PaymentOperationalState;
   /** Wave 6 §4 — optional `PaymentMethod` filter; combinable with `status` (AND). */
   method?: PaymentMethod;
+  /** Server-side search across order/payment/reference/course identifiers. */
+  search?: string;
 }
 
 /** Mirrors `OutstandingOrderResponse` (`GET /api/v1/ledger/outstanding`). */
 export interface OutstandingOrderResponse {
   orderId: string;
   studentId: string;
-  courseId: string;
+  /** `null` for a multi-course order. */
+  courseId: string | null;
   courseTitle: string | null;
   amount: number;
   currency: string;
@@ -136,6 +140,7 @@ function buildDashboardQuery(params?: LedgerDashboardParams): string {
   search.set("sort", params?.sort ?? "createdAt,desc");
   if (params?.status) search.set("status", params.status);
   if (params?.method) search.set("method", params.method);
+  if (params?.search?.trim()) search.set("search", params.search.trim());
   return `?${search.toString()}`;
 }
 

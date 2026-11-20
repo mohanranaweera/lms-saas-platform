@@ -75,7 +75,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 		assertThat(suspendResult.getBody().data().accountStatus()).isEqualTo("SUSPENDED");
 
 		// Login-blocked assertion post-suspend.
-		HttpResult<LoginResponse> blocked = login(host, teacher.email(), "password123");
+		HttpResult<LoginResponse> blocked = loginOnboarded(host, teacher.email());
 		assertThat(blocked.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
 		HttpResult<TeacherResponse> reactivateResult = postSimple(host, token,
@@ -84,7 +84,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 		assertThat(reactivateResult.getBody().data().approvalStatus()).isEqualTo("APPROVED");
 		assertThat(reactivateResult.getBody().data().accountStatus()).isEqualTo("ACTIVE");
 
-		HttpResult<LoginResponse> allowed = login(host, teacher.email(), "password123");
+		HttpResult<LoginResponse> allowed = loginOnboarded(host, teacher.email());
 		assertThat(allowed.getStatusCode()).isEqualTo(HttpStatus.OK);
 	}
 
@@ -422,14 +422,14 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 		postBody(host, adminToken, "/api/v1/students/" + student.id() + "/enroll",
 				new StudentEnrollRequest(course.id(), "manual grant"), Void.class);
 
-		String ownerToken = login(host, teacherOwner.email(), "password123").getBody().data().accessToken();
+		String ownerToken = loginOnboarded(host, teacherOwner.email()).getBody().data().accessToken();
 		HttpResult<List<CourseRosterEntryResponse>> ownRoster = getList(host, ownerToken,
 				"/api/v1/courses/" + course.id() + "/roster", CourseRosterEntryResponse.class);
 		assertThat(ownRoster.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(ownRoster.getBody().data()).extracting(CourseRosterEntryResponse::studentId)
 			.contains(student.id());
 
-		String otherToken = login(host, teacherOther.email(), "password123").getBody().data().accessToken();
+		String otherToken = loginOnboarded(host, teacherOther.email()).getBody().data().accessToken();
 		HttpResult<List<CourseRosterEntryResponse>> otherRoster = getList(host, otherToken,
 				"/api/v1/courses/" + course.id() + "/roster", CourseRosterEntryResponse.class);
 		assertThat(otherRoster.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -460,7 +460,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 				teacherUserIdA, com.lms.coursemanagement.course.domain.CourseStatus.PUBLIC));
 		TeacherResponse teacherB = createTeacherOrFail(hostB, tokenB, uniqueEmail("roster-cross-other"));
 		approveTeacher(hostB, tokenB, teacherB.id());
-		String teacherTokenB = login(hostB, teacherB.email(), "password123").getBody().data().accessToken();
+		String teacherTokenB = loginOnboarded(hostB, teacherB.email()).getBody().data().accessToken();
 
 		HttpResult<List<CourseRosterEntryResponse>> crossAttempt = getList(hostB, teacherTokenB,
 				"/api/v1/courses/" + courseA.id() + "/roster", CourseRosterEntryResponse.class);
@@ -670,7 +670,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("New Student", uniqueEmail("disabled-reg"), "password123", null, null,
-						null, null, null, null),
+						null, null, null, null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
@@ -687,18 +687,18 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("New Student", email, "password123", null, null, null, null, null,
-						null),
+						null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		assertThat(result.getBody().data().pendingApproval()).isTrue();
 
-		HttpResult<LoginResponse> blockedLogin = login(host, email, "password123");
+		HttpResult<LoginResponse> blockedLogin = loginOnboarded(host, email);
 		assertThat(blockedLogin.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
 		postSimple(host, token, "/api/v1/students/" + result.getBody().data().studentProfileId() + "/activate",
 				StudentResponse.class);
-		HttpResult<LoginResponse> allowedLogin = login(host, email, "password123");
+		HttpResult<LoginResponse> allowedLogin = loginOnboarded(host, email);
 		assertThat(allowedLogin.getStatusCode()).isEqualTo(HttpStatus.OK);
 	}
 
@@ -712,7 +712,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("New Student", uniqueEmail("required-reg"), "password123", null, null,
-						null, null, null, null),
+						null, null, null, null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -747,7 +747,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> registerResult = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("Otp Student", email, "password123", null, null, null, null, null,
-						null),
+						null, null),
 				StudentRegistrationResponse.class);
 		assertThat(registerResult.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 	}
@@ -762,7 +762,7 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 		HttpResult<StudentRegistrationResponse> result = postBody(host, null, "/api/v1/students/register",
 				new StudentRegistrationRequest("No Otp Student", uniqueEmail("no-otp-reg"), "password123", null,
-						null, null, null, null, null),
+						null, null, null, null, null, null),
 				StudentRegistrationResponse.class);
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
@@ -843,6 +843,13 @@ class Wave3StudentTeacherActionsIntegrationTest extends PaymentManagementTestSup
 
 	private static String uniqueEmail(String prefix) {
 		return prefix + "-" + UUID.randomUUID().toString().substring(0, 8) + "@example.test";
+	}
+
+
+	/** An API-created account logging in as an already-onboarded user (AUTH-PWD-01 - see markOnboarded). */
+	private HttpResult<LoginResponse> loginOnboarded(String host, String email) {
+		markOnboarded(email);
+		return login(host, email, "password123");
 	}
 
 }

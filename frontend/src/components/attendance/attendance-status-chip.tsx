@@ -5,6 +5,7 @@ import { CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AttendanceStatus } from "@/lib/api/attendance";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Attendance status chip/control pair — never color alone
  * (`.claude/rules/ui-ux.md` §4): every status pairs an icon with a text
@@ -27,11 +28,12 @@ const STATUS_STYLES: Record<AttendanceStatus, { icon: typeof CheckCircle2; class
 
 /** Read-only display chip. `status: null` renders "Not marked" (a roster row that hasn't been recorded yet). */
 export function AttendanceStatusChip({ status }: { status: AttendanceStatus | null }) {
+  const t = useT();
   if (status === null) {
     return (
       <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-dashed border-border bg-muted/40 px-2 py-0.5 text-xs font-medium text-muted-foreground">
         <Circle className="size-3.5" aria-hidden="true" />
-        Not marked
+        {t("attendance.attendanceStatusChip.notMarked")}
       </span>
     );
   }
@@ -76,6 +78,7 @@ export function AttendanceSegmentedControl({
   onChange,
   disabled,
 }: AttendanceSegmentedControlProps) {
+  const t = useT();
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   function focusAndSelect(index: number) {
@@ -115,7 +118,7 @@ export function AttendanceSegmentedControl({
   return (
     <div
       role="radiogroup"
-      aria-label={`Attendance for ${studentLabel}`}
+      aria-label={t("attendance.chip.for", { student: studentLabel })}
       className="inline-flex w-fit overflow-hidden rounded-md border border-border"
     >
       {SEGMENTED_OPTIONS.map((option, index) => {

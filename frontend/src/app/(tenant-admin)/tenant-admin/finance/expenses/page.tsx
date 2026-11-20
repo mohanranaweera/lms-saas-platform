@@ -18,6 +18,8 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { DateRangeFilter } from "@/components/finance/date-range-filter";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageFinance } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { formatMoney } from "@/lib/format";
 import {
   EXPENSE_METHODS,
@@ -38,12 +40,18 @@ const PAGE_SIZE = 20;
 /**
  * Tenant Admin Expenses (Wave 7, PAR-23-01/05). Append-only: no edit or delete
  * control exists; voiding is the only correction and keeps the record.
- * Record/void actions render only for `canManageFinance(role)` (UX only —
+ * Record/void actions render only for FINANCE_ADD_EXPENSE / FINANCE_VOID_EXPENSE
+ * (Tenant Admin: `canManageFinance(role)`) (UX only —
  * Read-only Auditor still gets a real backend 403 on any direct request).
  */
 export default function ExpensesPage() {
   const { session } = useAuth();
-  const canManage = canManageFinance(session?.role ?? null);
+  const legacyManage = canManageFinance(session?.role ?? null);
+  // STAFF-MGMT-03: record and void follow FINANCE_ADD_EXPENSE / FINANCE_VOID_EXPENSE
+  // for capability-driven roles (UX only; both endpoints re-check them).
+  const { can } = useCapabilities();
+  const canManage = can(CAP.FINANCE_ADD_EXPENSE, legacyManage);
+  const canVoid = can(CAP.FINANCE_VOID_EXPENSE, legacyManage);
   const [range, setRange] = useState<DateRangeParams>({});
   const [categoryId, setCategoryId] = useState<string>(ALL);
   const [method, setMethod] = useState<string>(ALL);
@@ -85,7 +93,7 @@ export default function ExpensesPage() {
       key: "actions",
       header: "Actions",
       hideOnCard: true,
-      cell: (row) => <RowActions expense={row} canManage={canManage} />,
+      cell: (row) => <RowActions expense={row} canVoid={canVoid} />,
     },
   ];
 
@@ -219,7 +227,7 @@ export default function ExpensesPage() {
               caption="Expenses"
               cardHeading={(row) => `${row.description} — ${formatMoney(row.amount, row.currency)}`}
               cardHeadingAdornment={(row) => <ExpenseStatus expense={row} />}
-              cardFooter={(row) => <RowActions expense={row} canManage={canManage} />}
+              cardFooter={(row) => <RowActions expense={row} canVoid={canVoid} />}
             />
             <div className="flex items-center justify-between">
               <Button
@@ -263,11 +271,11 @@ function ExpenseStatus({ expense }: { expense: Expense }) {
   );
 }
 
-function RowActions({ expense, canManage }: { expense: Expense; canManage: boolean }) {
+function RowActions({ expense, canVoid }: { expense: Expense; canVoid: boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
       {expense.hasAttachment ? <ReceiptButton expense={expense} /> : null}
-      {canManage && !expense.voided ? <VoidExpenseDialog expense={expense} /> : null}
+      {canVoid && !expense.voided ? <VoidExpenseDialog expense={expense} /> : null}
     </div>
   );
 }

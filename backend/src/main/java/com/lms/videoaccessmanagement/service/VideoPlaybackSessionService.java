@@ -1,16 +1,19 @@
 package com.lms.videoaccessmanagement.service;
 
+import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.error.ConflictException;
+import com.lms.common.error.PlayerRequestException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.error.PlaybackTokenInvalidException;
+import com.lms.common.error.PlaybackWatchLimitException;
 import com.lms.common.error.VideoPlaybackPolicyViolationException;
 import com.lms.common.error.VideoSeekNotAllowedException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.PermissionAction;
-import com.lms.integrationmanagement.api.ObjectStorageApi;
-import com.lms.integrationmanagement.api.SignedDownloadUrl;
+import com.lms.videoaccessmanagement.service.PlaybackMediaSigner.SignedMedia;
+import com.lms.videoaccessmanagement.domain.PlaybackState;
 import com.lms.videoaccessmanagement.domain.VideoAsset;
 import com.lms.videoaccessmanagement.domain.VideoPlaybackPolicy;
 import com.lms.videoaccessmanagement.domain.VideoWatchProgress;
@@ -26,6 +29,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,7 +71,7 @@ public class VideoPlaybackSessionService {
 
 	private final VideoWatchProgressRepository videoWatchProgressRepository;
 
-	private final ObjectStorageApi objectStorageApi;
+	private final PlaybackMediaSigner mediaSigner;
 
 	private final PlaybackTokenService playbackTokenService;
 
@@ -77,34 +81,41 @@ public class VideoPlaybackSessionService {
 
 	private final TenantContext tenantContext;
 
+	private final TenantVideoConfigurationService configurationService;
+
+	private final WatchTimeService watchTimeService;
+
 	public VideoPlaybackSessionService(VideoAccessGuard videoAccessGuard, VideoAssetRepository videoAssetRepository,
 			VideoPlaybackPolicyRepository videoPlaybackPolicyRepository,
 			VideoWatchSessionRepository videoWatchSessionRepository,
-			VideoWatchProgressRepository videoWatchProgressRepository, ObjectStorageApi objectStorageApi,
+			VideoWatchProgressRepository videoWatchProgressRepository, PlaybackMediaSigner mediaSigner,
 			PlaybackTokenService playbackTokenService, PlaybackSessionCacheService playbackSessionCacheService,
-			VideoWatchSessionRevocationRecorder revocationRecorder, TenantContext tenantContext) {
+			VideoWatchSessionRevocationRecorder revocationRecorder, TenantContext tenantContext,
+			TenantVideoConfigurationService configurationService, WatchTimeService watchTimeService) {
 		this.videoAccessGuard = videoAccessGuard;
 		this.videoAssetRepository = videoAssetRepository;
 		this.videoPlaybackPolicyRepository = videoPlaybackPolicyRepository;
 		this.videoWatchSessionRepository = videoWatchSessionRepository;
 		this.videoWatchProgressRepository = videoWatchProgressRepository;
-		this.objectStorageApi = objectStorageApi;
+		this.mediaSigner = mediaSigner;
 		this.playbackTokenService = playbackTokenService;
 		this.playbackSessionCacheService = playbackSessionCacheService;
 		this.revocationRecorder = revocationRecorder;
 		this.tenantContext = tenantContext;
+		this.configurationService = configurationService;
+		this.watchTimeService = watchTimeService;
 	}
 
 	/**
 	 * Deliberately NOT {@code @Transactional} at the top level - calls
-	 * {@link ObjectStorageApi#generateSignedDownloadUrl}, an outbound
-	 * dependency, per {@code .claude/rules/backend.md}'s "never span a
-	 * transaction across an outbound call" rule. The DB-only portion (policy
+	 * {@link PlaybackMediaSigner#sign} (object-storage presigning / DynTube
+	 * token signing behind integration APIs), per {@code .claude/rules/backend.md}'s
+	 * "never span a transaction across an outbound call" rule. The DB-only portion (policy
 	 * checks, concurrency supersede, session creation, view-count increment)
 	 * inside {@link #issueStudentSession} runs as a sequence of individually
 	 * self-transactional repository calls (mirroring {@code
-	 * MaterialService#createMaterial}'s identical non-transactional shape),
-	 * which complete BEFORE the outbound signed-URL call at the end of that
+	 * MaterialService#createMaterial}'s identical non-transactional shape);
+	 * since Phase 13 the URL is signed just BEFORE the session is created, outside any transaction of that
 	 * method.
 	 */
 	public PlaybackSessionView issuePlaybackSession(UUID videoAssetId, String deviceFingerprintHash) {
@@ -112,17 +123,32 @@ public class VideoPlaybackSessionService {
 
 		VideoAsset asset = videoAssetRepository.findById(videoAssetId)
 			.orElseThrow(() -> new NotFoundException("Video not found"));
+		// VIDEO Phase 7/13: only assets our own player loads from a signed URL (platform
+		// storage, DynTube HLS) play here. Provider-player assets (YouTube) play through
+		// POST /api/v1/playback/sessions; refuse them before any session, view count or signing.
+		if (!PlaybackMediaSigner.signsFor(asset)) {
+			throw new ConflictException("This video plays through the lesson player.");
+		}
 
-		if (videoAccessGuard.isCurrentPrincipalTeacher()) {
+		// Staff (Teacher/TA, Tenant Admin and other staff with MATERIALS VIEW, already checked
+		// above) preview: a signed URL only - no student session, view count or watch time,
+		// and the AOC Player requirement (a student rule) does not apply to them.
+		if (!videoAccessGuard.isCurrentPrincipalStudent()) {
 			return issueTeacherPreviewSession(asset);
+		}
+		// VIDEO Phase 8 (ADR-025, Q-009): when the institute requires the AOC
+		// Player, this browser endpoint must not be a way around it.
+		if (configurationService.effectiveSettings().nativePlayerRequired()) {
+			throw new PlayerRequestException(HttpStatus.CONFLICT, ApiErrorCodes.NATIVE_PLAYER_REQUIRED,
+					"Open this lesson in the AOC Player.");
 		}
 		return issueStudentSession(asset, deviceFingerprintHash);
 	}
 
 	private PlaybackSessionView issueTeacherPreviewSession(VideoAsset asset) {
-		SignedDownloadUrl signed = objectStorageApi.generateSignedDownloadUrl(asset.getStorageObjectKey(),
-				PlaybackTokenService.TOKEN_TTL);
-		return new PlaybackSessionView(null, null, signed.url(), signed.expiresAt(), null, true, true);
+		SignedMedia signed = mediaSigner.sign(asset, PlaybackTokenService.TOKEN_TTL);
+		return new PlaybackSessionView(null, null, signed.url(), signed.expiresAt(), null, true, true, null, null, null,
+				signed.format().name(), signed.embed());
 	}
 
 	private PlaybackSessionView issueStudentSession(VideoAsset asset, String deviceFingerprintHash) {
@@ -134,12 +160,14 @@ public class VideoPlaybackSessionService {
 		EffectivePolicy policy = resolveEffectivePolicy(videoAssetId);
 		Instant now = Instant.now();
 
-		if (policy.accessStartAt() != null && now.isBefore(policy.accessStartAt())) {
-			throw new VideoPlaybackPolicyViolationException("This video is not yet available");
+		switch (videoAccessGuard.contentWindow(policy.accessStartAt(), policy.accessEndAt())) {
+			case NOT_YET_AVAILABLE -> throw new VideoPlaybackPolicyViolationException("This video is not yet available");
+			case EXPIRED -> throw new VideoPlaybackPolicyViolationException("This video's availability window has expired");
+			case AVAILABLE -> {
+			}
 		}
-		if (policy.accessEndAt() != null && now.isAfter(policy.accessEndAt())) {
-			throw new VideoPlaybackPolicyViolationException("This video's availability window has expired");
-		}
+
+		watchTimeService.requireRemaining(videoAssetId, studentId);
 
 		if (policy.maxViewsPerStudent() != null) {
 			int viewsSoFar = videoWatchProgressRepository.findByVideoAssetIdAndStudentId(videoAssetId, studentId)
@@ -150,14 +178,19 @@ public class VideoPlaybackSessionService {
 			}
 		}
 
+		// Signed before any session exists: a host that cannot sign right now (VIDEO Phase 13
+		// managed streaming switched off, account keys removed) must not leave an orphaned
+		// ACTIVE session holding the concurrency slot. Signing is local - no network call.
+		SignedMedia signed = mediaSigner.sign(asset, PlaybackTokenService.TOKEN_TTL);
+
 		supersedeOldestSessionIfAtCap(tenantId, videoAssetId, studentId, policy.maxConcurrentSessions(), now);
 
 		UUID watchSessionId;
 		UUID jti = UUID.randomUUID();
 		Instant expiresAt = now.plus(PlaybackTokenService.TOKEN_TTL);
+		VideoWatchSession session = new VideoWatchSession(tenantId, videoAssetId, studentId, jti,
+				deviceFingerprintHash, now, expiresAt);
 		try {
-			VideoWatchSession session = new VideoWatchSession(tenantId, videoAssetId, studentId, jti,
-					deviceFingerprintHash, now, expiresAt);
 			session = videoWatchSessionRepository.save(session);
 			watchSessionId = session.getId();
 		}
@@ -170,16 +203,19 @@ public class VideoPlaybackSessionService {
 		}
 
 		videoWatchProgressRepository.incrementViewCount(tenantId, videoAssetId, studentId, now);
+		watchTimeService.initialize(session, asset, now);
 		playbackSessionCacheService.cache(jti, watchSessionId, expiresAt);
 
 		String token = playbackTokenService.issue(studentId, tenantId, videoAssetId, watchSessionId, jti, now,
 				expiresAt);
-		SignedDownloadUrl signed = objectStorageApi.generateSignedDownloadUrl(asset.getStorageObjectKey(),
-				PlaybackTokenService.TOKEN_TTL);
 		String watermarkText = policy.watermarkEnabled() ? (studentId + " · " + tenantId) : null;
 
+		VideoWatchProgress progress = videoWatchProgressRepository.findByVideoAssetIdAndStudentId(videoAssetId, studentId)
+				.orElseThrow(() -> new PlaybackTokenInvalidException("Playback progress is unavailable"));
+		Integer remaining = watchTimeService.allowance(asset, studentId).remainingSeconds();
 		return new PlaybackSessionView(watchSessionId, token, signed.url(), signed.expiresAt(), watermarkText,
-				policy.allowSeeking(), policy.allowDownload());
+				policy.allowSeeking(), policy.allowDownload(), configurationService.effectiveSettings().heartbeatIntervalSeconds(),
+				progress.getLastPositionSeconds(), remaining, signed.format().name(), signed.embed());
 	}
 
 	/**
@@ -218,9 +254,9 @@ public class VideoPlaybackSessionService {
 	 * so a caller probing with someone else's token/session id learns
 	 * nothing about which check failed.
 	 */
-	@Transactional
+	@Transactional(noRollbackFor = PlaybackWatchLimitException.class)
 	public void recordProgress(UUID watchSessionId, String rawToken, int positionSeconds, int watchedDeltaSeconds,
-			String currentDeviceFingerprintHash) {
+			PlaybackState state, String currentDeviceFingerprintHash) {
 		ParsedPlaybackToken parsed = playbackTokenService.parseAndValidate(rawToken);
 		UUID tenantId = tenantContext.getTenantId();
 		UUID callerId = AuthenticatedPrincipalHolder.get().userId();
@@ -255,15 +291,17 @@ public class VideoPlaybackSessionService {
 			throw new VideoSeekNotAllowedException("Seeking ahead is not allowed for this video");
 		}
 
-		if (policy.maxWatchDurationSeconds() != null) {
-			int projectedTotal = progress.getTotalWatchedSeconds() + watchedDeltaSeconds;
-			if (projectedTotal > policy.maxWatchDurationSeconds()) {
-				revokeAndAudit(session, VideoWatchSessionRevokedReason.POLICY_VIOLATION, "max_watch_duration_exceeded");
-				throw new VideoPlaybackPolicyViolationException("This video's maximum watch duration has been reached");
-			}
+		VideoAsset asset = videoAssetRepository.findById(session.getVideoAssetId())
+			.orElseThrow(() -> new PlaybackTokenInvalidException("Invalid or expired playback token"));
+		WatchTimeService.AccountingResult accounting = watchTimeService.record(session, asset, positionSeconds, state,
+				Instant.now());
+		if (accounting.stop()) {
+			// Committed together with this heartbeat's accounting (noRollbackFor).
+			revocationRecorder.revokeAndAuditInCurrentTransaction(session,
+					VideoWatchSessionRevokedReason.WATCH_TIME_EXHAUSTED, "watch_time_exhausted");
+			playbackSessionCacheService.evict(session.getPlaybackJti());
+			throw new PlaybackWatchLimitException("You have used all the watch time allowed for this video.");
 		}
-
-		progress.recordHeartbeat(watchedDeltaSeconds, positionSeconds, Instant.now());
 	}
 
 	/** Idempotent: {@code ACTIVE -> ENDED} if currently active, a no-op otherwise. Verifies caller ownership first. */
@@ -276,6 +314,9 @@ public class VideoPlaybackSessionService {
 		if (!session.getStudentId().equals(callerId)) {
 			throw new NotFoundException("Playback session not found");
 		}
+		VideoAsset asset = videoAssetRepository.findById(session.getVideoAssetId())
+				.orElseThrow(() -> new NotFoundException("Playback session not found"));
+		watchTimeService.flush(session, asset, session.getLastPositionSeconds(), session.getLastHeartbeatState(), Instant.now());
 		videoWatchSessionRepository.endIfActive(watchSessionId, tenantId);
 		playbackSessionCacheService.evict(session.getPlaybackJti());
 	}

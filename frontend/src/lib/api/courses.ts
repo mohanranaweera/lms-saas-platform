@@ -65,6 +65,8 @@ export interface CourseResponse {
   resolvedAmount: number | null;
   currency: string;
   requiresManualQuote: boolean;
+  /** I18N-01 §8: declared language of the original title/description (`null` = not declared). Optional until the backend sends it. */
+  contentLocale?: string | null;
 }
 
 /**
@@ -192,6 +194,12 @@ export interface CourseListParams {
    * listing read unless this is explicitly set `true`.
    */
   includeArchived?: boolean;
+  /**
+   * TP-01: only courses the signed-in user is assigned to (primary or
+   * co-teacher). The server always applies this for a Teacher caller and
+   * resolves "me" from the authenticated identity - never a client id.
+   */
+  assignedToMe?: boolean;
   page?: number;
   size?: number;
   sort?: string;
@@ -203,6 +211,7 @@ function buildCourseListQuery(params?: CourseListParams): string {
   if (params?.category) search.set("category", params.category);
   if (params?.teacherId) search.set("teacherId", params.teacherId);
   if (params?.includeArchived) search.set("includeArchived", "true");
+  if (params?.assignedToMe) search.set("assignedToMe", "true");
   search.set("page", String(params?.page ?? 0));
   // Defaults to 100 (the server's own clamp/max) rather than the server's
   // own default of 20: both current callers (Teacher "My Courses", Tenant
@@ -587,17 +596,29 @@ export function useUpdateCourseLesson(courseId: string, moduleId: string) {
 // Roster
 // ---------------------------------------------------------------------------
 
+/**
+ * Mirrors backend `RosterAccessStatus` — whether an enrolled student has paid
+ * access right now (open legacy window, this month's MONTHLY entitlement, or an
+ * active MODULE/LESSON entitlement). Display only; `null` on every row when the
+ * caller lacks View Course Payment Status.
+ */
+export type CourseRosterAccessStatus = "PAID" | "FREE_CARD" | "FREE_COURSE" | "NOT_PAID";
+
 /** Mirrors `CourseRosterEntryResponse` — one row of `GET /v1/courses/{courseId}/roster`'s response body. */
 export interface CourseRosterEntryResponse {
   studentId: string;
   userId: string;
   name: string;
   email: string;
+  accessStatus: CourseRosterAccessStatus | null;
 }
 
 /**
  * `GET /v1/courses/{courseId}/roster` (Wave 3, PAR-03-06/PAR-04-03) — a real,
- * backend-filtered course roster. Teacher: own-course-only (server-verified
+ * backend-filtered course roster. With View Course Payment Status: enrolled
+ * students paid for the current month (or holding other active paid access),
+ * with an active Free Card, or on a free course — unpaid students filtered out
+ * server-side. Without it: every enrolled student, no status. Teacher: own-course-only (server-verified
  * ownership, same pattern `AttendanceAccessGuard` already uses — a Teacher
  * requesting another teacher's course id gets a real 404/403, never a
  * client-filtered subset of a wider fetch). Staff: `STUDENTS`/`VIEW` or

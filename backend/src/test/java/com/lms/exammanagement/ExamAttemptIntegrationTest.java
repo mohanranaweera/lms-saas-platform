@@ -51,14 +51,28 @@ class ExamAttemptIntegrationTest extends ExamManagementTestSupport {
 	}
 
 	@Test
-	void anExpiredEnrollmentStudentCannotStartAnAttempt() {
+	void anExpiredPaidEnrollmentCanStillStartAnAttempt() {
+		// ADR-028: sitting an exam needs (free) course enrollment, not the paid window.
 		ExamFixture fixture = liveExamFixture("ea-expired-enrollment");
 		var question = createMcqQuestionOrFail(fixture.host(), fixture.teacherToken(), fixture.course().id(), "2+2?",
 				"4", "3");
 		var exam = scheduleLiveExam(fixture, List.of(question));
 		expireEnrollment(fixture.tenant().getId(), fixture.student().getId(), fixture.course().id());
 
-		var result = startAttempt(fixture.host(), fixture.studentToken(), exam.id());
+		assertThat(startAttempt(fixture.host(), fixture.studentToken(), exam.id()).getStatusCode())
+			.isEqualTo(HttpStatus.OK);
+	}
+
+	@Test
+	void aStudentNotEnrolledInTheCourseCannotStartAnAttempt() {
+		ExamFixture fixture = liveExamFixture("ea-not-enrolled");
+		var question = createMcqQuestionOrFail(fixture.host(), fixture.teacherToken(), fixture.course().id(), "2+2?",
+				"4", "3");
+		var exam = scheduleLiveExam(fixture, List.of(question));
+		seedActiveStudent(fixture.tenant().getId(), "outsider@example.test");
+		String outsiderToken = loginAndGetToken(fixture.host(), "outsider@example.test");
+
+		var result = startAttempt(fixture.host(), outsiderToken, exam.id());
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 		Long count = jdbcTemplate.queryForObject("SELECT count(*) FROM exam_attempt WHERE exam_id = ?", Long.class,

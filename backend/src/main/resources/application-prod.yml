@@ -1,0 +1,59 @@
+# Production / staging profile (ADR-019). Activate with SPRING_PROFILES_ACTIVE=prod.
+# NEVER combine with the `local` profile - its dev-only fallback keys must never
+# reach a real environment (ProductionSecretsStartupValidator refuses to start).
+#
+# Secrets arrive as Docker Compose secrets: one file per secret under
+# /run/secrets/<NAME>, the file name being the exact placeholder name used below
+# and in application.yml (JWT_SECRET, DB_PASSWORD, ...). The config tree import
+# turns each file into a property, so ${JWT_SECRET:} etc. resolve from the files
+# with no code change. LMS_SECRETS_DIR only exists so tests can point it at a
+# temporary directory. Non-secret settings (DB_URL, REDIS_HOST, ...) are plain
+# environment variables in docker-compose.prod.yml.
+#
+# No secret has a default here: a missing one stays empty and either fails the
+# startup check (critical secrets) or fails closed at use (everything else).
+spring:
+  config:
+    import: "optional:configtree:${LMS_SECRETS_DIR:/run/secrets}/"
+  datasource:
+    url: ${DB_URL:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+  data:
+    redis:
+      host: ${REDIS_HOST:}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+server:
+  port: ${BACKEND_PORT:8080}
+  # Behind Nginx: take the client IP from X-Forwarded-For, trusted only from
+  # Tomcat's default internal-proxy ranges (private/loopback). Without this every
+  # user shares the proxy's IP and the per-IP auth rate limits become
+  # platform-wide (AUTH-PWD-01 security review M-1).
+  forward-headers-strategy: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    prometheus:
+      access: read-only
+  prometheus:
+    metrics:
+      export:
+        enabled: ${VIDEO_PROMETHEUS_ENABLED:false}
+
+app:
+  security:
+    jwt:
+      # Bound only here and in application-local.yml. JwtSecretStartupValidator and
+      # ProductionSecretsStartupValidator both refuse to start without a real value.
+      secret: ${JWT_SECRET:}

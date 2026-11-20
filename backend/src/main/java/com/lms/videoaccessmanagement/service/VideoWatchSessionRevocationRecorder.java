@@ -61,4 +61,23 @@ class VideoWatchSessionRevocationRecorder {
 		}
 	}
 
+	/**
+	 * Same as {@link #revokeAndAudit}, but inside the caller's transaction -
+	 * for a caller that commits on its refusal (watch-time exhaustion keeps the
+	 * heartbeat's accounting), where a second transaction would only race the
+	 * caller's own pending update of the same session row.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	void revokeAndAuditInCurrentTransaction(VideoWatchSession session, VideoWatchSessionRevokedReason reason,
+			String detail) {
+		revokeAndAudit(session, reason, detail);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	void recordAudit(VideoWatchSession session, VideoWatchSessionRevokedReason reason, String detail) {
+		Instant now = Instant.now();
+		eventPublisher.publishEvent(new VideoPlaybackSessionRevokedEvent(session.getTenantId(), session.getId(),
+				session.getVideoAssetId(), session.getStudentId(), detail, now));
+	}
+
 }

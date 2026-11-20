@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CAL-01 Class Timetable (docs/specs/class-calendar.md 6.5). Landscape A4. Display-only typed-bean
+  template: no SQL, scriptlets or arithmetic - the renderer supplies display strings and one
+  "kind" per row that selects the detail band (month-grid header / grid week / agenda heading /
+  agenda date / agenda item / empty message). Grid cells and agenda text stretch; nothing is
+  truncated.
+-->
+<jasperReport name="timetable" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="786"
+		leftMargin="28" rightMargin="28" topMargin="22" bottomMargin="22" whenNoDataType="AllSectionsNoDetail">
+	<property name="net.sf.jasperreports.export.pdf.glyph.renderer.blocks.lms" value="sinhala,tamil"/>
+	<style name="Base" default="true" fontName="LMS Sans" fontSize="8.0" forecolor="#1F2937"/>
+	<style name="Muted" fontName="LMS Sans" fontSize="8.0" forecolor="#4B5563"/>
+	<style name="Header" fontName="LMS Sans" fontSize="8.0" forecolor="#374151" bold="true"/>
+	<parameter name="INSTITUTE" class="java.lang.String"/>
+	<parameter name="PERIOD" class="java.lang.String"/>
+	<parameter name="COURSE" class="java.lang.String"/>
+	<parameter name="TIMEZONE" class="java.lang.String"/>
+	<parameter name="GENERATED" class="java.lang.String"/>
+	<parameter name="FOOTER" class="java.lang.String"/>
+	<field name="kind" class="java.lang.String"/>
+	<field name="cell1" class="java.lang.String"/>
+	<field name="cell2" class="java.lang.String"/>
+	<field name="cell3" class="java.lang.String"/>
+	<field name="cell4" class="java.lang.String"/>
+	<field name="cell5" class="java.lang.String"/>
+	<field name="cell6" class="java.lang.String"/>
+	<field name="cell7" class="java.lang.String"/>
+	<field name="text" class="java.lang.String"/>
+	<field name="time" class="java.lang.String"/>
+	<field name="course" class="java.lang.String"/>
+	<field name="teachers" class="java.lang.String"/>
+	<field name="status" class="java.lang.String"/>
+	<title height="104">
+		<element kind="rectangle" x="0" y="0" width="786" height="50" backcolor="#1F2937" mode="Opaque"><pen lineWidth="0.0"/></element>
+		<element kind="staticText" x="14" y="5" width="758" height="22" forecolor="#FFFFFF" fontSize="16.0" bold="true" vTextAlign="Middle"><text><![CDATA[Class Timetable]]></text></element>
+		<element kind="textField" x="14" y="28" width="758" height="16" forecolor="#D1D5DB" fontSize="10.0" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$P{INSTITUTE}]]></expression></element>
+		<element kind="textField" x="0" y="56" width="786" height="13" style="Muted" textAdjust="StretchHeight"><expression><![CDATA[$P{PERIOD}]]></expression></element>
+		<element kind="textField" x="0" y="71" width="786" height="13" style="Muted" textAdjust="StretchHeight"><expression><![CDATA[$P{COURSE}]]></expression></element>
+		<element kind="textField" x="0" y="86" width="380" height="13" style="Muted"><expression><![CDATA[$P{TIMEZONE}]]></expression></element>
+		<element kind="textField" x="390" y="86" width="396" height="13" style="Muted" hTextAlign="Right"><expression><![CDATA[$P{GENERATED}]]></expression></element>
+	</title>
+	<detail>
+		<band height="20">
+			<printWhenExpression><![CDATA["GRID_HEAD".equals($F{kind})]]></printWhenExpression>
+			<element kind="textField" x="0" y="2" width="112" height="18" style="Header" backcolor="#E5E7EB" mode="Opaque" hTextAlign="Center" vTextAlign="Middle"><box><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell1}]]></expression></element>
+			<element kind="textField" x="112" y="2" width="112" height="18" style="Header" backcolor="#E5E7EB" mode="Opaque" hTextAlign="Center" vTextAlign="Middle"><box><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell2}]]></expression></element>
+			<element kind="textField" x="224" y="2" width="112" height="18" style="Header" backcolor="#E5E7EB" mode="Opaque" hTextAlign="Center" vTextAlign="Middle"><box><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell3}]]></expression></element>
+			<element kind="textField" x="336" y="2" width="112" height="18" style="Header" backcolor="#E5E7EB" mode="Opaque" hTextAlign="Center" vTextAlign="Middle"><box><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell4}]]></expression></element>
+			<element kind="textField" x="448" y="2" width="112" height="18" style="Header" backcolor="#E5E7EB" mode="Opaque" hTextAlign="Center" vTextAlign="Middle"><box><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell5}]]></expression></element>
+			<element kind="textField" x="560" y="2" width="112" height="18" style="Header" backcolor="#E5E7EB" mode="Opaque" hTextAlign="Center" vTextAlign="Middle"><box><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell6}]]></expression></element>
+			<element kind="textField" x="672" y="2" width="112" height="18" style="Header" backcolor="#E5E7EB" mode="Opaque" hTextAlign="Center" vTextAlign="Middle"><box><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell7}]]></expression></element>
+		</band>
+		<band height="62" splitType="Stretch">
+			<printWhenExpression><![CDATA["WEEK".equals($F{kind})]]></printWhenExpression>
+			<element kind="textField" x="0" y="0" width="112" height="62" markup="styled" textAdjust="StretchHeight" stretchType="ContainerHeight"><box padding="3"><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell1}]]></expression></element>
+			<element kind="textField" x="112" y="0" width="112" height="62" markup="styled" textAdjust="StretchHeight" stretchType="ContainerHeight"><box padding="3"><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell2}]]></expression></element>
+			<element kind="textField" x="224" y="0" width="112" height="62" markup="styled" textAdjust="StretchHeight" stretchType="ContainerHeight"><box padding="3"><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell3}]]></expression></element>
+			<element kind="textField" x="336" y="0" width="112" height="62" markup="styled" textAdjust="StretchHeight" stretchType="ContainerHeight"><box padding="3"><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell4}]]></expression></element>
+			<element kind="textField" x="448" y="0" width="112" height="62" markup="styled" textAdjust="StretchHeight" stretchType="ContainerHeight"><box padding="3"><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell5}]]></expression></element>
+			<element kind="textField" x="560" y="0" width="112" height="62" markup="styled" textAdjust="StretchHeight" stretchType="ContainerHeight"><box padding="3"><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell6}]]></expression></element>
+			<element kind="textField" x="672" y="0" width="112" height="62" markup="styled" textAdjust="StretchHeight" stretchType="ContainerHeight"><box padding="3"><pen lineWidth="0.5" lineColor="#D1D5DB"/></box><expression><![CDATA[$F{cell7}]]></expression></element>
+		</band>
+		<band height="34">
+			<printWhenExpression><![CDATA["AGENDA_TITLE".equals($F{kind})]]></printWhenExpression>
+			<element kind="textField" x="0" y="14" width="786" height="18" fontSize="12.0" bold="true" vTextAlign="Middle"><expression><![CDATA[$F{text}]]></expression></element>
+		</band>
+		<band height="24">
+			<printWhenExpression><![CDATA["DATE".equals($F{kind})]]></printWhenExpression>
+			<element kind="frame" x="0" y="4" width="786" height="18" backcolor="#DBEAFE" mode="Opaque">
+				<element kind="textField" x="6" y="0" width="774" height="18" bold="true" vTextAlign="Middle" textAdjust="StretchHeight"><expression><![CDATA[$F{text}]]></expression></element>
+			</element>
+		</band>
+		<band height="18" splitType="Stretch">
+			<printWhenExpression><![CDATA["ITEM".equals($F{kind})]]></printWhenExpression>
+			<element kind="textField" x="0" y="0" width="150" height="18" vTextAlign="Middle" textAdjust="StretchHeight" stretchType="ContainerHeight"><box leftPadding="6" topPadding="3" bottomPadding="3"><bottomPen lineWidth="0.5" lineColor="#E5E7EB"/></box><expression><![CDATA[$F{time}]]></expression></element>
+			<element kind="textField" x="150" y="0" width="340" height="18" vTextAlign="Middle" textAdjust="StretchHeight" stretchType="ContainerHeight"><box leftPadding="4" topPadding="3" bottomPadding="3"><bottomPen lineWidth="0.5" lineColor="#E5E7EB"/></box><expression><![CDATA[$F{course}]]></expression></element>
+			<element kind="textField" x="490" y="0" width="210" height="18" vTextAlign="Middle" textAdjust="StretchHeight" stretchType="ContainerHeight"><box leftPadding="4" topPadding="3" bottomPadding="3"><bottomPen lineWidth="0.5" lineColor="#E5E7EB"/></box><expression><![CDATA[$F{teachers}]]></expression></element>
+			<element kind="textField" x="700" y="0" width="86" height="18" vTextAlign="Middle" textAdjust="StretchHeight" stretchType="ContainerHeight"><box leftPadding="4" topPadding="3" bottomPadding="3"><bottomPen lineWidth="0.5" lineColor="#E5E7EB"/></box><expression><![CDATA[$F{status}]]></expression></element>
+		</band>
+		<band height="34">
+			<printWhenExpression><![CDATA["EMPTY".equals($F{kind})]]></printWhenExpression>
+			<element kind="textField" x="0" y="10" width="786" height="16" forecolor="#6B7280" fontSize="10.0" hTextAlign="Center"><expression><![CDATA[$F{text}]]></expression></element>
+		</band>
+	</detail>
+	<pageFooter height="22">
+		<element kind="line" x="0" y="2" width="786" height="1" forecolor="#D1D5DB"/>
+		<element kind="textField" x="0" y="6" width="640" height="14" style="Muted" textAdjust="ScaleFont"><expression><![CDATA[$P{FOOTER}]]></expression></element>
+		<element kind="textField" x="640" y="6" width="110" height="14" style="Muted" hTextAlign="Right"><expression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></expression></element>
+		<element kind="textField" x="750" y="6" width="36" height="14" style="Muted" evaluationTime="Report"><expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression></element>
+	</pageFooter>
+</jasperReport>

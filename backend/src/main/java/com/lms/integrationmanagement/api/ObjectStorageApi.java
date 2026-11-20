@@ -1,6 +1,7 @@
 package com.lms.integrationmanagement.api;
 
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * The narrow port other domains depend on for external object storage (e.g.
@@ -17,5 +18,31 @@ public interface ObjectStorageApi {
 	void delete(String objectKey);
 
 	SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl);
+
+	/**
+	 * PAY-HUB-01: the content type recorded for {@code objectKey} at upload
+	 * (the server-sniffed MIME type), or empty when unknown/unreachable. A
+	 * read-only metadata lookup - it never fails the caller: any provider
+	 * error resolves to empty. Callers must not hold a database transaction
+	 * open around this call (it may be a network round trip).
+	 */
+	default Optional<String> findContentType(String objectKey) {
+		return Optional.empty();
+	}
+
+	/**
+	 * Signed GET URL whose response is served by the storage origin with the
+	 * given {@code Content-Type}/{@code Content-Disposition} overrides (e.g.
+	 * forced {@code text/plain; charset=utf-8}, {@code inline}, a safe
+	 * filename). The overrides are part of the signature, so a holder of the
+	 * URL cannot change them.
+	 *
+	 * <p>The default implementation fails closed rather than silently
+	 * ignoring the overrides (which would defeat the forced content type) -
+	 * every real adapter must override it.
+	 */
+	default SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl, DownloadOverrides overrides) {
+		throw new UnsupportedOperationException("Download response overrides are not supported by this storage adapter");
+	}
 
 }

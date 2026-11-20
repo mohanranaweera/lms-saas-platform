@@ -84,6 +84,18 @@ public class Payment extends BaseEntity implements TenantOwned {
 	@Column(name = "idempotency_key", updatable = false)
 	private UUID idempotencyKey;
 
+	/**
+	 * PAY-GW-01 / ADR-017: whose account received the money ({@code TENANT}
+	 * for a tenant's own gateway account) and through which account. Set once,
+	 * together with the gateway reference, while still PENDING; {@code null}
+	 * for slip/free/staff-granted/pre-PAY-GW-01 payments.
+	 */
+	@Column(name = "collected_by", length = 10)
+	private String collectedBy;
+
+	@Column(name = "gateway_account_id")
+	private UUID gatewayAccountId;
+
 	@CreatedDate
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -165,6 +177,27 @@ public class Payment extends BaseEntity implements TenantOwned {
 	 */
 	public void assignGatewayReference(String gatewayReference) {
 		this.gatewayReference = gatewayReference;
+	}
+
+	/**
+	 * PAY-GW-01: records the gateway reference together with the collecting
+	 * account. Only legal while PENDING - a terminal payment is never updated.
+	 */
+	public void assignGatewayRouting(String gatewayReference, UUID gatewayAccountId, String collectedBy) {
+		if (status != PaymentStatus.PENDING) {
+			throw new IllegalStateException("Gateway routing can only be assigned to a PENDING payment, was " + status);
+		}
+		this.gatewayReference = gatewayReference;
+		this.gatewayAccountId = gatewayAccountId;
+		this.collectedBy = collectedBy;
+	}
+
+	public String getCollectedBy() {
+		return collectedBy;
+	}
+
+	public UUID getGatewayAccountId() {
+		return gatewayAccountId;
 	}
 
 	/**

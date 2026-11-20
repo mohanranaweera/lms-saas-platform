@@ -36,6 +36,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
 
+	private static final AuthenticationService.DeviceContext DEVICE = new AuthenticationService.DeviceContext(null,
+			"JUnit", "127.0.0.1");
+
 	/**
 	 * Copied from {@code AuthenticationService.DUMMY_HASH} (private): a
 	 * syntactically valid, never-assigned Argon2id hash. Duplicated here
@@ -70,7 +73,8 @@ class AuthenticationServiceTest {
 	void setUp() {
 		sessionProperties = new SessionProperties();
 		authenticationService = new AuthenticationService(tenantUserRepository, deviceSessionRepository,
-				passwordEncoder, tokenService, sessionProperties, tenantContext);
+				passwordEncoder, tokenService, sessionProperties, tenantContext,
+				org.mockito.Mockito.mock(DeviceRegistrationService.class));
 	}
 
 	@Test
@@ -80,7 +84,7 @@ class AuthenticationServiceTest {
 		when(passwordEncoder.matches("wrong-password", "real-hash")).thenReturn(false);
 
 		assertThatThrownBy(
-				() -> authenticationService.login("student@tenant-a.test", "wrong-password", "device-hash"))
+				() -> authenticationService.login("student@tenant-a.test", "wrong-password", DEVICE))
 			.isInstanceOf(InvalidCredentialsException.class);
 	}
 
@@ -89,7 +93,7 @@ class AuthenticationServiceTest {
 		when(tenantUserRepository.findByEmail("nobody@tenant-a.test")).thenReturn(Optional.empty());
 		when(passwordEncoder.matches("any-password", DUMMY_HASH)).thenReturn(false);
 
-		assertThatThrownBy(() -> authenticationService.login("nobody@tenant-a.test", "any-password", "device-hash"))
+		assertThatThrownBy(() -> authenticationService.login("nobody@tenant-a.test", "any-password", DEVICE))
 			.isInstanceOf(InvalidCredentialsException.class);
 
 		// Proves the timing-mitigation branch actually ran Argon2id work against the fixed dummy hash,
@@ -104,7 +108,7 @@ class AuthenticationServiceTest {
 		when(passwordEncoder.matches("correct-password", "real-hash")).thenReturn(true);
 
 		assertThatThrownBy(
-				() -> authenticationService.login("suspended@tenant-a.test", "correct-password", "device-hash"))
+				() -> authenticationService.login("suspended@tenant-a.test", "correct-password", DEVICE))
 			.isInstanceOf(UserSuspendedException.class);
 	}
 
@@ -118,7 +122,7 @@ class AuthenticationServiceTest {
 		when(passwordEncoder.matches("wrong-password", "real-hash")).thenReturn(false);
 
 		assertThatThrownBy(
-				() -> authenticationService.login("suspended@tenant-a.test", "wrong-password", "device-hash"))
+				() -> authenticationService.login("suspended@tenant-a.test", "wrong-password", DEVICE))
 			.isInstanceOf(InvalidCredentialsException.class)
 			.isNotInstanceOf(UserSuspendedException.class);
 	}
@@ -132,7 +136,7 @@ class AuthenticationServiceTest {
 		when(passwordEncoder.matches(any(), any())).thenReturn(false);
 
 		assertThatThrownBy(
-				() -> authenticationService.login("suspended@tenant-a.test", "wrong-password", "device-hash"))
+				() -> authenticationService.login("suspended@tenant-a.test", "wrong-password", DEVICE))
 			.isInstanceOf(InvalidCredentialsException.class);
 
 		verify(passwordEncoder, times(1)).matches("wrong-password", "real-hash");

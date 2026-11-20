@@ -51,41 +51,82 @@ public class AuthenticationService {
 
 	private final TenantContext tenantContext;
 
+	private final DeviceRegistrationService deviceRegistrationService;
+
 	public AuthenticationService(TenantUserRepository tenantUserRepository,
 			DeviceSessionRepository deviceSessionRepository, PasswordEncoder passwordEncoder,
-			TokenService tokenService, SessionProperties sessionProperties, TenantContext tenantContext) {
+			TokenService tokenService, SessionProperties sessionProperties, TenantContext tenantContext,
+			DeviceRegistrationService deviceRegistrationService) {
 		this.tenantUserRepository = tenantUserRepository;
 		this.deviceSessionRepository = deviceSessionRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.tokenService = tokenService;
 		this.sessionProperties = sessionProperties;
 		this.tenantContext = tenantContext;
+		this.deviceRegistrationService = deviceRegistrationService;
 	}
 
+	/**
+	 * Client signals the device binding needs (Wave 10): the raw {@code
+	 * lms_device_id} cookie value (null on a first visit), and the User-Agent/IP
+	 * used only for the display label and last-seen IP - never as identity.
+	 */
+	public record DeviceContext(String rawDeviceToken, String userAgent, String ipAddress) {
+	}
+
+	/**
+	 * Wave 10: once the credential checks pass, the login is bound to a
+	 * server-issued device ({@link DeviceRegistrationService#bindAtLogin}); a
+	 * student over the device limit is refused here with {@code 403
+	 * DEVICE_LIMIT_REACHED} in the same transaction, so nothing is persisted.
+	 */
 	@Transactional
-	public LoginResult login(String email, String rawPassword, String deviceIdentifierHash) {
-		Optional<TenantUser> userOpt = tenantUserRepository.findByEmail(email);
+	public LoginResult login(String email, String rawPassword, DeviceContext device) {
+		return complete(tenantUserRepository.findByEmail(email), rawPassword, device, InvalidCredentialsException::new);
+	}
+
+	/**
+	 * ADR-031: sign-in by mobile. {@code e164} is the already-normalised
+	 * number, or {@code null} when what the user typed isn't a valid number -
+	 * the password is still verified against the dummy hash so the response
+	 * and its timing match a wrong password. Everything after the user is
+	 * found is the same path as email sign-in.
+	 */
+	@Transactional
+	public LoginResult loginWithMobile(String e164, String rawPassword, DeviceContext device) {
+		Optional<TenantUser> userOpt = e164 == null ? Optional.empty() : tenantUserRepository.findByLoginMobile(e164);
+		return complete(userOpt, rawPassword, device, InvalidCredentialsException::forMobile);
+	}
+
+	private LoginResult complete(Optional<TenantUser> userOpt, String rawPassword, DeviceContext device,
+			java.util.function.Supplier<InvalidCredentialsException> invalid) {
 		String hashToVerify = userOpt.map(TenantUser::getPasswordHash).orElse(DUMMY_HASH);
 		boolean passwordMatches = passwordEncoder.matches(rawPassword, hashToVerify);
 
 		if (userOpt.isEmpty() || !passwordMatches) {
-			throw new InvalidCredentialsException();
+			throw invalid.get();
 		}
 		TenantUser user = userOpt.get();
+		if (user.getStatus() == AccountStatus.INVITED) {
+			// ADR-020: indistinguishable from a wrong password (no account-state disclosure).
+			throw invalid.get();
+		}
 		if (user.getStatus() == AccountStatus.SUSPENDED) {
 			throw new UserSuspendedException();
 		}
 
 		var tenantId = tenantContext.getTenantId();
 		Instant now = Instant.now();
+		DeviceRegistrationService.DeviceBinding binding = deviceRegistrationService.bindAtLogin(user,
+				device.rawDeviceToken(), device.userAgent(), device.ipAddress());
 		String rawRefreshToken = tokenService.generateOpaqueRefreshToken();
 		DeviceSession session = new DeviceSession(tenantId, user.getId(), tokenService.hashRefreshToken(rawRefreshToken),
-				deviceIdentifierHash, now, now.plus(sessionProperties.getRefreshTokenTtl()));
+				binding.tokenHash(), now, now.plus(sessionProperties.getRefreshTokenTtl()), binding.deviceId());
 		session = deviceSessionRepository.save(session);
 
 		String accessToken = tokenService.issueTenantAccessToken(user.getId(), tenantId, user.getRole(), session.getId());
 		return new LoginResult(accessToken, tokenService.accessTokenTtl(), session.getId(), rawRefreshToken,
-				sessionProperties.getRefreshTokenTtl(), user.isMustChangePassword());
+				sessionProperties.getRefreshTokenTtl(), user.isMustChangePassword(), binding.rawToken());
 	}
 
 }

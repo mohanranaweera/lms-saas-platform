@@ -1,0 +1,426 @@
+"use client";
+
+import { useEffect, useId, useState } from "react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ArrowRight, Check, Loader2, Search, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LiveRegion } from "@/components/ui/live-region";
+import { EmptyState } from "@/components/states/empty-state";
+import { QueryStateBoundary } from "@/components/states/query-state-boundary";
+import { cn } from "@/lib/utils";
+import {
+  useCourseTags,
+  useSelfEnroll,
+  useStudentCatalog,
+  type CatalogCourse,
+  type CatalogSort,
+  type CatalogView,
+} from "@/lib/api/klass-student";
+import { useSelfEnrollmentEnabled } from "@/lib/api/public-home";
+import { CourseCover, PriceBadge } from "./course-visuals";
+import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog";
+import { ExpiredLegacyAccessSection } from "./legacy-reactivation";
+import { StudentToast, useStudentToast } from "./student-toast";
+import { useT } from "@/i18n/i18n-provider";
+import { useContentLang } from "@/i18n/content-lang";
+
+const PAGE_SIZE = 20;
+
+/** `?view=available` selects Available Courses; anything else is Enrolled. */
+export function viewFromParam(value: string | null): CatalogView {
+  return value?.toLowerCase() === "available" ? "AVAILABLE" : "ENROLLED";
+}
+
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+/**
+ * Klass student course discovery (CM-S01, EP-E01..E05): Enrolled / Available
+ * views, server search (debounced), Sort by, tenant tag chips and a card grid.
+ * Enroll is free (ADR-028): confirm → one POST → the card leaves Available
+ * only after the server confirms and the catalog is re-read. Nothing is shown
+ * as enrolled optimistically, and enrollment never goes through checkout.
+ */
+export function StudentCourseCatalog() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const view = viewFromParam(searchParams.get("view"));
+  const searchId = useId();
+  const sortId = useId();
+  const t = useT();
+
+  const [searchInput, setSearchInput] = useState("");
+  const search = useDebounced(searchInput, 350);
+  const [sort, setSort] = useState<CatalogSort>("DEFAULT");
+  const [tagId, setTagId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [pagedFilters, setPagedFilters] = useState({ view, search, sort, tagId });
+
+  // Any filter change resets to the first page (derived-state pattern, no effect).
+  if (
+    pagedFilters.view !== view ||
+    pagedFilters.search !== search ||
+    pagedFilters.sort !== sort ||
+    pagedFilters.tagId !== tagId
+  ) {
+    setPagedFilters({ view, search, sort, tagId });
+    setPage(0);
+  }
+
+  const catalogQuery = useStudentCatalog({ view, search, tagId, sort, page, size: PAGE_SIZE });
+  const tagsQuery = useCourseTags();
+  const enroll = useSelfEnroll();
+  const toast = useStudentToast();
+  // SET-CFG-01: the institute may enroll students itself (UX only; the backend enforces it).
+  const selfEnrollmentEnabled = useSelfEnrollmentEnabled();
+
+  const [confirmCourse, setConfirmCourse] = useState<CatalogCourse | null>(null);
+  const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
+  const [failures, setFailures] = useState<Record<string, string>>({});
+
+  // The URL (`?view=`) is the single source of truth for the view: `view` above
+  // is derived from useSearchParams on every render, so a pill click, the nav
+  // links and back/forward all land on the same state. The switch is a shallow
+  // History API update (Next keeps useSearchParams in sync with it) rather than
+  // router.replace: switching view is client-only, so it needs no server round
+  // trip and never touches the router's route cache. (While the page was a
+  // static route, a production build's router reused the prefetched entry for
+  // `/student/courses?view=available` - canonical URL included - so a
+  // router.replace to `/student/courses` wrote `?view=available` straight back
+  // and the Enrolled pill appeared to do nothing; see the page component.)
+  const setView = (next: CatalogView) => {
+    if (next === view) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "AVAILABLE") params.set("view", "available");
+    else params.delete("view");
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+  };
+
+  const runEnroll = async (course: CatalogCourse) => {
+    if (pendingCourseId) return;
+    setPendingCourseId(course.courseId);
+    setFailures((current) => {
+      const next = { ...current };
+      delete next[course.courseId];
+      return next;
+    });
+    try {
+      await enroll.mutateAsync(course.courseId);
+      toast.show({ kind: "success", text: t("student.catalog.enrolled", { course: course.title }) });
+    } catch (error) {
+      const message = enrollErrorMessage(error, t);
+      setFailures((current) => ({ ...current, [course.courseId]: message }));
+      toast.show({ kind: "error", text: message });
+    } finally {
+      setPendingCourseId(null);
+    }
+  };
+
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6" data-testid="student-course-catalog">
+      {/* Legacy paid-access renewal (ADR-013) for EXPIRED legacy enrollments -
+          independent of the catalog read, renders nothing unless there are any. */}
+      {view === "ENROLLED" ? <ExpiredLegacyAccessSection /> : null}
+      <section aria-label={t("student.catalog.filtersRegion")} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex w-full flex-col gap-1 sm:max-w-md">
+            <Label htmlFor={searchId}>{t("student.catalog.search")}</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id={searchId}
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={t("student.catalog.search")}
+                className="pl-8"
+                data-testid="catalog-search"
+              />
+            </div>
+          </div>
+          <div className="flex w-full flex-col gap-1 sm:w-48">
+            <Label htmlFor={sortId}>{t("student.catalog.sortBy")}</Label>
+            <select
+              id={sortId}
+              value={sort}
+              onChange={(event) => setSort(event.target.value as CatalogSort)}
+              data-testid="catalog-sort"
+              className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <option value="DEFAULT">{t("student.catalog.sortDefault")}</option>
+              <option value="TITLE">{t("student.catalog.sortTitle")}</option>
+            </select>
+          </div>
+        </div>
+
+        {tagsQuery.isSuccess && tagsQuery.data.length > 0 ? (
+          <div role="group" aria-label={t("student.catalog.filterByTag")} className="flex flex-wrap gap-2 border-t border-border pt-3" data-testid="catalog-tags">
+            {tagsQuery.data.map((tag) => {
+              const selected = tag.id === tagId;
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  aria-pressed={selected}
+                  data-testid="catalog-tag-chip"
+                  data-tag-id={tag.id}
+                  onClick={() => setTagId(selected ? null : tag.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+                    selected
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-border bg-background text-foreground hover:bg-muted"
+                  )}
+                >
+                  {selected ? <Check className="size-3" aria-hidden="true" /> : null}
+                  {tag.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {tagsQuery.isError ? (
+          <p className="border-t border-border pt-3 text-xs text-muted-foreground" role="status">
+            {t("student.catalog.tagsError")}{" "}
+            <button type="button" className="underline" onClick={() => tagsQuery.refetch()}>
+              {t("common.actions.retry")}
+            </button>
+          </p>
+        ) : null}
+      </section>
+
+      <LiveRegion
+        message={
+          catalogQuery.isFetching
+            ? t("student.courses.loading")
+            : catalogQuery.isSuccess
+              ? t("student.catalog.found", { count: catalogQuery.data.totalElements })
+              : ""
+        }
+      />
+
+
+      <QueryStateBoundary
+        query={catalogQuery}
+        loadingLabel={t("student.courses.loading")}
+        loginPath="/login"
+        permissionDenied={{ dashboardHref: "/student/dashboard" }}
+      >
+        {(data) => {
+          if (data.content.length === 0) {
+            const filtered = search.trim().length > 0 || tagId !== null;
+            return (
+              <div data-testid="catalog-empty">
+                {filtered ? (
+                  <EmptyState
+                    title={t("student.catalog.noMatch.title")}
+                    description={t("student.catalog.noMatch.description")}
+                    action={{
+                      label: t("student.attendance.noMatch.clear"),
+                      onClick: () => {
+                        setSearchInput("");
+                        setTagId(null);
+                      },
+                    }}
+                  />
+                ) : view === "ENROLLED" ? (
+                  <EmptyState
+                    title={t("student.catalog.emptyEnrolled.title")}
+                    description={t("student.catalog.emptyEnrolled.description")}
+                    action={{ label: t("student.catalog.emptyEnrolled.action"), onClick: () => setView("AVAILABLE") }}
+                  />
+                ) : (
+                  <EmptyState
+                    title={t("student.catalog.emptyAvailable.title")}
+                    description={t("student.catalog.emptyAvailable.description")}
+                  />
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex flex-col gap-4">
+              {view === "AVAILABLE" && !selfEnrollmentEnabled ? (
+                <p
+                  className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200"
+                  data-testid="catalog-self-enrollment-disabled"
+                >
+                  {t("student.catalog.selfEnrollmentDisabled")}
+                </p>
+              ) : null}
+              <ul
+                aria-label={view === "ENROLLED" ? t("student.catalog.enrolledList") : t("student.nav.availableCourses")}
+                aria-busy={catalogQuery.isFetching}
+                className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                data-testid="catalog-grid"
+              >
+                {data.content.map((course) => (
+                  <CatalogCard
+                    key={course.courseId}
+                    course={course}
+                    view={view}
+                    selfEnrollmentEnabled={selfEnrollmentEnabled}
+                    pending={pendingCourseId === course.courseId}
+                    anyPending={pendingCourseId !== null}
+                    failure={failures[course.courseId] ?? null}
+                    onEnroll={() => setConfirmCourse(course)}
+                    onRetry={() => runEnroll(course)}
+                  />
+                ))}
+              </ul>
+
+              {data.totalPages > 1 ? (
+                <nav aria-label={t("student.catalog.pages")} className="flex items-center justify-between gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={data.page <= 0}
+                    onClick={() => setPage((current) => Math.max(current - 1, 0))}
+                  >
+                    {t("student.common.previous")}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {t("student.common.pageOf", { page: data.page + 1, total: data.totalPages })}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={data.page + 1 >= data.totalPages}
+                    onClick={() => setPage((current) => current + 1)}
+                  >
+                    {t("student.common.next")}
+                  </Button>
+                </nav>
+              ) : null}
+            </div>
+          );
+        }}
+      </QueryStateBoundary>
+
+      <EnrollConfirmDialog
+        courseTitle={confirmCourse?.title ?? null}
+        open={confirmCourse !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmCourse(null);
+        }}
+        onConfirm={() => {
+          const course = confirmCourse;
+          setConfirmCourse(null);
+          if (course) void runEnroll(course);
+        }}
+      />
+
+      <StudentToast message={toast.message} onDismiss={toast.dismiss} />
+    </div>
+  );
+}
+
+function CatalogCard({
+  course,
+  view,
+  selfEnrollmentEnabled,
+  pending,
+  anyPending,
+  failure,
+  onEnroll,
+  onRetry,
+}: {
+  course: CatalogCourse;
+  view: CatalogView;
+  selfEnrollmentEnabled: boolean;
+  pending: boolean;
+  anyPending: boolean;
+  failure: string | null;
+  onEnroll: () => void;
+  onRetry: () => void;
+}) {
+  const href = `/student/courses/${course.courseId}`;
+  const t = useT();
+  const contentLang = useContentLang((course as { contentLocale?: string | null }).contentLocale);
+  return (
+    <li
+      className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+      data-testid="catalog-course-card"
+      data-course-id={course.courseId}
+    >
+      <div className="relative">
+        <CourseCover src={course.coverImageUrl} title={course.title} />
+        <PriceBadge
+          priceDisplay={course.priceDisplay}
+          pricingModel={course.pricingModel}
+          className="absolute bottom-3 left-3 bg-white/95 dark:bg-blue-950/95"
+        />
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <h2 className="text-base font-semibold leading-snug break-words text-foreground" data-testid="catalog-course-title" lang={contentLang}>
+          {course.title}
+        </h2>
+        {course.teacherName ? (
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <UserRound className="size-4" aria-hidden="true" />
+            <span className="sr-only">{t("student.catalog.teacher")}</span>
+            {course.teacherName}
+          </p>
+        ) : null}
+        {failure ? (
+          <div role="alert" className="mt-1 flex flex-col items-start gap-1 text-xs text-destructive" data-testid="catalog-enroll-error">
+            <span>{failure}</span>
+            <button type="button" className="font-medium underline" onClick={onRetry} disabled={anyPending}>
+              {t("common.actions.retry")}
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <div className="flex items-center justify-end gap-3 border-t border-border px-4 py-3">
+        {view === "ENROLLED" ? (
+          <Link
+            href={href}
+            aria-label={t("student.catalog.openCourseLabel", { course: course.title })}
+            data-testid="catalog-open-course"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300"
+          >
+            {t("student.catalog.openCourse")}
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        ) : (
+          <>
+            <Link
+              href={href}
+              aria-label={t("student.catalog.viewCourseLabel", { course: course.title })}
+              data-testid="catalog-view-course"
+              className="text-sm font-medium text-blue-700 hover:underline dark:text-blue-300"
+            >
+              {t("student.catalog.viewCourse")}
+            </Link>
+            {selfEnrollmentEnabled ? (
+            <Button
+              type="button"
+              onClick={onEnroll}
+              disabled={anyPending}
+              aria-busy={pending}
+              aria-label={pending ? t("student.catalog.enrollingLabel", { course: course.title }) : t("student.catalog.enrollLabel", { course: course.title })}
+              data-testid="catalog-enroll"
+              className="min-w-20 bg-blue-600 text-white hover:bg-blue-700"
+            >
+              {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : t("student.catalog.enroll")}
+            </Button>
+            ) : null}
+          </>
+        )}
+      </div>
+    </li>
+  );
+}

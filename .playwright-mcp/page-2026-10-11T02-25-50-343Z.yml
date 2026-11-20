@@ -1,0 +1,55 @@
+- generic [active] [ref=f8e1]:
+  - button "Open Next.js Dev Tools" [ref=f8e31] [cursor=pointer]
+  - alert [ref=f8e36]
+  - generic [ref=f8e37]:
+    - complementary [ref=f8e38]:
+      - generic [ref=f8e39]: Teacher Portal
+      - navigation "Primary" [ref=f8e40]:
+        - list [ref=f8e41]:
+          - listitem [ref=f8e42]:
+            - link "Dashboard" [ref=f8e43] [cursor=pointer]:
+              - /url: /teacher/dashboard
+          - listitem [ref=f8e44]:
+            - link "Courses" [ref=f8e45] [cursor=pointer]:
+              - /url: /teacher/courses
+          - listitem [ref=f8e46]:
+            - link "Media Library" [ref=f8e47] [cursor=pointer]:
+              - /url: /teacher/media
+          - listitem [ref=f8e48]:
+            - link "Live Classes" [ref=f8e49] [cursor=pointer]:
+              - /url: /teacher/live-classes
+          - listitem [ref=f8e50]:
+            - link "Mark Attendance" [ref=f8e51] [cursor=pointer]:
+              - /url: /teacher/attendance/mark
+          - listitem [ref=f8e52]:
+            - link "Attendance Reports" [ref=f8e53] [cursor=pointer]:
+              - /url: /teacher/attendance/reports
+          - listitem [ref=f8e54]:
+            - link "Exams" [ref=f8e55] [cursor=pointer]:
+              - /url: /teacher/exams/questions
+          - listitem [ref=f8e56]:
+            - link "Messages" [ref=f8e57] [cursor=pointer]:
+              - /url: /teacher/communications
+          - listitem [ref=f8e58]:
+            - link "Notifications" [ref=f8e59] [cursor=pointer]:
+              - /url: /teacher/notifications
+          - listitem [ref=f8e60]:
+            - link "Settings" [ref=f8e61] [cursor=pointer]:
+              - /url: /teacher/settings
+          - listitem [ref=f8e62]:
+            - generic [ref=f8e63]:
+              - text: Profile
+              - generic [ref=f8e64]: Soon
+    - generic [ref=f8e65]:
+      - banner [ref=f8e66]:
+        - generic [ref=f8e67]:
+          - link "Change password" [ref=f8e68] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f8e70]
+      - main [ref=f8e71]:
+        - generic [ref=f8e72]:
+          - generic [ref=f8e73]:
+            - heading "Overview" [level=1] [ref=f8e74]
+            - paragraph [ref=f8e75]: Your assigned courses at a glance.
+          - status [ref=f8e76]:
+            - generic [ref=f8e79]: Loading your courses…

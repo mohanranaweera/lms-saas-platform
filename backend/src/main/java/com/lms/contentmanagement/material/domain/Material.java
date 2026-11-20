@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * A single learning material (Wave 5, V50/V51 extend MVP-009's V16 shape),
@@ -33,6 +34,9 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "material")
+// V82: a VIDEO/RECORDING removed from its lesson is kept (watch sessions
+// reference it) but hidden from every query - see markRemoved.
+@SQLRestriction("removed_at IS NULL")
 public class Material extends Auditable implements TenantOwned {
 
 	@Column(name = "tenant_id", nullable = false, updatable = false)
@@ -92,7 +96,41 @@ public class Material extends Auditable implements TenantOwned {
 	@Column(name = "uploaded_by", nullable = false, updatable = false)
 	private UUID uploadedBy;
 
+	@Column(name = "removed_at")
+	private Instant removedAt;
+
+	@Column(name = "removed_by")
+	private UUID removedBy;
+
+	/**
+	 * R2-T3 (V88): set when this file-type material is backed by a shared
+	 * institute library file ({@code media_file}) instead of its own stored
+	 * object - {@link #storageObjectKey} is then always {@code null}
+	 * ({@code ck_material_media_file_shape}), so deleting this material can
+	 * never delete the shared library object.
+	 */
+	@Column(name = "media_file_id", updatable = false)
+	private UUID mediaFileId;
+
 	protected Material() {
+	}
+
+	/**
+	 * R2-T3: a PDF/IMAGE/DOCUMENT/OTHER material backed by library file
+	 * {@code mediaFileId}. Display metadata (filename, MIME type, size) is
+	 * copied from the library file; no storage object key is stored.
+	 */
+	public static Material libraryFile(UUID tenantId, UUID lessonId, UUID sessionId, MaterialType materialType,
+			String title, UUID mediaFileId, String originalFilename, String mimeType, Long sizeBytes,
+			Integer sequence, Integer maxDownloads, Instant availableFromAt, Instant expiryAt, UUID uploadedBy) {
+		Material material = new Material(tenantId, lessonId, sessionId, materialType, title, originalFilename, null,
+				mimeType, sizeBytes, null, null, null, sequence, maxDownloads, availableFromAt, expiryAt, uploadedBy);
+		material.mediaFileId = mediaFileId;
+		return material;
+	}
+
+	public UUID getMediaFileId() {
+		return mediaFileId;
 	}
 
 	/**
@@ -264,6 +302,28 @@ public class Material extends Auditable implements TenantOwned {
 
 	public UUID getUploadedBy() {
 		return uploadedBy;
+	}
+
+	public Instant getRemovedAt() {
+		return removedAt;
+	}
+
+	public boolean isVideo() {
+		return materialType == MaterialType.VIDEO || materialType == MaterialType.RECORDING;
+	}
+
+	/**
+	 * Takes a VIDEO/RECORDING off its lesson without deleting the row - its
+	 * {@code video_watch_session} history (V77 FK) must survive, and the video
+	 * asset stays in the media library. Once flushed, the row is invisible to
+	 * every query via the class-level {@code @SQLRestriction} (V82).
+	 */
+	public void markRemoved(UUID actorId, Instant at) {
+		if (!isVideo()) {
+			throw new IllegalStateException("Only video materials are soft-removed");
+		}
+		this.removedBy = actorId;
+		this.removedAt = at;
 	}
 
 }

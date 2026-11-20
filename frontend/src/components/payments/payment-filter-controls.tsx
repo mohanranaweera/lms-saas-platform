@@ -35,6 +35,7 @@ const METHOD_OPTIONS: Array<{ value: "all" | PaymentMethod; label: string }> = [
   { value: "MANUAL_SLIP", label: PAYMENT_METHOD_LABEL.MANUAL_SLIP },
   { value: "FREE", label: PAYMENT_METHOD_LABEL.FREE },
   { value: "STAFF_GRANTED", label: PAYMENT_METHOD_LABEL.STAFF_GRANTED },
+  { value: "MANUAL_RECEIPT", label: PAYMENT_METHOD_LABEL.MANUAL_RECEIPT },
 ];
 
 export interface PaymentFilterControlsProps {

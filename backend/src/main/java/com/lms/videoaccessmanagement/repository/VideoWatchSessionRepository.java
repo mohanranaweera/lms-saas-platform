@@ -30,6 +30,11 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public interface VideoWatchSessionRepository extends TenantAwareRepository<VideoWatchSession, UUID> {
 
+	/** Explicit cross-tenant maintenance lookup; the returned row supplies the trusted tenant context. */
+	@Query(value = "SELECT * FROM video_watch_session WHERE status = 'ACTIVE' AND expires_at <= :now "
+			+ "ORDER BY expires_at LIMIT :limit", nativeQuery = true)
+	List<VideoWatchSession> findActiveExpiredBeforeAcrossTenants(@Param("now") Instant now, @Param("limit") int limit);
+
 	/** The concurrency/entitlement lookup shape (plan §3): every currently-{@code ACTIVE} session, oldest first. */
 	default List<VideoWatchSession> findActiveSessionsFor(UUID tenantId, UUID videoAssetId, UUID studentId) {
 		assertTenantIdMatchesContext(tenantId);
@@ -85,6 +90,78 @@ public interface VideoWatchSessionRepository extends TenantAwareRepository<Video
 	@Query(value = "UPDATE video_watch_session SET status = 'ENDED' WHERE id = :id AND tenant_id = :tenantId "
 			+ "AND status = 'ACTIVE'", nativeQuery = true)
 	int endIfActiveUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
+
+	// ---- VIDEO Phase 8 (V77): NATIVE sessions -------------------------------
+
+	/** Live NATIVE sessions (PENDING_LAUNCH or ACTIVE) issued for a device - revoked with the device. */
+	default List<VideoWatchSession> findLiveNativeForDevice(UUID tenantId, UUID deviceId) {
+		assertTenantIdMatchesContext(tenantId);
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("issuedForDeviceId"), deviceId),
+				root.get("status").in(VideoWatchSessionStatus.PENDING_LAUNCH, VideoWatchSessionStatus.ACTIVE)));
+	}
+
+	/** ACTIVE sessions claimed by an installation - revoked with the installation. */
+	default List<VideoWatchSession> findActiveForInstallation(UUID tenantId, UUID installationId) {
+		assertTenantIdMatchesContext(tenantId);
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("playerInstallationId"), installationId),
+				cb.equal(root.get("status"), VideoWatchSessionStatus.ACTIVE)));
+	}
+
+	/** A Student's PENDING_LAUNCH sessions for one asset - superseded when Play is pressed again. */
+	default List<VideoWatchSession> findPendingNativeFor(UUID tenantId, UUID videoAssetId, UUID studentId) {
+		assertTenantIdMatchesContext(tenantId);
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("videoAssetId"), videoAssetId),
+				cb.equal(root.get("studentId"), studentId),
+				cb.equal(root.get("status"), VideoWatchSessionStatus.PENDING_LAUNCH)));
+	}
+
+	/**
+	 * Exchange: PENDING_LAUNCH -> ACTIVE, bound to the claiming installation.
+	 * Also anchors watch-time accounting at the claim (Phase 12), so the first
+	 * heartbeat's interval is counted. 0 rows = no longer pending (revoked,
+	 * superseded or already claimed).
+	 */
+	@Transactional
+	default int activateNativeIfPending(UUID id, UUID tenantId, UUID installationId, Instant expiresAt,
+			Instant activatedAt) {
+		assertTenantIdMatchesContext(tenantId);
+		return activateNativeIfPendingUnchecked(id, tenantId, installationId, expiresAt, activatedAt);
+	}
+
+	@Modifying
+	@Query(value = "UPDATE video_watch_session SET status = 'ACTIVE', player_installation_id = :installationId, "
+			+ "expires_at = :expiresAt, last_heartbeat_at = :activatedAt, last_position_seconds = 0, "
+			+ "last_heartbeat_state = 'IDLE' WHERE id = :id AND tenant_id = :tenantId "
+			+ "AND status = 'PENDING_LAUNCH' AND launch_channel = 'NATIVE'", nativeQuery = true)
+	int activateNativeIfPendingUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId,
+			@Param("installationId") UUID installationId, @Param("expiresAt") Instant expiresAt,
+			@Param("activatedAt") Instant activatedAt);
+
+	/** Heartbeat: pushes an ACTIVE NATIVE session's deadline forward. 0 rows = no longer ACTIVE. */
+	@Transactional
+	default int extendNativeIfActive(UUID id, UUID tenantId, Instant expiresAt) {
+		assertTenantIdMatchesContext(tenantId);
+		return extendNativeIfActiveUnchecked(id, tenantId, expiresAt);
+	}
+
+	@Modifying
+	@Query(value = "UPDATE video_watch_session SET expires_at = :expiresAt WHERE id = :id AND tenant_id = :tenantId "
+			+ "AND status = 'ACTIVE' AND launch_channel = 'NATIVE'", nativeQuery = true)
+	int extendNativeIfActiveUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId,
+			@Param("expiresAt") Instant expiresAt);
+
+	/** Revokes a session that is still PENDING_LAUNCH or ACTIVE. 0 rows = already ended/revoked. */
+	@Transactional
+	default int revokeIfLive(UUID id, UUID tenantId, Instant now, String reason) {
+		assertTenantIdMatchesContext(tenantId);
+		return revokeIfLiveUnchecked(id, tenantId, now, reason);
+	}
+
+	@Modifying
+	@Query(value = "UPDATE video_watch_session SET status = 'REVOKED', revoked_at = :now, revoked_reason = :reason "
+			+ "WHERE id = :id AND tenant_id = :tenantId AND status IN ('PENDING_LAUNCH', 'ACTIVE')", nativeQuery = true)
+	int revokeIfLiveUnchecked(@Param("id") UUID id, @Param("tenantId") UUID tenantId, @Param("now") Instant now,
+			@Param("reason") String reason);
 
 	/** Defense-in-depth guard, mirrors {@code MaterialRepository}'s identical private helper exactly. */
 	private static void assertTenantIdMatchesContext(UUID tenantId) {

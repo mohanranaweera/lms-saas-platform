@@ -169,12 +169,15 @@ Affects: [21-sms.md](specifications/21-sms.md), [22-whatsapp.md](specifications/
   Source: `docs/architecture/deployment-architecture.md` §6.
 - **Zoom link-sharing prevention mechanism**: the requirement exists (FR-LCM-2) but the concrete enforcement mechanism is not specified.
   Affects: [19-zoom-live-classes.md](specifications/19-zoom-live-classes.md).
+  **Resolved (ADR-018 §4, 2026-09-28):** every student gets a personal Zoom registrant join link after the platform's entitlement check; the host start link is fetched fresh and never stored. Requires a licensed teacher Zoom account.
 - **Whether Zoom join-link protection follows the same signed-URL/short-lived-token rule as video**: `.claude/rules/security.md`'s "Video & Session Protection" section only names video explicitly.
   Affects: [19-zoom-live-classes.md](specifications/19-zoom-live-classes.md).
+  **Resolved (ADR-018 §4):** no platform token layer for Zoom; protection is the per-student registrant link minted only after entitlement checks, plus the teacher's own Zoom meeting settings.
 - **WhatsApp template-approval state machine and opt-in/consent handling**: not addressed in any source document.
   Affects: [22-whatsapp.md](specifications/22-whatsapp.md).
 - **Whether YouTube/Vimeo-attached content is subject to the same view-limit/expiry/watermark/device-restriction controls as platform-hosted secure video, or exempt.** A raw YouTube/Vimeo embed URL is inherently more guessable/shareable than a signed platform token, and no document resolves the seam.
   Affects: [27-youtube-vimeo-integrations.md](specifications/27-youtube-vimeo-integrations.md).
+  **Resolved (ADR-018 §6):** exempt - only unlisted/private videos, domain-restricted embeds where supported, weaker protection stated in the UI; paid protected content uses the tenant video host (DynTube/Bunny.net).
 - **Monthly-closing lock semantics** for Finance & Expenses (mutation-after-close behavior).
   Affects: [23-finance-and-expenses.md](specifications/23-finance-and-expenses.md).
 - **Zoom-sync participant-name reconciliation rule**: no rule specified for when Zoom-sync attendance data doesn't match an enrolled student's standardized name.
@@ -746,12 +749,19 @@ must append here, per this log's established §15-§19 convention.
 
 ## 22. Email Notifications (MVP-018) — carried-forward decisions
 
+- **RESOLVED 2026-10-01 (Wave 11, ADR-023 decision D2):** new `DomainArea.COMMUNICATIONS` —
+  Tenant Admin and Student Support send broadcasts and manage broadcast templates, Read-only
+  Auditor views; editing the system (`notification_template`) messages is Tenant Admin only;
+  teachers message only their own courses. The original entry follows for history.
 - **Which staff sub-role(s) may manage `notification_template` rows, or trigger sends manually —
   still unresolved, no default assumed.** Unspecified anywhere in the source requirements
   (`12-notifications.md` §11); this MVP ships no authoring endpoint/UI at all (see the
   template-origination item below), so the question of who would be authorized to use one remains
   open until a future module adds authoring.
   Source: plan §21 item 1 (issue's own explicit open decision).
+- **SUPERSEDED 2026-10-01 (Wave 11, ADR-023 decision D3):** bounded retry — 3 attempts, 1 min
+  then 5 min backoff, transport failures only; `attempt_count`/`next_attempt_at` added by V68.
+  The original entry follows for history.
 - **MVP-level failure handling for a failed email send is undefined by design — no retry/backoff
   was implemented, and none should be assumed.** A `FAILED` `notification_outbox` row is terminal;
   the issue itself explicitly instructed against silently implementing a retry mechanism. If a

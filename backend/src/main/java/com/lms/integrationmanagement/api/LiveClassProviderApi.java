@@ -14,6 +14,17 @@ import java.util.UUID;
 public interface LiveClassProviderApi {
 
 	/**
+	 * MEDIA-INT-01: verifies, with local lookups only, that {@code
+	 * hostTeacherUserId} can host a meeting (Zoom enabled for the tenant, an
+	 * ACTIVE licensed Zoom connection). Called BEFORE a session is persisted,
+	 * so a teacher who cannot host gets a clear 409 and no half-created
+	 * session.
+	 * @throws com.lms.common.error.ProviderConflictException with a specific
+	 * {@code PROVIDER_*} code
+	 */
+	void checkHostReady(UUID hostTeacherUserId);
+
+	/**
 	 * Creates a meeting with the provider for an already-persisted (SCHEDULED
 	 * /PENDING) {@code class_session}. Called strictly OUTSIDE any open
 	 * database transaction (Wave 4 plan §4 / {@code .claude/rules/backend.md}'s
@@ -22,8 +33,8 @@ public interface LiveClassProviderApi {
 	 * call this, then persist the returned reference (or failure reason) in a
 	 * second, separate transaction.
 	 */
-	MeetingCreationResult createMeeting(UUID tenantId, UUID sessionId, String title, Instant scheduledStart,
-			Instant scheduledEnd);
+	MeetingCreationResult createMeeting(UUID tenantId, UUID sessionId, UUID hostTeacherUserId, String title,
+			Instant scheduledStart, Instant scheduledEnd);
 
 	/**
 	 * Mints a fresh, short-lived, single-use, caller-scoped join URL - never a
@@ -32,12 +43,14 @@ public interface LiveClassProviderApi {
 	 * entitlement (tenant/enrollment/ownership) and session-status
 	 * ({@code LIVE}) checks have already passed - this method itself performs
 	 * no entitlement check, it only mints the link.
-	 * @param participantRole an opaque, provider-facing role hint (e.g.
-	 * {@code "HOST"}/{@code "PARTICIPANT"}) - never used for authorization
-	 * decisions on this side, those are already complete by the time this is
-	 * called.
+	 * @param connectionId the connection that hosts the meeting ({@code
+	 * class_session.provider_connection_id}); {@code null} for a
+	 * fake-provider session
+	 * @param participant built server-side; {@code host} only for the
+	 * course-owning teacher, who receives the host start link - never used for
+	 * authorization here, those checks are already complete.
 	 */
-	ShortLivedJoinLink getJoinUrl(String providerReference, UUID tenantId, String participantRole, String displayName);
+	ShortLivedJoinLink getJoinUrl(UUID connectionId, String providerReference, MeetingParticipant participant);
 
 	/**
 	 * Mints a fresh, short-lived signed playback reference for a completed
@@ -54,7 +67,7 @@ public interface LiveClassProviderApi {
 	 * already-cancelled/nonexistent provider reference - cancellation is
 	 * idempotent from the caller's perspective.
 	 */
-	void cancelMeeting(String providerReference);
+	void cancelMeeting(UUID connectionId, String providerReference);
 
 	/**
 	 * Verifies the provider's signature over the raw webhook request body.

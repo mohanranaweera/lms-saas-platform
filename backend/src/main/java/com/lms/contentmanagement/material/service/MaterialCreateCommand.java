@@ -21,9 +21,20 @@ import org.springframework.web.multipart.MultipartFile;
  * for {@code NOTE}; {@code videoAssetId} only for {@code VIDEO}/{@code
  * RECORDING} - see {@code MaterialType}'s own javadoc for the full
  * per-type contract {@code MaterialService} enforces.
+ *
+ * <p>R2-T3: {@code mediaFileId} (optional) attaches an institute library file
+ * instead of uploading one - mutually exclusive with {@code file}.
  */
 public record MaterialCreateCommand(UUID courseId, UUID moduleId, UUID lessonId, String title,
 		MaterialType materialType, MultipartFile file, String externalUrl, String noteContent, UUID videoAssetId,
-		UUID sessionId, Integer maxDownloads, Instant availableFromAt, Instant expiryAt) {
+		UUID sessionId, Integer maxDownloads, Instant availableFromAt, Instant expiryAt, UUID mediaFileId) {
+
+	/** Pre-R2 shape (no library file) - kept for existing callers. */
+	public MaterialCreateCommand(UUID courseId, UUID moduleId, UUID lessonId, String title,
+			MaterialType materialType, MultipartFile file, String externalUrl, String noteContent, UUID videoAssetId,
+			UUID sessionId, Integer maxDownloads, Instant availableFromAt, Instant expiryAt) {
+		this(courseId, moduleId, lessonId, title, materialType, file, externalUrl, noteContent, videoAssetId,
+				sessionId, maxDownloads, availableFromAt, expiryAt, null);
+	}
 
 }

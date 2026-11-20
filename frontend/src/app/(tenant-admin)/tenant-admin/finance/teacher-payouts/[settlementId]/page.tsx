@@ -17,6 +17,8 @@ import { SettlementStatusBadge } from "@/components/finance/settlement-status-ba
 import { SignedAmount } from "@/components/finance/signed-amount";
 import { useAuth } from "@/lib/auth/auth-context";
 import { canManageFinance } from "@/lib/auth/permissions";
+import { CAP } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import {
@@ -43,7 +45,11 @@ export default function TeacherSettlementDetailPage() {
   const params = useParams<{ settlementId: string }>();
   const settlementId = params?.settlementId ?? "";
   const { session } = useAuth();
-  const canManage = canManageFinance(session?.role ?? null);
+  const legacyManage = canManageFinance(session?.role ?? null);
+  // STAFF-MGMT-03: adjust and mark-paid follow their own capabilities (UX only).
+  const { can } = useCapabilities();
+  const canAdjust = can(CAP.FINANCE_ADJUST_SETTLEMENT, legacyManage);
+  const canMarkPaid = can(CAP.FINANCE_MARK_SETTLEMENT_PAID, legacyManage);
   const query = useTeacherSettlement(settlementId);
   const teachersQuery = useFinanceTeachers();
 
@@ -151,10 +157,10 @@ export default function TeacherSettlementDetailPage() {
                 )}
               </section>
 
-              {canManage ? (
+              {canAdjust || (canMarkPaid && s.status === "CALCULATED") ? (
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <AdjustmentForm settlementId={s.id} />
-                  {s.status === "CALCULATED" ? <MarkPaidForm settlementId={s.id} /> : null}
+                  {canAdjust ? <AdjustmentForm settlementId={s.id} /> : null}
+                  {canMarkPaid && s.status === "CALCULATED" ? <MarkPaidForm settlementId={s.id} /> : null}
                 </div>
               ) : null}
             </div>

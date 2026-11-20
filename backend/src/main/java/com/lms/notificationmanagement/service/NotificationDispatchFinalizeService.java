@@ -66,6 +66,32 @@ public class NotificationDispatchFinalizeService {
 		}
 	}
 
+	/**
+	 * Wave 11 (decision D3): a transient failure with attempts left returns the
+	 * row to {@code PENDING} (due after the backoff); otherwise {@code FAILED}.
+	 * @return true when the row was scheduled for retry
+	 */
+	@Transactional
+	public boolean markRetryOrFailed(UUID outboxId, UUID tenantId, boolean retryable) {
+		try {
+			TenantContextHolder.set(tenantId);
+			NotificationOutbox row = loadClaimedRow(outboxId);
+			Instant now = Instant.now();
+			boolean retry = retryable && DispatchRetryPolicy.canRetry(row.getAttemptCount());
+			if (retry) {
+				row.markRetry(DispatchRetryPolicy.nextAttemptAt(row.getAttemptCount(), now));
+			}
+			else {
+				row.markFailed(now);
+			}
+			notificationOutboxRepository.save(row);
+			return retry;
+		}
+		finally {
+			TenantContextHolder.clear();
+		}
+	}
+
 	private NotificationOutbox loadClaimedRow(UUID outboxId) {
 		// The row was already exclusively claimed (flipped to SENDING) by
 		// NotificationDispatchClaimService before dispatchOne ever called

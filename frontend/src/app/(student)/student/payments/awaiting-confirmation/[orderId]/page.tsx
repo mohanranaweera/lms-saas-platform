@@ -8,6 +8,7 @@ import { LiveRegion } from "@/components/ui/live-region";
 import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useOrder, useOrderPaymentStatus } from "@/lib/api/payments";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Awaiting-confirmation screen (PAY-2). Polls `GET
@@ -33,6 +34,7 @@ export default function AwaitingConfirmationPage() {
   // Fetched only to build a "Try again" link back to the right checkout
   // page on rejection — never consulted for payment/confirmation state.
   const orderQuery = useOrder(orderId);
+  const t = useT();
 
   // A background poll (every 3s) can swap the visual branch below from
   // LoadingState to a brand-new Alert element the instant a terminal status
@@ -47,28 +49,25 @@ export default function AwaitingConfirmationPage() {
   const liveStatus = statusQuery.data?.status;
   const liveMessage =
     liveStatus === "CONFIRMED"
-      ? "Payment status updated: confirmed."
+      ? t("student.awaiting.liveConfirmed")
       : liveStatus === "REJECTED"
-        ? "Payment status updated: rejected."
+        ? t("student.awaiting.liveRejected")
         : liveStatus === "REFUNDED"
-          ? "Payment status updated: refunded."
+          ? t("student.awaiting.liveRefunded")
           : "";
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Payment status</h1>
-        <p className="text-sm text-muted-foreground">
-          This page reflects only what our servers have confirmed — it never guesses from a
-          redirect.
-        </p>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.awaiting.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("student.awaiting.subtitle")}</p>
       </div>
 
       <LiveRegion message={liveMessage} />
 
       <QueryStateBoundary
         query={statusQuery}
-        loadingLabel="Checking payment status…"
+        loadingLabel={t("student.awaiting.loading")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
       >
@@ -78,29 +77,32 @@ export default function AwaitingConfirmationPage() {
               <Alert role="status">
                 <CheckCircle2 aria-hidden="true" />
                 <AlertDescription>
-                  Payment confirmed. You can view the full record in your{" "}
+                  {t("student.awaiting.confirmed")}{" "}
                   <Link href="/student/payments/history" className="font-medium underline">
-                    payment history
+                    {t("student.awaiting.historyLink")}
                   </Link>
-                  .
+                  {t("student.awaiting.confirmedSuffix")}
                 </AlertDescription>
               </Alert>
             );
           }
 
           if (paymentStatus.status === "REJECTED") {
-            const retryHref = orderQuery.data
-              ? `/student/checkout/${orderQuery.data.courseId}`
-              : "/courses";
+            // A multi-course order has no single course to retry; send the student to My Courses.
+            const retryHref = !orderQuery.data
+              ? "/courses"
+              : orderQuery.data.courseId
+                ? `/student/checkout/${orderQuery.data.courseId}`
+                : "/student/courses";
             return (
               <Alert role="alert" variant="destructive">
                 <XCircle aria-hidden="true" />
                 <AlertDescription>
-                  Your payment was rejected. Nothing was charged and no enrollment was created.{" "}
+                  {t("student.awaiting.rejected")}{" "}
                   <Link href={retryHref} className="font-medium underline">
-                    Try again
+                    {t("common.actions.retry")}
                   </Link>
-                  .
+                  {t("student.awaiting.confirmedSuffix")}
                 </AlertDescription>
               </Alert>
             );
@@ -111,11 +113,11 @@ export default function AwaitingConfirmationPage() {
               <Alert role="status">
                 <RotateCcw aria-hidden="true" />
                 <AlertDescription>
-                  This payment was refunded. See your{" "}
+                  {t("student.awaiting.refunded")}{" "}
                   <Link href="/student/payments/history" className="font-medium underline">
-                    payment history
+                    {t("student.awaiting.historyLink")}
                   </Link>{" "}
-                  for the full record.
+                  {t("student.awaiting.refundedSuffix")}
                 </AlertDescription>
               </Alert>
             );
@@ -124,7 +126,7 @@ export default function AwaitingConfirmationPage() {
           // `hasPaymentAttempt === false` or `status === "PENDING"`: still
           // waiting on the gateway/webhook. Polling continues automatically.
           return (
-            <LoadingState label="Awaiting payment confirmation… this page updates automatically." />
+            <LoadingState label={t("student.awaiting.waiting")} />
           );
         }}
       </QueryStateBoundary>

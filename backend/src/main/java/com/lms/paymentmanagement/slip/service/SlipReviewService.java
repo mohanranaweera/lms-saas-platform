@@ -5,6 +5,7 @@ import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
+import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.enrollmentmanagement.api.EnrollmentActivationApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
@@ -16,7 +17,11 @@ import com.lms.identityaccessservice.api.UserProvisioningApi;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.ledgersettlementmanagement.api.LedgerEntryApi;
+import com.lms.enrollmentmanagement.api.EntitlementGrantApi;
+import com.lms.paymentmanagement.discount.service.DiscountRedemptionService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
+import com.lms.paymentmanagement.order.domain.StudentOrderLine;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
 import com.lms.paymentmanagement.payment.repository.PaymentRepository;
@@ -26,11 +31,17 @@ import com.lms.paymentmanagement.slip.domain.PaymentSlipStatus;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipFlagRepository;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
 import com.lms.paymentmanagement.support.PaymentDomainAccessGuard;
+import com.lms.paymentmanagement.api.OrderNumberFormat;
+import com.lms.usermanagement.api.StudentContact;
+import com.lms.usermanagement.api.StudentLookupApi;
+import com.lms.usermanagement.api.StudentSummary;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -86,6 +97,8 @@ public class SlipReviewService {
 
 	private static final Duration DOWNLOAD_URL_TTL = Duration.ofMinutes(5);
 
+	static final int SEARCH_STUDENT_LIMIT = 500;
+
 	private final PaymentSlipRepository paymentSlipRepository;
 
 	private final PaymentSlipFlagRepository paymentSlipFlagRepository;
@@ -110,12 +123,30 @@ public class SlipReviewService {
 
 	private final LedgerEntryApi ledgerEntryApi;
 
+	private final StudentOrderLineRepository studentOrderLineRepository;
+
+	private final EntitlementGrantApi entitlementGrantApi;
+
+	private final CourseLookupApi courseLookupApi;
+
+	private final DiscountRedemptionService discountRedemptionService;
+
+	private final StudentLookupApi studentLookupApi;
+
 	public SlipReviewService(PaymentSlipRepository paymentSlipRepository,
 			PaymentSlipFlagRepository paymentSlipFlagRepository, StudentOrderRepository studentOrderRepository,
 			ObjectStorageApi slipStorageApi, PaymentDomainAccessGuard accessGuard,
 			EnrollmentActivationApi enrollmentActivationApi, AuditLogApi auditLogApi,
 			PermissionCheckService permissionCheckService, UserProvisioningApi userProvisioningApi,
-			TenantContext tenantContext, PaymentRepository paymentRepository, LedgerEntryApi ledgerEntryApi) {
+			TenantContext tenantContext, PaymentRepository paymentRepository, LedgerEntryApi ledgerEntryApi,
+			StudentOrderLineRepository studentOrderLineRepository, EntitlementGrantApi entitlementGrantApi,
+			CourseLookupApi courseLookupApi, DiscountRedemptionService discountRedemptionService,
+			StudentLookupApi studentLookupApi) {
+		this.studentLookupApi = studentLookupApi;
+		this.courseLookupApi = courseLookupApi;
+		this.discountRedemptionService = discountRedemptionService;
+		this.studentOrderLineRepository = studentOrderLineRepository;
+		this.entitlementGrantApi = entitlementGrantApi;
 		this.paymentSlipRepository = paymentSlipRepository;
 		this.paymentSlipFlagRepository = paymentSlipFlagRepository;
 		this.studentOrderRepository = studentOrderRepository;
@@ -142,12 +173,49 @@ public class SlipReviewService {
 	 */
 	@Transactional(readOnly = true)
 	public Page<PaymentSlipView> getReviewQueue(PaymentSlipStatus status, Pageable pageable) {
+		return getReviewQueue(status, null, pageable);
+	}
+
+	/**
+	 * PAY-HUB-01: as {@link #getReviewQueue(PaymentSlipStatus, Pageable)},
+	 * optionally narrowed by a staff search term matched against the
+	 * student's name/email/mobile (via {@link StudentLookupApi}, capped at
+	 * {@value #SEARCH_STUDENT_LIMIT} students), the slip reference
+	 * (contains) and the order number (exact). Every lookup is tenant-scoped.
+	 */
+	@Transactional(readOnly = true)
+	public Page<PaymentSlipView> getReviewQueue(PaymentSlipStatus status, String search, Pageable pageable) {
 		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW);
-		Page<PaymentSlip> page = paymentSlipRepository.findReviewQueue(status, pageable);
+		Page<PaymentSlip> page;
+		if (search == null || search.isBlank()) {
+			page = paymentSlipRepository.findReviewQueue(status, pageable);
+		}
+		else {
+			String term = search.strip();
+			List<UUID> studentIds = studentLookupApi.searchStudentUserIds(term, SEARCH_STUDENT_LIMIT);
+			List<UUID> orderIds = new ArrayList<>();
+			OrderNumberFormat.parse(term)
+				.ifPresent(number -> studentOrderRepository.findByOrderNumber(number)
+					.ifPresent(order -> orderIds.add(order.getId())));
+			String referencePattern = "%" + term.toLowerCase(Locale.ROOT)
+				.replace("\\", "\\\\")
+				.replace("%", "\\%")
+				.replace("_", "\\_") + "%";
+			page = paymentSlipRepository.searchReviewQueue(status, studentIds, referencePattern, orderIds, pageable);
+		}
 		List<PaymentSlip> slips = page.getContent();
 		Map<UUID, StudentOrder> ordersById = loadOrdersById(slips);
 		Map<UUID, TenantUserSummary> usersById = loadUsersById(slips);
-		return page.map(slip -> toView(slip, ordersById, usersById));
+		Map<UUID, StudentIdentity> studentsById = loadStudentsById(slips);
+		Map<UUID, List<PaymentSlipOrderLine>> linesByOrderId = loadLinesByOrderId(ordersById.keySet());
+		return page.map(slip -> toView(slip, ordersById, usersById, studentsById, linesByOrderId));
+	}
+
+	/** PAY-HUB-01: pending-review ({@code SUBMITTED}/{@code UNDER_REVIEW}) slip count - staff {@code VIEW} only. */
+	@Transactional(readOnly = true)
+	public long countPendingReview() {
+		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.VIEW);
+		return paymentSlipRepository.countPendingReview();
 	}
 
 	/** Owner student OR staff {@code VIEW} (plan §10/§15) - see {@link PaymentDomainAccessGuard}. */
@@ -159,13 +227,24 @@ public class SlipReviewService {
 		return toView(slip);
 	}
 
-	/** Owner student OR staff {@code VIEW}, same guard as {@link #getSlipDetail}. */
-	@Transactional(readOnly = true)
-	public SignedDownloadUrl getDownloadUrl(UUID slipId) {
+	/**
+	 * Owner student OR staff {@code VIEW}, same guard as {@link #getSlipDetail}.
+	 * PAY-HUB-01 adds the stored content type (for the inline slip viewer).
+	 * Deliberately NOT {@code @Transactional}: the content-type lookup may be
+	 * a network round trip to object storage, which must never run inside a
+	 * database transaction ({@code .claude/rules/backend.md}). The slip read
+	 * is a single tenant-scoped repository call.
+	 */
+	public SlipDownloadLink getDownloadUrl(UUID slipId) {
 		PaymentSlip slip = paymentSlipRepository.findById(slipId)
 			.orElseThrow(() -> new NotFoundException("Payment slip not found"));
 		accessGuard.requireOwnerOrStaffView(slip.getStudentId());
-		return slipStorageApi.generateSignedDownloadUrl(slip.getStorageObjectKey(), DOWNLOAD_URL_TTL);
+		SignedDownloadUrl signed = slipStorageApi.generateSignedDownloadUrl(slip.getStorageObjectKey(),
+				DOWNLOAD_URL_TTL);
+		String contentType = slipStorageApi.findContentType(slip.getStorageObjectKey())
+			.filter(SlipContentSniffer::isAccepted)
+			.orElse(null);
+		return new SlipDownloadLink(signed.url(), signed.expiresAt(), contentType);
 	}
 
 	/**
@@ -255,41 +334,55 @@ public class SlipReviewService {
 		payment = paymentRepository.save(payment);
 		ledgerEntryApi.recordPaymentConfirmed(order.getId(), payment.getId(), payment.getAmount());
 
-		// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
-		// activateOrReactivateFromApprovedSlip owns the
-		// resolve-access-state-and-branch decision that used to be
-		// duplicated here - mirrors PaymentConfirmationService's identical
-		// call site, see that class's javadoc for the full rationale.
-		try {
-			enrollmentActivationApi.activateOrReactivateFromApprovedSlip(slip.getId(), order.getId(),
-					slip.getStudentId(), order.getCourseId());
+		// KLASS-T4c (ADR-028, D06): a payment-composer order (it has lines)
+		// grants one content entitlement per line, in THIS transaction and
+		// deliberately outside the swallowed-refusal catch below - a grant
+		// failure rolls the approval, payment and ledger entry back. It never
+		// activates a legacy course-wide enrollment. A line-less (legacy)
+		// order keeps the existing enrollment activation unchanged.
+		if (studentOrderLineRepository.existsByOrderId(order.getId())) {
+			entitlementGrantApi.grantForApprovedSlip(slip.getId(), order.getId(), payment.getId());
+			// DISC-01 (D12): the order's discount uses become CONSUMED in this
+			// same transaction (idempotent; no-op without discounts).
+			discountRedemptionService.consume(order.getId());
 		}
-		catch (IllegalStateException ex) {
-			// Bug fix (MVP-012 review): mirrors PaymentConfirmationService's
-			// identical activation/reactivation-refusal handling - see that
-			// class's comment at the equivalent call site for the full
-			// rationale. Must NOT roll back this slip's own APPROVED
-			// transition or its audit log entry.
-			//
-			// Deliberately does NOT add a "tenantId" key here (finding L7):
-			// this method always runs inside an authenticated, tenant-resolved
-			// request, so CorrelationIdFilter has already put tenantId into
-			// MDC, which the structured logging format includes automatically
-			// - an explicit addKeyValue("tenantId", ...) here previously
-			// collided with that MDC-supplied key ("The name 'tenantId' has
-			// already been written"). Contrast PaymentConfirmationService's
-			// sibling warn call, which DOES need an explicit tenantId key,
-			// since its webhook request path never goes through the
-			// authenticated filter chain that populates MDC.
-			log.atWarn()
-				.setMessage("enrollment.reactivation_refused")
-				.addKeyValue("actor", "slip-review:" + principal.userId())
-				.addKeyValue("slipId", slip.getId())
-				.addKeyValue("orderId", order.getId())
-				.addKeyValue("studentId", slip.getStudentId())
-				.addKeyValue("courseId", order.getCourseId())
-				.addKeyValue("reason", ex.getMessage())
-				.log();
+		else {
+			// MVP-012/ADR-013/M2: EnrollmentActivationApi's consolidated
+			// activateOrReactivateFromApprovedSlip owns the
+			// resolve-access-state-and-branch decision that used to be
+			// duplicated here - mirrors PaymentConfirmationService's identical
+			// call site, see that class's javadoc for the full rationale.
+			try {
+				enrollmentActivationApi.activateOrReactivateFromApprovedSlip(slip.getId(), order.getId(),
+						slip.getStudentId(), order.getCourseId());
+			}
+			catch (IllegalStateException ex) {
+				// Bug fix (MVP-012 review): mirrors PaymentConfirmationService's
+				// identical activation/reactivation-refusal handling - see that
+				// class's comment at the equivalent call site for the full
+				// rationale. Must NOT roll back this slip's own APPROVED
+				// transition or its audit log entry.
+				//
+				// Deliberately does NOT add a "tenantId" key here (finding L7):
+				// this method always runs inside an authenticated, tenant-resolved
+				// request, so CorrelationIdFilter has already put tenantId into
+				// MDC, which the structured logging format includes automatically
+				// - an explicit addKeyValue("tenantId", ...) here previously
+				// collided with that MDC-supplied key ("The name 'tenantId' has
+				// already been written"). Contrast PaymentConfirmationService's
+				// sibling warn call, which DOES need an explicit tenantId key,
+				// since its webhook request path never goes through the
+				// authenticated filter chain that populates MDC.
+				log.atWarn()
+					.setMessage("enrollment.reactivation_refused")
+					.addKeyValue("actor", "slip-review:" + principal.userId())
+					.addKeyValue("slipId", slip.getId())
+					.addKeyValue("orderId", order.getId())
+					.addKeyValue("studentId", slip.getStudentId())
+					.addKeyValue("courseId", order.getCourseId())
+					.addKeyValue("reason", ex.getMessage())
+					.log();
+			}
 		}
 
 		if (hasFlags) {
@@ -323,6 +416,8 @@ public class SlipReviewService {
 		Instant reviewedAt = Instant.now();
 		slip.reject(principal.userId(), reviewedAt);
 		slip = paymentSlipRepository.save(slip);
+		// DISC-01 (D12): the order's discount hold lapses 48h from now.
+		discountRedemptionService.restartHold(slip.getOrderId());
 
 		auditLogApi.record(new AuditLogEntry(principal.userId(), "payment_slip.rejected", TARGET_ENTITY, slip.getId(),
 				reason, null));
@@ -350,26 +445,110 @@ public class SlipReviewService {
 	private PaymentSlipView toView(PaymentSlip slip, List<PaymentSlipFlag> flags, StudentOrder order) {
 		Map<UUID, TenantUserSummary> usersById = loadUsersById(List.of(slip));
 		List<PaymentSlipFlagView> flagViews = flags.stream().map(SlipReviewService::toFlagView).toList();
-		return buildView(slip, flagViews, order, usersById);
+		List<PaymentSlipOrderLine> lines = order == null ? List.of()
+				: loadLinesByOrderId(Set.of(order.getId())).getOrDefault(order.getId(), List.of());
+		return withStudentAndOrderNumber(buildView(slip, flagViews, order, usersById, lines),
+				loadStudentsById(List.of(slip)).get(slip.getStudentId()), order);
 	}
 
 	private PaymentSlipView toView(PaymentSlip slip, Map<UUID, StudentOrder> ordersById,
-			Map<UUID, TenantUserSummary> usersById) {
+			Map<UUID, TenantUserSummary> usersById, Map<UUID, StudentIdentity> studentsById,
+			Map<UUID, List<PaymentSlipOrderLine>> linesByOrderId) {
 		List<PaymentSlipFlagView> flagViews = paymentSlipFlagRepository.findAllBySlipId(slip.getId())
 			.stream()
 			.map(SlipReviewService::toFlagView)
 			.toList();
-		return buildView(slip, flagViews, ordersById.get(slip.getOrderId()), usersById);
+		StudentOrder order = ordersById.get(slip.getOrderId());
+		return withStudentAndOrderNumber(buildView(slip, flagViews, order, usersById,
+				linesByOrderId.getOrDefault(slip.getOrderId(), List.of())), studentsById.get(slip.getStudentId()),
+				order);
 	}
 
-	private static PaymentSlipView buildView(PaymentSlip slip, List<PaymentSlipFlagView> flagViews,
-			StudentOrder order, Map<UUID, TenantUserSummary> usersById) {
+	/** PAY-HUB-01: a student user's profile id, name and mobile. */
+	record StudentIdentity(UUID studentProfileId, String name, String mobile) {
+	}
+
+	private static PaymentSlipView withStudentAndOrderNumber(PaymentSlipView view, StudentIdentity student,
+			StudentOrder order) {
+		return new PaymentSlipView(view.id(), view.orderId(), view.studentId(), view.referenceNumber(), view.status(),
+				view.submittedAt(), view.reviewerId(), view.reviewedAt(), view.flags(), view.studentEmail(),
+				view.reviewerEmail(), view.orderAmount(), view.orderCurrency(), view.orderLines(), view.orderSubtotal(),
+				view.orderFacilityFee(), view.orderDiscount(), view.orderPostage(), view.orderDelivery(),
+				student != null ? student.studentProfileId() : null, student != null ? student.name() : null,
+				student != null ? student.mobile() : null, order != null ? order.getOrderNumber() : null,
+				order != null ? order.getDisplayOrderNumber() : null);
+	}
+
+	/**
+	 * Two batched, tenant-scoped {@link StudentLookupApi} reads for the whole
+	 * page (profile id + name, and mobile) - never one call per row.
+	 */
+	private Map<UUID, StudentIdentity> loadStudentsById(List<PaymentSlip> slips) {
+		Set<UUID> studentIds = new HashSet<>();
+		slips.forEach(slip -> studentIds.add(slip.getStudentId()));
+		if (studentIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<UUID, String> mobiles = new HashMap<>();
+		for (StudentContact contact : studentLookupApi.findContacts(studentIds)) {
+			if (contact.mobile() != null) {
+				mobiles.put(contact.userId(), contact.mobile());
+			}
+		}
+		Map<UUID, StudentIdentity> result = new HashMap<>();
+		for (StudentSummary summary : studentLookupApi.getStudentSummariesByUserId(studentIds)) {
+			result.put(summary.userId(),
+					new StudentIdentity(summary.studentProfileId(), summary.name(), mobiles.get(summary.userId())));
+		}
+		return result;
+	}
+
+	static PaymentSlipView buildView(PaymentSlip slip, List<PaymentSlipFlagView> flagViews, StudentOrder order,
+			Map<UUID, TenantUserSummary> usersById, List<PaymentSlipOrderLine> orderLines) {
 		String studentEmail = emailOf(slip.getStudentId(), usersById);
 		String reviewerEmail = (slip.getReviewerId() == null) ? null : emailOf(slip.getReviewerId(), usersById);
 		return new PaymentSlipView(slip.getId(), slip.getOrderId(), slip.getStudentId(), slip.getReferenceNumber(),
 				slip.getStatus(), slip.getSubmittedAt(), slip.getReviewerId(), slip.getReviewedAt(), flagViews,
 				studentEmail, reviewerEmail, order != null ? order.getAmount() : null,
-				order != null ? order.getCurrency() : null);
+				order != null ? order.getCurrency() : null, orderLines,
+				order != null ? order.getSubtotalAmount() : null, order != null ? order.getFacilityFeeAmount() : null,
+				order != null ? order.getDiscountAmount() : null, order != null ? order.getPostageAmount() : null,
+				deliveryOf(order));
+	}
+
+	/** V90: the order's delivery snapshot for the reviewer, or {@code null}. */
+	static PaymentSlipDelivery deliveryOf(StudentOrder order) {
+		StudentOrder.DeliverySnapshot delivery = order == null ? null : order.getDelivery();
+		return delivery == null ? null
+				: new PaymentSlipDelivery(delivery.recipientName(), delivery.addressLine(), delivery.city(),
+						delivery.phone());
+	}
+
+	/** One batched, tenant-scoped read of the lines of every order on the page. */
+	private Map<UUID, List<PaymentSlipOrderLine>> loadLinesByOrderId(Set<UUID> orderIds) {
+		List<StudentOrderLine> lines = studentOrderLineRepository.findAllByOrderIdIn(orderIds);
+		Set<UUID> courseIds = new HashSet<>();
+		lines.forEach(line -> courseIds.add(line.getCourseId()));
+		// One batched, tenant-scoped title read for every course on the page.
+		Map<UUID, String> titles = new HashMap<>();
+		if (!courseIds.isEmpty()) {
+			courseLookupApi.getCourseSummaries(courseIds).forEach(summary -> titles.put(summary.id(), summary.name()));
+		}
+		Map<UUID, List<PaymentSlipOrderLine>> result = new HashMap<>();
+		for (StudentOrderLine line : lines) {
+			result.computeIfAbsent(line.getOrderId(), key -> new ArrayList<>()).add(toLineView(line, titles));
+		}
+		return result;
+	}
+
+	static PaymentSlipOrderLine toLineView(StudentOrderLine line) {
+		return toLineView(line, Map.of());
+	}
+
+	static PaymentSlipOrderLine toLineView(StudentOrderLine line, Map<UUID, String> courseTitles) {
+		return new PaymentSlipOrderLine(line.getLineNo(), line.getScope(), line.getLabel(), line.getUnitAmount(),
+				line.getFacilityFeeAmount(), line.getLineTotal(), line.getCourseId(),
+				courseTitles.get(line.getCourseId()));
 	}
 
 	private static String emailOf(UUID userId, Map<UUID, TenantUserSummary> usersById) {

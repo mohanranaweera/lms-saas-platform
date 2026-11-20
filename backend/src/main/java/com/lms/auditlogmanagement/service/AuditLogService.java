@@ -137,9 +137,28 @@ public class AuditLogService implements AuditLogApi {
 		}
 		requireKnownActor(entry.actorId());
 		AuditLog auditLog = new AuditLog(tenantContext.getTenantId(), entry.actorId(), entry.action(),
-				entry.targetEntity(), entry.targetId(), entry.reason(), serializeMetadata(entry.metadata()),
-				Instant.now());
+				entry.targetEntity(), entry.targetId(), entry.reason(),
+				serializeMetadata(withImpersonationContext(entry.metadata())), Instant.now());
 		auditLogRepository.save(auditLog);
+	}
+
+	/**
+	 * ADR-033 / security.md: anything written during a support-impersonation request
+	 * records the impersonating admin and the session distinctly from the student
+	 * actor, never collapsed into one id.
+	 */
+	private static java.util.Map<String, Object> withImpersonationContext(java.util.Map<String, Object> metadata) {
+		if (!com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder.isImpersonating()) {
+			return metadata;
+		}
+		var principal = com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder.get();
+		java.util.Map<String, Object> merged = new java.util.LinkedHashMap<>();
+		if (metadata != null) {
+			merged.putAll(metadata);
+		}
+		merged.put("impersonatorUserId", principal.actorUserId().toString());
+		merged.put("impersonationSessionId", principal.sessionId().toString());
+		return merged;
 	}
 
 	/**
@@ -216,6 +235,25 @@ public class AuditLogService implements AuditLogApi {
 				actorDisplayNames.get(auditLog.getActorId()), auditLog.getAction(), auditLog.getTargetEntity(),
 				auditLog.getTargetId(), auditLog.getReason(), deserializeMetadata(auditLog.getMetadata()),
 				auditLog.getOccurredAt()));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Page<AuditActivityEntry> searchTenantActivity(String text, java.util.Collection<UUID> actorIds,
+			Instant from, Instant to, Pageable pageable) {
+		permissionCheckService.requirePermission(DomainArea.AUDIT_LOG, PermissionAction.VIEW);
+		AuditViewerAccessGuard.requireViewerRole();
+		int size = Math.min(Math.max(pageable.getPageSize(), 1), MAX_PAGE_SIZE);
+		Pageable safePageable = PageRequest.of(Math.max(pageable.getPageNumber(), 0), size,
+				org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Order.desc("occurredAt"),
+						org.springframework.data.domain.Sort.Order.desc("id")));
+		Specification<AuditLog> spec = AuditLogSpecifications.matchingText(text, actorIds)
+			.and(AuditLogSpecifications.occurredAtFrom(from))
+			.and(AuditLogSpecifications.occurredAtTo(to));
+		return auditLogRepository.findAll(spec, safePageable)
+			.map(auditLog -> new AuditActivityEntry(auditLog.getId(), auditLog.getActorId(), null,
+					auditLog.getAction(), auditLog.getTargetEntity(), auditLog.getTargetId(), auditLog.getReason(),
+					deserializeMetadata(auditLog.getMetadata()), auditLog.getOccurredAt()));
 	}
 
 	private Map<String, Object> deserializeMetadata(String metadata) {

@@ -10,7 +10,7 @@ import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipal;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
@@ -54,7 +54,7 @@ public class AttendanceReportService {
 
 	private final CourseLookupApi courseLookupApi;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final CourseParticipationApi courseParticipationApi;
 
 	private final AttendanceAccessGuard attendanceAccessGuard;
 
@@ -70,13 +70,13 @@ public class AttendanceReportService {
 
 	private final AttendanceRecordViewAssembler attendanceRecordViewAssembler;
 
-	public AttendanceReportService(CourseLookupApi courseLookupApi, EnrollmentAccessApi enrollmentAccessApi,
+	public AttendanceReportService(CourseLookupApi courseLookupApi, CourseParticipationApi courseParticipationApi,
 			AttendanceAccessGuard attendanceAccessGuard, AttendanceRecordRepository attendanceRecordRepository,
 			PermissionCheckService permissionCheckService, TenantContext tenantContext,
 			StudentLookupApi studentLookupApi, AttendanceSheetService attendanceSheetService,
 			AttendanceRecordViewAssembler attendanceRecordViewAssembler) {
 		this.courseLookupApi = courseLookupApi;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.courseParticipationApi = courseParticipationApi;
 		this.attendanceAccessGuard = attendanceAccessGuard;
 		this.attendanceRecordRepository = attendanceRecordRepository;
 		this.permissionCheckService = permissionCheckService;
@@ -128,7 +128,7 @@ public class AttendanceReportService {
 			.orElseThrow(() -> new NotFoundException("Attendance session not found"));
 		attendanceAccessGuard.requireSessionAccess(ownership, PermissionAction.VIEW);
 
-		List<UUID> enrolledStudentIds = enrollmentAccessApi.listCurrentlyEnrolledStudentIds(ownership.courseId());
+		List<UUID> enrolledStudentIds = courseParticipationApi.listParticipantStudentIds(ownership.courseId());
 		Map<UUID, AttendanceStatus> existingByStudent = attendanceRecordRepository
 			.findAllBySessionId(sessionId)
 			.stream()

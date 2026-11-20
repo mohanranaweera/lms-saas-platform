@@ -59,7 +59,7 @@ class NotificationTemplateSeedingServiceTenantContextSymmetryTest {
 
 		service.onTenantRegistered(event());
 
-		verify(notificationTemplateSeedWriter, times(3)).seedIfAbsent(any(), anyString(), anyString(), anyString());
+		verify(notificationTemplateSeedWriter, times(5)).seedIfAbsent(any(), anyString(), anyString(), anyString());
 		assertThat(TenantContextHolder.isSet()).isFalse();
 	}
 
@@ -90,7 +90,7 @@ class NotificationTemplateSeedingServiceTenantContextSymmetryTest {
 
 		service.onTenantRegistered(event());
 
-		verify(notificationTemplateSeedWriter, times(3)).seedIfAbsent(any(), anyString(), anyString(), anyString());
+		verify(notificationTemplateSeedWriter, times(5)).seedIfAbsent(any(), anyString(), anyString(), anyString());
 		assertThat(TenantContextHolder.isSet()).isFalse();
 	}
 

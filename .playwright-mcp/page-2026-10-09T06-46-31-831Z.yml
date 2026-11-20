@@ -1,0 +1,92 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]
+  - alert [ref=e35]
+  - generic [ref=e36]:
+    - complementary [ref=e37]:
+      - generic [ref=e38]: Student Portal
+      - navigation "Primary" [ref=e39]:
+        - list [ref=e40]:
+          - listitem [ref=e41]:
+            - link "Dashboard" [ref=e42] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=e43]:
+            - link "My Courses" [ref=e44] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=e45]:
+            - link "Browse Courses" [ref=e46] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=e47]:
+            - link "My Attendance" [ref=e48] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=e49]:
+            - link "Exams" [ref=e50] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=e51]:
+            - link "Payments" [ref=e52] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=e53]:
+            - link "Reactivation" [ref=e54] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=e55]:
+            - link [ref=e56] [cursor=pointer]:
+              - /url: /student/notifications
+              - text: Notifications
+              - generic "1 unread notification" [ref=e57]:
+                - generic [aria-hidden] [ref=e58]: "1"
+          - listitem [ref=e59]:
+            - link "My Devices" [ref=e60] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=e61]:
+            - link "AOC Player" [ref=e62] [cursor=pointer]:
+              - /url: /student/player
+          - listitem [ref=e63]:
+            - link "Profile" [ref=e64] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=e65]:
+      - banner [ref=e66]:
+        - generic [ref=e67]:
+          - link "Change password" [ref=e68] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=e70]
+      - main [ref=e71]:
+        - generic [ref=e141]:
+          - navigation "Breadcrumb" [ref=e142]:
+            - link "← My courses" [ref=e143] [cursor=pointer]:
+              - /url: /student/courses
+          - generic [ref=e144]:
+            - generic [ref=e145]:
+              - heading "2028 Biology Theory Class" [level=1] [ref=e146]
+              - generic [ref=e147]: Biology
+            - generic [ref=e148]:
+              - generic [ref=e149]: Active
+              - generic [ref=e150]: Access until Oct 24, 2026, 11:42 PM
+            - paragraph [ref=e151]: Test description
+          - region [ref=e152]:
+            - heading "Live classes" [level=2] [ref=e153]
+            - generic [ref=e154]:
+              - tablist "Live classes" [ref=e155]:
+                - tab "Upcoming" [selected] [ref=e156]
+                - tab "Past" [ref=e157]
+              - tabpanel "Upcoming" [ref=e158]:
+                - list [ref=e159]:
+                  - listitem [ref=e160]:
+                    - generic [ref=e161]:
+                      - generic [ref=e162]:
+                        - generic [ref=e163]: 2028 Extra Class Zoom Lesson
+                        - generic [ref=e164]: Scheduled
+                      - generic [ref=e165]: Sep 28, 2026, 3:30 PM – Sep 28, 2026, 5:30 PM
+                    - generic [ref=e166]:
+                      - button "Join" [disabled]
+                      - generic [ref=e167]: Not started yet
+          - region [ref=e168]:
+            - heading "Lesson materials" [level=2] [ref=e169]
+            - list "Course modules" [ref=e170]:
+              - listitem [ref=e171]:
+                - generic [ref=e172]:
+                  - button "Online Live class" [expanded] [ref=e173]
+                  - list "Lessons in Online Live class" [ref=e178]:
+                    - listitem [ref=e179]:
+                      - link "Lesson 01 View materials →" [ref=e180] [cursor=pointer]:
+                        - /url: /student/courses/01a0a8c1-c4fd-755c-8fc5-c993482707a4/modules/01a0a8c2-1572-701c-a413-f53ffe30b9b6/lessons/01a0a8c2-5a40-77fa-a98c-2f8a129791db/materials
+                        - generic [ref=e181]: Lesson 01
+                        - generic [ref=e182]: View materials →

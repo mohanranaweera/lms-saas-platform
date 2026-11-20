@@ -1,5 +1,7 @@
 package com.lms.usermanagement.teacher.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.auditlogmanagement.api.AuditActivityEntry;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
@@ -9,6 +11,10 @@ import com.lms.usermanagement.teacher.service.TeacherService;
 import com.lms.usermanagement.teacher.web.dto.TeacherActivityResponse;
 import com.lms.usermanagement.teacher.web.dto.TeacherCreateRequest;
 import com.lms.usermanagement.teacher.web.dto.TeacherResponse;
+import com.lms.usermanagement.teacher.web.dto.TeacherSelfProfileResponse;
+import com.lms.usermanagement.teacher.web.dto.TeacherSelfUpdateRequest;
+import com.lms.usermanagement.teacher.web.dto.TeacherOrderRequest;
+import com.lms.usermanagement.teacher.web.dto.TeacherUpdateRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,10 +24,15 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
+import com.lms.identityaccessservice.api.LoginMobileResponse;
+import com.lms.identityaccessservice.api.LoginMobileRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,16 +61,29 @@ public class TeacherController {
 
 	@PostMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.TEACHERS_ADD)
 	public ResponseEntity<ApiResponse<TeacherResponse>> createTeacher(
 			@Valid @RequestBody TeacherCreateRequest request) {
-		TeacherAccount account = teacherService.createTeacher(request.name(), request.email(), request.password());
+		TeacherAccount account = teacherService.createTeacher(request.name(), request.firstName(), request.lastName(),
+				request.email(), request.password(), request.contactNumber(), request.instituteCommissionPercent(),
+				request.qualifications(), request.description(), request.profileMediaFileId(), request.publicProfileDisabled());
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(account)));
 	}
 
 	@GetMapping
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
-	public ResponseEntity<ApiResponse<List<TeacherResponse>>> listTeachers(
-			@RequestParam(required = false) ApprovalStatus approvalStatus) {
+	@RequiresCapability(Capability.TEACHERS_VIEW)
+	public ResponseEntity<ApiResponse<?>> listTeachers(
+			@RequestParam(required = false) ApprovalStatus approvalStatus,
+			@RequestParam(required = false) String q,
+			@RequestParam(required = false) Integer page,
+			@RequestParam(required = false) Integer size) {
+		if (q != null || page != null || size != null) {
+			var accounts = teacherService.pageTeachers(approvalStatus, q, page == null ? 0 : page, size == null ? 10 : size);
+			PageResponse<TeacherResponse> response = new PageResponse<>(accounts.content().stream().map(TeacherController::toResponse).toList(),
+				accounts.page(), accounts.size(), accounts.totalElements(), accounts.totalPages());
+			return ResponseEntity.ok(ApiResponse.success(response));
+		}
 		List<TeacherResponse> teachers = teacherService.listTeachers(approvalStatus)
 			.stream()
 			.map(TeacherController::toResponse)
@@ -67,11 +91,69 @@ public class TeacherController {
 		return ResponseEntity.ok(ApiResponse.success(teachers));
 	}
 
+	@PostMapping("/reorder")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<Void>> reorderTeachers(@Valid @RequestBody TeacherOrderRequest request) {
+		teacherService.reorderTeachers(request.teacherIds());
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
+	/** TP-03: the signed-in Teacher's own profile (resolved from the authenticated identity). */
+	@GetMapping("/me")
+	@PreAuthorize("hasRole('TEACHER')")
+	public ResponseEntity<ApiResponse<TeacherSelfProfileResponse>> getOwnProfile() {
+		return ResponseEntity.ok(ApiResponse.success(toSelfResponse(teacherService.getOwnProfile())));
+	}
+
+	/** TP-03: updates only the self-editable allowlist on the caller's own profile. */
+	@PatchMapping("/me")
+	@PreAuthorize("hasRole('TEACHER')")
+	public ResponseEntity<ApiResponse<TeacherSelfProfileResponse>> updateOwnProfile(
+			@Valid @RequestBody TeacherSelfUpdateRequest request) {
+		return ResponseEntity.ok(ApiResponse.success(
+				toSelfResponse(teacherService.updateOwnProfile(request.qualifications(), request.description()))));
+	}
+
 	@GetMapping("/{id}")
 	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
+	@RequiresCapability(Capability.TEACHERS_VIEW)
 	public ResponseEntity<ApiResponse<TeacherResponse>> getTeacher(@PathVariable UUID id) {
 		TeacherAccount account = teacherService.getTeacher(id);
 		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	/** ADR-031: the teacher's sign-in mobile. */
+	@GetMapping("/{id}/login-mobile")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'VIEW')")
+	public ResponseEntity<ApiResponse<LoginMobileResponse>> getLoginMobile(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(new LoginMobileResponse(teacherService.getLoginMobile(id))));
+	}
+
+	/** ADR-031: set or remove (blank) the teacher's sign-in mobile. */
+	@PutMapping("/{id}/login-mobile")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<LoginMobileResponse>> setLoginMobile(@PathVariable UUID id,
+			@Valid @RequestBody LoginMobileRequest request) {
+		return ResponseEntity.ok(ApiResponse
+			.success(new LoginMobileResponse(teacherService.setLoginMobile(id, request.loginMobile()))));
+	}
+
+	@PatchMapping("/{id}")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	@RequiresCapability(Capability.TEACHERS_EDIT)
+	public ResponseEntity<ApiResponse<TeacherResponse>> updateTeacher(@PathVariable UUID id,
+			@Valid @RequestBody TeacherUpdateRequest request) {
+		TeacherAccount account = teacherService.updateTeacher(id, request.firstName(), request.lastName(),
+				request.contactNumber(), request.instituteCommissionPercent(), request.qualifications(), request.description(),
+				request.profileMediaFileId(), request.publicProfileDisabled());
+		return ResponseEntity.ok(ApiResponse.success(toResponse(account)));
+	}
+
+	/** Removes the teacher's profile photo; the file is deleted when no other teacher uses it. */
+	@DeleteMapping("/{id}/profile-photo")
+	@PreAuthorize("@permissionCheckService.hasPermission('TEACHERS', 'CREATE_EDIT')")
+	public ResponseEntity<ApiResponse<TeacherResponse>> removeProfilePhoto(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(toResponse(teacherService.removeProfilePhoto(id))));
 	}
 
 	@PostMapping("/{id}/approve")
@@ -114,8 +196,17 @@ public class TeacherController {
 	}
 
 	private static TeacherResponse toResponse(TeacherAccount account) {
-		return new TeacherResponse(account.id(), account.name(), account.email(), account.approvalStatus(),
-				account.accountStatus(), account.approvedBy(), account.approvedAt());
+		return new TeacherResponse(account.id(), account.name(), account.firstName(), account.lastName(), account.email(),
+				account.contactNumber(), account.instituteCommissionPercent(), account.qualifications(), account.description(),
+				account.profileMediaFileId(), account.profileImageUrl(), account.publicProfileDisabled(), account.studentCount(), account.approvalStatus(), account.accountStatus(),
+				account.approvedBy(), account.approvedAt(), account.userId());
+	}
+
+	private static TeacherSelfProfileResponse toSelfResponse(TeacherAccount account) {
+		return new TeacherSelfProfileResponse(account.id(), account.userId(), account.name(), account.firstName(),
+				account.lastName(), account.email(), account.contactNumber(), account.qualifications(),
+				account.description(), account.profileImageUrl(), account.approvalStatus(),
+				TeacherService.SELF_EDITABLE_FIELDS);
 	}
 
 	private static TeacherActivityResponse toActivityResponse(AuditActivityEntry entry) {

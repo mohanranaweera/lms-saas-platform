@@ -39,6 +39,13 @@ export interface ClassSessionResponse {
   providerFailureReason: string | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * MEDIA-INT-01: status of the teacher's Zoom connection hosting this
+   * meeting. `null` for fake-provider sessions and for Student callers.
+   * `DISCONNECTED`/`NEEDS_RECONNECT` means students can't join until the
+   * teacher reconnects and the meeting is recreated (`retry-provisioning`).
+   */
+  hostConnectionStatus: "ACTIVE" | "NEEDS_RECONNECT" | "DISCONNECTED" | null;
 }
 
 /** Mirrors `ClassSessionCreateRequest` — `POST /v1/class-sessions`'s request body. `teacherId` is never sent; derived server-side. */
@@ -163,7 +170,12 @@ export function useUpdateClassSession(sessionId: string) {
   });
 }
 
-/** `POST /api/v1/class-sessions/{id}/retry-provisioning` — idempotent no-op if already `PROVISIONED`; retries if `PENDING`/`FAILED`. */
+/**
+ * `POST /api/v1/class-sessions/{id}/retry-provisioning` — retries if
+ * `PENDING`/`FAILED`; MEDIA-INT-01: also recreates the meeting on the
+ * teacher's current Zoom connection when the hosting connection is gone
+ * ("Recreate meeting"). Otherwise an idempotent no-op.
+ */
 export function useRetryClassSessionProvisioning(sessionId: string) {
   const { authorizedFetch } = useAuth();
   const queryClient = useQueryClient();

@@ -47,7 +47,7 @@ function tenantDetail(overrides: Partial<Record<string, unknown>> = {}) {
     id: "tenant-1",
     name: "Example Institute A",
     subdomain: "example-institute-a",
-    status: "active",
+    status: "ACTIVE",
     requestedPlan: "STARTER",
     contactName: "Jane Doe",
     contactEmail: "jane@example.test",

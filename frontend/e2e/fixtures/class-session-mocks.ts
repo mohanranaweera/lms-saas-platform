@@ -44,6 +44,8 @@ export interface ClassSessionRecord {
   providerFailureReason: string | null;
   createdAt: string;
   updatedAt: string;
+  /** MEDIA-INT-01 - null for fake-provider sessions and Student callers. */
+  hostConnectionStatus: "ACTIVE" | "NEEDS_RECONNECT" | "DISCONNECTED" | null;
 }
 
 function nowIso(): string {
@@ -90,6 +92,7 @@ export function makeClassSession(overrides: Partial<ClassSessionRecord> & { id: 
     providerFailureReason: null,
     createdAt: nowIso(),
     updatedAt: nowIso(),
+    hostConnectionStatus: null,
     ...overrides,
   };
 }
@@ -119,6 +122,24 @@ export function courseResponseBody(overrides: Partial<Record<string, unknown>> =
     requiresManualQuote: false,
     ...overrides,
   };
+}
+
+/**
+ * Mocks everything the Student course content page (`student/courses/[courseId]`)
+ * needs besides class sessions — an ACTIVE enrollment in `courseId`, the course
+ * itself, and no modules — since Students see live classes only inside that page.
+ */
+export async function mockStudentCoursePage(page: Page, courseId = COURSE_ID): Promise<void> {
+  await mockJson(
+    page,
+    "**/v1/enrollments/my",
+    200,
+    apiSuccess([
+      { enrollmentId: "enrollment-1", courseId, state: "ACTIVE", accessExpiresAt: null, canRequestReactivation: false },
+    ])
+  );
+  await mockJson(page, `**/v1/courses/${courseId}`, 200, apiSuccess(courseResponseBody({ id: courseId })));
+  await mockJson(page, `**/v1/courses/${courseId}/modules`, 200, apiSuccess([]));
 }
 
 /**

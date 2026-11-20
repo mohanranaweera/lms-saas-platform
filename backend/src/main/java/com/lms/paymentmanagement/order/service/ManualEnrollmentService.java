@@ -128,7 +128,7 @@ public class ManualEnrollmentService implements ManualEnrollmentApi {
 
 		StudentOrder order = new StudentOrder(tenantContext.getTenantId(), studentId, courseId, checkout.amount(),
 				checkout.currency(), checkout.billingPeriodId());
-		order = studentOrderRepository.save(order);
+		order = studentOrderRepository.saveAndFlush(order);
 		order.markPending();
 
 		Payment payment = new Payment(order.getTenantId(), order.getId(), order.getAmount(), order.getCurrency());

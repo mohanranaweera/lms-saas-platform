@@ -5,6 +5,7 @@ const items: NavItem[] = [
   { label: "Tenants", href: "/platform-admin/tenants" },
   { label: "Payments", href: "/platform-admin/payments" },
   { label: "Audit Log", href: "/platform-admin/audit-log" },
+  { label: "Integrations", href: "/platform-admin/integrations" },
   { label: "Profile" },
   { label: "Settings" },
 ];

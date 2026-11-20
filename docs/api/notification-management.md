@@ -147,3 +147,92 @@ events:
 None of the above are REST contracts; they exist purely as in-process `api`-package
 interfaces/domain events per `.claude/rules/architecture.md`'s cross-module communication
 rules.
+
+Wave 11 adds: `MessagingChannelApi` (`integration-management`, SMS/WhatsApp send +
+availability for the current tenant), `StudentLookupApi.findContacts` /
+`findContactsByStudentIds` / `listAllStudentUserIds`, `TeacherLookupApi`,
+`EnrollmentAccessApi.listCurrentlyEnrolledStudentIds`, `CourseLookupApi`
+(`getCourseSummaries`, `getTeacherId`) and `PaymentStatusApi` (order payment details) for
+audience resolution — all tenant-scoped, read-only.
+
+---
+
+# Wave 11 — Communications (ADR-023)
+
+Broadcasts, broadcast templates, system (event) templates, delivery logs and recipient
+preferences. Tenant from the authenticated context only. Permissions: `COMMUNICATIONS`
+(Tenant Admin, Student Support `V/C/E`; Read-only Auditor `V`); teachers are
+ownership-scoped (own course, in-app/email only, own broadcasts only).
+
+## Transactional outbox changes (V68)
+
+- Bounded retry: an SMTP/transport failure (`MailException`) returns the row to `PENDING`
+  with `next_attempt_at` (+1 min, then +5 min); the 3rd failure is `FAILED`. Recipient,
+  template and render errors are `FAILED` at once. Stuck `SENDING` rows are still failed
+  forward (never re-sent).
+- Duplicate events: payment outcome rows carry `dedupe_key`
+  (`PAYMENT_CONFIRMED:{paymentId}`, `PAYMENT_REJECTED:{paymentId}`,
+  `PAYMENT_REFUNDED:{refundId}`); a re-delivered event is ignored (unique per tenant).
+
+## Endpoints
+
+| Method | Path | Who | Notes |
+|---|---|---|---|
+| GET | `/api/v1/communications/channels` | VIEW or Teacher | `[{channel, available, allowedForYou, reason}]`; reason `NOT_CONFIGURED` / `PROVIDER_DISABLED_IN_ENVIRONMENT` |
+| POST | `/api/v1/communications/audience-preview` | CREATE_EDIT or Teacher (own course) | body = `AudienceRequest`; returns `{recipientCount, reachByChannel, sampleNames≤10}` — never addresses |
+| GET | `/api/v1/communications/broadcasts?page&size` | VIEW (all) / Teacher (own) | `PageResponse<BroadcastView>`, newest first |
+| POST | `/api/v1/communications/broadcasts` | CREATE_EDIT or Teacher | **201** new, **200** replay of the same `clientRequestId` by the same sender (`replayed: true`), 409 if another sender used that id |
+| GET | `/api/v1/communications/broadcasts/{id}` | VIEW / Teacher (own) | 404 cross-tenant or another teacher's |
+| GET | `/api/v1/communications/broadcasts/{id}/deliveries?status&channel&page&size` | same | `PageResponse<DeliveryView>`; destinations masked |
+| GET | `/api/v1/communications/students/{studentId}/deliveries` | VIEW | `studentId` = student profile id; 404 cross-tenant |
+| GET | `/api/v1/communications/templates?includeArchived` | VIEW (teachers: active only) | `TemplateView[]` |
+| POST | `/api/v1/communications/templates` | CREATE_EDIT | 201; name unique (case-insensitive) among active |
+| PUT | `/api/v1/communications/templates/{id}` | CREATE_EDIT | editing copy of a SUBMITTED/APPROVED template resets WhatsApp status to NOT_SUBMITTED |
+| POST | `/api/v1/communications/templates/{id}/archive` | CREATE_EDIT | archive, never delete |
+| POST | `/api/v1/communications/templates/{id}/whatsapp-status` | CREATE_EDIT **and** INTEGRATIONS/CREATE_EDIT | `{action: SUBMIT\|APPROVE\|REJECT, providerTemplateName?, reason?}`; illegal transition → 409 |
+| GET | `/api/v1/communications/event-templates` | VIEW | one entry per system message key, with allowed/required variables |
+| PUT | `/api/v1/communications/event-templates/{key}` | CREATE_EDIT **and** Tenant Admin | variables restricted per key; credential templates must keep `{{link}}` |
+| GET / PUT | `/api/v1/notifications/preferences` | self | `{EMAIL?, SMS?, WHATSAPP?: boolean}`; WhatsApp is opt-in |
+| POST | `/api/v1/notifications/read-all` | self | `{updated: n}` |
+
+### `AudienceRequest`
+
+```json
+{ "type": "ALL_STUDENTS | COURSE | SELECTED_STUDENTS | ALL_TEACHERS | PAYMENT_STATUS",
+  "courseId": "uuid (COURSE required; PAYMENT_STATUS optional)",
+  "paymentStatus": "PAID | PENDING | REJECTED (PAYMENT_STATUS only)",
+  "studentIds": ["student profile ids (SELECTED_STUDENTS only, ≤ 5000)"] }
+```
+
+Suspended/invited accounts are always excluded. Any foreign or non-student id in
+`studentIds` → 400 (nothing sent). A foreign `courseId` → 404. More than 5 000 recipients →
+400. Payment status is evaluated per order: PAID = a confirmed payment; PENDING = an open
+attempt and nothing confirmed; REJECTED = only rejected attempts.
+
+### `SendBroadcastRequest`
+
+```json
+{ "clientRequestId": "uuid (idempotency key)",
+  "subject": "≤ 200", "body": "≤ 5000", "smsBody": "≤ 640, optional",
+  "templateId": "uuid, optional (required for WHATSAPP and must be APPROVED)",
+  "channels": ["IN_APP", "EMAIL", "SMS", "WHATSAPP"],
+  "audience": { ... } }
+```
+
+Variables: only `{{name}}` and `{{instituteName}}` (400 otherwise). Plain text. SMS/WhatsApp
+send `smsBody`, else `body` (then `body` must be ≤ 640). A channel not available for the
+tenant → 409 `CHANNEL_NOT_AVAILABLE`. IN_APP notifications are written in the same
+transaction; other channels are queued (`notification_delivery`) for the async dispatcher.
+
+### Delivery statuses and codes
+
+`PENDING` (queued or waiting for retry) → `SENDING` → `SENT` | `FAILED` | `SKIPPED`.
+`errorCode`: `NO_ADDRESS`, `NO_CONSENT`, `USER_INACTIVE`, `CHANNEL_NOT_AVAILABLE` (skipped);
+`PROVIDER_TRANSIENT`, `EMAIL_TRANSIENT` (retried), `PROVIDER_REJECTED`, `STUCK_IN_SENDING`,
+`INTERNAL_ERROR` (failed). Codes are fixed strings — never provider response text.
+
+### Audit actions
+
+`communication.broadcast_sent`, `communication_template.created|updated|archived|whatsapp_status_changed`,
+`notification_template.updated` (before/after). Broadcast bodies are not copied into audit
+metadata (the `broadcast` row itself is append-only).

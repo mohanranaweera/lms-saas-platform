@@ -74,6 +74,13 @@ unbounded page via `?size=999999`), `sort` (default `createdAt,DESC`).
   evaluated. A Teacher may act only on a course where `course.teacher_id` equals their own
   id — except `DELETE` and teacher-reassignment, which are staff/Tenant-Admin-only
   regardless of ownership.
+- **Teacher Portal (TP-01, 2026-11)**: any current `course_teacher_assignment` row for the
+  caller (primary **or co-teacher**) grants `VIEW` of the course, its modules/lessons, the
+  `/content` and `/live-classes` teacher preview, lesson materials (`MaterialAccessGuard`)
+  and video playback (`VideoAccessGuard`). Every non-`VIEW` action still requires the
+  primary teacher (`course.teacher_id`) — co-teachers gained no edit rights. The assignment
+  is read on every request (no cache), so removing a co-teacher denies their next request
+  (`403`). Attendance and video-policy mutations are unchanged (primary only).
 - Every mutating endpoint independently rejects the Read-only Auditor role, inherited from
   `PermissionCheckServiceImpl`'s existing invariant (Auditor never holds a write-class
   grant).
@@ -115,8 +122,15 @@ courses regardless of what's sent), `includeArchived` (optional boolean, default
 Wave 2 — archived courses are excluded from every listing unless explicitly requested), plus
 the standard pagination params above.
 
-- **Teacher-role caller**: sees only courses where `teacher_id` = their own id, further
-  narrowed by `status`/`category` if supplied.
+- **Teacher-role caller**: sees only courses the caller is assigned to in
+  `course_teacher_assignment` (primary or co-teacher; TP-01 — previously only
+  `teacher_id` = own id), further narrowed by `status`/`category`/`search` if supplied.
+  The assignment restriction is applied before search, filters, sorting, paging and
+  `totalElements`.
+- **`assignedToMe=true`** (optional boolean, TP-01): narrows **any** caller — including a
+  staff role opening the Teacher Portal — to its own assignments, resolved from the
+  authenticated identity. It can only narrow; it needs no `COURSES` grant. The Teacher
+  Portal "My Courses" always sends it.
 - **Staff caller**: requires `DomainArea.COURSES` `VIEW`; sees all tenant courses,
   narrowed by all three filters.
 
@@ -182,10 +196,25 @@ Structure only, no material content. **Request body** (`CourseModuleRequest`):
 unique within `(tenant_id, course_id)`. Same staff-matrix-or-Teacher-ownership
 authorization as the parent course.
 
-### `POST .../modules/{moduleId}/lessons`, `PATCH`/`DELETE .../lessons/{lessonId}`
+### `POST .../modules/{moduleId}/lessons`, `PATCH`/`DELETE .../lessons/{lessonId}` (Sessions)
 
-Same shape (`CourseLessonRequest`: `{ "title": "...", "sequence": 1 }`), scoped through
-the parent course's tenant and the parent module.
+The route retains `lessons` for ID/backward compatibility; UI calls records **Sessions**.
+`CourseLessonRequest` accepts `{title, sequence, startsAt, endsAt, resourceType, paymentType,
+price, description, lessonLabel, billingYear, billingMonth}`. `startsAt`/`endsAt` are ISO
+instants; UI converts tenant-local date/time. New sessions require a start; existing legacy
+nullable windows can be preserved or cleared. End must be after start when both exist.
+`paymentType` is `FREE`, `COVERED_BY_CLASS_FEES` or `PAID`; paid sessions require a positive
+price. `billingYear`/`billingMonth` remain compatibility fields but are not trusted: for a
+`MONTHLY` course with `COVERED_BY_CLASS_FEES`, backend derives both from `startsAt` in the
+trusted tenant timezone; otherwise both are stored null. Response includes `expired` and the
+derived/null billing fields. Existing paid-entitlement activation rules remain unchanged.
+
+`resourceType` comes from `GET /api/v1/courses/lesson-resource-types` and includes `IMAGE`
+(V89) and `SECURE_VIDEO` displayed as `Player Video`; Zoom Recording remains unsupported.
+Existing staff-matrix-or-Teacher-ownership authorization and parent/module tenant checks apply.
+Use `PUT .../lessons/order {lessonIds}` for complete scoped ordering; it does not replace session
+metadata. Material/file and LessonMedia attachment endpoints remain separate, with existing
+tenant and lesson-access guards.
 
 ### `GET /api/v1/public/courses`
 
@@ -226,7 +255,7 @@ different tenant — all three cases are indistinguishable by design (anti-enume
 `createdAt`, `updatedAt`.
 
 **`CourseModuleResponse`**: `{ id, courseId, title, sequence, createdAt, updatedAt }`.
-**`CourseLessonResponse`**: `{ id, moduleId, title, sequence, createdAt, updatedAt }`.
+**`CourseLessonResponse`**: `{ id, moduleId, title, sequence, startsAt, endsAt, resourceType, paymentType, price, description, lessonLabel, billingYear, billingMonth, expired, createdAt, updatedAt }`.
 
 Note: `GET .../modules` and `GET .../modules/{moduleId}/lessons` return their lists in
 whatever order the underlying repository finder returns (no `ORDER BY sequence` at the
@@ -257,3 +286,7 @@ directly against the draft contract table and the controllers themselves. A late
 multi-agent module review caught the gap; this file is the retroactive correction,
 reflecting the actual shipped contract (including the pagination change added in the same
 review-remediation pass) rather than the superseded draft.
+
+## Klass parity additions (2026-10, ADR-028)
+
+The Klass course-management and free-enrollment/lesson-entitlement endpoints added on branch `feat/klass-course-enrollment-parity` are specified in `docs/plans/klass-enrollment-payment-parity.md` §4 (contract) with implemented behaviour in `docs/specs/klass-course-management-workflows.md` and `docs/specs/klass-enrollment-payment-workflows.md`. All changes are additive except the deliberate behaviour changes recorded there (D19, D22, D23, D24 and security fix L4: non-participant students receive 404 for non-PUBLIC courses).

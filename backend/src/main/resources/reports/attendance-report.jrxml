@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- RPT-03 Attendance Report. Application-owned typed-bean template: no SQL, scriptlets or calculations. -->
+<jasperReport name="attendance-report" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="786"
+		leftMargin="28" rightMargin="28" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail">
+	<property name="net.sf.jasperreports.export.pdf.glyph.renderer.blocks.lms" value="sinhala,tamil"/>
+	<style name="Base" default="true" fontName="LMS Sans" fontSize="8.5" forecolor="#1F2937"/>
+	<style name="Muted" fontName="LMS Sans" fontSize="8.0" forecolor="#4B5563"/>
+	<style name="Header" fontName="LMS Sans" fontSize="8.0" forecolor="#374151" bold="true"/>
+	<style name="KpiLabel" fontName="LMS Sans" fontSize="8.0" forecolor="#6B7280" bold="true"/>
+	<style name="KpiValue" fontName="LMS Sans" fontSize="14.0" forecolor="#111827" bold="true"/>
+	<parameter name="TITLE" class="java.lang.String"/>
+	<parameter name="INSTITUTE" class="java.lang.String"/>
+	<parameter name="COURSE" class="java.lang.String"/>
+	<parameter name="DATE_RANGE" class="java.lang.String"/>
+	<parameter name="GENERATED" class="java.lang.String"/>
+	<parameter name="FOOTER" class="java.lang.String"/>
+	<parameter name="TOTAL_RECORDS" class="java.lang.String"/>
+	<parameter name="PRESENT" class="java.lang.String"/>
+	<parameter name="ABSENT" class="java.lang.String"/>
+	<parameter name="LEGEND" class="java.lang.String"/>
+	<parameter name="EMPTY" class="java.lang.Boolean"/>
+	<field name="band" class="java.lang.Integer"/>
+	<field name="rowNo" class="java.lang.String"/>
+	<field name="indexNumber" class="java.lang.String"/>
+	<field name="studentName" class="java.lang.String"/>
+	<field name="date1" class="java.lang.String"/><field name="mark1" class="java.lang.String"/>
+	<field name="date2" class="java.lang.String"/><field name="mark2" class="java.lang.String"/>
+	<field name="date3" class="java.lang.String"/><field name="mark3" class="java.lang.String"/>
+	<field name="date4" class="java.lang.String"/><field name="mark4" class="java.lang.String"/>
+	<field name="date5" class="java.lang.String"/><field name="mark5" class="java.lang.String"/>
+	<field name="date6" class="java.lang.String"/><field name="mark6" class="java.lang.String"/>
+	<group name="band" startNewPage="true" reprintHeaderOnEachPage="true">
+		<expression><![CDATA[$F{band}]]></expression>
+		<groupHeader><band height="150">
+			<element kind="rectangle" x="0" y="0" width="786" height="54" backcolor="#1F2937" mode="Opaque"><pen lineWidth="0.0"/></element>
+			<element kind="textField" x="14" y="6" width="758" height="22" forecolor="#FFFFFF" fontSize="16.0" bold="true" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$P{TITLE}]]></expression></element>
+			<element kind="textField" x="14" y="30" width="758" height="16" forecolor="#D1D5DB" fontSize="10.0" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$P{INSTITUTE}]]></expression></element>
+			<element kind="textField" x="0" y="58" width="786" height="13" style="Muted" textAdjust="ScaleFont"><expression><![CDATA["Course: " + $P{COURSE}]]></expression></element>
+			<element kind="textField" x="0" y="73" width="786" height="13" style="Muted" textAdjust="ScaleFont"><expression><![CDATA["Date range: " + $P{DATE_RANGE}]]></expression></element>
+			<element kind="textField" x="0" y="88" width="786" height="13" style="Muted" textAdjust="ScaleFont"><expression><![CDATA[$P{GENERATED}]]></expression></element>
+			<element kind="frame" x="0" y="106" width="248" height="42" backcolor="#F9FAFB" mode="Opaque"><box><leftPen lineWidth="3.0" lineColor="#2563EB"/></box><element kind="staticText" x="9" y="5" width="230" height="12" style="KpiLabel"><text><![CDATA[TOTAL RECORDS]]></text></element><element kind="textField" x="9" y="18" width="220" height="20" style="KpiValue"><expression><![CDATA[$P{TOTAL_RECORDS}]]></expression></element></element>
+			<element kind="frame" x="269" y="106" width="248" height="42" backcolor="#F9FAFB" mode="Opaque"><box><leftPen lineWidth="3.0" lineColor="#16A34A"/></box><element kind="staticText" x="9" y="5" width="230" height="12" style="KpiLabel"><text><![CDATA[PRESENT]]></text></element><element kind="textField" x="9" y="18" width="220" height="20" style="KpiValue"><expression><![CDATA[$P{PRESENT}]]></expression></element></element>
+			<element kind="frame" x="538" y="106" width="248" height="42" backcolor="#F9FAFB" mode="Opaque"><box><leftPen lineWidth="3.0" lineColor="#DC2626"/></box><element kind="staticText" x="9" y="5" width="230" height="12" style="KpiLabel"><text><![CDATA[ABSENT]]></text></element><element kind="textField" x="9" y="18" width="220" height="20" style="KpiValue"><expression><![CDATA[$P{ABSENT}]]></expression></element></element>
+		</band></groupHeader>
+	</group>
+	<group name="table" reprintHeaderOnEachPage="true"><expression><![CDATA[$F{band}]]></expression><groupHeader><band height="22">
+		<element kind="frame" x="0" y="2" width="786" height="18" backcolor="#E5E7EB" mode="Opaque">
+			<element kind="staticText" x="4" y="0" width="24" height="18" style="Header" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[#]]></text></element>
+			<element kind="staticText" x="34" y="0" width="54" height="18" style="Header" vTextAlign="Middle"><text><![CDATA[INDEX]]></text></element>
+			<element kind="staticText" x="94" y="0" width="230" height="18" style="Header" vTextAlign="Middle"><text><![CDATA[STUDENT NAME]]></text></element>
+			<element kind="textField" x="330" y="0" width="74" height="18" style="Header" hTextAlign="Center" vTextAlign="Middle"><expression><![CDATA[$F{date1}]]></expression></element>
+			<element kind="textField" x="404" y="0" width="74" height="18" style="Header" hTextAlign="Center" vTextAlign="Middle"><expression><![CDATA[$F{date2}]]></expression></element>
+			<element kind="textField" x="478" y="0" width="74" height="18" style="Header" hTextAlign="Center" vTextAlign="Middle"><expression><![CDATA[$F{date3}]]></expression></element>
+			<element kind="textField" x="552" y="0" width="74" height="18" style="Header" hTextAlign="Center" vTextAlign="Middle"><expression><![CDATA[$F{date4}]]></expression></element>
+			<element kind="textField" x="626" y="0" width="74" height="18" style="Header" hTextAlign="Center" vTextAlign="Middle"><expression><![CDATA[$F{date5}]]></expression></element>
+			<element kind="textField" x="700" y="0" width="82" height="18" style="Header" hTextAlign="Center" vTextAlign="Middle"><expression><![CDATA[$F{date6}]]></expression></element>
+		</element>
+	</band></groupHeader></group>
+	<detail><band height="16" splitType="Prevent"><element kind="frame" x="0" y="0" width="786" height="16"><box><bottomPen lineWidth="0.5" lineColor="#E5E7EB"/></box>
+		<element kind="textField" x="4" y="0" width="24" height="16" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{rowNo}]]></expression></element>
+		<element kind="textField" x="34" y="0" width="54" height="16" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$F{indexNumber}]]></expression></element>
+		<element kind="textField" x="94" y="0" width="230" height="16" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$F{studentName}]]></expression></element>
+		<element kind="textField" x="330" y="0" width="74" height="16" hTextAlign="Center" vTextAlign="Middle" forecolor="#15803D" bold="true"><expression><![CDATA[$F{mark1}]]></expression></element>
+		<element kind="textField" x="404" y="0" width="74" height="16" hTextAlign="Center" vTextAlign="Middle" forecolor="#15803D" bold="true"><expression><![CDATA[$F{mark2}]]></expression></element>
+		<element kind="textField" x="478" y="0" width="74" height="16" hTextAlign="Center" vTextAlign="Middle" forecolor="#15803D" bold="true"><expression><![CDATA[$F{mark3}]]></expression></element>
+		<element kind="textField" x="552" y="0" width="74" height="16" hTextAlign="Center" vTextAlign="Middle" forecolor="#15803D" bold="true"><expression><![CDATA[$F{mark4}]]></expression></element>
+		<element kind="textField" x="626" y="0" width="74" height="16" hTextAlign="Center" vTextAlign="Middle" forecolor="#15803D" bold="true"><expression><![CDATA[$F{mark5}]]></expression></element>
+		<element kind="textField" x="700" y="0" width="82" height="16" hTextAlign="Center" vTextAlign="Middle" forecolor="#15803D" bold="true"><expression><![CDATA[$F{mark6}]]></expression></element>
+	</element></band></detail>
+	<pageFooter height="30"><element kind="line" x="0" y="2" width="786" height="1" forecolor="#D1D5DB"/><element kind="textField" x="0" y="6" width="786" height="11" style="Muted" textAdjust="ScaleFont"><expression><![CDATA[$P{LEGEND}]]></expression></element><element kind="textField" x="0" y="18" width="650" height="11" style="Muted" textAdjust="ScaleFont"><expression><![CDATA[$P{FOOTER}]]></expression></element><element kind="textField" x="650" y="18" width="136" height="11" style="Muted" hTextAlign="Right"><expression><![CDATA["Page " + $V{PAGE_NUMBER}]]></expression></element></pageFooter>
+	<summary height="28"><element kind="staticText" x="0" y="6" width="786" height="14" forecolor="#6B7280" fontSize="10.0" hTextAlign="Center"><printWhenExpression><![CDATA[$P{EMPTY}]]></printWhenExpression><text><![CDATA[No recorded attendance matches these filters]]></text></element></summary>
+</jasperReport>

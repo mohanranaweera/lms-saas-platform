@@ -50,6 +50,11 @@ public class FinancePeriodResolver {
 		return ZoneId.of("UTC");
 	}
 
+	/** The tenant's configured default currency - see {@code TenantConfigApi#resolveDefaultCurrency}. */
+	public String tenantCurrency() {
+		return tenantConfigApi.resolveDefaultCurrency(tenantContext.getTenantId());
+	}
+
 	public LocalDate today() {
 		return LocalDate.now(tenantZone());
 	}

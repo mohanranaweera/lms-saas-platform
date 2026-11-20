@@ -24,6 +24,7 @@ import { usePublishResults, useExam } from "@/lib/api/exams";
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime, formatRoleLabel } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Teacher/staff Results Publishing (MVP-017 plan §11 screen #7). Publish is
  * only meaningful once `status === "CLOSED"` — the actual, sole backend
@@ -45,6 +46,7 @@ import { formatDateTime, formatRoleLabel } from "@/lib/format";
  * mismatch whenever the caller isn't a Teacher/Teacher Assistant.
  */
 export default function TeacherExamPublishPage() {
+  const t = useT();
   const { examId } = useParams<{ examId: string }>();
   const router = useRouter();
   const { session } = useAuth();
@@ -68,14 +70,14 @@ export default function TeacherExamPublishPage() {
       await publishMutation.mutateAsync();
       setPublishDialogOpen(false);
     } catch (error) {
-      setPublishError(isApiClientError(error) ? error.message : "Could not publish results. Please try again.");
+      setPublishError(isApiClientError(error) ? error.message : t("teacher.page.examsPublish.couldNotPublishResults"));
     }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Results Publishing</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.examsPublish.resultsPublishing")}</h1>
         <p className="text-sm text-muted-foreground">
           Publishing makes every student&apos;s score and per-question review visible. This cannot be undone.
         </p>
@@ -100,7 +102,7 @@ export default function TeacherExamPublishPage() {
 
       <QueryStateBoundary
         query={examQuery}
-        loadingLabel="Loading exam…"
+        loadingLabel={t("teacher.page.examsPublish.loadingExam")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
       >
@@ -128,10 +130,9 @@ export default function TeacherExamPublishPage() {
             ) : (
               <div className="flex flex-col gap-2 rounded-lg border border-border p-4">
                 <p className="text-sm text-muted-foreground">
-                  This exam is Closed and ready to publish. Every enrolled student will immediately be able to
-                  see their score and per-question review.
+                  {t("teacher.page.examsPublish.thisExamIsClosed")}
                 </p>
-                <LiveRegion message={publishMutation.isPending ? "Publishing results…" : ""} />
+                <LiveRegion message={publishMutation.isPending ? t("teacher.page.examsPublish.publishingResults") : ""} />
                 {publishError && !publishDialogOpen ? (
                   <p role="alert" className="text-sm text-destructive">
                     {publishError}
@@ -140,11 +141,11 @@ export default function TeacherExamPublishPage() {
                 {canReachPublishAction ? (
                   <AlertDialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
                     <AlertDialogTrigger render={<Button type="button" className="w-full sm:w-fit" />}>
-                      Publish results
+                      {t("teacher.page.examsPublish.publishResults")}
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Publish results for this exam?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("teacher.page.examsPublish.publishResultsForThis")}</AlertDialogTitle>
                         <AlertDialogDescription>
                           Publishing makes every enrolled student&apos;s score and per-question review visible
                           immediately. This cannot be undone — there is no unpublish path.
@@ -157,7 +158,7 @@ export default function TeacherExamPublishPage() {
                       ) : null}
                       <AlertDialogFooter>
                         <AlertDialogClose render={<Button type="button" variant="outline" />}>
-                          Cancel
+                          {t("teacher.page.examsPublish.cancel")}
                         </AlertDialogClose>
                         <Button
                           type="button"
@@ -165,7 +166,7 @@ export default function TeacherExamPublishPage() {
                           disabled={publishMutation.isPending}
                           aria-busy={publishMutation.isPending}
                         >
-                          {publishMutation.isPending ? "Publishing…" : "Publish results"}
+                          {publishMutation.isPending ? t("teacher.page.examsPublish.publishing") : t("teacher.page.examsPublish.publishResults")}
                         </Button>
                       </AlertDialogFooter>
                     </AlertDialogContent>

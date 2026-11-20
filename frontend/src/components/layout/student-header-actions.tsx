@@ -1,0 +1,41 @@
+"use client";
+
+import Link from "next/link";
+import { ChevronDown, UserRound } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLinkItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { StudentNotificationQuickView } from "@/components/notifications/student-notification-quick-view";
+import { LogoutControl } from "@/components/auth/logout-control";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useOwnStudentProfile } from "@/lib/api/students";
+import { useStudentPhoto } from "@/lib/api/student-management";
+import { StudentAvatar } from "@/components/students/student-avatar";
+import { useT } from "@/i18n/i18n-provider";
+
+export function StudentHeaderActions({ children }: { children: React.ReactNode }) {
+  const { session } = useAuth();
+  const profileQuery = useOwnStudentProfile();
+  const t = useT();
+  const displayName = profileQuery.data?.name ?? t("student.header.accountFallback");
+  // STU-MGMT-02: the student's own photo (signed URL) when they have one.
+  const photoUrl = useStudentPhoto({ kind: "self" }).data?.url ?? null;
+
+  return (
+    <div className="flex items-center gap-2">
+      {children}
+      <StudentNotificationQuickView />
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" className="max-w-48" aria-label={t("student.header.accountMenu")} />}>
+          {photoUrl ? <StudentAvatar name={displayName} photoUrl={photoUrl} size="sm" className="size-6" /> : <UserRound aria-hidden="true" />}
+          <span className="truncate">{displayName}</span>
+          <ChevronDown aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="min-w-48">
+          <DropdownMenuLinkItem render={<Link href="/student/profile" />}>{t("student.nav.profile")}</DropdownMenuLinkItem>
+          <DropdownMenuSeparator />
+          <div className="px-1"><LogoutControl kind="tenant" portalLabel={t("student.portal")} /></div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}

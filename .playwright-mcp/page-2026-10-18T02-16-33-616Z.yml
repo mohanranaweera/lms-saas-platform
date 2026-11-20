@@ -1,0 +1,161 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]
+  - alert [ref=e35]
+  - generic [ref=e36]:
+    - complementary [ref=e37]:
+      - generic [ref=e38]: Tenant Admin
+      - navigation "Primary" [ref=e2438]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]: Dashboard
+            - list [ref=e43]:
+              - listitem [ref=e44]:
+                - link "Dashboard" [ref=e2439] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+          - generic [ref=e46]:
+            - generic [ref=e47]: Academic
+            - list [ref=e48]:
+              - listitem [ref=e49]:
+                - link "Students" [ref=e2440] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+              - listitem [ref=e51]:
+                - link "Teachers" [ref=e2441] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+              - listitem [ref=e53]:
+                - link "Courses" [ref=e2442] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+              - listitem [ref=e55]:
+                - link "Media Library" [ref=e2443] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+              - listitem [ref=e57]:
+                - link "Attendance Reports" [ref=e2444] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+              - listitem [ref=e59]:
+                - link "Mark Attendance" [ref=e2445] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+              - listitem [ref=e61]:
+                - link "Exams" [ref=e2446] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+              - listitem [ref=e63]:
+                - link "Live Classes" [ref=e2447] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+          - generic [ref=e65]:
+            - generic [ref=e66]: Finance
+            - list [ref=e67]:
+              - listitem [ref=e68]:
+                - link "Payments" [ref=e2448] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+              - listitem [ref=e70]:
+                - link "Refunds" [ref=e2449] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+              - listitem [ref=e72]:
+                - link "Payment Slips" [ref=e2450] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+              - listitem [ref=e74]:
+                - link "Reactivation Approvals" [ref=e2451] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+              - listitem [ref=e76]:
+                - link "Finance Summary" [ref=e2452] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+              - listitem [ref=e78]:
+                - link "Expenses" [ref=e2453] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+              - listitem [ref=e80]:
+                - link "Expense Categories" [ref=e2454] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+              - listitem [ref=e82]:
+                - link "Finance Reports" [ref=e2455] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+              - listitem [ref=e84]:
+                - link "Teacher Payouts" [ref=e2456] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+          - generic [ref=e86]:
+            - generic [ref=e87]: Communication
+            - list [ref=e88]:
+              - listitem [ref=e89]:
+                - link "Broadcasts" [ref=e2457] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+              - listitem [ref=e91]:
+                - link "Message Templates" [ref=e2458] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+          - generic [ref=e93]:
+            - generic [ref=e94]: Administration
+            - list [ref=e95]:
+              - listitem [ref=e96]:
+                - link "Staff" [ref=e2459] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+              - listitem [ref=e98]:
+                - link "Roles & Permissions" [ref=e2460] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+              - listitem [ref=e100]:
+                - link "Audit Log" [ref=e2461] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+          - generic [ref=e102]:
+            - generic [ref=e103]: Institute Configuration
+            - list [ref=e104]:
+              - listitem [ref=e105]:
+                - link "General" [ref=e2462] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+              - listitem [ref=e107]:
+                - link "Branding" [ref=e2463] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+              - listitem [ref=e109]:
+                - link "Student Fields" [ref=e2464] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+              - listitem [ref=e111]:
+                - link "Online Payments" [ref=e2465] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+              - listitem [ref=e113]:
+                - link "Integrations" [ref=e2466] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+              - listitem [ref=e115]:
+                - link "Messaging (SMS & WhatsApp)" [ref=e2467] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+              - listitem [ref=e117]:
+                - link "Video Providers" [ref=e2468] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+              - listitem [ref=e119]:
+                - link "Video Settings" [ref=e2469] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+              - listitem [ref=e121]:
+                - link "Custom Domain" [ref=e2470] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+              - listitem [ref=e123]:
+                - link "Devices & Access" [ref=e2471] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+    - generic [ref=e125]:
+      - banner [ref=e126]:
+        - generic [ref=e127]:
+          - link "Change password" [ref=e2472] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=e2473]
+      - main [ref=e131]:
+        - generic [ref=e2205]:
+          - generic [ref=e2206]:
+            - heading "Sessions" [level=1] [ref=e2474]
+            - navigation "Breadcrumb" [ref=e2475]:
+              - list [ref=e2215]:
+                - listitem [ref=e2216]:
+                  - link "Courses" [ref=e2476] [cursor=pointer]:
+                    - /url: /tenant-admin/courses
+                - listitem [ref=e2218]:
+                  - link "KLASS E2E Modules mv7iqszf7o5" [ref=e2477] [cursor=pointer]:
+                    - /url: /tenant-admin/courses/01a13857-535a-7177-b757-250f1e76ce69
+                - listitem [ref=e2222]:
+                  - link "October Theory" [ref=e2478] [cursor=pointer]:
+                    - /url: /tenant-admin/courses/01a13857-535a-7177-b757-250f1e76ce69/modules
+                - listitem [ref=e2226]:
+                  - generic [ref=e2229]: Sessions
+          - generic [ref=e2230]:
+            - generic [ref=e2231]:
+              - generic [ref=e2232]: Search sessions
+              - searchbox "Search sessions" [ref=e2479]
+            - button "Add session" [active] [ref=e2480]
+          - paragraph [ref=e2235]: Times shown in the institute's timezone (UTC).
+          - generic [ref=e2236]:
+            - paragraph [ref=e2237]: No sessions in this module yet
+            - paragraph [ref=e2238]: Add a session for each class, recording or document students should open.
+            - button "Add session" [ref=e2481]
+          - generic:
+            - status
+            - alert

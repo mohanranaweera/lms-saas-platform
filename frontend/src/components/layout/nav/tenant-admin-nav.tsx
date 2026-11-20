@@ -7,15 +7,30 @@ import {
   canViewAccessExpiryQueue,
   canViewAttendanceReports,
   canViewAuditLog,
+  canViewDiscounts,
   canViewExamsStaff,
   canViewFinance,
   canViewInstituteConfig,
+  canViewPaymentGateway,
+  canViewCustomDomains,
+  canViewIntegrations,
   canViewLiveClassesStaff,
   canViewPaymentDashboard,
   canViewStaff,
   canViewTeachers,
+  canViewAccessPolicy,
+  canViewDevices,
+  canViewCommunications,
+  canViewMedia,
+  canViewStudentPayments,
+  canViewFreeCards,
 } from "@/lib/auth/permissions";
+import { CAP, REPORT_CAPABILITIES } from "@/lib/auth/capabilities";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { TRANSLATION_CAP } from "@/lib/i18n-admin/use-translation-capabilities";
+import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import { NavGroup, type NavItem } from "./nav-links";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Six-group Tenant Admin nav shell (Wave 1 — Tenant Admin IA + Configuration
@@ -25,9 +40,8 @@ import { NavGroup, type NavItem } from "./nav-links";
  * Every gate below is the exact same helper/grant this nav already used
  * before the regrouping — re-bucketed into sections, never re-derived —
  * plus two new grants backing Wave 1's new screens:
- *   - "Staff" / "Roles & Permissions" (Administration) — both gated on
- *     `canViewStaff` (`STAFF_AND_ROLES`/`VIEW`: Tenant Admin, Read-only
- *     Auditor), since the same backend grant backs both endpoints.
+ *   - "Staff" (Administration) — gated on `canViewStaff`
+ *     (`STAFF_AND_ROLES`/`VIEW`: Tenant Admin, Read-only Auditor).
  *   - "General" / "Branding" (Institute Configuration) — both gated on
  *     `canViewInstituteConfig` (`BRANDING_SETTINGS`/`VIEW`: Tenant Admin,
  *     Read-only Auditor). No entry is added for the other 15 typed
@@ -37,10 +51,11 @@ import { NavGroup, type NavItem } from "./nav-links";
  *     nothing is built to configure there yet (Wave-1 explicit scope, not an
  *     oversight; see `lib/api/tenant-config.ts`'s own doc comment).
  *
- * "Communication" has no built destination yet (no notifications/email/SMS
- * admin screen exists anywhere in this codebase) — the group is omitted
- * entirely rather than rendered with placeholder "Soon" links, per this
- * module's explicit scope instruction.
+ * "Communication" (Wave 11) - broadcasts and message templates, gated on
+ * `COMMUNICATIONS`/`VIEW` (Tenant Admin, Student Support, Read-only
+ * Auditor). SMS / WhatsApp provider settings live under Institute
+ * Configuration ("Messaging", `INTEGRATIONS`/`VIEW`). The group is omitted
+ * entirely for roles without the grant.
  *
  * The two previous dead-end `{ label: "Profile" }` / `{ label: "Settings" }`
  * placeholder entries (no `href`, never wired to any real destination) are
@@ -48,6 +63,13 @@ import { NavGroup, type NavItem } from "./nav-links";
  * convenience, the real 403 is enforcement" framing presupposes a real
  * destination exists to be shown or hidden — these never had one, so keeping
  * them was never actually exercising that convention, just dead UI.
+ *
+ * STAFF-MGMT-02/03: every gate with a catalogued capability goes through
+ * `can(capability, legacyCheck)`. Tenant Admin gets exactly the legacy role
+ * helper it always had; OPERATOR / MANAGER and the seven seeded sub-roles
+ * (whose access a Tenant Admin can now edit) see an item only when their
+ * effective capabilities (`GET /v1/me/permissions`) include the matching
+ * capability. Entries with no capability in the catalog keep the role helper. "Roles & Permissions" is now Staff → Permissions.
  *
  * Every gate here is pure UX convenience — the real enforcement is each
  * destination page's own backend 403, rendered via `PermissionDeniedState`/
@@ -57,81 +79,204 @@ import { NavGroup, type NavItem } from "./nav-links";
 export function TenantAdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const { session } = useAuth();
   const role = session?.role ?? null;
+  const { can } = useCapabilities();
+  const tutes = useTuteCapabilities();
+  const t = useT();
 
-  const dashboardItems: NavItem[] = [{ label: "Dashboard", href: "/tenant-admin/dashboard" }];
+  const dashboardItems: NavItem[] = [{ label: t("tenantAdmin.nav.dashboard"), href: "/tenant-admin/dashboard" }];
 
-  const academicItems: NavItem[] = [{ label: "Students", href: "/tenant-admin/students" }];
-  if (canViewTeachers(role)) {
-    academicItems.push({ label: "Teachers", href: "/tenant-admin/teachers" });
+  const academicItems: NavItem[] = [];
+  if (can(CAP.STUDENTS_VIEW, true)) {
+    academicItems.push({ label: t("tenantAdmin.nav.students"), href: "/tenant-admin/students" });
   }
-  academicItems.push({ label: "Courses", href: "/tenant-admin/courses" });
-  if (canViewAttendanceReports(role)) {
-    academicItems.push({ label: "Attendance Reports", href: "/tenant-admin/attendance/reports" });
+  if (can(CAP.TEACHERS_VIEW, canViewTeachers(role))) {
+    academicItems.push({ label: t("tenantAdmin.nav.teachers"), href: "/tenant-admin/teachers" });
   }
-  if (canMarkAttendanceStaff(role)) {
-    academicItems.push({ label: "Mark Attendance", href: "/tenant-admin/attendance/mark" });
+  if (can(CAP.COURSES_VIEW, true)) {
+    academicItems.push({ label: t("tenantAdmin.nav.courses"), href: "/tenant-admin/courses" });
   }
-  if (canViewExamsStaff(role)) {
-    academicItems.push({ label: "Exams", href: "/tenant-admin/exams" });
+  // CAL-01 - scope is server-derived; the calendar endpoints re-check COURSES/VIEW.
+  if (can(CAP.TIMETABLE_VIEW, true)) {
+    academicItems.push({ label: t("tenantAdmin.nav.calendar"), href: "/tenant-admin/calendar" });
+  }
+  if (can(CAP.MEDIA_VIEW, canViewMedia(role))) {
+    academicItems.push({ label: t("tenantAdmin.nav.mediaLibrary"), href: "/tenant-admin/media" });
+  }
+  if (can(CAP.ATTENDANCE_VIEW, canViewAttendanceReports(role))) {
+    academicItems.push({ label: t("tenantAdmin.nav.attendanceReports"), href: "/tenant-admin/attendance/reports" });
+  }
+  if (can(CAP.ATTENDANCE_ADD, canMarkAttendanceStaff(role))) {
+    academicItems.push({ label: t("tenantAdmin.nav.markAttendance"), href: "/tenant-admin/attendance/mark" });
+  }
+  if (can(CAP.EXAMS_VIEW, canViewExamsStaff(role))) {
+    academicItems.push({ label: t("tenantAdmin.nav.exams"), href: "/tenant-admin/exams", activePrefixes: ["/tenant-admin/exams"] });
   }
   if (canViewLiveClassesStaff(role)) {
-    academicItems.push({ label: "Live Classes", href: "/tenant-admin/live-classes" });
+    academicItems.push({ label: t("tenantAdmin.nav.liveClasses"), href: "/tenant-admin/live-classes" });
+  }
+  // TUTE-01 - TUTE_DISPATCH_VIEW (capability-native for every role; Tenant Admin by default).
+  // UX only; /api/v1/tute-dispatch/** re-checks the capability and course scope.
+  if (tutes.can(TUTE_CAP.DISPATCH_VIEW)) {
+    academicItems.push({ label: t("tenantAdmin.nav.tuteDispatch"), href: "/tenant-admin/tute-dispatch" });
   }
 
   const financeItems: NavItem[] = [];
-  if (canViewPaymentDashboard(role)) {
-    financeItems.push({ label: "Payments", href: "/tenant-admin/payments/dashboard" });
+  // PAY-HUB-01: one Payments hub (All Orders, Payment Slips, Free Cards,
+  // Refunds tabs). Shown when any of its tabs is visible to this role. UX
+  // only; every tab's endpoints re-check permission server-side.
+  if (
+    can(
+      CAP.PAYMENTS_VIEW,
+      canViewPaymentDashboard(role) ||
+        canViewStudentPayments(role) ||
+        canViewFreeCards(role) ||
+        canProcessRefunds(role)
+    )
+  ) {
+    financeItems.push({
+      label: t("tenantAdmin.nav.payments"),
+      href: "/tenant-admin/payments",
+      activePrefixes: ["/tenant-admin/payments/slip-review"],
+    });
   }
-  if (canProcessRefunds(role)) {
-    financeItems.push({ label: "Refunds", href: "/tenant-admin/payments/refunds" });
-  }
-  if (canViewPaymentDashboard(role)) {
-    financeItems.push({ label: "Payment Slips", href: "/tenant-admin/payments/slip-review" });
+  // DISC-01 - DISCOUNTS/VIEW. UX only; /api/v1/admin/discounts re-enforces it.
+  if (canViewDiscounts(role)) {
+    financeItems.push({ label: t("tenantAdmin.nav.discounts"), href: "/tenant-admin/payments/discounts" });
   }
   if (canViewAccessExpiryQueue(role)) {
     financeItems.push({
-      label: "Reactivation Approvals",
+      label: t("tenantAdmin.nav.reactivationApprovals"),
       href: "/tenant-admin/access-expiry/reactivation-approvals",
     });
   }
-  // Wave 7 — FINANCE_EXPENSES/VIEW (Tenant Admin, Finance Staff, Read-only
-  // Auditor). UX only; every /api/v1/finance/** endpoint re-enforces it.
-  if (canViewFinance(role)) {
-    financeItems.push(
-      { label: "Finance Summary", href: "/tenant-admin/finance" },
-      { label: "Expenses", href: "/tenant-admin/finance/expenses" },
-      { label: "Expense Categories", href: "/tenant-admin/finance/categories" },
-      { label: "Finance Reports", href: "/tenant-admin/finance/reports" },
-      { label: "Teacher Payouts", href: "/tenant-admin/finance/teacher-payouts" }
+  // Wave 7 - FINANCE_EXPENSES/VIEW for Tenant Admin (role helper). STAFF-MGMT-03:
+  // capability-driven roles (Operator, Manager, the seven seeded sub-roles)
+  // get each entry from its own capability, so a revoked one disappears. UX
+  // only; every /api/v1/finance/** and /api/v1/reports/** endpoint re-enforces it.
+  const legacyFinance = canViewFinance(role);
+  // FIN-01 - Klass-style Finance tabs; the hub opens on Student Income and its
+  // tab bar hides tabs the viewer can't read.
+  if (
+    can(
+      [
+        CAP.FINANCE_VIEW_INCOME_SUMMARY,
+        CAP.FINANCE_DASHBOARD_ANNUAL_STATS,
+        CAP.FINANCE_DASHBOARD_TRANSACTIONS,
+        CAP.FINANCE_VIEW_SCHEDULES,
+        CAP.FINANCE_VIEW_CATEGORY,
+      ],
+      legacyFinance
+    )
+  ) {
+    financeItems.push({
+      label: "Finance",
+      href: "/tenant-admin/finance",
+      activePrefixes: [
+        "/tenant-admin/finance/budget",
+        "/tenant-admin/finance/accounts",
+        "/tenant-admin/finance/transactions",
+        "/tenant-admin/finance/scheduled",
+        "/tenant-admin/finance/categories",
+      ],
+    });
+  }
+  if (can([CAP.FINANCE_VIEW_EXPENSES, CAP.FINANCE_VIEW_INCOME_SUMMARY], legacyFinance)) {
+    financeItems.push({ label: t("tenantAdmin.nav.financeSummary"), href: "/tenant-admin/finance/summary" });
+  }
+  if (can(CAP.FINANCE_VIEW_EXPENSES, legacyFinance)) {
+    financeItems.push({ label: t("tenantAdmin.nav.expenses"), href: "/tenant-admin/finance/expenses" });
+  }
+  if (can([CAP.FINANCE_DASHBOARD_ANNUAL_STATS, CAP.FINANCE_VIEW_INCOME_SUMMARY], legacyFinance)) {
+    financeItems.push({ label: t("tenantAdmin.nav.financeReports"), href: "/tenant-admin/finance/reports" });
+  }
+  if (can(CAP.TEACHERS_VIEW_WALLET, legacyFinance)) {
+    financeItems.push({ label: t("tenantAdmin.nav.teacherPayouts"), href: "/tenant-admin/finance/teacher-payouts" });
+  }
+  // RPT-01 - report catalog; each /api/v1/reports/** endpoint carries its REPORTS_* capability.
+  if (can(REPORT_CAPABILITIES, legacyFinance)) {
+    financeItems.push({ label: t("tenantAdmin.nav.reports"), href: "/tenant-admin/reports" });
+  }
+
+  const communicationItems: NavItem[] = [];
+  if (can(CAP.NOTIFICATIONS_VIEW, canViewCommunications(role))) {
+    communicationItems.push(
+      { label: t("tenantAdmin.nav.broadcasts"), href: "/tenant-admin/communications" },
+      { label: t("tenantAdmin.nav.messageTemplates"), href: "/tenant-admin/communications/templates" }
     );
   }
 
   const administrationItems: NavItem[] = [];
-  if (canViewStaff(role)) {
-    administrationItems.push(
-      { label: "Staff", href: "/tenant-admin/staff" },
-      { label: "Roles & Permissions", href: "/tenant-admin/roles-permissions" }
-    );
+  // STAFF-MGMT-02: Staff (Users / Permissions / Activities). STAFF_VIEW is
+  // LOCKED, so OPERATOR / MANAGER never get it.
+  if (can(CAP.STAFF_VIEW, canViewStaff(role))) {
+    administrationItems.push({ label: t("tenantAdmin.nav.staff"), href: "/tenant-admin/staff" });
   }
   if (canViewAuditLog(role)) {
-    administrationItems.push({ label: "Audit Log", href: "/tenant-admin/audit-log" });
+    administrationItems.push({ label: t("tenantAdmin.nav.auditLog"), href: "/tenant-admin/audit-log" });
   }
 
   const instituteConfigItems: NavItem[] = [];
   if (canViewInstituteConfig(role)) {
     instituteConfigItems.push(
-      { label: "General", href: "/tenant-admin/settings/general" },
-      { label: "Branding", href: "/tenant-admin/settings/branding" }
+      // General, Payments, Student fields and Integrations are tabs inside Settings (settings-tab-strip.tsx).
+      {
+        label: t("tenantAdmin.nav.settings"),
+        href: "/tenant-admin/settings/general",
+        activePrefixes: [
+          "/tenant-admin/settings/payments",
+          "/tenant-admin/settings/policies",
+          "/tenant-admin/settings/student-fields",
+          "/tenant-admin/settings/site-media",
+          "/tenant-admin/settings/integrations",
+          "/tenant-admin/settings/video",
+          "/tenant-admin/settings/video-providers",
+          "/tenant-admin/settings/video-configuration",
+          "/tenant-admin/settings/branding",
+          "/tenant-admin/settings/translations",
+        ],
+      },
+      { label: t("tenantAdmin.nav.appearance"), href: "/tenant-admin/settings/appearance" }
     );
+  } else if (can(CAP.FINANCE_ACCOUNT_VIEW_CONFIGURATION, canViewPaymentGateway(role))) {
+    // SET-PAY-01: online payments are the Settings → Payments tab now. Finance
+    // Staff (PAYMENT_GATEWAY/VIEW, no institute config) land straight on it.
+    instituteConfigItems.push({ label: t("tenantAdmin.nav.settings"), href: "/tenant-admin/settings/payments" });
+  }
+  // I18N-01: a staff role granted TRANSLATIONS_VIEW without institute settings access.
+  if (!canViewInstituteConfig(role) && can(TRANSLATION_CAP.VIEW, false)) {
+    instituteConfigItems.push({ label: t("tenantAdmin.nav.translations"), href: "/tenant-admin/settings/translations" });
+  }
+  // MEDIA-INT-01 - INTEGRATIONS/VIEW (Tenant Admin, Read-only Auditor).
+  if (canViewIntegrations(role)) {
+    // Wave 11 - SMS / WhatsApp provider accounts (same INTEGRATIONS grant).
+    instituteConfigItems.push({ label: t("tenantAdmin.nav.messaging"), href: "/tenant-admin/settings/messaging" });
+    // VIDEO Phase 3 - video providers and video settings are the Settings → Video tab now.
+  }
+  // TEN-DOM-01 - CUSTOM_DOMAINS/VIEW (Tenant Admin, Read-only Auditor).
+  if (canViewCustomDomains(role)) {
+    instituteConfigItems.push({ label: t("tenantAdmin.nav.customDomain"), href: "/tenant-admin/settings/domains" });
+  }
+  // Wave 10 - DEVICES/VIEW or ACCESS_EXPIRY/VIEW. UX only; the backend re-checks every request.
+  if (canViewDevices(role) || canViewAccessPolicy(role)) {
+    instituteConfigItems.push({ label: t("tenantAdmin.nav.devicesAccess"), href: "/tenant-admin/settings/devices-access" });
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <NavGroup label="Dashboard" items={dashboardItems} onNavigate={onNavigate} />
-      <NavGroup label="Academic" items={academicItems} onNavigate={onNavigate} />
-      <NavGroup label="Finance" items={financeItems} onNavigate={onNavigate} />
-      <NavGroup label="Administration" items={administrationItems} onNavigate={onNavigate} />
-      <NavGroup label="Institute Configuration" items={instituteConfigItems} onNavigate={onNavigate} />
+      <NavGroup label={t("tenantAdmin.navGroup.dashboard")} items={dashboardItems} onNavigate={onNavigate} />
+      {academicItems.length > 0 ? (
+        <NavGroup label={t("tenantAdmin.navGroup.academic")} items={academicItems} onNavigate={onNavigate} />
+      ) : null}
+      {financeItems.length > 0 ? (
+        <NavGroup label={t("tenantAdmin.navGroup.finance")} items={financeItems} onNavigate={onNavigate} />
+      ) : null}
+      {communicationItems.length > 0 ? (
+        <NavGroup label={t("tenantAdmin.navGroup.communication")} items={communicationItems} onNavigate={onNavigate} />
+      ) : null}
+      {administrationItems.length > 0 ? (
+        <NavGroup label={t("tenantAdmin.navGroup.administration")} items={administrationItems} onNavigate={onNavigate} />
+      ) : null}
+      <NavGroup label={t("tenantAdmin.navGroup.instituteConfiguration")} items={instituteConfigItems} onNavigate={onNavigate} />
     </div>
   );
 }

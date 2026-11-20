@@ -51,11 +51,44 @@ public class PaymentRefund extends BaseEntity implements TenantOwned {
 	@Column(name = "idempotency_key", updatable = false)
 	private UUID idempotencyKey;
 
+	/**
+	 * PAY-GW-01 / ADR-017: {@code STAFF} (RefundService) or {@code CHARGEBACK}
+	 * (a verified gateway chargeback). A chargeback carries the gateway's own
+	 * reference in {@code externalReference}, unique per tenant (V57) so a
+	 * repeated notification can never write a second refund.
+	 */
+	@Column(name = "source", nullable = false, updatable = false, length = 20)
+	private String source = SOURCE_STAFF;
+
+	@Column(name = "external_reference", updatable = false, length = 64)
+	private String externalReference;
+
 	@CreatedDate
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	public static final String SOURCE_STAFF = "STAFF";
+
+	public static final String SOURCE_CHARGEBACK = "CHARGEBACK";
+
 	protected PaymentRefund() {
+	}
+
+	/** A refund recorded from a verified gateway chargeback (PAY-GW-01) - never staff-initiated. */
+	public static PaymentRefund chargeback(UUID tenantId, UUID originalPaymentId, BigDecimal amount, String reason,
+			String externalReference) {
+		PaymentRefund refund = new PaymentRefund(tenantId, originalPaymentId, amount, reason, null);
+		refund.source = SOURCE_CHARGEBACK;
+		refund.externalReference = externalReference;
+		return refund;
+	}
+
+	public String getSource() {
+		return source;
+	}
+
+	public String getExternalReference() {
+		return externalReference;
 	}
 
 	public PaymentRefund(UUID tenantId, UUID originalPaymentId, BigDecimal amount, String reason) {

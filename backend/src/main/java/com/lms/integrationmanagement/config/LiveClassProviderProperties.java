@@ -20,6 +20,21 @@ public class LiveClassProviderProperties {
 
 	private String webhookSecret = "";
 
+	/**
+	 * MEDIA-INT-01: when the platform Zoom OAuth app is not configured, use
+	 * the fake provider instead of refusing to schedule. Local/test only -
+	 * never set in a real environment.
+	 */
+	private boolean fakeFallbackEnabled = false;
+
+	public boolean isFakeFallbackEnabled() {
+		return fakeFallbackEnabled;
+	}
+
+	public void setFakeFallbackEnabled(boolean fakeFallbackEnabled) {
+		this.fakeFallbackEnabled = fakeFallbackEnabled;
+	}
+
 	public String getWebhookSecret() {
 		return webhookSecret;
 	}

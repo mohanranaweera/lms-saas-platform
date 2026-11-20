@@ -7,6 +7,7 @@ import com.lms.videoaccessmanagement.service.VideoAssetService;
 import com.lms.videoaccessmanagement.service.VideoAssetView;
 import com.lms.videoaccessmanagement.service.VideoPlaybackPolicyView;
 import com.lms.videoaccessmanagement.service.VideoPlaybackSessionService;
+import com.lms.videoaccessmanagement.service.VideoWatchTimeLimitService;
 import com.lms.videoaccessmanagement.support.RequestDeviceFingerprint;
 import com.lms.videoaccessmanagement.web.dto.PlaybackProgressRequest;
 import com.lms.videoaccessmanagement.web.dto.PlaybackSessionResponse;
@@ -21,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -53,10 +55,13 @@ public class VideoController {
 
 	private final VideoPlaybackSessionService videoPlaybackSessionService;
 
+	private final VideoWatchTimeLimitService watchTimeLimitService;
+
 	public VideoController(VideoAssetService videoAssetService,
-			VideoPlaybackSessionService videoPlaybackSessionService) {
+			VideoPlaybackSessionService videoPlaybackSessionService, VideoWatchTimeLimitService watchTimeLimitService) {
 		this.videoAssetService = videoAssetService;
 		this.videoPlaybackSessionService = videoPlaybackSessionService;
+		this.watchTimeLimitService = watchTimeLimitService;
 	}
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -64,6 +69,24 @@ public class VideoController {
 	public ResponseEntity<ApiResponse<VideoAssetResponse>> upload(@RequestPart("file") MultipartFile file) {
 		VideoAssetView view = videoAssetService.upload(file);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toResponse(view)));
+	}
+
+	/** VIDEO Phase 12: this video's own watch-time limit (null = the institute rule applies). */
+	public record WatchTimeLimitRequest(Integer limitSeconds) {
+	}
+
+	@GetMapping("/{id}/watch-time-limit")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<VideoWatchTimeLimitService.LimitView>> getWatchTimeLimit(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.success(watchTimeLimitService.get(id)));
+	}
+
+	@PutMapping("/{id}/watch-time-limit")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<VideoWatchTimeLimitService.LimitView>> setWatchTimeLimit(@PathVariable UUID id,
+			@RequestBody(required = false) WatchTimeLimitRequest request) {
+		return ResponseEntity.ok(ApiResponse.success(
+				watchTimeLimitService.set(id, request == null ? null : request.limitSeconds())));
 	}
 
 	@PutMapping("/{id}/policy")
@@ -93,7 +116,7 @@ public class VideoController {
 			@Valid @RequestBody PlaybackProgressRequest request, HttpServletRequest httpRequest) {
 		String deviceFingerprintHash = RequestDeviceFingerprint.hash(httpRequest);
 		videoPlaybackSessionService.recordProgress(id, request.playbackToken(), request.positionSeconds(),
-				request.watchedDeltaSeconds(), deviceFingerprintHash);
+				request.watchedDeltaSeconds(), request.state(), deviceFingerprintHash);
 		return ResponseEntity.ok(ApiResponse.success(null));
 	}
 
@@ -117,7 +140,11 @@ public class VideoController {
 
 	private static PlaybackSessionResponse toSessionResponse(PlaybackSessionView view) {
 		return new PlaybackSessionResponse(view.watchSessionId(), view.playbackToken(), view.signedUrl(),
-				view.expiresAt(), view.watermarkText(), view.allowSeeking(), view.allowDownload());
+				view.expiresAt(), view.watermarkText(), view.allowSeeking(), view.allowDownload(),
+					view.heartbeatIntervalSeconds(), view.resumePositionSeconds(), view.remainingWatchSeconds(),
+				view.mediaFormat(), view.embed() == null ? null
+						: new PlaybackSessionResponse.EmbedResponse(view.embed().provider(), view.embed().key(),
+								view.embed().bridgeUrl()));
 	}
 
 }

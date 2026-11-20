@@ -90,13 +90,45 @@ class CourseServiceTest {
 	@Mock
 	private CourseCheckoutAmountResolver courseCheckoutAmountResolver;
 
+	@Mock
+	private CourseRelationsService relationsService;
+
+	@Mock
+	private BillingConfigurationService billingConfigurationService;
+
+	@Mock
+	private com.lms.coursemanagement.course.repository.CourseBillingConfigurationRepository billingConfigurationRepository;
+
+	@Mock
+	private com.lms.coursemanagement.course.repository.CourseBillingPeriodRepository billingPeriodRepository;
+
+	@Mock
+	private com.lms.tenantmanagement.api.TenantConfigApi tenantConfigApi;
+
+	@Mock
+	private CourseCreateIdempotencyGuard idempotencyGuard;
+
 	private CourseService courseService;
 
 	@BeforeEach
 	void setUp() {
+		// KLASS-T4a: views are built by the real CourseViewAssembler around the
+		// mocked resolver, so the resolver-centric assertions below still hold.
+		CourseViewAssembler viewAssembler = new CourseViewAssembler(courseCheckoutAmountResolver, courseRepository,
+				org.mockito.Mockito.mock(com.lms.coursemanagement.course.repository.CourseTeacherAssignmentRepository.class),
+				org.mockito.Mockito.mock(com.lms.coursemanagement.course.repository.CourseTagAssignmentRepository.class),
+				org.mockito.Mockito.mock(com.lms.coursemanagement.course.repository.CourseTagRepository.class),
+				org.mockito.Mockito.mock(com.lms.coursemanagement.course.repository.CourseLinkRepository.class),
+				org.mockito.Mockito.mock(com.lms.coursemanagement.course.repository.CourseCommissionRateRepository.class),
+				org.mockito.Mockito.mock(com.lms.integrationmanagement.api.ObjectStorageApi.class),
+				org.mockito.Mockito.mock(com.lms.usermanagement.api.TeacherLookupApi.class),
+				org.mockito.Mockito.mock(UserProvisioningApi.class),
+				org.mockito.Mockito.mock(com.lms.tenantmanagement.api.TenantConfigApi.class));
 		courseService = new CourseService(courseRepository, coursePriceHistoryRepository, courseModuleRepository,
 				courseLessonRepository, tenantContext, permissionCheckService, userProvisioningApi, courseAccessGuard,
-				eventPublisher, courseCheckoutAmountResolver);
+				eventPublisher, viewAssembler, relationsService, billingConfigurationService,
+				billingConfigurationRepository, billingPeriodRepository, tenantConfigApi, idempotencyGuard);
+		lenient().when(idempotencyGuard.begin(any(), any(), any())).thenReturn(CourseCreateIdempotencyGuard.Begin.NONE);
 		// A plain HashMap (never java.util.Map.of()) - a not-yet-persisted
 		// Course fixture in several tests here has a null id, and Map.of()'s
 		// null-key-forbidding get() would NPE on the lookup, unlike the real

@@ -1,0 +1,17 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e10] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e11]
+    - generic [ref=e44]:
+      - button "Open issues overlay" [ref=e45]:
+        - generic [ref=e84]:
+          - generic [aria-hidden] [ref=e85]: "1"
+          - generic [ref=e86]: "2"
+        - generic [ref=e49]:
+          - text: Issue
+          - generic [aria-hidden] [ref=e87]: s
+      - button "Collapse issues badge" [ref=e50]
+  - alert [ref=e15]
+  - alert [ref=e88]:
+    - heading "Something went wrong" [level=1] [ref=e89]
+    - paragraph [ref=e90]: An unexpected error occurred while loading this page. You can try again, or come back later.
+    - button "Try again" [ref=e91]

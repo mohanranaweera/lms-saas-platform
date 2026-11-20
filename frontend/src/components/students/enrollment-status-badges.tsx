@@ -1,4 +1,7 @@
+"use client";
+
 import { CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 import type { VariantProps } from "class-variance-authority";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
 import type {
@@ -18,21 +21,22 @@ type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
 
 const ACCESS_STATE_META: Record<
   EnrollmentAccessStateType,
-  { label: string; icon: typeof Clock; variant: BadgeVariant }
+  { label: (t: TranslateFn) => string; icon: typeof Clock; variant: BadgeVariant }
 > = {
-  NEVER_ENROLLED: { label: "Never enrolled", icon: Circle, variant: "outline" },
-  ACTIVE: { label: "Active", icon: CheckCircle2, variant: "default" },
-  EXPIRED: { label: "Expired", icon: XCircle, variant: "destructive" },
+  NEVER_ENROLLED: { label: (t) => t("common.accessState.neverEnrolled"), icon: Circle, variant: "outline" },
+  ACTIVE: { label: (t) => t("common.accessState.active"), icon: CheckCircle2, variant: "default" },
+  EXPIRED: { label: (t) => t("common.accessState.expired"), icon: XCircle, variant: "destructive" },
 };
 
 /** `EnrollmentAccessStateType` badge — `NEVER_ENROLLED` | `ACTIVE` | `EXPIRED`. */
 export function AccessStateBadge({ state }: { state: EnrollmentAccessStateType }) {
   const meta = ACCESS_STATE_META[state];
+  const t = useT();
   const Icon = meta.icon;
   return (
     <Badge variant={meta.variant}>
       <Icon className="size-3.5" aria-hidden="true" />
-      {meta.label}
+      {meta.label(t)}
     </Badge>
   );
 }
@@ -46,21 +50,22 @@ export function AccessStateBadge({ state }: { state: EnrollmentAccessStateType }
  */
 const REACTIVATION_STATUS_META: Record<
   ReactivationRequestStatus,
-  { label: string; icon: typeof Clock; variant: BadgeVariant }
+  { label: (t: TranslateFn) => string; icon: typeof Clock; variant: BadgeVariant }
 > = {
-  SUBMITTED: { label: "Submitted", icon: Clock, variant: "outline" },
-  APPROVED: { label: "Approved", icon: CheckCircle2, variant: "default" },
-  REJECTED: { label: "Rejected", icon: XCircle, variant: "destructive" },
+  SUBMITTED: { label: (t) => t("common.reactivationStatus.submitted"), icon: Clock, variant: "outline" },
+  APPROVED: { label: (t) => t("common.reactivationStatus.approved"), icon: CheckCircle2, variant: "default" },
+  REJECTED: { label: (t) => t("common.reactivationStatus.rejected"), icon: XCircle, variant: "destructive" },
 };
 
 /** `ReactivationRequestStatus` badge — `SUBMITTED` | `APPROVED` | `REJECTED`. */
 export function ReactivationStatusBadge({ status }: { status: ReactivationRequestStatus }) {
   const meta = REACTIVATION_STATUS_META[status];
+  const t = useT();
   const Icon = meta.icon;
   return (
     <Badge variant={meta.variant}>
       <Icon className="size-3.5" aria-hidden="true" />
-      {meta.label}
+      {meta.label(t)}
     </Badge>
   );
 }

@@ -22,7 +22,7 @@ Use after `plan-module` has produced a plan (or an equivalent explicit backend t
 - [ ] Requests/responses use DTOs; JPA entities are never exposed directly
 - [ ] Every tenant-owned repository query applies tenant filtering, with tenant identity resolved from trusted authenticated context — never a client-supplied `tenant_id`
 - [ ] Schema changes are delegated to `database-migration`, not written ad hoc here
-- [ ] Enrollment activates only after verified backend payment confirmation or approved manual payment evidence — never assume activation from an upstream frontend call
+- [ ] Enrollment is a free backend operation independent of payment (ADR-028); paid lesson/session entitlements activate only after verified backend payment confirmation or approved manual payment evidence — never from an upstream frontend call
 - [ ] Backend tests are added for the new/changed logic, including cross-tenant access tests for any tenant-owned data path
 - [ ] Every security-sensitive change has a corresponding test
 - [ ] `backend\mvnw.cmd verify` passes before this work is considered done

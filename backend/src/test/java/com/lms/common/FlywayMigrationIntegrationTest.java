@@ -17,7 +17,7 @@ class FlywayMigrationIntegrationTest extends AbstractIntegrationTest {
 		List<String> appliedVersions = jdbcTemplate.queryForList(
 				"SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank", String.class);
 
-		assertThat(appliedVersions).contains("1", "9001");
+		assertThat(appliedVersions).contains("1", "89", "9001");
 	}
 
 }

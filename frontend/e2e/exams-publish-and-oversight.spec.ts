@@ -1,10 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { apiError, apiPageSuccess, apiSuccess, fulfillJson, mockJson } from "./fixtures/auth-mocks";
+import { apiPageSuccess, apiSuccess, fulfillJson, mockJson } from "./fixtures/auth-mocks";
 import {
   courseResponseBody,
   examQuestionResponseBody,
   examResponseBody,
-  examSummaryResponseBody,
   mockTenantSession,
 } from "./fixtures/exams-mocks";
 
@@ -251,63 +250,9 @@ test.describe("Teacher Exam Scheduler (screen #5) — schedule confirmation (Fix
   });
 });
 
-test.describe("Tenant Admin Exam Oversight (screen #8) — real tenant-wide list", () => {
-  test("exams across the tenant render in the DataTable, and the status filter re-queries with the selected status", async ({
-    page,
-  }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-    let lastUrl = "";
-    await page.route("**/v1/exams?*", async (route) => {
-      lastUrl = route.request().url();
-      const status = new URL(lastUrl).searchParams.get("status");
-      const rows =
-        status === "CLOSED"
-          ? []
-          : [examSummaryResponseBody({ id: EXAM_ID, courseId: COURSE_ID, title: "Final Exam", status: "PUBLISHED" })];
-      await fulfillJson(route, 200, apiPageSuccess(rows));
-    });
-
-    await page.goto("/tenant-admin/exams");
-
-    await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByRole("table").getByText("Final Exam")).toBeVisible();
-
-    await page.getByRole("button", { name: "Closed", exact: true }).click();
-
-    await expect(page.getByText("No closed exams")).toBeVisible();
-    expect(lastUrl).toContain("status=CLOSED");
-  });
-
-  test("zero exams in the tenant shows the explicit 'no exams exist yet' empty state", async ({ page }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-    await mockJson(page, "**/v1/exams?*", 200, apiPageSuccess([]));
-
-    await page.goto("/tenant-admin/exams");
-
-    await expect(page.getByText("No exams exist yet")).toBeVisible();
-  });
-});
-
-test.describe("Tenant Admin Exam Oversight (screen #8) — 403 on the tenant-wide list", () => {
-  test("a 403 from the list endpoint renders PermissionDeniedState, never the DataTable", async ({ page }) => {
-    await mockTenantSession(page, "TENANT_ADMIN");
-    await mockJson(
-      page,
-      "**/v1/exams?*",
-      403,
-      apiError("FORBIDDEN", "You do not have permission to perform this action")
-    );
-
-    await page.goto("/tenant-admin/exams");
-
-    const denied = page.getByRole("alert").filter({ hasText: "You don't have permission to view this." });
-    await expect(denied).toBeVisible();
-    const dashboardLink = denied.getByRole("link", { name: "Back to your dashboard" });
-    await expect(dashboardLink).toHaveAttribute("href", "/tenant-admin/dashboard");
-
-    await expect(page.getByRole("table")).toHaveCount(0);
-  });
-});
+// The MVP-017 "Exam Oversight" table at /tenant-admin/exams was replaced by the
+// Klass Exam Module directory (Slice B); its list, empty and 403 states are
+// covered in `exams-directory-config.spec.ts`.
 
 test.describe("Teacher Results Publishing (screen #7) — useExam loading state", () => {
   test("LoadingState renders while the exam detail fetch is in flight", async ({ page }) => {

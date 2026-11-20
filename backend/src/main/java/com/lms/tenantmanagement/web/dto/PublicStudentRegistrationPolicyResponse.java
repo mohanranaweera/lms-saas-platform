@@ -1,5 +1,7 @@
 package com.lms.tenantmanagement.web.dto;
 
+import java.util.List;
+
 /**
  * Response shape for the anonymous {@code GET
  * /api/v1/public/tenant-config/student-registration-policy} read (Wave 3
@@ -13,9 +15,13 @@ package com.lms.tenantmanagement.web.dto;
  * {@code TenantConfigController}'s {@code BRANDING_SETTINGS} permission
  * gate, mirroring {@code PublicBrandingResponse}'s precedent for {@code
  * ConfigDomain#BRANDING}.
+ *
+ * <p>STU-PROF-01 adds {@code registrationFields} (additive): the fields the
+ * tenant asks at registration, with display metadata and required-ness. The
+ * five {@code require*} booleans are kept for existing clients.
  */
 public record PublicStudentRegistrationPolicyResponse(boolean publicRegistrationEnabled, boolean approvalRequired,
 		boolean otpRequired, boolean requireGuardianInfo, boolean requireSchool, boolean requireGrade,
-		boolean requireStream, boolean requireMobile) {
+		boolean requireStream, boolean requireMobile, List<PublicRegistrationFieldResponse> registrationFields) {
 
 }

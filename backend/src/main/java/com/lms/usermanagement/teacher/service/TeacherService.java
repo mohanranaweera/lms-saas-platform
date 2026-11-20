@@ -3,6 +3,7 @@ package com.lms.usermanagement.teacher.service;
 import com.lms.auditlogmanagement.api.AuditActivityEntry;
 import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
+import com.lms.contentmanagement.api.TeacherProfileMediaApi;
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
@@ -14,17 +15,23 @@ import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.identityaccessservice.api.ProvisionedUser;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
+import com.lms.coursemanagement.api.CourseLookupApi;
+import com.lms.enrollmentmanagement.api.CourseParticipationApi;
 import com.lms.usermanagement.teacher.domain.ApprovalStatus;
 import com.lms.usermanagement.teacher.domain.TeacherProfile;
 import com.lms.usermanagement.teacher.repository.TeacherProfileRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,6 +77,14 @@ public class TeacherService {
 	 */
 	private static final String TENANT_ADMIN_ROLE = "TENANT_ADMIN";
 
+	/**
+	 * TP-03: the explicit allowlist of profile fields a Teacher may edit on
+	 * their own profile (Teacher Portal -> My Profile). Everything else -
+	 * names, contact number, login identifiers, photo, role, tenant membership,
+	 * commission and public-profile visibility - is read-only to the teacher.
+	 */
+	public static final List<String> SELF_EDITABLE_FIELDS = List.of("qualifications", "description");
+
 	private final UserProvisioningApi userProvisioningApi;
 
 	private final TeacherProfileRepository teacherProfileRepository;
@@ -79,14 +94,27 @@ public class TeacherService {
 	private final PermissionCheckService permissionCheckService;
 
 	private final AuditLogApi auditLogApi;
+	private final TeacherProfileMediaApi teacherProfileMediaApi;
+	private final CourseLookupApi courseLookupApi;
+	private final CourseParticipationApi courseParticipationApi;
 
+	@Autowired
 	public TeacherService(UserProvisioningApi userProvisioningApi, TeacherProfileRepository teacherProfileRepository,
-			TenantContext tenantContext, PermissionCheckService permissionCheckService, AuditLogApi auditLogApi) {
+			TenantContext tenantContext, PermissionCheckService permissionCheckService, AuditLogApi auditLogApi,
+			TeacherProfileMediaApi teacherProfileMediaApi, CourseLookupApi courseLookupApi, CourseParticipationApi courseParticipationApi) {
 		this.userProvisioningApi = userProvisioningApi;
 		this.teacherProfileRepository = teacherProfileRepository;
 		this.tenantContext = tenantContext;
 		this.permissionCheckService = permissionCheckService;
 		this.auditLogApi = auditLogApi;
+		this.teacherProfileMediaApi = teacherProfileMediaApi;
+		this.courseLookupApi = courseLookupApi;
+		this.courseParticipationApi = courseParticipationApi;
+	}
+
+	public TeacherService(UserProvisioningApi userProvisioningApi, TeacherProfileRepository teacherProfileRepository,
+			TenantContext tenantContext, PermissionCheckService permissionCheckService, AuditLogApi auditLogApi) {
+		this(userProvisioningApi, teacherProfileRepository, tenantContext, permissionCheckService, auditLogApi, null, null, null);
 	}
 
 	/**
@@ -101,7 +129,14 @@ public class TeacherService {
 	 * TeacherProfile} is {@code PENDING}.
 	 */
 	public TeacherAccount createTeacher(String name, String email, String rawPassword) {
+		return createTeacher(name, null, null, email, rawPassword, null, java.math.BigDecimal.ZERO, null, null, null, false);
+	}
+
+	public TeacherAccount createTeacher(String name, String firstName, String lastName, String email, String rawPassword,
+			String contactNumber, java.math.BigDecimal instituteCommissionPercent, String qualifications, String description,
+			UUID profileMediaFileId, Boolean publicProfileDisabled) {
 		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		requireCommissionUnchangedByConfigurableRole(java.math.BigDecimal.ZERO, instituteCommissionPercent);
 
 		// Friendlier pre-check for the common case; NOT the race-safe guard -
 		// identity-access-service's UNIQUE (tenant_id, email) constraint,
@@ -118,7 +153,13 @@ public class TeacherService {
 		// in until a Tenant Admin approves it.
 		userProvisioningApi.suspendTenantUser(provisioned.userId());
 
+		String resolvedFirstName = firstName == null ? name : firstName;
+		String resolvedLastName = lastName == null ? "" : lastName;
 		TeacherProfile profile = new TeacherProfile(tenantContext.getTenantId(), provisioned.userId(), name);
+		if (firstName != null || lastName != null || contactNumber != null) {
+			profile.updateProfile(resolvedFirstName, resolvedLastName, contactNumber, qualifications, description,
+					instituteCommissionPercent == null ? java.math.BigDecimal.ZERO : instituteCommissionPercent, profileMediaFileId, Boolean.TRUE.equals(publicProfileDisabled));
+		}
 		profile = teacherProfileRepository.save(profile);
 
 		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "teacher.created",
@@ -128,8 +169,10 @@ public class TeacherService {
 		// UserProvisioningApi#suspendTenantUser) - uppercase, matching the
 		// same AccountStatus#name() convention TenantUserSummary#status()
 		// uses elsewhere in this class (no extra read needed to know this).
-		return new TeacherAccount(profile.getId(), name, provisioned.email(), profile.getApprovalStatus().name(),
-				"SUSPENDED", null, null);
+		return new TeacherAccount(profile.getId(), profile.getName(), profile.getFirstName(), profile.getLastName(),
+				provisioned.email(), profile.getContactNumber(), profile.getInstituteCommissionPercent(),
+				profile.getQualifications(), profile.getDescription(), profile.getProfileMediaFileId(), null, profile.isPublicProfileDisabled(), 0,
+				profile.getApprovalStatus().name(), "SUSPENDED", null, null, profile.getUserId());
 	}
 
 	/**
@@ -255,13 +298,181 @@ public class TeacherService {
 		List<TeacherProfile> profiles = filter == null ? teacherProfileRepository.findAll()
 				: teacherProfileRepository.findByApprovalStatus(filter);
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(profiles);
+		Map<UUID, Long> counts = teacherStudentCounts(profiles);
 		return profiles.stream()
-			.map(profile -> toTeacherAccount(profile, summariesByUserId))
+			.map(profile -> toTeacherAccount(profile, summariesByUserId, counts.getOrDefault(profile.getUserId(), 0L)))
 			.filter(Objects::nonNull)
 			.toList();
 	}
 
+	public TeacherAccount updateTeacher(UUID id, String firstName, String lastName, String contactNumber,
+			java.math.BigDecimal instituteCommissionPercent, String qualifications, String description,
+			UUID profileMediaFileId) {
+		return updateTeacher(id, firstName, lastName, contactNumber, instituteCommissionPercent, qualifications, description,
+				profileMediaFileId, false);
+	}
+
+	public TeacherAccount updateTeacher(UUID id, String firstName, String lastName, String contactNumber,
+			java.math.BigDecimal instituteCommissionPercent, String qualifications, String description,
+			UUID profileMediaFileId, Boolean publicProfileDisabled) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		if (profileMediaFileId != null && teacherProfileMediaApi != null && teacherProfileMediaApi.findLiveImage(profileMediaFileId).isEmpty()) {
+			throw new NotFoundException("Profile image not found");
+		}
+		TeacherProfile profile = loadProfile(id);
+		requireCommissionUnchangedByConfigurableRole(profile.getInstituteCommissionPercent(),
+				instituteCommissionPercent);
+		if (instituteCommissionPercent == null && isConfigurableStaffActor()) {
+			// An omitted commission from a delegated role keeps the current value - it must never
+			// clear it (payment-ledger review, STAFF-MGMT-02).
+			instituteCommissionPercent = profile.getInstituteCommissionPercent();
+		}
+		String before = profile.getName();
+		UUID previousPhoto = profile.getProfileMediaFileId();
+		profile.updateProfile(firstName, lastName, contactNumber, qualifications, description, instituteCommissionPercent,
+				profileMediaFileId, Boolean.TRUE.equals(publicProfileDisabled));
+		profile = teacherProfileRepository.save(profile);
+		discardUnusedPhoto(previousPhoto, profileMediaFileId);
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		auditLogApi.record(new AuditLogEntry(actorId, "teacher.profile_updated", "teacher_profile", profile.getId(), null,
+				Map.of("previousName", before, "newName", profile.getName())));
+		return requireTeacherAccount(profile);
+	}
+
+	/**
+	 * Removes a teacher's profile photo (Settings -> Site media, teacher profile).
+	 * The photo file itself is deleted when no other teacher uses it.
+	 */
+	/**
+	 * STAFF-MGMT-02 / ADR-034: the institute commission feeds teacher settlements, so - like
+	 * course pricing in {@code CourseService} - a tenant-configurable role (Operator/Manager)
+	 * granted TEACHERS_ADD/EDIT may not set or change it. Static roles are unaffected.
+	 */
+	/**
+	 * True for an authenticated Operator/Manager, or a seeded sub-role holding TEACHERS/CREATE_EDIT
+	 * only through a delegated grant (STAFF-MGMT-03); false off-request and for static holders.
+	 */
+	private boolean isConfigurableStaffActor() {
+		return permissionCheckService.isDelegated(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+	}
+
+	private void requireCommissionUnchangedByConfigurableRole(java.math.BigDecimal current,
+			java.math.BigDecimal requested) {
+		if (!isConfigurableStaffActor() || requested == null) {
+			return;
+		}
+		java.math.BigDecimal base = (current == null) ? java.math.BigDecimal.ZERO : current;
+		if (base.compareTo(requested) != 0) {
+			throw new AccessDeniedException("Only a Tenant Admin can change a teacher's commission");
+		}
+	}
+
+	public TeacherAccount removeProfilePhoto(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		TeacherProfile profile = loadProfile(id);
+		UUID previousPhoto = profile.getProfileMediaFileId();
+		if (previousPhoto == null) {
+			return requireTeacherAccount(profile);
+		}
+		profile.clearProfilePhoto();
+		profile = teacherProfileRepository.save(profile);
+		discardUnusedPhoto(previousPhoto, null);
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		auditLogApi.record(new AuditLogEntry(actorId, "teacher.profile_photo_removed", "teacher_profile", profile.getId(),
+				null, Map.of("mediaFileId", previousPhoto.toString())));
+		return requireTeacherAccount(profile);
+	}
+
+	/** A replaced or cleared photo file is deleted once no teacher uses it (flushes first so the count is current). */
+	private void discardUnusedPhoto(UUID previousPhoto, UUID currentPhoto) {
+		if (previousPhoto == null || previousPhoto.equals(currentPhoto) || teacherProfileMediaApi == null) {
+			return;
+		}
+		teacherProfileRepository.flush();
+		if (teacherProfileRepository.countByProfileMediaFileId(previousPhoto) == 0) {
+			teacherProfileMediaApi.discardProfileImage(previousPhoto);
+		}
+	}
+
+	public com.lms.common.api.PageResponse<TeacherAccount> pageTeachers(ApprovalStatus filter, String query, int page, int size) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.VIEW);
+		int safeSize = Math.max(1, Math.min(size, 100));
+		int safePage = Math.max(0, page);
+		List<TeacherProfile> profiles = filter == null ? teacherProfileRepository.findAll() : teacherProfileRepository.findByApprovalStatus(filter);
+		Map<UUID, TenantUserSummary> summaries = summariesByUserId(profiles);
+		String normalized = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
+		Map<UUID, Long> counts = teacherStudentCounts(profiles);
+		List<TeacherAccount> matches = profiles.stream()
+			.map(profile -> toTeacherAccount(profile, summaries, counts.getOrDefault(profile.getUserId(), 0L)))
+			.filter(Objects::nonNull)
+			.filter(account -> normalized.isBlank()
+					|| contains(account.firstName(), normalized)
+					|| contains(account.lastName(), normalized)
+					|| contains(account.name(), normalized)
+					|| contains(account.email(), normalized)
+					|| contains(account.contactNumber(), normalized))
+			.toList();
+		int from = Math.min(safePage * safeSize, matches.size());
+		int to = Math.min(from + safeSize, matches.size());
+		int totalPages = matches.isEmpty() ? 0 : (matches.size() + safeSize - 1) / safeSize;
+		return new com.lms.common.api.PageResponse<>(matches.subList(from, to), safePage, safeSize, matches.size(), totalPages);
+	}
+
+	private static boolean contains(String value, String query) {
+		return value != null && value.toLowerCase(java.util.Locale.ROOT).contains(query);
+	}
+
+	public void reorderTeachers(List<UUID> teacherIds) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		List<TeacherProfile> profiles = teacherProfileRepository.findAllOrdered();
+		if (teacherIds == null || teacherIds.size() != profiles.size()
+				|| profiles.stream().map(TeacherProfile::getId).collect(Collectors.toSet()).size() != teacherIds.size()
+				|| !profiles.stream().map(TeacherProfile::getId).collect(Collectors.toSet()).equals(new java.util.HashSet<>(teacherIds))) {
+			throw new ConflictException("Teacher order must include every teacher exactly once");
+		}
+		Map<UUID, TeacherProfile> byId = profiles.stream().collect(Collectors.toMap(TeacherProfile::getId, Function.identity()));
+		for (int index = 0; index < teacherIds.size(); index++) {
+			byId.get(teacherIds.get(index)).setDisplayOrder(index);
+		}
+		teacherProfileRepository.saveAll(byId.values());
+		auditLogApi.record(new AuditLogEntry(AuthenticatedPrincipalHolder.get().userId(), "teacher.order_updated",
+				"teacher_profile", teacherIds.get(0), null, Map.of("count", teacherIds.size())));
+	}
+
+	/**
+	 * TP-03: the calling Teacher's own profile, resolved from the authenticated
+	 * user id in the caller's tenant (the repository read is tenant-scoped) -
+	 * never from a client-supplied id. 404 when no teacher record exists.
+	 */
 	@Transactional(readOnly = true)
+	public TeacherAccount getOwnProfile() {
+		return requireTeacherAccount(loadOwnProfile());
+	}
+
+	/**
+	 * TP-03: updates ONLY {@link #SELF_EDITABLE_FIELDS} on the caller's own
+	 * profile (blank = cleared). Audit-logged like the admin edit.
+	 */
+	public TeacherAccount updateOwnProfile(String qualifications, String description) {
+		TeacherProfile profile = loadOwnProfile();
+		profile.updateSelfServiceFields(blankToNull(qualifications), blankToNull(description));
+		profile = teacherProfileRepository.save(profile);
+		UUID actorId = AuthenticatedPrincipalHolder.get().userId();
+		auditLogApi.record(new AuditLogEntry(actorId, "teacher.profile_self_updated", "teacher_profile",
+				profile.getId(), null, Map.of("fields", SELF_EDITABLE_FIELDS)));
+		return requireTeacherAccount(profile);
+	}
+
+	private TeacherProfile loadOwnProfile() {
+		UUID userId = AuthenticatedPrincipalHolder.get().userId();
+		return teacherProfileRepository.findByUserId(userId)
+			.orElseThrow(() -> new NotFoundException("Teacher profile not found"));
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.strip();
+	}
+
 	public TeacherAccount getTeacher(UUID id) {
 		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.VIEW);
 
@@ -271,7 +482,7 @@ public class TeacherService {
 		TeacherProfile profile = teacherProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Teacher account not found"));
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
-		TeacherAccount account = toTeacherAccount(profile, summariesByUserId);
+		TeacherAccount account = toTeacherAccount(profile, summariesByUserId, teacherStudentCounts(List.of(profile)).getOrDefault(profile.getUserId(), 0L));
 		if (account == null) {
 			// Data-integrity inconsistency (an FK-backed tenant_user row
 			// vanished) rather than a legitimate "not found" - still surfaced
@@ -279,6 +490,26 @@ public class TeacherService {
 			throw new NotFoundException("Teacher account not found");
 		}
 		return account;
+	}
+
+	/** ADR-031: the teacher's sign-in mobile (E.164), or {@code null}. {@code TEACHERS/VIEW}. */
+	@Transactional(readOnly = true)
+	public String getLoginMobile(UUID id) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.VIEW);
+		UUID userId = loadProfile(id).getUserId();
+		return userProvisioningApi.findLoginMobiles(List.of(userId)).get(userId);
+	}
+
+	/**
+	 * ADR-031: sets (blank = removes) the teacher's sign-in mobile.
+	 * {@code TEACHERS/CREATE_EDIT}; identity validates, enforces per-tenant
+	 * uniqueness ({@code 409 MOBILE_ALREADY_REGISTERED}) and audit-logs.
+	 */
+	public String setLoginMobile(UUID id, String rawMobile) {
+		permissionCheckService.requirePermission(DomainArea.TEACHERS, PermissionAction.CREATE_EDIT);
+		UUID userId = loadProfile(id).getUserId();
+		userProvisioningApi.setLoginMobile(userId, rawMobile, "loginMobile");
+		return userProvisioningApi.findLoginMobiles(List.of(userId)).get(userId);
 	}
 
 	private TeacherProfile loadProfile(UUID id) {
@@ -297,7 +528,7 @@ public class TeacherService {
 	 */
 	private TeacherAccount requireTeacherAccount(TeacherProfile profile) {
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
-		TeacherAccount account = toTeacherAccount(profile, summariesByUserId);
+		TeacherAccount account = toTeacherAccount(profile, summariesByUserId, teacherStudentCounts(List.of(profile)).getOrDefault(profile.getUserId(), 0L));
 		if (account == null) {
 			throw new NotFoundException("Teacher account not found");
 		}
@@ -334,15 +565,37 @@ public class TeacherService {
 			.collect(Collectors.toMap(TenantUserSummary::userId, Function.identity()));
 	}
 
-	private static TeacherAccount toTeacherAccount(TeacherProfile profile,
-			Map<UUID, TenantUserSummary> summariesByUserId) {
+	private Map<UUID, Long> teacherStudentCounts(List<TeacherProfile> profiles) {
+		if (courseLookupApi == null || courseParticipationApi == null) return Map.of();
+		Map<UUID, Set<UUID>> teacherCourses = new HashMap<>();
+		for (TeacherProfile profile : profiles) {
+			teacherCourses.put(profile.getUserId(), courseLookupApi.listCourseSummariesByTeacherId(profile.getUserId()).stream().map(com.lms.coursemanagement.api.CourseSummary::id).collect(Collectors.toSet()));
+		}
+		Map<UUID, Long> counts = new HashMap<>();
+		for (var entry : teacherCourses.entrySet()) {
+			Set<UUID> students = new HashSet<>();
+			for (UUID courseId : entry.getValue()) {
+				students.addAll(courseParticipationApi.listParticipantStudentIds(courseId));
+			}
+			counts.put(entry.getKey(), (long) students.size());
+		}
+		return counts;
+	}
+
+	private TeacherAccount toTeacherAccount(TeacherProfile profile,
+			Map<UUID, TenantUserSummary> summariesByUserId, long studentCount) {
 		TenantUserSummary summary = summariesByUserId.get(profile.getUserId());
 		if (summary == null) {
 			return null;
 		}
-		return new TeacherAccount(profile.getId(), profile.getName(), summary.email(),
-				profile.getApprovalStatus().name(), summary.status(), profile.getApprovedBy(),
-				profile.getApprovedAt());
+		String firstName = profile.getFirstName();
+		String lastName = profile.getLastName();
+		String imageUrl = teacherProfileMediaApi == null || profile.getProfileMediaFileId() == null ? null
+				: teacherProfileMediaApi.findLiveImage(profile.getProfileMediaFileId()).map(TeacherProfileMediaApi.ProfileImage::thumbnailUrl).orElse(null);
+		return new TeacherAccount(profile.getId(), profile.getName(), firstName, lastName, summary.email(),
+				profile.getContactNumber(), profile.getInstituteCommissionPercent() == null ? java.math.BigDecimal.ZERO : profile.getInstituteCommissionPercent(),
+				profile.getQualifications(), profile.getDescription(), profile.getProfileMediaFileId(), imageUrl, profile.isPublicProfileDisabled(), studentCount, profile.getApprovalStatus().name(),
+				summary.status(), profile.getApprovedBy(), profile.getApprovedAt(), profile.getUserId());
 	}
 
 }

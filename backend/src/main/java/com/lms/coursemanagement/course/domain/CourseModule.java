@@ -5,6 +5,7 @@ import com.lms.common.persistence.TenantOwned;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -14,6 +15,9 @@ import java.util.UUID;
  * still references the parent by id (not a JPA association) to keep every
  * read explicitly tenant-scoped through {@code CourseModuleRepository}
  * rather than relying on lazy-loading across the aggregate.
+ *
+ * <p>{@code price} (V85, D09): the MODULE-offer price, {@code null} when the
+ * module is not sold on its own; {@code > 0} otherwise (CHECK constraint).
  */
 @Entity
 @Table(name = "course_module")
@@ -30,6 +34,9 @@ public class CourseModule extends Auditable implements TenantOwned {
 
 	@Column(name = "sequence", nullable = false)
 	private Integer sequence;
+
+	@Column(name = "price", precision = 12, scale = 2)
+	private BigDecimal price;
 
 	protected CourseModule() {
 	}
@@ -69,6 +76,14 @@ public class CourseModule extends Auditable implements TenantOwned {
 
 	public void setSequence(Integer sequence) {
 		this.sequence = sequence;
+	}
+
+	public BigDecimal getPrice() {
+		return price;
+	}
+
+	public void setPrice(BigDecimal price) {
+		this.price = price;
 	}
 
 }

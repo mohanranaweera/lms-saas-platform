@@ -4,11 +4,11 @@ import com.lms.auditlogmanagement.api.AuditLogApi;
 import com.lms.auditlogmanagement.api.AuditLogEntry;
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.ConflictException;
+import com.lms.common.error.DeviceNotAuthorizedException;
 import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessApi;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
-import com.lms.enrollmentmanagement.api.EnrollmentAccessStateType;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.ContentCoverageApi;
 import com.lms.exammanagement.domain.Exam;
 import com.lms.exammanagement.domain.ExamQuestion;
 import com.lms.exammanagement.domain.ExamQuestionLink;
@@ -76,7 +76,9 @@ public class ExamSchedulingService {
 
 	private final ExamLifecycleService examLifecycleService;
 
-	private final EnrollmentAccessApi enrollmentAccessApi;
+	private final ContentCoverageApi contentCoverageApi;
+
+	private final AccessPolicyApi accessPolicyApi;
 
 	private final TenantContext tenantContext;
 
@@ -85,15 +87,16 @@ public class ExamSchedulingService {
 	public ExamSchedulingService(ExamRepository examRepository, ExamQuestionRepository examQuestionRepository,
 			ExamQuestionLinkRepository examQuestionLinkRepository,
 			ExamQuestionOptionRepository examQuestionOptionRepository, ExamAccessGuard examAccessGuard,
-			ExamLifecycleService examLifecycleService, EnrollmentAccessApi enrollmentAccessApi,
-			TenantContext tenantContext, AuditLogApi auditLogApi) {
+			ExamLifecycleService examLifecycleService, ContentCoverageApi contentCoverageApi,
+			TenantContext tenantContext, AuditLogApi auditLogApi, AccessPolicyApi accessPolicyApi) {
+		this.accessPolicyApi = accessPolicyApi;
 		this.examRepository = examRepository;
 		this.examQuestionRepository = examQuestionRepository;
 		this.examQuestionLinkRepository = examQuestionLinkRepository;
 		this.examQuestionOptionRepository = examQuestionOptionRepository;
 		this.examAccessGuard = examAccessGuard;
 		this.examLifecycleService = examLifecycleService;
-		this.enrollmentAccessApi = enrollmentAccessApi;
+		this.contentCoverageApi = contentCoverageApi;
 		this.tenantContext = tenantContext;
 		this.auditLogApi = auditLogApi;
 	}
@@ -111,6 +114,10 @@ public class ExamSchedulingService {
 	/** Rejected {@code 409} if {@code status != DRAFT} (plan §10/§13). */
 	public ExamView updateDraftExam(UUID examId, UpdateExamCommand command) {
 		Exam exam = loadExam(examId);
+		if (exam.isKlassExam()) {
+			// Klass exams are edited only through ExamConfigService (ExamController dispatches).
+			throw new NotFoundException("Exam not found");
+		}
 		examAccessGuard.requireAuthoringAccess(exam.getCourseId(), PermissionAction.CREATE_EDIT);
 		if (exam.getStatus() != ExamStatus.DRAFT) {
 			throw new ConflictException("Exam can only be edited while in DRAFT status");
@@ -140,6 +147,10 @@ public class ExamSchedulingService {
 	 */
 	public ExamView scheduleExam(UUID examId) {
 		Exam exam = loadExam(examId);
+		if (exam.isKlassExam()) {
+			// Klass exams have no stored lifecycle: their status follows the clock (V111).
+			throw new ConflictException("This exam opens and closes automatically at its start and end time");
+		}
 		examAccessGuard.requireLifecycleTransitionAccess(exam.getCourseId());
 		if (exam.getStatus() != ExamStatus.DRAFT) {
 			throw new ConflictException("Exam can only be scheduled from DRAFT status");
@@ -176,10 +187,14 @@ public class ExamSchedulingService {
 			if (resolvedStatus != ExamStatus.PUBLISHED && resolvedStatus != ExamStatus.CLOSED) {
 				throw new NotFoundException("Exam not found");
 			}
-			EnrollmentAccessState accessState = enrollmentAccessApi.resolveAccessState(principal.userId(),
-					exam.getCourseId());
-			if (accessState.state() != EnrollmentAccessStateType.ACTIVE) {
+			// ADR-028: (free) course enrollment, never the legacy paid-enrollment window;
+			// the course device limit still applies.
+			if (!contentCoverageApi.isParticipant(principal.userId(), exam.getCourseId())) {
 				throw new NotFoundException("Exam not found");
+			}
+			if (!accessPolicyApi.isCurrentDeviceAuthorizedForCourse(principal.userId(), exam.getCourseId())) {
+				throw new DeviceNotAuthorizedException(
+						"This course can only be opened on a limited number of devices, and this device is not one of them.");
 			}
 		}
 		else {
@@ -196,7 +211,7 @@ public class ExamSchedulingService {
 	 * (SCHEDULED, PUBLISHED)}. {@code hasRole('STUDENT')}, owner-only by
 	 * construction (no id param - always the calling principal's own
 	 * currently-enrolled course set via {@link
-	 * EnrollmentAccessApi#listCurrentlyEnrolledCourseIds(UUID)}).
+	 * ContentCoverageApi#findCourseIds(UUID)}).
 	 *
 	 * <p>Each candidate row's live status is re-resolved via {@link
 	 * ExamLifecycleService} before being included in the returned page - a
@@ -210,7 +225,7 @@ public class ExamSchedulingService {
 	public PageResponse<ExamSummaryView> listMyUpcomingExams(Pageable pageable) {
 		AuthenticatedPrincipal principal = AuthenticatedPrincipalHolder.get();
 		Pageable safePageable = clampPageSize(pageable);
-		Set<UUID> courseIds = enrollmentAccessApi.listCurrentlyEnrolledCourseIds(principal.userId());
+		Set<UUID> courseIds = contentCoverageApi.findCourseIds(principal.userId());
 		if (courseIds.isEmpty()) {
 			return PageResponse.from(Page.empty(safePageable));
 		}
@@ -267,7 +282,7 @@ public class ExamSchedulingService {
 	public PageResponse<ExamSummaryView> listExamsForTenant(ExamStatus statusFilter, Pageable pageable) {
 		examAccessGuard.requireStaffTenantWideViewAccess();
 		Pageable safePageable = clampPageSize(pageable);
-		Page<Exam> page = statusFilter == null ? examRepository.findAll(safePageable)
+		Page<Exam> page = statusFilter == null ? examRepository.findAllLegacy(safePageable)
 				: examRepository.findByStatus(statusFilter, safePageable);
 		List<ExamSummaryView> content = page.getContent()
 			.stream()
@@ -313,6 +328,10 @@ public class ExamSchedulingService {
 			throw new InvalidExamScheduleException("One or more questionIds do not exist in this tenant");
 		}
 		for (ExamQuestion question : questions) {
+			if (question.isDeleted()) {
+				// A soft-deleted bank question (Slice A) can no longer be added to an exam.
+				throw new InvalidExamScheduleException("One or more questionIds do not exist in this tenant");
+			}
 			if (!question.getCourseId().equals(exam.getCourseId())) {
 				throw new InvalidExamScheduleException("One or more questionIds do not belong to this exam's course");
 			}

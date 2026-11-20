@@ -3,6 +3,7 @@ package com.lms.integrationmanagement.gateway;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lms.integrationmanagement.api.MeetingCreationResult;
+import com.lms.integrationmanagement.api.MeetingParticipant;
 import com.lms.integrationmanagement.api.ShortLivedJoinLink;
 import com.lms.integrationmanagement.api.ShortLivedPlaybackLink;
 import com.lms.integrationmanagement.config.LiveClassProviderProperties;
@@ -17,11 +18,14 @@ class FakeZoomLiveClassProviderAdapterTest {
 
 	private final FakeZoomLiveClassProviderAdapter adapter = new FakeZoomLiveClassProviderAdapter(properties);
 
+	private static final MeetingParticipant PARTICIPANT = new MeetingParticipant(UUID.randomUUID(), false, null, null,
+			null);
+
 	@Test
 	void createMeetingReturnsAUniqueOpaqueFakeReferenceEveryCall() {
-		MeetingCreationResult first = adapter.createMeeting(UUID.randomUUID(), UUID.randomUUID(), "Title", Instant.now(),
+		MeetingCreationResult first = adapter.createMeeting(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Title", Instant.now(),
 				Instant.now().plusSeconds(3600));
-		MeetingCreationResult second = adapter.createMeeting(UUID.randomUUID(), UUID.randomUUID(), "Title", Instant.now(),
+		MeetingCreationResult second = adapter.createMeeting(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Title", Instant.now(),
 				Instant.now().plusSeconds(3600));
 
 		assertThat(first.providerReference()).startsWith("FAKE-ZOOM-");
@@ -31,7 +35,7 @@ class FakeZoomLiveClassProviderAdapterTest {
 
 	@Test
 	void getJoinUrlReturnsAShortLivedFutureExpiringLink() {
-		ShortLivedJoinLink link = adapter.getJoinUrl("FAKE-ZOOM-abc", UUID.randomUUID(), "PARTICIPANT", "user-123");
+		ShortLivedJoinLink link = adapter.getJoinUrl(null, "FAKE-ZOOM-abc", PARTICIPANT);
 
 		assertThat(link.url()).startsWith("https://live-class-provider.test/join/");
 		assertThat(link.expiresAt()).isAfter(Instant.now());
@@ -40,8 +44,8 @@ class FakeZoomLiveClassProviderAdapterTest {
 
 	@Test
 	void getJoinUrlIsNeverTheSameTwice() {
-		ShortLivedJoinLink first = adapter.getJoinUrl("FAKE-ZOOM-abc", UUID.randomUUID(), "PARTICIPANT", "user-123");
-		ShortLivedJoinLink second = adapter.getJoinUrl("FAKE-ZOOM-abc", UUID.randomUUID(), "PARTICIPANT", "user-123");
+		ShortLivedJoinLink first = adapter.getJoinUrl(null, "FAKE-ZOOM-abc", PARTICIPANT);
+		ShortLivedJoinLink second = adapter.getJoinUrl(null, "FAKE-ZOOM-abc", PARTICIPANT);
 		assertThat(first.url()).isNotEqualTo(second.url());
 	}
 
@@ -54,9 +58,9 @@ class FakeZoomLiveClassProviderAdapterTest {
 
 	@Test
 	void cancelMeetingNeverThrowsForAnyReference() {
-		adapter.cancelMeeting("FAKE-ZOOM-abc");
-		adapter.cancelMeeting(null);
-		adapter.cancelMeeting("does-not-exist");
+		adapter.cancelMeeting(null, "FAKE-ZOOM-abc");
+		adapter.cancelMeeting(null, null);
+		adapter.cancelMeeting(null, "does-not-exist");
 	}
 
 	// ------------------------------------------------------------------

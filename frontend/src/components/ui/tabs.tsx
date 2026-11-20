@@ -30,6 +30,12 @@ export interface TabItem {
   content: ReactNode;
   /** Rendered inline after the label, e.g. a row-count badge. */
   badge?: ReactNode;
+  /** Decorative icon rendered before the label. */
+  icon?: ReactNode;
+  /** Not selectable (skipped by arrow-key navigation). */
+  disabled?: boolean;
+  /** Overrides the default `tab-{value}` test id. */
+  testId?: string;
 }
 
 export interface TabsProps {
@@ -38,6 +44,10 @@ export interface TabsProps {
   defaultValue?: string;
   onValueChange?: (value: string) => void;
   className?: string;
+  /** Prefix for the generated tab/panel ids, when two tab sets with the same values share a page. */
+  idPrefix?: string;
+  /** Extra classes for the tablist row. */
+  listClassName?: string;
   /** Accessible name for the tablist — required, since no visible heading precedes it on any current call site. */
   "aria-label": string;
 }
@@ -48,6 +58,8 @@ export function Tabs({
   defaultValue,
   onValueChange,
   className,
+  idPrefix = "",
+  listClassName,
   ...rest
 }: TabsProps) {
   const ariaLabel = rest["aria-label"];
@@ -62,12 +74,14 @@ export function Tabs({
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    let nextIndex = index;
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % items.length;
-    if (event.key === "ArrowLeft") nextIndex = (index - 1 + items.length) % items.length;
+    const enabled = items.filter((item) => !item.disabled);
+    const position = enabled.findIndex((item) => item.value === items[index]?.value);
+    let nextIndex = position;
+    if (event.key === "ArrowRight") nextIndex = (position + 1) % enabled.length;
+    if (event.key === "ArrowLeft") nextIndex = (position - 1 + enabled.length) % enabled.length;
     if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = items.length - 1;
-    const next = items[nextIndex];
+    if (event.key === "End") nextIndex = enabled.length - 1;
+    const next = enabled[nextIndex];
     if (!next) return;
     select(next.value);
     tabRefs.current[next.value]?.focus();
@@ -78,7 +92,7 @@ export function Tabs({
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className="flex flex-nowrap gap-1 overflow-x-auto border-b border-border"
+        className={cn("flex flex-nowrap gap-1 overflow-x-auto border-b border-border", listClassName)}
       >
         {items.map((item, index) => {
           const selected = item.value === activeValue;
@@ -90,9 +104,12 @@ export function Tabs({
               }}
               type="button"
               role="tab"
-              id={`tab-${item.value}`}
+              id={`${idPrefix}tab-${item.value}`}
               aria-selected={selected}
-              aria-controls={`tabpanel-${item.value}`}
+              aria-controls={`${idPrefix}tabpanel-${item.value}`}
+              aria-disabled={item.disabled || undefined}
+              disabled={item.disabled}
+              data-testid={item.testId}
               tabIndex={selected ? 0 : -1}
               onClick={() => select(item.value)}
               onKeyDown={(event) => handleKeyDown(event, index)}
@@ -100,9 +117,11 @@ export function Tabs({
                 "inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
                 selected
                   ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+                item.disabled && "cursor-not-allowed opacity-50 hover:text-muted-foreground"
               )}
             >
+              {item.icon}
               {item.label}
               {item.badge}
             </button>
@@ -113,8 +132,8 @@ export function Tabs({
         <div
           key={item.value}
           role="tabpanel"
-          id={`tabpanel-${item.value}`}
-          aria-labelledby={`tab-${item.value}`}
+          id={`${idPrefix}tabpanel-${item.value}`}
+          aria-labelledby={`${idPrefix}tab-${item.value}`}
           hidden={item.value !== activeValue}
           tabIndex={0}
         >

@@ -187,6 +187,29 @@ class AttendanceClassSessionIntegrationTest extends AttendanceClassSessionTestSu
 	// ------------------------------------------------------------------
 
 	@Test
+	void anExpiredPaidEnrollmentStaysOnTheRosterAsCurrentlyEnrolledAndCanBeMarked() {
+		// ADR-028 / plan O-4: membership is free participation, never the paid window.
+		AttendanceFixture fixture = seedAttendanceFixture("att-cs-roster-expired");
+		TenantUser lapsed = seedActiveStudent(fixture.tenant().getId(), "lapsed@example.test");
+		enrollStudentOrFail(fixture.host(), loginAndGetToken(fixture.host(), "lapsed@example.test"),
+				fixture.course().id());
+		jdbcTemplate.update("UPDATE enrollment SET access_expires_at = now() - interval '1 day' "
+				+ "WHERE tenant_id = ? AND student_id = ? AND superseded_at IS NULL", fixture.tenant().getId(),
+				lapsed.getId());
+		ClassSessionResponse session = scheduleStartedSession(fixture, "Week 1");
+
+		ClassSessionRosterResponse roster = getClassSessionRoster(fixture.host(), fixture.teacherToken(), session.id())
+			.getBody()
+			.data();
+		assertThat(roster.roster()).filteredOn(entry -> entry.studentId().equals(lapsed.getId()))
+			.singleElement()
+			.satisfies(entry -> assertThat(entry.currentlyEnrolled()).isTrue());
+		HttpResult<List<AttendanceMarkResultResponse>> mark = markClassSessionOne(fixture.host(),
+				fixture.teacherToken(), session.id(), lapsed.getId(), AttendanceStatus.PRESENT);
+		assertThat(mark.getBody().data().get(0).success()).isTrue();
+	}
+
+	@Test
 	void rosterKeepsAPreviouslyMarkedStudentWhoIsNoLongerEnrolledAsReadOnlyAndRejectsNewMarksForThem() {
 		AttendanceFixture fixture = seedAttendanceFixture("att-cs-roster-history");
 		TenantUser leaver = seedActiveStudent(fixture.tenant().getId(), "leaver@example.test");
@@ -195,9 +218,10 @@ class AttendanceClassSessionIntegrationTest extends AttendanceClassSessionTestSu
 		ClassSessionResponse session = scheduleStartedSession(fixture, "Week 1");
 		markClassSessionOne(fixture.host(), fixture.teacherToken(), session.id(), leaver.getId(),
 				AttendanceStatus.PRESENT);
-		jdbcTemplate.update("UPDATE enrollment SET access_expires_at = now() - interval '1 day' "
-				+ "WHERE tenant_id = ? AND student_id = ? AND superseded_at IS NULL", fixture.tenant().getId(),
-				leaver.getId());
+		// Fixture only: a historical mark for a non-participant - e.g. a student whose
+		// enrollment was revoked before V86, which backfilled no participation for it.
+		jdbcTemplate.update("DELETE FROM course_participation WHERE tenant_id = ? AND student_id = ?",
+				fixture.tenant().getId(), leaver.getId());
 
 		ClassSessionRosterResponse roster = getClassSessionRoster(fixture.host(), fixture.teacherToken(), session.id())
 			.getBody()

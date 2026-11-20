@@ -1,15 +1,20 @@
 package com.lms.ledgersettlementmanagement.repository;
 
 import com.lms.common.persistence.AppendOnlyTenantAwareRepository;
+import com.lms.ledgersettlementmanagement.api.InstantRange;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlement;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementKind;
 import com.lms.ledgersettlementmanagement.domain.TeacherSettlementStatus;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
@@ -37,8 +42,79 @@ public interface TeacherSettlementRepository extends AppendOnlyTenantAwareReposi
 			if (kind != null) {
 				predicates.add(cb.equal(root.get("kind"), kind));
 			}
+			else {
+				// Wallet entries (V123) are listed by the wallet, not as settlements.
+				predicates.add(root.get("kind").in(TeacherSettlementKind.REGULAR, TeacherSettlementKind.ADJUSTMENT));
+			}
 			return cb.and(predicates.toArray(Predicate[]::new));
 		}, pageable);
+	}
+
+	/**
+	 * RPT-01: PAID rows (REGULAR and ADJUSTMENT) of {@code teacherIds} whose
+	 * {@code paidAt} falls in any of {@code windows}. Tenant-scoped.
+	 */
+	default List<TeacherSettlement> findPaidInWindows(Collection<UUID> teacherIds, List<InstantRange> windows) {
+		if (teacherIds.isEmpty() || windows.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> {
+			List<Predicate> any = new ArrayList<>();
+			for (InstantRange window : windows) {
+				any.add(cb.and(cb.greaterThanOrEqualTo(root.get("paidAt"), window.fromInclusive()),
+						cb.lessThan(root.get("paidAt"), window.toExclusive())));
+			}
+			return cb.and(root.get("teacherId").in(teacherIds),
+					cb.equal(root.get("status"), TeacherSettlementStatus.PAID), cb.or(any.toArray(Predicate[]::new)));
+		}, Sort.by(Sort.Direction.ASC, "paidAt"));
+	}
+
+	/**
+	 * TEACHER-WALLET-01: the signed amounts that make up the wallet balance (amount payable to the
+	 * teacher) - unpaid settlements/adjustments (CALCULATED) and wallet entries (POSTED).
+	 */
+	default List<BigDecimal> findPayableAmounts(UUID teacherId) {
+		return findAttributeValues((root, query, cb) -> cb.and(cb.equal(root.get("teacherId"), teacherId),
+				root.get("status").in(TeacherSettlementStatus.CALCULATED, TeacherSettlementStatus.POSTED)),
+				"shareAmount", BigDecimal.class);
+	}
+
+	/** Unpaid (CALCULATED) settlement and settlement-adjustment amounts - the settlement part of the balance. */
+	default List<BigDecimal> findUnpaidSettlementAmounts(UUID teacherId) {
+		return findAttributeValues((root, query, cb) -> cb.and(cb.equal(root.get("teacherId"), teacherId),
+				cb.equal(root.get("status"), TeacherSettlementStatus.CALCULATED)), "shareAmount", BigDecimal.class);
+	}
+
+	/**
+	 * TEACHER-WALLET-01 activity: the newest settlement rows (REGULAR / ADJUSTMENT) of one teacher
+	 * whose share is positive ({@code positiveShare}) or negative - either by calculation time, or
+	 * ({@code paidOnly}) PAID rows by payment time.
+	 */
+	default List<TeacherSettlement> findSettlementActivity(UUID teacherId, boolean paidOnly, boolean positiveShare,
+			int limit) {
+		String orderBy = paidOnly ? "paidAt" : "calculatedAt";
+		return findAll((root, query, cb) -> {
+			List<Predicate> predicates = new ArrayList<>();
+			predicates.add(cb.equal(root.get("teacherId"), teacherId));
+			predicates.add(root.get("kind").in(TeacherSettlementKind.REGULAR, TeacherSettlementKind.ADJUSTMENT));
+			predicates.add(positiveShare ? cb.gt(root.get("shareAmount"), BigDecimal.ZERO)
+					: cb.lt(root.get("shareAmount"), BigDecimal.ZERO));
+			if (paidOnly) {
+				predicates.add(cb.equal(root.get("status"), TeacherSettlementStatus.PAID));
+			}
+			return cb.and(predicates.toArray(Predicate[]::new));
+		}, PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, orderBy).and(Sort.by(Sort.Direction.DESC, "id"))))
+			.getContent();
+	}
+
+	default Optional<TeacherSettlement> findByIdempotencyKey(String idempotencyKey) {
+		return findOne((root, query, cb) -> cb.equal(root.get("idempotencyKey"), idempotencyKey));
+	}
+
+	default Page<TeacherSettlement> findWalletEntries(UUID teacherId, Collection<TeacherSettlementKind> kinds,
+			Pageable pageable) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("teacherId"), teacherId),
+				root.get("kind").in(kinds)), pageable);
 	}
 
 	default List<TeacherSettlement> findAdjustmentsOf(UUID settlementId) {

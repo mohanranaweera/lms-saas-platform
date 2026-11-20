@@ -3,6 +3,8 @@ package com.lms.enrollmentmanagement.service;
 import com.lms.common.error.NotFoundException;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.CourseSummary;
+import com.lms.enrollmentmanagement.api.AccessPolicyApi;
+import com.lms.enrollmentmanagement.api.CourseAccessDecision;
 import com.lms.enrollmentmanagement.api.EnrollmentAccessState;
 import com.lms.enrollmentmanagement.domain.Enrollment;
 import com.lms.enrollmentmanagement.repository.EnrollmentRepository;
@@ -12,7 +14,9 @@ import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
 import com.lms.usermanagement.api.StudentLookupApi;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -60,9 +64,16 @@ public class EnrollmentQueryService {
 
 	private final PermissionCheckService permissionCheckService;
 
+	private final AccessWindowCalculator accessWindowCalculator;
+
+	private final AccessPolicyApi accessPolicyApi;
+
 	public EnrollmentQueryService(EnrollmentRepository enrollmentRepository,
 			EnrollmentExpiryService enrollmentExpiryService, CourseLookupApi courseLookupApi,
-			StudentLookupApi studentLookupApi, PermissionCheckService permissionCheckService) {
+			StudentLookupApi studentLookupApi, PermissionCheckService permissionCheckService,
+			AccessWindowCalculator accessWindowCalculator, AccessPolicyApi accessPolicyApi) {
+		this.accessWindowCalculator = accessWindowCalculator;
+		this.accessPolicyApi = accessPolicyApi;
 		this.enrollmentRepository = enrollmentRepository;
 		this.enrollmentExpiryService = enrollmentExpiryService;
 		this.courseLookupApi = courseLookupApi;
@@ -84,12 +95,26 @@ public class EnrollmentQueryService {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.VIEW);
 		UUID studentId = studentLookupApi.resolveUserId(studentProfileId)
 			.orElseThrow(() -> new NotFoundException("Student not found"));
-		return enrollmentRepository.findAllByStudentIdOrderByActivatedAtDesc(studentId)
-			.stream()
-			.map(e -> new EnrollmentHistoryEntryView(e.getId(), e.getCourseId(), e.getSupersededAt() == null,
+		List<Enrollment> rows = enrollmentRepository.findAllByStudentIdOrderByActivatedAtDesc(studentId);
+		Map<UUID, AccessWindowCalculator.AccessWindow> windows = accessWindowCalculator.windowsFor(rows);
+		Instant now = Instant.now();
+		return rows.stream().map(e -> {
+			AccessWindowCalculator.AccessWindow window = windows.get(e.getId());
+			return new EnrollmentHistoryEntryView(e.getId(), e.getCourseId(), e.getSupersededAt() == null,
 					e.getActivatedAt(), e.getAccessExpiresAt(), e.getSupersededAt(), e.getRevokedAt(),
-					e.getRevokeReason(), e.getReactivatedFromEnrollmentId()))
-			.toList();
+					e.getRevokeReason(), e.getReactivatedFromEnrollmentId(), window.effectiveExpiresAt(),
+					window.accessEndsAt(), window.extended(), accessWindowCalculator.isCurrentlyActive(e, window, now));
+		}).toList();
+	}
+
+	/**
+	 * Wave 10: the calling student's full access decision for a course (grace
+	 * period, effective expiry, and whether THIS device may open it).
+	 */
+	@Transactional
+	public CourseAccessDecision getMyAccessDecision(UUID courseId) {
+		AuthenticatedPrincipal principal = requireStudent();
+		return accessPolicyApi.evaluateStudentCourseAccess(principal.userId(), courseId);
 	}
 
 	/** See class javadoc for why this always resolves the calling student's own state. */

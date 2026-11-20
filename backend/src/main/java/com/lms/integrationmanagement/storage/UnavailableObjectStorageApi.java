@@ -1,6 +1,7 @@
 package com.lms.integrationmanagement.storage;
 
 import com.lms.common.error.ServiceUnavailableException;
+import com.lms.integrationmanagement.api.DownloadOverrides;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
@@ -44,6 +45,11 @@ public class UnavailableObjectStorageApi implements ObjectStorageApi {
 
 	@Override
 	public SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl) {
+		throw new ServiceUnavailableException(MESSAGE);
+	}
+
+	@Override
+	public SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl, DownloadOverrides overrides) {
 		throw new ServiceUnavailableException(MESSAGE);
 	}
 

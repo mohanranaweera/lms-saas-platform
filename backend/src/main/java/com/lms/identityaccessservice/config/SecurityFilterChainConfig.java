@@ -8,6 +8,7 @@ import com.lms.identityaccessservice.repository.PlatformAdminSessionRepository;
 import com.lms.identityaccessservice.repository.PlatformAdminUserRepository;
 import com.lms.identityaccessservice.repository.TenantUserRepository;
 import com.lms.identityaccessservice.service.DeviceSessionCacheService;
+import com.lms.identityaccessservice.service.ImpersonationService;
 import com.lms.identityaccessservice.service.TokenService;
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -69,10 +70,10 @@ public class SecurityFilterChainConfig {
 			DeviceSessionRepository deviceSessionRepository,
 			PlatformAdminSessionRepository platformAdminSessionRepository, TenantUserRepository tenantUserRepository,
 			PlatformAdminUserRepository platformAdminUserRepository, DeviceSessionCacheService cacheService,
-			ObjectMapper objectMapper) {
+			ObjectMapper objectMapper, ImpersonationService impersonationService) {
 		return new JwtAuthenticationFilter(tokenService, tenantContext, deviceSessionRepository,
 				platformAdminSessionRepository, tenantUserRepository, platformAdminUserRepository, cacheService,
-				objectMapper);
+				objectMapper, impersonationService);
 	}
 
 	@Bean
@@ -139,7 +140,7 @@ public class SecurityFilterChainConfig {
 				// (MVP-008, GET-only) - tenant is still resolved server-side from
 				// the subdomain by TenantResolutionFilter; no client-supplied
 				// tenantId is ever accepted. See CoursePublicController.
-				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**")
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**", "/api/v1/public/teachers", "/api/v1/public/teachers/**")
 					.permitAll();
 				// Public, unauthenticated branding read path (Wave 1 - Tenant
 				// Admin IA + Configuration Framework) - tenant is still
@@ -148,7 +149,17 @@ public class SecurityFilterChainConfig {
 				// accepted. See PublicBrandingController for why this one
 				// endpoint deliberately bypasses BRANDING_SETTINGS's
 				// permission gate.
-				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding").permitAll();
+				// LOGIN-01 Phase B adds the institute's published policy texts
+				// (PublicPolicyController) - same host-resolved tenant, GET only.
+				// CAL-01: anonymous "Today's Classes" (PUBLIC courses only) - same
+				// host-resolved tenant, GET only. See PublicCalendarController.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/calendar/today").permitAll();
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/tenant-config/branding",
+						"/api/v1/public/tenant-config/home", "/api/v1/public/tenant-config/policies/*").permitAll();
+				// I18N-01: language settings and the published UI catalog - same host-resolved
+				// tenant, GET only, never drafts. See PublicI18nController.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/i18n/settings", "/api/v1/public/i18n/catalog")
+					.permitAll();
 				// Public, unauthenticated student-registration-policy read path
 				// (Wave 3 gap-fill) - same rationale as the branding read
 				// above, for ConfigDomain.STUDENT's registration-relevant
@@ -167,6 +178,22 @@ public class SecurityFilterChainConfig {
 							"/api/v1/students/register/otp/send", "/api/v1/students/register/otp/verify")
 					.permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
+				// ADR-033: the support-session handoff. /token is authorised only by the
+				// HttpOnly, SameSite=Strict lms_impersonation cookie (scoped to this path);
+				// /end accepts that cookie and/or the impersonation bearer token. The tenant
+				// is still resolved from the host by TenantResolutionFilter.
+				authorize
+					.requestMatchers(HttpMethod.POST, "/api/v1/auth/impersonation/token",
+							"/api/v1/auth/impersonation/end")
+					.permitAll();
+				// AUTH-PWD-01 / ADR-020: one-time account-setup / reset links and
+				// forgot password. Anonymous by nature; the tenant is still
+				// resolved from the host by TenantResolutionFilter, the link's
+				// own token authorises the change, and each is rate-limited.
+				authorize
+					.requestMatchers(HttpMethod.POST, "/api/v1/auth/password-tokens/verify",
+							"/api/v1/auth/password-tokens/complete", "/api/v1/auth/password-reset/request")
+					.permitAll();
 				authorize
 					.requestMatchers(HttpMethod.POST, "/api/v1/platform-admin/auth/login",
 							"/api/v1/platform-admin/auth/refresh")
@@ -182,6 +209,26 @@ public class SecurityFilterChainConfig {
 				// per .claude/rules/security.md and
 				// .claude/rules/payments.md's webhook-verification rules.
 				authorize.requestMatchers(HttpMethod.POST, "/api/v1/integrations/webhooks/**").permitAll();
+				// MSG-PROV-01 / ADR-024 V8: Meta's webhook subscription
+				// handshake is a GET on the same per-tenant callback URL. It
+				// changes nothing; MetaWhatsAppWebhookService echoes the
+				// challenge only for a known key and matching verify token.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/integrations/webhooks/meta-whatsapp/*").permitAll();
+				// MEDIA-INT-01 / ADR-018 §3: the single OAuth redirect URI the
+				// Zoom/Google/Vimeo apps send the teacher's browser back to. It
+				// carries no session/JWT; OAuthConnectFlowService trusts only
+				// the single-use Redis state, never the request, to decide the
+				// tenant and teacher.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/integrations/oauth/*/callback").permitAll();
+				// VIDEO Phase 8 / ADR-025 Amendment 1: the AOC Player has no LMS
+				// login. These four EXACT endpoints (never a wildcard) authenticate
+				// by a one-time code (pairing, exchange) or by the aud=aoc-player
+				// token plus the installation's ECDSA signature (heartbeat, end);
+				// the tenant comes only from a server-held row. The player's other
+				// endpoints (/pairings, /installations) stay JWT-authenticated.
+				authorize.requestMatchers(HttpMethod.POST, "/api/v1/player/pairings/complete", "/api/v1/player/exchange",
+						"/api/v1/player/sessions/{sessionId}/heartbeat", "/api/v1/player/sessions/{sessionId}/end")
+					.permitAll();
 				authorize.anyRequest().authenticated();
 			})
 			.addFilterBefore(tenantResolutionFilter, UsernamePasswordAuthenticationFilter.class)
@@ -214,9 +261,12 @@ public class SecurityFilterChainConfig {
 	 */
 	private CorsConfigurationSource localCorsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://demo.lms.test:3000"));
+		// Every local tenant subdomain (demo, academy, ...), not just demo - a newly
+		// registered tenant must work locally too (AUTH-PWD-01 invitation links).
+		configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "http://*.lms.test:3000"));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+		// I18N-01: X-LMS-Locale carries an explicit per-request UI language (never persisted).
+		configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-LMS-Locale"));
 		configuration.setAllowCredentials(true);
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);

@@ -1,6 +1,8 @@
 package com.lms.paymentmanagement.payment.service;
 
 import com.lms.common.error.NotFoundException;
+import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
+import com.lms.paymentmanagement.discount.service.DiscountRedemptionService;
 import com.lms.paymentmanagement.order.domain.StudentOrder;
 import com.lms.paymentmanagement.order.repository.StudentOrderRepository;
 import com.lms.paymentmanagement.payment.domain.Payment;
@@ -28,9 +30,13 @@ public class PaymentWriteService {
 
 	private final StudentOrderRepository studentOrderRepository;
 
-	public PaymentWriteService(PaymentRepository paymentRepository, StudentOrderRepository studentOrderRepository) {
+	private final CheckoutComposerService checkoutComposerService;
+
+	public PaymentWriteService(PaymentRepository paymentRepository, StudentOrderRepository studentOrderRepository,
+			CheckoutComposerService checkoutComposerService) {
 		this.paymentRepository = paymentRepository;
 		this.studentOrderRepository = studentOrderRepository;
+		this.checkoutComposerService = checkoutComposerService;
 	}
 
 	@Transactional
@@ -80,6 +86,12 @@ public class PaymentWriteService {
 				return new PendingPaymentResult(existing.get(), true);
 			}
 		}
+		// KLASS-T8b (D24): a line order gets a new PENDING payment only under the
+		// shared coverage locks, and only while it has no other live evidence (a
+		// replay of the SAME payment was already returned above). No-op for
+		// legacy orders.
+		checkoutComposerService.lockAndRequireNewLineOrderEvidenceAllowed(order,
+				DiscountRedemptionService.EvidenceKind.GATEWAY);
 
 		Payment payment = new Payment(order.getTenantId(), order.getId(), order.getAmount(), order.getCurrency(),
 				idempotencyKey);
@@ -95,6 +107,15 @@ public class PaymentWriteService {
 	 * gateway-initiation side effect in the latter case.
 	 */
 	public record PendingPaymentResult(Payment payment, boolean replayed) {
+	}
+
+	@Transactional
+	public void assignGatewayRouting(UUID paymentId, String gatewayReference, UUID gatewayAccountId,
+			String collectedBy) {
+		Payment payment = paymentRepository.findById(paymentId)
+			.orElseThrow(() -> new NotFoundException("Payment not found"));
+		payment.assignGatewayRouting(gatewayReference, gatewayAccountId, collectedBy);
+		paymentRepository.save(payment);
 	}
 
 	@Transactional

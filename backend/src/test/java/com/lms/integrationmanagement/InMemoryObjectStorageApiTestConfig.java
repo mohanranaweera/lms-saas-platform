@@ -1,14 +1,18 @@
 package com.lms.integrationmanagement;
 
+import com.lms.integrationmanagement.api.DownloadOverrides;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.integrationmanagement.api.SignedDownloadUrl;
 import com.lms.integrationmanagement.api.StoreObjectCommand;
 import com.lms.integrationmanagement.api.StoredObject;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -83,11 +87,16 @@ public class InMemoryObjectStorageApiTestConfig {
 
 		private final Map<String, byte[]> objects = new ConcurrentHashMap<>();
 
+		private final Map<String, String> contentTypes = new ConcurrentHashMap<>();
+
 		@Override
 		public StoredObject store(StoreObjectCommand command) {
 			String objectKey = UUID.randomUUID().toString();
 			try {
 				objects.put(objectKey, command.content().readAllBytes());
+				if (command.detectedMimeType() != null) {
+					contentTypes.put(objectKey, command.detectedMimeType());
+				}
 			}
 			catch (IOException e) {
 				throw new UncheckedIOException(e);
@@ -98,11 +107,42 @@ public class InMemoryObjectStorageApiTestConfig {
 		@Override
 		public void delete(String objectKey) {
 			objects.remove(objectKey);
+			contentTypes.remove(objectKey);
+		}
+
+		@Override
+		public Optional<String> findContentType(String objectKey) {
+			return Optional.ofNullable(contentTypes.get(objectKey));
 		}
 
 		@Override
 		public SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl) {
 			return new SignedDownloadUrl("https://test-object-storage.invalid/" + objectKey, Instant.now().plus(ttl));
+		}
+
+		/**
+		 * R2-T3: a fake signed URL that embeds the (already validated)
+		 * overrides as query parameters, so tests can assert the forced
+		 * content type and disposition the caller asked for - mirroring
+		 * S3's {@code response-content-type}/{@code
+		 * response-content-disposition} presign parameters.
+		 */
+		@Override
+		public SignedDownloadUrl generateSignedDownloadUrl(String objectKey, Duration ttl,
+				DownloadOverrides overrides) {
+			StringBuilder url = new StringBuilder("https://test-object-storage.invalid/").append(objectKey)
+				.append("?response-content-disposition=")
+				.append(URLEncoder.encode(overrides.contentDispositionHeaderValue(), StandardCharsets.UTF_8));
+			if (overrides.contentType() != null) {
+				url.append("&response-content-type=")
+					.append(URLEncoder.encode(overrides.contentType(), StandardCharsets.UTF_8));
+			}
+			return new SignedDownloadUrl(url.toString(), Instant.now().plus(ttl));
+		}
+
+		/** Test-only observability: the stored bytes of an object (null when absent). */
+		public byte[] bytes(String objectKey) {
+			return objects.get(objectKey);
 		}
 
 		/** Test-only observability: is this object key still present in the in-memory backing store? */

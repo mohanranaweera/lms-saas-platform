@@ -1,7 +1,10 @@
 package com.lms.common.money;
 
 /**
- * The platform-wide implicit currency, used everywhere a monetary amount has
+ * The platform-wide fallback currency, used only when a tenant has not set
+ * {@code GENERAL.default_currency} (Tenant Admin -> Settings -> General) -
+ * read through {@code TenantConfigApi#resolveDefaultCurrency}, never directly
+ * by business code. Historical note on why it exists: an amount can have
  * no other currency source. Neither {@code course.price} (V11) nor {@code
  * course_billing_configuration.currency}/{@code course_billing_period.currency}
  * (V38/V39, for {@code MONTHLY}/{@code SESSION}/{@code CUSTOM} pricing) apply

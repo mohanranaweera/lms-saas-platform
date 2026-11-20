@@ -1,5 +1,6 @@
 package com.lms.videoaccessmanagement.support;
 
+import com.lms.enrollmentmanagement.support.AccessPolicyTestDouble;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
@@ -16,7 +17,7 @@ import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.DomainArea;
 import com.lms.identityaccessservice.api.PermissionAction;
 import com.lms.identityaccessservice.api.PermissionCheckService;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +49,9 @@ class VideoAccessGuardTest {
 
 	@BeforeEach
 	void setUp() {
-		guard = new VideoAccessGuard(materialLookupApi, enrollmentAccessApi, permissionCheckService);
+		var accessPolicy = AccessPolicyTestDouble.backedBy(enrollmentAccessApi);
+		guard = new VideoAccessGuard(materialLookupApi, accessPolicy, permissionCheckService,
+				com.lms.enrollmentmanagement.support.LessonAccessTestDouble.backedBy(accessPolicy));
 	}
 
 	@AfterEach
@@ -62,7 +65,7 @@ class VideoAccessGuardTest {
 		UUID videoAssetId = UUID.randomUUID();
 		MaterialVideoOwnership ownership = new MaterialVideoOwnership(UUID.randomUUID(), UUID.randomUUID(),
 				teacherId, true);
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.of(ownership));
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of(ownership));
 		AuthenticatedPrincipalHolder
 			.set(new AuthenticatedPrincipal(teacherId, TENANT_ID, "TEACHER", UUID.randomUUID()));
 
@@ -76,7 +79,7 @@ class VideoAccessGuardTest {
 		UUID videoAssetId = UUID.randomUUID();
 		MaterialVideoOwnership ownership = new MaterialVideoOwnership(UUID.randomUUID(), UUID.randomUUID(),
 				UUID.randomUUID(), true);
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.of(ownership));
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of(ownership));
 		AuthenticatedPrincipalHolder
 			.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
 
@@ -91,7 +94,7 @@ class VideoAccessGuardTest {
 		UUID videoAssetId = UUID.randomUUID();
 		MaterialVideoOwnership ownership = new MaterialVideoOwnership(UUID.randomUUID(), courseId,
 				UUID.randomUUID(), true);
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.of(ownership));
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of(ownership));
 		when(enrollmentAccessApi.resolveAccessState(studentId, courseId))
 			.thenReturn(EnrollmentAccessState.active(UUID.randomUUID(), null));
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
@@ -108,7 +111,7 @@ class VideoAccessGuardTest {
 		UUID videoAssetId = UUID.randomUUID();
 		MaterialVideoOwnership ownership = new MaterialVideoOwnership(UUID.randomUUID(), courseId,
 				UUID.randomUUID(), true);
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.of(ownership));
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of(ownership));
 		when(enrollmentAccessApi.resolveAccessState(studentId, courseId))
 			.thenReturn(EnrollmentAccessState.neverEnrolled());
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
@@ -123,7 +126,7 @@ class VideoAccessGuardTest {
 		UUID videoAssetId = UUID.randomUUID();
 		MaterialVideoOwnership ownership = new MaterialVideoOwnership(UUID.randomUUID(), UUID.randomUUID(),
 				UUID.randomUUID(), true);
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.of(ownership));
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of(ownership));
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(studentId, TENANT_ID, "STUDENT", UUID.randomUUID()));
 
 		assertThatThrownBy(() -> guard.requireEntitlement(videoAssetId, PermissionAction.CREATE_EDIT))
@@ -134,7 +137,7 @@ class VideoAccessGuardTest {
 	@Test
 	void aVideoAssetIdThatDoesNotResolveThrowsNotFoundForEveryRoleIncludingStaffAndTeacher() {
 		UUID videoAssetId = UUID.randomUUID();
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.empty());
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of());
 
 		AuthenticatedPrincipalHolder
 			.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "TEACHER", UUID.randomUUID()));
@@ -161,7 +164,7 @@ class VideoAccessGuardTest {
 		UUID videoAssetId = UUID.randomUUID();
 		MaterialVideoOwnership ownership = new MaterialVideoOwnership(UUID.randomUUID(), UUID.randomUUID(),
 				UUID.randomUUID(), true);
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.of(ownership));
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of(ownership));
 		AuthenticatedPrincipalHolder
 			.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "CONTENT_MANAGER", UUID.randomUUID()));
 		doThrow(new AccessDeniedException("denied")).when(permissionCheckService)
@@ -180,7 +183,7 @@ class VideoAccessGuardTest {
 		// mirrored at the guard-unit level (the real cross-tenant behavior
 		// is exercised end-to-end by the Testcontainers integration test).
 		UUID videoAssetId = UUID.randomUUID();
-		when(materialLookupApi.resolveVideoAssetOwnership(videoAssetId)).thenReturn(Optional.empty());
+		when(materialLookupApi.resolveVideoAssetOwnerships(videoAssetId)).thenReturn(List.of());
 		AuthenticatedPrincipalHolder.set(new AuthenticatedPrincipal(UUID.randomUUID(), TENANT_ID, "STUDENT", UUID.randomUUID()));
 
 		assertThatThrownBy(() -> guard.requireEntitlement(videoAssetId, PermissionAction.VIEW))

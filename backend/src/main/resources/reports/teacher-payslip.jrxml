@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RPT-01 teacher payslip (spec section 1.3): narrow receipt layout, informational only.
+  Application-owned template: no scriptlets, no SQL, no arithmetic - values come
+  precomputed from the stored report run.
+-->
+<jasperReport name="teacher-payslip" pageWidth="226" pageHeight="842" columnWidth="206"
+		leftMargin="10" rightMargin="10" topMargin="12" bottomMargin="12"
+		whenNoDataType="AllSectionsNoDetail" ignorePagination="true">
+	<property name="net.sf.jasperreports.export.pdf.glyph.renderer.blocks.lms" value="sinhala,tamil"/>
+	<style name="Base" default="true" fontName="LMS Sans" fontSize="8.0" forecolor="#111827"/>
+	<style name="Muted" fontName="LMS Sans" fontSize="7.0" forecolor="#6B7280"/>
+	<parameter name="INSTITUTE" class="java.lang.String"/>
+	<parameter name="TEACHER_NAME" class="java.lang.String"/>
+	<parameter name="PERIOD_LABEL" class="java.lang.String"/>
+	<parameter name="GENERATED_AT" class="java.lang.String"/>
+	<parameter name="TIMEZONE" class="java.lang.String"/>
+	<parameter name="FOOTER_TEXT" class="java.lang.String"/>
+	<parameter name="EMPTY" class="java.lang.Boolean"/>
+	<parameter name="RATE_LEGEND" class="java.lang.String"/>
+	<field name="currencyKey" class="java.lang.String"/>
+	<field name="amountsInLabel" class="java.lang.String"/>
+	<field name="amountPattern" class="java.lang.String"/>
+	<field name="totalIncome" class="java.math.BigDecimal"/>
+	<field name="hasCourse" class="java.lang.Boolean"/>
+	<field name="courseName" class="java.lang.String"/>
+	<field name="paymentLabel" class="java.lang.String"/>
+	<field name="teacherAmount" class="java.math.BigDecimal"/>
+	<field name="rateNote" class="java.lang.String"/>
+	<group name="currency">
+		<expression><![CDATA[$F{currencyKey}]]></expression>
+		<groupHeader>
+			<band height="30">
+				<element kind="textField" x="0" y="2" width="206" height="12" style="Muted" hTextAlign="Center">
+					<expression><![CDATA[$F{amountsInLabel}]]></expression>
+				</element>
+				<element kind="staticText" x="0" y="16" width="206" height="12" bold="true">
+					<box>
+						<bottomPen lineWidth="0.5" lineColor="#9CA3AF"/>
+					</box>
+					<text><![CDATA[COURSE INCOME]]></text>
+				</element>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="24">
+				<element kind="staticText" x="0" y="4" width="100" height="16" bold="true" vTextAlign="Middle">
+					<box>
+						<topPen lineWidth="0.75" lineColor="#111827"/>
+					</box>
+					<text><![CDATA[Total income]]></text>
+				</element>
+				<element kind="textField" x="100" y="4" width="106" height="16" bold="true" hTextAlign="Right" vTextAlign="Middle" textAdjust="ScaleFont">
+					<box>
+						<topPen lineWidth="0.75" lineColor="#111827"/>
+					</box>
+					<expression><![CDATA[$F{totalIncome}]]></expression>
+					<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+				</element>
+			</band>
+		</groupFooter>
+	</group>
+	<title height="96">
+		<element kind="textField" x="0" y="0" width="206" height="16" fontSize="10.0" bold="true" hTextAlign="Center" textAdjust="StretchHeight">
+			<expression><![CDATA[$P{INSTITUTE}]]></expression>
+		</element>
+		<element kind="staticText" x="0" y="18" width="206" height="17" fontSize="11.0" bold="true" hTextAlign="Center" positionType="Float">
+			<text><![CDATA[PAYSLIP]]></text>
+		</element>
+		<element kind="staticText" x="0" y="36" width="206" height="10" style="Muted" positionType="Float">
+			<text><![CDATA[TEACHER]]></text>
+		</element>
+		<element kind="textField" x="0" y="46" width="206" height="12" bold="true" textAdjust="StretchHeight" positionType="Float">
+			<expression><![CDATA[$P{TEACHER_NAME}]]></expression>
+		</element>
+		<element kind="staticText" x="0" y="62" width="206" height="10" style="Muted" positionType="Float">
+			<text><![CDATA[PERIOD]]></text>
+		</element>
+		<element kind="textField" x="0" y="72" width="206" height="12" textAdjust="StretchHeight" positionType="Float">
+			<expression><![CDATA[$P{PERIOD_LABEL}]]></expression>
+		</element>
+	</title>
+	<detail>
+		<band height="26" splitType="Prevent">
+			<printWhenExpression><![CDATA[$F{hasCourse}]]></printWhenExpression>
+			<element kind="textField" x="0" y="2" width="130" height="12" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{courseName}]]></expression>
+			</element>
+			<element kind="textField" x="130" y="2" width="76" height="12" hTextAlign="Right" blankWhenNull="true" textAdjust="ScaleFont">
+				<expression><![CDATA[$F{teacherAmount}]]></expression>
+				<patternExpression><![CDATA[$F{amountPattern}]]></patternExpression>
+			</element>
+			<element kind="textField" x="0" y="14" width="130" height="10" style="Muted" positionType="Float">
+				<expression><![CDATA[$F{paymentLabel}]]></expression>
+			</element>
+			<element kind="staticText" x="130" y="2" width="76" height="12" forecolor="#6B7280" hTextAlign="Right">
+				<printWhenExpression><![CDATA[$F{teacherAmount} == null]]></printWhenExpression>
+				<text><![CDATA[—]]></text>
+			</element>
+		</band>
+	</detail>
+	<summary height="76">
+		<element kind="staticText" x="0" y="2" width="206" height="14" style="Muted" hTextAlign="Center">
+			<printWhenExpression><![CDATA[$P{EMPTY}]]></printWhenExpression>
+			<text><![CDATA[No payments to show]]></text>
+		</element>
+		<element kind="textField" x="0" y="18" width="206" height="18" style="Muted" fontSize="6.0" textAdjust="StretchHeight">
+			<printWhenExpression><![CDATA[$P{RATE_LEGEND} != null]]></printWhenExpression>
+			<expression><![CDATA[$P{RATE_LEGEND}]]></expression>
+		</element>
+		<element kind="line" x="0" y="44" width="120" height="1" forecolor="#111827"/>
+		<element kind="staticText" x="0" y="46" width="120" height="10" style="Muted">
+			<text><![CDATA[Received by]]></text>
+		</element>
+		<element kind="line" x="0" y="60" width="206" height="1" forecolor="#9CA3AF">
+			<pen lineStyle="Dashed"/>
+		</element>
+		<element kind="textField" x="0" y="63" width="206" height="10" style="Muted" hTextAlign="Center">
+			<expression><![CDATA[$P{GENERATED_AT}]]></expression>
+		</element>
+	</summary>
+</jasperReport>

@@ -1,5 +1,6 @@
 package com.lms.common.error;
 
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -36,6 +37,15 @@ public abstract class ApplicationException extends RuntimeException {
 
 	public HttpStatus getHttpStatus() {
 		return httpStatus;
+	}
+
+	/**
+	 * Optional machine-readable error payload rendered as {@code
+	 * error.details}; {@code null} (the default) omits it. Subclasses override
+	 * this only for client-safe data.
+	 */
+	public Map<String, Object> getDetails() {
+		return null;
 	}
 
 }

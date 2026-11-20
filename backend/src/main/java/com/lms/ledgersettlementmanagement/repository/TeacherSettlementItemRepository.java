@@ -21,6 +21,31 @@ public interface TeacherSettlementItemRepository extends AppendOnlyTenantAwareRe
 			.collect(Collectors.toSet());
 	}
 
+	/**
+	 * ADR-029 (V91): which (ledger entry, course) allocations among {@code
+	 * ledgerEntryIds} are already settled, as {@link #allocationKey} strings.
+	 */
+	default Set<String> findSettledAllocationKeys(Collection<UUID> ledgerEntryIds) {
+		if (ledgerEntryIds.isEmpty()) {
+			return Set.of();
+		}
+		return findAll((root, query, cb) -> root.get("ledgerEntryId").in(ledgerEntryIds)).stream()
+			.map(item -> allocationKey(item.getLedgerEntryId(), item.getCourseId()))
+			.collect(Collectors.toSet());
+	}
+
+	static String allocationKey(UUID ledgerEntryId, UUID courseId) {
+		return ledgerEntryId + ":" + courseId;
+	}
+
+	/** RPT-01: stored items of any of {@code ledgerEntryIds} (tenant-scoped). */
+	default List<TeacherSettlementItem> findByLedgerEntryIds(Collection<UUID> ledgerEntryIds) {
+		if (ledgerEntryIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> root.get("ledgerEntryId").in(ledgerEntryIds));
+	}
+
 	default List<TeacherSettlementItem> findBySettlementId(UUID settlementId) {
 		return findAll((root, query, cb) -> cb.equal(root.get("settlementId"), settlementId));
 	}

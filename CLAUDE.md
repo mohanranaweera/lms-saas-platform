@@ -55,9 +55,9 @@ Do not create a separate Docker deployment for each normal tenant.
 3. Tenant-specific payment accounts.
 4. Split payments only when supported by the gateway.
 
-Never activate enrollment from a frontend success page.
+Registered students may enroll freely through an authenticated, authorized backend enrollment operation. Enrollment never depends on payment. Paid lesson/session entitlements are granted only after verified backend payment confirmation or approved manual payment evidence, never from a frontend success page. Payment pending/failure/rejection does not cancel enrollment. (ADR-028.)
 
-Enrollment may activate only after verified backend payment confirmation or approved manual payment evidence.
+Never grant enrollment or a paid entitlement from a frontend success page.
 
 Never delete financial history.
 
@@ -83,7 +83,7 @@ Do not change without explicit approval:
 - multi-tenancy strategy
 - authentication architecture
 - payment ledger rules
-- enrollment activation rules
+- enrollment and paid-entitlement activation rules (ADR-028)
 - production deployment strategy
 - database migration history
 - approved API contracts
@@ -108,3 +108,26 @@ Before editing code, report:
 - security impact
 - tenant impact
 - tests required
+
+
+## Codebase Analysis and Token Efficiency
+
+- Use the installed untangle-codebase skill for unfamiliar,
+  cross-module, or high-risk changes when relevant.
+- Analyze the requested module and immediate dependencies first;
+  do not scan the entire repository by default.
+- Reuse existing architecture, APIs, components, services,
+  and permission patterns.
+- Read existing architecture or module documentation before
+  repeating exploration.
+- Exclude generated outputs, dependencies, build folders,
+  and unrelated references from routine analysis.
+- Produce concise findings: entry points, dependencies,
+  reuse candidates, risks, and relevant file paths.
+- Delegate bounded implementation tasks to the existing
+  specialized agents.
+- Do not perform refactoring or broad repository
+  modifications without approval.
+- Run focused tests before wider validation.
+- Update module documentation only when verified
+  architecture or behavior changes.

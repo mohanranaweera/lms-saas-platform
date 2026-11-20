@@ -31,6 +31,18 @@ export const studentCreateSchema = z.object({
 
 export type StudentCreateFormValues = z.infer<typeof studentCreateSchema>;
 
+/** Mirrors `StudentBillingAddressRequest` (both `@NotBlank`, 255/100 max). */
+export const billingAddressSchema = z.object({
+  addressLine: z
+    .string()
+    .trim()
+    .min(1, "Address is required.")
+    .max(255, "Address must be 255 characters or fewer."),
+  city: z.string().trim().min(1, "City is required.").max(100, "City must be 100 characters or fewer."),
+});
+
+export type BillingAddressFormValues = z.infer<typeof billingAddressSchema>;
+
 export const studentUpdateSchema = z.object({
   name: z
     .string()

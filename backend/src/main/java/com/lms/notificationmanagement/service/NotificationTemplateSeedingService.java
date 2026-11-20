@@ -2,6 +2,7 @@ package com.lms.notificationmanagement.service;
 
 import com.lms.common.tenant.TenantContextHolder;
 import com.lms.notificationmanagement.domain.NotificationEventType;
+import com.lms.notificationmanagement.domain.NotificationTemplate;
 import com.lms.tenantmanagement.api.TenantRegisteredEvent;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -74,10 +75,53 @@ public class NotificationTemplateSeedingService {
 					"Hi,\n\nYour payment of {{amount}} {{currency}} (reference {{paymentId}}) could not be confirmed. Please contact support or try again.\n");
 			seedIfAbsent(event.tenantId(), NotificationEventType.PAYMENT_REFUNDED, "Refund Processed",
 					"Hi,\n\nA refund of {{amount}} for payment {{paymentId}} has been processed. Reason: {{reason}}.\n");
+			seedCredentialTemplates(event.tenantId());
 		}
 		finally {
 			TenantContextHolder.clear();
 		}
+	}
+
+	/**
+	 * AUTH-PWD-01: the account-setup and reset templates. Called for new tenants
+	 * above and, for tenants registered before this module, by the dispatcher
+	 * right before it sends one (the caller has set the TenantContext).
+	 */
+	public void seedCredentialTemplates(UUID tenantId) {
+		seedIfAbsent(tenantId, NotificationEventType.ACCOUNT_SETUP_INVITE, "Set up your {{tenantName}} account",
+				"Hi,\n\nAn account has been created for you at {{tenantName}}. Set your password to get started:\n\n"
+						+ "{{link}}\n\nThis link can be used once and expires in {{expiresIn}}. "
+						+ "If you weren't expecting this, you can ignore this email.\n");
+		seedIfAbsent(tenantId, NotificationEventType.PASSWORD_RESET, PASSWORD_RESET_SUBJECT, PASSWORD_RESET_BODY);
+	}
+
+	/**
+	 * The platform default password-reset template. I18N-01: while a tenant's stored template is
+	 * still exactly this text, the dispatcher renders the email from the localized
+	 * {@code email.passwordReset.*} messages instead (identical English text); a
+	 * tenant-customized template is always sent as written.
+	 */
+	public static final String PASSWORD_RESET_SUBJECT = "Reset your {{tenantName}} password";
+
+	public static final String PASSWORD_RESET_BODY = "Hi,\n\nWe received a request to reset your password at "
+			+ "{{tenantName}}. Choose a new one here:\n\n"
+			+ "{{link}}\n\nThis link can be used once and expires in {{expiresIn}}. "
+			+ "If you didn't ask for this, you can ignore this email - your password won't change.\n";
+
+	/** True while {@code template} is still the platform default password-reset text. */
+	public static boolean isDefaultPasswordResetTemplate(NotificationTemplate template) {
+		return PASSWORD_RESET_SUBJECT.equals(template.getSubject()) && PASSWORD_RESET_BODY.equals(template.getBody());
+	}
+
+	/**
+	 * Klass Exam Module Slice E: the default "Notify Marks" template, seeded lazily by the
+	 * dispatcher right before it sends one (every tenant, old or new; the caller has set the
+	 * TenantContext). Contains marks / total / pass state only - never answer keys.
+	 */
+	public void seedExamTemplates(UUID tenantId) {
+		seedIfAbsent(tenantId, NotificationEventType.EXAM_MARKS_PUBLISHED, "Your marks for {{examName}}",
+				"Hi,\n\nYour marks for {{examName}} ({{courseName}}) have been published: {{marks}} / {{totalMarks}}."
+						+ "{{resultLine}}\n\nSign in to see your result.\n");
 	}
 
 	/**

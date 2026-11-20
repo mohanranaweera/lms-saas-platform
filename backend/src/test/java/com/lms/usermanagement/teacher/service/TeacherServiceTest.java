@@ -209,6 +209,107 @@ class TeacherServiceTest {
 		verify(permissionCheckService).requirePermission(DomainArea.TEACHERS, PermissionAction.VIEW);
 	}
 
+	@Test
+	void updateTeacherPersistsProfileChangesAndReturnsUpdatedAccount() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		UUID teacherId = UUID.randomUUID();
+		UUID userId = UUID.randomUUID();
+		TeacherProfile profile = new TeacherProfile(TENANT_ID, userId, "Old Name");
+		setId(profile, teacherId);
+		when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(profile));
+		when(teacherProfileRepository.save(any(TeacherProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(userProvisioningApi.findTenantUserSummaries(List.of(userId)))
+			.thenReturn(List.of(new TenantUserSummary(userId, "teacher@example.test", "TEACHER", "ACTIVE")));
+
+		TeacherAccount account = teacherService.updateTeacher(teacherId, "Updated", "Teacher", "+1 555 0100",
+				new java.math.BigDecimal("12.50"), "M.Ed.", "Updated profile", null);
+
+		assertThat(profile.getFirstName()).isEqualTo("Updated");
+		assertThat(profile.getLastName()).isEqualTo("Teacher");
+		assertThat(profile.getContactNumber()).isEqualTo("+1 555 0100");
+		assertThat(profile.getInstituteCommissionPercent()).isEqualByComparingTo("12.50");
+		assertThat(profile.getQualifications()).isEqualTo("M.Ed.");
+		assertThat(profile.getDescription()).isEqualTo("Updated profile");
+		assertThat(profile.getName()).isEqualTo("Updated Teacher");
+		assertThat(account.name()).isEqualTo("Updated Teacher");
+		verify(teacherProfileRepository).save(profile);
+		verify(auditLogApi).record(any());
+	}
+
+	// ------------------------------------------------------------------
+	// Profile photo removal / replacement cleans up the unused photo file.
+	// ------------------------------------------------------------------
+
+	private TeacherService serviceWithMedia(com.lms.contentmanagement.api.TeacherProfileMediaApi mediaApi) {
+		return new TeacherService(userProvisioningApi, teacherProfileRepository, tenantContext, permissionCheckService,
+				auditLogApi, mediaApi, null, null);
+	}
+
+	private TeacherProfile profileWithPhoto(UUID teacherId, UUID userId, UUID photo) {
+		TeacherProfile profile = new TeacherProfile(TENANT_ID, userId, "Photo Teacher");
+		setId(profile, teacherId);
+		profile.updateProfile("Photo", "Teacher", "+1 555 0100", null, null, java.math.BigDecimal.ZERO, photo, false);
+		when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(profile));
+		when(teacherProfileRepository.save(any(TeacherProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(userProvisioningApi.findTenantUserSummaries(List.of(userId)))
+			.thenReturn(List.of(new TenantUserSummary(userId, "teacher@example.test", "TEACHER", "ACTIVE")));
+		return profile;
+	}
+
+	@Test
+	void removeProfilePhotoClearsItDeletesTheUnusedFileAndIsAudited() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		var mediaApi = org.mockito.Mockito.mock(com.lms.contentmanagement.api.TeacherProfileMediaApi.class);
+		UUID teacherId = UUID.randomUUID();
+		UUID photo = UUID.randomUUID();
+		TeacherProfile profile = profileWithPhoto(teacherId, UUID.randomUUID(), photo);
+		when(teacherProfileRepository.countByProfileMediaFileId(photo)).thenReturn(0L);
+
+		serviceWithMedia(mediaApi).removeProfilePhoto(teacherId);
+
+		assertThat(profile.getProfileMediaFileId()).isNull();
+		verify(mediaApi).discardProfileImage(photo);
+		verify(permissionCheckService).requirePermission(com.lms.identityaccessservice.api.DomainArea.TEACHERS,
+				com.lms.identityaccessservice.api.PermissionAction.CREATE_EDIT);
+		verify(auditLogApi).record(org.mockito.ArgumentMatchers.argThat(entry -> "teacher.profile_photo_removed".equals(entry.action())));
+	}
+
+	@Test
+	void replacingAPhotoKeepsTheOldFileWhileAnotherTeacherStillUsesIt() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		var mediaApi = org.mockito.Mockito.mock(com.lms.contentmanagement.api.TeacherProfileMediaApi.class);
+		UUID teacherId = UUID.randomUUID();
+		UUID oldPhoto = UUID.randomUUID();
+		UUID newPhoto = UUID.randomUUID();
+		profileWithPhoto(teacherId, UUID.randomUUID(), oldPhoto);
+		when(mediaApi.findLiveImage(newPhoto)).thenReturn(Optional.of(
+				new com.lms.contentmanagement.api.TeacherProfileMediaApi.ProfileImage(newPhoto, "https://img.test/x")));
+		when(teacherProfileRepository.countByProfileMediaFileId(oldPhoto)).thenReturn(1L);
+
+		serviceWithMedia(mediaApi).updateTeacher(teacherId, "Photo", "Teacher", "+1 555 0100", java.math.BigDecimal.ZERO,
+				null, null, newPhoto, false);
+
+		verify(mediaApi, org.mockito.Mockito.never()).discardProfileImage(any());
+	}
+
+	@Test
+	void replacingAnUnsharedPhotoDeletesTheOldFile() {
+		AuthenticatedPrincipalHolder.set(principal("TENANT_ADMIN"));
+		var mediaApi = org.mockito.Mockito.mock(com.lms.contentmanagement.api.TeacherProfileMediaApi.class);
+		UUID teacherId = UUID.randomUUID();
+		UUID oldPhoto = UUID.randomUUID();
+		UUID newPhoto = UUID.randomUUID();
+		profileWithPhoto(teacherId, UUID.randomUUID(), oldPhoto);
+		when(mediaApi.findLiveImage(newPhoto)).thenReturn(Optional.of(
+				new com.lms.contentmanagement.api.TeacherProfileMediaApi.ProfileImage(newPhoto, "https://img.test/x")));
+		when(teacherProfileRepository.countByProfileMediaFileId(oldPhoto)).thenReturn(0L);
+
+		serviceWithMedia(mediaApi).updateTeacher(teacherId, "Photo", "Teacher", "+1 555 0100", java.math.BigDecimal.ZERO,
+				null, null, newPhoto, false);
+
+		verify(mediaApi).discardProfileImage(oldPhoto);
+	}
+
 	// ------------------------------------------------------------------
 	// Tenant-Admin-only approve/reject narrowing (approved plan §2).
 	// ------------------------------------------------------------------

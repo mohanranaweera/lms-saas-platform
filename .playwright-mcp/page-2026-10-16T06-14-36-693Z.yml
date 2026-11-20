@@ -1,0 +1,149 @@
+- generic [active] [ref=f3e1]:
+  - button "Open Next.js Dev Tools" [ref=f3e7] [cursor=pointer]
+  - alert [ref=f3e11]
+  - generic [ref=f3e12]:
+    - complementary [ref=f3e13]:
+      - generic [ref=f3e14]: Tenant Admin
+      - navigation "Primary" [ref=f3e15]:
+        - generic [ref=f3e16]:
+          - generic [ref=f3e17]:
+            - generic [ref=f3e18]: Dashboard
+            - list [ref=f3e19]:
+              - listitem [ref=f3e20]:
+                - link "Dashboard" [ref=f3e21] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+          - generic [ref=f3e22]:
+            - generic [ref=f3e23]: Academic
+            - list [ref=f3e24]:
+              - listitem [ref=f3e25]:
+                - link "Students" [ref=f3e26] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+              - listitem [ref=f3e27]:
+                - link "Teachers" [ref=f3e28] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+              - listitem [ref=f3e29]:
+                - link "Courses" [ref=f3e30] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+              - listitem [ref=f3e31]:
+                - link "Media Library" [ref=f3e32] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+              - listitem [ref=f3e33]:
+                - link "Attendance Reports" [ref=f3e34] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+              - listitem [ref=f3e35]:
+                - link "Mark Attendance" [ref=f3e36] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+              - listitem [ref=f3e37]:
+                - link "Exams" [ref=f3e38] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+              - listitem [ref=f3e39]:
+                - link "Live Classes" [ref=f3e40] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+          - generic [ref=f3e41]:
+            - generic [ref=f3e42]: Finance
+            - list [ref=f3e43]:
+              - listitem [ref=f3e44]:
+                - link "Payments" [ref=f3e45] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+              - listitem [ref=f3e46]:
+                - link "Refunds" [ref=f3e47] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+              - listitem [ref=f3e48]:
+                - link "Payment Slips" [ref=f3e49] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+              - listitem [ref=f3e50]:
+                - link "Reactivation Approvals" [ref=f3e51] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+              - listitem [ref=f3e52]:
+                - link "Finance Summary" [ref=f3e53] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+              - listitem [ref=f3e54]:
+                - link "Expenses" [ref=f3e55] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+              - listitem [ref=f3e56]:
+                - link "Expense Categories" [ref=f3e57] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+              - listitem [ref=f3e58]:
+                - link "Finance Reports" [ref=f3e59] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+              - listitem [ref=f3e60]:
+                - link "Teacher Payouts" [ref=f3e61] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+          - generic [ref=f3e62]:
+            - generic [ref=f3e63]: Communication
+            - list [ref=f3e64]:
+              - listitem [ref=f3e65]:
+                - link "Broadcasts" [ref=f3e66] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+              - listitem [ref=f3e67]:
+                - link "Message Templates" [ref=f3e68] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+          - generic [ref=f3e69]:
+            - generic [ref=f3e70]: Administration
+            - list [ref=f3e71]:
+              - listitem [ref=f3e72]:
+                - link "Staff" [ref=f3e73] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+              - listitem [ref=f3e74]:
+                - link "Roles & Permissions" [ref=f3e75] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+              - listitem [ref=f3e76]:
+                - link "Audit Log" [ref=f3e77] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+          - generic [ref=f3e78]:
+            - generic [ref=f3e79]: Institute Configuration
+            - list [ref=f3e80]:
+              - listitem [ref=f3e81]:
+                - link "General" [ref=f3e82] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+              - listitem [ref=f3e83]:
+                - link "Branding" [ref=f3e84] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+              - listitem [ref=f3e85]:
+                - link "Student Fields" [ref=f3e86] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+              - listitem [ref=f3e87]:
+                - link "Online Payments" [ref=f3e88] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+              - listitem [ref=f3e89]:
+                - link "Integrations" [ref=f3e90] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+              - listitem [ref=f3e91]:
+                - link "Messaging (SMS & WhatsApp)" [ref=f3e92] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+              - listitem [ref=f3e93]:
+                - link "Video Providers" [ref=f3e94] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+              - listitem [ref=f3e95]:
+                - link "Video Settings" [ref=f3e96] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+              - listitem [ref=f3e97]:
+                - link "Custom Domain" [ref=f3e98] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+              - listitem [ref=f3e99]:
+                - link "Devices & Access" [ref=f3e100] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+    - generic [ref=f3e101]:
+      - banner [ref=f3e102]:
+        - generic [ref=f3e103]:
+          - link "Change password" [ref=f3e104] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f3e106]
+      - main [ref=f3e107]:
+        - generic [ref=f3e108]:
+          - heading "Courses" [level=1] [ref=f3e113]
+          - generic [ref=f3e114]:
+            - generic [ref=f3e115]:
+              - generic [ref=f3e116]: Search courses
+              - searchbox "Search courses" [ref=f3e118]
+            - button "Add course" [ref=f3e119]
+          - generic [ref=f3e120]:
+            - tablist "Course status" [ref=f3e121]:
+              - tab "Active" [selected] [ref=f3e122]
+              - tab "Archived" [ref=f3e123]
+            - tabpanel "Active" [ref=f3e124]:
+              - status [ref=f3e125]:
+                - generic [ref=f3e126]: Loading courses…
+          - generic:
+            - status
+            - alert

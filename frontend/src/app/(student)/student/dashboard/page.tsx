@@ -7,8 +7,11 @@ import { AlertTriangle, CheckCircle2, Receipt } from "lucide-react";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { EmptyState } from "@/components/states/empty-state";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { ProfileCompletionBanner } from "@/components/students/profile-completion-banner";
 import { AccessStateBadge } from "@/components/students/enrollment-status-badges";
-import { formatDateTime, formatMoney, shortId } from "@/lib/format";
+import { shortId } from "@/lib/format";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { useLocaleFormat } from "@/i18n/use-locale-format";
 import {
   useMyEnrollments,
   useMyEnrolledCourseSummaries,
@@ -18,9 +21,14 @@ import { useLedgerHistory, type LedgerHistoryEntryResponse } from "@/lib/api/led
 
 const RECENT_COURSES_LIMIT = 5;
 
-function describeMostRecentPayment(entry: LedgerHistoryEntryResponse): string {
-  const label = entry.entryType === "REFUND" ? "Refund" : "Payment confirmed";
-  return `${label} — ${formatMoney(entry.amount)}`;
+function describeMostRecentPayment(
+  entry: LedgerHistoryEntryResponse,
+  t: TranslateFn,
+  formatMoney: (amount: number) => string
+): string {
+  return entry.entryType === "REFUND"
+    ? t("student.dashboard.refund", { amount: formatMoney(entry.amount) })
+    : t("student.dashboard.paymentConfirmed", { amount: formatMoney(entry.amount) });
 }
 
 /**
@@ -48,6 +56,8 @@ function describeMostRecentPayment(entry: LedgerHistoryEntryResponse): string {
  */
 export default function StudentDashboardPage() {
   const router = useRouter();
+  const t = useT();
+  const { formatMoney, formatDateTime } = useLocaleFormat();
   const enrollmentsQuery = useMyEnrollments();
   const ledgerQuery = useLedgerHistory();
   const courseSummaryQuery = useMyEnrolledCourseSummaries();
@@ -60,22 +70,21 @@ export default function StudentDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Overview</h1>
-        <p className="text-sm text-muted-foreground">
-          Your enrollments, courses, and recent payment activity at a glance.
-        </p>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.dashboard.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("student.dashboard.subtitle")}</p>
       </div>
+
+      <ProfileCompletionBanner />
 
       <QueryStateBoundary
         query={enrollmentsQuery}
-        loadingLabel="Loading your enrollments…"
+        loadingLabel={t("student.dashboard.loadingEnrollments")}
         loginPath="/login"
         isEmpty={(data) => data.length === 0}
         emptyState={{
-          title: "You have no active enrollments yet",
-          description:
-            "Once you enroll in a course, your access status and recent courses will show up here.",
-          action: { label: "Browse courses", onClick: () => router.push("/courses") },
+          title: t("student.dashboard.empty.title"),
+          description: t("student.dashboard.empty.description"),
+          action: { label: t("student.dashboard.browseCourses"), onClick: () => router.push("/courses") },
         }}
       >
         {(enrollments) => {
@@ -89,14 +98,14 @@ export default function StudentDashboardPage() {
             <div className="flex flex-col gap-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <StatCard
-                  label="Active courses"
+                  label={t("student.dashboard.activeCourses")}
                   value={activeCount}
                   icon={<CheckCircle2 className="size-4" />}
                 />
                 <StatCard
-                  label="Needs attention"
+                  label={t("student.dashboard.needsAttention")}
                   value={expiredRows.length}
-                  hint={expiredRows.length > 0 ? "Access has expired on these courses" : undefined}
+                  hint={expiredRows.length > 0 ? t("student.dashboard.needsAttentionHint") : undefined}
                   icon={<AlertTriangle className="size-4" />}
                   tone={expiredRows.length > 0 ? "warning" : "default"}
                 />
@@ -108,41 +117,39 @@ export default function StudentDashboardPage() {
                   className="flex flex-col gap-2 rounded-xl border border-warning/40 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <p className="text-sm text-foreground">
-                    {expiredRows.length === 1
-                      ? "One of your courses has expired access."
-                      : `${expiredRows.length} of your courses have expired access.`}
+                    {t("student.dashboard.expiredAlert", { count: expiredRows.length })}
                   </p>
                   <Link
                     href="/student/payments/reactivation"
                     className="text-sm font-medium text-foreground hover:underline"
                   >
-                    Reactivate access
+                    {t("student.dashboard.reactivate")}
                   </Link>
                 </div>
               ) : null}
 
               <div className="flex flex-col gap-3">
-                <h2 className="text-base font-semibold text-foreground">Recent courses</h2>
+                <h2 className="text-base font-semibold text-foreground">{t("student.dashboard.recentCourses")}</h2>
                 {recentCourses.length === 0 ? (
                   <EmptyState
-                    title="No active courses to show yet"
+                    title={t("student.dashboard.noActive.title")}
                     description={
                       expiredRows.length > 0
-                        ? "All your enrollments have expired. Reactivate access to see your courses here again."
-                        : "Courses you currently have active access to will appear here."
+                        ? t("student.dashboard.noActive.allExpired")
+                        : t("student.dashboard.noActive.description")
                     }
                     action={
                       expiredRows.length > 0
                         ? {
-                            label: "Reactivate access",
+                            label: t("student.dashboard.reactivate"),
                             onClick: () => router.push("/student/payments/reactivation"),
                           }
-                        : { label: "Browse courses", onClick: () => router.push("/courses") }
+                        : { label: t("student.dashboard.browseCourses"), onClick: () => router.push("/courses") }
                     }
                   />
                 ) : (
                   <ul
-                    aria-label="Recent courses"
+                    aria-label={t("student.dashboard.recentCourses")}
                     className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
                   >
                     {recentCourses.map((row) => {
@@ -176,7 +183,7 @@ export default function StudentDashboardPage() {
                   href="/student/courses"
                   className="w-fit text-sm font-medium text-foreground hover:underline"
                 >
-                  View all my courses
+                  {t("student.dashboard.viewAll")}
                 </Link>
               </div>
             </div>
@@ -186,16 +193,16 @@ export default function StudentDashboardPage() {
 
       <section className="flex flex-col gap-3" aria-labelledby="payment-activity-heading">
         <h2 id="payment-activity-heading" className="text-base font-semibold text-foreground">
-          Payment activity
+          {t("student.dashboard.paymentActivity")}
         </h2>
-        <QueryStateBoundary query={ledgerQuery} loadingLabel="Loading payment activity…" loginPath="/login">
+        <QueryStateBoundary query={ledgerQuery} loadingLabel={t("student.dashboard.loadingPayments")} loginPath="/login">
           {(entries) => (
             <StatCard
-              label="Most recent payment"
+              label={t("student.dashboard.mostRecentPayment")}
               // `useLedgerHistory` is backend-sorted `createdAt` DESC
               // (`LedgerEntryRepository#findAllByOrderIdIn`), so `[0]` is
               // always the most recent entry — no client-side re-sort needed.
-              value={entries.length === 0 ? "No payments yet" : describeMostRecentPayment(entries[0])}
+              value={entries.length === 0 ? t("student.dashboard.noPayments") : describeMostRecentPayment(entries[0], t, formatMoney)}
               hint={entries.length > 0 ? formatDateTime(entries[0].createdAt) : undefined}
               icon={<Receipt className="size-4" />}
             />

@@ -1,5 +1,7 @@
 package com.lms.financeexpensemanagement.web;
 
+import com.lms.identityaccessservice.api.RequiresCapability;
+import com.lms.identityaccessservice.api.Capability;
 import com.lms.common.api.ApiResponse;
 import com.lms.common.api.PageResponse;
 import com.lms.financeexpensemanagement.domain.ExpenseMethod;
@@ -51,6 +53,7 @@ public class ExpenseController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_EXPENSES)
 	public ResponseEntity<ApiResponse<PageResponse<ExpenseView>>> list(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -64,12 +67,14 @@ public class ExpenseController {
 
 	@GetMapping("/{expenseId}")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_EXPENSES)
 	public ResponseEntity<ApiResponse<ExpenseView>> get(@PathVariable UUID expenseId) {
 		return ResponseEntity.ok(ApiResponse.success(expenseService.get(expenseId)));
 	}
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_ADD_EXPENSE)
 	public ResponseEntity<ApiResponse<ExpenseView>> create(@Valid @ModelAttribute ExpenseCreateRequest request,
 			@RequestPart(value = "attachment", required = false) MultipartFile attachment) {
 		ExpenseView view = expenseService.create(new NewExpenseCommand(request.categoryId(), request.expenseDate(),
@@ -79,6 +84,7 @@ public class ExpenseController {
 
 	@PostMapping("/{expenseId}/void")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VOID_EXPENSE)
 	public ResponseEntity<ApiResponse<ExpenseView>> voidExpense(@PathVariable UUID expenseId,
 			@Valid @RequestBody ExpenseVoidRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(expenseService.voidExpense(expenseId, request.reason())));
@@ -86,6 +92,7 @@ public class ExpenseController {
 
 	@GetMapping("/{expenseId}/attachment-url")
 	@PreAuthorize("isAuthenticated()")
+	@RequiresCapability(Capability.FINANCE_VIEW_EXPENSES)
 	public ResponseEntity<ApiResponse<AttachmentUrlResponse>> attachmentUrl(@PathVariable UUID expenseId) {
 		SignedDownloadUrl signed = expenseService.attachmentUrl(expenseId);
 		return ResponseEntity.ok(ApiResponse.success(new AttachmentUrlResponse(signed.url(), signed.expiresAt())));

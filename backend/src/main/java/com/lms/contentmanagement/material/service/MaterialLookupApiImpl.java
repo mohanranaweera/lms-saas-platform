@@ -6,9 +6,15 @@ import com.lms.contentmanagement.material.domain.Material;
 import com.lms.contentmanagement.material.repository.MaterialRepository;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.LessonOwnership;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * {@link MaterialLookupApi}'s single implementation. Deliberately resolves
@@ -38,18 +44,64 @@ class MaterialLookupApiImpl implements MaterialLookupApi {
 	}
 
 	@Override
-	public Optional<MaterialVideoOwnership> resolveVideoAssetOwnership(UUID videoAssetId) {
-		Optional<Material> materialOpt = materialRepository.findByVideoAssetId(videoAssetId);
-		if (materialOpt.isEmpty()) {
-			return Optional.empty();
+	@Transactional(readOnly = true)
+	public Set<UUID> findVideoAssetIdsInUse(Collection<UUID> videoAssetIds) {
+		return materialRepository.findByVideoAssetIds(videoAssetIds)
+			.stream()
+			.map(Material::getVideoAssetId)
+			.collect(Collectors.toSet());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public java.util.Map<UUID, Integer> countLessonAttachments(Collection<UUID> videoAssetIds) {
+		return materialRepository.countLessonAttachmentsByVideoAssetIds(videoAssetIds);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Set<UUID> findVideoAssetIdsForTeacher(UUID teacherUserId) {
+		Set<UUID> lessonIds = courseLookupApi.findLessonIdsByTeacherId(teacherUserId);
+		return materialRepository.findVideoAssetIdsByLessonIds(lessonIds);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public java.util.List<com.lms.contentmanagement.api.LessonMaterialSummary> findStudentVisibleLessonMaterials(
+			UUID lessonId) {
+		return materialRepository.findByLessonId(lessonId)
+			.stream()
+			.filter(material -> material.getVisibility() == com.lms.contentmanagement.material.domain.MaterialVisibility.VISIBLE)
+			.map(material -> new com.lms.contentmanagement.api.LessonMaterialSummary(material.getId(),
+					material.getTitle(), material.getMaterialType().name()))
+			.toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<com.lms.contentmanagement.api.LessonMediaPlaybackContext> resolveLessonMediaForPlayback(UUID lessonMediaId) {
+		return materialRepository.findById(lessonMediaId)
+			.filter(material -> material.getMaterialType() == com.lms.contentmanagement.material.domain.MaterialType.VIDEO
+					|| material.getMaterialType() == com.lms.contentmanagement.material.domain.MaterialType.RECORDING)
+			.flatMap(material -> courseLookupApi.resolveLessonOwnership(material.getLessonId())
+				.map(ownership -> new com.lms.contentmanagement.api.LessonMediaPlaybackContext(material.getId(),
+						material.getLessonId(), ownership.courseId(), material.getVideoAssetId(), material.getVisibility(),
+						material.getAvailableFromAt(), material.getExpiryAt(), ownership.courseOpenToEnrolledStudents())));
+	}
+
+	@Override
+	public List<MaterialVideoOwnership> resolveVideoAssetOwnerships(UUID videoAssetId) {
+		List<MaterialVideoOwnership> result = new ArrayList<>();
+		for (Material material : materialRepository.findAllByVideoAssetId(videoAssetId)) {
+			if (material.getLessonId() == null) {
+				continue;
+			}
+			Optional<LessonOwnership> ownershipOpt = courseLookupApi.resolveLessonOwnership(material.getLessonId());
+			ownershipOpt.ifPresent(ownership -> result.add(new MaterialVideoOwnership(material.getId(),
+					ownership.courseId(), ownership.teacherId(), ownership.courseOpenToEnrolledStudents(),
+					material.getLessonId())));
 		}
-		Material material = materialOpt.get();
-		if (material.getLessonId() == null) {
-			return Optional.empty();
-		}
-		Optional<LessonOwnership> ownershipOpt = courseLookupApi.resolveLessonOwnership(material.getLessonId());
-		return ownershipOpt.map(ownership -> new MaterialVideoOwnership(material.getId(), ownership.courseId(),
-				ownership.teacherId(), ownership.coursePublished()));
+		return List.copyOf(result);
 	}
 
 }

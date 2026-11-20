@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.lms.common.error.BankTransferDisabledException;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.PayloadTooLargeException;
 import com.lms.common.error.UnsupportedMediaTypeException;
@@ -23,6 +24,9 @@ import com.lms.paymentmanagement.order.service.OrderService;
 import com.lms.paymentmanagement.slip.domain.PaymentSlip;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipFlagRepository;
 import com.lms.paymentmanagement.slip.repository.PaymentSlipRepository;
+import com.lms.paymentmanagement.checkout.service.BankTransferPolicy;
+import com.lms.paymentmanagement.checkout.service.CheckoutComposerService;
+import com.lms.paymentmanagement.order.repository.StudentOrderLineRepository;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -76,12 +80,25 @@ class SlipUploadServiceTest {
 	@Mock
 	private TenantContext tenantContext;
 
+	@Mock
+	private CheckoutComposerService checkoutComposerService;
+
+	@Mock
+	private StudentOrderLineRepository studentOrderLineRepository;
+
+	@Mock
+	private SlipWriteService slipWriteService;
+
+	@Mock
+	private BankTransferPolicy bankTransferPolicy;
+
 	private SlipUploadService slipUploadService;
 
 	@BeforeEach
 	void setUp() {
 		slipUploadService = new SlipUploadService(orderService, paymentSlipRepository, paymentSlipFlagRepository,
-				slipStorageApi, slipDuplicateCheckService, userProvisioningApi, tenantContext, MAX_FILE_SIZE_BYTES);
+				slipStorageApi, slipDuplicateCheckService, userProvisioningApi, tenantContext, MAX_FILE_SIZE_BYTES,
+				checkoutComposerService, studentOrderLineRepository, slipWriteService, bankTransferPolicy);
 	}
 
 	@Test
@@ -96,8 +113,8 @@ class SlipUploadServiceTest {
 		when(slipStorageApi.store(any(StoreObjectCommand.class)))
 			.thenReturn(new StoredObject("object-key-123", 123L));
 		AtomicReference<PaymentSlip> savedSlip = new AtomicReference<>();
-		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenAnswer(invocation -> {
-			PaymentSlip slip = invocation.getArgument(0);
+		when(slipWriteService.saveNewSlip(any(), any(PaymentSlip.class))).thenAnswer(invocation -> {
+			PaymentSlip slip = invocation.getArgument(1);
 			ReflectionTestUtils.setField(slip, "id", UUID.randomUUID());
 			savedSlip.set(slip);
 			return slip;
@@ -112,7 +129,7 @@ class SlipUploadServiceTest {
 		assertThat(view.studentId()).isEqualTo(studentId);
 		verify(orderService).loadOrderOwnedByCurrentStudent(orderId);
 		verify(slipStorageApi, times(1)).store(any(StoreObjectCommand.class));
-		verify(paymentSlipRepository, times(1)).save(any(PaymentSlip.class));
+		verify(slipWriteService, times(1)).saveNewSlip(any(), any(PaymentSlip.class));
 		verify(slipDuplicateCheckService, times(1)).runChecksAndAdvance(savedSlip.get().getId());
 	}
 
@@ -129,6 +146,36 @@ class SlipUploadServiceTest {
 	 * PayloadTooLargeException}.
 	 */
 	@Test
+	void uploadSlipWhenBankTransferIsDisabledIsRejectedBeforeAnyStorageOrDbWrite() {
+		UUID orderId = UUID.randomUUID();
+		StudentOrder order = new StudentOrder(TENANT_ID, UUID.randomUUID(), UUID.randomUUID(), new BigDecimal("10.00"),
+				"LKR");
+		when(orderService.loadOrderOwnedByCurrentStudent(orderId)).thenReturn(order);
+		org.mockito.Mockito.doThrow(new BankTransferDisabledException("off")).when(bankTransferPolicy)
+			.requireSlipAllowed();
+		MockMultipartFile file = new MockMultipartFile("file", "slip.pdf", "application/pdf", validPdfBytes());
+
+		assertThatThrownBy(() -> slipUploadService.uploadSlip(orderId, "REF-OFF", file))
+			.isInstanceOf(BankTransferDisabledException.class);
+
+		verifyNoInteractions(slipStorageApi, slipDuplicateCheckService, slipWriteService);
+		verify(paymentSlipRepository, never()).existsActiveSlipForOrder(any());
+	}
+
+	@Test
+	void uploadSlipChecksOrderOwnershipBeforeTheBankTransferSwitch() {
+		UUID orderId = UUID.randomUUID();
+		when(orderService.loadOrderOwnedByCurrentStudent(orderId))
+			.thenThrow(new com.lms.common.error.NotFoundException("Order not found"));
+		MockMultipartFile file = new MockMultipartFile("file", "slip.pdf", "application/pdf", validPdfBytes());
+
+		assertThatThrownBy(() -> slipUploadService.uploadSlip(orderId, "REF-X", file))
+			.isInstanceOf(com.lms.common.error.NotFoundException.class);
+
+		verifyNoInteractions(bankTransferPolicy, slipStorageApi);
+	}
+
+	@Test
 	void uploadSlipWithAFileExceedingTheMaxSizeNeverBuffersTheFullOversizedFileBeforeRejecting() throws Exception {
 		UUID orderId = UUID.randomUUID();
 		long allowedBeforeExplosion = MAX_FILE_SIZE_BYTES + 65_536L;
@@ -139,7 +186,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(PayloadTooLargeException.class);
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -153,7 +200,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(UnsupportedMediaTypeException.class);
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -180,7 +227,7 @@ class SlipUploadServiceTest {
 			.hasMessage("You already have a payment slip under review for this order");
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -195,7 +242,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(AccessDeniedException.class);
 
 		verifyNoInteractions(slipStorageApi);
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -214,7 +261,7 @@ class SlipUploadServiceTest {
 			.isInstanceOf(RuntimeException.class)
 			.hasMessage("storage unavailable");
 
-		verify(paymentSlipRepository, never()).save(any());
+		verify(slipWriteService, never()).saveNewSlip(any(), any());
 		verifyNoInteractions(slipDuplicateCheckService);
 	}
 
@@ -239,7 +286,7 @@ class SlipUploadServiceTest {
 			.thenReturn(new StoredObject("object-key-orphan-candidate", 123L));
 		DataIntegrityViolationException saveFailure = new DataIntegrityViolationException(
 				"duplicate key value violates unique constraint \"uq_payment_slip_tenant_order_active\"");
-		when(paymentSlipRepository.save(any(PaymentSlip.class))).thenThrow(saveFailure);
+		when(slipWriteService.saveNewSlip(any(), any(PaymentSlip.class))).thenThrow(saveFailure);
 		MockMultipartFile file = new MockMultipartFile("file", "slip.pdf", "application/pdf", validPdfBytes());
 
 		assertThatThrownBy(() -> slipUploadService.uploadSlip(orderId, "REF-ORPHAN", file))

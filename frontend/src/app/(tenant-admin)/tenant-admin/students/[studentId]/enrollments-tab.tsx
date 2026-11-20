@@ -11,11 +11,64 @@ import {
 } from "@/lib/api/enrollments";
 import { formatDateTime, shortId } from "@/lib/format";
 import { RevokeEnrollmentDialog } from "./revoke-enrollment-dialog";
+import { ExtendAccessDialog } from "./extend-access-dialog";
+
+function accessEndText(row: EnrollmentHistoryEntryResponse): string {
+  const end = row.effectiveExpiresAt ?? row.accessExpiresAt;
+  if (!end) {
+    return "No expiry";
+  }
+  const grace =
+    row.accessEndsAt && row.accessEndsAt !== end ? ` (grace until ${formatDateTime(row.accessEndsAt)})` : "";
+  return `${formatDateTime(end)}${grace}`;
+}
+
+/** Wave 10: extend a current, time-limited enrollment (active or expired) - never a revoked/superseded one. */
+function canExtendRow(row: EnrollmentHistoryEntryResponse): boolean {
+  return row.current && row.accessExpiresAt !== null;
+}
+
+function RowActions({
+  row,
+  studentId,
+  canManage,
+  canExtend,
+  onRevoked,
+  onNotice,
+}: {
+  row: EnrollmentHistoryEntryResponse;
+  studentId: string;
+  canManage: boolean;
+  canExtend: boolean;
+  onRevoked: (courseId: string) => void;
+  onNotice: (message: string) => void;
+}) {
+  const showExtend = canExtend && canExtendRow(row);
+  const showRevoke = canManage && row.current;
+  if (!showExtend && !showRevoke) {
+    return null;
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {showExtend ? <ExtendAccessDialog studentId={studentId} enrollment={row} onSuccess={onNotice} /> : null}
+      {showRevoke ? (
+        <RevokeEnrollmentDialog
+          studentId={studentId}
+          enrollmentId={row.enrollmentId}
+          courseId={row.courseId}
+          onSuccess={() => onRevoked(row.courseId)}
+        />
+      ) : null}
+    </div>
+  );
+}
 
 const columns = (
   studentId: string,
   canManage: boolean,
-  onRevoked: (courseId: string) => void
+  canExtend: boolean,
+  onRevoked: (courseId: string) => void,
+  onNotice: (message: string) => void
 ): DataTableColumn<EnrollmentHistoryEntryResponse>[] => [
   {
     key: "course",
@@ -28,10 +81,14 @@ const columns = (
     header: "Status",
     cell: (row) =>
       row.current ? (
-        <Badge variant="default">
-          <CheckCircle2 className="size-3.5" aria-hidden="true" />
-          Current
-        </Badge>
+        <span className="flex flex-wrap gap-1">
+          <Badge variant="default">
+            <CheckCircle2 className="size-3.5" aria-hidden="true" />
+            Current
+          </Badge>
+          {!row.accessActive ? <Badge variant="warning">Access ended</Badge> : null}
+          {row.extended ? <Badge variant="secondary">Extended</Badge> : null}
+        </span>
       ) : row.revokedAt ? (
         <Badge variant="destructive">Revoked</Badge>
       ) : (
@@ -49,8 +106,8 @@ const columns = (
   },
   {
     key: "accessExpiresAt",
-    header: "Access expires",
-    cell: (row) => (row.accessExpiresAt ? formatDateTime(row.accessExpiresAt) : "No expiry"),
+    header: "Access ends",
+    cell: (row) => accessEndText(row),
   },
   {
     key: "revoked",
@@ -68,20 +125,30 @@ const columns = (
   {
     key: "actions",
     header: "Actions",
-    cell: (row) =>
-      canManage && row.current ? (
-        <RevokeEnrollmentDialog
-          studentId={studentId}
-          enrollmentId={row.enrollmentId}
-          courseId={row.courseId}
-          onSuccess={() => onRevoked(row.courseId)}
-        />
-      ) : null,
+    cell: (row) => (
+      <RowActions
+        row={row}
+        studentId={studentId}
+        canManage={canManage}
+        canExtend={canExtend}
+        onRevoked={onRevoked}
+        onNotice={onNotice}
+      />
+    ),
     hideOnCard: true,
   },
 ];
 
-export function EnrollmentsTab({ studentId, canManage }: { studentId: string; canManage: boolean }) {
+export function EnrollmentsTab({
+  studentId,
+  canManage,
+  canExtend,
+}: {
+  studentId: string;
+  canManage: boolean;
+  /** Wave 10 - `ACCESS_EXPIRY`/`CREATE_EDIT` (Tenant Admin). UX only. */
+  canExtend: boolean;
+}) {
   const query = useStudentEnrollments(studentId);
 
   // Distinguishable success feedback for Revoke — this app has no toast
@@ -118,7 +185,7 @@ export function EnrollmentsTab({ studentId, canManage }: { studentId: string; ca
             {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
           </div>
           <DataTable
-            columns={columns(studentId, canManage, handleRevoked)}
+            columns={columns(studentId, canManage, canExtend, handleRevoked, setNotice)}
             rows={enrollments}
             rowKey={(row) => row.enrollmentId}
             caption="Enrollment history"
@@ -126,16 +193,16 @@ export function EnrollmentsTab({ studentId, canManage }: { studentId: string; ca
             cardHeadingAdornment={(row) =>
               row.current ? <Badge variant="default">Current</Badge> : <Badge variant="outline">Superseded</Badge>
             }
-            cardFooter={(row) =>
-              canManage && row.current ? (
-                <RevokeEnrollmentDialog
-                  studentId={studentId}
-                  enrollmentId={row.enrollmentId}
-                  courseId={row.courseId}
-                  onSuccess={() => handleRevoked(row.courseId)}
-                />
-              ) : null
-            }
+            cardFooter={(row) => (
+              <RowActions
+                row={row}
+                studentId={studentId}
+                canManage={canManage}
+                canExtend={canExtend}
+                onRevoked={handleRevoked}
+                onNotice={setNotice}
+              />
+            )}
           />
         </div>
       )}

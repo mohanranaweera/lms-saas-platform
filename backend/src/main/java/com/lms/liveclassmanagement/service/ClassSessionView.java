@@ -17,14 +17,25 @@ import java.util.UUID;
 public record ClassSessionView(UUID id, UUID courseId, UUID teacherId, UUID lessonId, String title,
 		String description, Instant scheduledStart, Instant scheduledEnd, ClassSessionStatus status,
 		MeetingProvider meetingProvider, ClassSessionProviderStatus providerStatus, String providerFailureReason,
-		Instant createdAt, Instant updatedAt) {
+		Instant createdAt, Instant updatedAt, String hostConnectionStatus) {
 
+	/** Without host-connection status - see {@link ClassSessionViewAssembler} for the enriched form. */
 	public static ClassSessionView from(ClassSession session) {
+		return from(session, null);
+	}
+
+	/**
+	 * @param hostConnectionStatus MEDIA-INT-01: status of the Zoom connection
+	 * hosting the meeting ({@code ACTIVE}/{@code NEEDS_RECONNECT}/{@code
+	 * DISCONNECTED}); {@code null} for fake-provider sessions and Student
+	 * callers
+	 */
+	public static ClassSessionView from(ClassSession session, String hostConnectionStatus) {
 		return new ClassSessionView(session.getId(), session.getCourseId(), session.getTeacherId(),
 				session.getLessonId(), session.getTitle(), session.getDescription(), session.getScheduledStart(),
 				session.getScheduledEnd(), session.getStatus(), session.getMeetingProvider(),
 				session.getProviderStatus(), session.getProviderFailureReason(), session.getCreatedAt(),
-				session.getUpdatedAt());
+				session.getUpdatedAt(), hostConnectionStatus);
 	}
 
 }

@@ -9,10 +9,11 @@ import { apiFetch } from "./client";
  */
 export type PrincipalKind = "tenant" | "platform-admin";
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+/**
+ * Exactly one identifier (ADR-031): `email`, or — tenant sign-in only — `mobile`
+ * in any common format (normalised server-side).
+ */
+export type LoginRequest = { email: string; password: string } | { mobile: string; password: string };
 
 export interface LoginResponse {
   accessToken: string;

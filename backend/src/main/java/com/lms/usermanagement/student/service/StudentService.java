@@ -142,6 +142,7 @@ public class StudentService {
 		// here, surfacing as empty (-> 404), never a cross-tenant read.
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
 		StudentAccount account = toStudentAccount(profile, summariesByUserId);
 		if (account == null) {
@@ -158,6 +159,7 @@ public class StudentService {
 
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		profile.rename(name);
 		Map<UUID, TenantUserSummary> summariesByUserId = summariesByUserId(List.of(profile));
 		StudentAccount account = toStudentAccount(profile, summariesByUserId);
@@ -181,7 +183,11 @@ public class StudentService {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		userProvisioningApi.activateTenantUser(profile.getUserId());
+		// STU-MGMT-02: activating a pending self-registration also approves it.
+		profile.approve();
+		studentProfileRepository.save(profile);
 		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.activated",
 				"student_profile", profile.getId()));
 		return requireStudentAccount(profile);
@@ -192,6 +198,7 @@ public class StudentService {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		userProvisioningApi.suspendTenantUser(profile.getUserId());
 		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.deactivated",
 				"student_profile", profile.getId()));
@@ -208,6 +215,7 @@ public class StudentService {
 		permissionCheckService.requirePermission(DomainArea.STUDENTS, PermissionAction.CREATE_EDIT);
 		StudentProfile profile = studentProfileRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, profile);
 		String temporaryPassword = userProvisioningApi.resetPassword(profile.getUserId());
 		auditLogApi.record(AuditLogEntry.of(AuthenticatedPrincipalHolder.get().userId(), "student.password_reset",
 				"student_profile", profile.getId()));
@@ -225,9 +233,9 @@ public class StudentService {
 	 */
 	@Transactional(readOnly = true)
 	public PageResponse<AuditActivityEntry> listActivity(UUID id, Pageable pageable) {
-		if (!studentProfileRepository.existsById(id)) {
-			throw new NotFoundException("Student account not found");
-		}
+		StudentProfile target = studentProfileRepository.findById(id)
+			.orElseThrow(() -> new NotFoundException("Student account not found"));
+		PendingStudentAccess.require(permissionCheckService, target);
 		Page<AuditActivityEntry> page = auditLogApi.findForTarget("student_profile", id, pageable);
 		return PageResponse.from(page);
 	}
@@ -289,6 +297,32 @@ public class StudentService {
 				tenantContext.getTenantId(), userId);
 
 		return account;
+	}
+
+	/** The caller's own billing address (PAY-GW-01 follow-up); both fields may be null. */
+	public StudentBillingAddress getOwnBillingAddress() {
+		StudentProfile profile = ownProfile();
+		return new StudentBillingAddress(profile.getAddressLine(), profile.getCity());
+	}
+
+	/**
+	 * Self-service billing address edit - same self-resolved, no-id design as
+	 * {@link #updateOwnProfile(String)}. Needed for online (PayHere) payment.
+	 */
+	@Transactional
+	public StudentBillingAddress updateOwnBillingAddress(String addressLine, String city) {
+		StudentProfile profile = ownProfile();
+		profile.updateBillingAddress(addressLine.trim(), city.trim());
+		studentProfileRepository.save(profile);
+		log.info("Student profile {} billing address updated in tenant {} by self-service user {}", profile.getId(),
+				tenantContext.getTenantId(), profile.getUserId());
+		return new StudentBillingAddress(profile.getAddressLine(), profile.getCity());
+	}
+
+	private StudentProfile ownProfile() {
+		UUID userId = AuthenticatedPrincipalHolder.get().userId();
+		return studentProfileRepository.findOne((root, query, cb) -> cb.equal(root.get("userId"), userId))
+			.orElseThrow(() -> new NotFoundException("Student account not found"));
 	}
 
 	private Map<UUID, TenantUserSummary> summariesByUserId(List<StudentProfile> profiles) {

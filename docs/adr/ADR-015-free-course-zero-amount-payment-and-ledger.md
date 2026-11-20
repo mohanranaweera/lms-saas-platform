@@ -2,6 +2,8 @@
 
 ## Status
 
+> **Partly superseded by ADR-028 (2026-10-12):** enrollment is now a free, payment-independent operation. The zero-amount checkout described here is no longer used to enroll students; its code path and all historical $0 payment/ledger/enrollment rows are kept unchanged.
+
 **Accepted (2026-09-22)**, by the project owner, following a three-agent Phase E review
 (architecture, security/tenant-isolation, payment-ledger) of the shipped Wave 2 (Course/Class
 model + billing foundation) backend. All three reviews independently converged on the same

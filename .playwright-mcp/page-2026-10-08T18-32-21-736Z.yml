@@ -1,0 +1,61 @@
+- generic [active] [ref=f2e1]:
+  - button "Open Next.js Dev Tools" [ref=f2e31] [cursor=pointer]
+  - alert [ref=f2e35]
+  - generic [ref=f2e36]:
+    - complementary [ref=f2e37]:
+      - generic [ref=f2e38]: Student Portal
+      - navigation "Primary" [ref=f2e39]:
+        - list [ref=f2e40]:
+          - listitem [ref=f2e41]:
+            - link "Dashboard" [ref=f2e42] [cursor=pointer]:
+              - /url: /student/dashboard
+          - listitem [ref=f2e43]:
+            - link "My Courses" [ref=f2e44] [cursor=pointer]:
+              - /url: /student/courses
+          - listitem [ref=f2e45]:
+            - link "Browse Courses" [ref=f2e46] [cursor=pointer]:
+              - /url: /student/browse
+          - listitem [ref=f2e47]:
+            - link "My Attendance" [ref=f2e48] [cursor=pointer]:
+              - /url: /student/attendance
+          - listitem [ref=f2e49]:
+            - link "Exams" [ref=f2e50] [cursor=pointer]:
+              - /url: /student/exams
+          - listitem [ref=f2e51]:
+            - link "Payments" [ref=f2e52] [cursor=pointer]:
+              - /url: /student/payments/history
+          - listitem [ref=f2e53]:
+            - link "Reactivation" [ref=f2e54] [cursor=pointer]:
+              - /url: /student/payments/reactivation
+          - listitem [ref=f2e55]:
+            - link [ref=f2e56] [cursor=pointer]:
+              - /url: /student/notifications
+              - text: Notifications
+              - generic "1 unread notification" [ref=f2e57]:
+                - generic [aria-hidden] [ref=f2e58]: "1"
+          - listitem [ref=f2e59]:
+            - link "My Devices" [ref=f2e60] [cursor=pointer]:
+              - /url: /student/devices
+          - listitem [ref=f2e61]:
+            - link "AOC Player" [ref=f2e62] [cursor=pointer]:
+              - /url: /student/player
+          - listitem [ref=f2e63]:
+            - link "Profile" [ref=f2e64] [cursor=pointer]:
+              - /url: /student/profile
+    - generic [ref=f2e65]:
+      - banner [ref=f2e66]:
+        - generic [ref=f2e67]:
+          - link "Change password" [ref=f2e68] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=f2e70]
+      - main [ref=f2e71]:
+        - generic [ref=f2e72]:
+          - generic [ref=f2e73]:
+            - heading "Overview" [level=1] [ref=f2e74]
+            - paragraph [ref=f2e75]: Your enrollments, courses, and recent payment activity at a glance.
+          - status [ref=f2e76]:
+            - generic [ref=f2e79]: Loading your enrollments…
+          - region [ref=f2e80]:
+            - heading "Payment activity" [level=2] [ref=f2e81]
+            - status [ref=f2e82]:
+              - generic [ref=f2e85]: Loading payment activity…

@@ -145,8 +145,16 @@ public class QuestionBankService {
 		examQuestionRepository.delete(question);
 	}
 
+	/**
+	 * Legacy endpoints only address legacy course-level questions: a module-bank
+	 * question (Slice A, sanitized HTML managed by {@code ModuleQuestionBankService})
+	 * or a soft-deleted one is "not found" here, so this unsanitized write path can
+	 * never touch module content.
+	 */
 	private ExamQuestion loadQuestion(UUID questionId) {
-		return examQuestionRepository.findById(questionId).orElseThrow(() -> new NotFoundException("Question not found"));
+		return examQuestionRepository.findById(questionId)
+			.filter(question -> question.getModuleId() == null && !question.isDeleted())
+			.orElseThrow(() -> new NotFoundException("Question not found"));
 	}
 
 	/**

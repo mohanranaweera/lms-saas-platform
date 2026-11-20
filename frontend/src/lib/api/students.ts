@@ -65,6 +65,21 @@ export interface BulkImportRowResult {
 const studentsListKey = ["students"] as const;
 const studentDetailKey = (id: string) => ["students", id] as const;
 const ownProfileKey = ["students", "me"] as const;
+const ownBillingAddressKey = ["students", "me", "billing-address"] as const;
+
+/**
+ * Mirrors `StudentBillingAddressResponse` (PAY-GW-01 follow-up). Both fields
+ * are `null` until the student sets them; online (PayHere) payment requires
+ * both.
+ */
+export interface StudentBillingAddress {
+  addressLine: string | null;
+  city: string | null;
+}
+
+export function hasBillingAddress(address: StudentBillingAddress | undefined): boolean {
+  return Boolean(address?.addressLine?.trim() && address?.city?.trim());
+}
 
 function invalidateStudentLists(queryClient: QueryClient) {
   // `exact: true` is load-bearing, not cosmetic: `invalidateQueries` fuzzy-
@@ -151,6 +166,33 @@ export function useUpdateOwnStudentProfile() {
       }),
     onSuccess: (data) => {
       queryClient.setQueryData(ownProfileKey, data);
+    },
+  });
+}
+
+/** `GET /v1/students/me/billing-address` — the student's own billing address only. */
+export function useOwnBillingAddress(options?: { enabled?: boolean }) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: ownBillingAddressKey,
+    queryFn: () =>
+      authorizedFetch<StudentBillingAddress>("tenant", "/v1/students/me/billing-address"),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/** `PUT /v1/students/me/billing-address` — both fields required; never takes an id. */
+export function useUpdateOwnBillingAddress() {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { addressLine: string; city: string }) =>
+      authorizedFetch<StudentBillingAddress>("tenant", "/v1/students/me/billing-address", {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(ownBillingAddressKey, data);
     },
   });
 }

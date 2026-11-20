@@ -7,13 +7,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 /**
- * Computes {@code device_session.device_identifier_hash} entirely
- * server-side from request signals already available to the server
- * (User-Agent + remote address) - never from a client-supplied device id
- * (per .claude/rules/security.md's device-authentication rule). No
- * device-limit/registration enforcement reads this value yet (Phase 2,
- * explicitly out of scope for this module) - it is populated now purely so
- * the column is meaningful once that enforcement lands.
+ * Computes {@code platform_admin_session.device_identifier_hash} from request
+ * signals (User-Agent + remote address). Since Wave 10 this is used ONLY for
+ * Platform Admin sessions, which are not device-limited. Tenant users are
+ * identified by a server-issued device token instead (ADR-007 section 2,
+ * {@code DeviceRegistrationService}) - this hash is never device identity.
  */
 final class DeviceFingerprint {
 

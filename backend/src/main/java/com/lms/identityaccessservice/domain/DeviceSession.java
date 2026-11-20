@@ -62,11 +62,25 @@ public class DeviceSession extends BaseEntity implements TenantOwned {
 	@Column(name = "status", nullable = false)
 	private SessionStatus status;
 
+	/**
+	 * Wave 10 (V64): the server-issued device this session runs on. Null only
+	 * for sessions issued before V64 - those are refused at their next refresh.
+	 * {@code deviceIdentifierHash} then holds that device token hash.
+	 */
+	@Column(name = "device_id", updatable = false)
+	private UUID deviceId;
+
 	protected DeviceSession() {
 	}
 
 	public DeviceSession(UUID tenantId, UUID userId, String refreshTokenHash, String deviceIdentifierHash,
 			Instant issuedAt, Instant expiresAt) {
+		this(tenantId, userId, refreshTokenHash, deviceIdentifierHash, issuedAt, expiresAt, null);
+	}
+
+	public DeviceSession(UUID tenantId, UUID userId, String refreshTokenHash, String deviceIdentifierHash,
+			Instant issuedAt, Instant expiresAt, UUID deviceId) {
+		this.deviceId = deviceId;
 		this.tenantId = tenantId;
 		this.userId = userId;
 		this.refreshTokenHash = refreshTokenHash;
@@ -136,6 +150,10 @@ public class DeviceSession extends BaseEntity implements TenantOwned {
 
 	public SessionStatus getStatus() {
 		return status;
+	}
+
+	public UUID getDeviceId() {
+		return deviceId;
 	}
 
 }

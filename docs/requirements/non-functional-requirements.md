@@ -92,8 +92,9 @@ multi-tenancy.md` — summarized here as an NFR posture:
   reaches a terminal state (`CONFIRMED`/`REJECTED`/`REFUNDED`); corrections are always
   new rows, never `UPDATE`/`DELETE`.
 - Money columns use fixed-precision types (`NUMERIC`), never floating point.
-- Enrollment activation carries a FK/NOT NULL trail to the specific confirmed payment
-  or approved manual-evidence row that authorized it — never a bare boolean flag.
+- A paid entitlement (and legacy payment-activated enrollment access) carries a FK/NOT NULL trail
+  to the specific confirmed payment or approved manual-evidence row that authorized it — never a
+  bare boolean flag. Free enrollment is payment-independent (ADR-028).
 - Settlement calculation is idempotent (re-running for an already-settled
   tenant/period must not create duplicate payout entries), guarded by a DB uniqueness
   constraint, not application-logic-only checks.

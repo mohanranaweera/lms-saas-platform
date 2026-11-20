@@ -54,7 +54,8 @@ class NotificationTemplateSeedingIntegrationTest extends NotificationManagementT
 			.toList();
 
 		assertThat(templateKeys).containsExactlyInAnyOrder(NotificationEventType.PAYMENT_CONFIRMED.name(),
-				NotificationEventType.PAYMENT_REJECTED.name(), NotificationEventType.PAYMENT_REFUNDED.name());
+				NotificationEventType.PAYMENT_REJECTED.name(), NotificationEventType.PAYMENT_REFUNDED.name(),
+				NotificationEventType.ACCOUNT_SETUP_INVITE.name(), NotificationEventType.PASSWORD_RESET.name());
 	}
 
 	@Test
@@ -75,10 +76,11 @@ class NotificationTemplateSeedingIntegrationTest extends NotificationManagementT
 
 		List<NotificationTemplate> templatesAfterRedelivery = withTenant(result.id(),
 				() -> notificationTemplateRepository.findAll());
-		assertThat(templatesAfterRedelivery).hasSize(3);
+		assertThat(templatesAfterRedelivery).hasSize(5);
 		assertThat(templatesAfterRedelivery).extracting(NotificationTemplate::getTemplateKey)
 			.containsExactlyInAnyOrder(NotificationEventType.PAYMENT_CONFIRMED.name(),
-					NotificationEventType.PAYMENT_REJECTED.name(), NotificationEventType.PAYMENT_REFUNDED.name());
+					NotificationEventType.PAYMENT_REJECTED.name(), NotificationEventType.PAYMENT_REFUNDED.name(),
+				NotificationEventType.ACCOUNT_SETUP_INVITE.name(), NotificationEventType.PASSWORD_RESET.name());
 		NotificationTemplate reloadedConfirmed = withTenant(result.id(),
 				() -> notificationTemplateRepository.findByTemplateKey(NotificationEventType.PAYMENT_CONFIRMED.name()))
 			.orElseThrow();
@@ -87,7 +89,7 @@ class NotificationTemplateSeedingIntegrationTest extends NotificationManagementT
 
 		Long dbCount = jdbcTemplate.queryForObject("SELECT count(*) FROM notification_template WHERE tenant_id = ?",
 				Long.class, result.id());
-		assertThat(dbCount).isEqualTo(3L);
+		assertThat(dbCount).isEqualTo(5L);
 	}
 
 	@Test
@@ -100,8 +102,8 @@ class NotificationTemplateSeedingIntegrationTest extends NotificationManagementT
 		List<NotificationTemplate> tenantBTemplates = withTenant(tenantB.id(),
 				() -> notificationTemplateRepository.findAll());
 
-		assertThat(tenantATemplates).hasSize(3).allMatch(t -> t.getTenantId().equals(tenantA.id()));
-		assertThat(tenantBTemplates).hasSize(3).allMatch(t -> t.getTenantId().equals(tenantB.id()));
+		assertThat(tenantATemplates).hasSize(5).allMatch(t -> t.getTenantId().equals(tenantA.id()));
+		assertThat(tenantBTemplates).hasSize(5).allMatch(t -> t.getTenantId().equals(tenantB.id()));
 
 		// Under tenant B's own context, tenant A's template ids are invisible
 		// via the tenant-scoped finder - not merely "a different row with the

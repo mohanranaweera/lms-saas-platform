@@ -1,7 +1,11 @@
+"use client";
+
 import { Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatMoney } from "@/lib/format";
 import type { CoursePricingModel } from "@/lib/api/courses";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { useLocaleFormat } from "@/i18n/use-locale-format";
 
 /**
  * Shared pricing-model-aware display shape — matches the fields every
@@ -72,8 +76,25 @@ export function isCourseCheckoutAvailable(course: CoursePricingInfo): boolean {
 }
 
 /** Inline price text — used on the catalog card and detail/checkout summaries alike. */
+/** Localized variant of `getCoursePriceLabel` (same branches; display only). */
+export function localizedCoursePriceLabel(
+  course: CoursePricingInfo,
+  t: TranslateFn,
+  money: (amount: number, currency?: string | null) => string
+): string {
+  if (course.requiresManualQuote) return t("courses.price.contactUs");
+  if (course.pricingModel === "FREE") return t("courses.price.free");
+  if (course.resolvedAmount == null) return t("courses.price.notAvailable");
+  const price = money(course.resolvedAmount, course.currency);
+  if (course.pricingModel === "MONTHLY") return t("courses.price.perMonth", { price });
+  if (course.pricingModel === "SESSION") return t("courses.price.perSession", { price });
+  return price;
+}
+
 export function CoursePriceText({ course, className }: { course: CoursePricingInfo; className?: string }) {
-  return <span className={className}>{getCoursePriceLabel(course)}</span>;
+  const t = useT();
+  const { formatMoney } = useLocaleFormat();
+  return <span className={className}>{localizedCoursePriceLabel(course, t, formatMoney)}</span>;
 }
 
 /**
@@ -83,7 +104,13 @@ export function CoursePriceText({ course, className }: { course: CoursePricingIn
  * nothing when there's no note to show.
  */
 export function CoursePricingNotice({ course }: { course: CoursePricingInfo }) {
-  const note = getCoursePriceNote(course);
+  const t = useT();
+  const english = getCoursePriceNote(course);
+  const note = !english
+    ? null
+    : course.requiresManualQuote
+      ? t("courses.price.manualNote")
+      : t("courses.price.notConfiguredNote")
   if (!note) return null;
   return (
     <Alert role="status">

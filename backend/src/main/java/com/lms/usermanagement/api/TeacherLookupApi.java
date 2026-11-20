@@ -16,6 +16,13 @@ public interface TeacherLookupApi {
 
 	List<TeacherSummary> listTeachers();
 
+	/**
+	 * Only teachers who can currently teach: an {@code APPROVED} profile and
+	 * an {@code active} account (MEDIA-INT-01A - e.g. who may be given a
+	 * video library). Same shape and tenant scoping as {@link #listTeachers()}.
+	 */
+	List<TeacherSummary> listApprovedActiveTeachers();
+
 	record TeacherSummary(UUID userId, String name, String email) {
 
 	}

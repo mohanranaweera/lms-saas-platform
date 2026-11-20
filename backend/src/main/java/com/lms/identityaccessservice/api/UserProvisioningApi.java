@@ -55,6 +55,13 @@ public interface UserProvisioningApi {
 	boolean existsByEmail(String email);
 
 	/**
+	 * Tenant-scoped, case-insensitive variant of {@link #existsByEmail}: a mailbox is
+	 * one person regardless of letter case, so creation paths refuse a case variant of
+	 * an existing account. Stored emails and login matching are unchanged.
+	 */
+	boolean existsByEmailIgnoreCase(String email);
+
+	/**
 	 * Tenant-scoped batch read of {@code tenant_user} summaries for the given
 	 * ids, for a caller composing a list/detail view against its own
 	 * locally-owned table (e.g. {@code staff_profile} rows keyed by {@code
@@ -68,6 +75,14 @@ public interface UserProvisioningApi {
 	 * {@code userIds}.
 	 */
 	List<TenantUserSummary> findTenantUserSummaries(Collection<UUID> userIds);
+
+	/**
+	 * PAY-HUB-01: ids of the caller's own tenant's users whose email contains
+	 * {@code term} (case-insensitive, LIKE wildcards in {@code term} are
+	 * matched literally), at most {@code limit} of them. A blank term returns
+	 * nothing. Tenant-scoped like every other read here.
+	 */
+	List<UUID> findTenantUserIdsByEmailContaining(String term, int limit);
 
 	/**
 	 * Suspends the given {@code tenant_user} row (blocks login) - tenant-scoped
@@ -92,7 +107,9 @@ public interface UserProvisioningApi {
 	/**
 	 * Re-activates the given {@code tenant_user} row (restores login
 	 * capability) - the same tenant-scoping and extension-policy contract as
-	 * {@link #suspendTenantUser} applies here.
+	 * {@link #suspendTenantUser} applies here. STAFF-MGMT-02: an account that was
+	 * suspended while still {@code INVITED} and has never set a password returns to
+	 * {@code INVITED} (it must still complete account setup), not {@code ACTIVE}.
 	 *
 	 * @throws com.lms.common.error.NotFoundException if {@code userId} does
 	 * not resolve to a {@code tenant_user} row in the caller's own resolved
@@ -144,5 +161,57 @@ public interface UserProvisioningApi {
 	 * tenant
 	 */
 	String resetPassword(UUID userId);
+
+	/**
+	 * ADR-031: sets the user's sign-in mobile (normalised with the tenant's
+	 * phone region), or clears it when {@code rawMobile} is blank. Invalid
+	 * number -> {@code 400} with a field error on {@code field}; a number
+	 * another account of this institute uses -> {@code 409
+	 * MOBILE_ALREADY_REGISTERED} with a field error on {@code field}.
+	 * Audit-logged (numbers masked). Joins the caller's transaction.
+	 */
+	void setLoginMobile(UUID userId, String rawMobile, String field);
+
+	/** ADR-031: userId -> sign-in mobile (E.164) for those of {@code userIds} in this tenant that have one. */
+	java.util.Map<UUID, String> findLoginMobiles(Collection<UUID> userIds);
+
+	/**
+	 * STU-MGMT-02: userId -> latest sign-in time (latest {@code device_session.issued_at})
+	 * for those of {@code userIds} in this tenant that ever signed in. One batched query;
+	 * support (impersonation) sessions never count.
+	 */
+	java.util.Map<UUID, java.time.Instant> findLastLoginAt(Collection<UUID> userIds);
+
+	/**
+	 * STU-MGMT-02: revokes every active session of the given account in this tenant
+	 * (e.g. when a student is removed from the tenant). Joins the caller's transaction.
+	 */
+	void revokeAllSessions(UUID userId);
+
+	/**
+	 * STAFF-MGMT-02: creates an {@code INVITED} {@code tenant_user} in the current tenant with an
+	 * unusable password and queues the account-setup email (the invitee chooses the password).
+	 * {@code email} is trimmed and lower-cased. Any existing account of this tenant using the
+	 * mailbox (any letter case) -> {@link com.lms.common.error.ConflictException} with a generic
+	 * message; the {@code UNIQUE (tenant_id, email)} constraint makes this race safe. Other
+	 * tenants are never consulted. The caller restricts which roles it may assign.
+	 */
+	ProvisionedUser inviteTenantUser(String email, String roleCode);
+
+	/**
+	 * STAFF-MGMT-02: re-sends the account-setup email of a still-{@code INVITED} account of this
+	 * tenant (old links stop working). At most once a minute per account
+	 * ({@link com.lms.common.error.TooManyRequestsException}); not invited -> {@code 409}.
+	 */
+	void resendInvite(UUID userId);
+
+	/**
+	 * STAFF-MGMT-02: changes the role of a {@code tenant_user} of this tenant (404 otherwise).
+	 * The caller enforces which transitions are allowed. Effective on the next request.
+	 */
+	void changeRole(UUID userId, String roleCode);
+
+	/** STAFF-MGMT-02: tenant-scope role code -> display name, from the platform role catalog (V7). */
+	java.util.Map<String, String> roleDisplayNames();
 
 }

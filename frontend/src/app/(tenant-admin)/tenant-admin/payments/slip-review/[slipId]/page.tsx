@@ -10,11 +10,14 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { SlipStatusBadge, SlipFlagBadge } from "@/components/payments/status-badges";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCapabilities } from "@/lib/api/my-permissions";
+import { CAP } from "@/lib/auth/capabilities";
 import { canReviewSlips } from "@/lib/auth/permissions";
 import { isApiClientError } from "@/lib/api/error";
 import { useSlip, useSlipDownloadUrl } from "@/lib/api/payment-slips";
-import { ApproveSlipDialog } from "./approve-slip-dialog";
-import { RejectSlipDialog } from "./reject-slip-dialog";
+import { ApproveSlipDialog } from "@/components/payments/slips/approve-slip-dialog";
+import { RejectSlipDialog } from "@/components/payments/slips/reject-slip-dialog";
+import { SlipOrderBreakdown } from "@/components/payments/slips/slip-order-breakdown";
 
 /**
  * "View slip file" action — mirrors `useMaterialDownloadUrl`'s call site
@@ -79,7 +82,8 @@ export default function TenantAdminSlipDetailPage() {
   const params = useParams<{ slipId: string }>();
   const slipId = params.slipId;
   const { session } = useAuth();
-  const canReview = canReviewSlips(session?.role ?? null);
+  const { can } = useCapabilities();
+  const canReview = can(CAP.PAYMENTS_APPROVE_PENDING, canReviewSlips(session?.role ?? null));
 
   const query = useSlip(slipId);
 
@@ -87,11 +91,11 @@ export default function TenantAdminSlipDetailPage() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div>
         <Link
-          href="/tenant-admin/payments/slip-review"
+          href="/tenant-admin/payments?tab=slips"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to slip review queue
+          Back to payment slips
         </Link>
       </div>
 
@@ -151,6 +155,8 @@ export default function TenantAdminSlipDetailPage() {
 
               <ViewSlipFileButton slipId={slip.id} />
             </div>
+
+            <SlipOrderBreakdown slip={slip} />
 
             <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
               <h3 className="text-sm font-medium text-foreground">Flag history</h3>

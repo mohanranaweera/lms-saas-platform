@@ -9,6 +9,9 @@ import { ErrorState } from "./error-state";
 import { PermissionDeniedState } from "./permission-denied-state";
 import { classifyQueryError } from "@/lib/api/query-status";
 import { isApiClientError, type ApiClientError } from "@/lib/api/error";
+import { isImpersonationTab } from "@/lib/auth/impersonation-marker";
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 
 interface EmptyStateContent {
   title: string;
@@ -81,10 +84,13 @@ export function QueryStateBoundary<T>({
   children,
 }: QueryStateBoundaryProps<T>) {
   const router = useRouter();
+  const t = useT();
   const kind = query.status === "error" ? classifyQueryError(query.error) : null;
 
   useEffect(() => {
-    if (kind === "unauthenticated" && loginPath) {
+    // ADR-033: a support tab never redirects to the login page — its
+    // RouteGuard renders "Support session ended" instead.
+    if (kind === "unauthenticated" && loginPath && !isImpersonationTab()) {
       router.replace(`${loginPath}?reason=session_expired`);
     }
   }, [kind, loginPath, router]);
@@ -108,8 +114,8 @@ export function QueryStateBoundary<T>({
       <ErrorState
         message={
           isApiClientError(query.error)
-            ? query.error.message
-            : (genericErrorMessage ?? "Something went wrong. Please try again.")
+            ? localizeApiError(t, query.error)
+            : (genericErrorMessage ?? t("common.state.genericError"))
         }
         code={isApiClientError(query.error) ? query.error.code : undefined}
         fieldErrors={isApiClientError(query.error) ? query.error.fieldErrors : undefined}

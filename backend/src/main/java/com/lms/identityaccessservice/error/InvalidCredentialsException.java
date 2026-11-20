@@ -17,4 +17,13 @@ public class InvalidCredentialsException extends ApplicationException {
 		super(HttpStatus.UNAUTHORIZED, ApiErrorCodes.INVALID_CREDENTIALS, "Invalid email or password");
 	}
 
+	/** ADR-031: same code and status for a mobile sign-in, worded for the identifier the user typed. */
+	public static InvalidCredentialsException forMobile() {
+		return new InvalidCredentialsException("Invalid mobile number or password");
+	}
+
+	private InvalidCredentialsException(String message) {
+		super(HttpStatus.UNAUTHORIZED, ApiErrorCodes.INVALID_CREDENTIALS, message);
+	}
+
 }

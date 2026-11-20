@@ -1,0 +1,184 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]
+  - alert [ref=e35]
+  - generic [ref=e36]:
+    - complementary [ref=e37]:
+      - generic [ref=e38]: Tenant Admin
+      - navigation "Primary" [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]: Dashboard
+            - list [ref=e43]:
+              - listitem [ref=e44]:
+                - link "Dashboard" [ref=e45] [cursor=pointer]:
+                  - /url: /tenant-admin/dashboard
+          - generic [ref=e46]:
+            - generic [ref=e47]: Academic
+            - list [ref=e48]:
+              - listitem [ref=e49]:
+                - link "Students" [ref=e50] [cursor=pointer]:
+                  - /url: /tenant-admin/students
+              - listitem [ref=e51]:
+                - link "Teachers" [ref=e52] [cursor=pointer]:
+                  - /url: /tenant-admin/teachers
+              - listitem [ref=e53]:
+                - link "Courses" [ref=e54] [cursor=pointer]:
+                  - /url: /tenant-admin/courses
+              - listitem [ref=e55]:
+                - link "Media Library" [ref=e56] [cursor=pointer]:
+                  - /url: /tenant-admin/media
+              - listitem [ref=e57]:
+                - link "Attendance Reports" [ref=e58] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/reports
+              - listitem [ref=e59]:
+                - link "Mark Attendance" [ref=e60] [cursor=pointer]:
+                  - /url: /tenant-admin/attendance/mark
+              - listitem [ref=e61]:
+                - link "Exams" [ref=e62] [cursor=pointer]:
+                  - /url: /tenant-admin/exams
+              - listitem [ref=e63]:
+                - link "Live Classes" [ref=e64] [cursor=pointer]:
+                  - /url: /tenant-admin/live-classes
+          - generic [ref=e65]:
+            - generic [ref=e66]: Finance
+            - list [ref=e67]:
+              - listitem [ref=e68]:
+                - link "Payments" [ref=e69] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/dashboard
+              - listitem [ref=e70]:
+                - link "Refunds" [ref=e71] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/refunds
+              - listitem [ref=e72]:
+                - link "Payment Slips" [ref=e73] [cursor=pointer]:
+                  - /url: /tenant-admin/payments/slip-review
+              - listitem [ref=e74]:
+                - link "Reactivation Approvals" [ref=e75] [cursor=pointer]:
+                  - /url: /tenant-admin/access-expiry/reactivation-approvals
+              - listitem [ref=e76]:
+                - link "Finance Summary" [ref=e77] [cursor=pointer]:
+                  - /url: /tenant-admin/finance
+              - listitem [ref=e78]:
+                - link "Expenses" [ref=e79] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/expenses
+              - listitem [ref=e80]:
+                - link "Expense Categories" [ref=e81] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/categories
+              - listitem [ref=e82]:
+                - link "Finance Reports" [ref=e83] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/reports
+              - listitem [ref=e84]:
+                - link "Teacher Payouts" [ref=e85] [cursor=pointer]:
+                  - /url: /tenant-admin/finance/teacher-payouts
+          - generic [ref=e86]:
+            - generic [ref=e87]: Communication
+            - list [ref=e88]:
+              - listitem [ref=e89]:
+                - link "Broadcasts" [ref=e90] [cursor=pointer]:
+                  - /url: /tenant-admin/communications
+              - listitem [ref=e91]:
+                - link "Message Templates" [ref=e92] [cursor=pointer]:
+                  - /url: /tenant-admin/communications/templates
+          - generic [ref=e93]:
+            - generic [ref=e94]: Administration
+            - list [ref=e95]:
+              - listitem [ref=e96]:
+                - link "Staff" [ref=e97] [cursor=pointer]:
+                  - /url: /tenant-admin/staff
+              - listitem [ref=e98]:
+                - link "Roles & Permissions" [ref=e99] [cursor=pointer]:
+                  - /url: /tenant-admin/roles-permissions
+              - listitem [ref=e100]:
+                - link "Audit Log" [ref=e101] [cursor=pointer]:
+                  - /url: /tenant-admin/audit-log
+          - generic [ref=e102]:
+            - generic [ref=e103]: Institute Configuration
+            - list [ref=e104]:
+              - listitem [ref=e105]:
+                - link "General" [ref=e106] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/general
+              - listitem [ref=e107]:
+                - link "Branding" [ref=e108] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/branding
+              - listitem [ref=e109]:
+                - link "Student Fields" [ref=e110] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/student-fields
+              - listitem [ref=e111]:
+                - link "Online Payments" [ref=e112] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/payments
+              - listitem [ref=e113]:
+                - link "Integrations" [ref=e114] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/integrations
+              - listitem [ref=e115]:
+                - link "Messaging (SMS & WhatsApp)" [ref=e116] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/messaging
+              - listitem [ref=e117]:
+                - link "Video Providers" [ref=e118] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-providers
+              - listitem [ref=e119]:
+                - link "Video Settings" [ref=e120] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/video-configuration
+              - listitem [ref=e121]:
+                - link "Custom Domain" [ref=e122] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/domains
+              - listitem [ref=e123]:
+                - link "Devices & Access" [ref=e124] [cursor=pointer]:
+                  - /url: /tenant-admin/settings/devices-access
+    - generic [ref=e125]:
+      - banner [ref=e126]:
+        - generic [ref=e127]:
+          - link "Change password" [ref=e128] [cursor=pointer]:
+            - /url: /change-password
+          - button "Sign out" [ref=e130]
+      - main [ref=e131]:
+        - generic [ref=e2141]:
+          - generic [ref=e2142]:
+            - heading "Modules of KLASS E2E Modules mv7iqszf7o5" [level=1] [ref=e2148]
+            - navigation "Breadcrumb" [ref=e2149]:
+              - list [ref=e2150]:
+                - listitem [ref=e2151]:
+                  - link "Courses" [ref=e2152] [cursor=pointer]:
+                    - /url: /tenant-admin/courses
+                - listitem [ref=e2153]:
+                  - link "KLASS E2E Modules mv7iqszf7o5" [ref=e2156] [cursor=pointer]:
+                    - /url: /tenant-admin/courses/01a13857-535a-7177-b757-250f1e76ce69
+                - listitem [ref=e2157]:
+                  - generic [ref=e2160]: Modules
+          - generic [ref=e2161]:
+            - generic [ref=e2162]:
+              - generic [ref=e2163]: Search modules
+              - searchbox "Search modules" [ref=e2164]
+            - generic [ref=e2165]:
+              - link "Session materials & videos" [ref=e2166] [cursor=pointer]:
+                - /url: /tenant-admin/courses/01a13857-535a-7177-b757-250f1e76ce69/content
+              - button "Add module" [ref=e2167]
+          - generic [ref=e2168]:
+            - generic [ref=e2169]:
+              - status [ref=e2170]
+              - table [ref=e2172]:
+                - caption [ref=e2173]: Modules of KLASS E2E Modules mv7iqszf7o5
+                - rowgroup [ref=e2174]:
+                  - row [ref=e2175]:
+                    - columnheader "Reorder" [ref=e2176]
+                    - columnheader "#" [ref=e2178]
+                    - columnheader "Name" [ref=e2179]
+                    - columnheader "Price (LKR)" [ref=e2180]
+                    - columnheader "Actions" [ref=e2181]
+                - rowgroup [ref=e2182]:
+                  - row [ref=e2183]:
+                    - cell [ref=e2184]:
+                      - generic [ref=e2193]:
+                        - button "Move October Theory up" [disabled] [ref=e2194]
+                        - button "Move October Theory down" [disabled] [ref=e2195]
+                    - cell "1" [ref=e2196]
+                    - cell "October Theory" [ref=e2197]
+                    - cell "N/A" [ref=e2198]
+                    - cell [ref=e2199]:
+                      - generic [ref=e2200]:
+                        - link "Sessions of October Theory" [ref=e2201] [cursor=pointer]:
+                          - /url: /tenant-admin/courses/01a13857-535a-7177-b757-250f1e76ce69/modules/01a13857-5fb1-78f6-8b79-a055352a875d/sessions
+                        - button "Edit October Theory" [ref=e2202]
+                        - button "Delete October Theory" [ref=e2203]
+            - paragraph [ref=e2204]: 1 of 1 modules
+          - generic:
+            - status
+            - alert

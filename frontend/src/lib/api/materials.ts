@@ -49,6 +49,8 @@ export interface MaterialResponse {
   uploadedBy: string;
   createdAt: string;
   updatedAt: string;
+  /** Klass gaps round 2 (G1): set when the material is a Media Library file attached without copying. */
+  mediaFileId?: string | null;
 }
 
 /**
@@ -65,6 +67,8 @@ export interface MaterialResponse {
  * fields that don't apply to the chosen type.
  */
 export interface MaterialCreateInput {
+  /** Used when the session is created immediately before its attachments. */
+  targetLessonId?: string;
   title: string;
   materialType: MaterialType;
   file?: File;
@@ -163,12 +167,41 @@ export function useCreateMaterial(courseId: string, moduleId: string, lessonId: 
       if (input.expiryAt) formData.append("expiryAt", input.expiryAt);
       return authorizedFetch<MaterialResponse>(
         "tenant",
-        materialsBasePath(courseId, moduleId, lessonId),
+        materialsBasePath(courseId, moduleId, input.targetLessonId ?? lessonId),
         { method: "POST", body: formData }
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.list(courseId, moduleId, lessonId) });
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: materialKeys.list(courseId, moduleId, input.targetLessonId ?? lessonId) });
+    },
+  });
+}
+
+/**
+ * Klass gaps round 2 (G1): attach a Media Library file to the lesson
+ * (`POST .../materials` multipart with `title` + `mediaFileId`, no `file`
+ * part and no `materialType` - the server derives it). 409 = already attached
+ * to this lesson; 404 = unknown / deleted / not visible to the caller.
+ * Removing the resulting material later never deletes the library file.
+ */
+export function useAttachLibraryMaterial(courseId: string, moduleId: string, lessonId: string = "") {
+  const { authorizedFetch } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ mediaFileId, title, targetLessonId }: { mediaFileId: string; title: string; targetLessonId?: string }) => {
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("mediaFileId", mediaFileId);
+      return authorizedFetch<MaterialResponse>(
+        "tenant",
+        materialsBasePath(courseId, moduleId, targetLessonId ?? lessonId),
+        { method: "POST", body: formData }
+      );
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: materialKeys.list(courseId, moduleId, input.targetLessonId ?? lessonId) });
+      // The library card's "Used in N lessons" count changed.
+      queryClient.invalidateQueries({ queryKey: ["media-files"] });
     },
   });
 }
@@ -202,6 +235,8 @@ export function useDeleteMaterial(courseId: string, moduleId: string, lessonId: 
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: materialKeys.list(courseId, moduleId, lessonId) });
+      // A removed library-backed material lowers that file's "Used in N lessons" count.
+      queryClient.invalidateQueries({ queryKey: ["media-files"] });
     },
   });
 }

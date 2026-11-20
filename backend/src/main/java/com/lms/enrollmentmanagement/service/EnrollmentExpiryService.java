@@ -46,16 +46,24 @@ public class EnrollmentExpiryService {
 
 	private final ReactivationRequestRepository reactivationRequestRepository;
 
+	private final AccessWindowCalculator accessWindowCalculator;
+
 	public EnrollmentExpiryService(EnrollmentRepository enrollmentRepository,
 			EnrollmentExpiryEventWriter enrollmentExpiryEventWriter,
-			ReactivationRequestRepository reactivationRequestRepository) {
+			ReactivationRequestRepository reactivationRequestRepository,
+			AccessWindowCalculator accessWindowCalculator) {
 		this.enrollmentRepository = enrollmentRepository;
 		this.enrollmentExpiryEventWriter = enrollmentExpiryEventWriter;
 		this.reactivationRequestRepository = reactivationRequestRepository;
+		this.accessWindowCalculator = accessWindowCalculator;
 	}
 
 	/**
 	 * @see com.lms.enrollmentmanagement.api.EnrollmentAccessApi#resolveAccessState(UUID, UUID)
+	 *
+	 * <p>Wave 10: the window is the {@link AccessWindowCalculator} one - manual
+	 * extensions and the grace period included - and {@code accessExpiresAt} in
+	 * the result is the EFFECTIVE (possibly extended) expiry.
 	 */
 	@Transactional
 	public EnrollmentAccessState resolveAccessState(UUID studentId, UUID courseId) {
@@ -65,8 +73,9 @@ public class EnrollmentExpiryService {
 		}
 		Enrollment enrollment = current.get();
 		Instant now = Instant.now();
-		if (enrollment.isCurrentlyActive(now)) {
-			return EnrollmentAccessState.active(enrollment.getId(), enrollment.getAccessExpiresAt());
+		AccessWindowCalculator.AccessWindow window = accessWindowCalculator.windowFor(enrollment);
+		if (accessWindowCalculator.isCurrentlyActive(enrollment, window, now)) {
+			return EnrollmentAccessState.active(enrollment.getId(), window.effectiveExpiresAt());
 		}
 		// Cheap, read-only, no-new-transaction pre-check (runs in whatever
 		// transaction is already active, including this method's own) - the
@@ -109,7 +118,7 @@ public class EnrollmentExpiryService {
 		}
 		boolean hasOpenRequest = reactivationRequestRepository.findCurrentOpenByEnrollmentId(enrollment.getId())
 			.isPresent();
-		return EnrollmentAccessState.expired(enrollment.getId(), enrollment.getAccessExpiresAt(), !hasOpenRequest);
+		return EnrollmentAccessState.expired(enrollment.getId(), window.effectiveExpiresAt(), !hasOpenRequest);
 	}
 
 	/**
