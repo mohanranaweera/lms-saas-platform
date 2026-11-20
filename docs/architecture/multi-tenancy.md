@@ -86,6 +86,19 @@ token from tenant A is refused on tenant B's custom domain.
 The browser calls `/api` on the site's own address and a trusted proxy passes that address in
 `X-Forwarded-Host` (see `docs/api/identity-access-service.md`, "Tenant resolution").
 
+### 1b. Teacher storefront hosts (ADR-037)
+
+`<teacher-slug>.<tenant-subdomain>.<PLATFORM_DOMAIN>` (two labels, platform domain only - never
+under a custom domain). `TenantResolutionFilter` resolves the tenant from the second label first,
+with the same status checks and fail-closed answer (403 `TENANT_UNAVAILABLE`), then the
+storefront by slug inside that tenant, and sets `StorefrontContextHolder` (cleared in `finally`).
+A storefront is a catalog view, not a tenant and not a role: it never selects a tenant and grants
+nothing. An unknown or disabled storefront, or one whose teacher is suspended/unapproved, answers
+404 `STOREFRONT_NOT_FOUND` on every `/api` call; a retired slug of an enabled storefront answers
+404 `STOREFRONT_MOVED` with the current host (the site 308-redirects). Slugs are unique per tenant
+forever and never reassigned to another teacher. Resolution is read fresh per request. One-label
+subdomains and custom domains take the unchanged path.
+
 ## 2. Structural tenant-filtering mechanism
 
 This is the same mechanism recommended in `docs/architecture/database-architecture.md`

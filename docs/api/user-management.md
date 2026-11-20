@@ -633,3 +633,27 @@ Errors: `400 VALIDATION_ERROR` (missing reason, `maxDevices` outside 1-20), `403
 `409 CONFLICT` (device already removed; limit on a non-student account).
 Audit: `device.reset` / `device_limit_override.set` / `device_limit_override.cleared` plus
 `student.device_reset` / `student.device_limit_changed` on the student profile.
+
+## STORE-01 - Teacher storefronts (ADR-037)
+
+Full contract: `docs/plans/STORE-01 Teacher Storefronts.md` section 6. `teacherId` here is the
+teacher's `tenant_user.id` (`TeacherResponse.userId`), not the teacher-profile id.
+
+Admin (capability `TEACHER_STOREFRONT_MANAGE`; Tenant Admin by default, configurable for
+Operator/Manager, never Teacher):
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/teacher-storefronts?page&size` | teachers with storefront status (size <= 100) |
+| GET | `/api/v1/teacher-storefronts/{teacherId}` | 404 when none yet or teacher not in tenant |
+| PUT | `/api/v1/teacher-storefronts/{teacherId}` | `{slug, enabled}`; creates on first call; 400 `STOREFRONT_SLUG_INVALID`/`STOREFRONT_SLUG_RESERVED`, 409 `STOREFRONT_SLUG_TAKEN` |
+| PUT | `/api/v1/teacher-storefronts/{teacherId}/products` | full replace `{items:[{courseId,published,sortOrder}]}`; 422 `STOREFRONT_COURSE_NOT_ASSIGNED` |
+| GET | `/api/v1/teacher-storefronts/me` | Teacher, read-only; 404 when none |
+
+Public: `GET /api/v1/public/site-context` -> `{kind: TENANT|STOREFRONT, storefront}`.
+On storefront hosts the public course and teacher endpoints are scoped to published listed
+courses; checkout `quote`/`orders`/`offers` reject out-of-scope courses with 422
+`STOREFRONT_PRODUCT_OUT_OF_SCOPE` and `GET /checkout/courses` filters them out. Order lines
+record `storefront_id` (attribution only). Unknown/disabled hosts: 404 `STOREFRONT_NOT_FOUND`;
+retired slug: 404 `STOREFRONT_MOVED` (`details.host`).
+Audit: storefront create, slug change, enable/disable and product-list change (before/after).
