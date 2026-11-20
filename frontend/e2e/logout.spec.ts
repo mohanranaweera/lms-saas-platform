@@ -223,6 +223,10 @@ test.describe("logout — Student/Teacher (no confirmation step)", () => {
       await mockSuccessfulLogoutFlow(page, "STUDENT");
 
       await page.goto(dashboard);
+      // The student portal keeps Sign out inside the header account menu.
+      if (dashboard.startsWith("/student")) {
+        await page.getByRole("button", { name: "Open account menu" }).click();
+      }
       await page.getByRole("button", { name: "Sign out" }).click();
 
       // No alertdialog ever appears for these roles.

@@ -203,7 +203,8 @@ export async function loginUi(page: Page, email: string): Promise<void> {
     ]);
   }
   await page.goto(`${TENANT_BASE}/login`);
-  await page.getByLabel("Email").fill(email);
+  // The login page has Email / Mobile tabs; the tab panel is also named "Email".
+  await page.getByRole("textbox", { name: "Email" }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/(tenant-admin|student)\/dashboard/, { timeout: 30_000 });
