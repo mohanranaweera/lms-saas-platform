@@ -125,6 +125,20 @@ public class CourseAccessGuard {
 	}
 
 	/**
+	 * A course-management read (e.g. payment readiness) for the course's
+	 * teachers and staff only: {@link #requireCourseAccess} VIEW, then - for
+	 * everyone but a Teacher, whose access is ownership/assignment-scoped - the
+	 * flat {@code COURSES/VIEW} grant, so the PUBLIC-course and enrolled-Student
+	 * read shortcuts never open it to Students.
+	 */
+	public void requireCourseManagementView(Course course) {
+		requireCourseAccess(course, PermissionAction.VIEW);
+		if (!TEACHER_ROLE.equals(AuthenticatedPrincipalHolder.get().role())) {
+			permissionCheckService.requirePermission(DomainArea.COURSES, PermissionAction.VIEW);
+		}
+	}
+
+	/**
 	 * KLASS-T8b SEC M1: the calling Student participates in {@code courseId}
 	 * (directly, via a current legacy enrollment, or via a parent course linking
 	 * it) - decides whether participant-only course fields (invite links,

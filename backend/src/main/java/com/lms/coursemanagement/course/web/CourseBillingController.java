@@ -5,6 +5,9 @@ import com.lms.common.api.PageResponse;
 import com.lms.coursemanagement.course.service.BillingConfigurationService;
 import com.lms.coursemanagement.course.service.CourseBillingConfigurationView;
 import com.lms.coursemanagement.course.service.CourseBillingPeriodView;
+import com.lms.coursemanagement.course.service.CoursePaymentReadinessService;
+import com.lms.coursemanagement.course.service.CoursePaymentReadinessView;
+import com.lms.coursemanagement.course.web.dto.CoursePaymentReadinessResponse;
 import com.lms.coursemanagement.course.web.dto.CourseBillingConfigurationRequest;
 import com.lms.coursemanagement.course.web.dto.CourseBillingConfigurationResponse;
 import com.lms.coursemanagement.course.web.dto.CourseBillingPeriodRequest;
@@ -40,8 +43,26 @@ public class CourseBillingController {
 
 	private final BillingConfigurationService billingConfigurationService;
 
-	public CourseBillingController(BillingConfigurationService billingConfigurationService) {
+	private final CoursePaymentReadinessService paymentReadinessService;
+
+	public CourseBillingController(BillingConfigurationService billingConfigurationService,
+			CoursePaymentReadinessService paymentReadinessService) {
 		this.billingConfigurationService = billingConfigurationService;
+		this.paymentReadinessService = paymentReadinessService;
+	}
+
+	/** Whether students can pay for this course right now, and what to fix if not (read-only). */
+	@GetMapping("/payment-readiness")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<ApiResponse<CoursePaymentReadinessResponse>> getPaymentReadiness(
+			@PathVariable UUID courseId) {
+		CoursePaymentReadinessView view = paymentReadinessService.getReadiness(courseId);
+		return ResponseEntity.ok(ApiResponse.success(new CoursePaymentReadinessResponse(view.pricingModel(),
+				view.payable(), view.issues()
+					.stream()
+					.map(issue -> new CoursePaymentReadinessResponse.Issue(issue.code(), issue.message(),
+							issue.count()))
+					.toList())));
 	}
 
 	@GetMapping("/billing-configuration")

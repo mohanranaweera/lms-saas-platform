@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingState } from "@/components/states/loading-state";
 import { CourseWorkspaceShell } from "@/components/courses/course-workspace-shell";
 import { CourseEditDetailsForm } from "@/components/courses/admin/course-edit-details-form";
+import { CoursePaymentReadinessPanel } from "@/components/courses/admin/course-payment-readiness-panel";
 
 /**
  * Tenant Admin course workspace — Overview tab (`tenant-admin/courses/[courseId]`,
@@ -56,6 +57,7 @@ function TenantAdminCourseOverviewPageContent() {
                 </AlertDescription>
               </Alert>
             ) : null}
+            <CoursePaymentReadinessPanel courseId={course.id} />
             <CourseEditDetailsForm
               courseId={course.id}
               portal="tenant-admin"

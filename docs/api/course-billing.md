@@ -194,6 +194,60 @@ same billing-configuration setup the source course would — deliberately not au
 `CourseClonedEvent` for audit-log coverage (added as a Phase E review fix — cloning previously
 left no audit trail).
 
+### `GET /api/v1/courses/{courseId}/payment-readiness`
+
+Read-only check for course staff: can a student actually pay for this course right now? It
+re-applies the student checkout composer's offer rules (`CheckoutComposerService`
+`monthlyOffers`/`moduleOffers`/`lessonOffers`/`courseOffers`) to the course's own configuration,
+reading through the same `CourseLookupApi` methods, and names what is missing. No state change, no
+audit entry, no migration.
+
+**Auth.** Same as the other course-management reads (`CourseAccessGuard` VIEW: the primary or an
+assigned Teacher, or staff with `COURSES/VIEW`), plus `COURSES/VIEW` for every non-Teacher caller —
+so the PUBLIC-course and enrolled-Student read shortcuts never open it to Students (`403`; a DRAFT
+course stays `404`). A Teacher who is not assigned to the course gets `403`. Tenant-scoped: another
+tenant's course id is `404`.
+
+**`200`** (`ApiResponse<CoursePaymentReadinessResponse>`):
+
+```jsonc
+{
+  "pricingModel": "MONTHLY",
+  "payable": false,               // true when checkout lists at least one offer, or no payment is needed
+  "issues": [
+    {
+      "code": "MONTHLY_SESSIONS_WITHOUT_MONTH",
+      "message": "2 sessions covered by class fees have a start date but no billing month, ...",
+      "count": 2                  // only present where a row count is meaningful
+    }
+  ]
+}
+```
+
+`payable` is `true` when checkout would list **any** offer for the course — the model's own offer,
+a priced module (MODULE offers exist for every pricing model) or a Paid session with a price
+(LESSON offers, likewise). `issues` lists every gap found for the course's pricing model and may be
+non-empty even when another offer keeps the course payable (e.g. a MONTHLY course with no monthly
+fee but a priced module); the admin warning panel is shown only when `payable` is `false`.
+
+| Pricing model | Payable when | Issue codes |
+|---|---|---|
+| `FREE`, `CUSTOM` | always (no offer needed / manual quote) | none, ever |
+| `MONTHLY` | open billing period amount `> 0` **and** at least one `COVERED_BY_CLASS_FEES` session with a billing month (or any priced module / Paid session) | `MONTHLY_NO_AMOUNT`; `MONTHLY_SESSIONS_WITHOUT_MONTH` (`count` = covered sessions with a start but no billing month — saved before the switch to Monthly; re-save them); `MONTHLY_NO_BILLABLE_SESSIONS` (no dated covered session at all; not emitted alongside the previous code) |
+| `MODULE` | a module with price `> 0`, or a Paid session with price `> 0` | `MODULE_NO_PRICED_MODULE` |
+| `ONE_TIME` | resolved course price `> 0` (or any priced module / Paid session) | `NO_COURSE_PRICE` |
+| `SESSION` (legacy) | open billing period amount `> 0` (whole-course order flow) (or any priced module / Paid session) | `SESSION_NO_AMOUNT` |
+| `DAILY`, `INSTALLMENT` | a priced module or Paid session (no offer engine of their own yet, D09) | `NO_CHECKOUT_FOR_PRICING_MODEL` (only when not payable) |
+
+Course status (DRAFT/archived/registration) is not considered — checkout also hides DRAFT courses,
+but readiness answers "is the pricing set up", which matters most before publishing. Messages are
+plain English for direct display; clients should key behaviour on `code`.
+
+The Tenant Admin course Overview tab shows an amber "Students can't pay for this course yet"
+panel (`role="status"`) listing the messages when `payable` is `false`; it is hidden while
+loading and when the request fails. The frontend invalidates this query after every pricing,
+billing-configuration, module and session mutation.
+
 ## FREE checkout — auto-activation, gated strictly on `pricingModel`
 
 `CourseLookupApi.getResolvedCheckoutAmount(UUID courseId)` (consumed by
