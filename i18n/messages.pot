@@ -11656,6 +11656,13 @@ msgctxt "student.payment.myCourses"
 msgid "My courses"
 msgstr ""
 
+#. Payment history entry: label for the billing period the payment covers
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.billingPeriod"
+msgid "Billing period"
+msgstr ""
+
 #. Field label
 #: i18n/source/student.json
 #, icu-format
@@ -11698,6 +11705,13 @@ msgctxt "student.paymentHistory.loading"
 msgid "Loading payment history…"
 msgstr ""
 
+#. Payment history entry: label for how the payment was made (gateway, bank transfer, free, staff granted)
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.method"
+msgid "Method"
+msgstr ""
+
 #. Button
 #: i18n/source/student.json
 #, icu-format
@@ -11733,6 +11747,13 @@ msgctxt "student.paymentHistory.products"
 msgid "Products purchased"
 msgstr ""
 
+#. Payment history entry: label for the payment's reference number
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.reference"
+msgid "Reference"
+msgstr ""
+
 #. Field label; value is a technical status code
 #: i18n/source/student.json
 #, icu-format
@@ -11745,6 +11766,13 @@ msgstr ""
 #, icu-format
 msgctxt "student.paymentHistory.total"
 msgid "Total"
+msgstr ""
+
+#. Payment history entry: link to the order's status page
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.viewOrderStatus"
+msgid "View order status"
 msgstr ""
 
 #. Profile message

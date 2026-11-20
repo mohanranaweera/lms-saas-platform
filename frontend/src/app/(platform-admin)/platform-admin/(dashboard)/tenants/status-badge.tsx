@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2, Clock, FlaskConical, XCircle, XOctagon } from "lucide-react";
+import { Ban, CheckCircle2, CircleHelp, Clock, FlaskConical, XCircle, XOctagon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TenantStatus } from "@/lib/api/platform-admin-tenants";
 
@@ -38,8 +38,21 @@ const STATUS_STYLES: Record<TenantStatus, { icon: typeof Clock; className: strin
   REJECTED: { icon: XOctagon, className: "text-destructive" },
 };
 
+/**
+ * A status this build does not know (a newer backend value, or different
+ * casing) must not throw and take the whole page into its error boundary:
+ * match case-insensitively, else render the raw value with a neutral icon.
+ */
+function knownStatus(status: string): TenantStatus | null {
+  const upper = status?.toUpperCase() as TenantStatus;
+  return upper in STATUS_STYLES ? upper : null;
+}
+
 export function StatusBadge({ status }: { status: TenantStatus }) {
-  const { icon: Icon, className } = STATUS_STYLES[status];
+  const known = knownStatus(status);
+  const { icon: Icon, className } = known
+    ? STATUS_STYLES[known]
+    : { icon: CircleHelp, className: "text-muted-foreground" };
   return (
     <span
       className={cn(
@@ -48,7 +61,7 @@ export function StatusBadge({ status }: { status: TenantStatus }) {
       )}
     >
       <Icon className="size-3.5" aria-hidden="true" />
-      {TENANT_STATUS_LABELS[status]}
+      {known ? TENANT_STATUS_LABELS[known] : String(status ?? "Unknown")}
     </span>
   );
 }

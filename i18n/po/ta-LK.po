@@ -13322,6 +13322,13 @@ msgctxt "student.payment.myCourses"
 msgid "My courses"
 msgstr "எனது பாடநெறிகள்"
 
+#. Payment history entry: label for the billing period the payment covers
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.billingPeriod"
+msgid "Billing period"
+msgstr ""
+
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Field label
 #: i18n/source/student.json
@@ -13370,6 +13377,13 @@ msgctxt "student.paymentHistory.loading"
 msgid "Loading payment history…"
 msgstr "கட்டண வரலாறு ஏற்றப்படுகிறது…"
 
+#. Payment history entry: label for how the payment was made (gateway, bank transfer, free, staff granted)
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.method"
+msgid "Method"
+msgstr ""
+
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Button
 #: i18n/source/student.json
@@ -13410,6 +13424,13 @@ msgctxt "student.paymentHistory.products"
 msgid "Products purchased"
 msgstr "வாங்கிய தயாரிப்புகள்"
 
+#. Payment history entry: label for the payment's reference number
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.reference"
+msgid "Reference"
+msgstr ""
+
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Field label; value is a technical status code
 #: i18n/source/student.json
@@ -13425,6 +13446,13 @@ msgstr "நிலை"
 msgctxt "student.paymentHistory.total"
 msgid "Total"
 msgstr "மொத்தம்"
+
+#. Payment history entry: link to the order's status page
+#: i18n/source/student.json
+#, icu-format
+msgctxt "student.paymentHistory.viewOrderStatus"
+msgid "View order status"
+msgstr ""
 
 # AI draft translation (Claude), needs review by a fluent Tamil speaker
 #. Profile message
