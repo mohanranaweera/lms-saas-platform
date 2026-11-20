@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { isApiClientError } from "@/lib/api/error";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 
 /**
  * Klass "Are you sure?" enrollment confirmation. NO / X / Escape leave
@@ -29,29 +30,30 @@ export function EnrollConfirmDialog({
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
+  const t = useT();
   return (
     <AlertDialog open={open} onOpenChange={(next) => onOpenChange(next)}>
       <AlertDialogContent data-testid="enroll-confirm-dialog">
         <AlertDialogHeader>
           <div className="flex items-start justify-between gap-2">
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t("common.enroll.confirmTitle")}</AlertDialogTitle>
             <AlertDialogClose
-              render={<Button type="button" variant="ghost" size="icon-sm" aria-label="Close" />}
+              render={<Button type="button" variant="ghost" size="icon-sm" aria-label={t("common.actions.close")} />}
               data-testid="enroll-confirm-close"
             >
               <XIcon aria-hidden="true" />
             </AlertDialogClose>
           </div>
-          <AlertDialogDescription>Enroll in {courseTitle ?? "this course"}?</AlertDialogDescription>
+          <AlertDialogDescription>{courseTitle ? t("common.enroll.confirmQuestion", { course: courseTitle }) : t("common.enroll.confirmQuestionGeneric")}</AlertDialogDescription>
         </AlertDialogHeader>
         <p className="text-xs text-muted-foreground">
-          Enrolling is free. You can browse the course right away; paid lessons ask for payment when you open them.
+          {t("common.enroll.freeNote")}
         </p>
         <AlertDialogFooter>
           <AlertDialogClose
             render={<Button type="button" variant="outline" data-testid="enroll-confirm-no" />}
           >
-            NO
+            {t("common.enroll.no")}
           </AlertDialogClose>
           <Button
             type="button"
@@ -59,7 +61,7 @@ export function EnrollConfirmDialog({
             data-testid="enroll-confirm-yes"
             onClick={onConfirm}
           >
-            YES
+            {t("common.enroll.yes")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -68,20 +70,21 @@ export function EnrollConfirmDialog({
 }
 
 /** Human copy for a failed free enrollment (never exposes raw server text for 404s). */
-export function enrollErrorMessage(error: unknown): string {
+/** Enrollment error copy; pass `t` for the localized text (the English source is unchanged). */
+export function enrollErrorMessage(error: unknown, t?: TranslateFn): string {
   if (isApiClientError(error)) {
     if (error.code === "SELF_ENROLLMENT_DISABLED") {
-      return "Your institute enrolls students for you. Contact your institute to join this course.";
+      return t ? t("common.enroll.error.selfDisabled") : "Your institute enrolls students for you. Contact your institute to join this course.";
     }
     if (error.code === "REGISTRATION_CLOSED") {
-      return "Registration for this course is closed right now. Contact your institute if you need to join.";
+      return t ? t("common.enroll.error.closed") : "Registration for this course is closed right now. Contact your institute if you need to join.";
     }
     if (error.status === 404) {
-      return "This course isn't available to join any more.";
+      return t ? t("common.enroll.error.notFound") : "This course isn't available to join any more.";
     }
     if (error.status === 0) {
-      return "We couldn't reach the server. Check your connection and try again.";
+      return t ? t("common.enroll.error.network") : "We couldn't reach the server. Check your connection and try again.";
     }
   }
-  return "We couldn't enroll you. Please try again.";
+  return t ? t("common.enroll.error.generic") : "We couldn't enroll you. Please try again.";
 }

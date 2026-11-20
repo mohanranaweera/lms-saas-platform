@@ -13,6 +13,7 @@ import { useMarkAnswer, type MarkingQueueEntryResponse } from "@/lib/api/exams";
 import { isApiClientError } from "@/lib/api/error";
 import { markingScoreSchema, type MarkingScoreFormValues } from "@/lib/validation/exams";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * One Marking Queue row (screen #6) — a real, labeled, keyboard-operable
  * numeric score input (`.claude/rules/ui-ux.md` §4), never an unlabeled
@@ -31,6 +32,7 @@ import { markingScoreSchema, type MarkingScoreFormValues } from "@/lib/validatio
  * the real enforcement is that service's own server-side check.
  */
 export function MarkingQueueEntryRow({ examId, entry }: { examId: string; entry: MarkingQueueEntryResponse }) {
+  const t = useT();
   const { session } = useAuth();
   const canMark = canMarkExamAnswers(session?.role ?? null);
   const mutation = useMarkAnswer(examId);
@@ -56,14 +58,14 @@ export function MarkingQueueEntryRow({ examId, entry }: { examId: string; entry:
       await mutation.mutateAsync({ answerId: entry.answerId, body: { manualScore: Number(values.manualScore) } });
       setMarked(true);
     } catch (error) {
-      setSubmitError(isApiClientError(error) ? error.message : "Could not save this score. Please try again.");
+      setSubmitError(isApiClientError(error) ? error.message : t("exams.markingRow.couldNotSaveThis"));
     }
   });
 
   if (marked) {
     return (
       <li className="rounded-lg border border-border bg-muted/30 p-4">
-        <p className="text-sm text-muted-foreground">Marked. This answer has left the queue.</p>
+        <p className="text-sm text-muted-foreground">{t("exams.markingRow.markedThisAnswerHas")}</p>
       </li>
     );
   }
@@ -72,7 +74,7 @@ export function MarkingQueueEntryRow({ examId, entry }: { examId: string; entry:
     <li className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <p className="text-sm text-foreground">{entry.questionBody}</p>
       <p className="whitespace-pre-wrap rounded-md bg-muted/40 p-2 text-sm text-muted-foreground">
-        {entry.response ?? <span className="italic">No answer submitted.</span>}
+        {entry.response ?? <span className="italic">{t("exams.markingRow.noAnswerSubmitted")}</span>}
       </p>
       {canMark ? (
         <form
@@ -81,7 +83,7 @@ export function MarkingQueueEntryRow({ examId, entry }: { examId: string; entry:
           aria-busy={mutation.isPending}
           onSubmit={onSubmit}
         >
-          <LiveRegion message={mutation.isPending ? "Saving score…" : ""} />
+          <LiveRegion message={mutation.isPending ? t("exams.markingRow.savingScore") : ""} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={inputId}>{`Score for question, out of 1 point — ${entry.questionBody.slice(0, 40)}`}</Label>
             <Input
@@ -96,7 +98,7 @@ export function MarkingQueueEntryRow({ examId, entry }: { examId: string; entry:
               {...register("manualScore")}
             />
             <p id={helpId} className="text-xs text-muted-foreground">
-              Enter a score between 0 and 1 for this answer.
+              {t("exams.markingRow.enterAScoreBetween")}
             </p>
             {errors.manualScore ? (
               <p id={errorId} role="alert" className="text-xs text-destructive">
@@ -105,11 +107,11 @@ export function MarkingQueueEntryRow({ examId, entry }: { examId: string; entry:
             ) : null}
           </div>
           <Button type="submit" disabled={mutation.isPending} aria-busy={mutation.isPending} className="sm:w-fit">
-            {mutation.isPending ? "Saving…" : "Save score"}
+            {mutation.isPending ? t("exams.markingRow.saving") : t("exams.markingRow.saveScore")}
           </Button>
         </form>
       ) : (
-        <p className="text-xs text-muted-foreground">You do not have permission to mark this answer.</p>
+        <p className="text-xs text-muted-foreground">{t("exams.markingRow.youDoNotHave")}</p>
       )}
       {submitError ? (
         <p role="alert" className="text-sm text-destructive">

@@ -18,6 +18,7 @@ import {
 import { useCloneCourse, type CourseResponse } from "@/lib/api/courses";
 import { isApiClientError } from "@/lib/api/error";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * `POST /api/v1/courses/{id}/clone` (Wave 2) — creates a brand-new course (a
  * new id, `DRAFT` status, own content copy) and navigates to it on success.
@@ -40,6 +41,7 @@ export function CourseCloneAction({
    */
   onCloned?: (clonedId: string) => string;
 }) {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const mutation = useCloneCourse(courseId);
@@ -47,7 +49,7 @@ export function CourseCloneAction({
   const errorMessage = mutation.isError
     ? isApiClientError(mutation.error)
       ? mutation.error.message
-      : "An unexpected error occurred. Please try again."
+      : t("courses.clone.anUnexpectedErrorOccurred")
     : null;
 
   const buildRedirect = onCloned ?? ((clonedId: string) => `/tenant-admin/courses/${clonedId}?cloned=1`);
@@ -64,7 +66,7 @@ export function CourseCloneAction({
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div>
-        <h3 className="text-sm font-medium text-foreground">Clone course</h3>
+        <h3 className="text-sm font-medium text-foreground">{t("courses.clone.cloneCourse")}</h3>
         <p className="text-xs text-muted-foreground">
           Creates a new course with its own copy of this course&apos;s classification and content
           structure, starting as a fresh Draft. The clone has no enrollment, payment, or
@@ -75,7 +77,7 @@ export function CourseCloneAction({
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger render={<Button type="button" variant="outline" className="w-fit" />}>
           <Copy aria-hidden="true" />
-          Clone course
+          {t("courses.clone.cloneCourse")}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -92,9 +94,9 @@ export function CourseCloneAction({
             </Alert>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("courses.clone.cancel")}</AlertDialogClose>
             <Button type="button" onClick={handleClone} disabled={mutation.isPending} aria-busy={mutation.isPending}>
-              {mutation.isPending ? "Cloning…" : "Clone course"}
+              {mutation.isPending ? t("courses.clone.cloning") : t("courses.clone.cloneCourse")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

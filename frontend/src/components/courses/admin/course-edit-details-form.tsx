@@ -42,6 +42,7 @@ import {
   type KlassPricingModel,
 } from "@/lib/api/klass-admin";
 
+import { useT } from "@/i18n/i18n-provider";
 const ID_PREFIX = "edit-course";
 
 export type CourseEditPortal = "tenant-admin" | "teacher";
@@ -183,14 +184,15 @@ export function CourseEditDetailsForm({
   dashboardHref: string;
   showCharges?: boolean;
 }) {
+  const t = useT();
   const query = useKlassCourse(courseId);
   return (
     <QueryStateBoundary
       query={query}
-      loadingLabel="Loading course details…"
+      loadingLabel={t("courses.editDetails.loadingCourseDetails")}
       loginPath="/login"
       permissionDenied={{ dashboardHref }}
-      genericErrorMessage="The course details could not be loaded."
+      genericErrorMessage={t("courses.editDetails.theCourseDetailsCould")}
     >
       {(course) => (
         <div className="flex flex-col gap-6">
@@ -203,6 +205,7 @@ export function CourseEditDetailsForm({
 }
 
 function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; portal: CourseEditPortal }) {
+  const t = useT();
   const { session } = useAuth();
   const role = session?.role ?? null;
   const toast = useAdminToast();
@@ -287,14 +290,14 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
 
   const canEditTeachers = !isTeacherPortal && !teacherOptions.forbidden;
   const teachersConfig: TeacherFieldConfig = {
-    label: "Teachers",
+    label: t("courses.editDetails.teachers"),
     helper: "Tick every teacher of this course, then choose the primary teacher.",
     options: pickerOptions,
     loading: teacherOptions.loading,
     loadError: teacherOptions.forbidden ? null : teacherOptions.loadError,
     emptyText: "No approved, active teachers in this institute yet.",
     readOnly: isTeacherPortal
-      ? { summary: readOnlySummary, note: "Only institute staff can change the teachers of a course." }
+      ? { summary: readOnlySummary, note: t("courses.editDetails.onlyInstituteStaffCan") }
       : teacherOptions.forbidden
         ? {
             summary: readOnlySummary,
@@ -303,7 +306,7 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
         : null,
     primary: {
       labelFor: teacherLabel,
-      disabledReason: isCoordinator ? "Only a Tenant Admin can change the primary teacher." : null,
+      disabledReason: isCoordinator ? t("courses.editDetails.onlyATenantAdmin") : null,
     },
     lockedValues: isCoordinator && original.teacherIds[0] ? [original.teacherIds[0]] : undefined,
   };
@@ -345,7 +348,7 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
       } catch (error) {
         if (!isApiClientError(error)) {
           setFormError("Something went wrong. Your changes were not saved. Please try again.");
-          toast.show({ kind: "error", text: "Your changes were not saved." });
+          toast.show({ kind: "error", text: t("courses.editDetails.yourChangesWereNot") });
           return;
         }
         const { mapped, unmapped } = applyServerFieldErrors(error, setError);
@@ -363,7 +366,7 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
         } else if (mapped.length === 0 || unmapped.length > 0) {
           setFormError([error.message, ...unmapped].join(" "));
         }
-        toast.show({ kind: "error", text: "Your changes were not saved. Check the form for details." });
+        toast.show({ kind: "error", text: t("courses.editDetails.yourChangesWereNot2") });
         return;
       }
 
@@ -386,7 +389,7 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
           text: `Course details saved, but the cover image was not updated: ${coverFailure}`,
         });
       } else {
-        toast.show({ kind: "success", text: "Course details saved." });
+        toast.show({ kind: "success", text: t("courses.editDetails.courseDetailsSaved") });
       }
     },
     (invalid) => {
@@ -405,9 +408,9 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
     coverChange.kind === "upload" ? coverChange.previewUrl : coverChange.kind === "remove" ? null : course.coverImageUrl;
   const coverHelper =
     coverChange.kind === "upload"
-      ? "New image selected. It is uploaded when you save."
+      ? t("courses.editDetails.newImageSelectedIt")
       : coverChange.kind === "remove"
-        ? "The default cover will be used once you save."
+        ? t("courses.editDetails.theDefaultCoverWill")
         : "JPEG, PNG or WebP, up to 5 MB. Saved when you click Save changes.";
   const coverSecondary =
     coverChange.kind !== "keep" ? (
@@ -440,11 +443,10 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
     >
       <div className="flex flex-col gap-1">
         <h2 id={`${ID_PREFIX}-heading`} className="text-base font-semibold text-foreground">
-          Course details
+          {t("courses.editDetails.courseDetails")}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Everything here, including the cover image, is saved together when you click Save changes.
-          Enrollment stays free.
+          {t("courses.editDetails.everythingHereIncludingThe")}
         </p>
       </div>
 
@@ -457,10 +459,10 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
 
       <form id={`${ID_PREFIX}-form`} noValidate onSubmit={onSubmit} aria-busy={pending} className="flex flex-col gap-4">
         <span role="status" aria-live="polite" className="sr-only">
-          {pending ? "Saving course details…" : ""}
+          {pending ? t("courses.editDetails.savingCourseDetails") : ""}
         </span>
         <fieldset disabled={pending} className="flex min-w-0 flex-col gap-4">
-          <legend className="sr-only">Course details</legend>
+          <legend className="sr-only">{t("courses.editDetails.courseDetails")}</legend>
           <CourseSettingsFields
             idPrefix={ID_PREFIX}
             control={control}
@@ -473,7 +475,7 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
               legacyModel,
               priceHelper: (model) =>
                 model === "MONTHLY"
-                  ? "Changing the monthly fee applies from now; past months keep their price."
+                  ? t("courses.editDetails.changingTheMonthlyFee")
                   : "One-time amount for the whole course.",
             }}
             linkedCourses={linkable}
@@ -486,7 +488,7 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
                 ids={ids.cover}
                 fileInputRef={fileInputRef}
                 previewUrl={coverPreview}
-                previewAlt={coverChange.kind === "upload" ? "Selected cover preview" : `Cover of ${course.name}`}
+                previewAlt={coverChange.kind === "upload" ? t("courses.editDetails.selectedCoverPreview") : `Cover of ${course.name}`}
                 error={coverError}
                 helper={coverHelper}
                 onFileChosen={handleCoverChosen}
@@ -507,7 +509,7 @@ function CourseEditDetailsFormBody({ course, portal }: { course: KlassCourse; po
             Discard changes
           </Button>
           <Button type="submit" disabled={pending} aria-busy={pending} data-testid={`${ID_PREFIX}-submit`}>
-            {pending ? "Saving…" : "Save changes"}
+            {pending ? t("courses.editDetails.saving") : t("courses.editDetails.saveChanges")}
           </Button>
         </div>
       </form>

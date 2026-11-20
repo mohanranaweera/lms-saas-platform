@@ -1,3 +1,5 @@
+"use client";
+
 import { CheckCircle2, CircleDashed, Gift, HelpCircle, Ticket } from "lucide-react";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
 import type { DataTableColumn } from "@/components/ui/data-table";
@@ -6,6 +8,7 @@ import { CAP } from "@/lib/auth/capabilities";
 import type { CourseRosterAccessStatus, CourseRosterEntryResponse } from "@/lib/api/courses";
 import type { VariantProps } from "class-variance-authority";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 /**
  * Course roster columns and copy shared by the Tenant Admin roster, the Teacher
  * roster and the Tenant Admin teacher-detail Roster tab. Who is listed is decided
@@ -15,21 +18,22 @@ import type { VariantProps } from "class-variance-authority";
  * picks the column and wording. Color is always paired with an icon and a label
  * (`.claude/rules/ui-ux.md` §4).
  */
-const ACCESS_META: Record<
+const ACCESS_META = (t: TranslateFn): Record<
   CourseRosterAccessStatus,
   { label: string; icon: typeof CheckCircle2; variant: VariantProps<typeof badgeVariants>["variant"] }
-> = {
-  PAID: { label: "Paid", icon: CheckCircle2, variant: "default" },
-  FREE_CARD: { label: "Free card", icon: Ticket, variant: "secondary" },
-  FREE_COURSE: { label: "Free course", icon: Gift, variant: "secondary" },
-  NOT_PAID: { label: "Not paid", icon: CircleDashed, variant: "warning" },
-};
+> => ({
+  PAID: { label: t("courses.roster.paid"), icon: CheckCircle2, variant: "default" },
+  FREE_CARD: { label: t("courses.roster.freeCard"), icon: Ticket, variant: "secondary" },
+  FREE_COURSE: { label: t("courses.roster.freeCourse"), icon: Gift, variant: "secondary" },
+  NOT_PAID: { label: t("courses.roster.notPaid"), icon: CircleDashed, variant: "warning" },
+});
 
 export function RosterAccessBadge({ status }: { status: CourseRosterAccessStatus | null }) {
+  const t = useT();
   if (status === null) {
     return <span className="text-muted-foreground">—</span>;
   }
-  const meta = ACCESS_META[status] ?? { label: status, icon: HelpCircle, variant: "outline" as const };
+  const meta = ACCESS_META(t)[status] ?? { label: status, icon: HelpCircle, variant: "outline" as const };
   const Icon = meta.icon;
   return (
     <Badge variant={meta.variant}>
@@ -39,31 +43,32 @@ export function RosterAccessBadge({ status }: { status: CourseRosterAccessStatus
   );
 }
 
-const baseColumns: DataTableColumn<CourseRosterEntryResponse>[] = [
-  { key: "name", header: "Name", cell: (row) => row.name, hideOnCard: true },
-  { key: "email", header: "Email", cell: (row) => row.email },
+const baseColumns = (t: TranslateFn): DataTableColumn<CourseRosterEntryResponse>[] => [
+  { key: "name", header: t("courses.roster.colName"), cell: (row) => row.name, hideOnCard: true },
+  { key: "email", header: t("courses.roster.colEmail"), cell: (row) => row.email },
 ];
 
-const statusColumn: DataTableColumn<CourseRosterEntryResponse> = {
+const statusColumn = (t: TranslateFn): DataTableColumn<CourseRosterEntryResponse> => ({
   key: "accessStatus",
-  header: "Paid access",
+  header: t("courses.roster.colPaidAccess"),
   cell: (row) => <RosterAccessBadge status={row.accessStatus} />,
-};
+});
 
 /** Columns, heading and empty-state copy for the caller's roster view. */
 export function useCourseRosterView() {
   const { has } = useCapabilities({ fetchForAllRoles: true });
   const paymentView = has(CAP.COURSES_VIEW_PAYMENT_STATUS);
+  const t = useT();
   return {
-    columns: paymentView ? [...baseColumns, statusColumn] : baseColumns,
+    columns: paymentView ? [...baseColumns(t), statusColumn(t)] : baseColumns(t),
     description: paymentView
-      ? "Students paid for this month or holding an active Free Card."
-      : "Students currently enrolled in this course.",
+      ? t("courses.roster.studentsPaidForThis")
+      : t("courses.roster.currentlyEnrolled"),
     emptyState: paymentView
       ? {
-          title: "No active students",
-          description: "No enrolled student has paid for this month or holds an active Free Card.",
+          title: t("courses.roster.noActiveStudents"),
+          description: t("courses.roster.noEnrolledStudentHas"),
         }
-      : { title: "No enrolled students", description: "No student is currently enrolled in this course." },
+      : { title: t("courses.roster.noEnrolledStudents"), description: t("courses.roster.noStudentIsCurrently") },
   };
 }

@@ -6,8 +6,10 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { ClassSessionEditForm } from "@/components/live-classes/class-session-edit-form";
 import { useClassSession } from "@/lib/api/class-sessions";
 
+import { useT } from "@/i18n/i18n-provider";
 /** Teacher "Edit Live Class" route — reachable/functional only while `status === "SCHEDULED"` (see `ClassSessionEditForm`). */
 export default function EditLiveClassPage() {
+  const t = useT();
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
   const query = useClassSession(sessionId);
@@ -24,7 +26,7 @@ export default function EditLiveClassPage() {
       </div>
 
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Edit live class</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.liveClassesEdit.editLiveClass")}</h1>
         <p className="text-sm text-muted-foreground">
           Update this session&apos;s title, description, or schedule window.
         </p>
@@ -33,10 +35,10 @@ export default function EditLiveClassPage() {
       <div className="w-full max-w-xl">
         <QueryStateBoundary
           query={query}
-          loadingLabel="Loading live class…"
+          loadingLabel={t("teacher.page.liveClassesEdit.loadingLiveClass")}
           loginPath="/login"
           permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
-          genericErrorMessage="This live class could not be found."
+          genericErrorMessage={t("teacher.page.liveClassesEdit.thisLiveClassCould")}
         >
           {(session) => <ClassSessionEditForm session={session} />}
         </QueryStateBoundary>

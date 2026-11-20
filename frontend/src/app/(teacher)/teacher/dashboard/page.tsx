@@ -13,6 +13,7 @@ import {
   TEACHER_NO_ASSIGNED_COURSES_ACTION_LABEL,
 } from "@/lib/copy/teacher-empty-states";
 
+import { useT } from "@/i18n/i18n-provider";
 const RECENT_COURSES_LIMIT = 5;
 
 /**
@@ -27,21 +28,22 @@ const RECENT_COURSES_LIMIT = 5;
  * agree verbatim.
  */
 export default function TeacherDashboardPage() {
+  const t = useT();
   const router = useRouter();
   const query = useCourses();
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Overview</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.dashboard.overview")}</h1>
         <p className="text-sm text-muted-foreground">
-          Your assigned courses at a glance.
+          {t("teacher.page.dashboard.yourAssignedCoursesAt")}
         </p>
       </div>
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your courses…"
+        loadingLabel={t("teacher.page.dashboard.loadingYourCourses")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
         isEmpty={(data) => data.content.length === 0}
@@ -77,26 +79,26 @@ export default function TeacherDashboardPage() {
             <div className="flex flex-col gap-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <StatCard
-                  label="Assigned courses"
+                  label={t("teacher.page.dashboard.assignedCourses")}
                   value={courses.length}
                   icon={<BookOpen className="size-4" />}
                 />
                 <StatCard
-                  label="Published"
+                  label={t("teacher.page.dashboard.published")}
                   value={publishedCount}
                   icon={<CheckCircle2 className="size-4" />}
                 />
                 <StatCard
-                  label="Draft / private"
+                  label={t("teacher.page.dashboard.draftPrivate")}
                   value={draftCount}
                   icon={<PencilLine className="size-4" />}
                 />
               </div>
 
               <div className="flex flex-col gap-3">
-                <h2 className="text-base font-semibold text-foreground">Recent courses</h2>
+                <h2 className="text-base font-semibold text-foreground">{t("teacher.page.dashboard.recentCourses")}</h2>
                 <ul
-                  aria-label="Recent courses"
+                  aria-label={t("teacher.page.dashboard.recentCourses")}
                   className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
                 >
                   {recentCourses.map((course) => (

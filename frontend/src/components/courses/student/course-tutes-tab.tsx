@@ -9,18 +9,20 @@ import { isApiClientError } from "@/lib/api/error";
 import { useMyCourseTutes, type StudentTute } from "@/lib/api/klass-student";
 import { formatLessonDateTime } from "./student-format";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 /**
  * "Tute Delivery" (TUTE-02): the student's own printed tutes of the course
  * and where each one is - the server's status only; the frontend just labels it.
  */
 export function CourseTutesTab({ courseId, timeZone }: { courseId: string; timeZone: string | null }) {
+  const t = useT();
   const query = useMyCourseTutes(courseId);
 
-  if (query.status === "pending") return <LoadingState label="Loading your tutes…" />;
+  if (query.status === "pending") return <LoadingState label={t("student.courseTutesTab.loadingYourTutes")} />;
   if (query.status === "error") {
     return (
       <ErrorState
-        message="We couldn't load your tutes for this course."
+        message={t("student.courseTutesTab.weCouldntLoadYour")}
         code={isApiClientError(query.error) ? query.error.code : undefined}
         onRetry={() => query.refetch()}
       />
@@ -33,8 +35,8 @@ export function CourseTutesTab({ courseId, timeZone }: { courseId: string; timeZ
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6" data-testid="course-tutes-empty">
         <EmptyState
           icon={<Truck className="size-8" />}
-          title="No tutes for this course yet"
-          description="When your institute sends printed tutes, you can follow them here."
+          title={t("student.courseTutesTab.noTutesForThis")}
+          description={t("student.courseTutesTab.whenYourInstituteSends")}
         />
       </div>
     );
@@ -48,7 +50,7 @@ export function CourseTutesTab({ courseId, timeZone }: { courseId: string; timeZ
     >
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-4 sm:px-6">
         <h2 id="course-tutes-heading" className="text-base font-semibold text-foreground">
-          Your tutes
+          {t("student.courseTutesTab.yourTutes")}
         </h2>
         <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-200">
           {tutes.length} {tutes.length === 1 ? "tute" : "tutes"}
@@ -65,24 +67,24 @@ export function CourseTutesTab({ courseId, timeZone }: { courseId: string; timeZ
 
 type Tone = "pending" | "hold" | "done";
 
-function describe(tute: StudentTute, timeZone: string | null): { label: string; detail: string; tone: Tone } {
+function describe(tute: StudentTute, timeZone: string | null, t: TranslateFn): { label: string; detail: string; tone: Tone } {
   const collection = tute.method === "COLLECTION";
   if (tute.status === "DISPATCHED") {
     const when = tute.dispatchedAt ? formatLessonDateTime(tute.dispatchedAt, timeZone) : null;
     return collection
-      ? { label: "Handed over", detail: when ? `Handed over on ${when}` : "Handed over at class", tone: "done" }
-      : { label: "Dispatched", detail: when ? `Posted on ${when}` : "Posted to you", tone: "done" };
+      ? { label: t("student.courseTutesTab.handedOver"), detail: when ? t("student.tute.handedOverOn", { when }) : t("student.tute.handedOverAtClass"), tone: "done" }
+      : { label: t("student.courseTutesTab.dispatched"), detail: when ? t("student.tute.postedOn", { when }) : t("student.tute.postedToYou"), tone: "done" };
   }
   if (tute.status === "ON_HOLD") {
     return {
-      label: "On hold",
-      detail: "Your institute is checking the payment for this tute. Contact them if you have questions.",
+      label: t("student.courseTutesTab.onHold"),
+      detail: t("student.tute.onHoldDetail"),
       tone: "hold",
     };
   }
   return collection
-    ? { label: "Pending", detail: "Collect this tute at class.", tone: "pending" }
-    : { label: "Pending", detail: "Your institute will post this tute to you.", tone: "pending" };
+    ? { label: t("student.courseTutesTab.pending"), detail: t("student.tute.collect"), tone: "pending" }
+    : { label: t("student.courseTutesTab.pending"), detail: t("student.tute.willPost"), tone: "pending" };
 }
 
 const TONE_CLASS: Record<Tone, string> = {
@@ -94,7 +96,8 @@ const TONE_CLASS: Record<Tone, string> = {
 const TONE_ICON: Record<Tone, typeof Clock> = { pending: Clock, hold: PauseCircle, done: CheckCircle2 };
 
 function TuteRow({ tute, timeZone }: { tute: StudentTute; timeZone: string | null }) {
-  const { label, detail, tone } = describe(tute, timeZone);
+  const t = useT();
+  const { label, detail, tone } = describe(tute, timeZone, t);
   const Icon = TONE_ICON[tone];
   return (
     <li
@@ -105,7 +108,7 @@ function TuteRow({ tute, timeZone }: { tute: StudentTute; timeZone: string | nul
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="text-sm font-medium break-words text-foreground">{tute.tuteName}</span>
         <span className="text-xs text-muted-foreground">
-          {tute.method === "COLLECTION" ? "Collect at class" : "By post"} · {detail}
+          {tute.method === "COLLECTION" ? t("student.courseTutesTab.collectAtClass") : t("student.courseTutesTab.byPost")} · {detail}
         </span>
       </div>
       <span

@@ -27,27 +27,29 @@ import {
 } from "@/lib/api/exam-config";
 import { cn } from "@/lib/utils";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 type DirectoryTab = "in-progress" | "upcoming" | "previous";
 
-const TABS: {
+const TABS = (t: TranslateFn): {
   value: DirectoryTab;
   label: string;
   icon: typeof Zap;
   key: keyof Pick<ExamDirectoryData, "inProgress" | "upcoming" | "previous">;
   empty: string;
-}[] = [
-  { value: "in-progress", label: "In progress exams", icon: Zap, key: "inProgress", empty: "No active exams" },
-  { value: "upcoming", label: "Upcoming exams", icon: ListTodo, key: "upcoming", empty: "No upcoming exams" },
-  { value: "previous", label: "Previous exams", icon: History, key: "previous", empty: "No previous exams" },
-];
+}[] => ([
+  { value: "in-progress", label: t("exams.directory.inProgressExams"), icon: Zap, key: "inProgress", empty: t("exams.directory.noActiveExams") },
+  { value: "upcoming", label: t("exams.directory.upcomingExams"), icon: ListTodo, key: "upcoming", empty: t("exams.directory.noUpcomingExams") },
+  { value: "previous", label: t("exams.directory.previousExams"), icon: History, key: "previous", empty: t("exams.directory.noPreviousExams") },
+]);
 
 const DELETE_BLOCKED = "Students have already taken this exam, so it can't be deleted.";
 const SEARCH_DEBOUNCE_MS = 300;
 
 function DirectorySkeleton() {
+  const t = useT();
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-4" data-testid="exam-directory-loading">
-      <span className="sr-only">Loading exams…</span>
+      <span className="sr-only">{t("exams.directory.loadingExams")}</span>
       <div className="flex gap-3">
         <Skeleton className="h-9 w-44" />
         <Skeleton className="h-9 w-44" />
@@ -76,6 +78,7 @@ function DirectorySkeleton() {
  * ever receives exams of their own courses).
  */
 export function ExamDirectory({ portal }: { portal: ExamPortal }) {
+  const t = useT();
   const paths = examPaths(portal);
   const { session } = useAuth();
   const role = session?.role ?? null;
@@ -130,8 +133,8 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
           type="search"
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search exams"
-          aria-label="Search exams"
+          placeholder={t("exams.directory.searchExams")}
+          aria-label={t("exams.directory.searchExams")}
           className="h-9 pr-9"
           data-testid="exam-search"
         />
@@ -144,7 +147,7 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
           data-testid="exam-leaderboard-link"
         >
           <Trophy aria-hidden="true" />
-          Leaderboard
+          {t("exams.directory.leaderboard")}
         </Link>
         {canCreate ? (
           <Button
@@ -155,7 +158,7 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
             data-testid="exam-new"
           >
             <Plus aria-hidden="true" />
-            New exam
+            {t("exams.directory.newExam")}
           </Button>
         ) : null}
       </div>
@@ -187,7 +190,7 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
       );
     }
     return (
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Exams" data-testid="exam-card-grid">
+      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={t("exams.directory.exams")} data-testid="exam-card-grid">
         {cards.map((exam) => (
           <li key={exam.id} className="flex min-w-0">
             <ExamCard
@@ -212,15 +215,15 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <ExamPageTitle title="Exams" icon={<FileClock className="size-5" aria-hidden="true" />} />
+      <ExamPageTitle title={t("exams.directory.exams")} icon={<FileClock className="size-5" aria-hidden="true" />} />
 
       {portal === "teacher" ? (
-        <nav aria-label="More exam tools" className="-mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <nav aria-label={t("exams.directory.moreExamTools")} className="-mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <Link href="/teacher/exams/questions" className="text-primary underline-offset-4 hover:underline">
-            Course question bank (legacy)
+            {t("exams.directory.courseQuestionBankLegacy")}
           </Link>
           <Link href="/teacher/exams/marking" className="text-primary underline-offset-4 hover:underline">
-            Marking queue
+            {t("exams.directory.markingQueue")}
           </Link>
         </nav>
       ) : null}
@@ -230,19 +233,19 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
       ) : (
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading exams…"
+        loadingLabel={t("exams.directory.loadingExams")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: paths.dashboard }}
       >
         {(data) => (
           <div aria-busy={isRefetching} className="flex min-w-0 flex-col">
-            <LiveRegion message={isRefetching ? "Updating…" : ""} />
+            <LiveRegion message={isRefetching ? t("exams.directory.updating") : ""} />
             <Tabs
-              aria-label="Exams by status"
+              aria-label={t("exams.directory.examsByStatus")}
               idPrefix="exam-dir-"
               value={tab}
               onValueChange={(next) => setTab(next as DirectoryTab)}
-              items={TABS.map((entry) => {
+              items={TABS(t).map((entry) => {
                 const cards = data[entry.key] ?? [];
                 const Icon = entry.icon;
                 return {
@@ -294,13 +297,13 @@ export function ExamDirectory({ portal }: { portal: ExamPortal }) {
         onOpenChange={(open) => {
           if (!open && !deleteExam.isPending) setPendingDelete(null);
         }}
-        title="Delete exam?"
+        title={t("exams.directory.deleteExam")}
         description={
           pendingDelete
             ? `“${pendingDelete.name}” will be removed from the exam directory. Exams that students have already taken can't be deleted.`
             : ""
         }
-        confirmLabel="Delete exam"
+        confirmLabel={t("exams.directory.deleteExam2")}
         pending={deleteExam.isPending}
         error={deleteError}
         onConfirm={() => void confirmDelete()}

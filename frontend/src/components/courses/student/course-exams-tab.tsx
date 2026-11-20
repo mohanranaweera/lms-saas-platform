@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { isApiClientError } from "@/lib/api/error";
 import { useStudentExams, type StudentExam, type StudentExamList } from "@/lib/api/student-exams";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 type ExamBucket = "inProgress" | "upcoming" | "previous";
 
 const BUCKET_LABELS: Record<ExamBucket, string> = {
@@ -23,20 +24,20 @@ const BUCKET_TEST_IDS: Record<ExamBucket, string> = {
   previous: "PREVIOUS",
 };
 
-const EMPTY_COPY: Record<ExamBucket, { title: string; description: string }> = {
+const EMPTY_COPY = (t: TranslateFn): Record<ExamBucket, { title: string; description: string }> => ({
   inProgress: {
-    title: "No exams running right now",
-    description: "When an exam you're enrolled in opens, it will appear here.",
+    title: t("student.courseExamsTab.noExamsRunningRight"),
+    description: t("student.courseExamsTab.whenAnExamYoure"),
   },
   upcoming: {
-    title: "No upcoming exams",
-    description: "Exams of this course you're enrolled in will appear here before they open.",
+    title: t("student.courseExamsTab.noUpcomingExams"),
+    description: t("student.courseExamsTab.examsOfThisCourse"),
   },
   previous: {
-    title: "No previous exams",
-    description: "Exams of this course that have closed will appear here.",
+    title: t("student.courseExamsTab.noPreviousExams"),
+    description: t("student.courseExamsTab.examsOfThisCourse2"),
   },
-};
+});
 
 /**
  * `StudentExamResponse` has no `courseId` in the Slice C contract; match on it
@@ -52,14 +53,15 @@ function belongsTo(exam: StudentExam, courseId: string, courseName: string): boo
  * exams (`GET /student/exams`, grouped by the server clock) for this course.
  */
 export function CourseExamsTab({ courseId, courseName }: { courseId: string; courseName: string }) {
+  const t = useT();
   const query = useStudentExams();
   const [bucket, setBucket] = useState<ExamBucket>("inProgress");
 
-  if (query.status === "pending") return <LoadingState label="Loading exams…" />;
+  if (query.status === "pending") return <LoadingState label={t("student.courseExamsTab.loadingExams")} />;
   if (query.status === "error") {
     return (
       <ErrorState
-        message="We couldn't load your exams."
+        message={t("student.courseExamsTab.weCouldntLoadYour")}
         code={isApiClientError(query.error) ? query.error.code : undefined}
         onRetry={() => query.refetch()}
       />
@@ -72,11 +74,11 @@ export function CourseExamsTab({ courseId, courseName }: { courseId: string; cou
 
   return (
     <section
-      aria-label="Exams"
+      aria-label={t("student.courseExamsTab.exams")}
       className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6"
       data-testid="course-exams-panel"
     >
-      <div role="group" aria-label="Exam status" className="flex flex-wrap gap-2">
+      <div role="group" aria-label={t("student.courseExamsTab.examStatus")} className="flex flex-wrap gap-2">
         {(Object.keys(BUCKET_LABELS) as ExamBucket[]).map((value) => (
           <button
             key={value}
@@ -91,7 +93,7 @@ export function CourseExamsTab({ courseId, courseName }: { courseId: string; cou
                 : "border-border text-foreground hover:bg-muted"
             )}
           >
-            {BUCKET_LABELS[value]} ({byBucket(value).length})
+            {value === "inProgress" ? t("exams.status.inProgress") : value === "upcoming" ? t("exams.status.upcoming") : t("student.courseExams.previous")} ({byBucket(value).length})
           </button>
         ))}
       </div>
@@ -99,8 +101,8 @@ export function CourseExamsTab({ courseId, courseName }: { courseId: string; cou
       {visible.length === 0 ? (
         <div role="status" className="flex flex-col items-center gap-2 px-6 py-12 text-center" data-testid="course-exams-empty">
           <ClipboardList className="size-8 text-muted-foreground" aria-hidden="true" />
-          <p className="text-sm font-medium text-foreground">{EMPTY_COPY[bucket].title}</p>
-          <p className="text-sm text-muted-foreground">{EMPTY_COPY[bucket].description}</p>
+          <p className="text-sm font-medium text-foreground">{EMPTY_COPY(t)[bucket].title}</p>
+          <p className="text-sm text-muted-foreground">{EMPTY_COPY(t)[bucket].description}</p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">

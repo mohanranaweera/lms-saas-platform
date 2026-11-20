@@ -18,8 +18,10 @@ import { CAP } from "@/lib/auth/capabilities";
 import { useCapabilities } from "@/lib/api/my-permissions";
 import { useDeleteLeaderboard, useLeaderboardRanks } from "@/lib/api/exam-results";
 
+import { useT } from "@/i18n/i18n-provider";
 /** Staff view of one leaderboard (Slice E, D7): included exams, ranks, search and paging. */
 export function LeaderboardRanksPage({ portal, leaderboardId }: { portal: ExamPortal; leaderboardId: string }) {
+  const t = useT();
   const paths = examPaths(portal);
   const router = useRouter();
   const { session } = useAuth();
@@ -61,13 +63,13 @@ export function LeaderboardRanksPage({ portal, leaderboardId }: { portal: ExamPo
             <div className="flex flex-wrap gap-2">
               <Link href={paths.leaderboards} className={buttonVariants({ variant: "outline" })}>
                 <ArrowLeft aria-hidden="true" />
-                Leaderboards
+                {t("exams.leaderboardRanks.leaderboards")}
               </Link>
               {canManage && query.status === "success" ? (
                 <>
                   <Button type="button" variant="outline" onClick={() => setEditing(true)} data-testid="leaderboard-edit">
                     <Pencil aria-hidden="true" />
-                    Edit
+                    {t("exams.leaderboardRanks.edit")}
                   </Button>
                   <Button
                     type="button"
@@ -80,14 +82,14 @@ export function LeaderboardRanksPage({ portal, leaderboardId }: { portal: ExamPo
                     data-testid="leaderboard-delete"
                   >
                     <Trash2 aria-hidden="true" />
-                    Delete
+                    {t("exams.leaderboardRanks.delete")}
                   </Button>
                 </>
               ) : null}
             </div>
           }
         />
-        <Breadcrumbs items={[{ label: "Exams", href: paths.directory }, { label: "Leaderboards", href: paths.leaderboards }, { label: name }]} />
+        <Breadcrumbs items={[{ label: t("exams.leaderboardRanks.exams"), href: paths.directory }, { label: t("exams.leaderboardRanks.leaderboards"), href: paths.leaderboards }, { label: name }]} />
       </div>
       <LeaderboardRanksView
         query={query}
@@ -114,8 +116,8 @@ export function LeaderboardRanksPage({ portal, leaderboardId }: { portal: ExamPo
         open={deleting}
         onOpenChange={setDeleting}
         title={`Delete “${name}”?`}
-        description="Only the leaderboard is removed. Its exams, marks and results stay as they are."
-        confirmLabel="Delete leaderboard"
+        description={t("exams.leaderboardRanks.onlyTheLeaderboardIs")}
+        confirmLabel={t("exams.leaderboardRanks.deleteLeaderboard")}
         pending={remove.isPending}
         error={deleteError}
         onConfirm={() => void confirmDelete()}

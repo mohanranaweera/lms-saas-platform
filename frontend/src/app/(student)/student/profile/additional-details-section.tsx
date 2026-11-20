@@ -4,6 +4,7 @@ import { ClipboardList } from "lucide-react";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { ProfileFieldsForm } from "@/components/students/profile-fields-form";
 import { useOwnProfileFields, useUpdateOwnProfileFields } from "@/lib/api/student-profile-fields";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * The student's own tenant-configured "Additional details" (STU-PROF-01) —
@@ -14,6 +15,7 @@ import { useOwnProfileFields, useUpdateOwnProfileFields } from "@/lib/api/studen
 export function AdditionalDetailsSection() {
   const query = useOwnProfileFields();
   const mutation = useUpdateOwnProfileFields();
+  const t = useT();
 
   return (
     <section
@@ -23,22 +25,20 @@ export function AdditionalDetailsSection() {
     >
       <div>
         <h2 id="additional-details-heading" className="text-lg font-medium text-foreground">
-          Additional details
+          {t("student.profile.additional.heading")}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Information your institute collects about its students. Fields marked (optional) can be left blank.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("student.profile.additional.description")}</p>
       </div>
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your details…"
+        loadingLabel={t("student.profile.additional.loading")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
         isEmpty={(data) => data.fields.length === 0}
         emptyState={{
           icon: <ClipboardList className="size-6" aria-hidden="true" />,
-          title: "Nothing else to fill in",
-          description: "Your institute doesn't collect any additional details at the moment.",
+          title: t("student.profile.additional.empty.title"),
+          description: t("student.profile.additional.empty.description"),
         }}
       >
         {(data) => (
@@ -47,8 +47,8 @@ export function AdditionalDetailsSection() {
             idPrefix="my-details"
             enforceRequired
             save={(values) => mutation.mutateAsync(values)}
-            savingLabel="Saving your details…"
-            savedLabel="Details saved."
+            savingLabel={t("student.profile.additional.saving")}
+            savedLabel={t("student.profile.additional.saved")}
           />
         )}
       </QueryStateBoundary>

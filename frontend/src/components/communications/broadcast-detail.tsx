@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DeliveryStatusBadge, deliveryReason, providerStatusText } from "./delivery-status";
 
+import { useT } from "@/i18n/i18n-provider";
 const ALL = "ALL";
 const STATUSES: DeliveryStatus[] = ["PENDING", "SENT", "FAILED", "SKIPPED"];
 
@@ -31,14 +32,15 @@ const STATUSES: DeliveryStatus[] = ["PENDING", "SENT", "FAILED", "SKIPPED"];
  * the counts refresh on their own while anything is still queued.
  */
 export function BroadcastDetail({ broadcastId, backHref }: { broadcastId: string; backHref: string }) {
+  const t = useT();
   const query = useBroadcast(broadcastId);
   return (
     <div className="flex flex-col gap-6">
       <Link href={backHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Back to broadcasts
+        {t("teacher.broadcastDetail.backToBroadcasts")}
       </Link>
-      <QueryStateBoundary query={query} loadingLabel="Loading broadcast…" loginPath="/login">
+      <QueryStateBoundary query={query} loadingLabel={t("teacher.broadcastDetail.loadingBroadcast")} loginPath="/login">
         {(broadcast) => (
           <>
             <Summary broadcast={broadcast} />
@@ -51,6 +53,7 @@ export function BroadcastDetail({ broadcastId, backHref }: { broadcastId: string
 }
 
 function Summary({ broadcast }: { broadcast: BroadcastView }) {
+  const t = useT();
   return (
     <Card>
       <CardHeader>
@@ -66,7 +69,7 @@ function Summary({ broadcast }: { broadcast: BroadcastView }) {
         <p className="whitespace-pre-wrap text-sm text-foreground">{broadcast.body}</p>
         {broadcast.smsBody ? (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">SMS / WhatsApp text</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("teacher.broadcastDetail.smsWhatsappText")}</p>
             <p className="whitespace-pre-wrap text-sm text-foreground">{broadcast.smsBody}</p>
           </div>
         ) : null}
@@ -89,6 +92,7 @@ function Summary({ broadcast }: { broadcast: BroadcastView }) {
 }
 
 function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
+  const t = useT();
   const [status, setStatus] = useState<DeliveryStatus | "">("");
   const [channel, setChannel] = useState<DeliveryChannel | "">("");
   const [page, setPage] = useState(0);
@@ -119,15 +123,15 @@ function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Delivery log</CardTitle>
+        <CardTitle>{t("teacher.broadcastDetail.deliveryLog")}</CardTitle>
         <CardDescription>
-          Failed sends are retried automatically up to 3 times. Skipped messages were never sent to a provider.
+          {t("teacher.broadcastDetail.failedSendsAreRetried")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-status">Status</Label>
+            <Label htmlFor="delivery-status">{t("teacher.broadcastDetail.status")}</Label>
             <Select
               value={status || ALL}
               onValueChange={(value) => {
@@ -139,7 +143,7 @@ function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All statuses</SelectItem>
+                <SelectItem value={ALL}>{t("teacher.broadcastDetail.allStatuses")}</SelectItem>
                 {STATUSES.map((value) => (
                   <SelectItem key={value} value={value}>
                     {value.charAt(0) + value.slice(1).toLowerCase()}
@@ -149,7 +153,7 @@ function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-channel">Channel</Label>
+            <Label htmlFor="delivery-channel">{t("teacher.broadcastDetail.channel")}</Label>
             <Select
               value={channel || ALL}
               onValueChange={(value) => {
@@ -161,7 +165,7 @@ function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All channels</SelectItem>
+                <SelectItem value={ALL}>{t("teacher.broadcastDetail.allChannels")}</SelectItem>
                 {broadcast.channels.map((value) => (
                   <SelectItem key={value} value={value}>
                     {CHANNEL_LABELS[value]}
@@ -173,10 +177,10 @@ function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
         </div>
         <QueryStateBoundary
           query={query}
-          loadingLabel="Loading deliveries…"
+          loadingLabel={t("teacher.broadcastDetail.loadingDeliveries")}
           loginPath="/login"
           isEmpty={(data) => data.content.length === 0}
-          emptyState={{ title: "No deliveries match", description: "Try a different status or channel." }}
+          emptyState={{ title: t("teacher.broadcastDetail.noDeliveriesMatch"), description: t("teacher.broadcastDetail.tryADifferentStatus") }}
         >
           {(data) => (
             <div className="flex flex-col gap-3">
@@ -184,13 +188,13 @@ function DeliveryLog({ broadcast }: { broadcast: BroadcastView }) {
                 columns={columns}
                 rows={data.content}
                 rowKey={(row) => row.id}
-                caption="Delivery log"
-                cardHeading={(row) => row.recipientName ?? "Unknown"}
+                caption={t("teacher.broadcastDetail.deliveryLog")}
+                cardHeading={(row) => row.recipientName ?? t("teacher.broadcastDetail.unknown")}
               />
               {data.totalPages > 1 ? (
                 <div className="flex items-center justify-between gap-2">
                   <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                    Previous
+                    {t("teacher.broadcastDetail.previous")}
                   </Button>
                   <span className="text-sm text-muted-foreground">
                     Page {page + 1} of {data.totalPages}

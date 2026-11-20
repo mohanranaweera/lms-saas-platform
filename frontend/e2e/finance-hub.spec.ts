@@ -30,7 +30,17 @@ const FINANCE_STAFF_CAPS = [
   "FINANCE_DELETE_CATEGORY",
 ];
 
-const CASH = {
+const CASH: {
+  id: string;
+  name: string;
+  description: string | null;
+  currency: string;
+  balance: number;
+  archived: boolean;
+  mappedMethods: string[];
+  createdAt: string;
+  updatedAt: string;
+} = {
   id: "acc-cash",
   name: "Cash in hand",
   description: "Front desk",

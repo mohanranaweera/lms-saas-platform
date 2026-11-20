@@ -16,6 +16,7 @@ import { isApiClientError } from "@/lib/api/error";
 import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/datetime";
 import { z } from "zod";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Reuses `classSessionFormSchema`'s window-validity refinements but drops
  * `courseId`/`lessonId` entirely — `ClassSessionUpdateRequest` has no such
@@ -55,6 +56,7 @@ export function ClassSessionEditForm({
   session: ClassSessionResponse;
   backHref?: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const isScheduled = session.status === "SCHEDULED";
   const mutation = useUpdateClassSession(session.id);
@@ -97,13 +99,13 @@ export function ClassSessionEditForm({
       });
       router.push(`${backHref ?? "/teacher/live-classes"}/${session.id}?updated=1`);
     } catch (error) {
-      setPageError(isApiClientError(error) ? error.message : "An unexpected error occurred. Please try again.");
+      setPageError(isApiClientError(error) ? error.message : t("teacher.liveEdit.anUnexpectedErrorOccurred"));
     }
   });
 
   return (
     <form className="flex flex-col gap-4" noValidate aria-busy={isSubmitting} onSubmit={onSubmit}>
-      <LiveRegion message={isSubmitting ? "Saving changes…" : ""} />
+      <LiveRegion message={isSubmitting ? t("teacher.liveEdit.savingChanges") : ""} />
       {!isScheduled ? (
         <Alert>
           <AlertDescription>
@@ -115,10 +117,10 @@ export function ClassSessionEditForm({
       {pageError ? <ErrorState message={pageError} onRetry={() => setPageError(null)} /> : null}
 
       <fieldset disabled={disabled} className="flex flex-col gap-4">
-        <legend className="sr-only">Edit live class</legend>
+        <legend className="sr-only">{t("teacher.liveEdit.editLiveClass")}</legend>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="live-class-edit-title">Title</Label>
+          <Label htmlFor="live-class-edit-title">{t("teacher.liveEdit.title")}</Label>
           <Input
             id="live-class-edit-title"
             aria-required="true"
@@ -134,13 +136,13 @@ export function ClassSessionEditForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="live-class-edit-description">Description (optional)</Label>
+          <Label htmlFor="live-class-edit-description">{t("teacher.liveEdit.descriptionOptional")}</Label>
           <Textarea id="live-class-edit-description" {...register("description")} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="live-class-edit-start">Start</Label>
+            <Label htmlFor="live-class-edit-start">{t("teacher.liveEdit.start")}</Label>
             <Input
               id="live-class-edit-start"
               type="datetime-local"
@@ -156,7 +158,7 @@ export function ClassSessionEditForm({
             ) : null}
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="live-class-edit-end">End</Label>
+            <Label htmlFor="live-class-edit-end">{t("teacher.liveEdit.end")}</Label>
             <Input
               id="live-class-edit-end"
               type="datetime-local"
@@ -176,7 +178,7 @@ export function ClassSessionEditForm({
 
       {isScheduled ? (
         <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full sm:w-fit">
-          {isSubmitting ? "Saving…" : "Save changes"}
+          {isSubmitting ? t("teacher.liveEdit.saving") : t("teacher.liveEdit.saveChanges")}
         </Button>
       ) : null}
     </form>

@@ -19,6 +19,7 @@ import {
   type LocalDate,
 } from "@/lib/calendar/time";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 /**
  * CAL-01 calendar views (month grid, week/day time grid, agenda list). Pure
  * presentation over the server's occurrences; no drag/resize, nothing here
@@ -37,13 +38,33 @@ export interface ViewProps {
 
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function fullDate(date: LocalDate): string {
-  return formatLongDate(date);
+/** Locale for Intl formatting from a translator (undefined = the English defaults). */
+function intlLocale(t?: TranslateFn): string | undefined {
+  return t?.locale && !t.locale.startsWith("en") ? t.locale : undefined;
 }
 
-export function chipLabel(occurrence: CalendarOccurrence, status: ScheduleStatus, timeZone: string): string {
-  const start = formatTime(Date.parse(occurrence.start), timeZone);
-  const end = formatTime(Date.parse(occurrence.end), timeZone);
+/** Short weekday names (Sunday first) in the UI language. */
+function weekdayShort(t: TranslateFn): string[] {
+  const locale = intlLocale(t);
+  if (!locale) return WEEKDAY_SHORT;
+  const format = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" });
+  // 2023-01-01 was a Sunday.
+  return Array.from({ length: 7 }, (_, i) => format.format(new Date(Date.UTC(2023, 0, 1 + i))));
+}
+
+export function fullDate(date: LocalDate, t?: TranslateFn): string {
+  return formatLongDate(date, intlLocale(t));
+}
+
+export function chipLabel(occurrence: CalendarOccurrence, status: ScheduleStatus, timeZone: string, t?: TranslateFn): string {
+  const locale = intlLocale(t);
+  const start = formatTime(Date.parse(occurrence.start), timeZone, locale);
+  const end = formatTime(Date.parse(occurrence.end), timeZone, locale);
+  if (t) {
+    const statusText =
+      status === "LIVE" ? t("common.scheduleStatus.live") : status === "OVER" ? t("common.scheduleStatus.over") : status === "CANCELLED" ? t("common.scheduleStatus.cancelled") : t("common.scheduleStatus.scheduled");
+    return t("calendar.chipLabel", { start, end, course: occurrence.courseName, status: statusText });
+  }
   return `${start} to ${end}, ${occurrence.courseName}, ${STATUS_LABELS[status]}`;
 }
 
@@ -71,6 +92,7 @@ export function OccurrenceChip({
   onSelect: (occurrence: CalendarOccurrence) => void;
   className?: string;
 }) {
+  const t = useT();
   const color = courseColor(occurrence.courseId);
   const cancelled = status === "CANCELLED";
   const time = formatTime(Date.parse(occurrence.start), timeZone);
@@ -78,8 +100,8 @@ export function OccurrenceChip({
     <button
       type="button"
       onClick={() => onSelect(occurrence)}
-      aria-label={chipLabel(occurrence, status, timeZone)}
-      title={`${time} ${occurrence.courseName}${cancelled ? " (Cancelled)" : ""}`}
+      aria-label={chipLabel(occurrence, status, timeZone, t)}
+      title={`${time} ${occurrence.courseName}${cancelled ? ` (${t("common.scheduleStatus.cancelled")})` : ""}`}
       data-testid="calendar-chip"
       data-occurrence-id={occurrence.id}
       data-status={status}
@@ -96,7 +118,7 @@ export function OccurrenceChip({
       <span className={cn("min-w-0 truncate", cancelled && "line-through")}>
         <span className="tabular-nums">{time}</span> {occurrence.courseName}
       </span>
-      {cancelled ? <span className="shrink-0 no-underline">Cancelled</span> : null}
+      {cancelled ? <span className="shrink-0 no-underline">{t("calendar.calendarViews.cancelled")}</span> : null}
     </button>
   );
 }
@@ -114,6 +136,7 @@ export function MonthView({
   anchor,
   onShowDay,
 }: ViewProps & { from: LocalDate; to: LocalDate; anchor: LocalDate; onShowDay: (date: LocalDate) => void }) {
+  const t = useT();
   const byDate = useMemo(() => groupByDate(occurrences), [occurrences]);
   const days = datesBetween(from, to);
   const weeks: LocalDate[][] = [];
@@ -122,20 +145,22 @@ export function MonthView({
   return (
     <div className="overflow-hidden rounded-xl border border-border" data-testid="calendar-month">
       <div className="grid grid-cols-7 border-b border-border bg-muted/60" aria-hidden="true">
-        {WEEKDAY_SHORT.map((label) => (
+        {weekdayShort(t).map((label) => (
           <div key={label} className="px-1 py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {label}
           </div>
         ))}
       </div>
-      <ol className="grid grid-cols-7" aria-label="Days">
+      <ol className="grid grid-cols-7" aria-label={t("calendar.calendarViews.days")}>
         {weeks.flat().map((date) => {
           const list = byDate.get(date) ?? [];
           const inMonth = sameMonth(date, anchor);
           const isToday = date === today;
           const visible = list.length > MAX_CHIPS ? list.slice(0, MAX_CHIPS) : list;
           const hidden = list.length - visible.length;
-          const dayLabel = `${fullDate(date)}${isToday ? ", today" : ""}, ${list.length === 0 ? "no classes" : `${list.length} ${list.length === 1 ? "class" : "classes"}`}`;
+          const dayLabel = isToday
+            ? t("calendar.dayLabelToday", { date: fullDate(date, t), count: list.length })
+            : t("calendar.dayLabel", { date: fullDate(date, t), count: list.length });
           return (
             <li
               key={date}
@@ -173,7 +198,7 @@ export function MonthView({
                     type="button"
                     onClick={() => onShowDay(date)}
                     className="rounded-md px-1.5 py-0.5 text-left text-xs font-semibold text-primary outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/60"
-                    aria-label={`Show all ${list.length} classes on ${fullDate(date)}`}
+                    aria-label={t("calendar.showAll", { count: list.length, date: fullDate(date, t) })}
                     data-testid="calendar-more"
                   >
                     +{hidden} more
@@ -186,7 +211,7 @@ export function MonthView({
                   type="button"
                   onClick={() => onShowDay(date)}
                   className="flex flex-wrap items-center justify-center gap-0.5 rounded-md p-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/60 sm:hidden"
-                  aria-label={`Show ${list.length} ${list.length === 1 ? "class" : "classes"} on ${fullDate(date)}`}
+                  aria-label={t("calendar.showClasses", { count: list.length, date: fullDate(date, t) })}
                 >
                   {list.slice(0, 4).map((occurrence) => (
                     <span
@@ -305,7 +330,9 @@ export function layoutDay(occurrences: CalendarOccurrence[], date: LocalDate, ti
   return result;
 }
 
-function hourLabel(hour: number): string {
+function hourLabel(hour: number, t?: TranslateFn): string {
+  const locale = intlLocale(t);
+  if (locale) return new Intl.DateTimeFormat(locale, { hour: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(2023, 0, 1, hour)));
   if (hour === 0) return "12 AM";
   if (hour === 12) return "12 PM";
   return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
@@ -321,6 +348,7 @@ export function TimeGridView({
   nowMs,
   onShowDay,
 }: ViewProps & { days: LocalDate[]; nowMs: number | null; onShowDay: (date: LocalDate) => void }) {
+  const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const byDate = useMemo(() => groupByDate(occurrences), [occurrences]);
   const rangeKey = days.join(",");
@@ -366,7 +394,7 @@ export function TimeGridView({
                 >
                   {dayOfMonth(date)}
                 </span>
-                {date === today ? <span className="sr-only">Today</span> : null}
+                {date === today ? <span className="sr-only">{t("calendar.calendarViews.today")}</span> : null}
               </div>
             ))}
           </div>
@@ -379,7 +407,7 @@ export function TimeGridView({
                   className="absolute right-1.5 -translate-y-1/2 text-[11px] text-muted-foreground"
                   style={{ top: hour * HOUR_PX }}
                 >
-                  {hour === 0 ? "" : hourLabel(hour)}
+                  {hour === 0 ? "" : hourLabel(hour, t)}
                 </span>
               ))}
             </div>
@@ -388,12 +416,12 @@ export function TimeGridView({
               const { shown: events, overflow } = capLanes(layoutDay(dayEvents, date, timeZone), singleDay ? 6 : 3);
               return (
                 <div key={date} className="relative border-l border-border" style={{ height: 24 * HOUR_PX }}>
-                  <h3 className="sr-only">{fullDate(date)}</h3>
+                  <h3 className="sr-only">{fullDate(date, t)}</h3>
                   {Array.from({ length: 24 }, (_, hour) => (
                     <div key={hour} className="absolute inset-x-0 border-t border-border/70" style={{ top: hour * HOUR_PX }} aria-hidden="true" />
                   ))}
-                  {events.length === 0 ? <p className="sr-only">No classes</p> : null}
-                  <ul aria-label={`Classes on ${fullDate(date)}`}>
+                  {events.length === 0 ? <p className="sr-only">{t("calendar.calendarViews.noClasses")}</p> : null}
+                  <ul aria-label={t("calendar.classesOn", { date: fullDate(date, t) })}>
                     {events.map((event) => {
                       const status = statusOf(event.occurrence);
                       const color = courseColor(event.occurrence.courseId);
@@ -413,7 +441,7 @@ export function TimeGridView({
                           <button
                             type="button"
                             onClick={() => onSelect(event.occurrence)}
-                            aria-label={chipLabel(event.occurrence, status, timeZone)}
+                            aria-label={chipLabel(event.occurrence, status, timeZone, t)}
                             data-testid="calendar-event"
                             data-occurrence-id={event.occurrence.id}
                             data-status={status}
@@ -432,7 +460,7 @@ export function TimeGridView({
                                 {formatTime(Date.parse(event.occurrence.start), timeZone)} – {formatTime(Date.parse(event.occurrence.end), timeZone)}
                               </span>
                             ) : null}
-                            {cancelled ? <span>Cancelled</span> : status === "LIVE" && height >= 52 ? <span>Live now</span> : null}
+                            {cancelled ? <span>{t("calendar.calendarViews.cancelled")}</span> : status === "LIVE" && height >= 52 ? <span>{t("calendar.calendarViews.liveNow")}</span> : null}
                           </button>
                         </li>
                       );
@@ -451,12 +479,12 @@ export function TimeGridView({
                         <button
                           type="button"
                           onClick={() => onShowDay(date)}
-                          aria-label={`Show all ${dayEvents.length} classes on ${fullDate(date)} (${lane.hidden} more overlapping)`}
+                          aria-label={t("calendar.showAllOverlap", { count: dayEvents.length, date: fullDate(date, t), hidden: lane.hidden })}
                           data-testid="calendar-more"
                           className="flex size-full items-start justify-center rounded-md border border-dashed border-primary/60 bg-primary/5 px-1 py-1 text-xs font-semibold text-primary outline-none hover:bg-primary/10 focus-visible:ring-3 focus-visible:ring-ring/60"
                         >
                           +{lane.hidden}
-                          <span className="sr-only"> more</span>
+                          <span className="sr-only"> {t("calendar.more")}</span>
                         </button>
                       </li>
                     ))}
@@ -493,6 +521,7 @@ export function AgendaView({
   today,
   onSelect,
 }: ViewProps) {
+  const t = useT();
   const byDate = useMemo(() => groupByDate(occurrences), [occurrences]);
   const dates = Array.from(byDate.keys()).sort();
   return (
@@ -500,9 +529,9 @@ export function AgendaView({
       {dates.map((date) => (
         <section key={date} aria-labelledby={`agenda-${date}`} className="flex flex-col gap-2">
           <h3 id={`agenda-${date}`} className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            {fullDate(date)}
+            {fullDate(date, t)}
             {date === today ? (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">Today</span>
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">{t("calendar.calendarViews.today")}</span>
             ) : null}
           </h3>
           <ul className="flex flex-col gap-2">
@@ -513,7 +542,7 @@ export function AgendaView({
                   <button
                     type="button"
                     onClick={() => onSelect(occurrence)}
-                    aria-label={chipLabel(occurrence, status, timeZone)}
+                    aria-label={chipLabel(occurrence, status, timeZone, t)}
                     data-testid="calendar-agenda-item"
                     data-occurrence-id={occurrence.id}
                     className="flex w-full min-w-0 items-stretch gap-3 rounded-lg border border-border bg-card p-3 text-left outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/60"

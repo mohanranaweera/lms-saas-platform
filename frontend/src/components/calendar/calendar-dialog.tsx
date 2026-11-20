@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Focus-trapped modal used by the calendar module (schedule editor, class
  * details, "+N more" list). Same `@base-ui/react` Dialog primitive and layout
@@ -36,6 +37,7 @@ export function CalendarDialog({
   /** Render `children` directly (the caller supplies its own scrolling body and footer, e.g. a `<form>`). */
   bare?: boolean;
 }) {
+  const t = useT();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <DialogPrimitive.Portal>
@@ -52,7 +54,7 @@ export function CalendarDialog({
               {icon}
               <span className="min-w-0 break-words">{title}</span>
             </DialogPrimitive.Title>
-            <DialogPrimitive.Close render={<Button type="button" variant="ghost" size="icon-sm" aria-label="Close" />}>
+            <DialogPrimitive.Close render={<Button type="button" variant="ghost" size="icon-sm" aria-label={t("calendar.calendarDialog.close")} />}>
               <XIcon aria-hidden="true" />
             </DialogPrimitive.Close>
           </div>

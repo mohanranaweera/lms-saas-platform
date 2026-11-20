@@ -5,6 +5,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import type { DeviceView } from "@/lib/api/devices";
 import { formatDateTime } from "@/lib/format";
 import { DeviceStatusBadge } from "./device-status-badge";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 
 interface DeviceListProps {
   devices: DeviceView[];
@@ -15,9 +16,20 @@ interface DeviceListProps {
   action?: (device: DeviceView) => ReactNode;
 }
 
-function removalText(device: DeviceView): string {
+function removalText(device: DeviceView, t?: TranslateFn): string {
   if (!device.revokedAt) {
     return "—";
+  }
+  const when = formatDateTime(device.revokedAt);
+  const reason = device.revokeReason ? ` — ${device.revokeReason}` : "";
+  if (t) {
+    const who =
+      device.revocationSource === "ADMIN"
+        ? t("devices.removedByInstitute", { when })
+        : device.revocationSource === "STUDENT"
+          ? t("devices.removedByHolder", { when })
+          : when;
+    return `${who}${reason}`;
   }
   const who =
     device.revocationSource === "ADMIN"
@@ -25,8 +37,7 @@ function removalText(device: DeviceView): string {
       : device.revocationSource === "STUDENT"
         ? "by the account holder"
         : "";
-  const reason = device.revokeReason ? ` — ${device.revokeReason}` : "";
-  return `${formatDateTime(device.revokedAt)} ${who}${reason}`.trim();
+  return `${when} ${who}${reason}`.trim();
 }
 
 /**
@@ -34,22 +45,23 @@ function removalText(device: DeviceView): string {
  * detail Devices tab (staff). Card view below `md` via `DataTable`.
  */
 export function DeviceList({ devices, caption, showIp = false, action }: DeviceListProps) {
+  const t = useT();
   const columns: DataTableColumn<DeviceView>[] = [
-    { key: "label", header: "Device", cell: (row) => row.label, hideOnCard: true },
-    { key: "status", header: "Status", cell: (row) => <DeviceStatusBadge device={row} />, hideOnCard: true },
-    { key: "firstSeenAt", header: "Added", cell: (row) => formatDateTime(row.firstSeenAt) },
-    { key: "lastSeenAt", header: "Last used", cell: (row) => formatDateTime(row.lastSeenAt) },
+    { key: "label", header: t("devices.col.device"), cell: (row) => row.label, hideOnCard: true },
+    { key: "status", header: t("devices.col.status"), cell: (row) => <DeviceStatusBadge device={row} />, hideOnCard: true },
+    { key: "firstSeenAt", header: t("devices.col.added"), cell: (row) => formatDateTime(row.firstSeenAt) },
+    { key: "lastSeenAt", header: t("devices.col.lastUsed"), cell: (row) => formatDateTime(row.lastSeenAt) },
     ...(showIp
-      ? [{ key: "lastIp", header: "Last IP", cell: (row: DeviceView) => row.lastIp ?? "—" }]
+      ? [{ key: "lastIp", header: t("devices.col.lastIp"), cell: (row: DeviceView) => row.lastIp ?? "—" }]
       : []),
-    { key: "removed", header: "Removed", cell: (row) => removalText(row) },
+    { key: "removed", header: t("devices.col.removed"), cell: (row) => removalText(row, t) },
     {
       key: "slot",
-      header: "Slot free again",
+      header: t("devices.col.slotFree"),
       cell: (row) => (row.slotReusableAt ? formatDateTime(row.slotReusableAt) : "—"),
     },
     ...(action
-      ? [{ key: "actions", header: "Actions", cell: (row: DeviceView) => action(row), hideOnCard: true }]
+      ? [{ key: "actions", header: t("devices.col.actions"), cell: (row: DeviceView) => action(row), hideOnCard: true }]
       : []),
   ];
 

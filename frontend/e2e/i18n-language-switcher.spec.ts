@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
-import { apiError, apiPageSuccess, apiSuccess, fakeJwt, fulfillJson, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import { apiError, apiPageSuccess, apiSuccess, fakeJwt, fulfillJson, mockJson, mockStudentRegistrationPolicy, refreshResponseBody } from "./fixtures/auth-mocks";
 
 /**
  * I18N-01 runtime: language switcher, locale resolution, persistence, draft
@@ -32,6 +32,12 @@ const HOME = {
 const MESSAGES: Record<string, Record<string, string>> = {
   "en-LK": {},
   "si-LK": {
+    "auth.register.createYourStudentAccount": "ඔබේ සිසු ගිණුම සාදන්න",
+    "auth.v.nameRequired": "නම අවශ්‍යයි.",
+    "attendance.mark.noCoursesAvailable": "පාඨමාලා නොමැත",
+    "tenantAdmin.nav.students": "සිසුන්",
+    "tenantAdmin.navGroup.academic": "අධ්‍යයන",
+    "tenantAdmin.portal": "ආයතන පරිපාලක",
     "public.nav.courses": "පාඨමාලා",
     "teacher.courses.title": "මගේ පාඨමාලා",
     "errors.INVALID_CREDENTIALS": "ඇතුළු කළ විස්තර වැරදියි.",
@@ -39,6 +45,13 @@ const MESSAGES: Record<string, Record<string, string>> = {
     // deliberately NO "auth.login.title": must fall back to the English source.
   },
   "ta-LK": {
+    "auth.forgot.resetYourPassword": "உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும்",
+    "exams.studentExamList.youArentEnrolledIn": "நீங்கள் இன்னும் எந்தத் தேர்விலும் சேரவில்லை",
+    "student.catalog.emptyEnrolled.title": "நீங்கள் இன்னும் எந்தப் பாடநெறியிலும் சேரவில்லை",
+    "student.catalog.emptyEnrolled.action": "கிடைக்கும் பாடநெறிகளைப் பார்",
+    "student.nav.dashboard": "கட்டுப்பாட்டுப் பலகை",
+    "student.header.myCourses": "எனது பாடநெறிகள்",
+    "student.dashboard.title": "மேலோட்டம்",
     "public.nav.courses": "பாடநெறிகள்",
     "teacher.courses.title": "எனது பாடநெறிகள்",
   },
@@ -240,7 +253,7 @@ test.describe("sign-in page", () => {
   });
 });
 
-async function mockSignedIn(page: Page, role: "TEACHER" | "TENANT_ADMIN") {
+async function mockSignedIn(page: Page, role: "TEACHER" | "TENANT_ADMIN" | "STUDENT") {
   await mockEverythingElse(page);
   await mockJson(page, "**/v1/auth/refresh", 200, apiSuccess(refreshResponseBody(fakeJwt({ role }))));
   await mockJson(page, "**/v1/public/tenant-config/home", 200, apiSuccess(HOME));
@@ -277,6 +290,59 @@ test.describe("signed-in persistence", () => {
     await page.goto("/teacher/courses");
     await expect(page.getByRole("heading", { name: "எனது பாடநெறிகள்" })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "ta-LK");
+  });
+});
+
+test.describe("tenant admin shell", () => {
+  test("navigation renders in Sinhala after switching", async ({ page }) => {
+    await mockSignedIn(page, "TENANT_ADMIN");
+    const log = await mockI18n(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/tenant-admin/dashboard");
+
+    const nav = page.getByRole("navigation", { name: "Primary" }).first();
+    await expect(nav.getByRole("link", { name: "Students" })).toBeVisible();
+    await page.getByRole("combobox", { name: "Language" }).first().selectOption("si-LK");
+    await expect(page.locator("html")).toHaveAttribute("lang", "si-LK");
+    await expect(nav.getByRole("link", { name: "සිසුන්" })).toBeVisible();
+    await expect(nav.getByText("අධ්‍යයන")).toBeVisible();
+    expect(log.puts).toEqual([{ locale: "si-LK" }]);
+  });
+});
+
+async function mockStudentCourses(page: Page) {
+  await mockSignedIn(page, "STUDENT");
+  await page.route(
+    (url) => url.pathname.endsWith("/v1/enrollments/my/catalog"),
+    (route) => fulfillJson(route, 200, apiPageSuccess([]))
+  );
+  await page.route(
+    (url) => url.pathname.endsWith("/v1/course-tags"),
+    (route) => fulfillJson(route, 200, apiSuccess([]))
+  );
+}
+
+test.describe("student portal", () => {
+  test("My Courses renders in Tamil with a localized empty state", async ({ page }) => {
+    await mockStudentCourses(page);
+    await mockI18n(page, { meLocale: "ta-LK" });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/student/courses");
+
+    await expect(page.locator("html")).toHaveAttribute("lang", "ta-LK");
+    await expect(page.getByText("நீங்கள் இன்னும் எந்தப் பாடநெறியிலும் சேரவில்லை")).toBeVisible();
+    await expect(page.getByRole("button", { name: "கிடைக்கும் பாடநெறிகளைப் பார்" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "எனது பாடநெறிகள்" }).first()).toBeVisible();
+  });
+
+  test("375px: a localized student page has no horizontal overflow", async ({ page }) => {
+    await mockStudentCourses(page);
+    await mockI18n(page, { meLocale: "ta-LK" });
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/student/courses");
+
+    await expect(page.getByText("நீங்கள் இன்னும் எந்தப் பாடநெறியிலும் சேரவில்லை")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
   });
 });
 
@@ -451,5 +517,63 @@ test.describe("translation management", () => {
     await expect(panel.getByTestId("import-report")).toContainText("1 of them still needs review");
     expect(importUrls.at(-1)).toContain("includeNeedsReview=true");
     await expect(panel.getByTestId("confirm-import")).toHaveText("Import 2 drafts");
+  });
+});
+
+test.describe("auth pages (I18N-01 step 3)", () => {
+  test("registration renders in Sinhala with a localized validation error", async ({ page, context, baseURL }) => {
+    await mockAnonymousHome(page);
+    await mockStudentRegistrationPolicy(page);
+    await mockI18n(page);
+    await context.addCookies([{ name: "lms_locale", value: "si-LK", url: baseURL ?? "http://localhost:3000" }]);
+    await page.goto("/register");
+    await expect(page.locator("html")).toHaveAttribute("lang", "si-LK");
+    await expect(page.getByText("ඔබේ සිසු ගිණුම සාදන්න").first()).toBeVisible();
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByText("නම අවශ්‍යයි.")).toBeVisible();
+  });
+
+  test("375px: the registration page has no horizontal overflow", async ({ page }) => {
+    await mockAnonymousHome(page);
+    await mockStudentRegistrationPolicy(page);
+    await mockI18n(page, { defaultLocale: "si-LK" });
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/register");
+    await expect(page.getByText("ඔබේ සිසු ගිණුම සාදන්න").first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
+  });
+
+  test("forgot-password renders in Tamil", async ({ page }) => {
+    await mockAnonymousHome(page);
+    await mockI18n(page);
+    await page.goto("/forgot-password?lang=ta");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ta-LK");
+    await expect(page.getByText("உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும்").first()).toBeVisible();
+  });
+});
+
+test.describe("teacher and student internals (I18N-01 steps 3-4)", () => {
+  test("teacher Mark Attendance renders in Sinhala", async ({ page }) => {
+    await mockSignedIn(page, "TEACHER");
+    await page.route(
+      (url) => url.pathname.endsWith("/v1/courses"),
+      (route) => fulfillJson(route, 200, apiPageSuccess([]))
+    );
+    await mockI18n(page, { meLocale: "si-LK" });
+    await page.goto("/teacher/attendance/mark");
+    await expect(page.locator("html")).toHaveAttribute("lang", "si-LK");
+    await expect(page.getByText("පාඨමාලා නොමැත").first()).toBeVisible();
+  });
+
+  test("student Exams screen renders in Tamil", async ({ page }) => {
+    await mockSignedIn(page, "STUDENT");
+    await page.route(
+      (url) => url.pathname.endsWith("/v1/student/exams"),
+      (route) => fulfillJson(route, 200, apiSuccess({ serverNow: new Date().toISOString(), upcoming: [], inProgress: [], previous: [] }))
+    );
+    await mockI18n(page, { meLocale: "ta-LK" });
+    await page.goto("/student/exams");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ta-LK");
+    await expect(page.getByText("நீங்கள் இன்னும் எந்தத் தேர்விலும் சேரவில்லை")).toBeVisible();
   });
 });

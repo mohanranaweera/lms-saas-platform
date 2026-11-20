@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, UploadCloud } from "lucide-react";
@@ -9,15 +10,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUploadSlip, type PaymentSlipResponse } from "@/lib/api/payment-slips";
 import { isApiClientError } from "@/lib/api/error";
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 import { cn } from "@/lib/utils";
 import {
+  ACCEPTED_SLIP_FORMATS_LABEL,
   ACCEPTED_SLIP_MIME_TYPES,
+  MAX_SLIP_FILE_SIZE_BYTES,
+  MAX_SLIP_FILE_SIZE_LABEL,
   SLIP_UPLOAD_DEFAULT_VALUES,
-  SLIP_UPLOAD_HELPER_TEXT,
-  slipUploadSchema,
   toSlipUploadInput,
   type SlipUploadFormValues,
 } from "@/lib/validation/payment-slip";
+
+/**
+ * Same rules as `lib/validation/payment-slip.ts#slipUploadSchema` (UX only;
+ * the backend re-validates by content sniffing), with localized messages.
+ */
+function localizedSlipSchema(t: TranslateFn) {
+  const formats = { formats: ACCEPTED_SLIP_FORMATS_LABEL, size: MAX_SLIP_FILE_SIZE_LABEL };
+  return z.object({
+    referenceNumber: z
+      .string()
+      .min(1, t("student.slip.validation.referenceRequired"))
+      .max(255, t("student.slip.validation.referenceTooLong", { max: "255" })),
+    file: z
+      .any()
+      .refine((value: unknown): value is File => value instanceof File, {
+        message: t("student.slip.validation.fileRequired"),
+        abort: true,
+      })
+      .refine((file: File) => file.size > 0, t("student.slip.validation.fileEmpty"))
+      .refine((file: File) => file.size <= MAX_SLIP_FILE_SIZE_BYTES, t("student.slip.validation.fileTooLarge", formats))
+      .refine(
+        (file: File) => (ACCEPTED_SLIP_MIME_TYPES as readonly string[]).includes(file.type),
+        t("student.slip.validation.fileType", formats)
+      ),
+  });
+}
 
 interface SlipUploadFormProps {
   orderId: string;
@@ -44,6 +74,8 @@ interface SlipUploadFormProps {
  */
 export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
   const idPrefix = useId();
+  const t = useT();
+  const schema = useMemo(() => localizedSlipSchema(t), [t]);
   const uploadMutation = useUploadSlip(orderId);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -58,7 +90,7 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
     setError,
     formState: { errors },
   } = useForm<SlipUploadFormValues>({
-    resolver: zodResolver(slipUploadSchema),
+    resolver: zodResolver(schema),
     defaultValues: SLIP_UPLOAD_DEFAULT_VALUES,
   });
 
@@ -94,11 +126,11 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
             }
           }
           if (!mappedToField) {
-            setSubmitError(error.message);
+            setSubmitError(localizeApiError(t, error));
           }
           return;
         }
-        setSubmitError("Couldn't upload this payment slip. Please try again.");
+        setSubmitError(t("student.slip.uploadFailed"));
       }
     },
     (formErrors) => {
@@ -109,7 +141,7 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
           ? formErrors.referenceNumber.message
           : undefined;
       setSubmitError(
-        fileMessage ?? referenceMessage ?? "Please fix the highlighted fields and try again."
+        fileMessage ?? referenceMessage ?? t("student.slip.fixFields")
       );
     }
   );
@@ -118,14 +150,14 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
     <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <form className="flex flex-col gap-4" noValidate aria-busy={busy} onSubmit={submit}>
         <span role="status" aria-live="polite" className="sr-only">
-          {busy ? "Uploading…" : ""}
+          {busy ? t("student.slip.uploading") : ""}
         </span>
 
         <fieldset disabled={busy} className="flex flex-col gap-4">
-          <legend className="sr-only">Upload a payment slip</legend>
+          <legend className="sr-only">{t("student.slip.legend")}</legend>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-reference`}>Reference number</Label>
+            <Label htmlFor={`${idPrefix}-reference`}>{t("student.slip.referenceLabel")}</Label>
             <Input
               id={`${idPrefix}-reference`}
               autoComplete="off"
@@ -147,7 +179,7 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-file`}>Slip file</Label>
+            <Label htmlFor={`${idPrefix}-file`}>{t("student.slip.fileLabel")}</Label>
             <div
               className={cn(
                 "flex flex-col items-center gap-2 rounded-md border-2 border-dashed border-border px-4 py-6 text-center transition-colors",
@@ -165,14 +197,14 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
               }}
             >
               <UploadCloud className="size-5 text-muted-foreground" aria-hidden="true" />
-              <p className="text-xs text-muted-foreground">Drag and drop a file here, or</p>
+              <p className="text-xs text-muted-foreground">{t("student.slip.dragDrop")}</p>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Browse files
+                {t("student.slip.browse")}
               </Button>
               <input
                 ref={fileInputRef}
@@ -190,14 +222,14 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
                 onChange={(event) => handleFiles(event.target.files)}
               />
               {selectedFile ? (
-                <p className="text-xs font-medium text-foreground">Selected: {selectedFile.name}</p>
+                <p className="text-xs font-medium break-all text-foreground">{t("student.slip.selected", { file: selectedFile.name })}</p>
               ) : null}
               <span role="status" aria-live="polite" className="sr-only">
-                {isDragOver ? "File ready to drop" : ""}
+                {isDragOver ? t("student.slip.readyToDrop") : ""}
               </span>
             </div>
             <p id={`${idPrefix}-file-helper`} className="text-xs text-muted-foreground">
-              {SLIP_UPLOAD_HELPER_TEXT}
+              {t("student.slip.helper", { formats: ACCEPTED_SLIP_FORMATS_LABEL, size: MAX_SLIP_FILE_SIZE_LABEL })}
             </p>
             {errors.file ? (
               <p id={`${idPrefix}-file-error`} role="alert" className="text-xs text-destructive">
@@ -211,10 +243,10 @@ export function SlipUploadForm({ orderId, onUploaded }: SlipUploadFormProps) {
               {busy ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                  Uploading…
+                  {t("student.slip.uploading")}
                 </>
               ) : (
-                "Submit payment slip"
+                t("student.slip.submit")
               )}
             </Button>
           </div>

@@ -34,6 +34,7 @@ import {
   type ClassSessionFormValues,
 } from "@/lib/validation/live-class";
 
+import { useT } from "@/i18n/i18n-provider";
 const KNOWN_FIELD_NAMES = new Set<string>(["courseId", "lessonId", "title", "description", "scheduledStart", "scheduledEnd"]);
 
 const NO_LESSON_VALUE = "__no-lesson__";
@@ -63,6 +64,7 @@ export function ClassSessionCreateForm({
   successPath?: string;
   initialCourseId?: string;
 } = {}) {
+  const t = useT();
   const router = useRouter();
   const coursesQuery = useCourses();
   const [selectedModuleId, setSelectedModuleId] = useState<string>(NO_MODULE_VALUE);
@@ -156,7 +158,7 @@ export function ClassSessionCreateForm({
         setPageError({ message: error.message, code: error.code });
         return;
       }
-      setPageError({ message: "An unexpected error occurred. Please try again." });
+      setPageError({ message: t("teacher.liveCreate.anUnexpectedErrorOccurred") });
     }
   });
 
@@ -194,17 +196,17 @@ export function ClassSessionCreateForm({
       ) : null}
 
       <form className="flex flex-col gap-4" noValidate aria-busy={isSubmitting} onSubmit={onSubmit}>
-        <LiveRegion message={isSubmitting ? "Scheduling your class…" : ""} />
+        <LiveRegion message={isSubmitting ? t("teacher.liveCreate.schedulingYourClass") : ""} />
         <fieldset disabled={isSubmitting} className="flex flex-col gap-4">
-          <legend className="sr-only">Schedule a live class</legend>
+          <legend className="sr-only">{t("teacher.liveCreate.scheduleALiveClass")}</legend>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="live-class-course">Course</Label>
+            <Label htmlFor="live-class-course">{t("teacher.liveCreate.course")}</Label>
             <Select value={courseId} onValueChange={handleCourseChange}>
               <SelectTrigger id="live-class-course" aria-invalid={!!errors.courseId} className="w-full">
-                <SelectValue placeholder="Select a course">
+                <SelectValue placeholder={t("teacher.liveCreate.selectACourse")}>
                   {(selected: string | null) =>
-                    courseOptions.find((course) => course.id === selected)?.name ?? "Select a course"
+                    courseOptions.find((course) => course.id === selected)?.name ?? t("teacher.liveCreate.selectACourse")
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -225,22 +227,22 @@ export function ClassSessionCreateForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="live-class-module">Module (optional — to link a lesson)</Label>
+              <Label htmlFor="live-class-module">{t("teacher.liveCreate.moduleOptionalToLink")}</Label>
               <Select
                 value={selectedModuleId}
                 onValueChange={(value) => setSelectedModuleId(value ?? NO_MODULE_VALUE)}
               >
                 <SelectTrigger id="live-class-module" className="w-full" disabled={!courseId}>
-                  <SelectValue placeholder="No module selected">
+                  <SelectValue placeholder={t("teacher.liveCreate.noModuleSelected")}>
                     {(selected: string | null) =>
                       selected && selected !== NO_MODULE_VALUE
                         ? moduleOptions.find((m) => m.id === selected)?.title ?? selected
-                        : "No module selected"
+                        : t("teacher.liveCreate.noModuleSelected")
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_MODULE_VALUE}>No module selected</SelectItem>
+                  <SelectItem value={NO_MODULE_VALUE}>{t("teacher.liveCreate.noModuleSelected")}</SelectItem>
                   {moduleOptions.map((module) => (
                     <SelectItem key={module.id} value={module.id}>
                       {module.title}
@@ -250,7 +252,7 @@ export function ClassSessionCreateForm({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="live-class-lesson">Lesson (optional)</Label>
+              <Label htmlFor="live-class-lesson">{t("teacher.liveCreate.lessonOptional")}</Label>
               <Select
                 value={lessonId || NO_LESSON_VALUE}
                 onValueChange={(value) =>
@@ -258,16 +260,16 @@ export function ClassSessionCreateForm({
                 }
               >
                 <SelectTrigger id="live-class-lesson" className="w-full" disabled={selectedModuleId === NO_MODULE_VALUE}>
-                  <SelectValue placeholder="No lesson linked">
+                  <SelectValue placeholder={t("teacher.liveCreate.noLessonLinked")}>
                     {(selected: string | null) =>
                       selected && selected !== NO_LESSON_VALUE
                         ? lessonOptions.find((l) => l.id === selected)?.title ?? selected
-                        : "No lesson linked"
+                        : t("teacher.liveCreate.noLessonLinked")
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_LESSON_VALUE}>No lesson linked</SelectItem>
+                  <SelectItem value={NO_LESSON_VALUE}>{t("teacher.liveCreate.noLessonLinked")}</SelectItem>
                   {lessonOptions.map((lesson) => (
                     <SelectItem key={lesson.id} value={lesson.id}>
                       {lesson.title}
@@ -279,7 +281,7 @@ export function ClassSessionCreateForm({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="live-class-title">Title</Label>
+            <Label htmlFor="live-class-title">{t("teacher.liveCreate.title")}</Label>
             <Input
               id="live-class-title"
               aria-required="true"
@@ -295,7 +297,7 @@ export function ClassSessionCreateForm({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="live-class-description">Description (optional)</Label>
+            <Label htmlFor="live-class-description">{t("teacher.liveCreate.descriptionOptional")}</Label>
             <Textarea
               id="live-class-description"
               aria-invalid={!!errors.description}
@@ -311,7 +313,7 @@ export function ClassSessionCreateForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="live-class-start">Start</Label>
+              <Label htmlFor="live-class-start">{t("teacher.liveCreate.start")}</Label>
               <Input
                 id="live-class-start"
                 type="datetime-local"
@@ -327,7 +329,7 @@ export function ClassSessionCreateForm({
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="live-class-end">End</Label>
+              <Label htmlFor="live-class-end">{t("teacher.liveCreate.end")}</Label>
               <Input
                 id="live-class-end"
                 type="datetime-local"
@@ -346,7 +348,7 @@ export function ClassSessionCreateForm({
         </fieldset>
 
         <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full sm:w-fit">
-          {isSubmitting ? "Scheduling…" : "Schedule class"}
+          {isSubmitting ? t("teacher.liveCreate.scheduling") : t("teacher.liveCreate.scheduleClass")}
         </Button>
       </form>
     </div>

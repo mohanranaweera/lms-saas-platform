@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n/i18n-provider";
 const STAFF_AUDIENCES: AudienceType[] = ["ALL_STUDENTS", "COURSE", "SELECTED_STUDENTS", "PAYMENT_STATUS", "ALL_TEACHERS"];
 const NO_TEMPLATE = "NONE";
 const ANY_COURSE = "ANY";
@@ -63,6 +64,7 @@ export function BroadcastComposer({
   /** STU-MGMT-02 "Send Message": preselect these students with the SELECTED_STUDENTS audience (staff only). */
   initialStudentIds?: string[];
 }) {
+  const t = useT();
   const isTeacher = mode === "teacher";
   const channelsQuery = useCommunicationChannels();
   const templatesQuery = useCommunicationTemplates();
@@ -145,9 +147,9 @@ export function BroadcastComposer({
   function onSend() {
     const problem =
       validateAudience() ??
-      (!subject.trim() ? "Enter a subject." : null) ??
-      (!body.trim() ? "Enter a message." : null) ??
-      (channels.size === 0 ? "Choose at least one channel." : null) ??
+      (!subject.trim() ? t("teacher.broadcastComposer.enterASubject") : null) ??
+      (!body.trim() ? t("teacher.broadcastComposer.enterAMessage") : null) ??
+      (channels.size === 0 ? t("teacher.broadcastComposer.chooseAtLeastOne") : null) ??
       (textChannelChosen && !smsBody.trim() && body.trim().length > SMS_LIMIT
         ? `Add a short SMS / WhatsApp version (at most ${SMS_LIMIT} characters).`
         : null);
@@ -178,17 +180,17 @@ export function BroadcastComposer({
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>1. Who should receive it?</CardTitle>
+          <CardTitle>{t("teacher.broadcastComposer.n1WhoShouldReceive")}</CardTitle>
           <CardDescription>
             {isTeacher
-              ? "You can message the students currently enrolled in your own courses."
-              : "Suspended accounts are always left out."}
+              ? t("teacher.broadcastComposer.youCanMessageThe")
+              : t("teacher.broadcastComposer.suspendedAccountsAreAlways")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {!isTeacher ? (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="audience-type">Audience</Label>
+              <Label htmlFor="audience-type">{t("teacher.broadcastComposer.audience")}</Label>
               <Select value={audienceType} onValueChange={(value) => value && setAudienceType(value as AudienceType)}>
                 <SelectTrigger id="audience-type" className="w-full sm:w-80">
                   <SelectValue />
@@ -207,18 +209,18 @@ export function BroadcastComposer({
           {audienceType === "COURSE" || audienceType === "PAYMENT_STATUS" ? (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="audience-course">
-                {audienceType === "PAYMENT_STATUS" ? "Course (optional)" : "Course"}
+                {audienceType === "PAYMENT_STATUS" ? t("teacher.broadcastComposer.courseOptional") : t("teacher.broadcastComposer.course")}
               </Label>
               <Select
                 value={courseId || ANY_COURSE}
                 onValueChange={(value) => setCourseId(!value || value === ANY_COURSE ? "" : value)}
               >
                 <SelectTrigger id="audience-course" className="w-full sm:w-80">
-                  <SelectValue placeholder={coursesQuery.isPending ? "Loading courses…" : "Select a course"} />
+                  <SelectValue placeholder={coursesQuery.isPending ? t("teacher.broadcastComposer.loadingCourses") : t("teacher.broadcastComposer.selectACourse")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ANY_COURSE}>
-                    {audienceType === "PAYMENT_STATUS" ? "Any course" : "Select a course"}
+                    {audienceType === "PAYMENT_STATUS" ? t("teacher.broadcastComposer.anyCourse") : t("teacher.broadcastComposer.selectACourse")}
                   </SelectItem>
                   {courses.map((course) => (
                     <SelectItem key={course.id} value={course.id}>
@@ -235,7 +237,7 @@ export function BroadcastComposer({
 
           {audienceType === "PAYMENT_STATUS" ? (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="audience-payment">Payment status</Label>
+              <Label htmlFor="audience-payment">{t("teacher.broadcastComposer.paymentStatus")}</Label>
               <Select
                 value={paymentStatus}
                 onValueChange={(value) => value && setPaymentStatus(value as PaymentStatusFilter)}
@@ -244,9 +246,9 @@ export function BroadcastComposer({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PENDING">Payment pending</SelectItem>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                  <SelectItem value="REJECTED">Payment rejected</SelectItem>
+                  <SelectItem value="PENDING">{t("teacher.broadcastComposer.paymentPending")}</SelectItem>
+                  <SelectItem value="PAID">{t("teacher.broadcastComposer.paid")}</SelectItem>
+                  <SelectItem value="REJECTED">{t("teacher.broadcastComposer.paymentRejected")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -258,7 +260,7 @@ export function BroadcastComposer({
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button type="button" variant="outline" onClick={onPreview} disabled={preview.isPending}>
-              {preview.isPending ? "Checking…" : "Preview recipients"}
+              {preview.isPending ? t("teacher.broadcastComposer.checking") : t("teacher.broadcastComposer.previewRecipients")}
             </Button>
             <div role="status" aria-live="polite" className="text-sm">
               {previewCurrent && preview.data ? (
@@ -283,7 +285,7 @@ export function BroadcastComposer({
 
       <Card>
         <CardHeader>
-          <CardTitle>2. Message</CardTitle>
+          <CardTitle>{t("teacher.broadcastComposer.n2Message")}</CardTitle>
           <CardDescription>
             You can personalise with {"{{name}}"} and {"{{instituteName}}"}. Other placeholders are rejected.
           </CardDescription>
@@ -291,13 +293,13 @@ export function BroadcastComposer({
         <CardContent className="flex flex-col gap-4">
           {templates.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="message-template">Start from a template</Label>
+              <Label htmlFor="message-template">{t("teacher.broadcastComposer.startFromATemplate")}</Label>
               <Select value={templateId || NO_TEMPLATE} onValueChange={(value) => value && applyTemplate(value)}>
                 <SelectTrigger id="message-template" className="w-full sm:w-80">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_TEMPLATE}>No template</SelectItem>
+                  <SelectItem value={NO_TEMPLATE}>{t("teacher.broadcastComposer.noTemplate")}</SelectItem>
                   {templates.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.name}
@@ -308,7 +310,7 @@ export function BroadcastComposer({
             </div>
           ) : null}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="message-subject">Subject</Label>
+            <Label htmlFor="message-subject">{t("teacher.broadcastComposer.subject")}</Label>
             <Input
               id="message-subject"
               maxLength={200}
@@ -317,7 +319,7 @@ export function BroadcastComposer({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="message-body">Message</Label>
+            <Label htmlFor="message-body">{t("teacher.broadcastComposer.message")}</Label>
             <Textarea
               id="message-body"
               rows={6}
@@ -328,7 +330,7 @@ export function BroadcastComposer({
           </div>
           {textChannelChosen ? (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="message-sms">SMS / WhatsApp text (optional)</Label>
+              <Label htmlFor="message-sms">{t("teacher.broadcastComposer.smsWhatsappTextOptional")}</Label>
               <Textarea
                 id="message-sms"
                 rows={3}
@@ -347,8 +349,8 @@ export function BroadcastComposer({
 
       <Card>
         <CardHeader>
-          <CardTitle>3. Channels</CardTitle>
-          <CardDescription>Recipients who turned a channel off, or have no address for it, are skipped.</CardDescription>
+          <CardTitle>{t("teacher.broadcastComposer.n3Channels")}</CardTitle>
+          <CardDescription>{t("teacher.broadcastComposer.recipientsWhoTurnedA")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {(channelsQuery.data ?? []).map((option) => {
@@ -393,13 +395,13 @@ export function BroadcastComposer({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Button type="button" onClick={onSend} disabled={!previewCurrent || send.isPending}>
           {send.isPending
-            ? "Sending…"
+            ? t("teacher.broadcastComposer.sending")
             : previewCurrent && preview.data
               ? `Send to ${preview.data.recipientCount} ${preview.data.recipientCount === 1 ? "recipient" : "recipients"}`
-              : "Send"}
+              : t("teacher.broadcastComposer.send")}
         </Button>
         {!previewCurrent ? (
-          <p className="text-sm text-muted-foreground">Preview the recipients before sending.</p>
+          <p className="text-sm text-muted-foreground">{t("teacher.broadcastComposer.previewTheRecipientsBefore")}</p>
         ) : null}
       </div>
     </div>
@@ -408,6 +410,7 @@ export function BroadcastComposer({
 
 /** Staff-only picker - mounted only for the "Selected students" audience. Ids are student profile ids. */
 function StudentPicker({ selected, onChange }: { selected: Set<string>; onChange: (next: Set<string>) => void }) {
+  const t = useT();
   const studentsQuery = useStudents();
   const [search, setSearch] = useState("");
   const students = useMemo(() => {
@@ -429,21 +432,21 @@ function StudentPicker({ selected, onChange }: { selected: Set<string>; onChange
     <fieldset className="flex flex-col gap-2">
       <legend className="text-sm font-medium text-foreground">Students ({selected.size} selected)</legend>
       <Label htmlFor="student-search" className="sr-only">
-        Search students
+        {t("teacher.broadcastComposer.searchStudents")}
       </Label>
       <Input
         id="student-search"
-        placeholder="Search by name or email"
+        placeholder={t("teacher.broadcastComposer.searchByNameOr")}
         value={search}
         onChange={(event) => setSearch(event.target.value)}
       />
       <div className="max-h-64 overflow-y-auto rounded-lg border border-border p-2">
         {studentsQuery.isPending ? (
-          <p className="text-sm text-muted-foreground">Loading students…</p>
+          <p className="text-sm text-muted-foreground">{t("teacher.broadcastComposer.loadingStudents")}</p>
         ) : studentsQuery.isError ? (
-          <p className="text-sm text-destructive">Students could not be loaded.</p>
+          <p className="text-sm text-destructive">{t("teacher.broadcastComposer.studentsCouldNotBe")}</p>
         ) : students.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No active students match.</p>
+          <p className="text-sm text-muted-foreground">{t("teacher.broadcastComposer.noActiveStudentsMatch")}</p>
         ) : (
           students.map((student) => (
             <label key={student.id} className="flex items-center gap-2 py-1 text-sm">

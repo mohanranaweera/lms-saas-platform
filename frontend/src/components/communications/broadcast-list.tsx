@@ -8,6 +8,7 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n/i18n-provider";
 function delivered(view: BroadcastView): string {
   const sent = view.stats.reduce((sum, stats) => sum + stats.sent, 0);
   const total = view.stats.reduce((sum, stats) => sum + stats.sent + stats.pending + stats.failed + stats.skipped, 0);
@@ -20,6 +21,7 @@ function delivered(view: BroadcastView): string {
  * sees only their own.
  */
 export function BroadcastList({ basePath }: { basePath: string }) {
+  const t = useT();
   const [page, setPage] = useState(0);
   const query = useBroadcasts(page);
 
@@ -44,12 +46,12 @@ export function BroadcastList({ basePath }: { basePath: string }) {
   return (
     <QueryStateBoundary
       query={query}
-      loadingLabel="Loading broadcasts…"
+      loadingLabel={t("teacher.broadcastList.loadingBroadcasts")}
       loginPath="/login"
       isEmpty={(data) => data.content.length === 0 && page === 0}
       emptyState={{
-        title: "No broadcasts yet",
-        description: "Messages you send to students or teachers will be listed here with their delivery status.",
+        title: t("teacher.broadcastList.noBroadcastsYet"),
+        description: t("teacher.broadcastList.messagesYouSendTo"),
       }}
     >
       {(data) => (
@@ -58,7 +60,7 @@ export function BroadcastList({ basePath }: { basePath: string }) {
             columns={columns}
             rows={data.content}
             rowKey={(row) => row.id}
-            caption="Sent broadcasts"
+            caption={t("teacher.broadcastList.sentBroadcasts")}
             cardHeading={(row) => (
               <Link href={`${basePath}/${row.id}`} className="font-medium underline-offset-4 hover:underline">
                 {row.subject}
@@ -68,7 +70,7 @@ export function BroadcastList({ basePath }: { basePath: string }) {
           {data.totalPages > 1 ? (
             <div className="flex items-center justify-between gap-2">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                Previous
+                {t("teacher.broadcastList.previous")}
               </Button>
               <span className="text-sm text-muted-foreground">
                 Page {page + 1} of {data.totalPages}

@@ -8,6 +8,7 @@ import type { LessonNode } from "@/lib/api/klass-student";
 import { usePaymentComposer } from "@/components/payments/composer/payment-composer-provider";
 import { presetFromPurchase } from "@/components/payments/composer/composer-model";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 const pill =
   "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap";
 
@@ -21,6 +22,7 @@ export function PayNowButton({
   label: string;
   testId: string;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -34,7 +36,7 @@ export function PayNowButton({
       )}
     >
       <CreditCard className="size-3.5" aria-hidden="true" />
-      Pay now
+      {t("student.lessonAccessAction.payNow")}
     </button>
   );
 }
@@ -73,20 +75,21 @@ export function LessonAccessAction({
   lesson,
   launching,
   onPay,
-  allowedLabel = "Open",
+  allowedLabel,
 }: {
   lesson: LessonNode;
   launching: boolean;
   onPay: (() => void) | null;
   allowedLabel?: string;
 }) {
+  const t = useT();
   const composer = usePaymentComposer();
   const status = lesson.access.status;
   if (launching) {
     return (
       <span className={cn(pill, "text-muted-foreground")} role="status">
         <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-        Opening…
+        {t("student.lessonAccessAction.opening")}
       </span>
     );
   }
@@ -94,81 +97,81 @@ export function LessonAccessAction({
     case "ALLOWED":
       return (
         <span className={cn(pill, "text-blue-700 dark:text-blue-300")} aria-hidden="true">
-          {allowedLabel}
+          {allowedLabel ?? t("student.lessonAccess.open")}
           <ChevronRight className="size-3.5" />
         </span>
       );
     case "PAYMENT_REQUIRED":
       if (lesson.paymentType !== "FREE" && onPay) {
-        return <PayNowButton onClick={onPay} label={`Pay now for ${lesson.title}`} testId="lesson-pay-now" />;
+        return <PayNowButton onClick={onPay} label={t("student.payNowFor", { item: lesson.title })} testId="lesson-pay-now" />;
       }
       if (lesson.paymentType !== "FREE" && composer && lesson.access.requiredPurchase) {
-        return <PayNowButton onClick={() => composer.openComposer(presetFromPurchase(lesson.access.requiredPurchase!, { itemLabel: lesson.title }))} label={`Pay now for ${lesson.title}`} testId="lesson-pay-now" />;
+        return <PayNowButton onClick={() => composer.openComposer(presetFromPurchase(lesson.access.requiredPurchase!, { itemLabel: lesson.title }))} label={t("student.payNowFor", { item: lesson.title })} testId="lesson-pay-now" />;
       }
       return (
         <StatusPill tone="danger" testId="lesson-status">
           <Lock className="size-3" aria-hidden="true" />
-          Payment required
+          {t("student.lessonAccessAction.paymentRequired")}
         </StatusPill>
       );
     case "PAYMENT_PENDING":
       return (
         <StatusPill tone="pending" testId="lesson-status">
           <Clock className="size-3" aria-hidden="true" />
-          Pending
+          {t("student.lessonAccessAction.pending")}
         </StatusPill>
       );
     case "NOT_STARTED":
       return (
         <StatusPill tone="muted" testId="lesson-status">
-          Starts soon
+          {t("student.lessonAccessAction.startsSoon")}
         </StatusPill>
       );
     case "EXPIRED":
       return (
         <StatusPill tone="muted" testId="lesson-status">
-          Expired
+          {t("student.lessonAccessAction.expired")}
         </StatusPill>
       );
     case "DEVICE_NOT_AUTHORIZED":
       return (
         <Link href="/student/devices" className={cn(pill, "bg-muted text-foreground underline")} data-testid="lesson-status">
-          Device not allowed
+          {t("student.lessonAccessAction.deviceNotAllowed")}
         </Link>
       );
     case "NOT_ENROLLED":
       return (
         <StatusPill tone="muted" testId="lesson-status">
-          Enroll to open
+          {t("student.lessonAccessAction.enrollToOpen")}
         </StatusPill>
       );
     default:
       return (
         <StatusPill tone="muted" testId="lesson-status">
-          Unavailable
+          {t("student.lessonAccessAction.unavailable")}
         </StatusPill>
       );
   }
 }
 
 /** Screen-reader text for a lesson's state. */
-export function accessStatusText(lesson: LessonNode): string {
+export function accessStatusText(lesson: LessonNode, t: TranslateFn): string {
   switch (lesson.access.status) {
     case "ALLOWED":
-      return "Available";
+      return t("student.lessonState.available");
     case "PAYMENT_REQUIRED":
-      return "Payment required";
+      return t("student.lessonState.paymentRequired");
     case "PAYMENT_PENDING":
-      return "Payment pending approval";
+      return t("student.lessonState.paymentPending");
     case "NOT_STARTED":
-      return "Not started yet";
+      return t("student.lessonState.notStarted");
     case "EXPIRED":
-      return "Expired";
+      return t("student.lessonState.expired");
     case "DEVICE_NOT_AUTHORIZED":
-      return "Not allowed on this device";
+      return t("student.lessonState.device");
     case "NOT_ENROLLED":
-      return "Not enrolled";
+      return t("student.lessonState.notEnrolled");
     default:
-      return "Unavailable";
+      return t("student.lessonState.unavailable");
   }
 }

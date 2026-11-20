@@ -43,7 +43,11 @@ export function relativeToServerNow(iso: string, nowIso: string): string {
   return diff >= 0 ? "in less than a minute" : "just now";
 }
 
-export function formatDuration(minutes: number | null | undefined): string | null {
+export function formatDuration(
+  minutes: number | null | undefined,
+  t?: (key: string, params?: Record<string, string | number>) => string
+): string | null {
   if (minutes === null || minutes === undefined) return null;
+  if (t) return t("exams.minutes", { count: minutes });
   return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
 }

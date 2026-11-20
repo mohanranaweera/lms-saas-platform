@@ -12,6 +12,7 @@ import { CourseArchiveControl } from "@/components/courses/course-archive-contro
 import { CourseCloneAction } from "@/components/courses/course-clone-action";
 import { useCourse } from "@/lib/api/courses";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Teacher's course edit page. No tabbed workspace exists here (unlike the
  * Tenant Admin course detail route, which Wave 2 restructured into one —
@@ -29,6 +30,7 @@ import { useCourse } from "@/lib/api/courses";
  * a monthly fee change still records billing-period history server-side.
  */
 export default function EditCoursePage() {
+  const t = useT();
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
   const query = useCourse(courseId);
@@ -39,7 +41,7 @@ export default function EditCoursePage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Edit course</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.coursesEdit.editCourse")}</h1>
           <p className="text-sm text-muted-foreground">
             Update this course&apos;s details, payment type and fees. Visibility, archiving and
             cloning have their own actions below.
@@ -47,10 +49,10 @@ export default function EditCoursePage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button render={<Link href={`/teacher/courses/${courseId}/modules`} />} variant="outline">
-            Manage modules & lessons
+            {t("teacher.page.coursesEdit.manageModulesLessons")}
           </Button>
           <Button render={<Link href={`/teacher/live-classes?courseId=${courseId}`} />} variant="outline">
-            Manage live classes
+            {t("teacher.page.coursesEdit.manageLiveClasses")}
           </Button>
         </div>
       </div>
@@ -59,15 +61,14 @@ export default function EditCoursePage() {
         <Alert role="status">
           <CheckCircle2 aria-hidden="true" />
           <AlertDescription>
-            Course cloned. This is a new, separate Draft course with its own content copy — no
-            enrollment, payment, or billing-period history carried over.
+            {t("teacher.page.coursesEdit.courseClonedThisIs")}
           </AlertDescription>
         </Alert>
       ) : null}
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading course…"
+        loadingLabel={t("teacher.page.coursesEdit.loadingCourse")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
       >

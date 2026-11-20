@@ -11,7 +11,9 @@ import { MyAttendanceSummary } from "@/components/attendance/my-attendance-summa
 import { formatAttendanceSession } from "@/components/attendance/attendance-session-label";
 import { useMyEnrolledCourseSummaries } from "@/lib/api/enrollments";
 import { useMyAttendance, type AttendanceListParams } from "@/lib/api/attendance";
-import { formatDateTime, shortId } from "@/lib/format";
+import { shortId } from "@/lib/format";
+import { useT } from "@/i18n/i18n-provider";
+import { useLocaleFormat } from "@/i18n/use-locale-format";
 
 const PAGE_SIZE = 20;
 
@@ -29,6 +31,8 @@ const PAGE_SIZE = 20;
  */
 export default function StudentAttendancePage() {
   const courseSummariesQuery = useMyEnrolledCourseSummaries();
+  const t = useT();
+  const { formatDateTime } = useLocaleFormat();
   const [params, setParams] = useState<Pick<AttendanceListParams, "courseId" | "from" | "to">>({});
   const [page, setPage] = useState(0);
   const query = useMyAttendance({ ...params, page, size: PAGE_SIZE });
@@ -63,10 +67,8 @@ export default function StudentAttendancePage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">My Attendance</h1>
-        <p className="text-sm text-muted-foreground">
-          Your own attendance history across the courses you&apos;re enrolled in.
-        </p>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.attendance.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("student.attendance.subtitle")}</p>
       </div>
 
       <AttendanceFilterForm
@@ -81,31 +83,30 @@ export default function StudentAttendancePage() {
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your attendance…"
+        loadingLabel={t("student.attendance.loading")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
         isEmpty={(data) => data.content.length === 0 && page === 0}
         emptyState={
           filtersActive
             ? {
-                title: "No sessions match the selected date filter",
-                description: "Try a different course or date range, or clear your filters.",
-                action: { label: "Clear filters", onClick: handleClear },
+                title: t("student.attendance.noMatch.title"),
+                description: t("student.attendance.noMatch.description"),
+                action: { label: t("student.attendance.noMatch.clear"), onClick: handleClear },
               }
             : {
-                title: "No attendance records yet",
-                description:
-                  "Your attendance history will appear here once a teacher records it for a session you attended.",
+                title: t("student.attendance.empty.title"),
+                description: t("student.attendance.empty.description"),
               }
         }
       >
         {(data) => (
           <div className="flex flex-col gap-3" aria-busy={isRefetching}>
-            <LiveRegion message={isRefetching ? "Updating…" : ""} />
+            <LiveRegion message={isRefetching ? t("student.common.updating") : ""} />
             {data.content.length === 0 ? (
               <EmptyState
-                title="No more results"
-                description="There are no records on this page. Go back to an earlier page."
+                title={t("student.common.noMoreResults.title")}
+                description={t("student.common.noMoreResults.description")}
               />
             ) : (
               <ul className={`flex flex-col gap-2 ${isRefetching ? "opacity-60" : ""}`}>
@@ -116,10 +117,10 @@ export default function StudentAttendancePage() {
                   >
                     <div className="flex flex-col gap-1">
                       <span className="text-sm font-medium text-foreground">
-                        {courseNames.get(record.courseId) ?? shortId(record.courseId, "Course")}
+                        {courseNames.get(record.courseId) ?? shortId(record.courseId, t("student.common.courseIdLabel"))}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatAttendanceSession(record)} · Marked {formatDateTime(record.markedAt)}
+                        {formatAttendanceSession(record, t)} · {t("student.attendance.marked", { when: formatDateTime(record.markedAt) })}
                       </span>
                     </div>
                     <AttendanceStatusChip status={record.status} />
@@ -135,10 +136,10 @@ export default function StudentAttendancePage() {
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={page === 0 || query.isFetching}
               >
-                Previous
+                {t("student.common.previous")}
               </Button>
               <span className="text-xs text-muted-foreground">
-                Page {data.page + 1} of {Math.max(data.totalPages, 1)}
+                {t("student.common.pageOf", { page: data.page + 1, total: Math.max(data.totalPages, 1) })}
               </span>
               <Button
                 type="button"
@@ -147,7 +148,7 @@ export default function StudentAttendancePage() {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={data.page + 1 >= data.totalPages || query.isFetching}
               >
-                Next
+                {t("student.common.next")}
               </Button>
             </div>
           </div>

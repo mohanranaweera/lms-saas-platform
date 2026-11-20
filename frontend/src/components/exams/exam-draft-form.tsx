@@ -18,6 +18,7 @@ import { isApiClientError } from "@/lib/api/error";
 import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/datetime";
 import { examDraftSchema, type ExamDraftFormValues } from "@/lib/validation/exams";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Exam draft edit form (screen #5) — title/window/time-limit/linked-questions,
  * only legal while `status === "DRAFT"` (409 otherwise, per `ExamUpdateRequest`'s
@@ -30,6 +31,7 @@ import { examDraftSchema, type ExamDraftFormValues } from "@/lib/validation/exam
  * stale client that submits anyway).
  */
 export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
+  const t = useT();
   const { session } = useAuth();
   const isAuthorized = canAuthorExams(session?.role ?? null);
   const isDraft = exam.status === "DRAFT";
@@ -70,13 +72,13 @@ export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
         questionIds: values.questionIds,
       });
     } catch (error) {
-      setPageError(isApiClientError(error) ? error.message : "An unexpected error occurred. Please try again.");
+      setPageError(isApiClientError(error) ? error.message : t("exams.draftForm.anUnexpectedErrorOccurred"));
     }
   });
 
   return (
     <form className="flex flex-col gap-4" noValidate aria-busy={isSubmitting} onSubmit={onSubmit}>
-      <LiveRegion message={isSubmitting ? "Saving exam details…" : ""} />
+      <LiveRegion message={isSubmitting ? t("exams.draftForm.savingExamDetails") : ""} />
       {!isDraft ? (
         <Alert>
           <AlertDescription>
@@ -94,10 +96,10 @@ export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
       {pageError ? <ErrorState message={pageError} onRetry={() => setPageError(null)} /> : null}
 
       <fieldset disabled={disabled} className="flex flex-col gap-4">
-        <legend className="sr-only">Exam details</legend>
+        <legend className="sr-only">{t("exams.draftForm.examDetails")}</legend>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="exam-draft-title">Title</Label>
+          <Label htmlFor="exam-draft-title">{t("exams.draftForm.title")}</Label>
           <Input
             id="exam-draft-title"
             aria-required="true"
@@ -114,7 +116,7 @@ export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="exam-draft-start">Window start</Label>
+            <Label htmlFor="exam-draft-start">{t("exams.draftForm.windowStart")}</Label>
             <Input
               id="exam-draft-start"
               type="datetime-local"
@@ -130,7 +132,7 @@ export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
             ) : null}
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="exam-draft-end">Window end</Label>
+            <Label htmlFor="exam-draft-end">{t("exams.draftForm.windowEnd")}</Label>
             <Input
               id="exam-draft-end"
               type="datetime-local"
@@ -148,7 +150,7 @@ export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
         </div>
 
         <div className="flex flex-col gap-1.5 sm:max-w-xs">
-          <Label htmlFor="exam-draft-time-limit">Time limit (minutes)</Label>
+          <Label htmlFor="exam-draft-time-limit">{t("exams.draftForm.timeLimitMinutes")}</Label>
           <Input
             id="exam-draft-time-limit"
             type="number"
@@ -168,11 +170,11 @@ export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
 
         <QueryStateBoundary
           query={questionsQuery}
-          loadingLabel="Loading the question bank…"
+          loadingLabel={t("exams.draftForm.loadingTheQuestionBank")}
           isEmpty={(data) => data.content.length === 0}
           emptyState={{
-            title: "No questions in the bank yet",
-            description: "Add questions in the Question Bank screen for this course before linking them here.",
+            title: t("exams.draftForm.noQuestionsInThe"),
+            description: t("exams.draftForm.addQuestionsInThe"),
           }}
         >
           {(data) => (
@@ -188,7 +190,7 @@ export function ExamDraftForm({ exam }: { exam: ExamResponse }) {
 
       {canEdit ? (
         <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full sm:w-fit">
-          {isSubmitting ? "Saving…" : "Save changes"}
+          {isSubmitting ? t("exams.draftForm.saving") : t("exams.draftForm.saveChanges")}
         </Button>
       ) : null}
     </form>

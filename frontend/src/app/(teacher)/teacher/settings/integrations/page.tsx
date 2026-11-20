@@ -17,6 +17,7 @@ import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+import { useT } from "@/i18n/i18n-provider";
 type CallbackResult =
   | { kind: "pending"; pendingId: string; provider: string }
   | { kind: "denied" | "failed"; provider: string };
@@ -113,6 +114,7 @@ function CallbackAlert({
 }
 
 function TeacherIntegrationsContent() {
+  const t = useT();
   const query = useTeacherIntegrations();
   const { result, confirm } = useCallbackResult();
 
@@ -125,7 +127,7 @@ function TeacherIntegrationsContent() {
         >
           ← Settings
         </Link>
-        <h1 className="mt-2 text-xl font-semibold text-foreground">Integrations</h1>
+        <h1 className="mt-2 text-xl font-semibold text-foreground">{t("teacher.page.settingsIntegrations.integrations")}</h1>
         <p className="text-sm text-muted-foreground">
           Connect your own accounts. Only you can connect them; your institute can see which accounts are connected
           but never your passwords or access tokens.
@@ -136,7 +138,7 @@ function TeacherIntegrationsContent() {
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your integrations…"
+        loadingLabel={t("teacher.page.settingsIntegrations.loadingYourIntegrations")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
       >
@@ -155,8 +157,9 @@ function TeacherIntegrationsContent() {
 
 /** Teacher → Settings → Integrations (MEDIA-INT-01 / ADR-018). */
 export default function TeacherIntegrationsPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<LoadingState label="Loading your integrations…" />}>
+    <Suspense fallback={<LoadingState label={t("teacher.page.settingsIntegrations.loadingYourIntegrations")} />}>
       <TeacherIntegrationsContent />
     </Suspense>
   );

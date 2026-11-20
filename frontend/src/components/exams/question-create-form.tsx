@@ -22,6 +22,7 @@ import {
   type QuestionCreateFormValues,
 } from "@/lib/validation/exams";
 
+import { useT } from "@/i18n/i18n-provider";
 const TEXTAREA_CLASSNAME =
   "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30";
 
@@ -32,6 +33,7 @@ const TEXTAREA_CLASSNAME =
  * `aria-describedby` wiring throughout (MVP-017 plan §11).
  */
 export function QuestionCreateForm({ courseId, onCreated }: { courseId: string; onCreated?: () => void }) {
+  const t = useT();
   const [pageError, setPageError] = useState<string | null>(null);
   const mutation = useCreateQuestion(courseId);
 
@@ -62,22 +64,22 @@ export function QuestionCreateForm({ courseId, onCreated }: { courseId: string; 
       reset(QUESTION_CREATE_DEFAULT_VALUES);
       onCreated?.();
     } catch (error) {
-      setPageError(isApiClientError(error) ? error.message : "An unexpected error occurred. Please try again.");
+      setPageError(isApiClientError(error) ? error.message : t("exams.questionCreate.anUnexpectedErrorOccurred"));
     }
   });
 
   return (
     <form className="flex flex-col gap-4" noValidate aria-busy={isSubmitting} onSubmit={onSubmit}>
       <span role="status" aria-live="polite" className="sr-only">
-        {isSubmitting ? "Creating question…" : ""}
+        {isSubmitting ? t("exams.questionCreate.creatingQuestion") : ""}
       </span>
       {pageError ? <ErrorState message={pageError} onRetry={() => setPageError(null)} /> : null}
 
       <fieldset disabled={isSubmitting} className="flex flex-col gap-4">
-        <legend className="sr-only">New question</legend>
+        <legend className="sr-only">{t("exams.questionCreate.newQuestion")}</legend>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="question-create-type">Question type</Label>
+          <Label htmlFor="question-create-type">{t("exams.questionCreate.questionType")}</Label>
           <Select
             value={questionType}
             onValueChange={(value) => {
@@ -86,18 +88,18 @@ export function QuestionCreateForm({ courseId, onCreated }: { courseId: string; 
               }
             }}
           >
-            <SelectTrigger id="question-create-type" aria-label="Question type">
-              <SelectValue placeholder="Select a type" />
+            <SelectTrigger id="question-create-type" aria-label={t("exams.questionCreate.questionType")}>
+              <SelectValue placeholder={t("exams.questionCreate.selectAType")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="MCQ">Multiple choice</SelectItem>
-              <SelectItem value="STRUCTURED">Structured (free text)</SelectItem>
+              <SelectItem value="MCQ">{t("exams.questionCreate.multipleChoice")}</SelectItem>
+              <SelectItem value="STRUCTURED">{t("exams.questionCreate.structuredFreeText")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="question-create-body">Question text</Label>
+          <Label htmlFor="question-create-body">{t("exams.questionCreate.questionText")}</Label>
           <textarea
             id="question-create-body"
             rows={3}
@@ -124,13 +126,13 @@ export function QuestionCreateForm({ courseId, onCreated }: { courseId: string; 
           />
         ) : (
           <p className="text-xs text-muted-foreground">
-            Structured questions are graded manually via the Marking Queue — no answer options are collected.
+            {t("exams.questionCreate.structuredQuestionsAreGraded")}
           </p>
         )}
       </fieldset>
 
       <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full sm:w-fit">
-        {isSubmitting ? "Creating…" : "Create question"}
+        {isSubmitting ? t("exams.questionCreate.creating") : t("exams.questionCreate.createQuestion")}
       </Button>
     </form>
   );

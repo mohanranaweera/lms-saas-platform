@@ -11,8 +11,10 @@ import { LoadingState } from "@/components/states/loading-state";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { ReactivationStatusBadge } from "@/components/students/enrollment-status-badges";
-import { formatDateTime, shortId } from "@/lib/format";
-import { isApiClientError } from "@/lib/api/error";
+import { shortId } from "@/lib/format";
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
+import { useLocaleFormat } from "@/i18n/use-locale-format";
 import {
   useMyEnrollments,
   useMyReactivationRequests,
@@ -40,6 +42,8 @@ function SubmitReactivationPanel({ enrollmentId }: { enrollmentId: string }) {
   const mutation = useSubmitReactivationRequest(enrollmentId);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const t = useT();
+  const enrollmentLabel = shortId(enrollmentId, t("student.common.enrollmentIdLabel"));
 
   async function handleSubmit() {
     setError(null);
@@ -47,11 +51,7 @@ function SubmitReactivationPanel({ enrollmentId }: { enrollmentId: string }) {
       await mutation.mutateAsync();
       setSubmitted(true);
     } catch (submitError) {
-      setError(
-        isApiClientError(submitError)
-          ? submitError.message
-          : "Something went wrong. Please try again."
-      );
+      setError(localizeApiError(t, submitError));
     }
   }
 
@@ -65,12 +65,11 @@ function SubmitReactivationPanel({ enrollmentId }: { enrollmentId: string }) {
         <div className="flex items-center gap-2">
           <CheckCircle2 className="size-5 text-foreground" aria-hidden="true" />
           <h2 className="text-base font-medium text-foreground">
-            Reactivation request submitted for {shortId(enrollmentId, "Enrollment")}
+            {t("student.reactivation.submittedFor", { enrollment: enrollmentLabel })}
           </h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          A Tenant Admin will review your request. Track its status in your request history
-          below — you&apos;ll be able to place a new order once it&apos;s approved.
+          {t("student.reactivation.submittedDescription")}
         </p>
       </div>
     );
@@ -80,11 +79,10 @@ function SubmitReactivationPanel({ enrollmentId }: { enrollmentId: string }) {
     <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div>
         <h2 className="text-base font-medium text-foreground">
-          Request reactivation for {shortId(enrollmentId, "Enrollment")}
+          {t("student.reactivation.requestFor", { enrollment: enrollmentLabel })}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Your access to this course has expired. Submitting a request notifies your institute&apos;s
-          admin — if approved, you&apos;ll be able to place a new order to restore access.
+          {t("student.reactivation.requestDescription")}
         </p>
       </div>
 
@@ -95,7 +93,7 @@ function SubmitReactivationPanel({ enrollmentId }: { enrollmentId: string }) {
         </Alert>
       ) : null}
 
-      <LiveRegion message={mutation.isPending ? "Submitting reactivation request…" : ""} />
+      <LiveRegion message={mutation.isPending ? t("student.reactivation.submittingLive") : ""} />
 
       <Button
         type="button"
@@ -104,7 +102,7 @@ function SubmitReactivationPanel({ enrollmentId }: { enrollmentId: string }) {
         aria-busy={mutation.isPending}
         className="self-start"
       >
-        {mutation.isPending ? "Submitting…" : "Submit reactivation request"}
+        {mutation.isPending ? t("student.reactivation.submitting") : t("student.reactivation.submit")}
       </Button>
     </div>
   );
@@ -129,6 +127,9 @@ function SubmitReactivationPanel({ enrollmentId }: { enrollmentId: string }) {
 function ReactivationHistory() {
   const query = useMyReactivationRequests({ page: 0, size: 20 });
   const enrollmentsQuery = useMyEnrollments();
+  const t = useT();
+  const { formatDateTime } = useLocaleFormat();
+  const enrollmentLabel = (id: string) => shortId(id, t("student.common.enrollmentIdLabel"));
   const courseIdByEnrollmentId = new Map(
     (enrollmentsQuery.data ?? []).map((enrollment) => [enrollment.enrollmentId, enrollment.courseId])
   );
@@ -140,10 +141,10 @@ function ReactivationHistory() {
     return (
       <Link
         href={`/student/checkout/${courseId}`}
-        aria-label={`Proceed to checkout for ${shortId(row.enrollmentId, "Enrollment")}`}
+        aria-label={t("student.reactivation.checkoutFor", { enrollment: enrollmentLabel(row.enrollmentId) })}
         className="text-sm font-medium text-foreground hover:underline"
       >
-        Proceed to checkout
+        {t("student.reactivation.checkout")}
       </Link>
     );
   }
@@ -151,29 +152,29 @@ function ReactivationHistory() {
   const columns: DataTableColumn<ReactivationRequestResponse>[] = [
     {
       key: "enrollment",
-      header: "Enrollment",
-      cell: (row) => shortId(row.enrollmentId, "Enrollment"),
+      header: t("student.reactivation.col.enrollment"),
+      cell: (row) => enrollmentLabel(row.enrollmentId),
       hideOnCard: true,
     },
     {
       key: "status",
-      header: "Status",
+      header: t("student.reactivation.col.status"),
       cell: (row) => <ReactivationStatusBadge status={row.status} />,
       hideOnCard: true,
     },
     {
       key: "submitted",
-      header: "Submitted",
+      header: t("student.reactivation.col.submitted"),
       cell: (row) => formatDateTime(row.createdAt),
     },
     {
       key: "reviewed",
-      header: "Reviewed",
-      cell: (row) => (row.reviewedAt ? formatDateTime(row.reviewedAt) : "Not yet reviewed"),
+      header: t("student.reactivation.col.reviewed"),
+      cell: (row) => (row.reviewedAt ? formatDateTime(row.reviewedAt) : t("student.reactivation.notReviewed")),
     },
     {
       key: "action",
-      header: "Action",
+      header: t("student.reactivation.col.action"),
       cell: (row) => renderAction(row) ?? "—",
       hideOnCard: true,
     },
@@ -181,17 +182,16 @@ function ReactivationHistory() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-base font-medium text-foreground">Your reactivation requests</h2>
+      <h2 className="text-base font-medium text-foreground">{t("student.reactivation.historyHeading")}</h2>
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your reactivation requests…"
+        loadingLabel={t("student.reactivation.historyLoading")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
         isEmpty={(data) => data.content.length === 0}
         emptyState={{
-          title: "You haven't requested reactivation for any course yet",
-          description:
-            "Once your paid access to a course expires, you can request reactivation from the list above or from My Courses.",
+          title: t("student.reactivation.historyEmpty.title"),
+          description: t("student.reactivation.historyEmpty.description"),
         }}
       >
         {(data) => (
@@ -199,8 +199,8 @@ function ReactivationHistory() {
             columns={columns}
             rows={data.content}
             rowKey={(row) => row.id}
-            caption="Your reactivation request history"
-            cardHeading={(row) => shortId(row.enrollmentId, "Enrollment")}
+            caption={t("student.reactivation.historyCaption")}
+            cardHeading={(row) => enrollmentLabel(row.enrollmentId)}
             cardHeadingAdornment={(row) => <ReactivationStatusBadge status={row.status} />}
             cardFooter={renderAction}
           />
@@ -221,42 +221,43 @@ function ReactivationHistory() {
 function ExpiredEnrollmentsToRenew() {
   const state = useLegacyReactivationState();
   const { enrollmentsQuery, expiredRows } = state;
+  const t = useT();
 
   let body: ReactNode;
   if (enrollmentsQuery.isPending) {
     body = (
       <p className="text-sm text-muted-foreground" aria-live="polite">
-        Loading your expired courses…
+        {t("student.reactivation.expiredLoading")}
       </p>
     );
   } else if (enrollmentsQuery.isError) {
     body = (
       <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        Couldn&apos;t load your expired courses.
+        {t("student.reactivation.expiredError")}
         <button
           type="button"
           onClick={() => enrollmentsQuery.refetch()}
           className="font-medium text-foreground underline hover:no-underline"
         >
-          Try again
+          {t("common.actions.retry")}
         </button>
       </p>
     );
   } else if (expiredRows.length === 0) {
     body = (
       <p className="text-sm text-muted-foreground">
-        None of your courses currently need reactivation.
+        {t("student.reactivation.noneExpired")}
       </p>
     );
   } else {
     body = (
-      <ul aria-label="Courses with expired access" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <ul aria-label={t("student.reactivation.expiredHeading")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {expiredRows.map((row) => (
           <LegacyEnrollmentCard
             key={row.enrollmentId}
             row={row}
             state={state}
-            reactivateText="Request reactivation"
+            reactivateText={t("student.reactivation.requestButton")}
           />
         ))}
       </ul>
@@ -266,7 +267,7 @@ function ExpiredEnrollmentsToRenew() {
   return (
     <section aria-labelledby="expired-enrollments-heading" className="flex flex-col gap-3" data-testid="reactivation-expired-list">
       <h2 id="expired-enrollments-heading" className="text-base font-medium text-foreground">
-        Courses with expired access
+        {t("student.reactivation.expiredHeading")}
       </h2>
       {body}
     </section>
@@ -276,14 +277,14 @@ function ExpiredEnrollmentsToRenew() {
 function ReactivationPageContent() {
   const searchParams = useSearchParams();
   const enrollmentId = searchParams.get("enrollmentId");
+  const t = useT();
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Reactivation</h1>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.reactivation.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Request reactivation for a course whose access has expired, and track the status of
-          past requests.
+          {t("student.reactivation.subtitle")}
         </p>
       </div>
 
@@ -300,7 +301,7 @@ function ReactivationPageContent() {
 
 export default function StudentReactivationPage() {
   return (
-    <Suspense fallback={<LoadingState label="Loading…" />}>
+    <Suspense fallback={<LoadingState />}>
       <ReactivationPageContent />
     </Suspense>
   );

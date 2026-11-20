@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, Trash2 } from "lucide-react";
 import { useMyDevices, useRevokeMyDevice, type DeviceSlotSummary, type DeviceView } from "@/lib/api/devices";
-import { isApiClientError } from "@/lib/api/error";
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { DeviceList } from "@/components/devices/device-list";
 import { DeviceLimitSummary } from "@/components/devices/device-limit-summary";
@@ -29,24 +30,23 @@ import {
  */
 export default function MyDevicesPage() {
   const query = useMyDevices();
+  const t = useT();
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">My devices</h1>
-        <p className="text-sm text-muted-foreground">
-          The browsers and devices you have signed in on. Your institute may limit how many you can use.
-        </p>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.devices.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("student.devices.subtitle")}</p>
       </div>
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading your devices…"
+        loadingLabel={t("student.devices.loading")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
         isEmpty={(data) => data.devices.length === 0}
         emptyState={{
-          title: "No devices yet",
-          description: "Devices appear here after you sign in on them.",
+          title: t("student.devices.empty.title"),
+          description: t("student.devices.empty.description"),
         }}
       >
         {(summary) => <MyDevicesBody summary={summary} />}
@@ -57,6 +57,7 @@ export default function MyDevicesPage() {
 
 function MyDevicesBody({ summary }: { summary: DeviceSlotSummary }) {
   const [notice, setNotice] = useState<string | null>(null);
+  const t = useT();
   useEffect(() => {
     if (!notice) return;
     const timeout = setTimeout(() => setNotice(null), 5000);
@@ -67,21 +68,19 @@ function MyDevicesBody({ summary }: { summary: DeviceSlotSummary }) {
     <div className="flex flex-col gap-4">
       <DeviceLimitSummary summary={summary} audience="self" />
       {!summary.selfServiceEnabled ? (
-        <p className="text-sm text-muted-foreground">
-          Your institute manages your devices. To remove a device you no longer use, contact your institute.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("student.devices.managedByInstitute")}</p>
       ) : null}
       <div role="status" aria-live="polite">
         {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
       </div>
       <DeviceList
         devices={summary.devices}
-        caption="Your devices"
+        caption={t("student.devices.caption")}
         action={
           summary.selfServiceEnabled
             ? (device) =>
                 device.status === "ACTIVE" && !device.current ? (
-                  <RemoveDeviceDialog device={device} onRemoved={() => setNotice(`${device.label} was removed.`)} />
+                  <RemoveDeviceDialog device={device} onRemoved={() => setNotice(t("student.devices.removed", { device: device.label }))} />
                 ) : null
             : undefined
         }
@@ -93,11 +92,8 @@ function MyDevicesBody({ summary }: { summary: DeviceSlotSummary }) {
 function RemoveDeviceDialog({ device, onRemoved }: { device: DeviceView; onRemoved: () => void }) {
   const mutation = useRevokeMyDevice();
   const [open, setOpen] = useState(false);
-  const errorMessage = mutation.isError
-    ? isApiClientError(mutation.error)
-      ? mutation.error.message
-      : "Something went wrong. Please try again."
-    : null;
+  const t = useT();
+  const errorMessage = mutation.isError ? localizeApiError(t, mutation.error) : null;
 
   return (
     <AlertDialog
@@ -108,17 +104,16 @@ function RemoveDeviceDialog({ device, onRemoved }: { device: DeviceView; onRemov
       }}
     >
       <AlertDialogTrigger
-        render={<Button type="button" variant="outline" size="sm" aria-label={`Remove ${device.label}`} />}
+        render={<Button type="button" variant="outline" size="sm" aria-label={t("student.devices.removeLabel", { device: device.label })} />}
       >
         <Trash2 aria-hidden="true" />
-        Remove
+        {t("student.devices.remove")}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove {device.label}?</AlertDialogTitle>
+          <AlertDialogTitle>{t("student.devices.confirmTitle", { device: device.label })}</AlertDialogTitle>
           <AlertDialogDescription>
-            That device is signed out straight away. Its slot stays taken for a while before a new device can use
-            it.
+            {t("student.devices.confirmDescription")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {errorMessage ? (
@@ -128,7 +123,7 @@ function RemoveDeviceDialog({ device, onRemoved }: { device: DeviceView; onRemov
           </Alert>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+          <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("common.actions.cancel")}</AlertDialogClose>
           <Button
             type="button"
             variant="destructive"
@@ -143,7 +138,7 @@ function RemoveDeviceDialog({ device, onRemoved }: { device: DeviceView; onRemov
               })
             }
           >
-            {mutation.isPending ? "Removing…" : "Remove device"}
+            {mutation.isPending ? t("student.devices.removing") : t("student.devices.removeDevice")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

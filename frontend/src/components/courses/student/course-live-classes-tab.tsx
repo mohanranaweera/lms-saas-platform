@@ -10,6 +10,8 @@ import { useCourseLiveClasses, type LessonNode, type LiveClassNode } from "@/lib
 import { LessonAccessAction } from "./lesson-access-action";
 import { dayGroup, formatTimeOfDay, resourceLabel } from "./student-format";
 
+import { useT } from "@/i18n/i18n-provider";
+import { translateSource } from "@/i18n/translate-source";
 /**
  * "Upcoming live classes" (CM-S02): the course's live lessons from the same
  * server evaluator as the content tree, grouped by day in the course
@@ -31,16 +33,17 @@ export function CourseLiveClassesTab({
   onPayLesson: ((lesson: LessonNode) => void) | null;
   notEnrolled: ReactNode;
 }) {
+  const t = useT();
   const query = useCourseLiveClasses(courseId);
 
-  if (query.status === "pending") return <LoadingState label="Loading live classes…" />;
+  if (query.status === "pending") return <LoadingState label={t("student.courseLiveClassesTab.loadingLiveClasses")} />;
   if (query.status === "error") {
     if (isApiClientError(query.error) && (query.error.status === 404 || query.error.status === 403)) {
       return <>{notEnrolled}</>;
     }
     return (
       <ErrorState
-        message="We couldn't load this course's live classes."
+        message={t("student.courseLiveClassesTab.weCouldntLoadThis")}
         code={isApiClientError(query.error) ? query.error.code : undefined}
         onRetry={() => query.refetch()}
       />
@@ -60,7 +63,7 @@ export function CourseLiveClassesTab({
     if (group) group.items.push(item);
     else groups.push({ key: day.key, label: day.label, items: [item] });
   }
-  if (unscheduled.length > 0) groups.push({ key: "unscheduled", label: "Time not set", items: unscheduled });
+  if (unscheduled.length > 0) groups.push({ key: "unscheduled", label: t("student.courseLiveClassesTab.timeNotSet"), items: unscheduled });
 
   return (
     <section
@@ -70,7 +73,7 @@ export function CourseLiveClassesTab({
     >
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-4 sm:px-6">
         <h2 id="live-classes-heading" className="text-base font-semibold text-foreground">
-          Upcoming live classes
+          {t("student.courseLiveClassesTab.upcomingLiveClasses")}
         </h2>
         <span
           className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-200"
@@ -82,10 +85,10 @@ export function CourseLiveClassesTab({
 
       {classes.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-muted-foreground" role="status" data-testid="live-classes-empty">
-          No upcoming live classes. When your teacher schedules one, it will appear here.
+          {t("student.courseLiveClassesTab.noUpcomingLiveClasses")}
         </p>
       ) : (
-        <ul className="divide-y divide-border" aria-label="Upcoming live classes by day">
+        <ul className="divide-y divide-border" aria-label={t("student.courseLiveClassesTab.upcomingLiveClassesBy")}>
           {groups.map((group) => (
             <li key={group.key}>
               <h3 className="px-4 pt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:px-6">
@@ -127,6 +130,7 @@ function LiveClassRow({
   onLaunch: (lesson: LessonNode) => void;
   onPay: ((lesson: LessonNode) => void) | null;
 }) {
+  const t = useT();
   const allowed = item.access.status === "ALLOWED";
   return (
     <div
@@ -142,7 +146,7 @@ function LiveClassRow({
           </span>
           {item.endsAt ? (
             <span className="text-xs text-muted-foreground">
-              <span className="sr-only">until </span>
+              <span className="sr-only">{t("student.courseLive.until")} </span>
               {formatTimeOfDay(item.endsAt, timeZone)}
             </span>
           ) : null}
@@ -155,7 +159,7 @@ function LiveClassRow({
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Video className="size-3.5" aria-hidden="true" />
-              {resourceLabel(item.resourceType)}
+              {translateSource(t, resourceLabel(item.resourceType))}
             </span>
             <span>{item.moduleTitle}</span>
           </span>
@@ -173,7 +177,7 @@ function LiveClassRow({
             data-testid="live-class-join"
             className="bg-blue-600 text-white hover:bg-blue-700"
           >
-            {launching ? "Opening…" : "Join"}
+            {launching ? t("student.courseLiveClassesTab.opening") : t("student.courseLiveClassesTab.join")}
           </Button>
         ) : (
           <LessonAccessAction

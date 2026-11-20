@@ -26,6 +26,13 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   SUNDAY: "Sunday",
 };
 
+/** Weekday name in the UI language (I18N-01); 2024-01-01 was a Monday. `WEEKDAY_LABELS` stays English. */
+export function weekdayLabel(day: Weekday, locale?: string): string {
+  if (!locale || locale.startsWith("en")) return WEEKDAY_LABELS[day];
+  const index = WEEKDAYS.indexOf(day);
+  return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 1 + index)));
+}
+
 export interface ClassScheduleSlot {
   id: string;
   dayOfWeek: Weekday;

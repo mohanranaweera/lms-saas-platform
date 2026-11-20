@@ -5,6 +5,7 @@ import { AlertCircle } from "lucide-react";
 import { useTeacherIntegrations } from "@/lib/api/integrations";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+import { useT } from "@/i18n/i18n-provider";
 const INTEGRATIONS_HREF = "/teacher/settings/integrations";
 
 /** Backend error codes that mean "fix your Zoom connection" (docs/api/integrations.md). */
@@ -22,6 +23,7 @@ export function isProviderErrorCode(code: string | undefined): boolean {
  * message is the backend's own client-safe text.
  */
 export function ProviderErrorAlert({ code, message }: { code: string; message: string }) {
+  const t = useT();
   const fixable = code !== "PROVIDER_DISABLED_BY_TENANT";
   return (
     <Alert variant="destructive">
@@ -30,7 +32,7 @@ export function ProviderErrorAlert({ code, message }: { code: string; message: s
         {message}{" "}
         {fixable ? (
           <Link href={INTEGRATIONS_HREF} className="font-medium underline">
-            Open Settings → Integrations
+            {t("teacher.zoomNotice.openSettingsIntegrations")}
           </Link>
         ) : null}
       </AlertDescription>
@@ -45,6 +47,7 @@ export function ProviderErrorAlert({ code, message }: { code: string; message: s
  * error, when Zoom isn't set up on the platform, or when the teacher is ready.
  */
 export function ZoomReadinessNotice() {
+  const t = useT();
   const query = useTeacherIntegrations();
   const zoom = query.data?.providers.find((provider) => provider.provider === "ZOOM");
   if (!zoom || !zoom.available) return null;
@@ -69,7 +72,7 @@ export function ZoomReadinessNotice() {
         {text}{" "}
         {zoom.enabledByTenant ? (
           <Link href={INTEGRATIONS_HREF} className="font-medium underline">
-            Open Settings → Integrations
+            {t("teacher.zoomNotice.openSettingsIntegrations")}
           </Link>
         ) : null}
       </AlertDescription>

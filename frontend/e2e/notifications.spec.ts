@@ -219,6 +219,8 @@ test.describe("Student Notification Center", () => {
       403,
       apiError("FORBIDDEN", "You do not have permission to view these notifications.")
     );
+    // The preferences read is a different path; keep it off any live local backend.
+    await mockJson(page, "**/v1/notifications/preferences", 200, apiSuccess([]));
 
     await page.goto("/student/notifications");
 

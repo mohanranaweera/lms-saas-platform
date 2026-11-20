@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MediaStatusBadge } from "./media-status-badge";
 
+import { useT } from "@/i18n/i18n-provider";
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
@@ -48,12 +49,13 @@ function errorText(error: unknown, fallback: string): string {
 
 /** Plain-language explanation of where an upload stands, when there is something to say. */
 function UploadExplanation({ asset, settingsHref }: { asset: MediaAsset; settingsHref?: string }) {
+  const t = useT();
   const progress = asset.uploadProgress;
   if (asset.processingStatus === "FAILED") {
     return (
       <Alert variant="destructive">
         <AlertCircle aria-hidden="true" />
-        <AlertDescription>{asset.failureReason ?? progress?.message ?? "This video failed."}</AlertDescription>
+        <AlertDescription>{asset.failureReason ?? progress?.message ?? t("teacher.mediaDetail.thisVideoFailed")}</AlertDescription>
       </Alert>
     );
   }
@@ -62,7 +64,7 @@ function UploadExplanation({ asset, settingsHref }: { asset: MediaAsset; setting
       <Alert>
         <AlertCircle aria-hidden="true" />
         <AlertDescription>
-          The file was never finished uploading. Cancel this upload and upload the video again.
+          {t("teacher.mediaDetail.theFileWasNever")}
         </AlertDescription>
       </Alert>
     );
@@ -83,11 +85,11 @@ function UploadExplanation({ asset, settingsHref }: { asset: MediaAsset; setting
         <Alert variant="destructive">
           <AlertCircle aria-hidden="true" />
           <AlertDescription>
-            {progress.message ?? "YouTube needs to be reconnected."} The upload continues once the same channel is
+            {progress.message ?? t("teacher.mediaDetail.youtubeNeedsToBe")} The upload continues once the same channel is
             connected again.{" "}
             {settingsHref ? (
               <Link href={settingsHref} className="font-medium underline">
-                Open video providers
+                {t("teacher.mediaDetail.openVideoProviders")}
               </Link>
             ) : null}
           </AlertDescription>
@@ -98,7 +100,7 @@ function UploadExplanation({ asset, settingsHref }: { asset: MediaAsset; setting
       <div className="flex flex-col gap-1.5">
         <div
           role="progressbar"
-          aria-label="Sending to YouTube"
+          aria-label={t("teacher.mediaDetail.sendingToYoutube")}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent(progress.bytesSent, progress.totalBytes)}
@@ -110,7 +112,7 @@ function UploadExplanation({ asset, settingsHref }: { asset: MediaAsset; setting
           />
         </div>
         <p className="text-sm text-muted-foreground">
-          {progress.state === "RETRY_WAIT" ? "YouTube didn't respond; trying again shortly. " : ""}
+          {progress.state === "RETRY_WAIT" ? t("teacher.mediaDetail.youtubeDidntRespondTrying") : ""}
           {formatBytes(progress.bytesSent)} of {formatBytes(progress.totalBytes)} sent to YouTube.
         </p>
       </div>
@@ -139,6 +141,7 @@ function EditForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const ids = { title: useId(), description: useId(), privacy: useId() };
   const update = useUpdateMedia(asset.id);
   const {
@@ -181,12 +184,12 @@ function EditForm({
 
   return (
     <form
-      aria-label="Edit details"
+      aria-label={t("teacher.mediaDetail.editDetails")}
       noValidate
       onSubmit={onSubmit}
       className="flex max-w-2xl flex-col gap-4 rounded-lg border border-border p-4"
     >
-      {onYouTube ? <p className="text-sm text-muted-foreground">Changes are also made on YouTube.</p> : null}
+      {onYouTube ? <p className="text-sm text-muted-foreground">{t("teacher.mediaDetail.changesAreAlsoMade")}</p> : null}
       {onYouTube && !editingEnabled ? (
         <Alert variant="destructive">
           <AlertCircle aria-hidden="true" />
@@ -194,14 +197,14 @@ function EditForm({
             Your YouTube channel was connected before editing was available. Reconnect it to edit videos.{" "}
             {settingsHref ? (
               <Link href={settingsHref} className="font-medium underline">
-                Open video providers
+                {t("teacher.mediaDetail.openVideoProviders")}
               </Link>
             ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={ids.title}>Title</Label>
+        <Label htmlFor={ids.title}>{t("teacher.mediaDetail.title")}</Label>
         <Input
           id={ids.title}
           maxLength={100}
@@ -216,7 +219,7 @@ function EditForm({
         ) : null}
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={ids.description}>Description</Label>
+        <Label htmlFor={ids.description}>{t("teacher.mediaDetail.description")}</Label>
         <Textarea
           id={ids.description}
           rows={4}
@@ -232,10 +235,10 @@ function EditForm({
       </div>
       {asset.provider === "YOUTUBE" ? (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={ids.privacy}>Visibility on YouTube</Label>
+          <Label htmlFor={ids.privacy}>{t("teacher.mediaDetail.visibilityOnYoutube")}</Label>
           <select id={ids.privacy} className={selectClass} {...register("privacyStatus")}>
-            <option value="UNLISTED">Unlisted - only people with the link</option>
-            <option value="PRIVATE">Private - only your channel</option>
+            <option value="UNLISTED">{t("teacher.mediaDetail.unlistedOnlyPeopleWith")}</option>
+            <option value="PRIVATE">{t("teacher.mediaDetail.privateOnlyYourChannel")}</option>
           </select>
         </div>
       ) : null}
@@ -246,7 +249,7 @@ function EditForm({
             {errorText(update.error, "The changes could not be saved.")}{" "}
             {isApiClientError(update.error) && RECONNECT_CODES.has(update.error.code) && settingsHref ? (
               <Link href={settingsHref} className="font-medium underline">
-                Open video providers
+                {t("teacher.mediaDetail.openVideoProviders")}
               </Link>
             ) : null}
           </AlertDescription>
@@ -254,10 +257,10 @@ function EditForm({
       ) : null}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={update.isPending} aria-busy={update.isPending}>
-          {update.isPending ? "Saving…" : "Save changes"}
+          {update.isPending ? t("teacher.mediaDetail.saving") : t("teacher.mediaDetail.saveChanges")}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel} disabled={update.isPending}>
-          Cancel
+          {t("teacher.mediaDetail.cancel")}
         </Button>
       </div>
     </form>
@@ -265,19 +268,20 @@ function EditForm({
 }
 
 function DeleteMediaDialog({ asset, listHref }: { asset: MediaAsset; listHref: string }) {
+  const t = useT();
   const router = useRouter();
   const remove = useDeleteMedia();
   const [open, setOpen] = useState(false);
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger render={<Button type="button" variant="destructive" />}>Delete</AlertDialogTrigger>
+      <AlertDialogTrigger render={<Button type="button" variant="destructive" />}>{t("teacher.mediaDetail.delete")}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete &ldquo;{asset.title}&rdquo;?</AlertDialogTitle>
           <AlertDialogDescription>
             It is removed from the Media Library.
             {asset.provider === "YOUTUBE"
-              ? " The video stays on your YouTube channel - delete it in YouTube Studio if you no longer want it there."
+              ? t("teacher.mediaDetail.theVideoStaysOn")
               : ""}
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -288,7 +292,7 @@ function DeleteMediaDialog({ asset, listHref }: { asset: MediaAsset; listHref: s
           </Alert>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button type="button" variant="outline" />}>Keep it</AlertDialogClose>
+          <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("teacher.mediaDetail.keepIt")}</AlertDialogClose>
           <Button
             type="button"
             variant="destructive"
@@ -296,7 +300,7 @@ function DeleteMediaDialog({ asset, listHref }: { asset: MediaAsset; listHref: s
             aria-busy={remove.isPending}
             onClick={() => remove.mutate(asset.id, { onSuccess: () => router.push(listHref) })}
           >
-            {remove.isPending ? "Deleting…" : "Delete"}
+            {remove.isPending ? t("teacher.mediaDetail.deleting") : t("teacher.mediaDetail.delete")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -315,6 +319,7 @@ function MediaDetailBody({
   listHref: string;
   settingsHref?: string;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   // VIDEO Phase 5d: editing depends on the video's own integration's grant.
@@ -345,24 +350,24 @@ function MediaDetailBody({
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <MediaStatusBadge asset={asset} />
-            {asset.attached ? <span className="text-sm text-muted-foreground">Used in a lesson</span> : null}
+            {asset.attached ? <span className="text-sm text-muted-foreground">{t("teacher.mediaDetail.usedInALesson")}</span> : null}
           </div>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">Stored on</dt>
-            <dd className="text-foreground">{asset.provider === "YOUTUBE" ? "YouTube" : "Institute storage"}</dd>
+            <dt className="text-muted-foreground">{t("teacher.mediaDetail.storedOn")}</dt>
+            <dd className="text-foreground">{asset.provider === "YOUTUBE" ? t("teacher.mediaDetail.youtube") : t("teacher.mediaDetail.instituteStorage")}</dd>
             {asset.privacyStatus ? (
               <>
-                <dt className="text-muted-foreground">Visibility</dt>
-                <dd className="text-foreground">{asset.privacyStatus === "PRIVATE" ? "Private" : "Unlisted"}</dd>
+                <dt className="text-muted-foreground">{t("teacher.mediaDetail.visibility")}</dt>
+                <dd className="text-foreground">{asset.privacyStatus === "PRIVATE" ? t("teacher.mediaDetail.private") : t("teacher.mediaDetail.unlisted")}</dd>
               </>
             ) : null}
             {duration ? (
               <>
-                <dt className="text-muted-foreground">Length</dt>
+                <dt className="text-muted-foreground">{t("teacher.mediaDetail.length")}</dt>
                 <dd className="text-foreground">{duration}</dd>
               </>
             ) : null}
-            <dt className="text-muted-foreground">Added</dt>
+            <dt className="text-muted-foreground">{t("teacher.mediaDetail.added")}</dt>
             <dd className="text-foreground">{formatDateTime(asset.createdAt)}</dd>
           </dl>
           {asset.description ? (
@@ -376,8 +381,8 @@ function MediaDetailBody({
               className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4 hover:text-primary"
             >
               <ExternalLink aria-hidden="true" className="size-4" />
-              Open on YouTube
-              <span className="sr-only"> (opens in a new tab)</span>
+              {t("teacher.mediaDetail.openOnYoutube")}
+              <span className="sr-only">{" "}{t("teacher.mediaDetail.opensInANew")}</span>
             </a>
           ) : null}
         </div>
@@ -388,7 +393,7 @@ function MediaDetailBody({
       {saved ? (
         <Alert role="status">
           <CheckCircle2 aria-hidden="true" />
-          <AlertDescription>Changes saved.</AlertDescription>
+          <AlertDescription>{t("teacher.mediaDetail.changesSaved")}</AlertDescription>
         </Alert>
       ) : null}
       {cancel.isError || retry.isError ? (
@@ -436,7 +441,7 @@ function MediaDetailBody({
               aria-busy={cancel.isPending}
               onClick={() => cancel.mutate(asset.id)}
             >
-              {cancel.isPending ? "Cancelling…" : "Cancel upload"}
+              {cancel.isPending ? t("teacher.mediaDetail.cancelling") : t("teacher.mediaDetail.cancelUpload")}
             </Button>
           ) : null}
           {canEditAsset && canRetry ? (
@@ -446,23 +451,23 @@ function MediaDetailBody({
               aria-busy={retry.isPending}
               onClick={() => retry.mutate(asset.id)}
             >
-              {retry.isPending ? "Retrying…" : "Retry upload"}
+              {retry.isPending ? t("teacher.mediaDetail.retrying") : t("teacher.mediaDetail.retryUpload")}
             </Button>
           ) : null}
           {canDeleteAsset && !live && !asset.attached ? <DeleteMediaDialog asset={asset} listHref={listHref} /> : null}
         </div>
       ) : null}
       {canEditAsset && sending ? (
-        <p className="text-sm text-muted-foreground">Details can be edited once the video has reached YouTube.</p>
+        <p className="text-sm text-muted-foreground">{t("teacher.mediaDetail.detailsCanBeEdited")}</p>
       ) : null}
       {canManage && !canEditAsset && !canDeleteAsset ? (
         <p className="text-sm text-muted-foreground" data-testid="media-video-view-only-note">
-          You can view and attach this video. Only the person who uploaded it or an institute admin can change it.
+          {t("teacher.mediaDetail.youCanViewAnd")}
         </p>
       ) : null}
       {canDeleteAsset && asset.attached ? (
         <p className="text-sm text-muted-foreground">
-          This video is used in a lesson. Remove it from the lesson before deleting it.
+          {t("teacher.mediaDetail.thisVideoIsUsed")}
         </p>
       ) : null}
     </div>
@@ -483,16 +488,17 @@ export function MediaDetail({
   canManage: boolean;
   settingsHref?: string;
 }) {
+  const t = useT();
   const query = useMediaAsset(mediaId);
   return (
     <div className="flex flex-col gap-6">
       <div>
         <Link href={listHref} className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
-          ← Media Library
+          {t("teacher.mediaDetail.mediaLibrary")}
         </Link>
-        <h1 className="mt-2 text-xl font-semibold break-words text-foreground">{query.data?.title ?? "Media"}</h1>
+        <h1 className="mt-2 text-xl font-semibold break-words text-foreground">{query.data?.title ?? t("teacher.mediaDetail.media")}</h1>
       </div>
-      <QueryStateBoundary query={query} loadingLabel="Loading media…" loginPath="/login" permissionDenied={{ dashboardHref }}>
+      <QueryStateBoundary query={query} loadingLabel={t("teacher.mediaDetail.loadingMedia")} loginPath="/login" permissionDenied={{ dashboardHref }}>
         {(asset) => (
           <MediaDetailBody asset={asset} canManage={canManage} listHref={listHref} settingsHref={settingsHref} />
         )}

@@ -23,6 +23,8 @@ import { useSelfEnrollmentEnabled } from "@/lib/api/public-home";
 import { CourseCover, PriceBadge } from "./course-visuals";
 import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog";
 import { StudentToast, useStudentToast } from "./student-toast";
+import { useT } from "@/i18n/i18n-provider";
+import { useContentLang } from "@/i18n/content-lang";
 
 const PAGE_SIZE = 20;
 
@@ -53,6 +55,7 @@ export function StudentCourseCatalog() {
   const view = viewFromParam(searchParams.get("view"));
   const searchId = useId();
   const sortId = useId();
+  const t = useT();
 
   const [searchInput, setSearchInput] = useState("");
   const search = useDebounced(searchInput, 350);
@@ -112,9 +115,9 @@ export function StudentCourseCatalog() {
     });
     try {
       await enroll.mutateAsync(course.courseId);
-      toast.show({ kind: "success", text: `You're enrolled in ${course.title}. Find it under Enrolled Courses.` });
+      toast.show({ kind: "success", text: t("student.catalog.enrolled", { course: course.title }) });
     } catch (error) {
-      const message = enrollErrorMessage(error);
+      const message = enrollErrorMessage(error, t);
       setFailures((current) => ({ ...current, [course.courseId]: message }));
       toast.show({ kind: "error", text: message });
     } finally {
@@ -124,10 +127,10 @@ export function StudentCourseCatalog() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6" data-testid="student-course-catalog">
-      <section aria-label="Search and filters" className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+      <section aria-label={t("student.catalog.filtersRegion")} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex w-full flex-col gap-1 sm:max-w-md">
-            <Label htmlFor={searchId}>Search courses</Label>
+            <Label htmlFor={searchId}>{t("student.catalog.search")}</Label>
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
@@ -135,14 +138,14 @@ export function StudentCourseCatalog() {
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search courses"
+                placeholder={t("student.catalog.search")}
                 className="pl-8"
                 data-testid="catalog-search"
               />
             </div>
           </div>
           <div className="flex w-full flex-col gap-1 sm:w-48">
-            <Label htmlFor={sortId}>Sort by</Label>
+            <Label htmlFor={sortId}>{t("student.catalog.sortBy")}</Label>
             <select
               id={sortId}
               value={sort}
@@ -150,14 +153,14 @@ export function StudentCourseCatalog() {
               data-testid="catalog-sort"
               className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <option value="DEFAULT">Default</option>
-              <option value="TITLE">Title</option>
+              <option value="DEFAULT">{t("student.catalog.sortDefault")}</option>
+              <option value="TITLE">{t("student.catalog.sortTitle")}</option>
             </select>
           </div>
         </div>
 
         {tagsQuery.isSuccess && tagsQuery.data.length > 0 ? (
-          <div role="group" aria-label="Filter by tag" className="flex flex-wrap gap-2 border-t border-border pt-3" data-testid="catalog-tags">
+          <div role="group" aria-label={t("student.catalog.filterByTag")} className="flex flex-wrap gap-2 border-t border-border pt-3" data-testid="catalog-tags">
             {tagsQuery.data.map((tag) => {
               const selected = tag.id === tagId;
               return (
@@ -184,9 +187,9 @@ export function StudentCourseCatalog() {
         ) : null}
         {tagsQuery.isError ? (
           <p className="border-t border-border pt-3 text-xs text-muted-foreground" role="status">
-            Tag filters couldn&apos;t load.{" "}
+            {t("student.catalog.tagsError")}{" "}
             <button type="button" className="underline" onClick={() => tagsQuery.refetch()}>
-              Try again
+              {t("common.actions.retry")}
             </button>
           </p>
         ) : null}
@@ -195,9 +198,9 @@ export function StudentCourseCatalog() {
       <LiveRegion
         message={
           catalogQuery.isFetching
-            ? "Loading courses…"
+            ? t("student.courses.loading")
             : catalogQuery.isSuccess
-              ? `${catalogQuery.data.totalElements} ${catalogQuery.data.totalElements === 1 ? "course" : "courses"} found`
+              ? t("student.catalog.found", { count: catalogQuery.data.totalElements })
               : ""
         }
       />
@@ -205,7 +208,7 @@ export function StudentCourseCatalog() {
 
       <QueryStateBoundary
         query={catalogQuery}
-        loadingLabel="Loading courses…"
+        loadingLabel={t("student.courses.loading")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
       >
@@ -216,10 +219,10 @@ export function StudentCourseCatalog() {
               <div data-testid="catalog-empty">
                 {filtered ? (
                   <EmptyState
-                    title="No courses match your search"
-                    description="Try a different search term or clear the tag filter."
+                    title={t("student.catalog.noMatch.title")}
+                    description={t("student.catalog.noMatch.description")}
                     action={{
-                      label: "Clear filters",
+                      label: t("student.attendance.noMatch.clear"),
                       onClick: () => {
                         setSearchInput("");
                         setTagId(null);
@@ -228,14 +231,14 @@ export function StudentCourseCatalog() {
                   />
                 ) : view === "ENROLLED" ? (
                   <EmptyState
-                    title="You haven't enrolled in any courses yet"
-                    description="Browse Available Courses and enroll for free to get started."
-                    action={{ label: "See available courses", onClick: () => setView("AVAILABLE") }}
+                    title={t("student.catalog.emptyEnrolled.title")}
+                    description={t("student.catalog.emptyEnrolled.description")}
+                    action={{ label: t("student.catalog.emptyEnrolled.action"), onClick: () => setView("AVAILABLE") }}
                   />
                 ) : (
                   <EmptyState
-                    title="No courses are open for enrollment"
-                    description="You're already in every open course, or your institute hasn't opened new ones yet. Check back soon."
+                    title={t("student.catalog.emptyAvailable.title")}
+                    description={t("student.catalog.emptyAvailable.description")}
                   />
                 )}
               </div>
@@ -249,11 +252,11 @@ export function StudentCourseCatalog() {
                   className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200"
                   data-testid="catalog-self-enrollment-disabled"
                 >
-                  Your institute enrolls students in courses. Contact your institute to join one of these courses.
+                  {t("student.catalog.selfEnrollmentDisabled")}
                 </p>
               ) : null}
               <ul
-                aria-label={view === "ENROLLED" ? "Enrolled Courses" : "Available Courses"}
+                aria-label={view === "ENROLLED" ? t("student.catalog.enrolledList") : t("student.nav.availableCourses")}
                 aria-busy={catalogQuery.isFetching}
                 className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 data-testid="catalog-grid"
@@ -274,7 +277,7 @@ export function StudentCourseCatalog() {
               </ul>
 
               {data.totalPages > 1 ? (
-                <nav aria-label="Course list pages" className="flex items-center justify-between gap-3">
+                <nav aria-label={t("student.catalog.pages")} className="flex items-center justify-between gap-3">
                   <Button
                     type="button"
                     variant="outline"
@@ -282,10 +285,10 @@ export function StudentCourseCatalog() {
                     disabled={data.page <= 0}
                     onClick={() => setPage((current) => Math.max(current - 1, 0))}
                   >
-                    Previous
+                    {t("student.common.previous")}
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Page {data.page + 1} of {data.totalPages}
+                    {t("student.common.pageOf", { page: data.page + 1, total: data.totalPages })}
                   </span>
                   <Button
                     type="button"
@@ -294,7 +297,7 @@ export function StudentCourseCatalog() {
                     disabled={data.page + 1 >= data.totalPages}
                     onClick={() => setPage((current) => current + 1)}
                   >
-                    Next
+                    {t("student.common.next")}
                   </Button>
                 </nav>
               ) : null}
@@ -341,6 +344,8 @@ function CatalogCard({
   onRetry: () => void;
 }) {
   const href = `/student/courses/${course.courseId}`;
+  const t = useT();
+  const contentLang = useContentLang((course as { contentLocale?: string | null }).contentLocale);
   return (
     <li
       className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm"
@@ -356,13 +361,13 @@ function CatalogCard({
         />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h2 className="text-base font-semibold leading-snug text-foreground" data-testid="catalog-course-title">
+        <h2 className="text-base font-semibold leading-snug break-words text-foreground" data-testid="catalog-course-title" lang={contentLang}>
           {course.title}
         </h2>
         {course.teacherName ? (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <UserRound className="size-4" aria-hidden="true" />
-            <span className="sr-only">Teacher:</span>
+            <span className="sr-only">{t("student.catalog.teacher")}</span>
             {course.teacherName}
           </p>
         ) : null}
@@ -370,7 +375,7 @@ function CatalogCard({
           <div role="alert" className="mt-1 flex flex-col items-start gap-1 text-xs text-destructive" data-testid="catalog-enroll-error">
             <span>{failure}</span>
             <button type="button" className="font-medium underline" onClick={onRetry} disabled={anyPending}>
-              Try again
+              {t("common.actions.retry")}
             </button>
           </div>
         ) : null}
@@ -379,22 +384,22 @@ function CatalogCard({
         {view === "ENROLLED" ? (
           <Link
             href={href}
-            aria-label={`Open course ${course.title}`}
+            aria-label={t("student.catalog.openCourseLabel", { course: course.title })}
             data-testid="catalog-open-course"
             className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300"
           >
-            Open course
+            {t("student.catalog.openCourse")}
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         ) : (
           <>
             <Link
               href={href}
-              aria-label={`View course ${course.title}`}
+              aria-label={t("student.catalog.viewCourseLabel", { course: course.title })}
               data-testid="catalog-view-course"
               className="text-sm font-medium text-blue-700 hover:underline dark:text-blue-300"
             >
-              View course
+              {t("student.catalog.viewCourse")}
             </Link>
             {selfEnrollmentEnabled ? (
             <Button
@@ -402,11 +407,11 @@ function CatalogCard({
               onClick={onEnroll}
               disabled={anyPending}
               aria-busy={pending}
-              aria-label={pending ? `Enrolling in ${course.title}` : `Enroll in ${course.title}`}
+              aria-label={pending ? t("student.catalog.enrollingLabel", { course: course.title }) : t("student.catalog.enrollLabel", { course: course.title })}
               data-testid="catalog-enroll"
               className="min-w-20 bg-blue-600 text-white hover:bg-blue-700"
             >
-              {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Enroll"}
+              {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : t("student.catalog.enroll")}
             </Button>
             ) : null}
           </>

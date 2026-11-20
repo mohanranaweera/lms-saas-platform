@@ -7,6 +7,7 @@ import { PlaybackErrorNotice } from "@/components/player/playback-error-notice";
 import { VIDEO_NOT_AVAILABLE } from "@/components/player/playback-errors";
 import { useStartPlayback } from "@/lib/api/playback";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Student WEB player for a YouTube LessonMedia (VIDEO Phase 7, B3-only).
  *
@@ -32,6 +33,7 @@ interface YouTubeLessonPlayerProps {
 }
 
 export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlayerProps) {
+  const t = useT();
   const playback = useStartPlayback();
   const { mutate } = playback;
 
@@ -62,7 +64,7 @@ export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlaye
         className="flex aspect-video w-full items-center justify-center gap-2 rounded-md bg-muted text-sm text-muted-foreground"
       >
         <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-        Preparing video…
+        {t("player.youtubeLessonPlayer.preparingVideo")}
       </div>
     );
   }
@@ -98,7 +100,7 @@ export function YouTubeLessonPlayer({ lessonMediaId, title }: YouTubeLessonPlaye
           {descriptor.watermarkText}
         </p>
       ) : null}
-      <p className="text-xs text-muted-foreground">This video plays through YouTube.</p>
+      <p className="text-xs text-muted-foreground">{t("player.youtubeLessonPlayer.thisVideoPlaysThrough")}</p>
     </div>
   );
 }

@@ -37,6 +37,7 @@ import {
 } from "@/lib/calendar/time";
 import { cn } from "@/lib/utils";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 /**
  * CAL-01 "Calendar & Timetable" (docs/specs/class-calendar.md §8), shared by
  * the Tenant Admin, Teacher and Student portals. Which courses appear is
@@ -47,12 +48,12 @@ import { cn } from "@/lib/utils";
  */
 
 type ViewMode = "month" | "week" | "day" | "list";
-const VIEW_MODES: { value: ViewMode; label: string }[] = [
-  { value: "month", label: "Month" },
-  { value: "week", label: "Week" },
-  { value: "day", label: "Day" },
-  { value: "list", label: "List" },
-];
+const VIEW_MODES = (t: TranslateFn): { value: ViewMode; label: string }[] => ([
+  { value: "month", label: t("calendar.classCalendar.month") },
+  { value: "week", label: t("calendar.classCalendar.week") },
+  { value: "day", label: t("calendar.classCalendar.day") },
+  { value: "list", label: t("calendar.classCalendar.list") },
+]);
 
 const ALL_COURSES = "all";
 
@@ -92,8 +93,16 @@ function shift(view: ViewMode, anchor: LocalDate, direction: 1 | -1): LocalDate 
   }
 }
 
-function periodHeading(view: ViewMode, anchor: LocalDate, from: LocalDate): string {
-  if (view === "day") return fullDate(anchor);
+function periodHeading(view: ViewMode, anchor: LocalDate, from: LocalDate, t: TranslateFn): string {
+  const locale = t.locale && !t.locale.startsWith("en") ? t.locale : undefined;
+  if (view === "day") return fullDate(anchor, t);
+  if (locale) {
+    if (view === "week") {
+      const last = addDays(from, 6);
+      return `${formatLocalDate(from, { day: "numeric", month: "short" }, locale)} – ${formatLocalDate(last, { day: "numeric", month: "short", year: "numeric" }, locale)}`;
+    }
+    return formatLocalDate(anchor, { month: "long", year: "numeric" }, locale);
+  }
   if (view === "week") {
     const last = addDays(from, 6);
     if (sameMonth(from, last)) {
@@ -109,6 +118,7 @@ const UNIT: Record<ViewMode, string> = { month: "month", list: "month", week: "w
 const PDF_VIEW: Record<ViewMode, CalendarView> = { month: "MONTH", list: "MONTH", week: "WEEK", day: "DAY" };
 
 export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -116,7 +126,7 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
   const toast = useAdminToast();
 
   const viewParam = searchParams.get("view");
-  const view: ViewMode = VIEW_MODES.some((mode) => mode.value === viewParam)
+  const view: ViewMode = VIEW_MODES(t).some((mode) => mode.value === viewParam)
     ? (viewParam as ViewMode)
     : isMobile
       ? "list"
@@ -169,23 +179,23 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
     download.mutate(
       { from, to, courseId: courseParam, view: PDF_VIEW[view] },
       {
-        onSuccess: (filename) => toast.show({ kind: "success", text: `Timetable downloaded (${filename}).` }),
+        onSuccess: (filename) => toast.show({ kind: "success", text: t("calendar.downloaded", { file: filename }) }),
         onError: (error) =>
           toast.show({
             kind: "error",
-            text: `Could not download the timetable: ${reportDownloadErrorMessage(error, "Choose a shorter period or a single course.")}`,
+            text: t("calendar.downloadFailed", { reason: reportDownloadErrorMessage(error, t("calendar.downloadHint")) }),
           }),
       }
     );
   };
 
   const courseItems = useMemo(() => {
-    const items: Record<string, string> = { [ALL_COURSES]: "All courses" };
+    const items: Record<string, string> = { [ALL_COURSES]: t("calendar.classCalendar.allCourses") };
     for (const course of courses.data ?? []) items[course.id] = course.name;
     return items;
   }, [courses.data]);
 
-  const heading = periodHeading(view, anchor, from);
+  const heading = periodHeading(view, anchor, from, t);
   const unit = UNIT[view];
   const loadingNext = query.isFetching && query.isPlaceholderData;
 
@@ -205,11 +215,11 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
           <h1 className="text-xl font-semibold text-foreground">Calendar &amp; Timetable</h1>
           <p className="text-sm text-muted-foreground">
             {portal === "student"
-              ? "Class times for the courses you have access to."
+              ? t("calendar.classCalendar.classTimesForThe")
               : portal === "teacher"
-                ? "Class times for the courses you teach."
-                : "Class times for every active course in your institute."}
-            {data ? ` Times are in ${timeZoneLabel(timeZone)}.` : null}
+                ? t("calendar.classCalendar.classTimesForThe2")
+                : t("calendar.classCalendar.classTimesForEvery")}
+            {data ? <> {t("calendar.timesIn", { zone: timeZoneLabel(timeZone) })}</> : null}
           </p>
         </div>
       </div>
@@ -227,7 +237,7 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
               data-testid="calendar-today"
             >
               <CalendarRange aria-hidden="true" />
-              Today
+              {t("calendar.classCalendar.today")}
             </Button>
             <Button type="button" variant="ghost" size="icon" aria-label={`Previous ${unit}`} onClick={() => setParams({ date: shift(view, anchor, -1) })}>
               <ChevronLeft aria-hidden="true" />
@@ -238,7 +248,7 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
             {loadingNext ? (
               <span role="status" className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="calendar-updating">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                Updating…
+                {t("calendar.classCalendar.updating")}
               </span>
             ) : null}
           </div>
@@ -246,7 +256,7 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex min-w-0 flex-col gap-1">
               <label htmlFor="calendar-course-filter" className="text-xs font-medium text-muted-foreground">
-                Course
+                {t("calendar.classCalendar.course")}
               </label>
               <Select
                 items={courseItems}
@@ -254,10 +264,10 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
                 onValueChange={(value) => setParams({ course: !value || value === ALL_COURSES ? null : String(value) })}
               >
                 <SelectTrigger id="calendar-course-filter" className="h-8 w-full min-w-48 sm:w-60" data-testid="calendar-course-filter">
-                  <SelectValue placeholder="All courses" />
+                  <SelectValue placeholder={t("calendar.classCalendar.allCourses")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL_COURSES}>All courses</SelectItem>
+                  <SelectItem value={ALL_COURSES}>{t("calendar.classCalendar.allCourses")}</SelectItem>
                   {(courses.data ?? []).map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.name}
@@ -266,8 +276,8 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
                 </SelectContent>
               </Select>
             </div>
-            <div role="group" aria-label="Calendar view" className="flex rounded-lg border border-border bg-muted p-0.5" data-testid="calendar-view-switch">
-              {VIEW_MODES.map((mode) => (
+            <div role="group" aria-label={t("calendar.classCalendar.calendarView")} className="flex rounded-lg border border-border bg-muted p-0.5" data-testid="calendar-view-switch">
+              {VIEW_MODES(t).map((mode) => (
                 <button
                   key={mode.value}
                   type="button"
@@ -291,21 +301,21 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
               data-testid="calendar-download"
             >
               {download.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
-              {download.isPending ? "Preparing PDF…" : "Download timetable"}
+              {download.isPending ? t("calendar.classCalendar.preparingPdf") : t("calendar.classCalendar.downloadTimetable")}
             </Button>
           </div>
         </div>
 
         {courseFilterError ? (
           <EmptyState
-            title="This course isn't in your calendar"
-            description="The selected course doesn't exist or isn't one you can see. Show all of your courses instead."
-            action={{ label: "Show all courses", onClick: () => setParams({ course: null }) }}
+            title={t("calendar.classCalendar.thisCourseIsntIn")}
+            description={t("calendar.classCalendar.theSelectedCourseDoesnt")}
+            action={{ label: t("calendar.classCalendar.showAllCourses"), onClick: () => setParams({ course: null }) }}
           />
         ) : (
           <QueryStateBoundary
             query={query}
-            loadingLabel="Loading classes…"
+            loadingLabel={t("calendar.classCalendar.loadingClasses")}
             loginPath="/login"
             permissionDenied={{ dashboardHref: `/${portal}/dashboard` }}
           >
@@ -314,7 +324,7 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
                 {visible.length === 0 ? (
                   <p role="status" className="rounded-lg border border-dashed border-border px-4 py-3 text-center text-sm text-muted-foreground" data-testid="calendar-empty">
                     No classes in this period.
-                    {courseParam ? " Try “All courses” or another period." : " Try another period."}
+                    {courseParam ? t("calendar.classCalendar.tryAllCoursesOr") : t("calendar.classCalendar.tryAnotherPeriod")}
                   </p>
                 ) : null}
                 {view === "month" ? (
@@ -360,7 +370,7 @@ export function ClassCalendar({ portal }: { portal: CalendarPortal }) {
         onOpenChange={(open) => {
           if (!open) setDayListDate(null);
         }}
-        title={dayListDate ? `Classes on ${fullDate(dayListDate)}` : "Classes"}
+        title={dayListDate ? t("calendar.classesOn", { date: fullDate(dayListDate, t) }) : t("calendar.classCalendar.classes")}
         icon={<CalendarDays className="size-5 shrink-0 text-primary" aria-hidden="true" />}
         testId="calendar-day-list"
       >

@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { StudentDialog } from "./student-dialog";
 import { formatLessonDateTime } from "./student-format";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 type LaunchDialog =
   | { kind: "handoff"; lesson: LessonNode; result: LessonLaunchResponse }
   | { kind: "resources"; lesson: LessonNode; result: LessonLaunchResponse }
@@ -29,26 +30,26 @@ function materialsHref(lesson: LessonNode): string {
   return `/student/courses/${lesson.courseId}/modules/${lesson.moduleId}/lessons/${lesson.lessonId}/materials`;
 }
 
-function deniedMessage(status: string, lesson: LessonNode, timeZone: string | null): string {
+function deniedMessage(status: string, lesson: LessonNode, timeZone: string | null, t: TranslateFn): string {
   switch (status) {
     case "PAYMENT_REQUIRED":
-      return "This lesson needs payment before you can open it.";
+      return t("student.lesson.denied.paymentRequired");
     case "PAYMENT_PENDING":
-      return "Your payment for this lesson is waiting for approval. It opens once your institute approves it.";
+      return t("student.lesson.denied.paymentPending");
     case "NOT_STARTED":
       return lesson.startsAt
-        ? `This lesson opens on ${formatLessonDateTime(lesson.startsAt, timeZone)}.`
-        : "This lesson hasn't opened yet.";
+        ? t("student.lesson.denied.opensOn", { when: formatLessonDateTime(lesson.startsAt, timeZone) })
+        : t("student.lesson.denied.notOpened");
     case "EXPIRED":
-      return "This lesson has ended and can't be opened any more.";
+      return t("student.lesson.denied.expired");
     case "NOT_ENROLLED":
-      return "Enroll in this course to open its lessons.";
+      return t("student.lesson.denied.notEnrolled");
     case "DEVICE_NOT_AUTHORIZED":
-      return "This course can only be opened on your registered devices, and this device isn't one of them.";
+      return t("student.lesson.denied.device");
     case "UNAVAILABLE":
-      return "This lesson isn't available.";
+      return t("student.lesson.denied.unavailable");
     default:
-      return "We couldn't open this lesson. Please try again.";
+      return t("student.lesson.denied.generic");
   }
 }
 
@@ -70,6 +71,7 @@ export function useLessonLauncher({
   onPay: (lesson: LessonNode) => void;
 }): { launch: (lesson: LessonNode) => void; launchingId: string | null; element: ReactNode; notice: string } {
   const router = useRouter();
+  const t = useT();
   const launchMutation = useLaunchLesson();
   const [launchingId, setLaunchingId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<LaunchDialog | null>(null);
@@ -92,12 +94,12 @@ export function useLessonLauncher({
       const materials = result.resources.filter((resource) => resource.kind === "MATERIAL");
       const sessions = result.resources.filter((resource) => resource.kind === "CLASS_SESSION");
       if (materials.length === 0 && sessions.length === 0) {
-        setNotice("Your teacher hasn't added anything to this lesson yet.");
+        setNotice(t("student.lesson.emptyNotice"));
         setDialog({
           kind: "denied",
           lesson,
           status: "ERROR",
-          message: "Your teacher hasn't added anything to this lesson yet. Check back later.",
+          message: t("student.lesson.emptyMessage"),
         });
         return;
       }
@@ -116,7 +118,7 @@ export function useLessonLauncher({
             ? ((error.code as LessonAccessStatus) ?? "ERROR")
             : "ERROR"
         : "ERROR";
-      const message = deniedMessage(status, lesson, timeZone);
+      const message = deniedMessage(status, lesson, timeZone, t);
       setNotice(message);
       setDialog({ kind: "denied", lesson, status, message });
     } finally {
@@ -140,12 +142,12 @@ export function useLessonLauncher({
       <StudentDialog
         open
         onOpenChange={(open) => !open && close()}
-        title={dialog.status === "ERROR" ? "Can't open this lesson" : "Lesson locked"}
+        title={dialog.status === "ERROR" ? t("student.lessonLauncher.cantOpenThisLesson") : t("student.lessonLauncher.lessonLocked")}
         testId="lesson-launch-denied"
         footer={
           <>
             <Button type="button" variant="outline" onClick={close}>
-              Close
+              {t("student.lessonLauncher.close")}
             </Button>
             {canPay ? (
               <Button
@@ -158,12 +160,12 @@ export function useLessonLauncher({
                   onPay(lesson);
                 }}
               >
-                Pay now
+                {t("student.lesson.payNow")}
               </Button>
             ) : null}
             {dialog.status === "DEVICE_NOT_AUTHORIZED" ? (
               <Link href="/student/devices" className={buttonVariants()}>
-                My devices
+                {t("student.lessonLauncher.myDevices")}
               </Link>
             ) : null}
           </>
@@ -195,6 +197,7 @@ function PlayerHandoffDialog({
   result: LessonLaunchResponse;
   onClose: () => void;
 }) {
+  const t = useT();
   const videos = result.resources.filter((resource) => resource.kind === "MATERIAL" && resource.type === "VIDEO");
   const otherMaterials = result.resources.some((resource) => resource.kind === "MATERIAL" && resource.type !== "VIDEO");
   const android = result.playerLinks?.androidUrl ?? null;
@@ -204,7 +207,7 @@ function PlayerHandoffDialog({
     <StudentDialog
       open
       onOpenChange={(open) => !open && onClose()}
-      title="Web playback is turned off"
+      title={t("student.lessonLauncher.webPlaybackIsTurned")}
       icon={
         <span className="inline-flex size-8 items-center justify-center rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
           <MonitorX className="size-4" aria-hidden="true" />
@@ -214,7 +217,7 @@ function PlayerHandoffDialog({
     >
       <div className="flex flex-col gap-4">
         <p className="text-center text-muted-foreground">
-          Your institute has turned off browser playback. Open this lesson in the AOC Player or the mobile app.
+          {t("student.lessonLauncher.yourInstituteHasTurned")}
         </p>
 
         {videos.length > 0 ? (
@@ -236,18 +239,18 @@ function PlayerHandoffDialog({
             className={cn(buttonVariants({ variant: "outline" }), "w-full")}
           >
             <FileText aria-hidden="true" />
-            Open other lesson materials
+            {t("student.lessonLauncher.openOtherLessonMaterials")}
           </Link>
         ) : null}
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
           <span className="h-px flex-1 bg-border" />
-          Or use the mobile app
+          {t("student.lessonLauncher.orUseTheMobile")}
           <span className="h-px flex-1 bg-border" />
         </div>
         <div className="grid grid-cols-2 gap-2" data-testid="player-handoff-mobile">
-          <MobileLink url={android} label="Android" />
-          <MobileLink url={ios} label="iOS" />
+          <MobileLink url={android} label={t("student.lessonLauncher.android")} />
+          <MobileLink url={ios} label={t("student.lessonLauncher.ios")} />
         </div>
       </div>
     </StudentDialog>
@@ -255,11 +258,12 @@ function PlayerHandoffDialog({
 }
 
 function MobileLink({ url, label }: { url: string | null; label: string }) {
+  const t = useT();
   if (!url) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
         <span className="font-medium text-foreground">{label}</span>
-        Not configured by your institute
+        {t("student.lessonLauncher.notConfiguredByYour")}
       </div>
     );
   }
@@ -287,6 +291,7 @@ function LessonResourcesDialog({
   result: LessonLaunchResponse;
   onClose: () => void;
 }) {
+  const t = useT();
   const sessions = result.resources.filter((resource) => resource.kind === "CLASS_SESSION");
   const hasMaterials = result.resources.some((resource) => resource.kind === "MATERIAL");
 
@@ -298,7 +303,7 @@ function LessonResourcesDialog({
       testId="lesson-resources-dialog"
       footer={
         <Button type="button" variant="outline" onClick={onClose}>
-          Close
+          {t("student.lessonLauncher.close")}
         </Button>
       }
     >
@@ -315,7 +320,7 @@ function LessonResourcesDialog({
               data-testid="lesson-open-materials"
             >
               <FileText aria-hidden="true" />
-              Open lesson materials
+              {t("student.lessonLauncher.openLessonMaterials")}
             </Link>
           </li>
         ) : null}
@@ -325,6 +330,7 @@ function LessonResourcesDialog({
 }
 
 function SessionResourceRow({ session }: { session: LaunchResource }) {
+  const t = useT();
   const join = useJoinLessonSession();
   const recording = useLessonSessionRecording();
   const [error, setError] = useState<string | null>(null);
@@ -346,8 +352,8 @@ function SessionResourceRow({ session }: { session: LaunchResource }) {
         isApiClientError(err) && err.status !== 404
           ? err.message
           : completed
-            ? "The recording isn't available yet."
-            : "You can't join this class right now. Try again when it starts."
+            ? t("student.lessonLauncher.theRecordingIsntAvailable")
+            : t("student.lessonLauncher.youCantJoinThis")
       );
     }
   };
@@ -368,11 +374,11 @@ function SessionResourceRow({ session }: { session: LaunchResource }) {
           className="bg-blue-600 text-white hover:bg-blue-700"
           data-testid="lesson-join-session"
         >
-          {busy ? "Opening…" : completed ? "Watch recording" : "Join"}
+          {busy ? t("student.lessonLauncher.opening") : completed ? t("student.lessonLauncher.watchRecording") : t("student.lessonLauncher.join")}
         </Button>
       </div>
       {!completed ? (
-        <p className="text-xs text-muted-foreground">Joining shares your name and email with the class meeting.</p>
+        <p className="text-xs text-muted-foreground">{t("student.lessonLauncher.joiningSharesYourName")}</p>
       ) : null}
       {error ? (
         <p role="alert" className="text-xs text-destructive">

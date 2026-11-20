@@ -32,12 +32,14 @@ import { cn } from "@/lib/utils";
 import { CAP } from "@/lib/auth/capabilities";
 import { useCapabilities } from "@/lib/api/my-permissions";
 
+import { useT } from "@/i18n/i18n-provider";
 const PAGE_SIZE = 50;
 
 function QuestionListSkeleton() {
+  const t = useT();
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-3" data-testid="questions-loading">
-      <span className="sr-only">Loading questions…</span>
+      <span className="sr-only">{t("exams.questionBank.loadingQuestions")}</span>
       {Array.from({ length: 5 }, (_, index) => (
         <div key={index} className="flex items-center gap-3 rounded-xl bg-card px-4 py-4 ring-1 ring-foreground/10">
           <Skeleton className="h-6 w-10 rounded-full" />
@@ -64,6 +66,7 @@ function QuestionRow({
   canEdit: boolean;
   canDelete: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [showAnswers, setShowAnswers] = useState(true);
   const contentId = useId();
@@ -96,7 +99,7 @@ function QuestionRow({
             size="icon-sm"
             aria-expanded={open}
             aria-controls={contentId}
-            aria-label={`${open ? "Collapse" : "Expand"} question ${number}`}
+            aria-label={`${open ? t("exams.questionBank.collapse") : t("exams.questionBank.expand")} question ${number}`}
             onClick={() => setOpen((current) => !current)}
             data-testid="question-toggle"
           >
@@ -120,7 +123,7 @@ function QuestionRow({
                       {highlighted ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400">
                           <CheckCircle2 className="size-3.5" aria-hidden="true" />
-                          Correct answer
+                          {t("exams.questionBank.correctAnswer")}
                         </span>
                       ) : null}
                     </div>
@@ -137,7 +140,7 @@ function QuestionRow({
               })}
             </ol>
             <div className="flex flex-col gap-1.5">
-              <SectionLabel>Explanation</SectionLabel>
+              <SectionLabel>{t("exams.questionBank.explanation")}</SectionLabel>
               <div className="rounded-md border border-dashed border-border px-4 py-3 text-sm">
                 <RichContent html={question.explanationHtml} emptyText="No explanation added." />
               </div>
@@ -147,13 +150,13 @@ function QuestionRow({
                 type="button"
                 variant="ghost"
                 aria-pressed={showAnswers}
-                title="Toggle correct answer highlight"
+                title={t("exams.questionBank.toggleCorrectAnswerHighlight")}
                 onClick={() => setShowAnswers((current) => !current)}
                 className="h-8 bg-green-600/10 px-3 text-xs font-semibold tracking-wide text-green-700 uppercase hover:bg-green-600/20 hover:text-green-800 dark:text-green-400"
                 data-testid="question-toggle-answers"
               >
                 {showAnswers ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                {showAnswers ? "Hide answers" : "Show answers"}
+                {showAnswers ? t("exams.questionBank.hideAnswers") : t("exams.questionBank.showAnswers")}
               </Button>
               <div className="flex items-center gap-1">
                 {canEdit ? (
@@ -164,7 +167,7 @@ function QuestionRow({
                     data-testid="question-edit"
                   >
                     <Pencil aria-hidden="true" />
-                    Edit
+                    {t("exams.questionBank.edit")}
                   </Link>
                 ) : null}
                 {canDelete ? (
@@ -177,7 +180,7 @@ function QuestionRow({
                     data-testid="question-delete"
                   >
                     <Trash2 aria-hidden="true" />
-                    Delete
+                    {t("exams.questionBank.delete")}
                   </Button>
                 ) : null}
               </div>
@@ -204,6 +207,7 @@ export function ModuleQuestionBank({
   courseId: string;
   moduleId: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -231,14 +235,14 @@ export function ModuleQuestionBank({
   const saved = searchParams.get("saved");
   useEffect(() => {
     if (saved !== "created" && saved !== "updated") return;
-    showToast({ kind: "success", text: saved === "created" ? "Question created." : "Question saved." });
+    showToast({ kind: "success", text: saved === "created" ? t("exams.questionBank.questionCreated") : t("exams.questionBank.questionSaved") });
     router.replace(pathname);
   }, [saved, showToast, router, pathname]);
 
   if (context.status === "pending") {
     return (
       <div className="flex flex-col gap-6">
-        <BankHeaderSkeleton label="Loading module…" />
+        <BankHeaderSkeleton label={t("exams.questionBank.loadingModule")} />
         <QuestionListSkeleton />
       </div>
     );
@@ -249,7 +253,7 @@ export function ModuleQuestionBank({
   return (
     <QueryStateBoundary
       query={context}
-      loadingLabel="Loading module…"
+      loadingLabel={t("exams.questionBank.loadingModule")}
       loginPath="/login"
       permissionDenied={{ dashboardHref: paths.dashboard }}
     >
@@ -264,11 +268,11 @@ export function ModuleQuestionBank({
                   className="h-9 border-primary/60 px-4 tracking-wide text-primary uppercase hover:text-primary"
                   onClick={() => setCopyDialog((current) => ({ open: true, key: current.key + 1 }))}
                   disabled={questionsQuery.status !== "success" || totalQuestions === 0}
-                  title={totalQuestions === 0 ? "There are no questions to copy yet" : undefined}
+                  title={totalQuestions === 0 ? t("exams.questionBank.thereAreNoQuestions") : undefined}
                   data-testid="bank-copy"
                 >
                   <Copy aria-hidden="true" />
-                  Copy question
+                  {t("exams.questionBank.copyQuestion")}
                 </Button>
                 <Link
                   href={paths.create}
@@ -276,7 +280,7 @@ export function ModuleQuestionBank({
                   data-testid="bank-create"
                 >
                   <Plus aria-hidden="true" />
-                  Create question
+                  {t("exams.questionBank.createQuestion")}
                 </Link>
               </div>
             ) : null}
@@ -286,22 +290,22 @@ export function ModuleQuestionBank({
             ) : (
               <QueryStateBoundary
                 query={questionsQuery}
-                loadingLabel="Loading questions…"
+                loadingLabel={t("exams.questionBank.loadingQuestions")}
                 loginPath="/login"
                 permissionDenied={{ dashboardHref: paths.dashboard }}
-                genericErrorMessage="The questions could not be loaded."
+                genericErrorMessage={t("exams.questionBank.theQuestionsCouldNot")}
               >
                 {(result) => {
                   if (result.content.length === 0) {
                     return (
                       <EmptyState
-                        title="No questions in this module yet"
+                        title={t("exams.questionBank.noQuestionsInThis")}
                         description={
                           canAdd || canImport
-                            ? "Create questions one by one, or import many at once from a CSV file in the Imports tab. Exams draw their questions from this bank."
-                            : "Questions added to this module by your exam team will appear here."
+                            ? t("exams.questionBank.createQuestionsOneBy")
+                            : t("exams.questionBank.questionsAddedToThis")
                         }
-                        action={canAdd ? { label: "Create question", onClick: () => router.push(paths.create) } : undefined}
+                        action={canAdd ? { label: t("exams.questionBank.createQuestion"), onClick: () => router.push(paths.create) } : undefined}
                       />
                     );
                   }
@@ -331,7 +335,7 @@ export function ModuleQuestionBank({
                         ))}
                       </ol>
                       {result.totalPages > 1 ? (
-                        <nav aria-label="Questions pagination" className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+                        <nav aria-label={t("exams.questionBank.questionsPagination")} className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
                           <span aria-live="polite">
                             Page {result.page + 1} of {result.totalPages}
                           </span>
@@ -339,7 +343,7 @@ export function ModuleQuestionBank({
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            aria-label="Previous page"
+                            aria-label={t("exams.questionBank.previousPage")}
                             disabled={result.page <= 0}
                             onClick={() => setPage((current) => Math.max(0, current - 1))}
                           >
@@ -349,7 +353,7 @@ export function ModuleQuestionBank({
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            aria-label="Next page"
+                            aria-label={t("exams.questionBank.nextPage")}
                             disabled={result.page + 1 >= result.totalPages}
                             onClick={() => setPage((current) => current + 1)}
                           >
@@ -370,23 +374,23 @@ export function ModuleQuestionBank({
             <BankPageHeader
               title={`Questions in ${module.title}`}
               breadcrumbs={[
-                { label: "Courses", href: paths.courses },
+                { label: t("exams.questionBank.courses"), href: paths.courses },
                 { label: course.name, href: paths.course },
                 { label: `Questions in ${module.title}` },
               ]}
             />
             <Tabs
-              aria-label="Question bank"
+              aria-label={t("exams.questionBank.questionBank")}
               value={tab}
               onValueChange={setTab}
               className="[&_[role=tab]]:tracking-wide [&_[role=tab]]:uppercase"
               items={[
-                { value: "all", label: "All questions", content: allQuestions },
+                { value: "all", label: t("exams.questionBank.allQuestions"), content: allQuestions },
                 ...(canImport
                   ? [
                       {
                         value: "imports",
-                        label: "Imports",
+                        label: t("exams.questionBank.imports"),
                         content: (
                           <QuestionImportsTab
                             courseId={courseId}
@@ -429,8 +433,8 @@ export function ModuleQuestionBank({
                 if (!open) setDeleteTarget(null);
               }}
               title={`Delete question ${deleteTarget?.number ?? ""}?`}
-              description="The question is removed from this module's bank. Exams that already include it keep their own copy, and student attempts are not changed."
-              confirmLabel="Delete question"
+              description={t("exams.questionBank.theQuestionIsRemoved")}
+              confirmLabel={t("exams.questionBank.deleteQuestion")}
               pending={remove.isPending}
               error={remove.isError ? mutationErrorMessage(remove.error) : null}
               onConfirm={() => {

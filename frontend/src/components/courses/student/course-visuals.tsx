@@ -1,8 +1,12 @@
+"use client";
+
 import { BookOpen, FileText, File, ImageIcon, Video, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { priceBadgeLabel, type PriceDisplay } from "@/lib/api/klass-student";
 import { resourceKind, resourceLabel } from "./student-format";
 
+import { translateSource } from "@/i18n/translate-source";
+import { useT } from "@/i18n/i18n-provider";
 /** Price chip: "LKR 4000 / month", "LKR 2000", "Free", "Charged per module". Renders nothing when unknown. */
 export function PriceBadge({
   priceDisplay,
@@ -15,7 +19,8 @@ export function PriceBadge({
   className?: string;
   testId?: string;
 }) {
-  const label = priceBadgeLabel(priceDisplay, pricingModel);
+  const t = useT();
+  const label = priceBadgeLabel(priceDisplay, pricingModel, t);
   if (!label) return null;
   return (
     <span
@@ -44,6 +49,7 @@ export function CourseCover({
   title: string;
   className?: string;
 }) {
+  const t = useT();
   return (
     <div
       className={cn(
@@ -58,7 +64,7 @@ export function CourseCover({
         // eslint-disable-next-line @next/next/no-img-element -- short-lived signed cover URL on object storage
         <img
           src={src}
-          alt={`Cover image for ${title}`}
+          alt={t("courses.coverAlt", { title })}
           className="relative size-full object-cover"
           loading="lazy"
           onError={(event) => {
@@ -72,6 +78,7 @@ export function CourseCover({
 
 /** Lesson resource icon (decorative; the resource label is rendered as text elsewhere). */
 export function ResourceIcon({ resourceType, className }: { resourceType: string | null; className?: string }) {
+  const t = useT();
   const kind = resourceKind(resourceType);
   const Icon = resourceType === "IMAGE" ? ImageIcon : kind === "live" ? Video : kind === "video" ? Clapperboard : kind === "document" ? FileText : File;
   return (
@@ -80,7 +87,7 @@ export function ResourceIcon({ resourceType, className }: { resourceType: string
         "inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-200",
         className
       )}
-      title={resourceLabel(resourceType)}
+      title={translateSource(t, resourceLabel(resourceType))}
     >
       <Icon className="size-4" aria-hidden="true" />
     </span>

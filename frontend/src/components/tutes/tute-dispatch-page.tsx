@@ -59,6 +59,7 @@ import { displayIndex } from "@/lib/tutes/tute-form";
 import { TUTE_CAP, useTuteCapabilities } from "@/lib/tutes/use-tute-capabilities";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/i18n-provider";
 export const LABELS_FILENAME = "tute-dispatch-labels.pdf";
 export const STALE_MESSAGE = "The list changed — refreshed, please review your selection.";
 
@@ -81,6 +82,7 @@ function plural(count: number, word: string, pluralWord = `${word}s`): string {
  * (409 `TUTE_SELECTION_STALE`) refreshes the list and clears the selection.
  */
 export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
+  const t = useT();
   const { can } = useTuteCapabilities();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -211,7 +213,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
           const ids = error.details?.fulfillmentIds;
           const count = Array.isArray(ids) ? ids.length : null;
           setConfirmError(
-            `${count !== null ? `${plural(count, "selected copy", "selected copies")} ${count === 1 ? "has" : "have"}` : "Some selected copies have"} no delivery address. Add the address on the student's profile, or untick those students, then confirm again. Nothing was dispatched.`
+            `${count !== null ? `${plural(count, "selected copy", "selected copies")} ${count === 1 ? "has" : "have"}` : t("teacher.tuteDispatch.someSelectedCopiesHave")} no delivery address. Add the address on the student's profile, or untick those students, then confirm again. Nothing was dispatched.`
           );
         } else {
           setConfirmError(mutationErrorMessage(error));
@@ -229,20 +231,20 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
           <Truck className="size-5" aria-hidden="true" />
         </span>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Tute Dispatch</h1>
-          <p className="text-sm text-muted-foreground">Pending postal tutes, one row per recipient address.</p>
+          <h1 className="text-xl font-semibold text-foreground">{t("teacher.tuteDispatch.tuteDispatch")}</h1>
+          <p className="text-sm text-muted-foreground">{t("teacher.tuteDispatch.pendingPostalTutesOne")}</p>
         </div>
       </div>
 
       <div className="flex min-w-0 flex-col gap-4 rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
           <div className="flex flex-col gap-1 lg:w-64">
-            <Label htmlFor="dispatch-search">Search</Label>
+            <Label htmlFor="dispatch-search">{t("teacher.tuteDispatch.search")}</Label>
             <div className="relative">
               <Input
                 id="dispatch-search"
                 type="search"
-                placeholder="Name, index or city"
+                placeholder={t("teacher.tuteDispatch.nameIndexOrCity")}
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 className="pr-8"
@@ -252,7 +254,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
             </div>
           </div>
           <div className="flex flex-col gap-1 lg:w-56">
-            <Label htmlFor="dispatch-course">Course</Label>
+            <Label htmlFor="dispatch-course">{t("teacher.tuteDispatch.course")}</Label>
             <select
               id="dispatch-course"
               className={nativeSelectClass}
@@ -266,7 +268,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
               }}
               data-testid="dispatch-course"
             >
-              <option value="">All courses</option>
+              <option value="">{t("teacher.tuteDispatch.allCourses")}</option>
               {courseOptions.map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.name}
@@ -275,7 +277,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
             </select>
           </div>
           <div className="flex flex-col gap-1 lg:w-56">
-            <Label htmlFor="dispatch-tute">Tute</Label>
+            <Label htmlFor="dispatch-tute">{t("teacher.tuteDispatch.tute")}</Label>
             <select
               id="dispatch-tute"
               className={nativeSelectClass}
@@ -284,7 +286,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
               onChange={(event) => setTuteId(event.target.value || null)}
               data-testid="dispatch-tute"
             >
-              <option value="">{courseId ? "All tutes of this course" : "All tutes"}</option>
+              <option value="">{courseId ? t("teacher.tuteDispatch.allTutesOfThis") : t("teacher.tuteDispatch.allTutes")}</option>
               {tuteOptions.map((tute) => (
                 <option key={tute.id} value={tute.id}>
                   {tute.name}
@@ -294,13 +296,13 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
           </div>
           {options.isError ? (
             <p className="text-xs text-destructive" role="alert">
-              Course and tute filters could not be loaded.
+              {t("teacher.tuteDispatch.courseAndTuteFilters")}
             </p>
           ) : null}
           <div className="flex items-center gap-2 lg:pb-1.5">
             <Switch id="dispatch-two-plus" checked={twoPlus} onCheckedChange={setTwoPlus} data-testid="dispatch-two-plus" />
             <Label htmlFor="dispatch-two-plus" className="font-normal">
-              2+ tutes only
+              {t("teacher.tuteDispatch.n2TutesOnly")}
             </Label>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row lg:ml-auto">
@@ -317,7 +319,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
                 data-testid="dispatch-confirm"
               >
                 <CheckCheck aria-hidden="true" />
-                Confirm dispatch
+                {t("teacher.tuteDispatch.confirmDispatch")}
               </Button>
             ) : null}
             {canPrint ? (
@@ -331,7 +333,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
                 data-testid="dispatch-print"
               >
                 <Printer aria-hidden="true" />
-                {print.isPending ? "Preparing PDF…" : printButtonLabel(selection, totalElements)}
+                {print.isPending ? t("teacher.tuteDispatch.preparingPdf") : printButtonLabel(selection, totalElements)}
               </Button>
             ) : null}
           </div>
@@ -347,22 +349,22 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
         />
 
         {query.status === "pending" ? (
-          <TableSkeleton label="Loading dispatch queue…" />
+          <TableSkeleton label={t("teacher.tuteDispatch.loadingDispatchQueue")} />
         ) : (
           <QueryStateBoundary
             query={query}
-            loadingLabel="Loading dispatch queue…"
+            loadingLabel={t("teacher.tuteDispatch.loadingDispatchQueue")}
             loginPath="/login"
             permissionDenied={{ dashboardHref: routes.dashboard }}
           >
             {(queue) =>
               queue.totalElements === 0 ? (
                 <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-6 py-10 text-center" role="status" data-testid="dispatch-empty">
-                  <p className="text-sm font-medium">{filtersActive ? "No matches for these filters" : "Nothing to send"}</p>
+                  <p className="text-sm font-medium">{filtersActive ? t("teacher.tuteDispatch.noMatchesForThese") : t("teacher.tuteDispatch.nothingToSend")}</p>
                   <p className="max-w-md text-sm text-muted-foreground">
                     {filtersActive
-                      ? "Try another search, course or tute, or clear the filters."
-                      : "Every pending postal tute has been dispatched. New ones appear here when students are assigned a tute by post."}
+                      ? t("teacher.tuteDispatch.tryAnotherSearchCourse")
+                      : t("teacher.tuteDispatch.everyPendingPostalTute")}
                   </p>
                   {filtersActive ? (
                     <Button
@@ -395,7 +397,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
                       const state = pageSelectionState(next, queue.content);
                       updateSelection(
                         next,
-                        state === "all" ? `All ${queue.content.length} on this page selected.` : "Page deselected."
+                        state === "all" ? `All ${queue.content.length} on this page selected.` : t("teacher.tuteDispatch.pageDeselected")
                       );
                     }}
                     onToggleRow={(row) => {
@@ -434,15 +436,15 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
       <AlertDialog open={missingConfirmOpen} onOpenChange={(next) => setMissingConfirmOpen(next)}>
         <AlertDialogContent data-testid="dispatch-missing-address-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Some labels have no address</AlertDialogTitle>
+            <AlertDialogTitle>{t("teacher.tuteDispatch.someLabelsHaveNo")}</AlertDialogTitle>
             <AlertDialogDescription>
               {`${plural(missingCount, "label")} ${missingCount === 1 ? "has" : "have"} no address and will print “No address provided”. Print anyway?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("teacher.tuteDispatch.cancel")}</AlertDialogClose>
             <Button type="button" onClick={doPrint} data-testid="dispatch-missing-address-print">
-              Print anyway
+              {t("teacher.tuteDispatch.printAnyway")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -457,7 +459,7 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
       >
         <AlertDialogContent data-testid="dispatch-confirm-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm dispatch?</AlertDialogTitle>
+            <AlertDialogTitle>{t("teacher.tuteDispatch.confirmDispatch2")}</AlertDialogTitle>
             <AlertDialogDescription>
               {`Printing does not mark anything dispatched. Confirm that these ${confirmCount} tute ${confirmCount === 1 ? "copy has" : "copies have"} been sent.`}
             </AlertDialogDescription>
@@ -469,9 +471,9 @@ export function TuteDispatchPage({ routes }: { routes: TuteRoutes }) {
             </Alert>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("teacher.tuteDispatch.cancel")}</AlertDialogClose>
             <Button type="button" onClick={doConfirm} disabled={confirm.isPending} aria-busy={confirm.isPending} data-testid="dispatch-confirm-submit">
-              {confirm.isPending ? "Confirming…" : "Confirm dispatch"}
+              {confirm.isPending ? t("teacher.tuteDispatch.confirming") : t("teacher.tuteDispatch.confirmDispatch")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -494,6 +496,7 @@ function SelectionBanner({
   onSelectAll: () => void;
   onClear: () => void;
 }) {
+  const t = useT();
   const count = explicitCount(selection);
   let content: React.ReactNode = null;
   if (selection.mode === "allFiltered") {
@@ -501,7 +504,7 @@ function SelectionBanner({
       <>
         <span>{`All ${totalElements} matching selected.`}</span>
         <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={onClear} data-testid="dispatch-clear-selection">
-          Clear selection
+          {t("teacher.tuteDispatch.clearSelection")}
         </Button>
       </>
     );
@@ -519,7 +522,7 @@ function SelectionBanner({
       <>
         <span>{`${count} selected.`}</span>
         <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={onClear} data-testid="dispatch-clear-selection">
-          Clear selection
+          {t("teacher.tuteDispatch.clearSelection")}
         </Button>
       </>
     );
@@ -567,6 +570,7 @@ function SortHeader({
 }
 
 function HeaderCheckbox({ state, onToggle, disabled }: { state: "all" | "some" | "none"; onToggle: () => void; disabled: boolean }) {
+  const t = useT();
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = state === "some";
@@ -579,7 +583,7 @@ function HeaderCheckbox({ state, onToggle, disabled }: { state: "all" | "some" |
       checked={state === "all"}
       onChange={onToggle}
       disabled={disabled}
-      aria-label="Select all on this page"
+      aria-label={t("teacher.tuteDispatch.selectAllOnThis")}
       data-testid="dispatch-select-page"
     />
   );
@@ -604,10 +608,11 @@ function DispatchTable({
   onTogglePage: () => void;
   onToggleRow: (row: DispatchRowView) => void;
 }) {
+  const t = useT();
   return (
     <div className="overflow-x-auto rounded-lg border border-border" data-testid="dispatch-table-scroll">
       <table className="w-full min-w-[820px] text-sm" data-testid="dispatch-table">
-        <caption className="sr-only">Tutes to send, one row per recipient. Sortable columns have buttons in their headers.</caption>
+        <caption className="sr-only">{t("teacher.tuteDispatch.tutesToSendOne")}</caption>
         <thead className="bg-muted/50 text-left">
           <tr>
             <th scope="col" className="sticky left-0 z-10 w-10 bg-muted px-3 py-2">
@@ -616,7 +621,7 @@ function DispatchTable({
             <SortHeader column="indexNumber" sort={sort} direction={direction} onSort={onSort} />
             <SortHeader column="studentName" sort={sort} direction={direction} onSort={onSort} />
             <SortHeader column="tuteCount" sort={sort} direction={direction} onSort={onSort} />
-            <th scope="col" className="px-3 py-2 font-medium">To Send</th>
+            <th scope="col" className="px-3 py-2 font-medium">{t("teacher.tuteDispatch.toSend")}</th>
             <SortHeader column="city" sort={sort} direction={direction} onSort={onSort} />
           </tr>
         </thead>
@@ -674,7 +679,7 @@ function DispatchTable({
                     {row.addressMissing ? (
                       <span className="inline-flex items-center gap-1 text-xs font-medium text-warning" data-testid="dispatch-no-address">
                         <AlertTriangle className="size-3.5" aria-hidden="true" />
-                        No address
+                        {t("teacher.tuteDispatch.noAddress")}
                       </span>
                     ) : null}
                   </div>

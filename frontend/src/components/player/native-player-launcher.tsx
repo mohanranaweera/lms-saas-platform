@@ -10,6 +10,7 @@ import { useStartPlayback, type NativeLaunch } from "@/lib/api/playback";
 import { useLaunchStatus } from "@/lib/api/player";
 import { openInAocPlayer, useAocPlayerSupported, useMobilePlatform } from "@/lib/player/native-launch";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * "Open in AOC Player" (VIDEO Phase 8, ADR-025). Used when the institute
  * requires the desktop player. From the Student's click it hands a one-time
@@ -59,6 +60,7 @@ function rememberSeen(): void {
 }
 
 export function NativePlayerLauncher({ lessonMediaId, title, initial = null }: NativePlayerLauncherProps) {
+  const t = useT();
   const start = useStartPlayback();
   const [pending, setPending] = useState<PendingLaunch | null>(initial);
   const [opened, setOpened] = useState(false);
@@ -124,7 +126,7 @@ export function NativePlayerLauncher({ lessonMediaId, title, initial = null }: N
   return (
     <div className="flex flex-col gap-3 rounded-md border border-border bg-muted/20 p-4 text-sm">
       <p className="text-foreground">
-        Your institute plays lesson videos in the AOC Player app.
+        {t("player.nativePlayerLauncher.yourInstitutePlaysLesson")}
         <span className="block text-xs text-muted-foreground">&ldquo;{title}&rdquo; opens in the player on this computer.</span>
       </p>
 
@@ -132,12 +134,12 @@ export function NativePlayerLauncher({ lessonMediaId, title, initial = null }: N
         {claimed ? (
           <p className="flex items-center gap-2 text-foreground">
             <CheckCircle2 aria-hidden="true" className="size-4 text-primary" />
-            Playing in the AOC Player.
+            {t("player.nativePlayerLauncher.playingInTheAoc")}
           </p>
         ) : opened && !notResponding ? (
           <p className="flex items-center gap-2 text-muted-foreground">
             <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-            Opening the AOC Player…
+            {t("player.nativePlayerLauncher.openingTheAocPlayer")}
           </p>
         ) : null}
       </div>
@@ -149,7 +151,7 @@ export function NativePlayerLauncher({ lessonMediaId, title, initial = null }: N
           <p className="text-xs text-muted-foreground">
             Check that it&apos;s still installed, then open the video again.{" "}
             <Link href="/student/player" className="underline">
-              AOC Player help
+              {t("player.nativePlayerLauncher.aocPlayerHelp")}
             </Link>
           </p>
         </div>
@@ -165,12 +167,12 @@ export function NativePlayerLauncher({ lessonMediaId, title, initial = null }: N
         >
           <ExternalLink aria-hidden="true" />
           {start.isPending
-            ? "Preparing…"
+            ? t("player.nativePlayerLauncher.preparing")
             : offerInstall
-              ? "I've installed it - play now"
+              ? t("player.nativePlayerLauncher.iveInstalledItPlay")
               : opened
-                ? "Open again"
-                : "Open in AOC Player"}
+                ? t("player.nativePlayerLauncher.openAgain")
+                : t("player.nativePlayerLauncher.openInAocPlayer")}
         </Button>
       </div>
     </div>
@@ -179,10 +181,11 @@ export function NativePlayerLauncher({ lessonMediaId, title, initial = null }: N
 
 /** The player didn't take the link and this browser has never seen it: offer the installer. */
 function InstallPrompt() {
+  const t = useT();
   const downloadUrl = env.NEXT_PUBLIC_AOC_PLAYER_DOWNLOAD_URL;
   return (
     <div role="alert" className="flex flex-col items-start gap-2 rounded-md border border-border bg-background p-3">
-      <p className="font-medium text-foreground">Install the AOC Player to watch this video</p>
+      <p className="font-medium text-foreground">{t("player.nativePlayerLauncher.installTheAocPlayer")}</p>
       <p className="text-xs text-muted-foreground">
         It looks like the AOC Player isn&apos;t installed on this computer. Install it, then press &ldquo;I&apos;ve
         installed it - play now&rdquo;. It sets itself up the first time; there is nothing else to do.
@@ -190,13 +193,13 @@ function InstallPrompt() {
       {downloadUrl ? (
         <a href={downloadUrl} rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
           <Download aria-hidden="true" />
-          Download for Windows
+          {t("player.nativePlayerLauncher.downloadForWindows")}
         </a>
       ) : (
         <p className="text-xs text-muted-foreground">
           The download isn&apos;t available yet - your institute will let you know.{" "}
           <Link href="/student/player" className="underline">
-            AOC Player help
+            {t("player.nativePlayerLauncher.aocPlayerHelp")}
           </Link>
         </p>
       )}
@@ -211,6 +214,7 @@ function InstallPrompt() {
  * (ADR-025 Amendment 2). UX only - the backend never trusts the device type.
  */
 export function UnsupportedPlatformNotice() {
+  const t = useT();
   const mobile = useMobilePlatform();
   const storeUrl =
     mobile === "android"
@@ -225,14 +229,13 @@ export function UnsupportedPlatformNotice() {
         <Smartphone aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <div className="flex flex-col items-start gap-2">
           <p className="text-foreground">
-            Watch this video in the AOC app.
+            {t("player.nativePlayerLauncher.watchThisVideoIn")}
             <span className="block text-xs text-muted-foreground">
-              Your institute plays lesson videos in the AOC app on phones and tablets. Get the app, sign in, and open
-              this lesson there.
+              {t("player.nativePlayerLauncher.yourInstitutePlaysLesson2")}
             </span>
           </p>
           <a href={storeUrl} rel="noopener noreferrer" className={buttonVariants({ size: "sm" })}>
-            {mobile === "ios" ? "Get it on the App Store" : "Get it on Google Play"}
+            {mobile === "ios" ? t("player.nativePlayerLauncher.getItOnThe") : t("player.nativePlayerLauncher.getItOnGoogle")}
           </a>
         </div>
       </div>
@@ -243,7 +246,7 @@ export function UnsupportedPlatformNotice() {
     <div role="status" className="flex items-start gap-2 rounded-md border border-border bg-muted/20 p-4 text-sm">
       <MonitorX aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <p className="text-foreground">
-        This video can only be watched on a Windows computer with the AOC Player.
+        {t("player.nativePlayerLauncher.thisVideoCanOnly")}
         <span className="block text-xs text-muted-foreground">
           Your institute plays lesson videos in the AOC Player app, which isn&apos;t available for phones, tablets or
           Macs yet. Open this lesson on a Windows computer.

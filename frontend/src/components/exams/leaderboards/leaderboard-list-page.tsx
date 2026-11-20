@@ -18,23 +18,26 @@ import { CAP } from "@/lib/auth/capabilities";
 import { useCapabilities } from "@/lib/api/my-permissions";
 import { useDeleteLeaderboard, useLeaderboards, type LeaderboardSummary } from "@/lib/api/exam-results";
 
+import { useT } from "@/i18n/i18n-provider";
 /** "Visible to students" / "Staff only" — icon + text, never colour alone. */
 export function VisibilityBadge({ published }: { published: boolean }) {
+  const t = useT();
   return published ? (
     <span className="inline-flex h-6 items-center gap-1 rounded-full bg-green-600/10 px-2 text-xs font-medium whitespace-nowrap text-green-800 dark:text-green-300" data-testid="leaderboard-visibility" data-published="true">
       <Eye className="size-3" aria-hidden="true" />
-      Visible to students
+      {t("exams.leaderboardList.visibleToStudents")}
     </span>
   ) : (
     <span className="inline-flex h-6 items-center gap-1 rounded-full bg-muted px-2 text-xs font-medium whitespace-nowrap text-muted-foreground" data-testid="leaderboard-visibility" data-published="false">
       <EyeOff className="size-3" aria-hidden="true" />
-      Staff only
+      {t("exams.leaderboardList.staffOnly")}
     </span>
   );
 }
 
 /** Exam leaderboards (Slice E, D7): list with View / Edit / Delete and "Add leaderboard". Writes are re-authorized server-side. */
 export function LeaderboardListPage({ portal }: { portal: ExamPortal }) {
+  const t = useT();
   const paths = examPaths(portal);
   const { session } = useAuth();
   // STAFF-MGMT-03: EXAMS_CREATE_LEADERBOARD for capability-driven roles (UX only).
@@ -68,13 +71,13 @@ export function LeaderboardListPage({ portal }: { portal: ExamPortal }) {
         data-testid="leaderboard-view"
       >
         <Eye aria-hidden="true" />
-        View
+        {t("exams.leaderboardList.view")}
       </Link>
       {canManage ? (
         <>
           <Button type="button" variant="ghost" size="sm" onClick={() => setDialog({ id: row.id })} aria-label={`Edit ${row.name}`} data-testid="leaderboard-edit">
             <Pencil aria-hidden="true" />
-            Edit
+            {t("exams.leaderboardList.edit")}
           </Button>
           <Button
             type="button"
@@ -89,7 +92,7 @@ export function LeaderboardListPage({ portal }: { portal: ExamPortal }) {
             data-testid="leaderboard-delete"
           >
             <Trash2 aria-hidden="true" />
-            Delete
+            {t("exams.leaderboardList.delete")}
           </Button>
         </>
       ) : null}
@@ -124,28 +127,28 @@ export function LeaderboardListPage({ portal }: { portal: ExamPortal }) {
     <div className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-col gap-2">
         <ExamPageTitle
-          title="Leaderboards"
+          title={t("exams.leaderboardList.leaderboards")}
           icon={<Trophy className="size-5" aria-hidden="true" />}
           actions={
             <div className="flex flex-wrap gap-2">
               <Link href={paths.directory} className={buttonVariants({ variant: "outline" })}>
                 <ArrowLeft aria-hidden="true" />
-                All exams
+                {t("exams.leaderboardList.allExams")}
               </Link>
               {canManage ? (
                 <Button type="button" onClick={() => setDialog({ id: null })} data-testid="leaderboard-add">
                   <Plus aria-hidden="true" />
-                  Add leaderboard
+                  {t("exams.leaderboardList.addLeaderboard")}
                 </Button>
               ) : null}
             </div>
           }
         />
-        <Breadcrumbs items={[{ label: "Exams", href: paths.directory }, { label: "Leaderboards" }]} />
+        <Breadcrumbs items={[{ label: t("exams.leaderboardList.exams"), href: paths.directory }, { label: t("exams.leaderboardList.leaderboards") }]} />
       </div>
       {query.status === "pending" ? (
         <div role="status" aria-busy="true" className="flex flex-col gap-2">
-          <span className="sr-only">Loading leaderboards…</span>
+          <span className="sr-only">{t("exams.leaderboardList.loadingLeaderboards")}</span>
           {Array.from({ length: 3 }, (_, index) => (
             <Skeleton key={index} className="h-12 w-full" />
           ))}
@@ -155,24 +158,24 @@ export function LeaderboardListPage({ portal }: { portal: ExamPortal }) {
           query={query}
           loginPath="/login"
           permissionDenied={{ dashboardHref: paths.directory }}
-          genericErrorMessage="We couldn't load the leaderboards."
+          genericErrorMessage={t("exams.leaderboardList.weCouldntLoadThe")}
           isEmpty={(rows) => rows.length === 0}
           emptyState={{
-            title: "No leaderboards yet",
+            title: t("exams.leaderboardList.noLeaderboardsYet"),
             description: canManage
-              ? "Group two or more exams into a leaderboard to rank students by their combined published marks."
+              ? t("exams.leaderboardList.groupTwoOrMore")
               : "No leaderboard has been created yet. Exam managers and teachers can create one.",
-            action: canManage ? { label: "Add leaderboard", onClick: () => setDialog({ id: null }) } : undefined,
+            action: canManage ? { label: t("exams.leaderboardList.addLeaderboard"), onClick: () => setDialog({ id: null }) } : undefined,
             icon: <Users className="size-8" aria-hidden="true" />,
           }}
         >
           {(rows) => (
-            <section aria-label="Leaderboards" className="rounded-xl bg-card p-3 shadow-sm ring-1 ring-foreground/10 [contain:inline-size] sm:p-4" data-testid="leaderboard-list">
+            <section aria-label={t("exams.leaderboardList.leaderboards")} className="rounded-xl bg-card p-3 shadow-sm ring-1 ring-foreground/10 [contain:inline-size] sm:p-4" data-testid="leaderboard-list">
               <DataTable
                 columns={columns}
                 rows={rows}
                 rowKey={(row) => row.id}
-                caption="Exam leaderboards"
+                caption={t("exams.leaderboardList.examLeaderboards")}
                 cardHeading={(row) => <span className="break-words">{row.name}</span>}
                 cardHeadingAdornment={(row) => <VisibilityBadge published={Boolean(row.published)} />}
                 cardFooter={actions}
@@ -195,8 +198,8 @@ export function LeaderboardListPage({ portal }: { portal: ExamPortal }) {
           if (!open) setPendingDelete(null);
         }}
         title={`Delete “${pendingDelete?.name ?? "leaderboard"}”?`}
-        description="Only the leaderboard is removed. Its exams, marks and results stay as they are."
-        confirmLabel="Delete leaderboard"
+        description={t("exams.leaderboardList.onlyTheLeaderboardIs")}
+        confirmLabel={t("exams.leaderboardList.deleteLeaderboard")}
         pending={remove.isPending}
         error={deleteError}
         onConfirm={() => void confirmDelete()}

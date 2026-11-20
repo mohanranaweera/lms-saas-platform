@@ -19,16 +19,17 @@ import {
 import { CourseLiveClassesTab } from "@/components/courses/student/course-live-classes-tab";
 import { TeacherCourseManageMenu } from "./teacher-course-manage-menu";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 type TeacherTab = "content" | "live" | "about";
 
-const TABS: CourseDetailTab<TeacherTab>[] = [
-  { value: "content", label: "Course content", icon: <MonitorPlay className="size-4" aria-hidden="true" /> },
-  { value: "live", label: "Live Classes", icon: <Video className="size-4" aria-hidden="true" /> },
-  { value: "about", label: "About this course", icon: <Info className="size-4" aria-hidden="true" /> },
-];
+const TABS = (t: TranslateFn): CourseDetailTab<TeacherTab>[] => ([
+  { value: "content", label: t("teacher.courseView.courseContent"), icon: <MonitorPlay className="size-4" aria-hidden="true" /> },
+  { value: "live", label: t("teacher.courseView.liveClasses"), icon: <Video className="size-4" aria-hidden="true" /> },
+  { value: "about", label: t("teacher.courseView.aboutThisCourse"), icon: <Info className="size-4" aria-hidden="true" /> },
+]);
 
 function tabFromParam(value: string | null): TeacherTab {
-  return TABS.some((tab) => tab.value === value) ? (value as TeacherTab) : "content";
+  return (["content", "live", "about"] as const).some((tab) => tab === value) ? (value as TeacherTab) : "content";
 }
 
 const NO_LAUNCH_ID = null;
@@ -43,15 +44,16 @@ const NO_LAUNCH_ID = null;
  * assignment-checked material/video guards.
  */
 export function TeacherCourseView({ courseId }: { courseId: string }) {
+  const t = useT();
   const courseQuery = useStudentCourse(courseId);
 
-  if (courseQuery.status === "pending") return <LoadingState label="Loading course…" />;
+  if (courseQuery.status === "pending") return <LoadingState label={t("teacher.courseView.loadingCourse")} />;
   if (courseQuery.status === "error") {
     const status = isApiClientError(courseQuery.error) ? courseQuery.error.status : undefined;
     if (status === 403 || status === 404) return <CourseUnavailable />;
     return (
       <ErrorState
-        message="We couldn't load this course."
+        message={t("teacher.courseView.weCouldntLoadThis")}
         code={isApiClientError(courseQuery.error) ? courseQuery.error.code : undefined}
         onRetry={() => courseQuery.refetch()}
       />
@@ -61,15 +63,16 @@ export function TeacherCourseView({ courseId }: { courseId: string }) {
 }
 
 function CourseUnavailable() {
+  const t = useT();
   return (
     <div data-testid="teacher-course-unavailable">
       <EmptyState
-        title="This course isn't available"
-        description="You aren't assigned to this course, or it no longer exists. Go back to My Courses to find your courses."
+        title={t("teacher.courseView.thisCourseIsntAvailable")}
+        description={t("teacher.courseView.youArentAssignedTo")}
       />
       <div className="mt-4 text-center">
         <Link href="/teacher/courses" className="text-sm font-medium text-blue-700 hover:underline">
-          Back to My Courses
+          {t("teacher.courseView.backToMyCourses")}
         </Link>
       </div>
     </div>
@@ -77,6 +80,7 @@ function CourseUnavailable() {
 }
 
 function TeacherCourseLoaded({ course }: { course: StudentCourseDetail }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -120,13 +124,13 @@ function TeacherCourseLoaded({ course }: { course: StudentCourseDetail }) {
           onScheduleSaved={() => toast.show({ kind: "success", text: `Class schedule saved for “${course.name}”.` })}
         />
       }
-      tabs={TABS}
+      tabs={TABS(t)}
       tab={tab}
       onTabChange={setTab}
       testId="teacher-course-view"
     >
       <p className="-mt-2 text-xs text-muted-foreground" data-testid="teacher-course-preview-note">
-        Teacher view: students see this layout, with payment prompts and progress shown only to them.
+        {t("teacher.courseView.teacherViewStudentsSee")}
       </p>
       <div role="tabpanel" id="course-detail-tabpanel" aria-labelledby={`course-detail-tab-${tab}`}>
         {tab === "content" ? (

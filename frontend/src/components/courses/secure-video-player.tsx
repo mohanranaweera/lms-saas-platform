@@ -13,6 +13,8 @@ import {
 import { isApiClientError } from "@/lib/api/error";
 import { attachHls, type HlsFailure } from "./hls-source";
 import { lessonAccessMessage } from "@/components/player/playback-errors";
+import { translateSource } from "@/i18n/translate-source";
+import { useT } from "@/i18n/i18n-provider";
 
 /**
  * Secure video player for a `VIDEO`/`RECORDING` material (Wave 5, plan §5/§6;
@@ -118,6 +120,7 @@ export function SecureVideoPlayer({
   onNativePlayerRequired,
   onEmbedRequiresNativePlayer,
 }: SecureVideoPlayerProps) {
+  const t = useT();
   const issueSessionMutation = useIssuePlaybackSession();
   const progressMutation = useRecordPlaybackProgress();
   const endSessionMutation = useEndPlaybackSession();
@@ -464,8 +467,8 @@ export function SecureVideoPlayer({
   if (state === "not-entitled") {
     return (
       <EmptyState
-        title="This video isn't available"
-        description="It may have been removed, or you may not have access to it."
+        title={t("player.secure.unavailableTitle")}
+        description={t("player.secure.unavailableDescription")}
       />
     );
   }
@@ -486,10 +489,10 @@ export function SecureVideoPlayer({
     return (
       <div role="alert" className="flex flex-col items-center gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-6 py-10 text-center">
         <AlertCircle className="size-6 text-destructive" aria-hidden="true" />
-        <p className="text-sm text-destructive">{terminalMessage}</p>
+        <p className="text-sm text-destructive">{translateSource(t, terminalMessage)}</p>
         {state === "token-invalid" || state === "key-refused" ? (
           <Button type="button" variant="outline" size="sm" onClick={handleRetry}>
-            {state === "key-refused" ? "Try again" : "Reload"}
+            {state === "key-refused" ? t("common.actions.retry") : t("player.secure.reload")}
           </Button>
         ) : null}
       </div>
@@ -535,7 +538,7 @@ export function SecureVideoPlayer({
             type="button"
             variant="outline"
             size="icon-xs"
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? t("player.secure.pause") : t("player.secure.play")}
             onClick={() => {
               const el = videoRef.current;
               if (!el) return;
@@ -548,13 +551,13 @@ export function SecureVideoPlayer({
           >
             {isPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
           </Button>
-          <span className="text-xs text-white/80">Seeking is disabled for this video.</span>
+          <span className="text-xs text-white/80">{t("player.secure.seekDisabled")}</span>
         </div>
       ) : null}
 
       {seekNotice ? (
         <p role="status" aria-live="polite" className="bg-black/80 px-3 py-1 text-xs text-amber-300">
-          {seekNotice}
+          {translateSource(t, seekNotice)}
         </p>
       ) : null}
     </div>

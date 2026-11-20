@@ -17,6 +17,7 @@ import {
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 const PAGE_SIZE = 20;
 
 /**
@@ -60,6 +61,7 @@ interface NotificationListProps {
  * fetch a broader dataset and filter client-side).
  */
 export function NotificationList({ heading, description, emptyState, dashboardHref }: NotificationListProps) {
+  const t = useT();
   const [page, setPage] = useState(0);
   const query = useNotifications({ page, size: PAGE_SIZE });
   const markReadMutation = useMarkNotificationRead();
@@ -132,7 +134,7 @@ export function NotificationList({ heading, description, emptyState, dashboardHr
         setMutationError(
           isApiClientError(error)
             ? error.message
-            : "Could not mark this notification as read. Please try again."
+            : t("notifications.notificationList.couldNotMarkThis")
         );
       },
     });
@@ -156,12 +158,12 @@ export function NotificationList({ heading, description, emptyState, dashboardHr
               markAllMutation.mutate(undefined, {
                 onError: (error) =>
                   setMutationError(
-                    isApiClientError(error) ? error.message : "Could not mark notifications as read. Please try again."
+                    isApiClientError(error) ? error.message : t("notifications.notificationList.couldNotMarkNotifications")
                   ),
               });
             }}
           >
-            {markAllMutation.isPending ? "Marking…" : "Mark all as read"}
+            {markAllMutation.isPending ? t("notifications.notificationList.marking") : t("notifications.notificationList.markAllAsRead")}
           </Button>
         ) : null}
       </div>
@@ -169,7 +171,7 @@ export function NotificationList({ heading, description, emptyState, dashboardHr
       {query.status === "pending" ? (
         <>
           <p role="status" aria-live="polite" aria-busy="true" className="sr-only">
-            Loading notifications…
+            {t("notifications.notificationList.loadingNotifications")}
           </p>
           <NotificationListSkeleton />
         </>
@@ -193,8 +195,8 @@ export function NotificationList({ heading, description, emptyState, dashboardHr
 
               {data.content.length === 0 ? (
                 <EmptyState
-                  title="No more results"
-                  description="There are no notifications on this page. Go back to an earlier page."
+                  title={t("notifications.notificationList.noMoreResults")}
+                  description={t("notifications.notificationList.thereAreNoNotifications")}
                 />
               ) : (
                 <ul className={`flex flex-col gap-2 ${isRefetching ? "opacity-60" : ""}`}>
@@ -253,6 +255,7 @@ function NotificationRow({
   /** Registers/unregisters this row's `<li>` so the parent can move focus onto it after a successful mark-read (see `NotificationList`'s `rowRefs`). */
   registerRowRef: (id: string, element: HTMLLIElement | null) => void;
 }) {
+  const t = useT();
   const isUnread = notification.readAt === null;
 
   return (
@@ -272,7 +275,7 @@ function NotificationRow({
           <span className={`text-sm text-foreground ${isUnread ? "font-semibold" : "font-medium"}`}>
             {notification.title}
           </span>
-          {isUnread ? <Badge variant="secondary">Unread</Badge> : null}
+          {isUnread ? <Badge variant="secondary">{t("notifications.notificationList.unread")}</Badge> : null}
         </div>
         <p className="text-sm text-muted-foreground">{notification.body}</p>
         <span className="text-xs text-muted-foreground">{formatDateTime(notification.createdAt)}</span>
@@ -285,10 +288,10 @@ function NotificationRow({
           onClick={onMarkRead}
           disabled={isMarkingRead}
           aria-busy={isMarkingRead}
-          aria-label={`Mark as read: "${notification.title}"`}
+          aria-label={t("notifications.markReadLabel", { title: notification.title })}
           className="shrink-0 self-start"
         >
-          {isMarkingRead ? "Marking as read…" : "Mark as read"}
+          {isMarkingRead ? t("notifications.notificationList.markingAsRead") : t("notifications.notificationList.markAsRead")}
         </Button>
       ) : null}
     </li>

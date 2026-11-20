@@ -8,6 +8,7 @@ import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { ModuleLessonEditor } from "@/components/courses/module-lesson-editor";
 import { useCourse } from "@/lib/api/courses";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Teacher "Module & Lesson Editor" — `teacher/courses/[courseId]/modules`.
  * Fetches the parent course only for the heading/breadcrumb (per
@@ -22,6 +23,7 @@ import { useCourse } from "@/lib/api/courses";
  * `course-edit-form.tsx`'s "Course details saved." confirmation pattern.
  */
 export default function CourseModulesPage() {
+  const t = useT();
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
   const query = useCourse(courseId);
@@ -36,12 +38,12 @@ export default function CourseModulesPage() {
           className="inline-flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to course
+          {t("teacher.page.coursesModules.backToCourse")}
         </Link>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Modules & sessions</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.coursesModules.modulesSessions")}</h1>
           <p className="text-sm text-muted-foreground">
-            Structure this course into modules, each holding its own ordered list of sessions.
+            {t("teacher.page.coursesModules.structureThisCourseInto")}
           </p>
         </div>
       </div>
@@ -49,13 +51,13 @@ export default function CourseModulesPage() {
       {justCreated ? (
         <Alert role="status">
           <CheckCircle2 aria-hidden="true" />
-          <AlertDescription>Course created.</AlertDescription>
+          <AlertDescription>{t("teacher.page.coursesModules.courseCreated")}</AlertDescription>
         </Alert>
       ) : null}
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading course…"
+        loadingLabel={t("teacher.page.coursesModules.loadingCourse")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
       >

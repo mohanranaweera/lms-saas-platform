@@ -148,12 +148,22 @@ test.describe("student profile — states", () => {
     await expect(page).toHaveURL(new RegExp(`/tenant-admin/students/${ADA.id}$`), { timeout: NAV_TIMEOUT });
   });
 
-  test("a uniform 404 (nonexistent or cross-tenant id) renders the error state with the backend's message", async ({ page }) => {
+  test("a uniform 404 (nonexistent or cross-tenant id) points back to the directory", async ({ page }) => {
     await session(page, "TENANT_ADMIN");
     await page.route(`**/v1/students/${ADA.id}/detail`, (route) => fulfill(route, 404, apiError("NOT_FOUND", "Student not found")));
     await page.goto(`/tenant-admin/students/${ADA.id}`);
-    await expect(page.getByRole("alert").filter({ hasText: "Student not found" })).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.getByRole("alert").filter({ hasText: "Student profile not found" })).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.getByRole("link", { name: "Back to Students" })).toHaveAttribute("href", "/tenant-admin/students");
     await expect(page.getByTestId("student-identity")).toHaveCount(0);
+  });
+
+  test("a UUID-shaped id with a 404 remains an in-app error, not Next's global 404 page", async ({ page }) => {
+    await session(page, "TENANT_ADMIN");
+    const id = "4931e8e1-ddac-4e06-b8a2-210a69cd7993";
+    await page.route(`**/v1/students/${id}/detail`, (route) => fulfill(route, 404, apiError("NOT_FOUND", "Student not found")));
+    await page.goto(`/tenant-admin/students/${id}`);
+    await expect(page.getByRole("heading", { name: "Student profile not found" })).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.getByRole("heading", { name: "Page not found" })).toHaveCount(0);
   });
 
   test("a 403 on the profile renders the permission-denied state", async ({ page }) => {

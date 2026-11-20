@@ -25,6 +25,7 @@ import { useExam, useScheduleExam } from "@/lib/api/exams";
 import { isApiClientError } from "@/lib/api/error";
 import { formatRoleLabel } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 /**
  * Teacher/staff Exam Scheduler (MVP-017 plan §11 screen #5). Edits the exam
  * while `DRAFT` (`ExamDraftForm`), then the explicit `DRAFT -> SCHEDULED`
@@ -48,6 +49,7 @@ import { formatRoleLabel } from "@/lib/format";
  * Assistant, so the "Teacher Portal" label is never silently misleading.
  */
 export default function TeacherExamSchedulePage() {
+  const t = useT();
   const { examId } = useParams<{ examId: string }>();
   const { session } = useAuth();
   const role = session?.role ?? null;
@@ -69,17 +71,16 @@ export default function TeacherExamSchedulePage() {
       await scheduleMutation.mutateAsync();
       setScheduleDialogOpen(false);
     } catch (error) {
-      setScheduleError(isApiClientError(error) ? error.message : "Could not schedule this exam. Please try again.");
+      setScheduleError(isApiClientError(error) ? error.message : t("teacher.page.examsSchedule.couldNotScheduleThis"));
     }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Exam Scheduler</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("teacher.page.examsSchedule.examScheduler")}</h1>
         <p className="text-sm text-muted-foreground">
-          Set the exam window, time limit, and linked questions, then schedule it to make it visible to
-          students.
+          {t("teacher.page.examsSchedule.setTheExamWindow")}
         </p>
       </div>
 
@@ -96,7 +97,7 @@ export default function TeacherExamSchedulePage() {
 
       <QueryStateBoundary
         query={examQuery}
-        loadingLabel="Loading exam…"
+        loadingLabel={t("teacher.page.examsSchedule.loadingExam")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
       >
@@ -106,8 +107,7 @@ export default function TeacherExamSchedulePage() {
               <div>
                 <p className="text-sm font-medium text-foreground">{exam.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  Exam ID: <code className="rounded bg-muted px-1 py-0.5">{exam.id}</code> — copy this to open
-                  the Marking Queue or Publish Results screens later.
+                  {t("teacher.page.examsSchedule.examId")}{" "}<code className="rounded bg-muted px-1 py-0.5">{exam.id}</code>{" "}{t("teacher.page.examsSchedule.copyThisToOpen")}
                 </p>
               </div>
               <ExamStatusChip status={exam.status} />
@@ -118,10 +118,9 @@ export default function TeacherExamSchedulePage() {
             {exam.status === "DRAFT" && canReachScheduleAction ? (
               <div className="flex flex-col gap-2 rounded-lg border border-border p-4">
                 <p className="text-sm text-muted-foreground">
-                  Scheduling locks the window and questions in and makes this exam visible to enrolled
-                  students once its window opens. This is the only way to leave Draft status.
+                  {t("teacher.page.examsSchedule.schedulingLocksTheWindow")}
                 </p>
-                <LiveRegion message={scheduleMutation.isPending ? "Scheduling exam…" : ""} />
+                <LiveRegion message={scheduleMutation.isPending ? t("teacher.page.examsSchedule.schedulingExam") : ""} />
                 {scheduleError && !scheduleDialogOpen ? (
                   <p role="alert" className="text-sm text-destructive">
                     {scheduleError}
@@ -129,14 +128,13 @@ export default function TeacherExamSchedulePage() {
                 ) : null}
                 <AlertDialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
                   <AlertDialogTrigger render={<Button type="button" className="w-full sm:w-fit" />}>
-                    Schedule exam
+                    {t("teacher.page.examsSchedule.scheduleExam")}
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Schedule this exam?</AlertDialogTitle>
+                      <AlertDialogTitle>{t("teacher.page.examsSchedule.scheduleThisExam")}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This locks the window and linked questions and makes the exam visible to enrolled
-                        students once its window opens. This is the only way to leave Draft status.
+                        {t("teacher.page.examsSchedule.thisLocksTheWindow")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     {scheduleError ? (
@@ -145,14 +143,14 @@ export default function TeacherExamSchedulePage() {
                       </Alert>
                     ) : null}
                     <AlertDialogFooter>
-                      <AlertDialogClose render={<Button type="button" variant="outline" />}>Cancel</AlertDialogClose>
+                      <AlertDialogClose render={<Button type="button" variant="outline" />}>{t("teacher.page.examsSchedule.cancel")}</AlertDialogClose>
                       <Button
                         type="button"
                         onClick={handleSchedule}
                         disabled={scheduleMutation.isPending}
                         aria-busy={scheduleMutation.isPending}
                       >
-                        {scheduleMutation.isPending ? "Scheduling…" : "Schedule exam"}
+                        {scheduleMutation.isPending ? t("teacher.page.examsSchedule.scheduling") : t("teacher.page.examsSchedule.scheduleExam")}
                       </Button>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -163,7 +161,7 @@ export default function TeacherExamSchedulePage() {
             {exam.status !== "DRAFT" ? (
               <div className="flex flex-col gap-2 text-sm sm:flex-row sm:gap-4">
                 <Link href={`/teacher/exams/${exam.id}/publish`} className="font-medium text-foreground hover:underline">
-                  Go to Results Publishing →
+                  {t("teacher.page.examsSchedule.goToResultsPublishing")}
                 </Link>
                 <Link
                   href={`/teacher/exams/marking?examId=${exam.id}`}

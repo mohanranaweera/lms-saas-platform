@@ -24,6 +24,7 @@ import {
 import { isApiClientError } from "@/lib/api/error";
 import { formatDateTime } from "@/lib/format";
 
+import { useT } from "@/i18n/i18n-provider";
 function hostConnectionLost(session: ClassSessionResponse): boolean {
   return (
     session.providerStatus === "PROVISIONED" &&
@@ -38,6 +39,7 @@ function hostConnectionLost(session: ClassSessionResponse): boolean {
  * "Recreate meeting" creates a new meeting on the teacher's current account.
  */
 function HostConnectionAlert({ session }: { session: ClassSessionResponse }) {
+  const t = useT();
   if (!hostConnectionLost(session)) return null;
   return (
     <Alert variant="destructive">
@@ -46,7 +48,7 @@ function HostConnectionAlert({ session }: { session: ClassSessionResponse }) {
         {session.hostConnectionStatus === "NEEDS_RECONNECT" ? "no longer authorised" : "disconnected"}, so students
         can&apos;t join.{" "}
         <Link href="/teacher/settings/integrations" className="font-medium underline">
-          Reconnect Zoom
+          {t("teacher.page.liveClasses2.reconnectZoom")}
         </Link>
         , then choose Recreate meeting if the class still can&apos;t be joined.
       </AlertDescription>
@@ -55,6 +57,7 @@ function HostConnectionAlert({ session }: { session: ClassSessionResponse }) {
 }
 
 function RetryProvisioningAction({ session }: { session: ClassSessionResponse }) {
+  const t = useT();
   const mutation = useRetryClassSessionProvisioning(session.id);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
   const recreate = hostConnectionLost(session);
@@ -75,13 +78,13 @@ function RetryProvisioningAction({ session }: { session: ClassSessionResponse })
             setError(
               isApiClientError(err)
                 ? { message: err.message, code: err.code }
-                : { message: "Could not retry provisioning. Please try again." }
+                : { message: t("teacher.page.liveClasses2.couldNotRetryProvisioning") }
             );
           }
         }}
       >
         <RotateCcw aria-hidden="true" />
-        {mutation.isPending ? (recreate ? "Recreating…" : "Retrying…") : recreate ? "Recreate meeting" : "Retry provisioning"}
+        {mutation.isPending ? (recreate ? t("teacher.page.liveClasses2.recreating") : t("teacher.page.liveClasses2.retrying")) : recreate ? t("teacher.page.liveClasses2.recreateMeeting") : t("teacher.page.liveClasses2.retryProvisioning")}
       </Button>
       {error && error.code && isProviderErrorCode(error.code) ? (
         <ProviderErrorAlert code={error.code} message={error.message} />
@@ -95,6 +98,7 @@ function RetryProvisioningAction({ session }: { session: ClassSessionResponse })
 }
 
 function StatusTransitionActions({ session }: { session: ClassSessionResponse }) {
+  const t = useT();
   const startMutation = useStartClassSession(session.id);
   const completeMutation = useCompleteClassSession(session.id);
   const cancelMutation = useCancelClassSession(session.id);
@@ -107,7 +111,7 @@ function StatusTransitionActions({ session }: { session: ClassSessionResponse })
     try {
       await mutation.mutateAsync();
     } catch (err) {
-      setError(isApiClientError(err) ? err.message : "That action could not be completed. Please try again.");
+      setError(isApiClientError(err) ? err.message : t("teacher.page.liveClasses2.thatActionCouldNot"));
     }
   }
 
@@ -122,12 +126,12 @@ function StatusTransitionActions({ session }: { session: ClassSessionResponse })
       <div className="flex flex-wrap gap-2">
         {canStart ? (
           <Button type="button" disabled={isPending} aria-busy={isPending} onClick={() => run(startMutation)}>
-            {startMutation.isPending ? "Starting…" : "Start class"}
+            {startMutation.isPending ? t("teacher.page.liveClasses2.starting") : t("teacher.page.liveClasses2.startClass")}
           </Button>
         ) : null}
         {canComplete ? (
           <Button type="button" disabled={isPending} aria-busy={isPending} onClick={() => run(completeMutation)}>
-            {completeMutation.isPending ? "Completing…" : "Mark completed"}
+            {completeMutation.isPending ? t("teacher.page.liveClasses2.completing") : t("teacher.page.liveClasses2.markCompleted")}
           </Button>
         ) : null}
         {canCancel ? (
@@ -138,7 +142,7 @@ function StatusTransitionActions({ session }: { session: ClassSessionResponse })
             aria-busy={isPending}
             onClick={() => run(cancelMutation)}
           >
-            {cancelMutation.isPending ? "Cancelling…" : "Cancel class"}
+            {cancelMutation.isPending ? t("teacher.page.liveClasses2.cancelling") : t("teacher.page.liveClasses2.cancelClass")}
           </Button>
         ) : null}
       </div>
@@ -152,6 +156,7 @@ function StatusTransitionActions({ session }: { session: ClassSessionResponse })
 }
 
 function JoinAsHostAction({ session }: { session: ClassSessionResponse }) {
+  const t = useT();
   const mutation = useJoinClassSession(session.id);
   const [error, setError] = useState<string | null>(null);
   if (session.status !== "LIVE" || session.providerStatus !== "PROVISIONED") return null;
@@ -168,11 +173,11 @@ function JoinAsHostAction({ session }: { session: ClassSessionResponse }) {
             const result = await mutation.mutateAsync();
             window.open(result.joinUrl, "_blank", "noopener,noreferrer");
           } catch (err) {
-            setError(isApiClientError(err) ? err.message : "Could not join the class. Please try again.");
+            setError(isApiClientError(err) ? err.message : t("teacher.page.liveClasses2.couldNotJoinThe"));
           }
         }}
       >
-        {mutation.isPending ? "Preparing join link…" : "Join as host"}
+        {mutation.isPending ? t("teacher.page.liveClasses2.preparingJoinLink") : t("teacher.page.liveClasses2.joinAsHost")}
       </Button>
       {error ? (
         <p role="alert" className="text-xs text-destructive">
@@ -184,6 +189,7 @@ function JoinAsHostAction({ session }: { session: ClassSessionResponse }) {
 }
 
 function RecordingSection({ session }: { session: ClassSessionResponse }) {
+  const t = useT();
   const mutation = useClassSessionRecording(session.id);
   const [error, setError] = useState<string | null>(null);
   if (session.status !== "COMPLETED") return null;
@@ -191,7 +197,7 @@ function RecordingSection({ session }: { session: ClassSessionResponse }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div>
-        <h2 className="text-sm font-medium text-foreground">Recording</h2>
+        <h2 className="text-sm font-medium text-foreground">{t("teacher.page.liveClasses2.recording")}</h2>
         <p className="text-xs text-muted-foreground">
           Playback links are minted fresh each time and expire shortly after — request one only when
           you&apos;re ready to watch.
@@ -210,12 +216,12 @@ function RecordingSection({ session }: { session: ClassSessionResponse }) {
             window.open(result.playbackUrl, "_blank", "noopener,noreferrer");
           } catch (err) {
             setError(
-              isApiClientError(err) ? err.message : "Could not load the recording. Please try again."
+              isApiClientError(err) ? err.message : t("teacher.page.liveClasses2.couldNotLoadThe")
             );
           }
         }}
       >
-        {mutation.isPending ? "Preparing playback link…" : "Watch recording"}
+        {mutation.isPending ? t("teacher.page.liveClasses2.preparingPlaybackLink") : t("teacher.page.liveClasses2.watchRecording")}
       </Button>
       {error ? (
         <p role="alert" className="text-xs text-destructive">
@@ -227,6 +233,7 @@ function RecordingSection({ session }: { session: ClassSessionResponse }) {
 }
 
 function LiveClassDetailContent() {
+  const t = useT();
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
   const searchParams = useSearchParams();
@@ -247,16 +254,16 @@ function LiveClassDetailContent() {
       {justCreated ? (
         <Alert role="status">
           <CheckCircle2 aria-hidden="true" />
-          <AlertDescription>Live class scheduled.</AlertDescription>
+          <AlertDescription>{t("teacher.page.liveClasses2.liveClassScheduled")}</AlertDescription>
         </Alert>
       ) : null}
 
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading live class…"
+        loadingLabel={t("teacher.page.liveClasses2.loadingLiveClass")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/teacher/dashboard" }}
-        genericErrorMessage="This live class could not be found."
+        genericErrorMessage={t("teacher.page.liveClasses2.thisLiveClassCould")}
       >
         {(session) => (
           <div className="flex flex-col gap-6">
@@ -306,8 +313,9 @@ function LiveClassDetailContent() {
 }
 
 export default function LiveClassDetailPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<LoadingState label="Loading live class…" />}>
+    <Suspense fallback={<LoadingState label={t("teacher.page.liveClasses2.loadingLiveClass")} />}>
       <LiveClassDetailContent />
     </Suspense>
   );

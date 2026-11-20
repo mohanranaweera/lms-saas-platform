@@ -10,7 +10,8 @@ import { LiveRegion } from "@/components/ui/live-region";
 import { QueryStateBoundary } from "@/components/states/query-state-boundary";
 import { useCourse } from "@/lib/api/courses";
 import { useCreateOrder, useInitiatePayment } from "@/lib/api/payments";
-import { isApiClientError } from "@/lib/api/error";
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 import {
   CoursePriceText,
   CoursePricingNotice,
@@ -81,6 +82,7 @@ export default function CheckoutPage() {
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
   const router = useRouter();
+  const t = useT();
 
   const courseQuery = useCourse(courseId);
   const paymentOptionsQuery = useCheckoutPaymentOptions();
@@ -115,9 +117,7 @@ export default function CheckoutPage() {
       if (initiation.formAction && initiation.formFields) {
         if (!isAllowedGatewayAction(initiation.formAction)) {
           // Never post the student's details anywhere but PayHere.
-          setFlowError(
-            "We couldn't open the secure payment page. Please try again or pay by bank transfer."
-          );
+          setFlowError(t("student.checkout.gatewayFailed"));
           setMode(null);
           return;
         }
@@ -127,9 +127,7 @@ export default function CheckoutPage() {
       }
       router.push(`/student/payments/awaiting-confirmation/${order.id}`);
     } catch (error) {
-      setFlowError(
-        isApiClientError(error) ? error.message : "Something went wrong. Please try again."
-      );
+      setFlowError(localizeApiError(t, error));
       setMode(null);
     }
   }
@@ -145,9 +143,7 @@ export default function CheckoutPage() {
       });
       router.push(`/student/payments/slip-upload/${order.id}`);
     } catch (error) {
-      setFlowError(
-        isApiClientError(error) ? error.message : "Something went wrong. Please try again."
-      );
+      setFlowError(localizeApiError(t, error));
       setMode(null);
     }
   }
@@ -155,15 +151,13 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Checkout</h1>
-        <p className="text-sm text-muted-foreground">
-          Review the course details below, then continue to payment.
-        </p>
+        <h1 className="text-xl font-semibold break-words text-foreground">{t("student.checkout.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("student.checkout.subtitle")}</p>
       </div>
 
       <QueryStateBoundary
         query={courseQuery}
-        loadingLabel="Loading course…"
+        loadingLabel={t("student.common.loadingCourse")}
         loginPath="/login"
         permissionDenied={{ dashboardHref: "/student/dashboard" }}
       >
@@ -176,24 +170,24 @@ export default function CheckoutPage() {
           return (
             <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
               <div>
-                <h2 className="text-lg font-medium text-foreground">{course.name}</h2>
+                <h2 className="text-lg font-medium break-words text-foreground">{course.name}</h2>
                 <p className="text-sm text-muted-foreground">{course.category}</p>
               </div>
 
               <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4 text-sm">
                 <div>
-                  <dt className="text-xs font-medium text-muted-foreground">Price</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t("student.checkout.price")}</dt>
                   {/* Read-only display only — never a student-editable input. */}
                   <dd className="text-base font-semibold text-foreground">
                     <CoursePriceText course={course} />
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium text-muted-foreground">Access</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t("student.checkout.access")}</dt>
                   <dd className="text-foreground">
                     {course.accessDurationDays
-                      ? `${course.accessDurationDays} days`
-                      : "Lifetime access"}
+                      ? t("student.checkout.days", { count: course.accessDurationDays })
+                      : t("student.checkout.lifetime")}
                   </dd>
                 </div>
               </dl>
@@ -202,7 +196,7 @@ export default function CheckoutPage() {
                 <Alert role="status">
                   <AlertCircle aria-hidden="true" />
                   <AlertDescription>
-                    This course isn&apos;t currently open for enrollment.
+                    {t("student.checkout.notOpen")}
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -221,9 +215,9 @@ export default function CheckoutPage() {
                   <LiveRegion
                     message={
                       mode === "gateway"
-                        ? "Starting checkout…"
+                        ? t("student.checkout.starting")
                         : mode === "slip"
-                          ? "Preparing bank transfer upload…"
+                          ? t("student.checkout.preparingSlip")
                           : ""
                     }
                   />
@@ -233,11 +227,11 @@ export default function CheckoutPage() {
                       <Alert role="status">
                         <AlertCircle aria-hidden="true" />
                         <AlertDescription>
-                          Online payment needs your billing address.{" "}
+                          {t("student.checkout.needsAddress")}{" "}
                           <Link href="/student/profile" className="font-medium underline">
-                            Add your address in My Profile
+                            {t("student.checkout.addAddress")}
                           </Link>
-                          , then come back to pay online.
+                          {t("student.checkout.addAddressSuffix")}
                         </AlertDescription>
                       </Alert>
                     ) : null}
@@ -250,15 +244,14 @@ export default function CheckoutPage() {
                         aria-busy={mode === "gateway"}
                       >
                         {mode === "gateway"
-                          ? "Starting checkout…"
+                          ? t("student.checkout.starting")
                           : isFree
-                            ? "Enroll"
-                            : "Pay online (PayHere)"}
+                            ? t("student.checkout.enroll")
+                            : t("student.checkout.payOnline")}
                       </Button>
                     ) : paymentOptionsQuery.isPending ? null : (
                       <p className="text-sm text-muted-foreground">
-                        Online payment isn&apos;t available at your institute yet — pay by bank
-                        transfer below.
+                        {t("student.checkout.onlineUnavailable")}
                       </p>
                     )}
 
@@ -271,10 +264,10 @@ export default function CheckoutPage() {
                           disabled={isSubmitting || !checkoutAvailable}
                           aria-busy={mode === "slip"}
                         >
-                          {mode === "slip" ? "Preparing…" : "Pay by bank transfer"}
+                          {mode === "slip" ? t("student.checkout.preparing") : t("student.checkout.payByBank")}
                         </Button>
                         <p className="text-xs text-muted-foreground">
-                          Already sent a bank transfer? Upload your payment slip instead of paying online.
+                          {t("student.checkout.bankHint")}
                         </p>
                       </>
                     ) : null}

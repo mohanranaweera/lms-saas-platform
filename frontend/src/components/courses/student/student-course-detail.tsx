@@ -28,18 +28,19 @@ import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog
 import { useLessonLauncher } from "./lesson-launcher";
 import { StudentToast, useStudentToast } from "./student-toast";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 type DetailTab = "content" | "exams" | "live" | "tutes" | "about";
 
-const TABS: CourseDetailTab<DetailTab>[] = [
-  { value: "content", label: "Course content", icon: <MonitorPlay className="size-4" aria-hidden="true" /> },
-  { value: "exams", label: "Exams", icon: <ClipboardList className="size-4" aria-hidden="true" /> },
-  { value: "live", label: "Live Classes", icon: <Video className="size-4" aria-hidden="true" /> },
-  { value: "tutes", label: "Tute Delivery", icon: <Truck className="size-4" aria-hidden="true" /> },
-  { value: "about", label: "About this course", icon: <Info className="size-4" aria-hidden="true" /> },
-];
+const TABS = (t: TranslateFn): CourseDetailTab<DetailTab>[] => ([
+  { value: "content", label: t("student.courseDetail.courseContent"), icon: <MonitorPlay className="size-4" aria-hidden="true" /> },
+  { value: "exams", label: t("student.courseDetail.exams"), icon: <ClipboardList className="size-4" aria-hidden="true" /> },
+  { value: "live", label: t("student.courseDetail.liveClasses"), icon: <Video className="size-4" aria-hidden="true" /> },
+  { value: "tutes", label: t("student.courseDetail.tuteDelivery"), icon: <Truck className="size-4" aria-hidden="true" /> },
+  { value: "about", label: t("student.courseDetail.aboutThisCourse"), icon: <Info className="size-4" aria-hidden="true" /> },
+]);
 
 function tabFromParam(value: string | null): DetailTab {
-  return TABS.some((tab) => tab.value === value) ? (value as DetailTab) : "content";
+  return (["content", "exams", "live", "tutes", "about"] as const).some((tab) => tab === value) ? (value as DetailTab) : "content";
 }
 
 /**
@@ -50,21 +51,22 @@ function tabFromParam(value: string | null): DetailTab {
  * the free, server-confirmed action (ADR-028).
  */
 export function StudentCourseDetailView({ courseId, headerCta }: { courseId: string; headerCta?: ReactNode }) {
+  const t = useT();
   const courseQuery = useStudentCourse(courseId);
 
-  if (courseQuery.status === "pending") return <LoadingState label="Loading course…" />;
+  if (courseQuery.status === "pending") return <LoadingState label={t("student.courseDetail.loadingCourse")} />;
   if (courseQuery.status === "error") {
     const status = isApiClientError(courseQuery.error) ? courseQuery.error.status : undefined;
     if (status === 403 || status === 404) {
       return (
         <div data-testid="course-detail-unavailable">
           <EmptyState
-            title="This course isn't available"
-            description="It may have been removed, or it isn't open to you. Go back to your courses to find another one."
+            title={t("student.courseDetail.thisCourseIsntAvailable")}
+            description={t("student.courseDetail.itMayHaveBeen")}
           />
           <div className="mt-4 text-center">
             <Link href="/student/courses" className="text-sm font-medium text-blue-700 hover:underline">
-              Back to my courses
+              {t("student.courseDetail.backToMyCourses")}
             </Link>
           </div>
         </div>
@@ -72,7 +74,7 @@ export function StudentCourseDetailView({ courseId, headerCta }: { courseId: str
     }
     return (
       <ErrorState
-        message="We couldn't load this course."
+        message={t("student.courseDetail.weCouldntLoadThis")}
         code={isApiClientError(courseQuery.error) ? courseQuery.error.code : undefined}
         onRetry={() => courseQuery.refetch()}
       />
@@ -83,6 +85,7 @@ export function StudentCourseDetailView({ courseId, headerCta }: { courseId: str
 }
 
 function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail; headerCta?: ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -146,9 +149,9 @@ function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail
     <CourseDetailFrame
       course={course}
       backHref="/student/courses"
-      backLabel="My courses"
+      backLabel={t("student.payment.myCourses")}
       headerCta={headerCta}
-      tabs={TABS}
+      tabs={TABS(t)}
       tab={tab}
       onTabChange={setTab}
       testId="student-course-detail"
@@ -197,6 +200,7 @@ function CourseDetailLoaded({ course, headerCta }: { course: StudentCourseDetail
  * catalog; nothing is shown as enrolled until the server confirms.
  */
 function NotEnrolledPanel({ course, onEnrolled }: { course: StudentCourseDetail; onEnrolled: (text: string) => void }) {
+  const t = useT();
   const enroll = useSelfEnroll();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -209,9 +213,9 @@ function NotEnrolledPanel({ course, onEnrolled }: { course: StudentCourseDetail;
     setError(null);
     try {
       await enroll.mutateAsync(course.id);
-      onEnrolled(`You're enrolled in ${course.name}.`);
+      onEnrolled(t("student.courseDetail.enrolled", { course: course.name }));
     } catch (err) {
-      setError(enrollErrorMessage(err));
+      setError(enrollErrorMessage(err, t));
     }
   };
 
@@ -223,10 +227,10 @@ function NotEnrolledPanel({ course, onEnrolled }: { course: StudentCourseDetail;
       <p className="text-sm font-medium text-foreground">You&apos;re not enrolled in this course</p>
       <p className="max-w-md text-sm text-muted-foreground">
         {canEnroll
-          ? "Enroll for free to see the course content and live classes. Paid lessons ask for payment when you open them."
+          ? t("student.courseDetail.enrollForFreeTo")
           : open
-            ? "Your institute enrolls students in courses. Contact your institute to join this course."
-            : "This course isn't open for enrollment right now."}
+            ? t("student.courseDetail.yourInstituteEnrollsStudents")
+            : t("student.courseDetail.thisCourseIsntOpen")}
       </p>
       {canEnroll ? (
         <Button
@@ -237,15 +241,15 @@ function NotEnrolledPanel({ course, onEnrolled }: { course: StudentCourseDetail;
           data-testid="course-detail-enroll"
           className="min-w-24 bg-blue-600 text-white hover:bg-blue-700"
         >
-          {enroll.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Enroll"}
-          {enroll.isPending ? <span className="sr-only">Enrolling…</span> : null}
+          {enroll.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : t("student.courseDetail.enroll")}
+          {enroll.isPending ? <span className="sr-only">{t("student.courseDetail.enrolling")}</span> : null}
         </Button>
       ) : null}
       {error ? (
         <div role="alert" className="flex flex-col items-center gap-1 text-sm text-destructive" data-testid="course-detail-enroll-error">
           <span>{error}</span>
           <button type="button" className="font-medium underline" onClick={run} disabled={enroll.isPending}>
-            Try again
+            {t("student.courseDetail.tryAgain")}
           </button>
         </div>
       ) : null}

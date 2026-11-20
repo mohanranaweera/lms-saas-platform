@@ -16,24 +16,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 
+import { useT, type TranslateFn } from "@/i18n/i18n-provider";
 /** `INTERRUPTED`: a setup stuck in PROVISIONING that the backend now offers for retry. */
 type LibraryDisplayState = BunnyLibraryStatus | "NONE" | "INTERRUPTED";
 
-const LIBRARY_STATES: Record<
+const LIBRARY_STATES = (t: TranslateFn): Record<
   LibraryDisplayState,
   { label: string; variant: "default" | "warning" | "outline" | "secondary" | "destructive"; Icon: typeof CheckCircle2 }
-> = {
-  ACTIVE: { label: "Ready", variant: "default", Icon: CheckCircle2 },
-  PROVISIONING: { label: "Being set up", variant: "secondary", Icon: Loader2 },
-  INTERRUPTED: { label: "Setup interrupted", variant: "warning", Icon: TriangleAlert },
-  FAILED: { label: "Setup failed", variant: "destructive", Icon: TriangleAlert },
-  UNAVAILABLE: { label: "Unavailable", variant: "warning", Icon: CircleSlash },
-  NONE: { label: "Not set up", variant: "outline", Icon: PlugZap },
-};
+> => ({
+  ACTIVE: { label: t("teacher.bunny.ready"), variant: "default", Icon: CheckCircle2 },
+  PROVISIONING: { label: t("teacher.bunny.beingSetUp"), variant: "secondary", Icon: Loader2 },
+  INTERRUPTED: { label: t("teacher.bunny.setupInterrupted"), variant: "warning", Icon: TriangleAlert },
+  FAILED: { label: t("teacher.bunny.setupFailed"), variant: "destructive", Icon: TriangleAlert },
+  UNAVAILABLE: { label: t("teacher.bunny.unavailable"), variant: "warning", Icon: CircleSlash },
+  NONE: { label: t("teacher.bunny.notSetUp"), variant: "outline", Icon: PlugZap },
+});
 
 /** Library status chip: text + icon, never color alone (`.claude/rules/ui-ux.md` §4). */
 export function LibraryStatusBadge({ status }: { status: LibraryDisplayState | null }) {
-  const { label, variant, Icon } = LIBRARY_STATES[status ?? "NONE"];
+  const t = useT();
+  const { label, variant, Icon } = LIBRARY_STATES(t)[status ?? "NONE"];
   return (
     <Badge variant={variant}>
       <Icon aria-hidden="true" />
@@ -63,6 +65,7 @@ function rowDisplayState(row: TeacherLibraryRow): LibraryDisplayState {
  * institute on every call - this section only reflects what it returns.
  */
 export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage: boolean; bunnyConnected: boolean }) {
+  const t = useT();
   const router = useRouter();
   const query = useBunnyLibraries();
   const mutation = useCreateBunnyLibrary();
@@ -82,7 +85,7 @@ export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage
       // The clicked button disappears once the row is Ready - keep keyboard focus nearby (UX-2).
       requestAnimationFrame(() => successRef.current?.focus());
     } catch (error) {
-      setFailure(isApiClientError(error) ? error.message : "The library could not be created. Please try again.");
+      setFailure(isApiClientError(error) ? error.message : t("teacher.bunny.theLibraryCouldNot"));
     } finally {
       setPendingTeacherId(null);
     }
@@ -103,7 +106,7 @@ export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage
         aria-busy={busy}
         aria-label={retry ? `Retry creating ${name}'s library` : `Create ${name}'s library now`}
       >
-        {busy ? "Creating…" : retry ? "Retry" : "Create library now"}
+        {busy ? t("teacher.bunny.creating") : retry ? t("teacher.bunny.retry") : t("teacher.bunny.createLibraryNow")}
       </Button>
     );
   }
@@ -131,7 +134,7 @@ export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage
       header: "Details",
       cell: (row) => {
         const detail =
-          rowDisplayState(row) === "INTERRUPTED" ? "The setup was interrupted. Retry to finish it." : row.library?.lastError;
+          rowDisplayState(row) === "INTERRUPTED" ? t("teacher.bunny.theSetupWasInterrupted") : row.library?.lastError;
         return detail ? <span className="text-sm text-muted-foreground">{detail}</span> : "—";
       },
     },
@@ -142,7 +145,7 @@ export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage
     <section aria-labelledby="bunny-libraries-heading" className="flex flex-col gap-3">
       <div>
         <h2 id="bunny-libraries-heading" className="text-base font-medium text-foreground">
-          Teacher video libraries
+          {t("teacher.bunny.teacherVideoLibraries")}
         </h2>
         <p className="text-sm text-muted-foreground">
           Every teacher gets their own Bunny.net library in your institute&apos;s account. It is created automatically
@@ -150,7 +153,7 @@ export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage
         </p>
       </div>
       {!bunnyConnected ? (
-        <p className="text-sm text-muted-foreground">Connect a Bunny.net account above to create teacher libraries.</p>
+        <p className="text-sm text-muted-foreground">{t("teacher.bunny.connectABunnyNet")}</p>
       ) : null}
       <p
         ref={successRef}
@@ -166,13 +169,13 @@ export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage
       </p>
       <QueryStateBoundary
         query={query}
-        loadingLabel="Loading teacher libraries…"
-        genericErrorMessage="Teacher libraries could not be loaded."
+        loadingLabel={t("teacher.bunny.loadingTeacherLibraries")}
+        genericErrorMessage={t("teacher.bunny.teacherLibrariesCouldNot")}
         isEmpty={(rows) => rows.length === 0}
         emptyState={{
-          title: "No approved teachers yet",
-          description: "Once a teacher is approved, they will get their own video library here.",
-          action: { label: "Manage teachers", onClick: () => router.push("/tenant-admin/teachers") },
+          title: t("teacher.bunny.noApprovedTeachersYet"),
+          description: t("teacher.bunny.onceATeacherIs"),
+          action: { label: t("teacher.bunny.manageTeachers"), onClick: () => router.push("/tenant-admin/teachers") },
         }}
         permissionDenied={{ dashboardHref: "/tenant-admin/dashboard" }}
       >
@@ -181,7 +184,7 @@ export function BunnyLibrariesSection({ canManage, bunnyConnected }: { canManage
             columns={columns}
             rows={rows}
             rowKey={(row) => row.teacherUserId}
-            caption="Teacher video libraries"
+            caption={t("teacher.bunny.teacherVideoLibraries")}
             cardHeading={(row) => row.teacherName || "Unknown teacher"}
             cardHeadingAdornment={(row) => <LibraryStatusBadge status={rowDisplayState(row)} />}
             cardFooter={(row) => action(row)}
@@ -204,6 +207,7 @@ export function TeacherVideoLibraryCard({
   bunnyConnected: boolean;
   library: { status: BunnyLibraryStatus; libraryName: string } | null;
 }) {
+  const t = useT();
   let description: string;
   if (!bunnyConnected && !library) {
     description = "Your institute hasn't connected Bunny.net yet.";
@@ -223,13 +227,13 @@ export function TeacherVideoLibraryCard({
     <section aria-labelledby="teacher-video-library-heading" className="flex flex-col gap-2 rounded-lg border border-border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="teacher-video-library-heading" className="text-base font-medium text-foreground">
-          Your video library
+          {t("teacher.bunny.yourVideoLibrary")}
         </h2>
         <LibraryStatusBadge status={library?.status ?? null} />
       </div>
       <p className="text-sm text-muted-foreground">{description}</p>
       {library ? <p className="break-all text-sm text-foreground">{library.libraryName}</p> : null}
-      <p className="text-xs text-muted-foreground">Hosted on Bunny.net by your institute.</p>
+      <p className="text-xs text-muted-foreground">{t("teacher.bunny.hostedOnBunnyNet")}</p>
     </section>
   );
 }

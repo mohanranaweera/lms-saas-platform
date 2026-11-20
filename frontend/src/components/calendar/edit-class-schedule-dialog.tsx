@@ -22,6 +22,7 @@ import {
   useClassSchedule,
   useSaveClassSchedule,
   WEEKDAY_LABELS,
+  weekdayLabel,
   WEEKDAYS,
   type ClassScheduleResponse,
   type Weekday,
@@ -31,6 +32,8 @@ import { formatWallTime, timeZoneLabel } from "@/lib/calendar/time";
 import { classScheduleFormSchema, type ClassScheduleFormValues } from "@/lib/validation/class-schedule";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/i18n-provider";
+import { localizeApiError } from "@/i18n/errors";
 /**
  * "Edit Class Schedule" (CAL-01, docs/specs/class-calendar.md §6.1/§6.2/§8).
  * Shared by the Tenant Admin course ⋮ menu, the Teacher course list and the
@@ -55,6 +58,7 @@ export function EditClassScheduleDialog({
   /** Called after a confirmed save (e.g. to show a toast). */
   onSaved?: (schedule: ClassScheduleResponse) => void;
 }) {
+  const t = useT();
   const query = useClassSchedule(courseId, open);
   // Bumped on "Reload" after a conflict so the form re-initialises from the fresh server copy.
   const [formVersion, setFormVersion] = useState(0);
@@ -70,18 +74,18 @@ export function EditClassScheduleDialog({
   if (query.isPending) {
     content = (
       <DialogBody>
-        <LoadingState label="Loading class schedule…" />
+        <LoadingState label={t("calendar.editClassScheduleDialog.loadingClassSchedule")} />
       </DialogBody>
     );
   } else if (query.isError) {
     const error = query.error;
     const message = isApiClientError(error)
       ? error.status === 403
-        ? "You don't have permission to view this course's class schedule."
+        ? t("calendar.editClassScheduleDialog.youDontHavePermission")
         : error.status === 404
-          ? "This course was not found. It may have been deleted."
+          ? t("calendar.editClassScheduleDialog.thisCourseWasNot")
           : error.message
-      : "We couldn't load the class schedule.";
+      : t("calendar.schedule.loadFailed");
     content = (
       <>
         <DialogBody>
@@ -92,7 +96,7 @@ export function EditClassScheduleDialog({
         </DialogBody>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={close}>
-            Close
+            {t("calendar.editClassScheduleDialog.close")}
           </Button>
         </DialogFooter>
       </>
@@ -121,12 +125,11 @@ export function EditClassScheduleDialog({
     <CalendarDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Edit Class Schedule"
+      title={t("calendar.editClassScheduleDialog.editClassSchedule")}
       icon={<CalendarClock className="size-5 text-primary" aria-hidden="true" />}
       description={
         <p>
-          Edit the class schedule for <strong className="font-semibold">{name}</strong>. These times will be shown on the
-          student and public page.
+          {t("calendar.editClassScheduleDialog.editTheClassSchedule")}{" "}<strong className="font-semibold">{name}</strong>{t("calendar.editClassScheduleDialog.theseTimesWillBe")}
         </p>
       }
       testId="edit-class-schedule-dialog"
@@ -138,6 +141,7 @@ export function EditClassScheduleDialog({
 }
 
 function ReadOnlySchedule({ schedule, onClose }: { schedule: ClassScheduleResponse; onClose: () => void }) {
+  const t = useT();
   return (
     <>
       <DialogBody className="flex flex-col gap-4">
@@ -151,7 +155,7 @@ function ReadOnlySchedule({ schedule, onClose }: { schedule: ClassScheduleRespon
       </DialogBody>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
-          Close
+          {t("calendar.editClassScheduleDialog.close")}
         </Button>
       </DialogFooter>
     </>
@@ -160,16 +164,17 @@ function ReadOnlySchedule({ schedule, onClose }: { schedule: ClassScheduleRespon
 
 /** Read-only weekly list, Monday→Sunday, then start time. Shared with the course Schedule tab. */
 export function ScheduleSummaryList({ schedule }: { schedule: ClassScheduleResponse }) {
+  const t = useT();
   const rows = sortRows(schedule.slots);
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">No weekly class times are set for this course.</p>;
+    return <p className="text-sm text-muted-foreground">{t("calendar.editClassScheduleDialog.noWeeklyClassTimes")}</p>;
   }
   return (
     <div className="flex flex-col gap-3">
-      <ul className="divide-y divide-border rounded-lg border border-border" aria-label="Weekly class times">
+      <ul className="divide-y divide-border rounded-lg border border-border" aria-label={t("calendar.editClassScheduleDialog.weeklyClassTimes")}>
         {rows.map((slot) => (
           <li key={slot.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-            <span className="font-medium">{WEEKDAY_LABELS[slot.dayOfWeek]}</span>
+            <span className="font-medium">{weekdayLabel(slot.dayOfWeek, t.locale)}</span>
             <span className="tabular-nums text-muted-foreground">
               {formatWallTime(slot.startTime)} – {formatWallTime(slot.endTime)}
             </span>
@@ -178,8 +183,12 @@ export function ScheduleSummaryList({ schedule }: { schedule: ClassScheduleRespo
       </ul>
       <p className="text-xs text-muted-foreground">
         {schedule.effectiveFrom || schedule.effectiveTo
-          ? `Shown ${schedule.effectiveFrom ? `from ${schedule.effectiveFrom}` : ""}${schedule.effectiveFrom && schedule.effectiveTo ? " " : ""}${schedule.effectiveTo ? `until ${schedule.effectiveTo}` : ""} (inclusive). `
-          : "No date range: repeats every week. "}
+          ? schedule.effectiveFrom && schedule.effectiveTo
+            ? t("calendar.schedule.shownFromUntil", { from: schedule.effectiveFrom, until: schedule.effectiveTo })
+            : schedule.effectiveFrom
+              ? t("calendar.schedule.shownFrom", { from: schedule.effectiveFrom })
+              : t("calendar.schedule.shownUntil", { until: schedule.effectiveTo })
+          : t("calendar.editClassScheduleDialog.noDateRangeRepeats")}
         Times are in {timeZoneLabel(schedule.timezone)}.
       </p>
     </div>
@@ -207,6 +216,7 @@ function ScheduleForm({
   onSaved: (schedule: ClassScheduleResponse) => void;
   onReload: () => Promise<void>;
 }) {
+  const t = useT();
   const save = useSaveClassSchedule(courseId);
   const [conflict, setConflict] = useState<string | null>(null);
   const [serverMessages, setServerMessages] = useState<string[]>([]);
@@ -269,15 +279,15 @@ function ScheduleForm({
         onSuccess: onSaved,
         onError: (error) => {
           if (!isApiClientError(error)) {
-            setServerMessages(["The schedule could not be saved. Please try again."]);
+            setServerMessages([t("calendar.schedule.saveFailedRetry")]);
             return;
           }
           if (error.status === 409 || error.code === "SCHEDULE_CONFLICT") {
-            setConflict(error.message || "This schedule was changed by someone else. Reload to see the latest version.");
+            setConflict(t("calendar.schedule.conflict"));
             return;
           }
           if (error.status === 403) {
-            setServerMessages(["You don't have permission to change this course's class schedule."]);
+            setServerMessages([t("calendar.schedule.noPermission")]);
             return;
           }
           const unmatched: string[] = [];
@@ -300,7 +310,7 @@ function ScheduleForm({
             unmatched.push(fieldError.message);
           }
           if (unmatched.length > 0 || (error.fieldErrors ?? []).length === 0) {
-            setServerMessages(unmatched.length > 0 ? unmatched : [error.message || "The schedule could not be saved."]);
+            setServerMessages(unmatched.length > 0 ? unmatched : [localizeApiError(t, error)]);
           }
         },
       }
@@ -331,7 +341,7 @@ function ScheduleForm({
   const hasErrors = isSubmitted && (Object.keys(errors).length > 0 || (live != null && !live.valid));
 
   return (
-    <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col" aria-label="Class schedule">
+    <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col" aria-label={t("calendar.editClassScheduleDialog.classSchedule")}>
       <DialogBody className="flex flex-col gap-4">
         {conflict ? (
           <Alert variant="destructive" data-testid="schedule-conflict">
@@ -340,7 +350,7 @@ function ScheduleForm({
               <span>{conflict}</span>
               <Button type="button" size="sm" variant="outline" className="w-fit" onClick={() => void reload()} disabled={reloading}>
                 <RotateCw aria-hidden="true" />
-                {reloading ? "Reloading…" : "Reload"}
+                {reloading ? t("calendar.editClassScheduleDialog.reloading") : t("calendar.editClassScheduleDialog.reload")}
               </Button>
             </AlertDescription>
           </Alert>
@@ -368,13 +378,13 @@ function ScheduleForm({
             data-testid="schedule-add-day"
           >
             <PlusCircle aria-hidden="true" />
-            Add day
+            {t("calendar.editClassScheduleDialog.addDay")}
             <ChevronDown aria-hidden="true" />
           </DropdownMenuTrigger>
           <DropdownMenuContent data-testid="schedule-add-day-menu">
             {WEEKDAYS.map((day) => (
               <DropdownMenuItem key={day} onClick={() => addDay(day)}>
-                {WEEKDAY_LABELS[day]}
+                {weekdayLabel(day, t.locale)}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -382,21 +392,20 @@ function ScheduleForm({
 
         {grouped.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center" data-testid="schedule-empty">
-            <p className="font-medium text-foreground">No class times</p>
+            <p className="font-medium text-foreground">{t("calendar.editClassScheduleDialog.noClassTimes")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Use <strong>Add day</strong> to add a weekly class time. Saving with no class times clears all future recurring
-              classes for this course. Past classes, lessons, live sessions and attendance are not changed.
+              {t("calendar.editClassScheduleDialog.use")}{" "}<strong>{t("calendar.editClassScheduleDialog.addDay")}</strong>{" "}{t("calendar.editClassScheduleDialog.toAddAWeekly")}
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
             {grouped.map(({ day, rows }) => (
               <fieldset key={day} className="flex flex-col gap-3" data-testid="schedule-day-group" data-day={day}>
-                <legend className="mb-2 text-base font-medium text-foreground">{WEEKDAY_LABELS[day]}</legend>
+                <legend className="mb-2 text-base font-medium text-foreground">{weekdayLabel(day, t.locale)}</legend>
                 {rows.map(({ field, index }, position) => {
                   const rowErrors = errors.slots?.[index];
                   const rowError = rowMessage(index);
-                  const rowName = `${WEEKDAY_LABELS[day]} class ${position + 1}`;
+                  const rowName = t("calendar.schedule.rowName", { day: weekdayLabel(day, t.locale), number: position + 1 });
                   const startId = `slot-${field.fieldId}-start`;
                   const endId = `slot-${field.fieldId}-end`;
                   const rowErrorId = `slot-${field.fieldId}-row-error`;
@@ -406,7 +415,7 @@ function ScheduleForm({
                         <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
                           <TimeField
                             id={startId}
-                            label="Start time"
+                            label={t("calendar.editClassScheduleDialog.startTime")}
                             srContext={rowName}
                             error={rowErrors?.startTime?.message}
                             describedBy={rowError ? rowErrorId : undefined}
@@ -414,7 +423,7 @@ function ScheduleForm({
                           />
                           <TimeField
                             id={endId}
-                            label="End time"
+                            label={t("calendar.editClassScheduleDialog.endTime")}
                             srContext={rowName}
                             error={rowErrors?.endTime?.message}
                             describedBy={rowError ? rowErrorId : undefined}
@@ -453,17 +462,17 @@ function ScheduleForm({
         ) : null}
 
         <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
-          <legend className="sr-only">Date range (optional)</legend>
+          <legend className="sr-only">{t("calendar.editClassScheduleDialog.dateRangeOptional")}</legend>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DateField
               id="schedule-effective-from"
-              label="From date (optional)"
+              label={t("calendar.editClassScheduleDialog.fromDateOptional")}
               error={errors.effectiveFrom?.message}
               {...register("effectiveFrom")}
             />
             <DateField
               id="schedule-effective-to"
-              label="To date (optional)"
+              label={t("calendar.editClassScheduleDialog.toDateOptional")}
               error={effectiveToError}
               {...register("effectiveTo")}
             />
@@ -487,14 +496,14 @@ function ScheduleForm({
       <DialogFooter>
         {hasErrors ? (
           <p className="text-sm text-destructive sm:mr-auto sm:self-center" role="alert">
-            Fix the highlighted fields to save.
+            {t("calendar.editClassScheduleDialog.fixTheHighlightedFields")}
           </p>
         ) : null}
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          {t("calendar.editClassScheduleDialog.cancel")}
         </Button>
         <Button type="submit" disabled={save.isPending} aria-busy={save.isPending} data-testid="schedule-save">
-          {save.isPending ? "Saving…" : "Save"}
+          {save.isPending ? t("calendar.editClassScheduleDialog.saving") : t("calendar.editClassScheduleDialog.save")}
         </Button>
       </DialogFooter>
     </form>
@@ -511,13 +520,14 @@ function TimeField({
   describedBy,
   ...input
 }: RegisteredInputProps & { id: string; label: string; srContext: string; error?: string; describedBy?: string }) {
+  const t = useT();
   const errorId = `${id}-error`;
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
         {label}
         <span aria-hidden="true"> *</span>
-        <span className="sr-only"> for {srContext}</span>
+        <span className="sr-only"> {t("calendar.schedule.forContext", { context: srContext })}</span>
       </label>
       <Input
         id={id}
