@@ -22,6 +22,7 @@ import {
 import { useSelfEnrollmentEnabled } from "@/lib/api/public-home";
 import { CourseCover, PriceBadge } from "./course-visuals";
 import { EnrollConfirmDialog, enrollErrorMessage } from "./enroll-confirm-dialog";
+import { ExpiredLegacyAccessSection } from "./legacy-reactivation";
 import { StudentToast, useStudentToast } from "./student-toast";
 import { useT } from "@/i18n/i18n-provider";
 import { useContentLang } from "@/i18n/content-lang";
@@ -127,6 +128,9 @@ export function StudentCourseCatalog() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6" data-testid="student-course-catalog">
+      {/* Legacy paid-access renewal (ADR-013) for EXPIRED legacy enrollments -
+          independent of the catalog read, renders nothing unless there are any. */}
+      {view === "ENROLLED" ? <ExpiredLegacyAccessSection /> : null}
       <section aria-label={t("student.catalog.filtersRegion")} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex w-full flex-col gap-1 sm:max-w-md">

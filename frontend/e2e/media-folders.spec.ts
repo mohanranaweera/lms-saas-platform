@@ -338,7 +338,11 @@ test.describe("Media Library folders", () => {
 
     // Inside a folder the new folder is created there.
     await folderCard(page, BIOLOGY).getByTestId("media-folder-open").click();
+    // Let Biology's contents load first: the panel re-renders when they arrive,
+    // which would reopen the dialog empty and drop anything typed before.
+    await expect(folderCard(page, CELLS)).toBeVisible();
     await page.getByTestId("media-folders-new").click();
+    await expect(page.getByTestId("media-folder-name-counter")).toHaveText("0 / 100");
     await page.getByLabel("Folder name").fill("Genetics");
     await page.getByTestId("media-folder-name-submit").click();
     await expect(page.getByTestId("media-folder-card").filter({ hasText: "Genetics" })).toBeVisible();

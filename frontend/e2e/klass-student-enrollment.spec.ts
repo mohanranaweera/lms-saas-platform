@@ -98,7 +98,8 @@ test("CM-S01/EP-E02/EP-E01: Available card, enroll confirmation NO changes nothi
   expect(offers.status).toBe(200);
   expect((offers.body.data?.items ?? []).every((i) => i.state === "AVAILABLE")).toBe(true);
 
-  await page.getByTestId("catalog-view-enrolled").click();
+  // The Enrolled view is the header's "My Courses" link (`/student/courses`).
+  await page.getByRole("link", { name: "My Courses", exact: true }).click();
   await expect(page.getByTestId("catalog-course-card").filter({ hasText: course.name })).toBeVisible();
 
   // T8b: participants now see the invite link.

@@ -250,7 +250,8 @@ test.describe("student — Browse courses (in-portal catalog)", () => {
     // Stays in the portal shell — the public header's "Sign in" link never appears.
     await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
 
-    await page.getByTestId("catalog-view-enrolled").click();
+    // The Enrolled view is the header's "My Courses" link (`/student/courses`).
+    await page.getByRole("link", { name: "My Courses", exact: true }).click();
     await expect(page.getByRole("link", { name: "Open course Biology" })).toHaveAttribute(
       "href",
       `/student/courses/${COURSE_ID}`

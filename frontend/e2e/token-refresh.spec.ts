@@ -84,7 +84,9 @@ test.describe("silent refresh — cached token, protected call rejected then ret
       });
     });
 
-    // Student portal: logout has no confirmation step (see logout.spec.ts).
+    // Student portal: logout has no confirmation step (see logout.spec.ts) and
+    // sits inside the header account menu.
+    await page.getByRole("button", { name: "Open account menu" }).click();
     await page.getByRole("button", { name: "Sign out" }).click();
 
     await expect(page).toHaveURL(/\/login$/);

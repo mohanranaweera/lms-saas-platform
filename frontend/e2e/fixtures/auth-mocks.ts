@@ -117,12 +117,18 @@ export async function fulfillJson(route: Route, status: number, body: unknown): 
 }
 
 /**
+ * `/v1/teachers` with or without a query string: the Teacher List page calls
+ * `/v1/teachers?q=&page=&size=`, which a plain "/v1/teachers" glob misses.
+ */
+export const TEACHER_LIST_URL = /\/v1\/teachers(\?.*)?$/;
+
+/**
  * Registers a fixed-response mock for every request matching `urlGlob` for
  * the lifetime of the page (or until `page.unroute` is called). Use for
  * endpoints that are only ever expected to be called with one outcome in a
  * given test.
  */
-export async function mockJson(page: Page, urlGlob: string, status: number, body: unknown): Promise<void> {
+export async function mockJson(page: Page, urlGlob: string | RegExp, status: number, body: unknown): Promise<void> {
   await page.route(urlGlob, async (route) => {
     await fulfillJson(route, status, body);
   });

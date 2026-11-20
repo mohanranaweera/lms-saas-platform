@@ -312,7 +312,7 @@ function TeacherListResults({
       ) : (
         <ReorderableTable
           columns={[
-            { key: "teacher", header: "Teacher", cardLabel: "Teacher", cell: (teacher) => <div className="flex items-center gap-3"><TeacherAvatar teacher={teacher} /><div><p className="font-medium text-foreground">{teacher.name}</p><p className="text-xs text-muted-foreground">{teacher.approvalStatus}</p></div></div> },
+            { key: "teacher", header: "Teacher", cardLabel: "Teacher", cell: (teacher) => <div className="flex items-center gap-3"><TeacherAvatar teacher={teacher} /><div><p className="font-medium text-foreground">{teacher.name}</p><p className="text-xs text-muted-foreground">{TEACHER_APPROVAL_STATUS_LABELS[teacher.approvalStatus]}</p></div></div> },
             { key: "email", header: "Email", cell: (teacher) => teacher.email },
             { key: "contact", header: "Contact Number", cell: (teacher) => teacher.contactNumber ?? "—" },
             { key: "students", header: "Student Count", cell: (teacher) => teacher.studentCount },

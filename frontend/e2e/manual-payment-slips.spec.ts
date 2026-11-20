@@ -138,11 +138,25 @@ test.describe("checkout — Pay by bank transfer (MVP-011)", () => {
     expect(paymentsCalled).toBe(false);
   });
 
-  test("both Enroll and Pay by bank transfer are disabled while either submission is in flight", async ({
+  test("both Pay online and Pay by bank transfer are disabled while either submission is in flight", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
     await mockJson(page, `**/api/v1/courses/${COURSE.id}`, 200, apiSuccess(COURSE));
+    // The online button only renders when the institute has an active gateway
+    // (PAY-GW-01) and the student has a billing address.
+    await mockJson(
+      page,
+      "**/v1/checkout/payment-options",
+      200,
+      apiSuccess({ bankSlip: true, onlinePayment: { provider: "PAYHERE", mode: "SANDBOX" } })
+    );
+    await mockJson(
+      page,
+      "**/v1/students/me/billing-address",
+      200,
+      apiSuccess({ addressLine: "No. 1, Galle Road", city: "Colombo" })
+    );
 
     const order = makeOrder();
     let releaseOrderCreate: (() => void) | undefined;
@@ -161,7 +175,7 @@ test.describe("checkout — Pay by bank transfer (MVP-011)", () => {
     await page.goto(`/student/checkout/${COURSE.id}`);
     await page.getByRole("button", { name: "Pay by bank transfer" }).click();
 
-    const enrollButton = page.getByRole("button", { name: /Enroll|Starting checkout/ });
+    const enrollButton = page.getByRole("button", { name: /Pay online|Starting/ });
     const slipButton = page.getByRole("button", { name: /Pay by bank transfer|Preparing/ });
     await expect(slipButton).toBeDisabled();
     await expect(enrollButton).toBeDisabled();

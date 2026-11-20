@@ -162,13 +162,14 @@ test.describe("student — My Courses (card grid, MVP-013 SDASH-2)", () => {
     await expect(page.getByRole("list", { name: "Enrolled Courses" }).getByText("My Biology")).toBeVisible();
     await expect(page.getByText("Open Chemistry")).toHaveCount(0);
 
-    await page.getByTestId("catalog-view-available").click();
+    // The view is URL-driven (`?view=available`; the nav links switch it).
+    await page.goto("/student/courses?view=available");
     await expect(page.getByRole("list", { name: "Available Courses" }).getByText("Open Chemistry")).toBeVisible();
     await expect(page.getByText("My Biology")).toHaveCount(0);
     expect(views).toEqual(expect.arrayContaining(["ENROLLED", "AVAILABLE"]));
   });
 
-  test("a failed catalog read degrades gracefully — a retryable error, the page (heading, view switch) not blanked", async ({
+  test("a failed catalog read degrades gracefully — a retryable error, the page (search and filters) not blanked", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
@@ -177,8 +178,8 @@ test.describe("student — My Courses (card grid, MVP-013 SDASH-2)", () => {
 
     await page.goto("/student/courses");
 
-    await expect(page.getByTestId("catalog-heading")).toBeVisible();
-    await expect(page.getByTestId("catalog-view-available")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Search and filters" })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search courses" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 

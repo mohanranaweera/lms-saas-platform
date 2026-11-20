@@ -11,8 +11,8 @@ const profileFields = {
   publicProfileDisabled: z.boolean(),
 };
 
+// No `name`: the form has no such field; the page composes it from firstName + lastName on submit.
 export const teacherCreateSchema = z.object({
-  name: z.string().trim().min(1).max(255),
   firstName: profileFields.firstName,
   lastName: profileFields.lastName,
   contactNumber: profileFields.contactNumber,
