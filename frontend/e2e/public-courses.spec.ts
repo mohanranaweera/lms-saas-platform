@@ -165,7 +165,10 @@ test.describe("public course list", () => {
 });
 
 test.describe("public course detail", () => {
-  test("renders full course details when present", async ({ page }) => {
+  // KLASS parity: an anonymous visitor sees cover, price, name, teacher and
+  // "Register now" only; the details panel (subject, grade, access period,
+  // enrollment rule) is no longer shown here.
+  test("renders the course name, price and a sign-in call to action", async ({ page }) => {
     await mockJson(
       page,
       "**/v1/public/courses/intro-to-biology",
@@ -175,19 +178,15 @@ test.describe("public course detail", () => {
     await page.goto("/courses/intro-to-biology");
 
     await expect(page.getByRole("heading", { name: "Intro to Biology" })).toBeVisible();
-    await expect(page.getByText("Biology", { exact: true })).toBeVisible();
-    await expect(page.getByText("Grade 9")).toBeVisible();
-    await expect(page.getByText("A beginner-friendly introduction to biology.")).toBeVisible();
-    await expect(page.getByText("49.99")).toBeVisible();
-    await expect(page.getByText("180 days")).toBeVisible();
-    await expect(page.getByText("Open enrollment, no prerequisites.")).toBeVisible();
+    await expect(page.getByTestId("course-price-badge")).toHaveText("USD 49.99");
+    await expect(page.getByRole("link", { name: "Register now" })).toHaveAttribute("href", "/login");
 
     // Read-only inventory display only — no enrollment surface exists yet.
     await expect(page.getByRole("button", { name: /Enroll/ })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Enroll/ })).toHaveCount(0);
   });
 
-  test("omits nullable fields instead of showing blanks, and shows lifetime access when unset", async ({
+  test("omits nullable fields instead of showing blanks", async ({
     page,
   }) => {
     await mockJson(
@@ -199,7 +198,6 @@ test.describe("public course detail", () => {
     await page.goto("/courses/advanced-calculus");
 
     await expect(page.getByRole("heading", { name: "Advanced Calculus" })).toBeVisible();
-    await expect(page.getByText("Lifetime access")).toBeVisible();
     await expect(page.getByText("Subject")).toHaveCount(0);
     await expect(page.getByText("Enrollment rule")).toHaveCount(0);
   });
@@ -217,7 +215,7 @@ test.describe("public course detail", () => {
 
     await expect(page.getByText("Course not found", { exact: true })).toBeVisible();
     await expect(
-      page.getByText("it may be unpublished or the link may be incorrect", { exact: false })
+      page.getByText("may be unpublished or the link may be incorrect", { exact: false })
     ).toBeVisible();
     // Must not use the scary/destructive-styled generic error state for this
     // expected, anti-enumeration outcome.
@@ -255,7 +253,7 @@ test.describe("public course detail — pricing-model-aware rendering (course-ma
     await expect(page.getByText("Free", { exact: true })).toBeVisible();
   });
 
-  test("a MONTHLY course with no configured billing period shows a not-yet-available state instead of a broken price, and hides the enroll CTA", async ({
+  test("a MONTHLY course with no configured billing period shows no price instead of a broken one, and no enroll CTA", async ({
     page,
   }) => {
     const unconfigured = {
@@ -269,10 +267,8 @@ test.describe("public course detail — pricing-model-aware rendering (course-ma
     await mockJson(page, "**/v1/public/courses/monthly-unconfigured", 200, apiSuccess(unconfigured));
     await page.goto("/courses/monthly-unconfigured");
 
-    await expect(page.getByText("Pricing not yet available")).toBeVisible();
-    await expect(
-      page.getByText("Pricing for this course hasn't been configured yet", { exact: false })
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: unconfigured.name })).toBeVisible();
+    await expect(page.getByTestId("course-price-badge")).toHaveCount(0);
     // No enroll/sign-in CTA is offered for a course that can't be checked out yet.
     await expect(page.getByRole("link", { name: "Sign in to enroll" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Enroll now" })).toHaveCount(0);
@@ -292,10 +288,10 @@ test.describe("public course detail — pricing-model-aware rendering (course-ma
     await mockJson(page, "**/v1/public/courses/monthly-configured", 200, apiSuccess(configured));
     await page.goto("/courses/monthly-configured");
 
-    await expect(page.getByText("15.00 USD/month")).toBeVisible();
+    await expect(page.getByTestId("course-price-badge")).toHaveText("USD 15 / month");
   });
 
-  test("a CUSTOM-priced course shows contact-us messaging, never an amount, and never a checkout CTA", async ({
+  test("a CUSTOM-priced course never shows an amount or a checkout CTA", async ({
     page,
   }) => {
     const customCourse = {
@@ -309,10 +305,8 @@ test.describe("public course detail — pricing-model-aware rendering (course-ma
     await mockJson(page, "**/v1/public/courses/custom-priced", 200, apiSuccess(customCourse));
     await page.goto("/courses/custom-priced");
 
-    await expect(page.getByText("Contact us for pricing")).toBeVisible();
-    await expect(
-      page.getByText("pricing and enrollment are arranged manually by our staff", { exact: false })
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: customCourse.name })).toBeVisible();
+    await expect(page.getByTestId("course-price-badge")).toHaveCount(0);
     // No self-serve checkout CTA — this is the actual bug fix under test.
     await expect(page.getByRole("link", { name: "Sign in to enroll" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Enroll now" })).toHaveCount(0);
