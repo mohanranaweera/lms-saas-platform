@@ -46,6 +46,8 @@ import { LoadingState } from "@/components/states/loading-state";
 import { useT } from "@/i18n/i18n-provider";
 import { translateSource } from "@/i18n/translate-source";
 import { localizeApiError } from "@/i18n/errors";
+import { withReturnTo } from "@/lib/navigation/return-to";
+import { useReturnToParam } from "@/lib/storefront/use-storefront-return-to";
 /**
  * Real, tenant-driven student self-registration (Wave 3, PAR-03-01 —
  * replaces the previous disabled placeholder shell).
@@ -113,6 +115,8 @@ export default function RegisterPage() {
   const t = useT();
   const router = useRouter();
   const policyQuery = useStudentRegistrationPolicy();
+  // STORE-01: carry a validated returnTo on to sign-in.
+  const loginHref = withReturnTo("/login", useReturnToParam());
 
   if (policyQuery.status === "pending") {
     return (
@@ -157,7 +161,7 @@ export default function RegisterPage() {
             icon={<Lock className="size-6" aria-hidden="true" />}
             title={t("auth.register.selfRegistrationIsntAvailable")}
             description={t("auth.register.thisInstituteIsntAccepting")}
-            action={{ label: t("auth.register.backToSignIn"), onClick: () => router.push("/login") }}
+            action={{ label: t("auth.register.backToSignIn"), onClick: () => router.push(loginHref) }}
           />
         </CardContent>
       </Card>
@@ -173,6 +177,7 @@ interface RegisterFormFlowProps {
 
 function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
   const t = useT();
+  const loginHref = withReturnTo("/login", useReturnToParam());
   const [step, setStep] = useState<Step>("form");
   const [pageError, setPageError] = useState<PageErrorState | null>(null);
   const [pendingApproval, setPendingApproval] = useState(false);
@@ -324,7 +329,7 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
             )}
           </div>
           <Link
-            href="/login"
+            href={loginHref}
             className="text-center text-sm font-medium text-foreground hover:underline"
           >
             Back to sign in
@@ -469,7 +474,7 @@ function RegisterFormFlow({ policy }: RegisterFormFlowProps) {
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
-            href="/login"
+            href={loginHref}
             className="font-medium text-foreground hover:underline"
             onClick={(event) => {
               if (!confirmDiscardUnsavedChanges()) event.preventDefault();

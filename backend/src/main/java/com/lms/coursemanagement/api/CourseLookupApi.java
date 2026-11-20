@@ -236,6 +236,15 @@ public interface CourseLookupApi {
 	 */
 	List<CourseSummary> listCourseSummariesByTeacherId(UUID teacherId);
 
+	/**
+	 * STORE-01: every course of the current tenant {@code teacherUserId} is
+	 * assigned to through {@code course_teacher_assignment} (primary or
+	 * co-teacher), sorted by name. Tenant-scoped; empty for a foreign id.
+	 */
+	default List<CourseSummary> listAssignedCourseSummaries(UUID teacherUserId) {
+		return listCourseSummariesByTeacherId(teacherUserId);
+	}
+
 	/** Public storefront courses assigned to an approved teacher, excluding archived and non-public courses. */
 	List<com.lms.coursemanagement.api.PublicCourseSummary> listPublicCourseSummariesByTeacherId(UUID teacherId);
 

@@ -2,6 +2,7 @@ package com.lms.coursemanagement.course.service;
 
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.NotFoundException;
+import com.lms.common.tenant.StorefrontContextHolder;
 import com.lms.coursemanagement.api.CheckoutAmount;
 import com.lms.coursemanagement.course.domain.Course;
 import com.lms.coursemanagement.course.domain.CourseStatus;
@@ -13,8 +14,11 @@ import com.lms.coursemanagement.course.repository.CourseTagAssignmentRepository;
 import com.lms.coursemanagement.course.repository.CourseTagRepository;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.usermanagement.api.TeacherLookupApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -54,13 +58,15 @@ public class CoursePublicService {
 	private final CourseLessonRepository courseLessonRepository;
 	private final CourseTagAssignmentRepository courseTagAssignmentRepository;
 	private final CourseTagRepository courseTagRepository;
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
 
 	@org.springframework.beans.factory.annotation.Autowired
 	public CoursePublicService(CourseRepository courseRepository,
 			CourseCheckoutAmountResolver courseCheckoutAmountResolver, TeacherLookupApi teacherLookupApi,
 			ObjectStorageApi objectStorageApi, CourseModuleRepository courseModuleRepository,
 			CourseLessonRepository courseLessonRepository, CourseTagAssignmentRepository courseTagAssignmentRepository,
-			CourseTagRepository courseTagRepository) {
+			CourseTagRepository courseTagRepository, TeacherStorefrontLookupApi storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.courseRepository = courseRepository;
 		this.courseCheckoutAmountResolver = courseCheckoutAmountResolver;
 		this.teacherLookupApi = teacherLookupApi;
@@ -72,7 +78,19 @@ public class CoursePublicService {
 	}
 
 	public CoursePublicService(CourseRepository courseRepository, CourseCheckoutAmountResolver courseCheckoutAmountResolver) {
-		this(courseRepository, courseCheckoutAmountResolver, null, null, null, null, null, null);
+		this(courseRepository, courseCheckoutAmountResolver, null, null, null, null, null, null, null);
+	}
+
+	/**
+	 * STORE-01 / ADR-037 decision 6: on a teacher-storefront host, the
+	 * published courses that storefront lists (intersected with the tenant
+	 * rules by every caller); empty when the request is on a tenant host.
+	 * Fails closed (nothing in scope) if the lookup is unavailable.
+	 */
+	private Optional<Set<UUID>> storefrontScope() {
+		return StorefrontContextHolder.current()
+			.map(storefront -> storefrontLookupApi == null ? Set.<UUID>of()
+					: storefrontLookupApi.findPublishedCourseIds(storefront.storefrontId()));
 	}
 
 	/**
@@ -84,7 +102,9 @@ public class CoursePublicService {
 	 */
 	public List<PublicCourseTag> listPublicTags() {
 		if (courseTagAssignmentRepository == null || courseTagRepository == null) return List.of();
-		var publishedIds = courseRepository.findAll(CourseSpecifications.withStatus(CourseStatus.PUBLIC)).stream().map(Course::getId).toList();
+		Optional<Set<UUID>> scope = storefrontScope();
+		var publishedIds = courseRepository.findAll(CourseSpecifications.withStatus(CourseStatus.PUBLIC)).stream().map(Course::getId)
+			.filter(id -> scope.isEmpty() || scope.get().contains(id)).toList();
 		if (publishedIds.isEmpty()) return List.of();
 		var tagIds = courseTagAssignmentRepository.findByCourseIdIn(publishedIds).stream().map(a -> a.getId().getTagId()).collect(java.util.stream.Collectors.toSet());
 		return courseTagRepository.findAllById(tagIds).stream().map(tag -> new PublicCourseTag(tag.getId(), tag.getName())).sorted(java.util.Comparator.comparing(PublicCourseTag::name, String.CASE_INSENSITIVE_ORDER)).toList();
@@ -105,6 +125,11 @@ public class CoursePublicService {
 				subquery.where(cb.equal(assignment.get("id").get("tagId"), tagId));
 				return root.get("id").in(subquery);
 			});
+		}
+		Optional<Set<UUID>> scope = storefrontScope();
+		if (scope.isPresent()) {
+			Set<UUID> listed = scope.get();
+			spec = spec.and((root, query, cb) -> listed.isEmpty() ? cb.disjunction() : root.get("id").in(listed));
 		}
 		Page<Course> page = courseRepository.findAll(spec, safePageable);
 		Map<UUID, CheckoutAmount> resolvedAmounts = courseCheckoutAmountResolver.resolveBatch(page.getContent());
@@ -131,6 +156,11 @@ public class CoursePublicService {
 			// from a real DRAFT/PRIVATE slug in the same tenant, per plan
 			// §13/§15(d).
 			.orElseThrow(() -> new NotFoundException("Course not found"));
+		// STORE-01: a course this storefront does not sell is the same generic 404.
+		Optional<Set<UUID>> scope = storefrontScope();
+		if (scope.isPresent() && !scope.get().contains(course.getId())) {
+			throw new NotFoundException("Course not found");
+		}
 		Map<UUID, CheckoutAmount> resolvedAmounts = courseCheckoutAmountResolver.resolveBatch(List.of(course));
 		return toView(course, resolvedAmounts);
 	}

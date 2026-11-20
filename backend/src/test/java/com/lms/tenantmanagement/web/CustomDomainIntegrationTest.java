@@ -165,8 +165,10 @@ class CustomDomainIntegrationTest extends AuthIntegrationTestSupport {
 		// The first label equals a real tenant's subdomain, but the host is not
 		// on the platform domain: must never resolve to that tenant.
 		assertThat(probe(fx.tenant.getSubdomain() + ".evil.example")).isEqualTo(403);
-		// Two labels under the platform domain is not a tenant subdomain.
-		assertThat(probe("x." + fx.host)).isEqualTo(403);
+		// Two labels under the platform domain is not a tenant subdomain. Since STORE-01 /
+		// ADR-037 it is the teacher-storefront shape: an unknown storefront is 404
+		// STOREFRONT_NOT_FOUND - still never the tenant's own site.
+		assertThat(probe("x." + fx.host)).isEqualTo(404);
 		assertThat(probe(fx.host)).as("the subdomain keeps working").isEqualTo(200);
 	}
 

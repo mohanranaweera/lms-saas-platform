@@ -72,4 +72,36 @@ public interface TenantLookupApi {
 	 */
 	Optional<String> tenantOrigin(UUID tenantId, String urlTemplate);
 
+	/**
+	 * STORE-01 / ADR-037 decision 2: present only when {@code hostHeader} has
+	 * the two-label storefront shape {@code <label>.<subdomain>.<platform
+	 * domain>} (a platform domain must be configured). The tenant is resolved
+	 * from the second label exactly as {@link #resolveBySubdomain}; a custom
+	 * domain never has this shape. Every other host - one-label subdomains,
+	 * custom domains, the platform domain itself - is empty here and keeps
+	 * resolving through {@link #resolveByHost} unchanged.
+	 */
+	default Optional<StorefrontHostResolution> resolveStorefrontHost(String hostHeader) {
+		return Optional.empty();
+	}
+
+	/**
+	 * STORE-01: the canonical host of a tenant's storefront {@code slug}
+	 * ({@code slug.subdomain.platform-domain}), from a trusted tenant id.
+	 * Empty without a platform domain or for an unknown tenant.
+	 */
+	default Optional<String> storefrontHost(UUID tenantId, String slug) {
+		return Optional.empty();
+	}
+
+	/**
+	 * STORE-01: {@code urlTemplate} (e.g. {@code http://{subdomain}.lms.test:3000})
+	 * with {@code {subdomain}} replaced by {@code slug.subdomain} - never a
+	 * custom domain (storefronts live only under the platform domain). Empty
+	 * when the template is blank or the tenant doesn't exist.
+	 */
+	default Optional<String> storefrontOrigin(UUID tenantId, String slug, String urlTemplate) {
+		return Optional.empty();
+	}
+
 }

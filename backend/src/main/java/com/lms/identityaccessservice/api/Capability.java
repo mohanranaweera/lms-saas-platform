@@ -128,6 +128,11 @@ public enum Capability {
 	TEACHERS_WALLET_ADJUST(CapabilityGroup.TEACHERS, "Adjust Wallet Balance", om(p(FINANCE_EXPENSES, CREATE_EDIT))),
 	TEACHERS_DELETE(CapabilityGroup.TEACHERS, "Delete Teacher",
 			unavailable("Teachers are suspended, never deleted")),
+	// STORE-01 / ADR-037: enable/disable, slug and product list of teacher storefronts. Tenant
+	// Admin only by default; configurable for Operator/Manager (default off); never a Teacher
+	// capability (a teacher editing their own profile gains no storefront rights).
+	TEACHER_STOREFRONT_MANAGE(CapabilityGroup.TEACHERS, "Manage Teacher Storefronts",
+			omFor(new String[] { "TENANT_ADMIN" }, p(TEACHERS, CREATE_EDIT), p(TEACHERS, VIEW))),
 
 	// ---------------------------------------------------------------- Courses
 	COURSES_VIEW(CapabilityGroup.COURSES, "View Courses", omt(p(COURSES, VIEW))),

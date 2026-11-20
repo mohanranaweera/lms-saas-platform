@@ -254,8 +254,11 @@ class CapabilitySemanticsTest {
 			// Manager holds MATERIALS/CREATE_EDIT but must not gain folders without a grant).
 			// FIN-01: payment-account routing decides where every future student payment is posted,
 			// so it is Tenant Admin only by default (Finance Staff holds FINANCE_EXPENSES/CREATE_EDIT).
+			// STORE-01 / ADR-037: teacher storefronts are Tenant Admin only by default (Course
+			// Coordinator holds TEACHERS/CREATE_EDIT but gains no storefront rights without a grant).
 			.containsExactlyInAnyOrder(Capability.COURSES_ENROLL_STUDENTS, Capability.MEDIA_MANAGE_FOLDERS,
-					Capability.MEDIA_SHARE_FOLDERS, Capability.FINANCE_ROUTING_CONFIGURE);
+					Capability.MEDIA_SHARE_FOLDERS, Capability.FINANCE_ROUTING_CONFIGURE,
+					Capability.TEACHER_STOREFRONT_MANAGE);
 	}
 
 	@Test

@@ -275,6 +275,27 @@ public final class ApiErrorCodes {
 	/** TUTE-01: more pending postal tutes than the dispatch queue processes at once. */
 	public static final String TUTE_WORKING_SET_TOO_LARGE = "TUTE_WORKING_SET_TOO_LARGE";
 
+	/** STORE-01 / ADR-037: a storefront-shaped host that names no enabled storefront of the tenant. */
+	public static final String STOREFRONT_NOT_FOUND = "STOREFRONT_NOT_FOUND";
+
+	/** STORE-01: a retired slug of an enabled storefront; {@code details.host} is the current host. */
+	public static final String STOREFRONT_MOVED = "STOREFRONT_MOVED";
+
+	/** STORE-01: on a storefront host, a course the storefront does not sell (checkout). */
+	public static final String STOREFRONT_PRODUCT_OUT_OF_SCOPE = "STOREFRONT_PRODUCT_OUT_OF_SCOPE";
+
+	/** STORE-01: storefront slug breaks the format rules (ADR-037 section 4). */
+	public static final String STOREFRONT_SLUG_INVALID = "STOREFRONT_SLUG_INVALID";
+
+	/** STORE-01: storefront slug is a reserved word. */
+	public static final String STOREFRONT_SLUG_RESERVED = "STOREFRONT_SLUG_RESERVED";
+
+	/** STORE-01: storefront slug is (or was) used by another teacher's storefront in this tenant. */
+	public static final String STOREFRONT_SLUG_TAKEN = "STOREFRONT_SLUG_TAKEN";
+
+	/** STORE-01: a storefront may only list courses its teacher is assigned to in this tenant. */
+	public static final String STOREFRONT_COURSE_NOT_ASSIGNED = "STOREFRONT_COURSE_NOT_ASSIGNED";
+
 	private ApiErrorCodes() {
 	}
 

@@ -13,6 +13,8 @@ import { TodaysClasses } from "@/components/public/todays-classes";
 import { InstituteSocialLinks, instituteAddressLines } from "@/components/public/institute-info";
 import { TENANT_FALLBACK_NAME } from "@/lib/branding/names";
 import { usePublicHome, type PublicHomeResponse } from "@/lib/api/public-home";
+import { useSiteContext } from "@/lib/api/site-context";
+import { StorefrontHome } from "./storefront-home";
 import { usePublicCourses } from "@/lib/api/public-courses";
 import type { CoursePricingModel } from "@/lib/api/courses";
 import { safeYouTubeEmbedUrl } from "@/lib/validation/appearance";
@@ -31,6 +33,25 @@ import { sameLanguage } from "@/i18n/locales";
  * action links into backend-authorized flows.
  */
 export default function HomePage() {
+  const site = useSiteContext();
+  // Started in parallel (the chrome needs it on every host anyway).
+  usePublicHome();
+  const t = useT();
+
+  // STORE-01: a teacher storefront host gets the teacher's own homepage. Until
+  // the host is known nothing renders (no flash of the tenant homepage); if
+  // the endpoint fails the tenant homepage renders as before (fail-open - the
+  // backend scopes every catalog call on a storefront host regardless).
+  if (site.isPending) return <LoadingState label={t("public.home.loading")} className="flex-1 py-24" />;
+  if (site.data?.kind === "STOREFRONT" && site.data.storefront) return <StorefrontHome storefront={site.data.storefront} />;
+  return <TenantHomePage />;
+}
+
+/**
+ * Tenant public home — body only; the header/footer/theme come from
+ * `(public)/layout.tsx` (`PublicChrome`). Unchanged by STORE-01.
+ */
+function TenantHomePage() {
   const home = usePublicHome();
   const t = useT();
 

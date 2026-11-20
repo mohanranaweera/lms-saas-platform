@@ -1,7 +1,11 @@
 package com.lms.identityaccessservice.config;
 
 import com.lms.common.api.ApiErrorCodes;
+import com.lms.common.tenant.StorefrontContext;
+import com.lms.common.tenant.StorefrontContextHolder;
+import com.lms.common.tenant.StorefrontHostResolver;
 import com.lms.common.tenant.TenantContextHolder;
+import com.lms.tenantmanagement.api.StorefrontHostResolution;
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import com.lms.tenantmanagement.api.TenantResolution;
 import com.lms.tenantmanagement.api.TenantStatus;
@@ -10,6 +14,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -58,10 +63,22 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 
 	private final TenantLookupApi tenantLookupApi;
 
+	private final StorefrontHostResolver storefrontHostResolver;
+
 	private final ObjectMapper objectMapper;
 
 	public TenantResolutionFilter(TenantLookupApi tenantLookupApi, ObjectMapper objectMapper) {
+		this(tenantLookupApi, null, objectMapper);
+	}
+
+	/**
+	 * @param storefrontHostResolver STORE-01 storefront resolution; {@code null}
+	 * means storefront-shaped hosts always fail closed (404).
+	 */
+	public TenantResolutionFilter(TenantLookupApi tenantLookupApi, StorefrontHostResolver storefrontHostResolver,
+			ObjectMapper objectMapper) {
 		this.tenantLookupApi = tenantLookupApi;
+		this.storefrontHostResolver = storefrontHostResolver;
 		this.objectMapper = objectMapper;
 	}
 
@@ -93,8 +110,15 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
+		String host = requestHost(request);
+		// STORE-01 / ADR-037: <storefront>.<tenant-subdomain>.<platform-domain>.
+		Optional<StorefrontHostResolution> storefrontHost = tenantLookupApi.resolveStorefrontHost(host);
+		if (storefrontHost.isPresent()) {
+			doFilterStorefront(storefrontHost.get(), request, response, filterChain);
+			return;
+		}
 		// TEN-DOM-01 / ADR-021: a platform subdomain or a verified custom domain.
-		Optional<TenantResolution> tenant = tenantLookupApi.resolveByHost(requestHost(request))
+		Optional<TenantResolution> tenant = tenantLookupApi.resolveByHost(host)
 			.filter(TenantResolutionFilter::isLoginEligible);
 
 		if (tenant.isEmpty()) {
@@ -108,6 +132,46 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 			filterChain.doFilter(request, response);
 		}
 		finally {
+			TenantContextHolder.clear();
+		}
+	}
+
+	/**
+	 * STORE-01 / ADR-037 decisions 2-3: the tenant is resolved from the second
+	 * label first, with exactly the same eligibility rule and the same generic
+	 * 403 as any tenant host. Only then, inside that tenant, is the first label
+	 * resolved to an ENABLED storefront. An unknown, disabled or retired
+	 * storefront NEVER falls back to the tenant catalog: 404 {@code
+	 * STOREFRONT_NOT_FOUND}, or 404 {@code STOREFRONT_MOVED} (with the current
+	 * host) for a retired slug of an enabled storefront.
+	 */
+	private void doFilterStorefront(StorefrontHostResolution storefrontHost, HttpServletRequest request,
+			HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+		TenantResolution tenant = storefrontHost.tenant();
+		if (tenant == null || !isLoginEligible(tenant)) {
+			FilterApiResponseWriter.write(response, objectMapper, HttpStatus.FORBIDDEN, ApiErrorCodes.TENANT_UNAVAILABLE,
+					"This institute is not available. Please contact your institute administrator.");
+			return;
+		}
+		try {
+			TenantContextHolder.set(tenant.tenantId());
+			StorefrontHostResolver.HostLookup lookup = (storefrontHostResolver == null)
+					? StorefrontHostResolver.HostLookup.notFound()
+					: storefrontHostResolver.resolveForHost(storefrontHost.storefrontLabel());
+			switch (lookup.status()) {
+				case FOUND -> {
+					StorefrontContextHolder
+						.set(new StorefrontContext(lookup.storefrontId(), lookup.teacherId(), lookup.slug()));
+					filterChain.doFilter(request, response);
+				}
+				case MOVED -> FilterApiResponseWriter.write(response, objectMapper, HttpStatus.NOT_FOUND,
+						ApiErrorCodes.STOREFRONT_MOVED, "This page has moved.", Map.of("host", lookup.movedToHost()));
+				default -> FilterApiResponseWriter.write(response, objectMapper, HttpStatus.NOT_FOUND,
+						ApiErrorCodes.STOREFRONT_NOT_FOUND, "This page could not be found.");
+			}
+		}
+		finally {
+			StorefrontContextHolder.clear();
 			TenantContextHolder.clear();
 		}
 	}
