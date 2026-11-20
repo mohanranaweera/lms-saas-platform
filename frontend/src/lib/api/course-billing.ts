@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/auth-context";
-import { courseKeys, type PageResponse } from "@/lib/api/courses";
+import { courseKeys, invalidatePaymentReadiness, type PageResponse } from "@/lib/api/courses";
 
 /**
  * Typed client + React Query hooks for Wave 2's course billing-configuration/
@@ -101,6 +101,7 @@ export function useCreateOrUpdateBillingConfiguration(courseId: string) {
       ),
     onSuccess: (updated) => {
       queryClient.setQueryData(courseKeys.billingConfiguration(courseId), updated);
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -151,5 +152,39 @@ export function useAddCourseBillingPeriod(courseId: string) {
       queryClient.invalidateQueries({ queryKey: courseKeys.detail(courseId) });
       queryClient.invalidateQueries({ queryKey: [...courseKeys.detail(courseId), "billing-periods"] });
     },
+  });
+}
+
+/** Mirrors `CoursePaymentReadinessResponse.Issue`. `count` is present only where a row count is meaningful. */
+export interface CoursePaymentReadinessIssue {
+  code: string;
+  message: string;
+  count?: number;
+}
+
+/** Mirrors `CoursePaymentReadinessResponse` - see docs/api/course-billing.md. */
+export interface CoursePaymentReadinessResponse {
+  pricingModel: string;
+  payable: boolean;
+  issues: CoursePaymentReadinessIssue[];
+}
+
+/**
+ * `GET /api/v1/courses/{courseId}/payment-readiness` - whether students can
+ * pay for this course right now (the backend re-applies checkout's offer
+ * rules). Read-only; refreshed by every pricing/module/session mutation via
+ * `invalidatePaymentReadiness`. No retry: a failure simply hides the warning.
+ */
+export function useCoursePaymentReadiness(courseId: string) {
+  const { authorizedFetch } = useAuth();
+  return useQuery({
+    queryKey: courseKeys.paymentReadiness(courseId),
+    queryFn: () =>
+      authorizedFetch<CoursePaymentReadinessResponse>(
+        "tenant",
+        `/v1/courses/${courseId}/payment-readiness`
+      ),
+    enabled: courseId.length > 0,
+    retry: false,
   });
 }

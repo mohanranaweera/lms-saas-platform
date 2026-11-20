@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/auth-context";
 
 /**
@@ -176,7 +176,18 @@ export const courseKeys = {
   modules: (courseId: string) => [...courseKeys.detail(courseId), "modules"] as const,
   lessons: (courseId: string, moduleId: string) =>
     [...courseKeys.modules(courseId), moduleId, "lessons"] as const,
+  paymentReadiness: (courseId: string) => [...courseKeys.detail(courseId), "payment-readiness"] as const,
 };
+
+/**
+ * Re-checks "can students pay for this course?" after any pricing, module or
+ * session edit. Needed because those mutations either `setQueryData` the
+ * course detail (which never refetches its child keys) or only invalidate
+ * the module/lesson lists.
+ */
+export function invalidatePaymentReadiness(queryClient: QueryClient, courseId: string) {
+  return queryClient.invalidateQueries({ queryKey: courseKeys.paymentReadiness(courseId) });
+}
 
 // ---------------------------------------------------------------------------
 // Courses
@@ -287,6 +298,7 @@ export function useUpdateCourse(courseId: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(courseKeys.detail(courseId), updated);
       queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -324,6 +336,7 @@ export function useChangeCoursePrice(courseId: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(courseKeys.detail(courseId), updated);
       queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -396,6 +409,7 @@ export function useChangeCoursePricingModel(courseId: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(courseKeys.detail(courseId), updated);
       queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -423,6 +437,7 @@ export function useChangeCoursePricingModelForCourse() {
     onSuccess: (updated) => {
       queryClient.setQueryData(courseKeys.detail(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: courseKeys.list() });
+      void invalidatePaymentReadiness(queryClient, updated.id);
     },
   });
 }
@@ -508,6 +523,7 @@ export function useCreateCourseModule(courseId: string) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: courseKeys.modules(courseId) });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -524,6 +540,7 @@ export function useUpdateCourseModule(courseId: string) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: courseKeys.modules(courseId) });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -539,6 +556,7 @@ export function useDeleteCourseModule(courseId: string) {
     onSuccess: (_data, moduleId) => {
       queryClient.invalidateQueries({ queryKey: courseKeys.modules(courseId) });
       queryClient.removeQueries({ queryKey: courseKeys.lessons(courseId, moduleId) });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -572,6 +590,7 @@ export function useCreateCourseLesson(courseId: string, moduleId: string) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -588,6 +607,7 @@ export function useUpdateCourseLesson(courseId: string, moduleId: string) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -646,6 +666,7 @@ export function useDeleteCourseLesson(courseId: string, moduleId: string) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }

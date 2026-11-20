@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   courseKeys,
+  invalidatePaymentReadiness,
   type CourseLessonResponse,
   type CourseModuleResponse,
   type CourseResponse,
@@ -397,6 +398,7 @@ export function useUpdateKlassCourse(courseId: string) {
       queryClient.setQueryData(courseKeys.detail(courseId), updated);
       queryClient.invalidateQueries({ queryKey: klassAdminKeys.courseListPrefix });
       queryClient.invalidateQueries({ queryKey: klassAdminKeys.tags });
+      void invalidatePaymentReadiness(queryClient, courseId);
     },
   });
 }
@@ -529,7 +531,10 @@ export function useCreateKlassModule(courseId: string) {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: courseKeys.modules(courseId) }),
+    onSuccess: () => {
+      void invalidatePaymentReadiness(queryClient, courseId);
+      return queryClient.invalidateQueries({ queryKey: courseKeys.modules(courseId) });
+    },
   });
 }
 
@@ -542,7 +547,10 @@ export function useUpdateKlassModule(courseId: string) {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: courseKeys.modules(courseId) }),
+    onSuccess: () => {
+      void invalidatePaymentReadiness(queryClient, courseId);
+      return queryClient.invalidateQueries({ queryKey: courseKeys.modules(courseId) });
+    },
   });
 }
 
@@ -586,8 +594,10 @@ export function useCreateKlassLesson(courseId: string, moduleId: string) {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) }),
+    onSuccess: () => {
+      void invalidatePaymentReadiness(queryClient, courseId);
+      return queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) });
+    },
   });
 }
 
@@ -601,8 +611,10 @@ export function useUpdateKlassLesson(courseId: string, moduleId: string) {
         `/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
         { method: "PATCH", body: JSON.stringify(body) }
       ),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) }),
+    onSuccess: () => {
+      void invalidatePaymentReadiness(queryClient, courseId);
+      return queryClient.invalidateQueries({ queryKey: courseKeys.lessons(courseId, moduleId) });
+    },
   });
 }
 
