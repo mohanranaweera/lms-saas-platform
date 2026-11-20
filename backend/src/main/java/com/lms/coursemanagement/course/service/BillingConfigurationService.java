@@ -142,7 +142,7 @@ public class BillingConfigurationService {
 	 * 409}, but only the explicit flush makes this method's own mapping the
 	 * one that actually fires (verified by {@code
 	 * CourseBillingAndLifecycleIntegrationTest
-	 * #concurrentFirstBillingPeriodInsertsForTheSameCourseProduceExactlyOneSuccessAndOneCleanConflict}).
+	 * #concurrentFirstBillingPeriodInsertsForTheSameCourseLeaveExactlyOneOpenPeriodAndNeverA500}).
 	 */
 	public CourseBillingPeriodView addBillingPeriod(UUID courseId, BigDecimal amount, String currency,
 			Instant effectiveFrom) {
