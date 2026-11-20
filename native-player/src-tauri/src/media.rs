@@ -467,22 +467,35 @@ mod tests {
     #[test]
     fn dyntube_embed_refuses_bad_keys_other_providers_and_a_missing_format() {
         let bridge = Url::parse(BRIDGE).unwrap();
-        for key in ["short", "has space here", "../../etc", "a\"b<script>", &"x".repeat(65)] {
-            let descriptor =
-                embed_descriptor(serde_json::json!({ "provider": "DYNTUBE", "key": key }), "EMBED");
+        for key in [
+            "short",
+            "has space here",
+            "../../etc",
+            "a\"b<script>",
+            &"x".repeat(65),
+        ] {
+            let descriptor = embed_descriptor(
+                serde_json::json!({ "provider": "DYNTUBE", "key": key }),
+                "EMBED",
+            );
             assert_eq!(
                 Media::from_descriptor_with_bridge(&descriptor, &origins(), Some(&bridge)),
                 Media::Unsupported,
                 "{key}"
             );
         }
-        let other = embed_descriptor(serde_json::json!({ "provider": "BUNNY", "key": "ch3x_Kx-91aZ" }), "EMBED");
+        let other = embed_descriptor(
+            serde_json::json!({ "provider": "BUNNY", "key": "ch3x_Kx-91aZ" }),
+            "EMBED",
+        );
         assert_eq!(
             Media::from_descriptor_with_bridge(&other, &origins(), Some(&bridge)),
             Media::Unsupported
         );
-        let unformatted =
-            embed_descriptor(serde_json::json!({ "provider": "DYNTUBE", "key": "ch3x_Kx-91aZ" }), "FILE");
+        let unformatted = embed_descriptor(
+            serde_json::json!({ "provider": "DYNTUBE", "key": "ch3x_Kx-91aZ" }),
+            "FILE",
+        );
         assert_eq!(
             Media::from_descriptor_with_bridge(&unformatted, &origins(), Some(&bridge)),
             Media::Unsupported
@@ -497,7 +510,10 @@ mod tests {
     #[test]
     fn the_bridge_url_must_be_a_clean_html_page() {
         assert!(config::parse_bridge_url(BRIDGE, false).is_ok());
-        assert!(config::parse_bridge_url("http://embed.lms.test:3000/embed/dyntube-bridge.html", true).is_ok());
+        assert!(
+            config::parse_bridge_url("http://embed.lms.test:3000/embed/dyntube-bridge.html", true)
+                .is_ok()
+        );
         for bad in [
             "http://embed.lms.test:3000/embed/dyntube-bridge.html",
             "https://embed.example.com/embed/dyntube-bridge.html?x=1",

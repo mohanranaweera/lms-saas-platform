@@ -489,7 +489,10 @@ mod tests {
     fn upstream_ranges_are_always_closed_and_bounded() {
         let chunk = RANGE_CHUNK_BYTES;
         assert_eq!(bounded_range(None), format!("bytes=0-{}", chunk - 1));
-        assert_eq!(bounded_range(Some("bytes=0-")), format!("bytes=0-{}", chunk - 1));
+        assert_eq!(
+            bounded_range(Some("bytes=0-")),
+            format!("bytes=0-{}", chunk - 1)
+        );
         assert_eq!(
             bounded_range(Some("bytes=10000000-")),
             format!("bytes=10000000-{}", 10_000_000 + chunk - 1)
@@ -499,8 +502,18 @@ mod tests {
             bounded_range(Some("bytes=5-99999999")),
             format!("bytes=5-{}", 5 + chunk - 1)
         );
-        for odd in ["bytes=-500", "bytes=0-1,5-9", "items=0-1", "bytes=9-3", "bytes=x-"] {
-            assert_eq!(bounded_range(Some(odd)), format!("bytes=0-{}", chunk - 1), "{odd}");
+        for odd in [
+            "bytes=-500",
+            "bytes=0-1,5-9",
+            "items=0-1",
+            "bytes=9-3",
+            "bytes=x-",
+        ] {
+            assert_eq!(
+                bounded_range(Some(odd)),
+                format!("bytes=0-{}", chunk - 1),
+                "{odd}"
+            );
         }
     }
 
@@ -517,7 +530,10 @@ mod tests {
             .respond_with(
                 ResponseTemplate::new(206)
                     .insert_header("Content-Type", "video/mp4")
-                    .insert_header("Content-Range", format!("bytes 0-{}/{total}", chunk - 1).as_str())
+                    .insert_header(
+                        "Content-Range",
+                        format!("bytes 0-{}/{total}", chunk - 1).as_str(),
+                    )
                     .set_body_bytes(vec![7u8; chunk]),
             )
             .expect(1)
@@ -526,7 +542,11 @@ mod tests {
         let origin = Url::parse(&server.uri()).unwrap();
         let proxy = NativeMediaProxy::new(vec![origin], true).unwrap();
         let session = Uuid::new_v4();
-        assert!(proxy.bind(session, &format!("{}/big.mp4", server.uri())).is_some());
+        assert!(
+            proxy
+                .bind(session, &format!("{}/big.mp4", server.uri()))
+                .is_some()
+        );
         let request = Request::builder()
             .uri(format!("{SCHEME}://localhost/session/{session}/media"))
             .header(RANGE, "bytes=0-")
