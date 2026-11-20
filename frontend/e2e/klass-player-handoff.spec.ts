@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { api, apiLogin, EVIDENCE_DIR, loginUi, STUDENT_EMAIL, TENANT_BASE } from "./fixtures/klass/klass-api";
 
+test.skip(!process.env.KLASS_LIVE, "live backend check; set KLASS_LIVE=1");
+
 /**
  * KLASS live E2E — external-player handoff (CM-R03) on the REAL local backend.
  *

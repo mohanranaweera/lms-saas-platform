@@ -9,7 +9,8 @@ import { join } from "node:path";
  * Runs against the developer's LOCAL stack only: Next dev server on the demo
  * tenant host (API calls go through its same-origin `/api` rewrite, exactly
  * like the app) and the native backend on the local `lms_dev` database. Never
- * point this at a shared or production environment.
+ * point this at a shared or production environment. Opt-in: the specs skip
+ * unless `KLASS_LIVE=1` (CI has no such stack).
  *
  * Test data: every spec creates its own uniquely named courses through the
  * real admin API, so reruns never collide. The only tenant-level settings a
