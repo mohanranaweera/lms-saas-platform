@@ -233,6 +233,30 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 	}
 
 	@Override
+	public List<CourseSummary> listAssignedCourseSummaries(UUID teacherUserId) {
+		if (teacherUserId == null) {
+			return List.of();
+		}
+		if (courseTeacherAssignmentRepository == null) {
+			return listCourseSummariesByTeacherId(teacherUserId);
+		}
+		Set<UUID> courseIds = courseTeacherAssignmentRepository
+			.findAll((root, query, cb) -> cb.equal(root.get("teacherId"), teacherUserId))
+			.stream()
+			.map(com.lms.coursemanagement.course.domain.CourseTeacherAssignment::getCourseId)
+			.collect(java.util.stream.Collectors.toSet());
+		if (courseIds.isEmpty()) {
+			return List.of();
+		}
+		return courseRepository.findAllById(courseIds)
+			.stream()
+			.map(course -> new CourseSummary(course.getId(), course.getName(), course.getSlug(), course.getCategory()))
+			.sorted(java.util.Comparator.comparing(CourseSummary::name, String.CASE_INSENSITIVE_ORDER)
+				.thenComparing(CourseSummary::id))
+			.toList();
+	}
+
+	@Override
 	public List<com.lms.coursemanagement.api.PublicCourseSummary> listPublicCourseSummariesByTeacherId(UUID teacherId) {
 		if (teacherId == null) {
 			return List.of();

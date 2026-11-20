@@ -38,4 +38,18 @@ final class FilterApiResponseWriter {
 		response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(ApiError.of(code, message))));
 	}
 
+	/** STORE-01: same envelope with {@code error.details} (e.g. {@code STOREFRONT_MOVED}'s host). */
+	static void write(HttpServletResponse response, ObjectMapper objectMapper, HttpStatus status, String code,
+			String message, java.util.Map<String, Object> details) throws IOException {
+		if (response.isCommitted()) {
+			return;
+		}
+		response.setStatus(status.value());
+		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		response.setCharacterEncoding("UTF-8");
+		response.getWriter()
+			.write(objectMapper.writeValueAsString(
+					ApiResponse.error(new ApiError(code, message, java.util.List.of(), details))));
+	}
+
 }

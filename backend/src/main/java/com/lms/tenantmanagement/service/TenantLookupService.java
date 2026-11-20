@@ -1,5 +1,6 @@
 package com.lms.tenantmanagement.service;
 
+import com.lms.tenantmanagement.api.StorefrontHostResolution;
 import com.lms.tenantmanagement.api.TenantLookupApi;
 import com.lms.tenantmanagement.api.TenantResolution;
 import com.lms.tenantmanagement.api.TenantSummary;
@@ -108,6 +109,42 @@ public class TenantLookupService implements TenantLookupApi {
 			}
 			return urlTemplate.replace("{subdomain}", tenant.getSubdomain());
 		});
+	}
+
+	@Override
+	public Optional<StorefrontHostResolution> resolveStorefrontHost(String hostHeader) {
+		String host = Hostnames.requestHost(hostHeader);
+		String platformDomain = customDomainProperties.getPlatformDomain();
+		if (host == null || platformDomain.isEmpty() || !host.endsWith("." + platformDomain)) {
+			return Optional.empty();
+		}
+		String labels = host.substring(0, host.length() - platformDomain.length() - 1);
+		int dot = labels.indexOf('.');
+		if (dot <= 0 || dot == labels.length() - 1 || labels.indexOf('.', dot + 1) >= 0) {
+			return Optional.empty();
+		}
+		String storefrontLabel = labels.substring(0, dot);
+		String subdomain = labels.substring(dot + 1);
+		return Optional.of(new StorefrontHostResolution(storefrontLabel, resolveBySubdomain(subdomain).orElse(null)));
+	}
+
+	@Override
+	public Optional<String> storefrontHost(UUID tenantId, String slug) {
+		String platformDomain = customDomainProperties.getPlatformDomain();
+		if (platformDomain.isEmpty() || tenantId == null || slug == null || slug.isBlank()) {
+			return Optional.empty();
+		}
+		return tenantRepository.findById(tenantId)
+			.map(tenant -> slug + "." + tenant.getSubdomain() + "." + platformDomain);
+	}
+
+	@Override
+	public Optional<String> storefrontOrigin(UUID tenantId, String slug, String urlTemplate) {
+		if (urlTemplate == null || urlTemplate.isBlank() || tenantId == null || slug == null || slug.isBlank()) {
+			return Optional.empty();
+		}
+		return tenantRepository.findById(tenantId)
+			.map(tenant -> urlTemplate.replace("{subdomain}", slug + "." + tenant.getSubdomain()));
 	}
 
 	@Override

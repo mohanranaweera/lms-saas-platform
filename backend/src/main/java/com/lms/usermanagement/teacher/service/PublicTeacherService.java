@@ -2,11 +2,14 @@ package com.lms.usermanagement.teacher.service;
 
 import com.lms.common.api.PageResponse;
 import com.lms.common.error.NotFoundException;
+import com.lms.common.tenant.StorefrontContext;
+import com.lms.common.tenant.StorefrontContextHolder;
 import com.lms.contentmanagement.api.TeacherProfileMediaApi;
 import com.lms.coursemanagement.api.CourseLookupApi;
 import com.lms.coursemanagement.api.PublicCourseSummary;
 import com.lms.identityaccessservice.api.TenantUserSummary;
 import com.lms.identityaccessservice.api.UserProvisioningApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import com.lms.usermanagement.teacher.domain.ApprovalStatus;
 import com.lms.usermanagement.teacher.domain.TeacherProfile;
 import com.lms.usermanagement.teacher.repository.TeacherProfileRepository;
@@ -33,10 +36,12 @@ public class PublicTeacherService {
 	private final UserProvisioningApi userProvisioningApi;
 	private final TeacherProfileMediaApi teacherProfileMediaApi;
 	private final CourseLookupApi courseLookupApi;
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
 
 	public PublicTeacherService(TeacherProfileRepository teacherProfileRepository,
 			UserProvisioningApi userProvisioningApi, TeacherProfileMediaApi teacherProfileMediaApi,
-			CourseLookupApi courseLookupApi) {
+			CourseLookupApi courseLookupApi, TeacherStorefrontLookupApi storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.teacherProfileRepository = teacherProfileRepository;
 		this.userProvisioningApi = userProvisioningApi;
 		this.teacherProfileMediaApi = teacherProfileMediaApi;
@@ -47,7 +52,10 @@ public class PublicTeacherService {
 		Pageable safe = clamp(pageable);
 		List<TeacherProfile> profiles = teacherProfileRepository.findAllPublicProfiles(ApprovalStatus.APPROVED, safe.getSort());
 		Map<UUID, TenantUserSummary> summaries = summaries(profiles);
+		// STORE-01: on a teacher-storefront host, only that storefront's teacher.
+		java.util.Optional<StorefrontContext> storefront = StorefrontContextHolder.current();
 		List<PublicTeacherResponse> visible = profiles.stream()
+			.filter(profile -> storefront.isEmpty() || storefront.get().teacherId().equals(profile.getUserId()))
 			.filter(profile -> isActive(summaries.get(profile.getUserId())))
 			.map(this::toResponse)
 			.toList();
@@ -60,6 +68,9 @@ public class PublicTeacherService {
 	public PublicTeacherResponse getTeacher(UUID id) {
 		TeacherProfile profile = teacherProfileRepository.findPublicProfileById(id, ApprovalStatus.APPROVED)
 			.orElseThrow(() -> new NotFoundException("Teacher not found"));
+		if (StorefrontContextHolder.current().filter(sf -> !sf.teacherId().equals(profile.getUserId())).isPresent()) {
+			throw new NotFoundException("Teacher not found");
+		}
 		TenantUserSummary summary = summaries(List.of(profile)).get(profile.getUserId());
 		if (!isActive(summary)) {
 			throw new NotFoundException("Teacher not found");
@@ -87,7 +98,11 @@ public class PublicTeacherService {
 		String imageUrl = teacherProfileMediaApi == null || profile.getProfileMediaFileId() == null ? null
 			: teacherProfileMediaApi.findLiveImage(profile.getProfileMediaFileId())
 				.map(TeacherProfileMediaApi.ProfileImage::thumbnailUrl).orElse(null);
+		// STORE-01: on a storefront host only the courses that storefront sells.
+		java.util.Optional<java.util.Set<UUID>> scope = StorefrontContextHolder.current()
+			.map(sf -> storefrontLookupApi.findPublishedCourseIds(sf.storefrontId()));
 		List<PublicTeacherCourseResponse> courses = courseLookupApi.listPublicCourseSummariesByTeacherId(profile.getUserId()).stream()
+			.filter(course -> scope.isEmpty() || scope.get().contains(course.id()))
 			.map(course -> new PublicTeacherCourseResponse(course.id(), course.name(), course.slug(), course.category(), null)).toList();
 		return new PublicTeacherResponse(profile.getId(), profile.getName(), profile.getQualifications(), profile.getDescription(), imageUrl, courses);
 	}

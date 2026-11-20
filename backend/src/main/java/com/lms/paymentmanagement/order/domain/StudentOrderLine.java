@@ -92,6 +92,15 @@ public class StudentOrderLine extends BaseEntity implements TenantOwned {
 	@Column(name = "reward", nullable = false, updatable = false)
 	private boolean reward;
 
+	/**
+	 * STORE-01 / ADR-037 decision 8 (V126): the teacher storefront the order
+	 * was placed on - attribution only, written once at insert; never affects
+	 * course ownership, commission, settlement or the ledger. {@code null} =
+	 * the tenant site.
+	 */
+	@Column(name = "storefront_id", updatable = false)
+	private UUID storefrontId;
+
 	protected StudentOrderLine() {
 	}
 
@@ -138,6 +147,19 @@ public class StudentOrderLine extends BaseEntity implements TenantOwned {
 	@Override
 	public void setTenantId(UUID tenantId) {
 		this.tenantId = tenantId;
+	}
+
+	/** STORE-01: sets the attribution before the (insert-only) line is saved. */
+	public StudentOrderLine attributedTo(UUID storefrontId) {
+		if (getId() != null) {
+			throw new IllegalStateException("Order lines are insert-only; attribution is set before insert");
+		}
+		this.storefrontId = storefrontId;
+		return this;
+	}
+
+	public UUID getStorefrontId() {
+		return storefrontId;
 	}
 
 	public UUID getOrderId() {

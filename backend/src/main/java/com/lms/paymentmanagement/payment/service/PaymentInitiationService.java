@@ -84,8 +84,10 @@ public class PaymentInitiationService {
 		// checkout page - nothing here comes from the request. Validated
 		// before any payment row exists (e.g. PayHere needs an address), so a
 		// refused checkout never leaves an orphaned PENDING payment.
+		// STORE-01: the order's storefront (attribution) picks the return-page origin only.
 		GatewayCheckoutRequest checkout = new GatewayCheckoutRequest(order.getId(), order.getTenantId(),
-				order.getAmount(), order.getCurrency(), itemDescription(order), payer(order));
+				order.getAmount(), order.getCurrency(), itemDescription(order), payer(order),
+				checkoutComposerService.lineStorefrontId(order));
 		paymentGatewayApi.validateCheckout(checkout);
 
 		// Transaction 1: persist PENDING (or replay an existing row), commit.

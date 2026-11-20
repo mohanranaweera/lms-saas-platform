@@ -2,6 +2,7 @@ package com.lms.identityaccessservice.config;
 
 import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.config.CorrelationIdFilter;
+import com.lms.common.tenant.StorefrontHostResolver;
 import com.lms.common.tenant.TenantContext;
 import com.lms.identityaccessservice.repository.DeviceSessionRepository;
 import com.lms.identityaccessservice.repository.PlatformAdminSessionRepository;
@@ -61,8 +62,9 @@ import java.util.List;
 public class SecurityFilterChainConfig {
 
 	@Bean
-	public TenantResolutionFilter tenantResolutionFilter(TenantLookupApi tenantLookupApi, ObjectMapper objectMapper) {
-		return new TenantResolutionFilter(tenantLookupApi, objectMapper);
+	public TenantResolutionFilter tenantResolutionFilter(TenantLookupApi tenantLookupApi,
+			StorefrontHostResolver storefrontHostResolver, ObjectMapper objectMapper) {
+		return new TenantResolutionFilter(tenantLookupApi, storefrontHostResolver, objectMapper);
 	}
 
 	@Bean
@@ -142,6 +144,9 @@ public class SecurityFilterChainConfig {
 				// tenantId is ever accepted. See CoursePublicController.
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/courses", "/api/v1/public/courses/**", "/api/v1/public/teachers", "/api/v1/public/teachers/**")
 					.permitAll();
+				// STORE-01 / ADR-037: which site (tenant or teacher storefront) this
+				// host is - both resolved from the host by TenantResolutionFilter.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/site-context").permitAll();
 				// Public, unauthenticated branding read path (Wave 1 - Tenant
 				// Admin IA + Configuration Framework) - tenant is still
 				// resolved server-side from the subdomain by

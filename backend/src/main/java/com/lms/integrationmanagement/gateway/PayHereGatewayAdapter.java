@@ -10,10 +10,12 @@ import com.lms.integrationmanagement.config.PayHereProperties;
 import com.lms.integrationmanagement.domain.GatewayMode;
 import com.lms.integrationmanagement.domain.TenantPaymentGatewayAccount;
 import com.lms.tenantmanagement.api.TenantLookupApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -42,11 +44,20 @@ public class PayHereGatewayAdapter {
 
 	private final TenantLookupApi tenantLookupApi;
 
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
+
 	public PayHereGatewayAdapter(PayHereProperties properties, CredentialCipher credentialCipher,
 			TenantLookupApi tenantLookupApi) {
+		this(properties, credentialCipher, tenantLookupApi, null);
+	}
+
+	@Autowired
+	public PayHereGatewayAdapter(PayHereProperties properties, CredentialCipher credentialCipher,
+			TenantLookupApi tenantLookupApi, TeacherStorefrontLookupApi storefrontLookupApi) {
 		this.properties = properties;
 		this.credentialCipher = credentialCipher;
 		this.tenantLookupApi = tenantLookupApi;
+		this.storefrontLookupApi = storefrontLookupApi;
 	}
 
 	/** Whether the platform side of PayHere (notify URL, return URLs, encryption key) is configured. */
@@ -59,8 +70,13 @@ public class PayHereGatewayAdapter {
 		if (!StringUtils.hasText(properties.getNotifyUrl()) || !StringUtils.hasText(properties.getReturnUrlTemplate())) {
 			throw new ServiceUnavailableException(NOT_AVAILABLE);
 		}
-		// TEN-DOM-01: the tenant's primary custom domain when it has one.
-		String storefront = stripTrailingSlash(tenantLookupApi.tenantOrigin(request.tenantId(), properties.getReturnUrlTemplate())
+		// STORE-01 / ADR-037 decision 8: the storefront origin while the order's storefront is
+		// still enabled; otherwise (TEN-DOM-01) the tenant's primary custom domain or subdomain.
+		java.util.Optional<String> storefrontOrigin = (request.storefrontId() == null || storefrontLookupApi == null)
+				? java.util.Optional.empty()
+				: storefrontLookupApi.enabledStorefrontOrigin(request.storefrontId(), properties.getReturnUrlTemplate());
+		String storefront = stripTrailingSlash(storefrontOrigin
+			.or(() -> tenantLookupApi.tenantOrigin(request.tenantId(), properties.getReturnUrlTemplate()))
 			.orElseThrow(() -> new ServiceUnavailableException(NOT_AVAILABLE)));
 		GatewayPayer payer = validatedPayer(request);
 		String secret = credentialCipher.decrypt(account.getMerchantSecretCiphertext());

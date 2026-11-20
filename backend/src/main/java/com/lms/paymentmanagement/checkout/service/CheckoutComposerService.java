@@ -1,7 +1,10 @@
 package com.lms.paymentmanagement.checkout.service;
 
+import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.error.ConflictException;
 import com.lms.common.error.NotFoundException;
+import com.lms.common.tenant.StorefrontContext;
+import com.lms.common.tenant.StorefrontContextHolder;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CheckoutAmount;
 import com.lms.coursemanagement.api.CourseCatalogInfo;
@@ -66,6 +69,7 @@ import com.lms.tenantmanagement.api.FacilityFeeSettings;
 import com.lms.tenantmanagement.api.TenantConfigApi;
 import com.lms.usermanagement.api.StudentContact;
 import com.lms.usermanagement.api.StudentLookupApi;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -91,6 +95,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -189,6 +194,8 @@ public class CheckoutComposerService {
 
 	private final BankTransferPolicy bankTransferPolicy;
 
+	private final TeacherStorefrontLookupApi storefrontLookupApi;
+
 	public CheckoutComposerService(CourseLookupApi courseLookupApi, ContentCoverageApi contentCoverageApi,
 			PaymentStatusApiImpl paymentStatusApi, TenantConfigApi tenantConfigApi,
 			PaymentGatewayAccountApi paymentGatewayAccountApi, StudentOrderRepository studentOrderRepository,
@@ -198,6 +205,23 @@ public class CheckoutComposerService {
 			DiscountRedemptionService discountRedemptionService, DiscountClock discountClock,
 			DiscountCodeAttemptLimiter discountCodeAttemptLimiter, PermissionCheckService permissionCheckService,
 			BankTransferPolicy bankTransferPolicy) {
+		this(courseLookupApi, contentCoverageApi, paymentStatusApi, tenantConfigApi, paymentGatewayAccountApi,
+				studentOrderRepository, studentOrderLineRepository, tenantContext, studentOrderCourseChargeRepository,
+				studentLookupApi, discountCheckoutService, discountPricingService, discountRedemptionService,
+				discountClock, discountCodeAttemptLimiter, permissionCheckService, bankTransferPolicy, null);
+	}
+
+	@Autowired
+	public CheckoutComposerService(CourseLookupApi courseLookupApi, ContentCoverageApi contentCoverageApi,
+			PaymentStatusApiImpl paymentStatusApi, TenantConfigApi tenantConfigApi,
+			PaymentGatewayAccountApi paymentGatewayAccountApi, StudentOrderRepository studentOrderRepository,
+			StudentOrderLineRepository studentOrderLineRepository, TenantContext tenantContext,
+			StudentOrderCourseChargeRepository studentOrderCourseChargeRepository, StudentLookupApi studentLookupApi,
+			DiscountCheckoutService discountCheckoutService, DiscountPricingService discountPricingService,
+			DiscountRedemptionService discountRedemptionService, DiscountClock discountClock,
+			DiscountCodeAttemptLimiter discountCodeAttemptLimiter, PermissionCheckService permissionCheckService,
+			BankTransferPolicy bankTransferPolicy, TeacherStorefrontLookupApi storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.bankTransferPolicy = bankTransferPolicy;
 		this.permissionCheckService = permissionCheckService;
 		this.discountCodeAttemptLimiter = discountCodeAttemptLimiter;
@@ -242,7 +266,12 @@ public class CheckoutComposerService {
 		Subject subject = Subject.caller(requireStudent());
 		Scope scope = parseScope(scopeParam);
 		Map<UUID, String> offered = new LinkedHashMap<>();
+		// STORE-01: on a storefront host only the courses that storefront sells are offered.
+		Optional<Set<UUID>> storefrontScope = storefrontScope();
 		for (UUID courseId : contentCoverageApi.findCourseIds(subject.studentId())) {
+			if (storefrontScope.isPresent() && !inStorefrontScope(storefrontScope.get(), courseId)) {
+				continue;
+			}
 			Optional<CourseCatalogInfo> info = courseLookupApi.findCatalogInfo(courseId);
 			if (info.isEmpty() || "DRAFT".equals(info.get().status())) {
 				continue;
@@ -268,7 +297,9 @@ public class CheckoutComposerService {
 
 	@Transactional(readOnly = true)
 	public CheckoutOffers offers(UUID courseId, String scopeParam, Integer year) {
-		return offers(Subject.caller(requireStudent()), courseId, scopeParam, year);
+		Subject subject = Subject.caller(requireStudent());
+		requireStorefrontScope(courseId == null ? List.of() : List.of(courseId));
+		return offers(subject, courseId, scopeParam, year);
 	}
 
 	/**
@@ -314,6 +345,7 @@ public class CheckoutComposerService {
 	public CheckoutQuote quote(CheckoutCart cart) {
 		AuthenticatedPrincipal principal = requireStudent();
 		Subject subject = Subject.caller(principal);
+		requireStorefrontScope(cartCourseIds(cart));
 		requireCodeAttemptAllowed(cart, principal);
 		Priced priced = price(subject, cart, requireCartCourses(subject, cart));
 		recordCodeAttempt(priced, principal);
@@ -346,7 +378,8 @@ public class CheckoutComposerService {
 	public CheckoutOrder createOrderForStudent(UUID studentUserId, CheckoutCart cart, String quoteToken,
 			UUID idempotencyKey) {
 		permissionCheckService.requirePermission(DomainArea.PAYMENTS_SLIPS, PermissionAction.APPROVE);
-		return placeOrder(Subject.staffFor(studentUserId), requireStaffCart(cart), quoteToken, idempotencyKey, null);
+		return placeOrder(Subject.staffFor(studentUserId), requireStaffCart(cart), quoteToken, idempotencyKey, null,
+				null);
 	}
 
 	/** Staff carts carry no discount code and no accepted free-course rewards (ADR-030 M1). */
@@ -392,7 +425,57 @@ public class CheckoutComposerService {
 	@Transactional
 	public CheckoutOrder createOrder(CheckoutCart cart, String quoteToken, UUID idempotencyKey) {
 		AuthenticatedPrincipal principal = requireStudent();
-		return placeOrder(Subject.caller(principal), cart, quoteToken, idempotencyKey, principal);
+		// STORE-01: on a storefront host every course of the cart must be sold there (422), and
+		// the order lines record the storefront for attribution only.
+		requireStorefrontScope(cartCourseIds(cart));
+		UUID storefrontId = StorefrontContextHolder.current().map(StorefrontContext::storefrontId).orElse(null);
+		return placeOrder(Subject.caller(principal), cart, quoteToken, idempotencyKey, principal, storefrontId);
+	}
+
+	/**
+	 * STORE-01 / ADR-037 decision 6: the published courses the current
+	 * storefront lists; empty on a tenant host. Fails closed (nothing in scope)
+	 * when the lookup is unavailable.
+	 */
+	private Optional<Set<UUID>> storefrontScope() {
+		return StorefrontContextHolder.current()
+			.map(storefront -> storefrontLookupApi == null ? Set.<UUID>of()
+					: storefrontLookupApi.findPublishedCourseIds(storefront.storefrontId()));
+	}
+
+	/** Listed + published on the storefront AND visible on the tenant catalog. */
+	private boolean inStorefrontScope(Set<UUID> scope, UUID courseId) {
+		return courseId != null && scope.contains(courseId) && courseLookupApi.isPublished(courseId);
+	}
+
+	/** 422 {@code STOREFRONT_PRODUCT_OUT_OF_SCOPE} for any course this storefront does not sell. */
+	private void requireStorefrontScope(java.util.Collection<UUID> courseIds) {
+		Optional<Set<UUID>> scope = storefrontScope();
+		if (scope.isEmpty()) {
+			return;
+		}
+		for (UUID courseId : courseIds) {
+			if (courseId != null && !inStorefrontScope(scope.get(), courseId)) {
+				throw new CheckoutItemException(ApiErrorCodes.STOREFRONT_PRODUCT_OUT_OF_SCOPE,
+						"This course is not sold on this site");
+			}
+		}
+	}
+
+	/** Every course a cart names: the default course, each item course and each postage course. */
+	private static Set<UUID> cartCourseIds(CheckoutCart cart) {
+		Set<UUID> ids = new LinkedHashSet<>();
+		if (cart.defaultCourseId() != null) {
+			ids.add(cart.defaultCourseId());
+		}
+		cart.items().forEach(item -> {
+			UUID courseId = courseOf(cart, item);
+			if (courseId != null) {
+				ids.add(courseId);
+			}
+		});
+		cart.postageCourseIds().stream().filter(Objects::nonNull).forEach(ids::add);
+		return ids;
 	}
 
 	/**
@@ -400,7 +483,7 @@ public class CheckoutComposerService {
 	 * limited, or {@code null} for a staff subject (no code allowed at all).
 	 */
 	private CheckoutOrder placeOrder(Subject subject, CheckoutCart cart, String quoteToken, UUID idempotencyKey,
-			AuthenticatedPrincipal codeLimited) {
+			AuthenticatedPrincipal codeLimited, UUID storefrontId) {
 		UUID tenantId = tenantContext.getTenantId();
 		UUID studentId = subject.studentId();
 		if (idempotencyKey != null) {
@@ -478,7 +561,8 @@ public class CheckoutComposerService {
 					quoteLine.lineNo(), offer.scope().name(), pricedLine.courseId(), offer.moduleId(),
 					offer.lessonId(), offer.year(), offer.month(), offer.billingPeriodId(), offer.label(),
 					quoteLine.unitAmount(), quoteLine.facilityFee(), quoteLine.discountAmount(), offer.currency(),
-					offer.coverageKey(), now, orderDiscountId, pricedLine.rewardRuleId() != null)));
+					offer.coverageKey(), now, orderDiscountId, pricedLine.rewardRuleId() != null)
+				.attributedTo(storefrontId)));
 		}
 		requireDiscountInvariants(priced.discountTotal(), priced.applied(), lines, orderDiscountIds);
 		List<StudentOrderCourseCharge> charges = new ArrayList<>();
@@ -608,6 +692,20 @@ public class CheckoutComposerService {
 			}
 		});
 		return ids;
+	}
+
+	/**
+	 * STORE-01: the storefront an order was placed on (attribution only), or
+	 * {@code null} for a tenant-site or legacy order.
+	 */
+	@Transactional(readOnly = true)
+	public UUID lineStorefrontId(StudentOrder order) {
+		return studentOrderLineRepository.findAllByOrderId(order.getId())
+			.stream()
+			.map(StudentOrderLine::getStorefrontId)
+			.filter(Objects::nonNull)
+			.findFirst()
+			.orElse(null);
 	}
 
 	/** The distinct courses of a line order's lines (empty for a legacy order). */
