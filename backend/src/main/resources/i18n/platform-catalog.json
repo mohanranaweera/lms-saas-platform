@@ -1,5 +1,5 @@
 {
-  "version": "7da42a22cacd",
+  "version": "7a65cacbdc6a",
   "sourceLocale": "en-LK",
   "locales": [
     {
@@ -8356,6 +8356,11 @@
       "context": "Link to the student's courses",
       "namespace": "student"
     },
+    "student.paymentHistory.billingPeriod": {
+      "source": "Billing period",
+      "context": "Payment history entry: label for the billing period the payment covers",
+      "namespace": "student"
+    },
     "student.paymentHistory.date": {
       "source": "Date",
       "context": "Field label",
@@ -8386,6 +8391,11 @@
       "context": "Loading text",
       "namespace": "student"
     },
+    "student.paymentHistory.method": {
+      "source": "Method",
+      "context": "Payment history entry: label for how the payment was made (gateway, bank transfer, free, staff granted)",
+      "namespace": "student"
+    },
     "student.paymentHistory.more": {
       "source": "View more",
       "context": "Button",
@@ -8411,6 +8421,11 @@
       "context": "Section heading",
       "namespace": "student"
     },
+    "student.paymentHistory.reference": {
+      "source": "Reference",
+      "context": "Payment history entry: label for the payment's reference number",
+      "namespace": "student"
+    },
     "student.paymentHistory.status": {
       "source": "Status",
       "context": "Field label; value is a technical status code",
@@ -8419,6 +8434,11 @@
     "student.paymentHistory.total": {
       "source": "Total",
       "context": "Field label",
+      "namespace": "student"
+    },
+    "student.paymentHistory.viewOrderStatus": {
+      "source": "View order status",
+      "context": "Payment history entry: link to the order's status page",
       "namespace": "student"
     },
     "student.photo.chooseImage": {
