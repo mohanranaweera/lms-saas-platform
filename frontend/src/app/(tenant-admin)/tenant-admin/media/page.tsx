@@ -1,20 +1,17 @@
-"use client";
+import { TenantAdminMediaLibrary } from "./tenant-admin-media-library";
 
-import { useAuth } from "@/lib/auth/auth-context";
-import { canManageIntegrations, canManageMedia } from "@/lib/auth/permissions";
-import { MediaLibrary } from "@/components/media/media-library";
-
-/** Tenant Admin → Academic → Media Library (VIDEO Phase 5, Klass G1): the whole institute's files and videos. */
-export default function TenantAdminMediaPage() {
-  const { session } = useAuth();
-  const role = session?.role ?? null;
-  return (
-    <MediaLibrary
-      basePath="/tenant-admin/media"
-      dashboardHref="/tenant-admin/dashboard"
-      canUpload={canManageMedia(role)}
-      settingsHref={canManageIntegrations(role) ? "/tenant-admin/settings/video" : undefined}
-      scopeNote="Every document, image and lesson video your institute has uploaded."
-    />
-  );
+/**
+ * Reading `searchParams` opts this route out of static prerendering. As a
+ * static route, a production build's client router reused one cached entry -
+ * with its canonical URL - for `/tenant-admin/media` and `/tenant-admin/media?folder=...`, so leaving
+ * a folder (breadcrumb, "Back to Uploads") wrote `?folder=` straight back.
+ * The open folder is still read client-side from the URL by `MediaLibrary`.
+ */
+export default async function TenantAdminMediaPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await searchParams;
+  return <TenantAdminMediaLibrary />;
 }
