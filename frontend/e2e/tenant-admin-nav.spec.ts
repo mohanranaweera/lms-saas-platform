@@ -7,6 +7,7 @@ import {
   fulfillJson,
   mockJson,
   refreshResponseBody,
+  TEACHER_LIST_URL,
 } from "./fixtures/auth-mocks";
 
 /**
@@ -279,7 +280,9 @@ test.describe("tenant admin nav — six-group regrouping (Wave 1)", () => {
     // single case; every other group heading has no same-named link, so
     // exactly one match is the correct assertion there.
     await expect(nav.getByText("Dashboard", { exact: true }).first()).toBeVisible();
-    for (const heading of ["Academic", "Finance", "Communication", "Administration", "Institute Configuration"]) {
+    // FIN-01: "Finance" is likewise both a group heading and the Finance hub link.
+    await expect(nav.getByText("Finance", { exact: true }).first()).toBeVisible();
+    for (const heading of ["Academic", "Communication", "Administration", "Institute Configuration"]) {
       await expect(nav.getByText(heading, { exact: true })).toBeVisible();
     }
     await expect(nav.getByRole("link", { name: "Broadcasts" })).toBeVisible();
@@ -313,7 +316,7 @@ test.describe("tenant admin nav — hidden link is not access control", () => {
     await mockTenantSession(page, "FINANCE_STAFF");
     await mockJson(
       page,
-      "**/v1/teachers",
+      TEACHER_LIST_URL,
       403,
       apiError("FORBIDDEN", "You do not have permission to view teachers.")
     );
@@ -380,7 +383,7 @@ test.describe("tenant admin nav — Read-only Auditor sees zero mutating control
       approvedBy: null,
       approvedAt: null,
     };
-    await mockJson(page, "**/v1/teachers", 200, apiSuccess([pending]));
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([pending]));
     await mockJson(page, `**/v1/teachers/${pending.id}`, 200, apiSuccess(pending));
 
     await page.goto("/tenant-admin/teachers");

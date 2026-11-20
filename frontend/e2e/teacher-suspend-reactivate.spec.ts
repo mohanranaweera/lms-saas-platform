@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { apiError, apiSuccess, fakeJwt, mockJson, refreshResponseBody } from "./fixtures/auth-mocks";
+import { apiError, apiSuccess, fakeJwt, mockJson, refreshResponseBody, TEACHER_LIST_URL } from "./fixtures/auth-mocks";
 
 /**
  * Teacher Suspend/Reactivate (Wave 3, PAR-04-04) —
@@ -38,7 +38,7 @@ test.describe("teacher list — status filter includes Suspended", () => {
     await mockTenantSession(page, "TENANT_ADMIN");
     const approved = makeTeacher({ id: "teacher-1", name: "Kavindi Fernando", approvalStatus: "APPROVED" });
     const suspended = makeTeacher({ id: "teacher-2", name: "Ruwan Jayasuriya", approvalStatus: "SUSPENDED" });
-    await mockJson(page, "**/v1/teachers", 200, apiSuccess([approved, suspended]));
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([approved, suspended]));
 
     await page.goto("/tenant-admin/teachers");
     await page.getByLabel("Status").selectOption("SUSPENDED");
@@ -54,7 +54,7 @@ test.describe("teacher list — row-level Suspend/Reactivate actions", () => {
     await mockTenantSession(page, "TENANT_ADMIN");
     const approved = makeTeacher({ id: "teacher-approved", name: "Asha Perera", approvalStatus: "APPROVED" });
     const suspended = makeTeacher({ id: "teacher-suspended", name: "Nadun Silva", approvalStatus: "SUSPENDED" });
-    await mockJson(page, "**/v1/teachers", 200, apiSuccess([approved, suspended]));
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([approved, suspended]));
 
     await page.goto("/tenant-admin/teachers");
 
@@ -67,7 +67,7 @@ test.describe("teacher list — row-level Suspend/Reactivate actions", () => {
     const approved = makeTeacher({ id: "teacher-suspend-ok", name: "Sanduni Ekanayake", approvalStatus: "APPROVED" });
 
     let suspended = false;
-    await page.route("**/v1/teachers", async (route) => {
+    await page.route(TEACHER_LIST_URL, async (route) => {
       const current = suspended ? { ...approved, approvalStatus: "SUSPENDED" as const } : approved;
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([current])) });
     });
@@ -98,7 +98,7 @@ test.describe("teacher list — row-level Suspend/Reactivate actions", () => {
   test("a 403 on suspend is surfaced inline, dialog stays open", async ({ page }) => {
     await mockTenantSession(page, "TENANT_ADMIN");
     const approved = makeTeacher({ id: "teacher-403", name: "Chamod Gunasekara", approvalStatus: "APPROVED" });
-    await mockJson(page, "**/v1/teachers", 200, apiSuccess([approved]));
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([approved]));
     await mockJson(
       page,
       `**/v1/teachers/${approved.id}/suspend`,
@@ -159,7 +159,7 @@ test.describe("Course Coordinator session — Suspend/Reactivate controls are hi
   test("no Suspend/Reactivate control renders anywhere on the list or detail page", async ({ page }) => {
     await mockTenantSession(page, "COURSE_COORDINATOR");
     const approved = makeTeacher({ id: "teacher-cc-2", name: "Dinithi Wickramasinghe", approvalStatus: "APPROVED" });
-    await mockJson(page, "**/v1/teachers", 200, apiSuccess([approved]));
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess([approved]));
     await mockJson(page, `**/v1/teachers/${approved.id}`, 200, apiSuccess(approved));
 
     await page.goto("/tenant-admin/teachers");

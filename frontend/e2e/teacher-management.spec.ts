@@ -5,6 +5,7 @@ import {
   fakeJwt,
   mockJson,
   refreshResponseBody,
+  TEACHER_LIST_URL,
 } from "./fixtures/auth-mocks";
 
 /**
@@ -52,7 +53,7 @@ async function mockTenantSession(page: Page, role: string): Promise<void> {
 }
 
 async function mockTeacherList(page: Page, teachers: MockTeacher[]): Promise<void> {
-  await mockJson(page, "**/v1/teachers", 200, apiSuccess(teachers));
+  await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess(teachers));
 }
 
 async function mockTeacherDetail(page: Page, teacher: MockTeacher): Promise<void> {
@@ -176,16 +177,18 @@ test.describe("add teacher — creates a PENDING teacher and redirects to its de
       approvalStatus: "PENDING",
     });
 
-    await mockJson(page, "**/v1/teachers", 200, apiSuccess(created));
+    await mockJson(page, TEACHER_LIST_URL, 200, apiSuccess(created));
     await mockTeacherDetail(page, created);
 
     await page.goto("/tenant-admin/teachers/new");
 
-    await page.getByLabel("Full name").fill(created.name);
+    await page.getByLabel("First Name").fill("Dinithi");
+    await page.getByLabel("Last Name").fill("Wickramasinghe");
     await page.getByLabel("Email").fill(created.email);
-    await page.getByLabel("Temporary password").fill("correct-horse-battery-staple");
+    await page.getByLabel("Password *", { exact: true }).fill("correct-horse-battery-staple");
+    await page.getByLabel("Contact Number").fill("0771234567");
 
-    await page.getByRole("button", { name: "Add teacher" }).click();
+    await page.getByRole("button", { name: "Create Teacher" }).click();
 
     await expect(page).toHaveURL(
       new RegExp(`/tenant-admin/teachers/${created.id}\\?created=true$`)
@@ -206,18 +209,20 @@ test.describe("add teacher — duplicate email surfaces as a field-level error",
     await mockTenantSession(page, "TENANT_ADMIN");
     await mockJson(
       page,
-      "**/v1/teachers",
+      TEACHER_LIST_URL,
       409,
       apiError("CONFLICT", "A teacher account with this email already exists")
     );
 
     await page.goto("/tenant-admin/teachers/new");
 
-    await page.getByLabel("Full name").fill("Tharindu Bandara");
+    await page.getByLabel("First Name").fill("Tharindu");
+    await page.getByLabel("Last Name").fill("Bandara");
     await page.getByLabel("Email").fill("tharindu.b@example.test");
-    await page.getByLabel("Temporary password").fill("correct-horse-battery-staple");
+    await page.getByLabel("Password *", { exact: true }).fill("correct-horse-battery-staple");
+    await page.getByLabel("Contact Number").fill("0771234567");
 
-    await page.getByRole("button", { name: "Add teacher" }).click();
+    await page.getByRole("button", { name: "Create Teacher" }).click();
 
     const emailField = page.getByLabel("Email");
     await expect(
@@ -234,7 +239,7 @@ test.describe("add teacher — duplicate email surfaces as a field-level error",
     // The form is still usable — no navigation away, no permission-denied
     // state (a 409 is a conflict, not an authorization failure).
     await expect(page).toHaveURL(/\/tenant-admin\/teachers\/new$/);
-    await expect(page.getByRole("button", { name: "Add teacher" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Create Teacher" })).toBeVisible();
   });
 });
 
@@ -287,7 +292,7 @@ test.describe("approve mutation — success closes the dialog and updates the ro
     // `["teachers"]` query invalidation on mutation success (`teachers.ts`),
     // not just that the mutation request itself succeeded.
     let approved = false;
-    await page.route("**/v1/teachers", async (route) => {
+    await page.route(TEACHER_LIST_URL, async (route) => {
       const current = approved
         ? { ...pending, approvalStatus: "APPROVED" as const, accountStatus: "ACTIVE" as const }
         : pending;
@@ -458,7 +463,8 @@ test.describe("teacher list — shared DataTable component", () => {
     // the hand-rolled markup had (`.claude/rules/ui-ux.md` §5).
     await page.setViewportSize({ width: 375, height: 800 });
     await expect(page.getByRole("list", { name: "Teachers" })).toBeVisible();
-    await expect(page.getByRole("list", { name: "Teachers" }).getByText("Priyanka Silva")).toBeVisible();
+    // Each card shows the name twice (card title + Teacher cell).
+    await expect(page.getByRole("list", { name: "Teachers" }).getByText("Priyanka Silva").first()).toBeVisible();
   });
 
   test("suspending a teacher from the list shows a distinguishable success notice", async ({ page }) => {
@@ -466,7 +472,7 @@ test.describe("teacher list — shared DataTable component", () => {
     const approved = makeTeacher({ id: "teacher-notice-1", name: "Buddhika Rajapaksa", approvalStatus: "APPROVED" });
 
     let suspended = false;
-    await page.route("**/v1/teachers", async (route) => {
+    await page.route(TEACHER_LIST_URL, async (route) => {
       const current = suspended ? { ...approved, approvalStatus: "SUSPENDED" as const } : approved;
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(apiSuccess([current])) });
     });
