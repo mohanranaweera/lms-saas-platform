@@ -71,14 +71,6 @@ async function loginAsTeacher(page: Page) {
   await expect(page).toHaveURL(/\/teacher\/dashboard$/);
 }
 
-function currentStepIndicator(page: Page) {
-  return page.locator('[aria-current="step"]');
-}
-
-async function clickNext(page: Page) {
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-}
-
 /**
  * Registers a single stateful route for the exact `/api/v1/courses/{id}`
  * resource (never a broader glob — this must not also catch
@@ -244,29 +236,14 @@ test.describe("teacher course edit — server conflict", () => {
   });
 });
 
-test.describe("teacher course create — duplicate slug conflict", () => {
-  async function fillCreateThroughToVisibility(page: Page) {
-    await page.locator("#course-create-name").fill("Intro to Biology");
-    await page.locator("#course-create-slug").fill("intro-to-biology");
-    await page.locator("#course-create-category").fill("Science");
-    await clickNext(page); // Basics -> Classification
-
-    await clickNext(page); // Classification -> Pricing
-
-    await page.locator("#course-create-price").fill("49.99");
-    await clickNext(page); // Pricing -> Enrollment & access
-
-    await clickNext(page); // Enrollment & access -> Visibility
-
-    await page.locator("#course-create-status").click();
-    await page.getByRole("option", { name: "Public" }).click();
-  }
-
-  test("a 422 with a slug fieldError returns to the Basics step and shows an inline slug error", async ({
+// The multi-step builder (slug, Basics step) is gone; /teacher/courses/new
+// opens the Create New Course dialog, which maps server field errors inline.
+test.describe("teacher course create — server field error", () => {
+  test("a 422 with a name fieldError shows an inline error on Course name and keeps the dialog open", async ({
     page,
   }) => {
     await loginAsTeacher(page);
-    const fieldErrorMessage = "This slug is already in use for this tenant.";
+    const fieldErrorMessage = "A course with this name already exists.";
     let postBody: unknown = null;
 
     await page.route("**/api/v1/courses", async (route) => {
@@ -279,36 +256,26 @@ test.describe("teacher course create — duplicate slug conflict", () => {
         status: 422,
         contentType: "application/json",
         body: JSON.stringify(
-          apiError("VALIDATION_ERROR", "Validation failed.", [
-            { field: "slug", message: fieldErrorMessage },
-          ])
+          apiError("VALIDATION_ERROR", "Validation failed.", [{ field: "name", message: fieldErrorMessage }])
         ),
       });
     });
 
     await page.goto("/teacher/courses/new");
-    await expect(page.getByRole("heading", { name: "Create a course" })).toBeVisible();
-    await expect(page.getByLabel(/teacher/i)).toHaveCount(0);
+    const dialog = page.getByTestId("add-course-dialog");
+    await expect(dialog.getByRole("heading", { name: "Create New Course" })).toBeVisible();
 
-    await fillCreateThroughToVisibility(page);
+    await dialog.getByTestId("add-course-name").fill("Intro to Biology");
+    await dialog.getByTestId("add-course-payment-type").selectOption("MONTHLY");
+    await dialog.getByTestId("add-course-price").fill("49.99");
+    await dialog.getByTestId("add-course-submit").click();
 
-    await page.getByRole("button", { name: "Create course" }).click();
-
-    await expect(currentStepIndicator(page)).toContainText("Basics");
-    await expect(page.getByRole("heading", { name: "Basics", exact: true })).toBeFocused();
-
-    const slugInput = page.locator("#course-create-slug");
-    await expect(slugInput).toHaveAttribute("aria-invalid", "true");
-    const slugError = page.locator("#course-create-slug-error");
-    await expect(slugError).toBeVisible();
-    await expect(slugError).toHaveText(fieldErrorMessage);
-
-    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(1);
+    const nameInput = dialog.getByTestId("add-course-name");
+    await expect(nameInput).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("#add-course-name-error")).toHaveText(fieldErrorMessage);
+    await expect(dialog).toBeVisible();
     await expect(page).toHaveURL(/\/teacher\/courses\/new$/);
-
-    // The rejected request never carried a teacherId, even though it did
-    // carry price/status (which the create contract legitimately includes).
-    expect(postBody).not.toHaveProperty("teacherId");
+    expect(postBody).toMatchObject({ name: "Intro to Biology" });
   });
 });
 
