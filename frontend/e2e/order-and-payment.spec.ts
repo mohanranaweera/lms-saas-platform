@@ -562,8 +562,7 @@ test.describe("awaiting-confirmation — no payment attempt yet", () => {
 /**
  * Payment history moved to the student profile's Payments tab
  * (`/student/payments/history` redirects to `/student/profile?tab=payments`),
- * which also loads the student's own profile. One row per order, showing that
- * order's latest ledger entry.
+ * which also loads the student's own profile. One row per ledger entry.
  */
 async function gotoPaymentHistory(page: Page): Promise<void> {
   await mockJson(
@@ -591,7 +590,7 @@ test.describe("payment history — zero-data empty state has distinct, contextua
     ).toBeVisible();
   });
 
-  test("a non-empty history renders entry type, amount, and an expandable order row", async ({
+  test("a non-empty history renders entry type, amount, and a link to the order", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
@@ -616,7 +615,11 @@ test.describe("payment history — zero-data empty state has distinct, contextua
 
     await expect(page.getByText("Payment confirmed")).toBeVisible();
     await expect(page.getByText("49.99")).toBeVisible();
-    await expect(page.getByRole("button", { name: "More" })).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("link", { name: "View order status" })).toHaveAttribute(
+      "href",
+      "/student/payments/awaiting-confirmation/order-1"
+    );
+    await expect(page.getByRole("button", { name: "View more" })).toHaveAttribute("aria-expanded", "false");
     await expect(page.getByText("No payments yet")).toHaveCount(0);
   });
 });
@@ -777,9 +780,8 @@ test.describe("payment history — entry-type badge is distinct for PAYMENT_CONF
           createdAt: new Date().toISOString(),
         },
         {
-          // A different order: the history shows one row per order.
           id: "ledger-refund-1",
-          orderId: "order-2",
+          orderId: "order-1",
           paymentId: "payment-1",
           entryType: "REFUND",
           amount: -49.99,
@@ -802,9 +804,7 @@ test.describe("payment history — entry-type badge is distinct for PAYMENT_CONF
 });
 
 test.describe("payment history — Wave 6 extended fields, including the previously-broken manual-slip case", () => {
-  // The profile Payments tab rows show course title, amount and status; the
-  // per-entry method / reference / billing period are no longer displayed.
-  test("renders course title and status for gateway, manual-slip, free, and staff-granted payments", async ({
+  test("renders course title, status, method, and reference for gateway, manual-slip, free, and staff-granted payments", async ({
     page,
   }) => {
     await mockTenantSession(page, "STUDENT");
@@ -882,6 +882,19 @@ test.describe("payment history — Wave 6 extended fields, including the previou
     await expect(page.getByText("Advanced Chemistry")).toBeVisible();
     await expect(page.getByText("Free Intro Workshop")).toBeVisible();
     await expect(page.getByText("Monthly Coaching")).toBeVisible();
+
+    await expect(page.getByText("Gateway", { exact: true })).toBeVisible();
+    await expect(page.getByText("Manual bank transfer", { exact: true })).toBeVisible();
+    await expect(page.getByText("Free enrollment", { exact: true })).toBeVisible();
+    await expect(page.getByText("Staff granted", { exact: true })).toBeVisible();
+
+    await expect(page.getByText("gw-ref-1")).toBeVisible();
+    await expect(page.getByText("SLIP-REF-42")).toBeVisible();
+
+    // Only the STAFF_GRANTED entry (the only one given a `billingPeriodId`
+    // fixture value here) renders a billing period row — this is a per-entry
+    // field, not a blanket page-level label.
+    await expect(page.getByText("Billing period")).toBeVisible();
 
     // Every row renders a Paid status badge — icon + text, not color alone.
     const paidBadges = page.getByText("Paid", { exact: true });

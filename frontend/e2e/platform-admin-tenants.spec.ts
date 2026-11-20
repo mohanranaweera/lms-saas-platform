@@ -89,6 +89,29 @@ test.describe("Platform Admin Tenant List — table content", () => {
   });
 });
 
+test.describe("Platform Admin Tenant List — status badge", () => {
+  test("an unrecognised or differently-cased status renders as text instead of crashing the page", async ({ page }) => {
+    await mockPlatformAdminSession(page);
+    await mockJson(
+      page,
+      "**/v1/platform-admin/tenants*",
+      200,
+      apiPageSuccess([
+        tenantSummary({ id: "id-1", name: "Example Institute A", status: "active" }),
+        tenantSummary({ id: "id-2", name: "Example Academy", status: "ARCHIVED" }),
+      ])
+    );
+
+    await page.goto("/platform-admin/tenants");
+
+    const rows = page.getByRole("table").locator("tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.filter({ hasText: "Example Institute A" })).toContainText("Active");
+    await expect(rows.filter({ hasText: "Example Academy" })).toContainText("ARCHIVED");
+    await expect(page.getByRole("heading", { name: "Something went wrong" })).toHaveCount(0);
+  });
+});
+
 test.describe("Platform Admin Tenant List — destructive actions always name the tenant", () => {
   test("Approve/Reject render only next to the pending tenant's visible name, and the confirmation dialog names the tenant", async ({
     page,
