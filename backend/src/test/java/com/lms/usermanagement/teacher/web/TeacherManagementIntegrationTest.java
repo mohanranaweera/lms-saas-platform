@@ -63,7 +63,8 @@ class TeacherManagementIntegrationTest extends AuthIntegrationTestSupport {
 
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		TeacherResponse created = result.getBody().data();
-		assertThat(created.name()).isEqualTo("Newly Hired Teacher");
+		// name is composed from firstName + lastName; the 3-arg request sets lastName "Legacy".
+		assertThat(created.name()).isEqualTo("Newly Hired Teacher Legacy");
 		assertThat(created.email()).isEqualTo(teacherEmail);
 		assertThat(created.approvalStatus()).isEqualTo("PENDING");
 		assertThat(created.accountStatus()).isEqualTo("SUSPENDED");

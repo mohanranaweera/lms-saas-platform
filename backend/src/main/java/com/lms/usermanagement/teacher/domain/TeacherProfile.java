@@ -168,7 +168,9 @@ public class TeacherProfile extends Auditable implements TenantOwned {
 		this.contactNumber = contactNumber;
 		this.qualifications = qualifications;
 		this.description = description;
-		this.instituteCommissionPercent = instituteCommissionPercent;
+		// Match the NUMERIC(5,2) column so the create/update response equals a later read (0 -> 0.00).
+		this.instituteCommissionPercent = instituteCommissionPercent == null ? null
+				: instituteCommissionPercent.setScale(2, java.math.RoundingMode.HALF_UP);
 		this.profileMediaFileId = profileMediaFileId;
 		this.publicProfileDisabled = publicProfileDisabled;
 		this.name = (lastName == null || lastName.isBlank()) ? firstName : (firstName + " " + lastName).trim();
