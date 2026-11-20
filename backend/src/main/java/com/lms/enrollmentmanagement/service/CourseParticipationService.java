@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -180,7 +181,7 @@ public class CourseParticipationService implements CourseParticipationApi {
 		UUID studentId = AuthenticatedPrincipalHolder.get().userId();
 		Set<UUID> participating = participationRepository.findCourseIdsByStudentId(studentId);
 		CatalogQuery query = view == CatalogView.ENROLLED
-				? new CatalogQuery(participating, null, false, search, tagId, sort, page, size)
+				? new CatalogQuery(enrolledListScope(participating), null, false, search, tagId, sort, page, size)
 				: new CatalogQuery(storefrontScope().orElse(null), participating, true, search, tagId, sort, page,
 						size);
 		PageResponse<CatalogEntry> entries = courseCatalogApi.findCatalog(query);
@@ -191,10 +192,23 @@ public class CourseParticipationService implements CourseParticipationApi {
 	}
 
 	/**
+	 * ADR-037 decision 9 (amended): on a storefront host the ENROLLED list shows
+	 * only the joined courses that storefront publishes. List only - the
+	 * participation itself and every detail/access check are untouched, and the
+	 * tenant host (no storefront context) still lists everything.
+	 */
+	private Set<UUID> enrolledListScope(Set<UUID> participating) {
+		return storefrontScope().map(scope -> participating.stream()
+			.filter(scope::contains)
+			.collect(Collectors.toUnmodifiableSet())).orElse(participating);
+	}
+
+	/**
 	 * STORE-01 / ADR-037 decision 6: on a storefront host the AVAILABLE catalog
 	 * and new self-enrollments are limited to the courses that storefront lists
-	 * and publishes. Empty on a tenant host. ENROLLED and existing
-	 * participations are never filtered - a student keeps what they joined.
+	 * and publishes. Empty on a tenant host. Existing participations are never
+	 * touched - a student keeps what they joined (the ENROLLED list is scoped
+	 * by {@link #enrolledListScope}, decision 9).
 	 */
 	private Optional<Set<UUID>> storefrontScope() {
 		return StorefrontContextHolder.current()

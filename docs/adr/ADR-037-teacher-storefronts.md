@@ -46,8 +46,9 @@ Change-controlled areas touched (root `CLAUDE.md`):
    detail = 404; out-of-scope quote/order = 422 `STOREFRONT_PRODUCT_OUT_OF_SCOPE`. The signed-in
    student portal follows the same rule on a storefront host: Browse (`/enrollments/my/catalog`,
    view AVAILABLE) lists only the storefront's courses and a new free self-enrollment outside it
-   is refused (422). What a student already joined or bought (ENROLLED view, My courses,
-   re-enrolling) is never filtered. The tenant host still shows the whole institute.
+   is refused (422). What a student already joined or bought stays theirs (re-enrolling is
+   idempotent); how its lists are shown on a storefront host is decision 9. The tenant host
+   still shows the whole institute.
 7. **Sessions.** The API is same-origin per host, and the refresh cookie stays host-only, so a
    storefront host has its own session against the same tenant account. No cookie widening,
    no cross-host handoff. `returnTo` accepts only a same-host relative path.
@@ -57,6 +58,15 @@ Change-controlled areas touched (root `CLAUDE.md`):
    tenant origin. Callback validation and idempotency are untouched.
 9. **Entitlements survive.** Disabling a storefront or unlisting a course never touches
    enrollments or entitlements; students keep access through the tenant site.
+   *Amended 2026-11-20 (owner-approved):* on a storefront host the signed-in student portal's
+   course **lists** show only that storefront's published courses - My courses (ENROLLED),
+   the dashboard's enrollment lists, calendar course options/occurrences and the exams list.
+   Lists only: course, lesson, exam and payment detail URLs and every access check are
+   unfiltered, so an entitled student never loses access (ADR-028); explicit per-course
+   views (`courseId` on calendar/exams) are not filtered either. Payment history, devices,
+   profile and notifications are not filtered. The portal shows "Showing your courses from
+   <teacher>'s page." with a "See all your courses" link to the tenant site. No storefront
+   context (tenant host) means no filter.
 10. **Caching.** Host -> (tenant, storefront) resolution is read fresh (or cached keyed by full
     host and evicted on every storefront change); public catalog responses vary by host.
 

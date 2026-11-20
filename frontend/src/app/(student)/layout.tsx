@@ -2,6 +2,7 @@ import { RouteGuard } from "@/components/auth/route-guard";
 import { TenantAnalytics } from "@/components/analytics/tenant-analytics";
 import { ImpersonationBanner } from "@/components/auth/impersonation-banner";
 import { PaymentComposerProvider } from "@/components/payments/composer/payment-composer-provider";
+import { StorefrontPortalBanner } from "@/components/storefront/storefront-portal-banner";
 import { StudentPortalShell } from "./student-portal-shell";
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <TenantAnalytics />
       {/* KLASS-T5b: one PAY composer for the whole student portal (header PAY + every "Pay now"). */}
       <PaymentComposerProvider>
-        <StudentPortalShell>{children}</StudentPortalShell>
+        <StudentPortalShell>
+          {/* ADR-037 decision 9: on a teacher storefront host the course lists are that teacher's only. */}
+          <StorefrontPortalBanner />
+          {children}
+        </StudentPortalShell>
       </PaymentComposerProvider>
     </RouteGuard>
   );
