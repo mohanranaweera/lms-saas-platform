@@ -6,6 +6,7 @@ import com.lms.common.error.NotFoundException;
 import com.lms.common.tenant.TenantContext;
 import com.lms.coursemanagement.api.CourseArchiveStateChangedEvent;
 import com.lms.coursemanagement.api.CourseAuditEvent;
+import com.lms.coursemanagement.api.LessonPaymentType;
 import com.lms.coursemanagement.api.CourseClonedEvent;
 import com.lms.coursemanagement.api.CoursePriceChangedEvent;
 import com.lms.coursemanagement.api.CoursePricingModelChangedEvent;
@@ -37,6 +38,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.Normalizer;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -845,10 +847,51 @@ public class CourseService {
 			return;
 		}
 		course.setPricingModel(newPricingModel);
-		// Existing session rows keep their historical association until the session is edited;
-		// no bulk rewrite of entitlement/payment history occurs on a course model change.
+		// Existing session rows keep their billing month; no entitlement/payment history is
+		// rewritten on a course model change. The one exception: switching TO Monthly fills
+		// the month of covered sessions that never had one (saved before the switch), so
+		// they become payable without re-saving each session.
 		eventPublisher.publishEvent(new CoursePricingModelChangedEvent(tenantContext.getTenantId(), course.getId(),
 				principal.userId(), previous, newPricingModel, Instant.now()));
+		if (newPricingModel == CoursePricingModel.MONTHLY) {
+			fillMissingSessionBillingMonths(course, principal);
+		}
+	}
+
+	/**
+	 * Covered-by-class-fees sessions of this course with a start but no billing
+	 * month get the month {@link SessionBillingMonths} derives (the same rule as
+	 * saving a session). Sessions that already have a month, FREE/PAID sessions
+	 * and unscheduled sessions are left alone; a start outside 2000-2100 is
+	 * skipped rather than failing the model change. One audit event per session.
+	 */
+	private void fillMissingSessionBillingMonths(Course course, AuthenticatedPrincipal principal) {
+		List<UUID> moduleIds = courseModuleRepository.findByCourseId(course.getId())
+			.stream()
+			.map(CourseModule::getId)
+			.toList();
+		if (moduleIds.isEmpty()) {
+			return;
+		}
+		ZoneId zone = SessionBillingMonths.tenantZone(tenantConfigApi, course.getTenantId());
+		for (CourseLesson lesson : courseLessonRepository.findByModuleIds(moduleIds)) {
+			if (lesson.getPaymentType() != LessonPaymentType.COVERED_BY_CLASS_FEES || lesson.getStartsAt() == null
+					|| lesson.getBillingYear() != null) {
+				continue;
+			}
+			SessionBillingMonths.of(lesson.getStartsAt(), zone).ifPresent(month -> {
+				lesson.setBillingMonth(month.getYear(), month.getMonthValue());
+				Map<String, Object> metadata = new HashMap<>();
+				metadata.put("courseId", course.getId());
+				metadata.put("moduleId", lesson.getModuleId());
+				metadata.put("previousBillingMonth", null);
+				metadata.put("newBillingMonth", month.toString());
+				metadata.put("reason", "course_switched_to_monthly");
+				eventPublisher.publishEvent(new CourseAuditEvent(course.getTenantId(), principal.userId(),
+						"course_lesson.billing_month_assigned", "course_lesson", lesson.getId(), metadata,
+						Instant.now()));
+			});
+		}
 	}
 
 	/**

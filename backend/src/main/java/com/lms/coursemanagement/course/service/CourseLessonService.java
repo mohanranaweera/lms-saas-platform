@@ -15,13 +15,11 @@ import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import com.lms.identityaccessservice.api.AuthenticatedPrincipalHolder;
 import com.lms.identityaccessservice.api.PermissionAction;
-import com.lms.tenantmanagement.api.ConfigDomain;
 import com.lms.tenantmanagement.api.TenantConfigApi;
 import java.math.BigDecimal;
-import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -224,23 +222,11 @@ public class CourseLessonService {
 				|| paymentType != LessonPaymentType.COVERED_BY_CLASS_FEES || input.startsAt() == null) {
 			return new BillingMonth(null, null);
 		}
-		ZoneId zone = ZoneId.of("UTC");
-		try {
-			Object configured = tenantConfigApi.resolveValue(course.getTenantId(), ConfigDomain.GENERAL,
-					"default_timezone").orElse(null);
-			if (configured instanceof String name) {
-				zone = ZoneId.of(name);
-			}
-		}
-		catch (DateTimeException | IllegalArgumentException ex) {
-			// Match the course-content timezone fallback for invalid legacy configuration.
-		}
-		ZonedDateTime localStart = input.startsAt().atZone(zone);
-		if (localStart.getYear() < 2000 || localStart.getYear() > 2100) {
-			throw CourseRuleException.invalid("VALIDATION_ERROR", "startsAt",
-					"Monthly session start must be between 2000 and 2100");
-		}
-		return new BillingMonth(localStart.getYear(), localStart.getMonthValue());
+		ZoneId zone = SessionBillingMonths.tenantZone(tenantConfigApi, course.getTenantId());
+		YearMonth month = SessionBillingMonths.of(input.startsAt(), zone)
+			.orElseThrow(() -> CourseRuleException.invalid("VALIDATION_ERROR", "startsAt",
+					"Monthly session start must be between 2000 and 2100"));
+		return new BillingMonth(month.getYear(), month.getMonthValue());
 	}
 
 	private static void apply(CourseLesson lesson, LessonInput input, BillingMonth billingMonth) {
