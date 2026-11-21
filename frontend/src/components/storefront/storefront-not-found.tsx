@@ -1,26 +1,9 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { Store } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { tenantHostOf } from "@/lib/storefront/site-context";
+import { useTenantSiteUrl } from "@/lib/storefront/use-tenant-site-url";
 import { cn } from "@/lib/utils";
-
-function subscribe(): () => void {
-  return () => {};
-}
-
-/** `http://abc.lms.test:3000` for `alice.abc.lms.test:3000`; `null` during SSR or when not derivable. */
-function useTenantSiteUrl(): string | null {
-  return useSyncExternalStore(
-    subscribe,
-    () => {
-      const parent = tenantHostOf(window.location.host);
-      return parent ? `${window.location.protocol}//${parent}/` : null;
-    },
-    () => null
-  );
-}
 
 /**
  * STORE-01: shown for an unknown, disabled or retired storefront host - never

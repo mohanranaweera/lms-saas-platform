@@ -656,7 +656,14 @@ courses; checkout `quote`/`orders`/`offers` reject out-of-scope courses with 422
 `STOREFRONT_PRODUCT_OUT_OF_SCOPE` and `GET /checkout/courses` filters them out. The student
 catalog `GET /api/v1/enrollments/my/catalog?view=AVAILABLE` lists only storefront courses, and
 `POST /api/v1/enrollments/my/courses/{id}` refuses a new out-of-scope enrollment with the same
-422 (an existing participation stays idempotent 200; `view=ENROLLED` is unfiltered). Order lines
+422 (an existing participation stays idempotent 200). Student-portal course LISTS are also
+scoped on a storefront host (ADR-037 decision 9, amended 2026-11-20): `GET
+/api/v1/enrollments/my/catalog?view=ENROLLED`, `GET /api/v1/enrollments/my`, `GET
+/api/v1/enrollments/my/courses`, `GET /api/v1/calendar/courses`, `GET
+/api/v1/calendar/occurrences` (without `courseId`) and `GET /api/v1/student/exams` (without the
+new optional `courseId`, which returns one course's exams unfiltered) keep only the storefront's
+published courses for a STUDENT. Detail/access endpoints, payment history, devices, profile and
+notifications are never filtered, and the tenant host lists everything. Order lines
 record `storefront_id` (attribution only). Unknown/disabled hosts: 404 `STOREFRONT_NOT_FOUND`;
 retired slug: 404 `STOREFRONT_MOVED` (`details.host`).
 Audit: storefront create, slug change, enable/disable and product-list change (before/after).
