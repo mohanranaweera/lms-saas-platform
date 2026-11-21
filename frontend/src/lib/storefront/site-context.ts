@@ -11,6 +11,12 @@
 export const STOREFRONT_NOT_FOUND = "STOREFRONT_NOT_FOUND";
 export const STOREFRONT_MOVED = "STOREFRONT_MOVED";
 export const STOREFRONT_PRODUCT_OUT_OF_SCOPE = "STOREFRONT_PRODUCT_OUT_OF_SCOPE";
+/**
+ * ADR-037 decision 6 (amended 2026-11-21): on the institute host, a public
+ * course hidden because its teachers are on a storefront; `details.host` is
+ * the one storefront that sells it.
+ */
+export const COURSE_ON_STOREFRONT = "COURSE_ON_STOREFRONT";
 
 /** Friendly checkout copy for `422 STOREFRONT_PRODUCT_OUT_OF_SCOPE`. */
 export const STOREFRONT_OUT_OF_SCOPE_MESSAGE =
@@ -93,11 +99,30 @@ export function movedTargetHost(currentHost: string, detailsHost: unknown): stri
 }
 
 /**
+ * Validates the backend's `details.host` for `COURSE_ON_STOREFRONT`, answered
+ * on the institute (tenant) host: a plain hostname that is exactly one label
+ * under the current host (`alice.abc.lms.test` under `abc.lms.test`) - so the
+ * redirect can only ever go to a storefront of this tenant. Same port rule as
+ * {@link movedTargetHost}. Returns `null` when the target is unusable.
+ */
+export function storefrontTargetFromTenantHost(currentHost: string, detailsHost: unknown): string | null {
+  if (typeof detailsHost !== "string" || detailsHost.length === 0 || detailsHost.length > 253) return null;
+  const target = splitHost(detailsHost);
+  const current = splitHost(currentHost);
+  if (!HOSTNAME_PATTERN.test(target.hostname)) return null;
+  if (tenantHostOf(target.hostname) !== current.hostname) return null;
+  const port = target.port || current.port;
+  return port ? `${target.hostname}:${port}` : target.hostname;
+}
+
+/**
  * Maps an API error (status/code/details) on the current host to what the
  * site must do: show the storefront not-found page, or 308 to the current
  * storefront host. `null` for every other error (handled by the caller as
  * usual). A MOVED answer whose target fails validation is treated as
- * not-found - never as the tenant catalog.
+ * not-found - never as the tenant catalog. A `COURSE_ON_STOREFRONT` answer
+ * (institute host) moves to that storefront when its host is valid, and is
+ * otherwise left to the page as an ordinary 404.
  */
 export function classifyStorefrontError(
   status: number,
@@ -110,6 +135,10 @@ export function classifyStorefrontError(
   if (code === STOREFRONT_MOVED) {
     const host = movedTargetHost(currentHost, details?.host);
     return host ? { kind: "moved", host } : { kind: "not-found" };
+  }
+  if (code === COURSE_ON_STOREFRONT) {
+    const host = storefrontTargetFromTenantHost(currentHost, details?.host);
+    return host ? { kind: "moved", host } : null;
   }
   return null;
 }

@@ -12,7 +12,10 @@ import { subscribeStorefrontErrors } from "@/lib/storefront/storefront-signal";
  * 308 for a retired slug); this gate covers everything after that - any API
  * call that answers `404 STOREFRONT_NOT_FOUND` replaces the page with the
  * not-found page, and `STOREFRONT_MOVED` moves the browser to the same path on
- * the current storefront host. Every other host renders `children` untouched.
+ * the current storefront host. On the institute host, `COURSE_ON_STOREFRONT`
+ * (a course whose teachers all sell on their own page, ADR-037 decision 6
+ * amended 2026-11-21) moves the browser to the same path on that storefront.
+ * Every other answer renders `children` untouched.
  */
 export function StorefrontGate({ children }: { children: ReactNode }) {
   const [outcome, setOutcome] = useState<StorefrontHostOutcome | null>(null);
