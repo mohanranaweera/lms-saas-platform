@@ -47,8 +47,25 @@ Change-controlled areas touched (root `CLAUDE.md`):
    student portal follows the same rule on a storefront host: Browse (`/enrollments/my/catalog`,
    view AVAILABLE) lists only the storefront's courses and a new free self-enrollment outside it
    is refused (422). What a student already joined or bought stays theirs (re-enrolling is
-   idempotent); how its lists are shown on a storefront host is decision 9. The tenant host
-   still shows the whole institute.
+   idempotent); how its lists are shown on a storefront host is decision 9.
+   *Amended 2026-11-21 (owner-approved; supersedes "the tenant host still shows the whole
+   institute"):* on the institute (tenant) host - no storefront context - the **public** pages
+   hide teachers who have their own homepage, and their courses. A teacher is on a storefront
+   when the storefront is enabled AND the teacher is live (approved + ACTIVE, decision 3's
+   rule); a disabled storefront or suspended teacher shows on the institute site again. A
+   course is hidden when **every** teacher assigned to it (`course_teacher_assignment`,
+   falling back to `course.teacher_id`) is on a storefront - owner choices: **all** of the
+   teacher's courses, including ones not listed on the storefront, but **shared courses are
+   kept** when any co-teacher is not on a storefront. Never inferred from subject or title.
+   Scope: public course list/search/tags/counts/pagination, public course detail, featured home
+   courses, today's classes and the public teacher directory (list + detail). A hidden course's
+   detail answers 404 `COURSE_ON_STOREFRONT` with `details.host` when exactly one enabled, live
+   storefront publishes it (the site replaces the URL with the same path there, after checking
+   the host is a storefront of this tenant), otherwise the generic 404. Not changed: storefront
+   hosts, checkout/quote/orders/payments on the tenant host (existing students still pay and
+   learn), the signed-in student portal, admin pages, enrollments and entitlements. The hidden
+   set is computed once per request with tenant-scoped reads and applied as one query
+   predicate.
 7. **Sessions.** The API is same-origin per host, and the refresh cookie stays host-only, so a
    storefront host has its own session against the same tenant account. No cookie widening,
    no cross-host handoff. `returnTo` accepts only a same-host relative path.

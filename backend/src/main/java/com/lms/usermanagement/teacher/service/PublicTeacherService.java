@@ -54,8 +54,11 @@ public class PublicTeacherService {
 		Map<UUID, TenantUserSummary> summaries = summaries(profiles);
 		// STORE-01: on a teacher-storefront host, only that storefront's teacher.
 		java.util.Optional<StorefrontContext> storefront = StorefrontContextHolder.current();
+		// ADR-037 decision 6 (amended 2026-11-21): the institute host hides teachers on a storefront.
+		java.util.Set<UUID> hidden = storefrontLookupApi.instituteHiddenTeacherIds();
 		List<PublicTeacherResponse> visible = profiles.stream()
 			.filter(profile -> storefront.isEmpty() || storefront.get().teacherId().equals(profile.getUserId()))
+			.filter(profile -> !hidden.contains(profile.getUserId()))
 			.filter(profile -> isActive(summaries.get(profile.getUserId())))
 			.map(this::toResponse)
 			.toList();
@@ -69,6 +72,9 @@ public class PublicTeacherService {
 		TeacherProfile profile = teacherProfileRepository.findPublicProfileById(id, ApprovalStatus.APPROVED)
 			.orElseThrow(() -> new NotFoundException("Teacher not found"));
 		if (StorefrontContextHolder.current().filter(sf -> !sf.teacherId().equals(profile.getUserId())).isPresent()) {
+			throw new NotFoundException("Teacher not found");
+		}
+		if (storefrontLookupApi.instituteHiddenTeacherIds().contains(profile.getUserId())) {
 			throw new NotFoundException("Teacher not found");
 		}
 		TenantUserSummary summary = summaries(List.of(profile)).get(profile.getUserId());

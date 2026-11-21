@@ -663,7 +663,24 @@ scoped on a storefront host (ADR-037 decision 9, amended 2026-11-20): `GET
 /api/v1/calendar/occurrences` (without `courseId`) and `GET /api/v1/student/exams` (without the
 new optional `courseId`, which returns one course's exams unfiltered) keep only the storefront's
 published courses for a STUDENT. Detail/access endpoints, payment history, devices, profile and
-notifications are never filtered, and the tenant host lists everything. Order lines
+notifications are never filtered, and the tenant host's student portal lists everything. Order lines
 record `storefront_id` (attribution only). Unknown/disabled hosts: 404 `STOREFRONT_NOT_FOUND`;
 retired slug: 404 `STOREFRONT_MOVED` (`details.host`).
+
+Institute (tenant) host public pages (ADR-037 decision 6, amended 2026-11-21): with no
+storefront context, a teacher is "on a storefront" when their storefront is enabled AND they
+are live (approved + ACTIVE - the host-resolution rule). Such teachers are hidden from `GET
+/api/v1/public/teachers` (list, counts) and `GET /api/v1/public/teachers/{id}` (404). A course
+is hidden when EVERY teacher assigned to it (`course_teacher_assignment`; `course.teacher_id`
+when it has no rows) is on a storefront - whether or not it is listed on a storefront; a course
+co-taught with any other teacher stays. Hidden courses leave `GET /api/v1/public/courses`
+(list/search/tag filter/counts/pagination), `GET /api/v1/public/courses/tags`, the home's
+`featuredCourses` (`GET /api/v1/public/tenant-config/home`) and `GET
+/api/v1/public/calendar/today`. `GET /api/v1/public/courses/{slug}` for a hidden course answers
+404 `COURSE_ON_STOREFRONT` with `details.host` when exactly one enabled, live storefront
+publishes it (the site replaces the URL with the same path on that host after checking it is a
+storefront of this tenant), otherwise the generic 404 `NOT_FOUND`. Disabling the storefront or
+suspending the teacher shows them again. Unchanged: storefront hosts, checkout
+(`courses`/`offers`/`quote`/`orders`), the signed-in student portal, admin endpoints,
+enrollments and entitlements.
 Audit: storefront create, slug change, enable/disable and product-list change (before/after).

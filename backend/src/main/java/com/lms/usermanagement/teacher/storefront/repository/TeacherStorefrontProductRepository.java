@@ -15,6 +15,12 @@ public interface TeacherStorefrontProductRepository extends TenantAwareRepositor
 		return findAll((root, query, cb) -> cb.equal(root.get("storefrontId"), storefrontId), DISPLAY_ORDER);
 	}
 
+	/** Published listings of one course, across this tenant's storefronts. */
+	default List<TeacherStorefrontProduct> findPublishedByCourseId(UUID courseId) {
+		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("courseId"), courseId),
+				cb.isTrue(root.get("published"))));
+	}
+
 	default List<TeacherStorefrontProduct> findPublishedByStorefrontId(UUID storefrontId) {
 		return findAll((root, query, cb) -> cb.and(cb.equal(root.get("storefrontId"), storefrontId),
 				cb.isTrue(root.get("published"))), DISPLAY_ORDER);

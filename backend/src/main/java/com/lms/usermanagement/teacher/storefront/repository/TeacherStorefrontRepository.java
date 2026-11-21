@@ -22,6 +22,11 @@ public interface TeacherStorefrontRepository extends TenantAwareRepository<Teach
 		return findOne((root, query, cb) -> cb.equal(root.get("slug"), slug));
 	}
 
+	/** ADR-037 decision 6 (amended): every enabled storefront of the tenant. */
+	default List<TeacherStorefront> findAllEnabled() {
+		return findAll((root, query, cb) -> cb.isTrue(root.get("enabled")));
+	}
+
 	default List<TeacherStorefront> findByTeacherIdIn(Collection<UUID> teacherIds) {
 		if (teacherIds.isEmpty()) {
 			return List.of();

@@ -1,7 +1,9 @@
 package com.lms.coursemanagement.course.service;
 
 import com.lms.common.api.PageResponse;
+import com.lms.common.api.ApiErrorCodes;
 import com.lms.common.error.NotFoundException;
+import com.lms.common.error.StorefrontException;
 import com.lms.common.tenant.StorefrontContextHolder;
 import com.lms.coursemanagement.api.CheckoutAmount;
 import com.lms.coursemanagement.course.domain.Course;
@@ -23,6 +25,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -94,6 +97,17 @@ public class CoursePublicService {
 	}
 
 	/**
+	 * ADR-037 decision 6 (amended 2026-11-21): on the institute (tenant) host,
+	 * hide courses whose every assigned teacher is on a storefront. Computed
+	 * once per call (a fixed number of tenant-scoped reads) and applied as one
+	 * query predicate. Empty on a storefront host, which scopes by its own
+	 * product list ({@link #storefrontScope()}).
+	 */
+	private Set<UUID> instituteHiddenTeachers() {
+		return storefrontLookupApi == null ? Set.of() : storefrontLookupApi.instituteHiddenTeacherIds();
+	}
+
+	/**
 	 * Resolves every listed course's checkout amount via a single batched
 	 * {@link CourseCheckoutAmountResolver#resolveBatch(java.util.Collection)}
 	 * call - never one billing-configuration/billing-period lookup per course
@@ -103,7 +117,8 @@ public class CoursePublicService {
 	public List<PublicCourseTag> listPublicTags() {
 		if (courseTagAssignmentRepository == null || courseTagRepository == null) return List.of();
 		Optional<Set<UUID>> scope = storefrontScope();
-		var publishedIds = courseRepository.findAll(CourseSpecifications.withStatus(CourseStatus.PUBLIC)).stream().map(Course::getId)
+		var publishedIds = courseRepository.findAll(CourseSpecifications.withStatus(CourseStatus.PUBLIC)
+				.and(CourseSpecifications.visibleOnInstituteSite(instituteHiddenTeachers()))).stream().map(Course::getId)
 			.filter(id -> scope.isEmpty() || scope.get().contains(id)).toList();
 		if (publishedIds.isEmpty()) return List.of();
 		var tagIds = courseTagAssignmentRepository.findByCourseIdIn(publishedIds).stream().map(a -> a.getId().getTagId()).collect(java.util.stream.Collectors.toSet());
@@ -126,6 +141,7 @@ public class CoursePublicService {
 				return root.get("id").in(subquery);
 			});
 		}
+		spec = spec.and(CourseSpecifications.visibleOnInstituteSite(instituteHiddenTeachers()));
 		Optional<Set<UUID>> scope = storefrontScope();
 		if (scope.isPresent()) {
 			Set<UUID> listed = scope.get();
@@ -160,6 +176,18 @@ public class CoursePublicService {
 		Optional<Set<UUID>> scope = storefrontScope();
 		if (scope.isPresent() && !scope.get().contains(course.getId())) {
 			throw new NotFoundException("Course not found");
+		}
+		// ADR-037 decision 6 (amended 2026-11-21): on the institute host a course
+		// whose every teacher is on a storefront is hidden; point to the one
+		// storefront that sells it, if exactly one does.
+		Set<UUID> hiddenTeachers = instituteHiddenTeachers();
+		if (!hiddenTeachers.isEmpty() && !courseRepository.exists(CourseSpecifications.withStatus(CourseStatus.PUBLIC)
+			.and((root, query, cb) -> cb.equal(root.get("id"), course.getId()))
+			.and(CourseSpecifications.visibleOnInstituteSite(hiddenTeachers)))) {
+			throw storefrontLookupApi.soleStorefrontHostPublishing(course.getId())
+				.<RuntimeException>map(host -> new StorefrontException(HttpStatus.NOT_FOUND,
+						ApiErrorCodes.COURSE_ON_STOREFRONT, "Course not found", Map.of("host", host)))
+				.orElseGet(() -> new NotFoundException("Course not found"));
 		}
 		Map<UUID, CheckoutAmount> resolvedAmounts = courseCheckoutAmountResolver.resolveBatch(List.of(course));
 		return toView(course, resolvedAmounts);

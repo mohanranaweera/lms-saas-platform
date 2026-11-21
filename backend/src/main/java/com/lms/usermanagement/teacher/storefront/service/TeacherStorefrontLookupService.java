@@ -9,7 +9,9 @@ import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
 import com.lms.usermanagement.teacher.domain.ApprovalStatus;
 import com.lms.usermanagement.teacher.repository.TeacherProfileRepository;
 import com.lms.usermanagement.teacher.storefront.domain.TeacherStorefront;
+import com.lms.usermanagement.teacher.storefront.domain.TeacherStorefrontProduct;
 import com.lms.usermanagement.teacher.storefront.domain.TeacherStorefrontSlug;
+import java.util.stream.Collectors;
 import com.lms.usermanagement.teacher.storefront.repository.TeacherStorefrontProductRepository;
 import com.lms.usermanagement.teacher.storefront.repository.TeacherStorefrontRepository;
 import com.lms.usermanagement.teacher.storefront.repository.TeacherStorefrontSlugRepository;
@@ -100,6 +102,61 @@ public class TeacherStorefrontLookupService implements TeacherStorefrontLookupAp
 		}
 		List<TenantUserSummary> users = userProvisioningApi.findTenantUserSummaries(List.of(teacherId));
 		return users.stream().anyMatch(user -> "ACTIVE".equalsIgnoreCase(user.status()));
+	}
+
+	@Override
+	public Set<UUID> findTeachersOnStorefront() {
+		List<TeacherStorefront> enabled = storefrontRepository.findAllEnabled();
+		if (enabled.isEmpty()) {
+			return Set.of();
+		}
+		return liveTeachers(enabled.stream().map(TeacherStorefront::getTeacherId).collect(Collectors.toSet()));
+	}
+
+	@Override
+	public Optional<String> soleStorefrontHostPublishing(UUID courseId) {
+		if (courseId == null) {
+			return Optional.empty();
+		}
+		Set<UUID> storefrontIds = productRepository.findPublishedByCourseId(courseId)
+			.stream()
+			.map(TeacherStorefrontProduct::getStorefrontId)
+			.collect(Collectors.toSet());
+		if (storefrontIds.isEmpty()) {
+			return Optional.empty();
+		}
+		List<TeacherStorefront> enabled = storefrontRepository.findAllById(storefrontIds)
+			.stream()
+			.filter(TeacherStorefront::isEnabled)
+			.toList();
+		Set<UUID> live = liveTeachers(enabled.stream().map(TeacherStorefront::getTeacherId).collect(Collectors.toSet()));
+		List<TeacherStorefront> candidates = enabled.stream()
+			.filter(storefront -> live.contains(storefront.getTeacherId()))
+			.toList();
+		if (candidates.size() != 1) {
+			return Optional.empty();
+		}
+		return tenantLookupApi.storefrontHost(tenantContext.getTenantId(), candidates.get(0).getSlug());
+	}
+
+	/** Batched {@link #isTeacherLive}: approved profile AND ACTIVE tenant user. */
+	private Set<UUID> liveTeachers(Set<UUID> teacherIds) {
+		if (teacherIds.isEmpty()) {
+			return Set.of();
+		}
+		Set<UUID> approved = teacherProfileRepository.findApprovedByUserIdIn(teacherIds)
+			.stream()
+			.map(profile -> profile.getUserId())
+			.collect(Collectors.toSet());
+		if (approved.isEmpty()) {
+			return Set.of();
+		}
+		return userProvisioningApi.findTenantUserSummaries(List.copyOf(approved))
+			.stream()
+			.filter(user -> "ACTIVE".equalsIgnoreCase(user.status()))
+			.map(TenantUserSummary::userId)
+			.filter(approved::contains)
+			.collect(Collectors.toUnmodifiableSet());
 	}
 
 	@Override

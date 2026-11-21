@@ -28,6 +28,9 @@ import com.lms.coursemanagement.course.repository.CourseModuleRepository;
 import com.lms.coursemanagement.course.repository.CourseRepository;
 import com.lms.coursemanagement.course.repository.CourseTagAssignmentRepository;
 import com.lms.coursemanagement.course.repository.CourseTeacherAssignmentRepository;
+import com.lms.coursemanagement.course.repository.CourseSpecifications;
+import com.lms.usermanagement.api.TeacherStorefrontLookupApi;
+import org.springframework.beans.factory.ObjectProvider;
 import com.lms.coursemanagement.api.CourseTagRef;
 import com.lms.integrationmanagement.api.ObjectStorageApi;
 import com.lms.tenantmanagement.api.TenantConfigApi;
@@ -80,6 +83,12 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 
 	private final CourseTeacherAssignmentRepository courseTeacherAssignmentRepository;
 
+	/**
+	 * ADR-037 decision 6 (amended): resolved lazily at call time, so this widely
+	 * used lookup bean never forms a construction cycle with user-management.
+	 */
+	private final ObjectProvider<TeacherStorefrontLookupApi> storefrontLookupApi;
+
 	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
 			CourseLessonRepository courseLessonRepository,
 			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
@@ -100,13 +109,26 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 				objectStorageApi, null);
 	}
 
-	@Autowired
 	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
 			CourseLessonRepository courseLessonRepository,
 			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
 			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi,
 			CourseLinkRepository courseLinkRepository, CourseTagAssignmentRepository courseTagAssignmentRepository,
 			ObjectStorageApi objectStorageApi, CourseTeacherAssignmentRepository courseTeacherAssignmentRepository) {
+		this(courseRepository, courseModuleRepository, courseLessonRepository, courseBillingConfigurationRepository,
+				courseBillingPeriodRepository, tenantConfigApi, courseLinkRepository, courseTagAssignmentRepository,
+				objectStorageApi, courseTeacherAssignmentRepository, null);
+	}
+
+	@Autowired
+	public CourseLookupApiImpl(CourseRepository courseRepository, CourseModuleRepository courseModuleRepository,
+			CourseLessonRepository courseLessonRepository,
+			CourseBillingConfigurationRepository courseBillingConfigurationRepository,
+			CourseBillingPeriodRepository courseBillingPeriodRepository, TenantConfigApi tenantConfigApi,
+			CourseLinkRepository courseLinkRepository, CourseTagAssignmentRepository courseTagAssignmentRepository,
+			ObjectStorageApi objectStorageApi, CourseTeacherAssignmentRepository courseTeacherAssignmentRepository,
+			ObjectProvider<TeacherStorefrontLookupApi> storefrontLookupApi) {
+		this.storefrontLookupApi = storefrontLookupApi;
 		this.courseRepository = courseRepository;
 		this.courseModuleRepository = courseModuleRepository;
 		this.courseLessonRepository = courseLessonRepository;
@@ -168,10 +190,17 @@ public class CourseLookupApiImpl implements CourseLookupApi {
 			return List.of();
 		}
 		List<UUID> orderedIds = courseIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
-		// Tenant-scoped findAllById (ADR-006): a foreign tenant's id is simply absent.
-		Map<UUID, Course> courses = courseRepository.findAllById(orderedIds)
+		// Tenant-scoped (ADR-006): a foreign tenant's id is simply absent.
+		// ADR-037 decision 6 (amended 2026-11-21): on the institute host a course
+		// whose every teacher is on a storefront is not featured either.
+		TeacherStorefrontLookupApi storefronts = storefrontLookupApi == null ? null
+				: storefrontLookupApi.getIfAvailable();
+		Set<UUID> hiddenTeachers = storefronts == null ? Set.of() : storefronts.instituteHiddenTeacherIds();
+		Map<UUID, Course> courses = courseRepository
+			.findAll(CourseSpecifications.withStatus(CourseStatus.PUBLIC)
+				.and((root, query, cb) -> root.get("id").in(orderedIds))
+				.and(CourseSpecifications.visibleOnInstituteSite(hiddenTeachers)))
 			.stream()
-			.filter(course -> course.getStatus() == CourseStatus.PUBLIC)
 			.collect(Collectors.toMap(Course::getId, course -> course));
 		// Same resolver as the public course catalog, so price/access labels always agree.
 		Map<UUID, CheckoutAmount> resolved = courseCheckoutAmountResolver.resolveBatch(courses.values());

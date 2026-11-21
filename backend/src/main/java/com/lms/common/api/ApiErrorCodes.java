@@ -281,6 +281,13 @@ public final class ApiErrorCodes {
 	/** STORE-01: a retired slug of an enabled storefront; {@code details.host} is the current host. */
 	public static final String STOREFRONT_MOVED = "STOREFRONT_MOVED";
 
+	/**
+	 * STORE-01 / ADR-037 decision 6 (amended 2026-11-21): on the institute host,
+	 * a public course hidden because its teachers are on a storefront, sold by
+	 * exactly one storefront; {@code details.host} is that storefront's host.
+	 */
+	public static final String COURSE_ON_STOREFRONT = "COURSE_ON_STOREFRONT";
+
 	/** STORE-01: on a storefront host, a course the storefront does not sell (checkout). */
 	public static final String STOREFRONT_PRODUCT_OUT_OF_SCOPE = "STOREFRONT_PRODUCT_OUT_OF_SCOPE";
 

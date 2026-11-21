@@ -5,6 +5,7 @@ import {
   movedTargetHost,
   movedUrl,
   normalizeSiteContext,
+  storefrontTargetFromTenantHost,
   storefrontUrlWithSlug,
   tenantHostOf,
 } from "../../src/lib/storefront/site-context";
@@ -72,6 +73,25 @@ test.describe("site context", () => {
     expect(movedTargetHost(host, 42)).toBeNull();
     expect(classifyStorefrontError(404, "STOREFRONT_MOVED", { host: "evil.test" }, host)).toEqual({ kind: "not-found" });
     expect(classifyStorefrontError(404, "STOREFRONT_MOVED", null, host)).toEqual({ kind: "not-found" });
+  });
+
+  test("COURSE_ON_STOREFRONT on the institute host moves only to a storefront of this tenant", () => {
+    const host = "abc.lms.test:3000";
+    expect(storefrontTargetFromTenantHost(host, "alice.abc.lms.test")).toBe("alice.abc.lms.test:3000");
+    expect(storefrontTargetFromTenantHost("abc.lms.test", "alice.abc.lms.test:8443")).toBe("alice.abc.lms.test:8443");
+    expect(storefrontTargetFromTenantHost(host, "alice.other.lms.test")).toBeNull();
+    expect(storefrontTargetFromTenantHost(host, "a.alice.abc.lms.test")).toBeNull();
+    expect(storefrontTargetFromTenantHost(host, "abc.lms.test")).toBeNull();
+    expect(storefrontTargetFromTenantHost(host, "evil.test")).toBeNull();
+    expect(storefrontTargetFromTenantHost(host, "https://alice.abc.lms.test")).toBeNull();
+    expect(storefrontTargetFromTenantHost(host, null)).toBeNull();
+    expect(classifyStorefrontError(404, "COURSE_ON_STOREFRONT", { host: "alice.abc.lms.test" }, host)).toEqual({
+      kind: "moved",
+      host: "alice.abc.lms.test:3000",
+    });
+    // An unusable target is an ordinary 404 for the page, never the storefront not-found page.
+    expect(classifyStorefrontError(404, "COURSE_ON_STOREFRONT", { host: "evil.test" }, host)).toBeNull();
+    expect(classifyStorefrontError(404, "COURSE_ON_STOREFRONT", null, host)).toBeNull();
   });
 
   test("moved URL keeps path, query and hash", () => {

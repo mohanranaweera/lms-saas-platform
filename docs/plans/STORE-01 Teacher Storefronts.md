@@ -20,6 +20,16 @@ detail 404, out-of-scope quote/order 422; same slug allowed in two tenants; slug
 another teacher in the same tenant -> 409; reserved/invalid slug -> 400; purchased access kept
 after disabling.
 
+Institute host (ADR-037 decision 6, amended 2026-11-21): the tenant host's public pages hide
+teachers on a storefront (enabled + live) and every course all of whose assigned teachers are
+on a storefront (listed or not); shared courses with any other teacher stay. Applies to the
+public catalog (list/search/tags/counts/pagination/detail), featured home courses, today's
+classes and the teacher directory. Hidden detail -> 404 `COURSE_ON_STOREFRONT` +
+`details.host` when exactly one storefront publishes it (frontend replaces the URL with the same
+path there, same-tenant host check), else generic 404. Disabling the storefront or suspending
+the teacher shows them again. Checkout, student portal, admin, enrollments and entitlements
+unchanged.
+
 ## 4. Database
 V126 (additive): `teacher_storefront`, `teacher_storefront_slug`, `teacher_storefront_product`,
 `student_order_line.storefront_id`. All tenant-owned, composite same-tenant FKs, tenant-leading
