@@ -72,6 +72,48 @@ public final class CourseSpecifications {
 	}
 
 	/**
+	 * ADR-037 decision 6 (amended 2026-11-21): the institute (tenant) host's
+	 * public catalog hides a course when EVERY teacher assigned to it is on a
+	 * storefront ({@code hiddenTeacherIds}). Assignment comes from {@code
+	 * course_teacher_assignment}; a course with no assignment rows falls back
+	 * to {@code course.teacher_id}. A course co-taught with any teacher NOT in
+	 * the set stays visible; a course with no teacher at all stays visible.
+	 * Applied as one predicate inside the catalog query (pagination and
+	 * counts stay correct, no per-course lookups). Empty set = unrestricted.
+	 */
+	public static Specification<Course> visibleOnInstituteSite(java.util.Set<UUID> hiddenTeacherIds) {
+		if (hiddenTeacherIds == null || hiddenTeacherIds.isEmpty()) {
+			return Specification.unrestricted();
+		}
+		return (root, query, cb) -> {
+			var anyHidden = query.subquery(UUID.class);
+			var hiddenRow = anyHidden.from(CourseTeacherAssignment.class);
+			anyHidden.select(hiddenRow.get("courseId"));
+			anyHidden.where(cb.equal(hiddenRow.get("courseId"), root.get("id")),
+					cb.equal(hiddenRow.get("tenantId"), root.get("tenantId")),
+					hiddenRow.get("teacherId").in(hiddenTeacherIds));
+
+			var anyVisible = query.subquery(UUID.class);
+			var visibleRow = anyVisible.from(CourseTeacherAssignment.class);
+			anyVisible.select(visibleRow.get("courseId"));
+			anyVisible.where(cb.equal(visibleRow.get("courseId"), root.get("id")),
+					cb.equal(visibleRow.get("tenantId"), root.get("tenantId")),
+					cb.not(visibleRow.get("teacherId").in(hiddenTeacherIds)));
+
+			var anyAssignment = query.subquery(UUID.class);
+			var anyRow = anyAssignment.from(CourseTeacherAssignment.class);
+			anyAssignment.select(anyRow.get("courseId"));
+			anyAssignment.where(cb.equal(anyRow.get("courseId"), root.get("id")),
+					cb.equal(anyRow.get("tenantId"), root.get("tenantId")));
+
+			var hiddenByAssignments = cb.and(cb.exists(anyHidden), cb.not(cb.exists(anyVisible)));
+			var hiddenByPrimary = cb.and(cb.not(cb.exists(anyAssignment)), cb.isNotNull(root.get("teacherId")),
+					root.get("teacherId").in(hiddenTeacherIds));
+			return cb.not(cb.or(hiddenByAssignments, hiddenByPrimary));
+		};
+	}
+
+	/**
 	 * Wave 2: excludes archived courses ({@code archived_at IS NOT NULL},
 	 * V37) from a listing read unless {@code includeArchived} is {@code
 	 * true}, per {@link com.lms.coursemanagement.course.service.CourseListFilter}'s

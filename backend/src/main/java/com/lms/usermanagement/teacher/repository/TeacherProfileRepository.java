@@ -49,6 +49,15 @@ public interface TeacherProfileRepository extends TenantAwareRepository<TeacherP
 		return findOne((root, query, cb) -> cb.equal(root.get("userId"), userId));
 	}
 
+	/** ADR-037 decision 6 (amended): approved profiles of the given users, one query. */
+	default List<TeacherProfile> findApprovedByUserIdIn(java.util.Collection<UUID> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return List.of();
+		}
+		return findAll((root, query, cb) -> cb.and(root.get("userId").in(userIds),
+				cb.equal(root.get("approvalStatus"), ApprovalStatus.APPROVED)));
+	}
+
 	default List<TeacherProfile> findAllOrdered() {
 		return findAll(DISPLAY_ORDER);
 	}

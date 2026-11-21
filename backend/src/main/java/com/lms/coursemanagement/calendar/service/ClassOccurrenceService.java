@@ -195,8 +195,13 @@ public class ClassOccurrenceService implements ClassCalendarApi {
 		if (!publicEnabled) {
 			return new PublicToday(false, zone.getId(), now, today, List.of());
 		}
+		// ADR-037 decision 6 (amended 2026-11-21): the institute host's public
+		// home hides courses whose every teacher is on a storefront.
+		Set<UUID> hiddenTeachers = storefrontLookupApi == null ? Set.of()
+				: storefrontLookupApi.instituteHiddenTeacherIds();
 		List<Course> courses = courseRepository.findAll(CourseSpecifications.withStatus(CourseStatus.PUBLIC)
-			.and(CourseSpecifications.excludeArchivedUnless(false)));
+			.and(CourseSpecifications.excludeArchivedUnless(false))
+			.and(CourseSpecifications.visibleOnInstituteSite(hiddenTeachers)));
 		Map<UUID, String> primaryTeacher = publicTeacherNames(courses);
 		Map<UUID, List<String>> teacherNames = new HashMap<>();
 		primaryTeacher.forEach((courseId, name) -> teacherNames.put(courseId, List.of(name)));

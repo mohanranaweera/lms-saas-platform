@@ -16,14 +16,16 @@ import tools.jackson.databind.JsonNode;
 /**
  * STORE-01 / ADR-037: host resolution (unknown / disabled / retired / same
  * slug in two tenants), server-side catalog scoping on storefront hosts
- * (list, pagination, tags, detail, teachers, site-context) and unchanged
- * tenant-host behavior. Every request goes through the real {@code
+ * (list, pagination, tags, detail, teachers, site-context) and the tenant
+ * host hiding teachers on a storefront (ADR-037 decision 6, amended
+ * 2026-11-21 - both fixture teachers have one, so their courses leave the
+ * institute's public pages). Every request goes through the real {@code
  * TenantResolutionFilter} via the {@code Host} header.
  */
 class TeacherStorefrontCatalogIntegrationTest extends StorefrontTestSupport {
 
 	@Test
-	void eachStorefrontListsOnlyItsPublishedProductsWhileTheTenantSiteListsEverything() {
+	void eachStorefrontListsOnlyItsPublishedProductsWhileTheTenantSiteHidesTheirCourses() {
 		Fx fx = seed("sf-catalog");
 
 		List<String> alice = slugs(anonymousGet(fx.aliceHost(), "/api/v1/public/courses?size=50"));
@@ -33,8 +35,10 @@ class TeacherStorefrontCatalogIntegrationTest extends StorefrontTestSupport {
 		List<String> bob = slugs(anonymousGet(fx.bobHost(), "/api/v1/public/courses?size=50"));
 		assertThat(bob).containsExactlyInAnyOrder(fx.bobOnly().slug(), fx.sharedBoth().slug());
 
+		// ADR-037 decision 6 (amended): every fixture course is taught only by
+		// teachers on a storefront, so the institute's public catalog hides them.
 		List<String> tenant = slugs(anonymousGet(fx.host(), "/api/v1/public/courses?size=50"));
-		assertThat(tenant).contains(fx.aliceOnly().slug(), fx.bobOnly().slug(), fx.sharedAliceListed().slug(),
+		assertThat(tenant).doesNotContain(fx.aliceOnly().slug(), fx.bobOnly().slug(), fx.sharedAliceListed().slug(),
 				fx.sharedBoth().slug(), fx.aliceHidden().slug());
 
 		// Counts and pagination are computed on the scoped set.
@@ -54,9 +58,16 @@ class TeacherStorefrontCatalogIntegrationTest extends StorefrontTestSupport {
 			.isEqualTo(404);
 		assertThat(status(anonymousGet(fx.bobHost(), "/api/v1/public/courses/{slug}", fx.sharedBoth().slug())))
 			.isEqualTo(200);
-		// The tenant site keeps every public course.
-		assertThat(status(anonymousGet(fx.host(), "/api/v1/public/courses/{slug}", fx.aliceHidden().slug())))
-			.isEqualTo(200);
+		// The tenant site points to the one storefront selling a hidden course,
+		// and answers the generic 404 when none (or several) does.
+		MvcResult onAlice = anonymousGet(fx.host(), "/api/v1/public/courses/{slug}", fx.aliceOnly().slug());
+		assertThat(status(onAlice)).isEqualTo(404);
+		assertThat(errorCode(onAlice)).isEqualTo("COURSE_ON_STOREFRONT");
+		assertThat(json(onAlice).path("error").path("details").path("host").asString()).isEqualTo(fx.aliceHost());
+		assertThat(errorCode(anonymousGet(fx.host(), "/api/v1/public/courses/{slug}", fx.aliceHidden().slug())))
+			.isEqualTo("NOT_FOUND");
+		assertThat(errorCode(anonymousGet(fx.host(), "/api/v1/public/courses/{slug}", fx.sharedBoth().slug())))
+			.isEqualTo("NOT_FOUND");
 		assertThat(status(anonymousGet(fx.aliceHost(), "/api/v1/public/courses/tags"))).isEqualTo(200);
 	}
 
@@ -100,8 +111,13 @@ class TeacherStorefrontCatalogIntegrationTest extends StorefrontTestSupport {
 		UUID bobProfileId = jdbcTemplate.queryForObject("SELECT id FROM teacher_profile WHERE user_id = ?", UUID.class,
 				fx.bob().getId());
 		assertThat(status(anonymousGet(fx.aliceHost(), "/api/v1/public/teachers/{id}", bobProfileId))).isEqualTo(404);
+		// ADR-037 decision 6 (amended): both teachers have a storefront, so the
+		// institute directory hides them; disabling Bob's brings him back.
+		assertThat(status(anonymousGet(fx.host(), "/api/v1/public/teachers/{id}", bobProfileId))).isEqualTo(404);
+		assertThat(json(anonymousGet(fx.host(), "/api/v1/public/teachers")).path("data").path("content")).isEmpty();
+		assertOk(upsert(fx.host(), fx.adminToken(), fx.bob().getId(), "bob", false));
 		assertThat(status(anonymousGet(fx.host(), "/api/v1/public/teachers/{id}", bobProfileId))).isEqualTo(200);
-		assertThat(json(anonymousGet(fx.host(), "/api/v1/public/teachers")).path("data").path("content")).hasSize(2);
+		assertThat(json(anonymousGet(fx.host(), "/api/v1/public/teachers")).path("data").path("content")).hasSize(1);
 	}
 
 	@Test

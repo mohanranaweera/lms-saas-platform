@@ -32,6 +32,32 @@ public interface TeacherStorefrontLookupApi {
 	Optional<String> enabledStorefrontOrigin(UUID storefrontId, String urlTemplate);
 
 	/**
+	 * ADR-037 decision 6 (amended 2026-11-21): the tenant's teachers who are
+	 * "on a storefront" - their storefront is enabled AND they are live
+	 * (approved + ACTIVE, the same rule host resolution uses). A fixed number
+	 * of batched, tenant-scoped reads; never one lookup per teacher.
+	 */
+	Set<UUID> findTeachersOnStorefront();
+
+	/**
+	 * ADR-037 decision 6 (amended 2026-11-21): the teachers the institute
+	 * (tenant) host's PUBLIC pages hide - {@link #findTeachersOnStorefront()}
+	 * on a tenant host, always empty on a storefront host (which scopes by its
+	 * own product list instead). Only for public catalog/directory reads -
+	 * never checkout, the student portal, admin pages or access checks.
+	 */
+	default Set<UUID> instituteHiddenTeacherIds() {
+		return StorefrontContextHolder.isSet() ? Set.of() : findTeachersOnStorefront();
+	}
+
+	/**
+	 * The host of the single enabled, live storefront that publishes {@code
+	 * courseId}; empty when none or more than one does (callers then answer
+	 * with the generic 404).
+	 */
+	Optional<String> soleStorefrontHostPublishing(UUID courseId);
+
+	/**
 	 * ADR-037 decision 9 (amended): the published course ids of the current
 	 * request's storefront, or empty on a tenant host (no storefront context
 	 * = no filter). Student-portal LIST endpoints intersect with this; detail
