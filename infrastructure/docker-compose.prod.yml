@@ -57,6 +57,12 @@ services:
       # domains unavailable. Automatic TLS for custom domains is ADR-021 phase 2.
       PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
       CUSTOM_DOMAIN_CNAME_TARGET: ${CUSTOM_DOMAIN_CNAME_TARGET:-}
+      # INST-QR-01 (non-secret). Origin printed into every Institute QR
+      # (`{base}/connect/v1/{code}`): https, no path. Changing it later breaks
+      # QR codes already shared. Empty store URLs = "app not available yet".
+      INSTITUTE_CONNECTION_BASE_URL: ${INSTITUTE_CONNECTION_BASE_URL:-https://${PLATFORM_DOMAIN}}
+      INSTITUTE_CONNECTION_ANDROID_APP_URL: ${INSTITUTE_CONNECTION_ANDROID_APP_URL:-}
+      INSTITUTE_CONNECTION_IOS_APP_URL: ${INSTITUTE_CONNECTION_IOS_APP_URL:-}
     # Secrets (ADR-019 Decision 3) - each mounted at /run/secrets/<NAME>.
     secrets:
       - DB_PASSWORD

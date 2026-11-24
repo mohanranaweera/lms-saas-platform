@@ -148,7 +148,7 @@ Until those exist, scanning opens the web fallback page in the phone's browser.
 
 | Variable | Property | Default |
 |---|---|---|
-| `INSTITUTE_CONNECTION_BASE_URL` | `app.institute-connection.base-url` | empty (local: `http://lms.test:3000`) |
+| `INSTITUTE_CONNECTION_BASE_URL` | `app.institute-connection.base-url` | empty (local: `http://lms.test:3000`; `docker-compose.prod.yml`: `https://${PLATFORM_DOMAIN}`) |
 | — | `app.institute-connection.require-https` | `true` (local: `false`) |
 | `INSTITUTE_CONNECTION_ANDROID_APP_URL` | `app.institute-connection.android-app-url` | empty |
 | `INSTITUTE_CONNECTION_IOS_APP_URL` | `app.institute-connection.ios-app-url` | empty |
