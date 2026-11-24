@@ -101,8 +101,14 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 				// VIDEO Phase 8 / ADR-025 Amendment 1: the AOC Player calls one fixed
 				// API origin with no tenant host; the tenant comes from the consumed
 				// pairing/launch code row or the verified player token. Exact paths.
-				|| PLAYER_CARVE_OUTS.matcher(path).matches();
+				|| PLAYER_CARVE_OUTS.matcher(path).matches()
+				// INST-QR-01: served from the platform's connection origin, not a
+				// tenant host; the tenant comes only from the connection code.
+				|| INSTITUTE_CONNECTION.matcher(path).matches();
 	}
+
+	private static final java.util.regex.Pattern INSTITUTE_CONNECTION = java.util.regex.Pattern
+		.compile("^/api/v1/public/institute-connections/[^/]+$");
 
 	private static final java.util.regex.Pattern PLAYER_CARVE_OUTS = java.util.regex.Pattern.compile(
 			"^/api/v1/player/(pairings/complete|exchange|sessions/[0-9a-fA-F-]{36}/(heartbeat|end))$");

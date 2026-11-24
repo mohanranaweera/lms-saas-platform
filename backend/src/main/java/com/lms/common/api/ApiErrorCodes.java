@@ -209,6 +209,9 @@ public final class ApiErrorCodes {
 	/** TEN-DOM-01: the tenant already holds the maximum number of custom domains. */
 	public static final String CUSTOM_DOMAIN_LIMIT_REACHED = "CUSTOM_DOMAIN_LIMIT_REACHED";
 
+	/** INST-QR-01: app.institute-connection.base-url is not set, so no connection link can be built. */
+	public static final String INSTITUTE_CONNECTION_NOT_CONFIGURED = "INSTITUTE_CONNECTION_NOT_CONFIGURED";
+
 	/** Wave 10 - a login from a new device when the student's device slots are all taken (or cooling down). */
 	public static final String DEVICE_LIMIT_REACHED = "DEVICE_LIMIT_REACHED";
 

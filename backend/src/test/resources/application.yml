@@ -131,6 +131,8 @@ app:
     sandbox-enabled: true
   public:
     tenant-url-template: "http://{subdomain}.lms.test"
+  institute-connection:
+    base-url: "https://connect.lms.test"
   # TEN-DOM-01: tests use real verification against a stubbed DnsRecordLookup.
   custom-domains:
     platform-domain: "lms.test"

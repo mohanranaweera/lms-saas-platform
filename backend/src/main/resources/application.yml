@@ -244,6 +244,16 @@ app:
   # those emails fail closed (not sent). Non-secret (ADR-019 Decision 3).
   public:
     tenant-url-template: ${TENANT_URL_TEMPLATE:}
+  # INST-QR-01: Institute QR / connection links. base-url is a platform-owned
+  # https origin (no path) that serves /connect/v1/{code}; empty = the admin
+  # card says links aren't configured. The store URLs are OUR student app's
+  # store listings - leave empty until a release is published (the page then
+  # says the app isn't available yet). Non-secret (ADR-019 Decision 3).
+  institute-connection:
+    base-url: ${INSTITUTE_CONNECTION_BASE_URL:}
+    require-https: true
+    android-app-url: ${INSTITUTE_CONNECTION_ANDROID_APP_URL:}
+    ios-app-url: ${INSTITUTE_CONNECTION_IOS_APP_URL:}
   # TEN-DOM-01 / ADR-021 - tenant custom domains. Non-secret (ADR-019
   # Decision 3). Empty platform-domain = legacy subdomain parsing and no
   # custom-domain resolution; empty cname-target = custom domains unavailable.

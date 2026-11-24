@@ -80,6 +80,10 @@ app:
     sandbox-enabled: true
   public:
     tenant-url-template: ${TENANT_URL_TEMPLATE:http://{subdomain}.lms.test:3000}
+  # INST-QR-01: local platform origin for Institute QR links (http allowed locally only).
+  institute-connection:
+    base-url: ${INSTITUTE_CONNECTION_BASE_URL:http://lms.test:3000}
+    require-https: false
   # TEN-DOM-01: local custom domains. accept-all skips DNS, so any hostname
   # you map in the hosts file (e.g. learn.abc.test -> 127.0.0.1) verifies.
   custom-domains:
