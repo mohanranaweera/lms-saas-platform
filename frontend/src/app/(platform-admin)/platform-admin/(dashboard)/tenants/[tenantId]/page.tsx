@@ -13,6 +13,7 @@ import { StatusBadge } from "../status-badge";
 import { formatDateTime } from "@/lib/format";
 import { OnlinePaymentsCard } from "./online-payments-card";
 import { CustomDomainsCard } from "./custom-domains-card";
+import { PlatformInstituteConnectionSection } from "@/components/institute-connection/institute-connection-section";
 
 /**
  * Tenant Approval Detail (PADASH-1). `GET
@@ -137,6 +138,9 @@ export default function PlatformAdminTenantDetailPage() {
             <OnlinePaymentsCard tenantId={tenant.id} tenantName={tenant.name} />
 
             <CustomDomainsCard tenantId={tenant.id} tenantName={tenant.name} />
+
+            {/* INST-QR-01: keyed and verified by this page's tenant id. */}
+            <PlatformInstituteConnectionSection tenantId={tenant.id} tenantName={tenant.name} />
           </>
         )}
       </QueryStateBoundary>

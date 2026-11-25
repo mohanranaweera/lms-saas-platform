@@ -7,7 +7,8 @@ import { useStudents } from "@/lib/api/students";
 import { useLedgerDashboard } from "@/lib/api/ledger";
 import { useTenantCourseCounts } from "@/lib/api/tenant-overview";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canViewPaymentDashboard } from "@/lib/auth/permissions";
+import { canViewInstituteConfig, canViewPaymentDashboard } from "@/lib/auth/permissions";
+import { TenantInstituteConnectionSection } from "@/components/institute-connection/institute-connection-section";
 import { isCapabilityRole } from "@/lib/auth/capabilities";
 import { CapabilityRoleDashboard } from "./capability-role-dashboard";
 
@@ -137,6 +138,13 @@ function StaticRoleDashboard() {
           </QueryStateBoundary>
         ) : null}
       </div>
+
+      {/* INST-QR-01: same read permission as institute settings (backend re-checks). */}
+      {canViewInstituteConfig(role) ? (
+        <div className="max-w-4xl">
+          <TenantInstituteConnectionSection />
+        </div>
+      ) : null}
     </div>
   );
 }

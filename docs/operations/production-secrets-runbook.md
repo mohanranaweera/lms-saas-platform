@@ -71,7 +71,17 @@ POSTGRES_USER=lms_app
 ZOOM_OAUTH_CLIENT_ID=...          # client IDs are not secret
 GOOGLE_OAUTH_CLIENT_ID=...       # optional since VIDEO Phase 5c - see below
 VIMEO_OAUTH_CLIENT_ID=...
+# INSTITUTE_CONNECTION_BASE_URL=https://example.com   # optional, defaults to https://${PLATFORM_DOMAIN}
+# INSTITUTE_CONNECTION_ANDROID_APP_URL=https://...    # only once our student app is published
+# INSTITUTE_CONNECTION_IOS_APP_URL=https://...
 ```
+
+> **Institute QR (INST-QR-01).** `INSTITUTE_CONNECTION_BASE_URL` is the address printed into every
+> Institute QR (`{base}/connect/v1/{code}`). It is not a secret. It must be an `https` origin with no
+> path; a malformed value makes the backend refuse to start, while an empty value only turns the
+> feature off. Pick it once: changing it later breaks every QR already printed or shared. That host
+> must serve `/connect/...` from the frontend and `/api/...` from the backend. Contract:
+> `docs/api/institute-connection.md`.
 
 > **Google OAuth app (VIDEO Phase 5c).** The Google client id / secret can instead be entered by
 > a Platform Admin under **Platform Admin → Integrations** (stored encrypted with

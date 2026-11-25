@@ -147,6 +147,11 @@ public class SecurityFilterChainConfig {
 				// STORE-01 / ADR-037: which site (tenant or teacher storefront) this
 				// host is - both resolved from the host by TenantResolutionFilter.
 				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/site-context").permitAll();
+				// INST-QR-01: Institute QR resolver - the tenant comes only from the
+				// public connection code (excluded from TenantResolutionFilter);
+				// allowlisted public fields, no session. See
+				// PublicInstituteConnectionController.
+				authorize.requestMatchers(HttpMethod.GET, "/api/v1/public/institute-connections/*").permitAll();
 				// Public, unauthenticated branding read path (Wave 1 - Tenant
 				// Admin IA + Configuration Framework) - tenant is still
 				// resolved server-side from the subdomain by

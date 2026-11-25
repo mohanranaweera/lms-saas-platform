@@ -73,3 +73,6 @@ Domain contract files, in the order they landed:
 - `live-class-management.md` — updated for MEDIA-INT-01: host checks and new `PROVIDER_*` 409s on
   scheduling, "Recreate meeting" via `retry-provisioning`, host start / registrant join links,
   Zoom recordings deferred, `hostConnectionStatus`.
+- `institute-connection.md` — INST-QR-01 (tenant-management endpoint group): Institute QR
+  admin views, the public connection resolver, the `/connect/v1/{code}` URL format and the
+  mobile-app handoff.

@@ -37,6 +37,9 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
 
 	boolean existsBySubdomain(String subdomain);
 
+	/** INST-QR-01: the public connection resolver's only lookup (platform-level, like findBySubdomain). */
+	Optional<Tenant> findByConnectionCode(String connectionCode);
+
 	Page<Tenant> findByStatus(TenantStatus status, Pageable pageable);
 
 	/**
