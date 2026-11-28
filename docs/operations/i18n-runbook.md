@@ -1,7 +1,7 @@
 # I18n Runbook (I18N-01)
 
 Design and contracts: `docs/architecture/i18n-translation-management.md`.
-All commands run from the repository root with Node 24. Add
+All commands run from the repository root with Node 26. Add
 `--disable-warning=MODULE_TYPELESS_PACKAGE_JSON` to silence Node's notice about
 running the shared `icu.ts` file.
 

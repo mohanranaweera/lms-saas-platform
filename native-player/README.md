@@ -81,7 +81,7 @@ the whole frame is shown letterboxed (never cropped). The window opens centred.
 
 ## Develop
 
-Prerequisites (Windows): Node 24, Rust stable (MSVC toolchain, `rustup`), Visual Studio 2022 with
+Prerequisites (Windows): Node 26, Rust stable (MSVC toolchain, `rustup`), Visual Studio 2022 with
 **MSVC v143 C++ x64/x86 build tools** and a Windows SDK, and WebView2 (built into Windows 11).
 
 ```powershell

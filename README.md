@@ -22,7 +22,7 @@ A white-label, multi-tenant LMS and institute management platform.
 
 - Java 21
 - Maven 3.9.16
-- Node.js 24.18.0
+- Node.js 26.13.1
 - Docker Desktop
 - Claude Code
 

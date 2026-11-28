@@ -127,7 +127,7 @@ msgstr "{count, plural, one {පාඨමාලා #} other {පාඨමාල�
 
 ### 3.4 Tooling
 
-`node scripts/i18n/catalog.mjs <command>` (Node 24, no dependencies):
+`node scripts/i18n/catalog.mjs <command>` (Node 26, no dependencies):
 
 - `extract` — scan frontend/backend code for literal `t("…")`/`msg("…")` keys, verify
   each is registered, write `i18n/messages.pot`, merge into every `i18n/po/*.po`.
